@@ -1,0 +1,13 @@
+# Go build artifacts
+bin/
+*.test
+*.out
+coverage.out
+
+# Local env files
+.env
+.env.local
+
+# IDE
+.idea/
+.vscode/

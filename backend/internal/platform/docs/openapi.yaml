@@ -1,0 +1,1489 @@
+openapi: 3.1.0
+info:
+  title: Verified Dating Gateway API
+  version: 1.0.0
+  description: |
+    Mobile-facing API exposed by API Gateway + Mobile BFF.
+servers:
+  - url: http://localhost:8080
+paths:
+  /healthz:
+    get:
+      summary: Gateway health
+      responses:
+        '200':
+          description: OK
+  /metrics:
+    get:
+      summary: Prometheus metrics
+      responses:
+        '200':
+          description: Metrics payload
+  /v1/auth/send-otp:
+    post:
+      summary: Send OTP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+      responses:
+        '200':
+          description: OTP accepted
+  /v1/auth/verify-otp:
+    post:
+      summary: Verify OTP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, otp]
+              properties:
+                email:
+                  type: string
+                otp:
+                  type: string
+      responses:
+        '200':
+          description: Verification result
+  /v1/discovery/{userID}:
+    get:
+      summary: Get discovery candidates
+      parameters:
+        - in: path
+          name: userID
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: Candidate list
+  /v1/swipe:
+    post:
+      summary: Swipe target profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id, target_user_id, is_like]
+              properties:
+                user_id:
+                  type: string
+                target_user_id:
+                  type: string
+                is_like:
+                  type: boolean
+      responses:
+        '200':
+          description: Swipe accepted
+  /v1/matches/{userID}:
+    get:
+      summary: List matches
+      parameters:
+        - in: path
+          name: userID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Match list
+  /v1/matches/{matchID}:
+    delete:
+      summary: Unmatch
+      parameters:
+        - in: path
+          name: matchID
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: user_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Unmatch result
+  /v1/matches/{matchID}/read:
+    post:
+      summary: Mark messages as read
+      parameters:
+        - in: path
+          name: matchID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id]
+              properties:
+                user_id:
+                  type: string
+      responses:
+        '200':
+          description: Read status updated
+  /v1/profile/{userID}:
+    get:
+      summary: Get profile
+      parameters:
+        - in: path
+          name: userID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Profile payload
+    put:
+      summary: Upsert profile
+      parameters:
+        - in: path
+          name: userID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                profile:
+                  type: object
+      responses:
+        '200':
+          description: Upsert result
+  /v1/profile/{userID}/summary:
+    get:
+      summary: Get profile summary and counters
+      parameters:
+        - in: path
+          name: userID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Profile summary
+  /v1/profile/{userID}/draft:
+    get:
+      summary: Get mutable profile draft
+      parameters:
+        - in: path
+          name: userID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Profile draft payload
+    patch:
+      summary: Patch mutable profile draft
+      parameters:
+        - in: path
+          name: userID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Updated profile draft
+  /v1/profile/{userID}/photos:
+    post:
+      summary: Add profile photo metadata
+      parameters:
+        - in: path
+          name: userID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                photo_url:
+                  type: string
+      responses:
+        '200':
+          description: Updated profile draft
+  /v1/profile/{userID}/photos/{photoID}:
+    delete:
+      summary: Delete profile photo metadata
+      parameters:
+        - in: path
+          name: userID
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: photoID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Updated profile draft
+  /v1/profile/{userID}/photos/reorder:
+    post:
+      summary: Reorder profile photos
+      parameters:
+        - in: path
+          name: userID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [photo_ids]
+              properties:
+                photo_ids:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Updated profile draft
+  /v1/profile/{userID}/complete:
+    post:
+      summary: Complete profile setup validation
+      parameters:
+        - in: path
+          name: userID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Profile completion accepted
+  /v1/settings/{userID}:
+    get:
+      summary: Get user settings
+      parameters:
+        - in: path
+          name: userID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User settings payload
+    patch:
+      summary: Patch user settings
+      parameters:
+        - in: path
+          name: userID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: User settings payload
+  /v1/emergency-contacts/{userID}:
+    get:
+      summary: List emergency contacts
+      parameters:
+        - in: path
+          name: userID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Contact list
+    post:
+      summary: Add emergency contact
+      parameters:
+        - in: path
+          name: userID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, phone_number]
+              properties:
+                name:
+                  type: string
+                phone_number:
+                  type: string
+      responses:
+        '200':
+          description: Contact list
+  /v1/emergency-contacts/{userID}/{contactID}:
+    put:
+      summary: Update emergency contact
+      parameters:
+        - in: path
+          name: userID
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: contactID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, phone_number]
+              properties:
+                name:
+                  type: string
+                phone_number:
+                  type: string
+      responses:
+        '200':
+          description: Contact list
+    delete:
+      summary: Delete emergency contact
+      parameters:
+        - in: path
+          name: userID
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: contactID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Contact list
+  /v1/blocked-users/{userID}:
+    get:
+      summary: List blocked users
+      parameters:
+        - in: path
+          name: userID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Blocked user list
+  /v1/verification/{userID}:
+    get:
+      summary: Get verification state
+      parameters:
+        - in: path
+          name: userID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Verification state
+  /v1/verification/{userID}/submit:
+    post:
+      summary: Submit verification payload references
+      parameters:
+        - in: path
+          name: userID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Verification accepted
+  /v1/chat/{matchID}/messages:
+    get:
+      summary: List chat messages
+      parameters:
+        - in: path
+          name: matchID
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Message list
+    post:
+      summary: Send chat message
+      parameters:
+        - in: path
+          name: matchID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sender_id, text]
+              properties:
+                sender_id:
+                  type: string
+                text:
+                  type: string
+      responses:
+        '200':
+          description: Message created
+        '423':
+          description: Chat is locked pending engagement requirement completion
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatLockedErrorResponse'
+              examples:
+                chatLocked:
+                  value:
+                    success: false
+                    error: chat is locked until quest requirement is completed
+                    error_code: CHAT_LOCKED_REQUIREMENT_PENDING
+                    match_id: m_123
+                    unlock_state: quest_pending
+                    unlock_policy_variant: require_quest_template
+                    correlation_id: req-abc-123
+  /v1/matches/{matchID}/unlock-state:
+    get:
+      summary: Get match unlock state
+      parameters:
+        - in: path
+          name: matchID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Unlock status payload
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [match_id, unlock_state, has_requirement, chat_unlocked, unlock_policy_variant]
+                properties:
+                  match_id:
+                    type: string
+                  unlock_state:
+                    type: string
+                  has_requirement:
+                    type: boolean
+                  chat_unlocked:
+                    type: boolean
+                  unlock_policy_variant:
+                    type: string
+                    enum: [allow_without_template, require_quest_template]
+  /v1/matches/{matchID}/quest-template:
+    get:
+      summary: Get match quest template
+      parameters:
+        - in: path
+          name: matchID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Quest template payload
+    put:
+      summary: Upsert match quest template
+      parameters:
+        - in: path
+          name: matchID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                creator_user_id:
+                  type: string
+                prompt_text:
+                  type: string
+                min_chars:
+                  type: integer
+                max_chars:
+                  type: integer
+      responses:
+        '200':
+          description: Upserted quest template
+  /v1/matches/{matchID}/unlock-requirements:
+    post:
+      summary: Alias for quest template upsert (compatibility)
+      parameters:
+        - in: path
+          name: matchID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                creator_user_id:
+                  type: string
+                prompt_text:
+                  type: string
+                min_chars:
+                  type: integer
+                max_chars:
+                  type: integer
+      responses:
+        '200':
+          description: Upserted quest template
+  /v1/matches/{matchID}/quests:
+    get:
+      summary: Alias for quest workflow fetch (compatibility)
+      parameters:
+        - in: path
+          name: matchID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Quest workflow payload
+  /v1/matches/{matchID}/quest-workflow:
+    get:
+      summary: Get match quest workflow status
+      parameters:
+        - in: path
+          name: matchID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Quest workflow payload
+  /v1/matches/{matchID}/quest-workflow/submit:
+    post:
+      summary: Submit quest response for review
+      parameters:
+        - in: path
+          name: matchID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [submitter_user_id, response_text]
+              properties:
+                submitter_user_id:
+                  type: string
+                response_text:
+                  type: string
+      responses:
+        '200':
+          description: Quest submission accepted
+  /v1/matches/{matchID}/quests/submit:
+    post:
+      summary: Alias for quest workflow submit (compatibility)
+      parameters:
+        - in: path
+          name: matchID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [submitter_user_id, response_text]
+              properties:
+                submitter_user_id:
+                  type: string
+                response_text:
+                  type: string
+      responses:
+        '200':
+          description: Quest submission accepted
+  /v1/matches/{matchID}/quests/{submissionID}/review:
+    post:
+      summary: Alias for quest workflow review (compatibility)
+      parameters:
+        - in: path
+          name: matchID
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: submissionID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reviewer_user_id, decision_status]
+              properties:
+                reviewer_user_id:
+                  type: string
+                decision_status:
+                  type: string
+                  enum: [approved, rejected]
+                review_reason:
+                  type: string
+      responses:
+        '200':
+          description: Quest review persisted
+  /v1/matches/{matchID}/quest-workflow/review:
+    post:
+      summary: Review quest submission
+      parameters:
+        - in: path
+          name: matchID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reviewer_user_id, decision_status]
+              properties:
+                reviewer_user_id:
+                  type: string
+                decision_status:
+                  type: string
+                  enum: [approved, rejected]
+                review_reason:
+                  type: string
+      responses:
+        '200':
+          description: Quest review persisted
+  /v1/matches/{matchID}/timeline:
+    get:
+      summary: List match engagement timeline
+      parameters:
+        - in: path
+          name: matchID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Timeline entries
+  /v1/matches/{matchID}/gestures:
+    get:
+      summary: Alias for engagement timeline listing (compatibility)
+      parameters:
+        - in: path
+          name: matchID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Timeline-style gesture listing
+    post:
+      summary: Create digital gesture
+      parameters:
+        - in: path
+          name: matchID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sender_user_id, receiver_user_id, gesture_type, content_text]
+              properties:
+                sender_user_id:
+                  type: string
+                receiver_user_id:
+                  type: string
+                gesture_type:
+                  type: string
+                content_text:
+                  type: string
+                tone:
+                  type: string
+      responses:
+        '200':
+          description: Gesture created
+  /v1/matches/{matchID}/gestures/{gestureID}/decision:
+    post:
+      summary: Decide digital gesture
+      parameters:
+        - in: path
+          name: matchID
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: gestureID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reviewer_user_id, decision]
+              properties:
+                reviewer_user_id:
+                  type: string
+                decision:
+                  type: string
+                  enum: [appreciate, request_better, decline]
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: Gesture decision persisted
+  /v1/matches/{matchID}/gestures/{gestureID}/respond:
+    post:
+      summary: Alias for gesture decision endpoint (compatibility)
+      parameters:
+        - in: path
+          name: matchID
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: gestureID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reviewer_user_id, decision]
+              properties:
+                reviewer_user_id:
+                  type: string
+                decision:
+                  type: string
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: Gesture decision persisted
+  /v1/matches/{matchID}/gestures/{gestureID}/score:
+    get:
+      summary: Get gesture quality score
+      parameters:
+        - in: path
+          name: matchID
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: gestureID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Gesture score payload
+  /v1/matches/{matchID}/activities/start:
+    post:
+      summary: Alias for activity session start (compatibility)
+      parameters:
+        - in: path
+          name: matchID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [match_id, initiator_user_id, participant_user_id]
+              properties:
+                match_id:
+                  type: string
+                initiator_user_id:
+                  type: string
+                participant_user_id:
+                  type: string
+                activity_type:
+                  type: string
+      responses:
+        '200':
+          description: Activity session started
+  /v1/activities/sessions/start:
+    post:
+      summary: Start co-op activity session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [match_id, initiator_user_id, participant_user_id]
+              properties:
+                match_id:
+                  type: string
+                initiator_user_id:
+                  type: string
+                participant_user_id:
+                  type: string
+                activity_type:
+                  type: string
+      responses:
+        '200':
+          description: Activity session started
+  /v1/activities/sessions/{sessionID}/submit:
+    post:
+      summary: Submit activity session response
+      parameters:
+        - in: path
+          name: sessionID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id, responses]
+              properties:
+                user_id:
+                  type: string
+                responses:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Activity response accepted
+  /v1/activities/{sessionID}/responses:
+    post:
+      summary: Alias for activity response submit (compatibility)
+      parameters:
+        - in: path
+          name: sessionID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id, responses]
+              properties:
+                user_id:
+                  type: string
+                responses:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Activity response accepted
+  /v1/activities/sessions/{sessionID}/summary:
+    get:
+      summary: Get activity session compatibility summary
+      parameters:
+        - in: path
+          name: sessionID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Activity summary payload
+  /v1/activities/{sessionID}/summary:
+    get:
+      summary: Alias for activity summary fetch (compatibility)
+      parameters:
+        - in: path
+          name: sessionID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Activity summary payload
+  /v1/users/{userID}/trust-badges:
+    get:
+      summary: Get user trust badges
+      parameters:
+        - in: path
+          name: userID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Trust badges payload
+  /v1/rooms:
+    get:
+      summary: List weekly conversation rooms
+      responses:
+        '200':
+          description: Room list
+  /v1/rooms/{roomID}/join:
+    post:
+      summary: Join conversation room
+      parameters:
+        - in: path
+          name: roomID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id]
+              properties:
+                user_id:
+                  type: string
+      responses:
+        '200':
+          description: Room join accepted
+  /v1/rooms/{roomID}/leave:
+    post:
+      summary: Leave conversation room
+      parameters:
+        - in: path
+          name: roomID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id]
+              properties:
+                user_id:
+                  type: string
+      responses:
+        '200':
+          description: Room leave accepted
+  /v1/rooms/{roomID}/moderate:
+    post:
+      summary: Moderate conversation room participant
+      parameters:
+        - in: path
+          name: roomID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [moderator_id, target_user_id, action]
+              properties:
+                moderator_id:
+                  type: string
+                target_user_id:
+                  type: string
+                action:
+                  type: string
+      responses:
+        '200':
+          description: Moderation action accepted
+  /v1/billing/plans:
+    get:
+      summary: List billing subscription plans
+      responses:
+        '200':
+          description: Billing plans payload with coexistence matrix
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  plans:
+                    type: array
+                    items:
+                      type: object
+                  coexistence_matrix:
+                    $ref: '#/components/schemas/BillingCoexistenceMatrix'
+  /v1/billing/coexistence-matrix:
+    get:
+      summary: Get monetization coexistence matrix
+      responses:
+        '200':
+          description: Coexistence matrix payload
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [coexistence_matrix]
+                properties:
+                  coexistence_matrix:
+                    $ref: '#/components/schemas/BillingCoexistenceMatrix'
+  /v1/billing/subscription/{userID}:
+    get:
+      summary: Get user billing subscription
+      parameters:
+        - in: path
+          name: userID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User subscription payload
+  /v1/billing/subscribe:
+    post:
+      summary: Subscribe user to billing plan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id, plan_id]
+              properties:
+                user_id:
+                  type: string
+                plan_id:
+                  type: string
+                billing_cycle:
+                  type: string
+      responses:
+        '200':
+          description: Billing subscription accepted
+  /v1/billing/payments/{userID}:
+    get:
+      summary: List user billing payments
+      parameters:
+        - in: path
+          name: userID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User payment list payload
+  /v1/safety/report:
+    post:
+      summary: Report user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reported_user_id, reason]
+              properties:
+                reported_user_id:
+                  type: string
+                reason:
+                  type: string
+                description:
+                  type: string
+      responses:
+        '200':
+          description: Report accepted
+  /v1/moderation/appeals:
+    get:
+      summary: List moderation appeals for current user
+      parameters:
+        - in: query
+          name: user_id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: status
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+      responses:
+        '200':
+          description: Appeal list payload for user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  appeals:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ModerationAppeal'
+    post:
+      summary: Submit moderation appeal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id, reason]
+              properties:
+                user_id:
+                  type: string
+                report_id:
+                  type: string
+                reason:
+                  type: string
+                description:
+                  type: string
+      responses:
+        '200':
+          description: Appeal accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  appeal:
+                    $ref: '#/components/schemas/ModerationAppeal'
+  /v1/moderation/appeals/{appealID}:
+    get:
+      summary: Get moderation appeal status
+      parameters:
+        - in: path
+          name: appealID
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: user_id
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Appeal status payload
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  status:
+                    type: string
+                  appeal:
+                    $ref: '#/components/schemas/ModerationAppeal'
+  /v1/admin/moderation/appeals:
+    get:
+      summary: List moderation appeals for admin review
+      parameters:
+        - in: query
+          name: status
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+      responses:
+        '200':
+          description: Appeal list payload
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  appeals:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ModerationAppeal'
+  /v1/admin/moderation/appeals/{appealID}/action:
+    post:
+      summary: Review or resolve moderation appeal
+      parameters:
+        - in: path
+          name: appealID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [submitted, under_review, resolved_upheld, resolved_reversed]
+                resolution_reason:
+                  type: string
+      responses:
+        '200':
+          description: Appeal action accepted
+  /v1/admin/analytics/overview:
+    get:
+      summary: Get admin analytics overview with engagement KPIs
+      responses:
+        '200':
+          description: Analytics overview payload
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  metrics:
+                    type: object
+                    properties:
+                      dashboard_panels:
+                        type: array
+                        items:
+                          type: string
+                      event_taxonomy:
+                        type: object
+                        properties:
+                          version:
+                            type: string
+                          events:
+                            type: array
+                            items:
+                              type: object
+                      data_quality_checks:
+                        type: object
+  /v1/safety/block:
+    post:
+      summary: Block user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id, blocked_user_id]
+              properties:
+                user_id:
+                  type: string
+                blocked_user_id:
+                  type: string
+      responses:
+        '200':
+          description: Block accepted
+  /v1/safety/unblock:
+    post:
+      summary: Unblock user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id, blocked_user_id]
+              properties:
+                user_id:
+                  type: string
+                blocked_user_id:
+                  type: string
+      responses:
+        '200':
+          description: Unblock accepted
+
+components:
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [success, error, error_code]
+      properties:
+        success:
+          type: boolean
+          enum: [false]
+        error:
+          type: string
+        error_code:
+          type: string
+        correlation_id:
+          type: string
+    ChatLockedErrorResponse:
+      allOf:
+        - $ref: '#/components/schemas/ErrorResponse'
+        - type: object
+          required: [match_id, unlock_state]
+          properties:
+            error_code:
+              type: string
+              enum: [CHAT_LOCKED_REQUIREMENT_PENDING]
+            match_id:
+              type: string
+            unlock_state:
+              type: string
+            unlock_policy_variant:
+              type: string
+              enum: [allow_without_template, require_quest_template]
+    BillingCoexistenceMatrix:
+      type: object
+      required:
+        - matrix_version
+        - core_progression_non_blocking
+        - core_progression_features
+        - monetized_features
+      properties:
+        matrix_version:
+          type: string
+        core_progression_non_blocking:
+          type: boolean
+        core_progression_features:
+          type: array
+          items:
+            type: string
+        monetized_features:
+          type: array
+          items:
+            type: object
+            required:
+              - feature_code
+              - category
+              - access
+              - requires_subscription
+              - blocks_core_progression
+            properties:
+              feature_code:
+                type: string
+              category:
+                type: string
+              access:
+                type: string
+              requires_subscription:
+                type: boolean
+              blocks_core_progression:
+                type: boolean
+              description:
+                type: string
+    ModerationAppeal:
+      type: object
+      required:
+        - id
+        - user_id
+        - reason
+        - status
+        - sla_deadline_at
+        - notification_policy
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+        user_id:
+          type: string
+        report_id:
+          type: string
+        reason:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [submitted, under_review, resolved_upheld, resolved_reversed]
+        resolution_reason:
+          type: string
+        reviewed_by:
+          type: string
+        reviewed_at:
+          type: string
+          format: date-time
+        sla_deadline_at:
+          type: string
+          format: date-time
+        notification_policy:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time

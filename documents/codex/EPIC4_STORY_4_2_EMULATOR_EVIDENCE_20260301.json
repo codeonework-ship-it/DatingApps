@@ -1,0 +1,44 @@
+{
+  "story": "Epic 4 Story 4.2",
+  "date": "2026-03-01",
+  "mode": "android_emulator_mock_auth",
+  "device": {
+    "id": "emulator-5554",
+    "name": "sdk gphone64 arm64",
+    "platform": "Android 16 (API 36)"
+  },
+  "artifacts_dir": "documents/codex/artifacts/story_4_2_emulator",
+  "screenshots": [
+    "documents/codex/artifacts/story_4_2_emulator/01_discover_after_auth.png",
+    "documents/codex/artifacts/story_4_2_emulator/02_matches_tab.png",
+    "documents/codex/artifacts/story_4_2_emulator/03_chat_screen.png",
+    "documents/codex/artifacts/story_4_2_emulator/04_activity_screen_loaded.png",
+    "documents/codex/artifacts/story_4_2_emulator/05_activity_after_submit.png",
+    "documents/codex/artifacts/story_4_2_emulator/06_activity_summary_visible.png",
+    "documents/codex/artifacts/story_4_2_emulator/07_activity_refreshed_for_timeout.png",
+    "documents/codex/artifacts/story_4_2_emulator/08_activity_timeout_state.png"
+  ],
+  "ui_assertions": {
+    "activity_entry_cta_present": "3-Min Activity",
+    "question_interfaces_present": [
+      "This or That",
+      "Value Match",
+      "Scenario Choice"
+    ],
+    "completion_summary_visible": [
+      "Activity Summary",
+      "Status: completed",
+      "Participants completed: 2/2",
+      "Both participants completed the activity session."
+    ],
+    "timer_state_observed": [
+      "Time left 02:56",
+      "Time left 00:00"
+    ]
+  },
+  "notes": [
+    "Flow executed with USE_MOCK_AUTH=true to remove OTP/backend variability.",
+    "Completion path and summary visibility were validated on-device.",
+    "Timeout timer reaching 00:00 was captured; status remained completed in this mock run state."
+  ]
+}

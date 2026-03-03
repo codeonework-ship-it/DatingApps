@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package bff.v1;
+
+option go_package = "github.com/verified-dating/backend/gen/bff/v1;bffv1";
+
+message Empty {}
+
+service MobileBffService {
+  rpc Health(Empty) returns (Empty);
+}

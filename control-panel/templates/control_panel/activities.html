@@ -1,0 +1,42 @@
+{% extends "control_panel/base.html" %}
+
+{% block content %}
+<section class="card">
+    <h2>Activity Feed</h2>
+    <form class="inline-form" method="get">
+        <label for="limit">Limit</label>
+        <input id="limit" type="number" name="limit" value="{{ limit }}" min="1" max="1000">
+        <button type="submit">Refresh</button>
+    </form>
+
+    {% if error %}<p class="error">{{ error }}</p>{% endif %}
+
+    <table>
+        <thead>
+        <tr>
+            <th>Time</th>
+            <th>Action</th>
+            <th>Status</th>
+            <th>User</th>
+            <th>Actor</th>
+            <th>Resource</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for item in activities %}
+            <tr>
+                <td>{{ item.created_at }}</td>
+                <td>{{ item.action }}</td>
+                <td>{{ item.status }}</td>
+                <td>{{ item.user_id|default:"-" }}</td>
+                <td>{{ item.actor|default:"-" }}</td>
+                <td>{{ item.resource|default:"-" }}</td>
+            </tr>
+        {% empty %}
+            <tr><td colspan="6">No activity data available.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endblock %}
+

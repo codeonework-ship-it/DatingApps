@@ -1,0 +1,144 @@
+body {
+    font-family: "Segoe UI", Tahoma, sans-serif;
+    margin: 0;
+    background: #f4f7fc;
+    color: #1f2a37;
+}
+
+.top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(135deg, #15427e, #0d7488);
+    color: white;
+    padding: 18px 24px;
+}
+
+.top-bar h1 {
+    margin: 0;
+    font-size: 24px;
+}
+
+.top-bar p {
+    margin: 4px 0 0 0;
+    opacity: 0.9;
+}
+
+.top-bar nav a {
+    color: white;
+    text-decoration: none;
+    margin-left: 16px;
+    font-weight: 600;
+}
+
+main {
+    padding: 20px;
+}
+
+.grid.two {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.card {
+    background: white;
+    border-radius: 14px;
+    box-shadow: 0 10px 24px rgba(4, 23, 51, 0.08);
+    padding: 16px;
+}
+
+.alerts {
+    margin-bottom: 12px;
+}
+
+.alert {
+    padding: 10px 12px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+}
+
+.alert.success {
+    background: #e7f8ef;
+    color: #0b6d3d;
+}
+
+.alert.error {
+    background: #fde9ec;
+    color: #981b2e;
+}
+
+.inline-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 14px;
+}
+
+input,
+select,
+button {
+    border: 1px solid #d3dceb;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 14px;
+}
+
+button {
+    background: #1a4f8f;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #123d70;
+}
+
+.btn.approve {
+    background: #177245;
+}
+
+.btn.reject {
+    background: #a11f32;
+}
+
+.reject-form {
+    margin-top: 8px;
+    display: flex;
+    gap: 8px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th,
+td {
+    border-bottom: 1px solid #edf1f7;
+    text-align: left;
+    padding: 10px 8px;
+    vertical-align: top;
+}
+
+th {
+    color: #476180;
+    font-weight: 600;
+}
+
+.error {
+    color: #a11f32;
+}
+
+pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    background: #f8fafc;
+    border-radius: 8px;
+    padding: 10px;
+}
+

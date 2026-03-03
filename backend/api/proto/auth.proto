@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package auth.v1;
+
+option go_package = "github.com/verified-dating/backend/gen/auth/v1;authv1";
+
+message SendOtpRequest {
+  string phone = 1;
+}
+
+message SendOtpResponse {
+  bool accepted = 1;
+  string correlation_id = 2;
+}
+
+message VerifyOtpRequest {
+  string phone = 1;
+  string otp = 2;
+}
+
+message VerifyOtpResponse {
+  bool success = 1;
+  string access_token = 2;
+  string refresh_token = 3;
+  string user_id = 4;
+}
+
+service AuthService {
+  rpc SendOtp(SendOtpRequest) returns (SendOtpResponse);
+  rpc VerifyOtp(VerifyOtpRequest) returns (VerifyOtpResponse);
+}

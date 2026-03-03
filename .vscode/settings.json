@@ -1,0 +1,52 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^cd /Users/anandsadasivan/Documents/Workspaces/Development/GitHub/Dating\\\\ apps/verified_dating_app && flutter pub get$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^cd /Users/anandsadasivan/Documents/Workspaces/Development/GitHub/Dating\\\\ apps/verified_dating_app && flutter analyze lib/design/design\\.dart 2>&1 \\| head -50$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^cd /Users/anandsadasivan/Documents/Workspaces/Development/GitHub/Dating\\\\ apps/verified_dating_app && flutter pub get && flutter analyze 2>&1 \\| tail -20$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^cd /Users/anandsadasivan/Documents/Workspaces/Development/GitHub/Dating\\\\ apps/verified_dining_app && flutter analyze 2>&1 \\| grep -E \"\\(error\\|Error\\|ERROR\\)\" \\| head -5$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^cd /Users/anandsadasivan/Documents/Workspaces/Development/GitHub/Dating\\\\ apps/verified_dating_app && flutter analyze 2>&1 \\| grep -E \"\\^\\(error\\|Error\\)\" \\| head -5$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^cd /Users/anandsadasivan/Documents/Workspaces/Development/GitHub/Dating\\\\ apps/verified_dating_app && flutter analyze lib/design/ 2>&1 \\| tail -5$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^cd \"/Users/anandsadasivan/Documents/Workspaces/Development/GitHub/Dating apps/verified_dating_app\" && flutter run$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^cd \"/Users/anandsadasivan/Documents/Workspaces/Development/GitHub/Dating apps/app\" && \\\\\nflutter pub get 2>&1 \\| tail -20$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^cd \"\\./app\" && flutter pub get$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^flutter pub get$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^flutter analyze$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^cd '/Users/anandsadasivan/Documents/Workspaces/Development/GitHub/Dating apps/app' && flutter run -d chrome$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

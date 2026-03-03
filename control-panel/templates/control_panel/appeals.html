@@ -1,0 +1,62 @@
+{% extends "control_panel/base.html" %}
+
+{% block content %}
+<section class="card">
+    <h2>Moderation Appeals Queue</h2>
+    <form class="inline-form" method="get">
+        <label for="status">Status</label>
+        <select id="status" name="status">
+            <option value="" {% if not status_filter %}selected{% endif %}>All</option>
+            <option value="submitted" {% if status_filter == "submitted" %}selected{% endif %}>Submitted</option>
+            <option value="under_review" {% if status_filter == "under_review" %}selected{% endif %}>Under Review</option>
+            <option value="resolved_upheld" {% if status_filter == "resolved_upheld" %}selected{% endif %}>Resolved Upheld</option>
+            <option value="resolved_reversed" {% if status_filter == "resolved_reversed" %}selected{% endif %}>Resolved Reversed</option>
+        </select>
+        <label for="limit">Limit</label>
+        <input id="limit" type="number" name="limit" value="{{ limit }}" min="1" max="500">
+        <button type="submit">Apply</button>
+    </form>
+
+    {% if error %}<p class="error">{{ error }}</p>{% endif %}
+
+    <table>
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>User</th>
+            <th>Status</th>
+            <th>Reason</th>
+            <th>SLA</th>
+            <th>Reviewed By</th>
+            <th>Action</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for item in appeals %}
+            <tr>
+                <td>{{ item.id }}</td>
+                <td>{{ item.user_id }}</td>
+                <td>{{ item.status }}</td>
+                <td>{{ item.reason }}</td>
+                <td>{{ item.sla_deadline_at|default:"-" }}</td>
+                <td>{{ item.reviewed_by|default:"-" }}</td>
+                <td>
+                    <form method="post" action="/appeals/{{ item.id }}/action/" class="reject-form">
+                        {% csrf_token %}
+                        <select name="status" required>
+                            <option value="under_review">under_review</option>
+                            <option value="resolved_upheld">resolved_upheld</option>
+                            <option value="resolved_reversed">resolved_reversed</option>
+                        </select>
+                        <input name="resolution_reason" placeholder="Resolution note">
+                        <button type="submit" class="btn approve">Update</button>
+                    </form>
+                </td>
+            </tr>
+        {% empty %}
+            <tr><td colspan="7">No appeals found.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endblock %}

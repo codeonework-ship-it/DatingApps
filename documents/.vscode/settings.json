@@ -1,0 +1,8 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^flutter --version 2>/dev/null \\|\\| echo \"Flutter not found\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

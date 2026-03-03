@@ -1,0 +1,65 @@
+{% extends "control_panel/base.html" %}
+
+{% block content %}
+<section class="card">
+    <h2>Verification Queue</h2>
+    <form class="inline-form" method="get">
+        <label for="status">Status</label>
+        <select id="status" name="status">
+            <option value="" {% if not status_filter %}selected{% endif %}>All</option>
+            <option value="pending" {% if status_filter == "pending" %}selected{% endif %}>Pending</option>
+            <option value="approved" {% if status_filter == "approved" %}selected{% endif %}>Approved</option>
+            <option value="rejected" {% if status_filter == "rejected" %}selected{% endif %}>Rejected</option>
+        </select>
+        <label for="limit">Limit</label>
+        <input id="limit" type="number" name="limit" value="{{ limit }}" min="1" max="500">
+        <button type="submit">Apply</button>
+    </form>
+
+    {% if error %}<p class="error">{{ error }}</p>{% endif %}
+
+    <table>
+        <thead>
+        <tr>
+            <th>User</th>
+            <th>Status</th>
+            <th>Submitted</th>
+            <th>Reviewed</th>
+            <th>By</th>
+            <th>Reason</th>
+            <th>Actions</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for item in verifications %}
+            <tr>
+                <td>{{ item.user_id }}</td>
+                <td>{{ item.status }}</td>
+                <td>{{ item.submitted_at|default:"-" }}</td>
+                <td>{{ item.reviewed_at|default:"-" }}</td>
+                <td>{{ item.reviewed_by|default:"-" }}</td>
+                <td>{{ item.rejection_reason|default:"-" }}</td>
+                <td>
+                    {% if item.status == "pending" %}
+                        <form method="post" action="/verifications/{{ item.user_id }}/approve/">
+                            {% csrf_token %}
+                            <button type="submit" class="btn approve">Approve</button>
+                        </form>
+                        <form method="post" action="/verifications/{{ item.user_id }}/reject/" class="reject-form">
+                            {% csrf_token %}
+                            <input name="rejection_reason" placeholder="Reason" required>
+                            <button type="submit" class="btn reject">Reject</button>
+                        </form>
+                    {% else %}
+                        <span>-</span>
+                    {% endif %}
+                </td>
+            </tr>
+        {% empty %}
+            <tr><td colspan="7">No verification records found.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endblock %}
+

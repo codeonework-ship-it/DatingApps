@@ -1,0 +1,42 @@
+{
+  "generated_at": "2026-02-28T20:42:20.326389+00:00",
+  "device": "emulator-5554",
+  "steps": [
+    {
+      "screen": "App Foreground",
+      "pass": true,
+      "detail": "already_foreground"
+    },
+    {
+      "screen": "Discover",
+      "pass": false,
+      "detail": "node_not_found",
+      "screenshot": "/Users/anandsadasivan/Documents/Workspaces/Development/GitHub/Dating apps/documents/codex/artifacts/ui_smoke_20260301/01_discover.png"
+    },
+    {
+      "screen": "Matches",
+      "pass": true,
+      "detail": "tap_222_1445",
+      "screenshot": "/Users/anandsadasivan/Documents/Workspaces/Development/GitHub/Dating apps/documents/codex/artifacts/ui_smoke_20260301/02_matches.png"
+    },
+    {
+      "screen": "Engagement",
+      "pass": false,
+      "detail": "node_not_found",
+      "screenshot": "/Users/anandsadasivan/Documents/Workspaces/Development/GitHub/Dating apps/documents/codex/artifacts/ui_smoke_20260301/03_engagement.png"
+    },
+    {
+      "screen": "Friends",
+      "pass": false,
+      "detail": "node_not_found",
+      "screenshot": "/Users/anandsadasivan/Documents/Workspaces/Development/GitHub/Dating apps/documents/codex/artifacts/ui_smoke_20260301/04_friends.png"
+    },
+    {
+      "screen": "Rooms",
+      "pass": false,
+      "detail": "node_not_found",
+      "screenshot": "/Users/anandsadasivan/Documents/Workspaces/Development/GitHub/Dating apps/documents/codex/artifacts/ui_smoke_20260301/05_rooms.png"
+    }
+  ],
+  "all_passed": false
+}

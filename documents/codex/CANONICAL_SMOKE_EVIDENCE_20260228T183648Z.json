@@ -1,0 +1,43 @@
+{
+  "meta": {
+    "started_at": "2026-02-28T18:36:48.440597Z",
+    "base": "http://localhost:8081/v1",
+    "uidA": "11111111-1111-1111-1111-111111111111",
+    "target_user_id": null,
+    "match_id": ""
+  },
+  "steps": {
+    "ready:http://localhost:8080/readyz": {
+      "ok": false,
+      "status": null,
+      "body": "HTTP Error 503: Service Unavailable"
+    },
+    "ready:http://localhost:8081/readyz": {
+      "ok": false,
+      "status": null,
+      "body": "<urlopen error [Errno 61] Connection refused>"
+    },
+    "discovery_uidA": {
+      "ok": false,
+      "status": null,
+      "url": "http://localhost:8081/v1/discovery/11111111-1111-1111-1111-111111111111?limit=15",
+      "body": "<urlopen error [Errno 61] Connection refused>"
+    },
+    "swipe_uidA_to_target": {
+      "ok": true,
+      "status": null,
+      "body": "deferred until target resolution"
+    },
+    "swipe_target_to_uidA": {
+      "ok": true,
+      "status": null,
+      "body": "deferred until target resolution"
+    },
+    "matches_uidA": {
+      "ok": false,
+      "status": null,
+      "url": "http://localhost:8081/v1/matches/11111111-1111-1111-1111-111111111111",
+      "body": "<urlopen error [Errno 61] Connection refused>"
+    }
+  }
+}

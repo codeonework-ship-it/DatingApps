@@ -1,0 +1,66 @@
+{
+  "meta": {
+    "started_at": "2026-02-28T18:32:37.682696Z",
+    "base": "http://localhost:8081/v1",
+    "uidA": "11111111-1111-1111-1111-111111111111",
+    "target_user_id": null,
+    "match_id": ""
+  },
+  "steps": {
+    "ready:http://localhost:8080/readyz": {
+      "ok": true,
+      "status": 200,
+      "body": {
+        "service": "api-gateway",
+        "status": "ready"
+      }
+    },
+    "ready:http://localhost:8081/readyz": {
+      "ok": true,
+      "status": 200,
+      "body": {
+        "correlation_id": "a9ebfc6c-6062-444e-b9b8-49a8a99337ad",
+        "deps": {
+          "auth": "READY",
+          "chat": "READY",
+          "matching": "READY",
+          "profile": "READY"
+        },
+        "service": "mobile-bff",
+        "status": "ready"
+      }
+    },
+    "discovery_uidA": {
+      "ok": false,
+      "status": 502,
+      "url": "http://localhost:8081/v1/discovery/11111111-1111-1111-1111-111111111111?limit=15",
+      "body": {
+        "correlation_id": "85561728-9843-4d91-9510-9d9f822ee087",
+        "error": "get candidates failed: rpc error: code = Unknown desc = supabase request failed: status=406 body={\"code\":\"PGRST106\",\"details\":null,\"hint\":\"Only the following schemas are exposed: public, graphql_public\",\"message\":\"Invalid schema: matching\"}",
+        "error_code": "BAD_GATEWAY",
+        "success": false
+      }
+    },
+    "swipe_uidA_to_target": {
+      "ok": false,
+      "status": null,
+      "body": "no target"
+    },
+    "swipe_target_to_uidA": {
+      "ok": false,
+      "status": null,
+      "body": "no target"
+    },
+    "matches_uidA": {
+      "ok": false,
+      "status": 502,
+      "url": "http://localhost:8081/v1/matches/11111111-1111-1111-1111-111111111111",
+      "body": {
+        "correlation_id": "9d754fd4-2dd7-41da-aef0-e6dafe3b3d3e",
+        "error": "list matches failed: rpc error: code = Unknown desc = supabase request failed: status=406 body={\"code\":\"PGRST106\",\"details\":null,\"hint\":\"Only the following schemas are exposed: public, graphql_public\",\"message\":\"Invalid schema: matching\"}",
+        "error_code": "BAD_GATEWAY",
+        "success": false
+      }
+    }
+  }
+}

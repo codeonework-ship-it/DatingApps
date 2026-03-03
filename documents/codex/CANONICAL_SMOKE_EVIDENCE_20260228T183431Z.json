@@ -1,0 +1,159 @@
+{
+  "meta": {
+    "started_at": "2026-02-28T18:34:30.144472Z",
+    "base": "http://localhost:8081/v1",
+    "uidA": "11111111-1111-1111-1111-111111111111",
+    "target_user_id": null,
+    "match_id": "1a7e109a-d0db-4576-9eee-5a25c2c12efd",
+    "gesture_id": ""
+  },
+  "steps": {
+    "ready:http://localhost:8080/readyz": {
+      "ok": true,
+      "status": 200,
+      "body": {
+        "service": "api-gateway",
+        "status": "ready"
+      }
+    },
+    "ready:http://localhost:8081/readyz": {
+      "ok": true,
+      "status": 200,
+      "body": {
+        "correlation_id": "924c2e28-8e75-4353-85ee-933bfa05d7f5",
+        "deps": {
+          "auth": "READY",
+          "chat": "READY",
+          "matching": "READY",
+          "profile": "READY"
+        },
+        "service": "mobile-bff",
+        "status": "ready"
+      }
+    },
+    "discovery_uidA": {
+      "ok": true,
+      "status": 200,
+      "url": "http://localhost:8081/v1/discovery/11111111-1111-1111-1111-111111111111?limit=15",
+      "body": {
+        "candidates": [],
+        "correlation_id": "a5b6c825-c984-47c9-a1ca-fad7d8a11997"
+      }
+    },
+    "swipe_uidA_to_target": {
+      "ok": false,
+      "status": null,
+      "body": "no target"
+    },
+    "swipe_target_to_uidA": {
+      "ok": false,
+      "status": null,
+      "body": "no target"
+    },
+    "matches_uidA": {
+      "ok": true,
+      "status": 200,
+      "url": "http://localhost:8081/v1/matches/11111111-1111-1111-1111-111111111111",
+      "body": {
+        "correlation_id": "c65c3ba6-249a-4d29-a202-a9f923c38990",
+        "matches": [
+          {
+            "id": "1a7e109a-d0db-4576-9eee-5a25c2c12efd",
+            "isOnline": false,
+            "lastMessage": "unlocked after approval",
+            "lastMessageTime": "2026-02-28T17:47:45Z",
+            "unlock_state": "matched",
+            "unreadCount": 0,
+            "userId": "22222222-2222-2222-2222-222222222222",
+            "userName": "Smoke User B",
+            "userPhoto": "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=500&q=80"
+          }
+        ]
+      }
+    },
+    "quest_template_put": {
+      "ok": false,
+      "status": 502,
+      "url": "http://localhost:8081/v1/matches/1a7e109a-d0db-4576-9eee-5a25c2c12efd/quest-template",
+      "body": {
+        "correlation_id": "8f088127-f7c7-4ecb-beed-59b27e990ea6",
+        "error": "upsert quest template failed: supabase request failed: status=404 body={\"code\":\"PGRST205\",\"details\":null,\"hint\":\"Perhaps you meant the table 'public.matches'\",\"message\":\"Could not find the table 'public.match_quest_templates' in the schema cache\"}",
+        "error_code": "BAD_GATEWAY",
+        "success": false
+      }
+    },
+    "quest_workflow_get_before": {
+      "ok": true,
+      "status": 200,
+      "url": "http://localhost:8081/v1/matches/1a7e109a-d0db-4576-9eee-5a25c2c12efd/quest-workflow",
+      "body": {
+        "correlation_id": "2e290d8e-7d98-4707-82ad-2f312d927376",
+        "quest_workflow": {}
+      }
+    },
+    "quest_submit": {
+      "ok": false,
+      "status": 400,
+      "url": "http://localhost:8081/v1/matches/1a7e109a-d0db-4576-9eee-5a25c2c12efd/quest-workflow/submit",
+      "body": {
+        "correlation_id": "088d6b01-bbb3-4d63-9687-c9eb5a5e8655",
+        "error": "validation error: match id and submitter user id are required",
+        "error_code": "BAD_REQUEST",
+        "success": false
+      }
+    },
+    "quest_review": {
+      "ok": false,
+      "status": 502,
+      "url": "http://localhost:8081/v1/matches/1a7e109a-d0db-4576-9eee-5a25c2c12efd/quest-workflow/review",
+      "body": {
+        "correlation_id": "94d49f4a-aea3-4d58-a81e-d49a74607b15",
+        "error": "review quest response failed: supabase request failed: status=404 body={\"code\":\"PGRST205\",\"details\":null,\"hint\":\"Perhaps you meant the table 'public.matches'\",\"message\":\"Could not find the table 'public.match_quest_workflows' in the schema cache\"}",
+        "error_code": "BAD_GATEWAY",
+        "success": false
+      }
+    },
+    "unlock_state_after_review": {
+      "ok": true,
+      "status": 200,
+      "url": "http://localhost:8081/v1/matches/1a7e109a-d0db-4576-9eee-5a25c2c12efd/unlock-state",
+      "body": {
+        "chat_unlocked": true,
+        "correlation_id": "17f7a722-26d6-4695-85c6-9876ee2d9f34",
+        "has_requirement": false,
+        "match_id": "1a7e109a-d0db-4576-9eee-5a25c2c12efd",
+        "unlock_state": "matched"
+      }
+    },
+    "chat_send_after_unlock": {
+      "ok": true,
+      "status": 200,
+      "url": "http://localhost:8081/v1/chat/1a7e109a-d0db-4576-9eee-5a25c2c12efd/messages",
+      "body": {
+        "accepted": true,
+        "correlation_id": "870926eb-c7d1-4ba9-acbc-a37bb359d3ee",
+        "message_id": "7d369ac4-9a38-4342-9caf-a31874ca4405"
+      }
+    },
+    "gesture_create": {
+      "ok": false,
+      "status": 400,
+      "url": "http://localhost:8081/v1/matches/1a7e109a-d0db-4576-9eee-5a25c2c12efd/gestures",
+      "body": {
+        "correlation_id": "8b970d5f-61e8-4334-913d-0f9b382ddd9f",
+        "error": "validation error: match id, sender user id, and receiver user id are required",
+        "error_code": "BAD_REQUEST",
+        "success": false
+      }
+    },
+    "timeline_after_gesture": {
+      "ok": true,
+      "status": 200,
+      "url": "http://localhost:8081/v1/matches/1a7e109a-d0db-4576-9eee-5a25c2c12efd/timeline",
+      "body": {
+        "correlation_id": "af8a0aa5-2712-419b-be94-7ee599e94685",
+        "timeline": []
+      }
+    }
+  }
+}

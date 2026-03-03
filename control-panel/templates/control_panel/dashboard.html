@@ -1,0 +1,98 @@
+{% extends "control_panel/base.html" %}
+
+{% block content %}
+<section class="grid two">
+    <article class="card">
+        <h2>Health</h2>
+        <p><strong>Status:</strong> {{ health.status|default:"unknown" }}</p>
+        <pre>{{ health }}</pre>
+        {% if health_error %}<p class="error">{{ health_error }}</p>{% endif %}
+    </article>
+    <article class="card">
+        <h2>Readiness</h2>
+        <p><strong>Status:</strong> {{ readiness.status|default:"unknown" }}</p>
+        <pre>{{ readiness }}</pre>
+        {% if readiness_error %}<p class="error">{{ readiness_error }}</p>{% endif %}
+    </article>
+</section>
+
+<section class="grid two">
+    <article class="card">
+        <h2>Pending Verifications</h2>
+        {% if verification_error %}
+            <p class="error">{{ verification_error }}</p>
+        {% endif %}
+        <table>
+            <thead>
+            <tr>
+                <th>User</th>
+                <th>Status</th>
+                <th>Submitted At</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for item in pending_verifications %}
+                <tr>
+                    <td>{{ item.user_id }}</td>
+                    <td>{{ item.status }}</td>
+                    <td>{{ item.submitted_at|default:"-" }}</td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="3">No pending verifications.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </article>
+
+    <article class="card">
+        <h2>Recent Activities</h2>
+        {% if activity_error %}
+            <p class="error">{{ activity_error }}</p>
+        {% endif %}
+        <table>
+            <thead>
+            <tr>
+                <th>Time</th>
+                <th>Action</th>
+                <th>Status</th>
+                <th>Actor</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for item in activities %}
+                <tr>
+                    <td>{{ item.created_at }}</td>
+                    <td>{{ item.action }}</td>
+                    <td>{{ item.status }}</td>
+                    <td>{{ item.actor }}</td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="4">No activities captured.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </article>
+</section>
+
+<section class="grid two">
+    <article class="card">
+        <h2>Engagement KPI Panels</h2>
+        {% if analytics_error %}
+            <p class="error">{{ analytics_error }}</p>
+        {% endif %}
+        <ul>
+            {% for panel in dashboard_panels %}
+                <li>{{ panel }}</li>
+            {% empty %}
+                <li>No panel metadata available.</li>
+            {% endfor %}
+        </ul>
+    </article>
+    <article class="card">
+        <h2>Event Taxonomy</h2>
+        <p><strong>Version:</strong> {{ event_taxonomy.version|default:"-" }}</p>
+        <pre>{{ data_quality_checks }}</pre>
+    </article>
+</section>
+{% endblock %}
+

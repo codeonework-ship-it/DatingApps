@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package profile.v1;
+
+option go_package = "github.com/verified-dating/backend/gen/profile/v1;profilev1";
+
+message GetProfileRequest {
+  string user_id = 1;
+}
+
+message Profile {
+  string id = 1;
+  string name = 2;
+  string bio = 3;
+  bool is_verified = 4;
+}
+
+message GetProfileResponse {
+  Profile profile = 1;
+}
+
+message UpsertProfileRequest {
+  Profile profile = 1;
+}
+
+message UpsertProfileResponse {
+  bool success = 1;
+}
+
+service ProfileService {
+  rpc GetProfile(GetProfileRequest) returns (GetProfileResponse);
+  rpc UpsertProfile(UpsertProfileRequest) returns (UpsertProfileResponse);
+}

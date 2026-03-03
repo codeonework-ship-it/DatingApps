@@ -1,0 +1,35 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "backend-run-all",
+			"type": "shell",
+			"command": "cd backend && make run-all",
+			"isBackground": true
+		},
+		{
+			"label": "backend-clean-ports",
+			"type": "shell",
+			"command": "pkill -f 'cmd/(auth-svc|profile-svc|matching-svc|chat-svc|mobile-bff|api-gateway)' || true; pids=$(lsof -ti tcp:8080 -ti tcp:8081 -ti tcp:9091 -ti tcp:9092 -ti tcp:9093 -ti tcp:9094 -ti tcp:10091 -ti tcp:10092 -ti tcp:10093 -ti tcp:10094); if [ -n \"$pids\" ]; then kill -9 $pids; fi; echo CLEAN_DONE",
+			"isBackground": false
+		},
+		{
+			"label": "backend-run-all-now",
+			"type": "shell",
+			"command": "cd backend && make run-all",
+			"isBackground": false
+		},
+		{
+			"label": "backend-kill-listeners",
+			"type": "shell",
+			"command": "lsof -ti tcp:8080,tcp:8081,tcp:9091,tcp:9092,tcp:9093,tcp:9094,tcp:10091,tcp:10092,tcp:10093,tcp:10094 | xargs -r kill -9; pkill -f 'cmd/auth-svc|cmd/profile-svc|cmd/matching-svc|cmd/chat-svc|cmd/mobile-bff|cmd/api-gateway' || true; echo KILLED",
+			"isBackground": false
+		},
+		{
+			"label": "backend-run-fresh",
+			"type": "shell",
+			"command": "cd backend && ./scripts/dev_up.sh",
+			"isBackground": false
+		}
+	]
+}

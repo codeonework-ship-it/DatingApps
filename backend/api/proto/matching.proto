@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package matching.v1;
+
+option go_package = "github.com/verified-dating/backend/gen/matching/v1;matchingv1";
+
+message GetCandidatesRequest {
+  string user_id = 1;
+  int32 limit = 2;
+}
+
+message Candidate {
+  string user_id = 1;
+  string name = 2;
+  bool is_verified = 3;
+}
+
+message GetCandidatesResponse {
+  repeated Candidate candidates = 1;
+}
+
+message SwipeRequest {
+  string user_id = 1;
+  string target_user_id = 2;
+  bool is_like = 3;
+}
+
+message SwipeResponse {
+  bool accepted = 1;
+  bool mutual_match = 2;
+}
+
+service MatchingService {
+  rpc GetCandidates(GetCandidatesRequest) returns (GetCandidatesResponse);
+  rpc Swipe(SwipeRequest) returns (SwipeResponse);
+}

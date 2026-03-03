@@ -1,0 +1,26 @@
+Run services in this order:
+
+Pre-step (durable persistence migrations):
+0) apply SQL migration `backend/scripts/014_engagement_unlock_tables.sql` to Supabase Postgres
+0.1) apply SQL migration `backend/scripts/018_match_gestures_effort_signals.sql` to Supabase Postgres
+0.2) apply SQL cleanup `backend/scripts/019_remove_public_smoke_compat.sql` to remove temporary public smoke tables
+0.3) apply SQL migration `backend/scripts/020_engagement_surfaces_tables.sql` for activity sessions, trust badges, and conversation rooms
+0.4) apply SQL migration `backend/scripts/021_social_graph_and_tag_filter_indexes.sql` for advanced tag filters and friend graph indexes
+0.5) apply SQL migration `backend/scripts/025_terms_acceptance_columns.sql` for durable Terms & Privacy acceptance tracking
+0.6) apply SQL cleanup `backend/scripts/027_remove_smtp_sender_settings.sql` to remove temporary SMTP sender settings persistence
+0.7) apply SQL migration `backend/scripts/028_daily_prompt_streak_tables.sql` for daily prompt responses and streak tracking
+
+Note:
+- Canonical production path uses `matching` and `user_management` schemas.
+- `015/016/017` public smoke scripts are temporary troubleshooting artifacts and should not be used for production-hardening runs.
+
+1) go run ./cmd/auth-svc
+2) go run ./cmd/profile-svc
+3) go run ./cmd/matching-svc
+4) go run ./cmd/chat-svc
+5) go run ./cmd/mobile-bff
+6) go run ./cmd/api-gateway
+
+Gateway URL for Flutter:
+- Android emulator: http://10.0.2.2:8080/v1
+- iOS simulator/macOS: http://localhost:8080/v1
