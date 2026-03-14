@@ -309,7 +309,11 @@ func (r *masterDataRepository) selectWithSchemaFallback(
 	table string,
 	params url.Values,
 ) ([]map[string]any, error) {
-	return r.db.SelectRead(ctx, "public", table, params)
+	rows, err := r.db.SelectRead(ctx, "public", table, params)
+	if err != nil {
+		return nil, fmt.Errorf("schema=public: %w", err)
+	}
+	return rows, nil
 }
 
 func uniqueSorted(values []string) []string {
