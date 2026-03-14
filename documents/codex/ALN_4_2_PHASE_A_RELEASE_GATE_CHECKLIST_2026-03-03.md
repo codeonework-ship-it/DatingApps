@@ -16,18 +16,19 @@ Release gate for Activity Unlock alignment rollout (ALN-1 to ALN-4) covering:
 ## Checklist
 
 ### 1) API Health & Platform Readiness (P0)
-- [ ] `GET /healthz` is healthy on API Gateway and mobile BFF.
-- [ ] `GET /readyz` is healthy on API Gateway and mobile BFF.
+- [x] `GET /healthz` is healthy on API Gateway and mobile BFF.
+- [x] `GET /readyz` is healthy on API Gateway and mobile BFF.
 - [ ] Engagement API contract routes respond successfully in staging smoke:
   - `/v1/matches/{matchID}/unlock-state`
   - `/v1/matches/{matchID}/quest-workflow`
   - `/v1/moderation/appeals`
   - `/v1/admin/moderation/appeals`
   - `/v1/admin/analytics/overview`
-- [ ] Error envelope is stable (`success=false`, `error`, `error_code`).
+- [x] Error envelope is stable (`success=false`, `error`, `error_code`).
 
 Status note (2026-03-03): staging endpoint execution is still pending environment/operator run.
 Local rehearsal note (UTC): `2026-03-02T19:32:07Z` and `2026-03-02T19:32:23Z` recorded successful local health/ready and key endpoint smoke responses.
+Latest local evidence note (UTC): `2026-03-14T21:10:52Z` and `2026-03-14T21:11:09Z` recorded `readyz=200` (gateway + BFF), engagement daily-prompt GET/answer/responders success, engagement groups list success, and BAD_REQUEST envelope with `success=false,error,error_code`.
 
 ### 2) Test Pass Criteria (P0)
 - [x] Backend package tests pass for `./internal/bff/mobile` with no flakes across 2 consecutive runs.
