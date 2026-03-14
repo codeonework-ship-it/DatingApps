@@ -87,11 +87,37 @@
                 <li>No panel metadata available.</li>
             {% endfor %}
         </ul>
+        <h3>Spotlight Metrics</h3>
+        <pre>{{ spotlight_metrics }}</pre>
     </article>
     <article class="card">
         <h2>Event Taxonomy</h2>
         <p><strong>Version:</strong> {{ event_taxonomy.version|default:"-" }}</p>
         <pre>{{ data_quality_checks }}</pre>
+    </article>
+</section>
+
+<section class="grid two">
+    <article class="card">
+        <h2>Personalized Kibana</h2>
+        <form method="get" action="">
+            <label for="user_id">User ID filter</label>
+            <input id="user_id" name="user_id" type="text" value="{{ focus_user_id }}" placeholder="11111111-1111-1111-1111-111111111111" />
+            <button type="submit">Apply</button>
+        </form>
+        <p><strong>Index:</strong> {{ kibana_discover_index }}</p>
+        <p><strong>KQL:</strong> {{ kibana_kql }}</p>
+        <p><a href="{{ kibana_discover_url }}" target="_blank" rel="noopener">Open Discover</a></p>
+        <p><a href="{{ kibana_dashboard_url }}" target="_blank" rel="noopener">Open Dashboard</a></p>
+    </article>
+    <article class="card">
+        <h2>Dashboard Preview</h2>
+        <iframe
+            src="{{ kibana_dashboard_url }}"
+            title="Kibana Dashboard"
+            loading="lazy"
+            style="width: 100%; min-height: 420px; border: 1px solid #ddd; border-radius: 8px;"
+        ></iframe>
     </article>
 </section>
 {% endblock %}

@@ -81,4 +81,7 @@ GO_API_BASE_URL = os.getenv("GO_API_BASE_URL", "http://localhost:8081/v1").rstri
 GO_HEALTH_BASE_URL = os.getenv("GO_HEALTH_BASE_URL", "http://localhost:8081").rstrip("/")
 GO_ADMIN_USER = os.getenv("GO_ADMIN_USER", "control-panel")
 GO_API_TIMEOUT_SEC = int(os.getenv("GO_API_TIMEOUT_SEC", "8"))
+KIBANA_BASE_URL = os.getenv("KIBANA_BASE_URL", "http://localhost:5601").rstrip("/")
+KIBANA_DISCOVER_INDEX = os.getenv("KIBANA_DISCOVER_INDEX", "dating-app-logs-*")
+KIBANA_DASHBOARD_PATH = os.getenv("KIBANA_DASHBOARD_PATH", "/app/dashboards")
 

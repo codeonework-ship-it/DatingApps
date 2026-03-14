@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from urllib.parse import quote_plus
+
 from django.conf import settings
 from django.contrib import messages
 from django.http import HttpRequest, HttpResponse
@@ -24,6 +26,19 @@ def dashboard(request: HttpRequest) -> HttpResponse:
     activities = client.list_activities(limit=25)
     analytics = client.analytics_overview()
 
+    focus_user_id = (request.GET.get("user_id") or "").strip()
+    kibana_kql = "*"
+    if focus_user_id:
+        kibana_kql = f'user_id : "{focus_user_id}" or userId : "{focus_user_id}"'
+    kibana_discover_url = (
+        f"{settings.KIBANA_BASE_URL}/app/discover#/?_g=(time:(from:now-24h,to:now))"
+        f"&_a=(query:(language:kuery,query:'{quote_plus(kibana_kql)}'))"
+    )
+    kibana_dashboard_url = (
+        f"{settings.KIBANA_BASE_URL}{settings.KIBANA_DASHBOARD_PATH}"
+        f"?_g=(time:(from:now-24h,to:now))&user_id={quote_plus(focus_user_id)}"
+    )
+
     context = _base_context()
     context.update(
         {
@@ -46,7 +61,15 @@ def dashboard(request: HttpRequest) -> HttpResponse:
             "data_quality_checks": analytics.data.get("metrics", {}).get("data_quality_checks", {})
             if analytics.ok
             else {},
+            "spotlight_metrics": analytics.data.get("metrics", {}).get("spotlight_metrics", {})
+            if analytics.ok
+            else {},
             "analytics_error": analytics.error,
+            "focus_user_id": focus_user_id,
+            "kibana_discover_index": settings.KIBANA_DISCOVER_INDEX,
+            "kibana_kql": kibana_kql,
+            "kibana_discover_url": kibana_discover_url,
+            "kibana_dashboard_url": kibana_dashboard_url,
         }
     )
     return render(request, "control_panel/dashboard.html", context)

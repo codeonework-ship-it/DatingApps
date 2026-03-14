@@ -1,0 +1,325 @@
+{
+  "generated_at": "2026-03-11T09:56:28.429985+00:00",
+  "base": "http://localhost:8081/v1",
+  "total_checks": 32,
+  "failed_checks": 17,
+  "all_passed": false,
+  "results": [
+    {
+      "story": "1.2",
+      "route": "/discovery/11111111-1111-1111-1111-111111111111",
+      "method": "GET",
+      "status": 502,
+      "pass": false,
+      "ok_codes": [
+        200
+      ]
+    },
+    {
+      "story": "1.2",
+      "route": "/swipe",
+      "method": "POST",
+      "status": 502,
+      "pass": false,
+      "ok_codes": [
+        200
+      ]
+    },
+    {
+      "story": "1.2",
+      "route": "/swipe",
+      "method": "POST",
+      "status": 502,
+      "pass": false,
+      "ok_codes": [
+        200
+      ]
+    },
+    {
+      "story": "1.2",
+      "route": "/matches/11111111-1111-1111-1111-111111111111",
+      "method": "GET",
+      "status": 502,
+      "pass": false,
+      "ok_codes": [
+        200
+      ]
+    },
+    {
+      "story": "2.1",
+      "route": "match bootstrap",
+      "method": "N/A",
+      "status": null,
+      "pass": false,
+      "ok_codes": [
+        200
+      ]
+    },
+    {
+      "story": "2.2",
+      "route": "match bootstrap",
+      "method": "N/A",
+      "status": null,
+      "pass": false,
+      "ok_codes": [
+        200
+      ]
+    },
+    {
+      "story": "2.3",
+      "route": "match bootstrap",
+      "method": "N/A",
+      "status": null,
+      "pass": false,
+      "ok_codes": [
+        200
+      ]
+    },
+    {
+      "story": "2.4",
+      "route": "match bootstrap",
+      "method": "N/A",
+      "status": null,
+      "pass": false,
+      "ok_codes": [
+        200
+      ]
+    },
+    {
+      "story": "3.1",
+      "route": "match bootstrap",
+      "method": "N/A",
+      "status": null,
+      "pass": false,
+      "ok_codes": [
+        200
+      ]
+    },
+    {
+      "story": "3.2",
+      "route": "match bootstrap",
+      "method": "N/A",
+      "status": null,
+      "pass": false,
+      "ok_codes": [
+        200
+      ]
+    },
+    {
+      "story": "4.1",
+      "route": "match bootstrap",
+      "method": "N/A",
+      "status": null,
+      "pass": false,
+      "ok_codes": [
+        200
+      ]
+    },
+    {
+      "story": "5.1",
+      "route": "/users/11111111-1111-1111-1111-111111111111/trust-badges",
+      "method": "GET",
+      "status": 200,
+      "pass": true,
+      "ok_codes": [
+        200
+      ]
+    },
+    {
+      "story": "5.1",
+      "route": "/users/11111111-1111-1111-1111-111111111111/trust-badges/history",
+      "method": "GET",
+      "status": 200,
+      "pass": true,
+      "ok_codes": [
+        200
+      ]
+    },
+    {
+      "story": "5.2",
+      "route": "/discovery/11111111-1111-1111-1111-111111111111/filters/trust",
+      "method": "GET",
+      "status": 200,
+      "pass": true,
+      "ok_codes": [
+        200
+      ]
+    },
+    {
+      "story": "5.2",
+      "route": "/discovery/11111111-1111-1111-1111-111111111111/filters/trust",
+      "method": "PATCH",
+      "status": 200,
+      "pass": true,
+      "ok_codes": [
+        200
+      ]
+    },
+    {
+      "story": "5.2",
+      "route": "/discovery/11111111-1111-1111-1111-111111111111",
+      "method": "GET",
+      "status": 502,
+      "pass": false,
+      "ok_codes": [
+        200
+      ]
+    },
+    {
+      "story": "5.2",
+      "route": "/matches/11111111-1111-1111-1111-111111111111",
+      "method": "GET",
+      "status": 502,
+      "pass": false,
+      "ok_codes": [
+        200
+      ]
+    },
+    {
+      "story": "6.1",
+      "route": "/rooms",
+      "method": "GET",
+      "status": 200,
+      "pass": true,
+      "ok_codes": [
+        200
+      ]
+    },
+    {
+      "story": "6.1",
+      "route": "/rooms/room-weekly-wrap/join",
+      "method": "POST",
+      "status": 409,
+      "pass": false,
+      "ok_codes": [
+        200
+      ]
+    },
+    {
+      "story": "6.1",
+      "route": "/rooms/room-weekly-wrap/leave",
+      "method": "POST",
+      "status": 409,
+      "pass": false,
+      "ok_codes": [
+        200
+      ]
+    },
+    {
+      "story": "6.2",
+      "route": "/rooms/room-weekly-wrap/moderate",
+      "method": "POST",
+      "status": 200,
+      "pass": true,
+      "ok_codes": [
+        200
+      ]
+    },
+    {
+      "story": "7.2",
+      "route": "/admin/analytics/overview",
+      "method": "GET",
+      "status": 200,
+      "pass": true,
+      "ok_codes": [
+        200
+      ]
+    },
+    {
+      "story": "7.2",
+      "route": "/admin/activities",
+      "method": "GET",
+      "status": 200,
+      "pass": true,
+      "ok_codes": [
+        200
+      ]
+    },
+    {
+      "story": "7.3",
+      "route": "/discovery/11111111-1111-1111-1111-111111111111 advanced filters",
+      "method": "GET",
+      "status": 502,
+      "pass": false,
+      "ok_codes": [
+        200
+      ]
+    },
+    {
+      "story": "7.3",
+      "route": "/matches/11111111-1111-1111-1111-111111111111 advanced filters",
+      "method": "GET",
+      "status": 502,
+      "pass": false,
+      "ok_codes": [
+        200
+      ]
+    },
+    {
+      "story": "7.4",
+      "route": "/friends/11111111-1111-1111-1111-111111111111",
+      "method": "POST",
+      "status": 200,
+      "pass": true,
+      "ok_codes": [
+        200
+      ]
+    },
+    {
+      "story": "7.4",
+      "route": "/friends/11111111-1111-1111-1111-111111111111",
+      "method": "GET",
+      "status": 200,
+      "pass": true,
+      "ok_codes": [
+        200
+      ]
+    },
+    {
+      "story": "7.4",
+      "route": "/friends/11111111-1111-1111-1111-111111111111/activities",
+      "method": "GET",
+      "status": 200,
+      "pass": true,
+      "ok_codes": [
+        200
+      ]
+    },
+    {
+      "story": "7.4",
+      "route": "/rooms?friend_only=true",
+      "method": "GET",
+      "status": 200,
+      "pass": true,
+      "ok_codes": [
+        200
+      ]
+    },
+    {
+      "story": "7.4",
+      "route": "/friends/11111111-1111-1111-1111-111111111111/user-b",
+      "method": "DELETE",
+      "status": 200,
+      "pass": true,
+      "ok_codes": [
+        200
+      ]
+    },
+    {
+      "story": "1.1",
+      "route": "N/A operational readiness story",
+      "method": "N/A",
+      "status": "N/A",
+      "pass": true,
+      "ok_codes": []
+    },
+    {
+      "story": "7.1",
+      "route": "N/A test coverage story",
+      "method": "N/A",
+      "status": "N/A",
+      "pass": true,
+      "ok_codes": []
+    }
+  ]
+}
