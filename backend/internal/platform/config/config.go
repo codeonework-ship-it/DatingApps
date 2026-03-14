@@ -36,6 +36,7 @@ type Config struct {
 	GatewayRateLimitWindowSec        int
 	GatewayMaxInFlight               int
 	GatewayRetryAfterSec             int
+	GatewaySkipPostgresProbe         bool
 	BFFMaxInFlight                   int
 	BFFRetryAfterSec                 int
 	BFFBulkheadAuthMaxInFlight       int
@@ -68,23 +69,26 @@ type Config struct {
 	DatabasePassword       string
 	DatabaseSSLMode        string
 
-	UserSchema                string
-	UsersTable                string
-	PreferencesTable          string
-	PhotosTable               string
-	MatchingSchema            string
-	SwipesTable               string
-	MatchesTable              string
-	MessagesTable             string
-	EngagementSchema          string
-	UnlockStatesTable         string
-	QuestTemplatesTable       string
-	QuestWorkflowsTable       string
-	GesturesTable             string
-	GestureMinContentChars    int
-	GestureMinWordCount       int
-	GestureOriginalityPercent int
-	GestureProfanityTokens    []string
+	UserSchema                 string
+	UsersTable                 string
+	PreferencesTable           string
+	PhotosTable                string
+	MatchingSchema             string
+	SwipesTable                string
+	MatchesTable               string
+	MessagesTable              string
+	EngagementSchema           string
+	UnlockStatesTable          string
+	QuestTemplatesTable        string
+	QuestWorkflowsTable        string
+	GesturesTable              string
+	CommunityGroupsTable       string
+	CommunityGroupMembersTable string
+	CommunityGroupInvitesTable string
+	GestureMinContentChars     int
+	GestureMinWordCount        int
+	GestureOriginalityPercent  int
+	GestureProfanityTokens     []string
 
 	DefaultProfileImageURL   string
 	DefaultAvatarImageURL    string
@@ -166,6 +170,7 @@ func Load() (Config, error) {
 		GatewayRateLimitWindowSec:        getInt("GATEWAY_RATE_LIMIT_WINDOW_SEC", 1),
 		GatewayMaxInFlight:               getInt("GATEWAY_MAX_INFLIGHT", 2000),
 		GatewayRetryAfterSec:             getInt("GATEWAY_RETRY_AFTER_SEC", 1),
+		GatewaySkipPostgresProbe:         getBool("GATEWAY_SKIP_POSTGRES_PROBE", false),
 		BFFMaxInFlight:                   getInt("BFF_MAX_INFLIGHT", 1500),
 		BFFRetryAfterSec:                 getInt("BFF_RETRY_AFTER_SEC", 1),
 		BFFBulkheadAuthMaxInFlight:       getInt("BFF_BULKHEAD_AUTH_MAX_INFLIGHT", 200),
@@ -208,6 +213,9 @@ func Load() (Config, error) {
 		QuestTemplatesTable:              getOrDefault("SUPABASE_QUEST_TEMPLATES_TABLE", "match_quest_templates"),
 		QuestWorkflowsTable:              getOrDefault("SUPABASE_QUEST_WORKFLOWS_TABLE", "match_quest_workflows"),
 		GesturesTable:                    getOrDefault("SUPABASE_GESTURES_TABLE", "match_gestures"),
+		CommunityGroupsTable:             getOrDefault("SUPABASE_COMMUNITY_GROUPS_TABLE", "community_groups"),
+		CommunityGroupMembersTable:       getOrDefault("SUPABASE_COMMUNITY_GROUP_MEMBERS_TABLE", "community_group_members"),
+		CommunityGroupInvitesTable:       getOrDefault("SUPABASE_COMMUNITY_GROUP_INVITES_TABLE", "community_group_invites"),
 		GestureMinContentChars:           getInt("GESTURE_MIN_CONTENT_CHARS", 40),
 		GestureMinWordCount:              getInt("GESTURE_MIN_WORD_COUNT", 8),
 		GestureOriginalityPercent:        getInt("GESTURE_ORIGINALITY_PERCENT", 65),

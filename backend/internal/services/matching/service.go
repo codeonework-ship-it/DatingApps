@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"go.uber.org/zap"
@@ -39,12 +40,20 @@ type Repository interface {
 }
 
 type SupabaseRepository struct {
-	db  *supabase.Client
-	cfg config.Config
+	db          *supabase.Client
+	cfg         config.Config
+	mu          sync.Mutex
+	mockSwipes  map[string]map[string]bool
+	mockMatches map[string]map[string]any
 }
 
 func NewRepository(db *supabase.Client, cfg config.Config) Repository {
-	return &SupabaseRepository{db: db, cfg: cfg}
+	return &SupabaseRepository{
+		db:          db,
+		cfg:         cfg,
+		mockSwipes:  map[string]map[string]bool{},
+		mockMatches: map[string]map[string]any{},
+	}
 }
 
 type Service struct {
@@ -413,6 +422,18 @@ func (r *SupabaseRepository) GetSwipedTargetIDs(ctx context.Context, userID stri
 	params.Set("select", "targetUserId")
 	rows, err := r.db.Select(ctx, r.cfg.MatchingSchema, r.cfg.SwipesTable, params)
 	if err != nil {
+		if r.cfg.MockOTPEnabled {
+			r.mu.Lock()
+			defer r.mu.Unlock()
+			liked := r.mockSwipes[userID]
+			out := make([]string, 0, len(liked))
+			for targetID, isLike := range liked {
+				if isLike {
+					out = append(out, targetID)
+				}
+			}
+			return out, nil
+		}
 		return nil, err
 	}
 	out := make([]string, 0, len(rows))
@@ -429,7 +450,24 @@ func (r *SupabaseRepository) GetMatchedUserPairs(ctx context.Context, userID str
 	params := url.Values{}
 	params.Set("or", "(userId1.eq."+userID+",userId2.eq."+userID+")")
 	params.Set("select", "userId1,userId2")
-	return r.db.Select(ctx, r.cfg.MatchingSchema, r.cfg.MatchesTable, params)
+	rows, err := r.db.Select(ctx, r.cfg.MatchingSchema, r.cfg.MatchesTable, params)
+	if err != nil {
+		if r.cfg.MockOTPEnabled {
+			r.mu.Lock()
+			defer r.mu.Unlock()
+			out := make([]map[string]any, 0)
+			for _, match := range r.mockMatches {
+				userID1 := toString(match["userId1"])
+				userID2 := toString(match["userId2"])
+				if userID1 == userID || userID2 == userID {
+					out = append(out, map[string]any{"userId1": userID1, "userId2": userID2})
+				}
+			}
+			return out, nil
+		}
+		return nil, err
+	}
+	return rows, nil
 }
 
 func (r *SupabaseRepository) ListActiveUsers(ctx context.Context, limit int) ([]map[string]any, error) {
@@ -460,6 +498,16 @@ func (r *SupabaseRepository) GetUserPhotos(ctx context.Context, userIDs []string
 	params.Set("order", "ordering.asc")
 	rows, err := r.db.Select(ctx, r.cfg.UserSchema, r.cfg.PhotosTable, params)
 	if err != nil {
+		if r.cfg.MockOTPEnabled {
+			photosByUser := map[string][]string{}
+			for _, userID := range unique(userIDs) {
+				photosByUser[userID] = []string{
+					mockPhotoURL(r.cfg.MockPhotoSeedURLTemplate, userID+"-1"),
+					mockPhotoURL(r.cfg.MockPhotoSeedURLTemplate, userID+"-2"),
+				}
+			}
+			return photosByUser, nil
+		}
 		return nil, err
 	}
 	photosByUser := map[string][]string{}
@@ -491,6 +539,15 @@ func (r *SupabaseRepository) UpsertSwipe(ctx context.Context, userID, targetUser
 		"targetUserId": targetUserID,
 		"isLike":       isLike,
 	}}, "userId,targetUserId")
+	if err != nil && r.cfg.MockOTPEnabled {
+		r.mu.Lock()
+		defer r.mu.Unlock()
+		if r.mockSwipes[userID] == nil {
+			r.mockSwipes[userID] = map[string]bool{}
+		}
+		r.mockSwipes[userID][targetUserID] = isLike
+		return nil
+	}
 	return err
 }
 
@@ -505,6 +562,9 @@ func (r *SupabaseRepository) EnsureUsersExist(ctx context.Context, userIDs []str
 	params.Set("select", "id")
 	rows, err := r.db.Select(ctx, r.cfg.UserSchema, r.cfg.UsersTable, params)
 	if err != nil {
+		if r.cfg.MockOTPEnabled {
+			return nil
+		}
 		return err
 	}
 
@@ -541,6 +601,9 @@ func (r *SupabaseRepository) EnsureUsersExist(ctx context.Context, userIDs []str
 	}
 
 	_, err = r.db.Upsert(ctx, r.cfg.UserSchema, r.cfg.UsersTable, missing, "id")
+	if err != nil && r.cfg.MockOTPEnabled {
+		return nil
+	}
 	return err
 }
 
@@ -553,6 +616,11 @@ func (r *SupabaseRepository) HasMutualLike(ctx context.Context, userID, targetUs
 	params.Set("limit", "1")
 	rows, err := r.db.Select(ctx, r.cfg.MatchingSchema, r.cfg.SwipesTable, params)
 	if err != nil {
+		if r.cfg.MockOTPEnabled {
+			r.mu.Lock()
+			defer r.mu.Unlock()
+			return r.mockSwipes[targetUserID][userID], nil
+		}
 		return false, err
 	}
 	return len(rows) > 0, nil
@@ -568,6 +636,20 @@ func (r *SupabaseRepository) UpsertMatch(ctx context.Context, userID, targetUser
 		"userId2": userID2,
 	}}, "userId1,userId2")
 	if err != nil {
+		if r.cfg.MockOTPEnabled {
+			matchID := "mock-match-" + strings.ReplaceAll(userID1+"-"+userID2, "-", "")
+			r.mu.Lock()
+			defer r.mu.Unlock()
+			r.mockMatches[matchID] = map[string]any{
+				"id":          matchID,
+				"userId1":     userID1,
+				"userId2":     userID2,
+				"user1Status": "active",
+				"user2Status": "active",
+				"createdAt":   time.Now().UTC().Format(time.RFC3339),
+			}
+			return matchID, nil
+		}
 		return "", err
 	}
 
@@ -578,6 +660,23 @@ func (r *SupabaseRepository) UpsertMatch(ctx context.Context, userID, targetUser
 	params.Set("limit", "1")
 	rows, err := r.db.Select(ctx, r.cfg.MatchingSchema, r.cfg.MatchesTable, params)
 	if err != nil {
+		if r.cfg.MockOTPEnabled {
+			matchID := "mock-match-" + strings.ReplaceAll(userID1+"-"+userID2, "-", "")
+			r.mu.Lock()
+			defer r.mu.Unlock()
+			if existing, ok := r.mockMatches[matchID]; ok {
+				return toString(existing["id"]), nil
+			}
+			r.mockMatches[matchID] = map[string]any{
+				"id":          matchID,
+				"userId1":     userID1,
+				"userId2":     userID2,
+				"user1Status": "active",
+				"user2Status": "active",
+				"createdAt":   time.Now().UTC().Format(time.RFC3339),
+			}
+			return matchID, nil
+		}
 		return "", err
 	}
 	if len(rows) == 0 {
@@ -593,7 +692,24 @@ func (r *SupabaseRepository) ListMatches(ctx context.Context, userID string) ([]
 	params.Set("user1Status", "eq.active")
 	params.Set("user2Status", "eq.active")
 	params.Set("order", "lastMessageAt.desc")
-	return r.db.Select(ctx, r.cfg.MatchingSchema, r.cfg.MatchesTable, params)
+	rows, err := r.db.Select(ctx, r.cfg.MatchingSchema, r.cfg.MatchesTable, params)
+	if err != nil {
+		if r.cfg.MockOTPEnabled {
+			r.mu.Lock()
+			defer r.mu.Unlock()
+			out := make([]map[string]any, 0)
+			for _, row := range r.mockMatches {
+				userID1 := toString(row["userId1"])
+				userID2 := toString(row["userId2"])
+				if userID1 == userID || userID2 == userID {
+					out = append(out, row)
+				}
+			}
+			return out, nil
+		}
+		return nil, err
+	}
+	return rows, nil
 }
 
 func (r *SupabaseRepository) GetUsersByIDs(ctx context.Context, userIDs []string) (map[string]map[string]any, error) {
@@ -605,6 +721,17 @@ func (r *SupabaseRepository) GetUsersByIDs(ctx context.Context, userIDs []string
 	params.Set("select", "id,name,lastLogin")
 	rows, err := r.db.Select(ctx, r.cfg.UserSchema, r.cfg.UsersTable, params)
 	if err != nil {
+		if r.cfg.MockOTPEnabled {
+			out := map[string]map[string]any{}
+			for _, userID := range unique(userIDs) {
+				out[userID] = map[string]any{
+					"id":        userID,
+					"name":      "Member",
+					"lastLogin": time.Now().UTC().Format(time.RFC3339),
+				}
+			}
+			return out, nil
+		}
 		return nil, err
 	}
 	out := map[string]map[string]any{}
@@ -628,6 +755,13 @@ func (r *SupabaseRepository) GetPrimaryPhotosByUserIDs(ctx context.Context, user
 	params.Set("order", "ordering.asc")
 	rows, err := r.db.Select(ctx, r.cfg.UserSchema, r.cfg.PhotosTable, params)
 	if err != nil {
+		if r.cfg.MockOTPEnabled {
+			out := map[string]string{}
+			for _, userID := range unique(userIDs) {
+				out[userID] = mockPhotoURL(r.cfg.MockPhotoSeedURLTemplate, userID+"-primary")
+			}
+			return out, nil
+		}
 		return nil, err
 	}
 	out := map[string]string{}
@@ -655,6 +789,9 @@ func (r *SupabaseRepository) GetLatestMessagesByMatchIDs(ctx context.Context, ma
 	params.Set("order", "createdAt.desc")
 	rows, err := r.db.Select(ctx, r.cfg.MatchingSchema, r.cfg.MessagesTable, params)
 	if err != nil {
+		if r.cfg.MockOTPEnabled {
+			return map[string]map[string]any{}, nil
+		}
 		return nil, err
 	}
 	out := map[string]map[string]any{}
@@ -682,6 +819,9 @@ func (r *SupabaseRepository) GetUnreadCounts(ctx context.Context, matchIDs []str
 	params.Set("select", "matchId")
 	rows, err := r.db.Select(ctx, r.cfg.MatchingSchema, r.cfg.MessagesTable, params)
 	if err != nil {
+		if r.cfg.MockOTPEnabled {
+			return map[string]int{}, nil
+		}
 		return nil, err
 	}
 	out := map[string]int{}

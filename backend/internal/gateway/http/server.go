@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -47,9 +48,24 @@ func NewRouter(
 	proxy := httputil.NewSingleHostReverseProxy(target)
 	originalDirector := proxy.Director
 	proxy.Director = func(req *http.Request) {
+		originalHost := strings.TrimSpace(req.Host)
+		originalProto := strings.TrimSpace(req.Header.Get("X-Forwarded-Proto"))
+		if originalProto == "" {
+			if req.TLS != nil {
+				originalProto = "https"
+			} else {
+				originalProto = "http"
+			}
+		}
+
 		originalDirector(req)
 		req.Host = target.Host
-		req.Header.Set("X-Forwarded-Host", req.Host)
+		if originalHost != "" {
+			req.Header.Set("X-Forwarded-Host", originalHost)
+		} else {
+			req.Header.Set("X-Forwarded-Host", req.Host)
+		}
+		req.Header.Set("X-Forwarded-Proto", originalProto)
 	}
 
 	r := chi.NewRouter()

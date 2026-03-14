@@ -571,91 +571,121 @@ var (
 )
 
 type memoryStore struct {
-	mu                     sync.RWMutex
-	cfg                    config.Config
-	profiles               map[string]profileDraft
-	settings               map[string]userSettings
-	contacts               map[string][]emergencyContact
-	blockedUsers           map[string]map[string]blockedUser
-	verification           map[string]verificationState
-	activities             []activityEvent
-	activitySeq            uint64
-	calls                  map[string]videoCallSession
-	sosAlerts              map[string]sosAlert
-	plans                  []subscriptionPlan
-	subscriptions          map[string]userSubscription
-	payments               map[string][]paymentRecord
-	reports                []moderationReport
-	appeals                []moderationAppeal
-	trustMilestones        map[string]trustMilestone
-	userBadges             map[string]map[string]trustBadge
-	badgeHistory           map[string][]trustBadgeHistoryEvent
-	trustFilters           map[string]trustFilterPreference
-	rooms                  map[string]conversationRoomRecord
-	roomParticipants       map[string]map[string]conversationRoomParticipant
-	roomModerationActions  map[string][]conversationRoomModerationAction
-	roomActiveBlocks       map[string]map[string]conversationRoomBlock
-	friends                map[string]map[string]friendConnection
-	friendActivities       map[string][]friendActivity
-	activitySessions       map[string]activitySession
-	dailyPromptAnswers     map[string]map[string]dailyPromptAnswer
-	dailyPromptStreaks     map[string]dailyPromptStreak
-	matchNudges            map[string][]matchNudge
-	conversationResumes    map[string][]conversationResumed
-	circleMembers          map[string]map[string]circleMembership
-	circleChallengeEntries map[string]map[string]circleChallengeEntry
-	voiceIcebreakers       map[string]voiceIcebreaker
-	groupCoffeePolls       map[string]groupCoffeePoll
-	groupCoffeePollVotes   map[string]map[string]string
-	questTemplates         map[string]questTemplateRequirement
-	questWorkflows         map[string]questSubmissionWorkflow
-	matchGestures          map[string][]matchGesture
-	questRepo              *questRepository
+	mu                      sync.RWMutex
+	cfg                     config.Config
+	profiles                map[string]profileDraft
+	settings                map[string]userSettings
+	contacts                map[string][]emergencyContact
+	blockedUsers            map[string]map[string]blockedUser
+	verification            map[string]verificationState
+	activities              []activityEvent
+	activitySeq             uint64
+	calls                   map[string]videoCallSession
+	sosAlerts               map[string]sosAlert
+	plans                   []subscriptionPlan
+	subscriptions           map[string]userSubscription
+	payments                map[string][]paymentRecord
+	reports                 []moderationReport
+	appeals                 []moderationAppeal
+	trustMilestones         map[string]trustMilestone
+	userBadges              map[string]map[string]trustBadge
+	badgeHistory            map[string][]trustBadgeHistoryEvent
+	trustFilters            map[string]trustFilterPreference
+	rooms                   map[string]conversationRoomRecord
+	roomParticipants        map[string]map[string]conversationRoomParticipant
+	roomModerationActions   map[string][]conversationRoomModerationAction
+	roomActiveBlocks        map[string]map[string]conversationRoomBlock
+	friends                 map[string]map[string]friendConnection
+	friendActivities        map[string][]friendActivity
+	activitySessions        map[string]activitySession
+	dailyPromptAnswers      map[string]map[string]dailyPromptAnswer
+	dailyPromptStreaks      map[string]dailyPromptStreak
+	matchNudges             map[string][]matchNudge
+	conversationResumes     map[string][]conversationResumed
+	circleMembers           map[string]map[string]circleMembership
+	circleChallengeEntries  map[string]map[string]circleChallengeEntry
+	communityGroups         map[string]communityGroupRecord
+	communityGroupMembers   map[string]map[string]communityGroupMember
+	communityGroupInvites   map[string]map[string]communityGroupInvite
+	voiceIcebreakers        map[string]voiceIcebreaker
+	groupCoffeePolls        map[string]groupCoffeePoll
+	groupCoffeePollVotes    map[string]map[string]string
+	questTemplates          map[string]questTemplateRequirement
+	questWorkflows          map[string]questSubmissionWorkflow
+	matchGestures           map[string][]matchGesture
+	spotlightExposureByTier map[string]int
+	spotlightLikeByTier     map[string]int
+	spotlightMatchByTier    map[string]int
+	spotlightExposureByUser map[string]int
+	spotlightEligibleUsers  map[string]string
+	spotlightLastResetDate  string
+	questRepo               *questRepository
+	communityGroupRepo      *communityGroupRepository
 }
 
 func newMemoryStore(cfg config.Config) *memoryStore {
 	return &memoryStore{
-		cfg:                    cfg,
-		profiles:               make(map[string]profileDraft),
-		settings:               make(map[string]userSettings),
-		contacts:               make(map[string][]emergencyContact),
-		blockedUsers:           make(map[string]map[string]blockedUser),
-		verification:           make(map[string]verificationState),
-		activities:             make([]activityEvent, 0, 512),
-		calls:                  make(map[string]videoCallSession),
-		sosAlerts:              make(map[string]sosAlert),
-		plans:                  defaultSubscriptionPlans(),
-		subscriptions:          make(map[string]userSubscription),
-		payments:               make(map[string][]paymentRecord),
-		reports:                make([]moderationReport, 0, 128),
-		trustMilestones:        make(map[string]trustMilestone),
-		userBadges:             make(map[string]map[string]trustBadge),
-		badgeHistory:           make(map[string][]trustBadgeHistoryEvent),
-		trustFilters:           make(map[string]trustFilterPreference),
-		rooms:                  defaultConversationRoomRecords(),
-		roomParticipants:       make(map[string]map[string]conversationRoomParticipant),
-		roomModerationActions:  make(map[string][]conversationRoomModerationAction),
-		roomActiveBlocks:       make(map[string]map[string]conversationRoomBlock),
-		friends:                make(map[string]map[string]friendConnection),
-		friendActivities:       make(map[string][]friendActivity),
-		activitySessions:       make(map[string]activitySession),
-		dailyPromptAnswers:     make(map[string]map[string]dailyPromptAnswer),
-		dailyPromptStreaks:     make(map[string]dailyPromptStreak),
-		matchNudges:            make(map[string][]matchNudge),
-		conversationResumes:    make(map[string][]conversationResumed),
-		circleMembers:          make(map[string]map[string]circleMembership),
-		circleChallengeEntries: make(map[string]map[string]circleChallengeEntry),
-		voiceIcebreakers:       make(map[string]voiceIcebreaker),
-		groupCoffeePolls:       make(map[string]groupCoffeePoll),
-		groupCoffeePollVotes:   make(map[string]map[string]string),
-		questTemplates:         make(map[string]questTemplateRequirement),
-		questWorkflows:         make(map[string]questSubmissionWorkflow),
-		matchGestures:          make(map[string][]matchGesture),
-		questRepo:              newQuestRepository(cfg),
+		cfg:                     cfg,
+		profiles:                make(map[string]profileDraft),
+		settings:                make(map[string]userSettings),
+		contacts:                make(map[string][]emergencyContact),
+		blockedUsers:            make(map[string]map[string]blockedUser),
+		verification:            make(map[string]verificationState),
+		activities:              make([]activityEvent, 0, 512),
+		calls:                   make(map[string]videoCallSession),
+		sosAlerts:               make(map[string]sosAlert),
+		plans:                   defaultSubscriptionPlans(),
+		subscriptions:           make(map[string]userSubscription),
+		payments:                make(map[string][]paymentRecord),
+		reports:                 make([]moderationReport, 0, 128),
+		trustMilestones:         make(map[string]trustMilestone),
+		userBadges:              make(map[string]map[string]trustBadge),
+		badgeHistory:            make(map[string][]trustBadgeHistoryEvent),
+		trustFilters:            make(map[string]trustFilterPreference),
+		rooms:                   defaultConversationRoomRecords(),
+		roomParticipants:        make(map[string]map[string]conversationRoomParticipant),
+		roomModerationActions:   make(map[string][]conversationRoomModerationAction),
+		roomActiveBlocks:        make(map[string]map[string]conversationRoomBlock),
+		friends:                 make(map[string]map[string]friendConnection),
+		friendActivities:        make(map[string][]friendActivity),
+		activitySessions:        make(map[string]activitySession),
+		dailyPromptAnswers:      make(map[string]map[string]dailyPromptAnswer),
+		dailyPromptStreaks:      make(map[string]dailyPromptStreak),
+		matchNudges:             make(map[string][]matchNudge),
+		conversationResumes:     make(map[string][]conversationResumed),
+		circleMembers:           make(map[string]map[string]circleMembership),
+		circleChallengeEntries:  make(map[string]map[string]circleChallengeEntry),
+		communityGroups:         make(map[string]communityGroupRecord),
+		communityGroupMembers:   make(map[string]map[string]communityGroupMember),
+		communityGroupInvites:   make(map[string]map[string]communityGroupInvite),
+		voiceIcebreakers:        make(map[string]voiceIcebreaker),
+		groupCoffeePolls:        make(map[string]groupCoffeePoll),
+		groupCoffeePollVotes:    make(map[string]map[string]string),
+		questTemplates:          make(map[string]questTemplateRequirement),
+		questWorkflows:          make(map[string]questSubmissionWorkflow),
+		matchGestures:           make(map[string][]matchGesture),
+		spotlightExposureByTier: make(map[string]int),
+		spotlightLikeByTier:     make(map[string]int),
+		spotlightMatchByTier:    make(map[string]int),
+		spotlightExposureByUser: make(map[string]int),
+		spotlightEligibleUsers:  make(map[string]string),
+		questRepo:               newQuestRepository(cfg),
+		communityGroupRepo:      newCommunityGroupRepository(cfg),
 	}
 }
 
 func isQuestRepoPersistenceUnavailable(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "pgrst106") ||
+		strings.Contains(msg, "pgrst205") ||
+		strings.Contains(msg, "invalid schema") ||
+		strings.Contains(msg, "could not find the table")
+}
+
+func isCommunityGroupRepoPersistenceUnavailable(err error) bool {
 	if err == nil {
 		return false
 	}
@@ -4085,6 +4115,18 @@ func (m *memoryStore) adminAnalyticsOverview() map[string]any {
 				"required_properties": []string{"circle_id", "user_id", "challenge_id"},
 			},
 			{
+				"name":                "mini_activity_started",
+				"required_properties": []string{"match_id", "session_id", "user_id", "activity_type"},
+			},
+			{
+				"name":                "mini_activity_completed",
+				"required_properties": []string{"match_id", "session_id", "user_id", "activity_type"},
+			},
+			{
+				"name":                "mini_activity_shared",
+				"required_properties": []string{"match_id", "session_id", "user_id", "activity_type"},
+			},
+			{
 				"name":                "voice_icebreaker_started",
 				"required_properties": []string{"match_id", "user_id", "prompt_id"},
 			},
@@ -4107,6 +4149,18 @@ func (m *memoryStore) adminAnalyticsOverview() map[string]any {
 			{
 				"name":                "intro_event_finalized",
 				"required_properties": []string{"intro_event_id", "user_id", "selected_option_id", "event_type"},
+			},
+			{
+				"name":                "group_poll_created",
+				"required_properties": []string{"poll_id", "user_id"},
+			},
+			{
+				"name":                "group_poll_voted",
+				"required_properties": []string{"poll_id", "user_id", "option_id"},
+			},
+			{
+				"name":                "group_poll_finalized",
+				"required_properties": []string{"poll_id", "user_id", "selected_option_id"},
 			},
 		},
 	}
@@ -4156,6 +4210,29 @@ func (m *memoryStore) adminAnalyticsOverview() map[string]any {
 		"billing_policy_dimension_coverage": safeRatePercent(billingPolicyDimensionCount, billingEventCount),
 	}
 
+	totalSpotlightExposures := 0
+	for _, count := range m.spotlightExposureByTier {
+		totalSpotlightExposures += count
+	}
+
+	spotlightLikeThroughByTier := map[string]float64{}
+	for tier, exposures := range m.spotlightExposureByTier {
+		likes := m.spotlightLikeByTier[tier]
+		spotlightLikeThroughByTier[tier] = safeRatePercent(likes, exposures)
+	}
+
+	nonPremiumSpotlightExposures := m.spotlightExposureByTier["bronze"] + m.spotlightExposureByTier["silver"]
+	spotlightMetrics := map[string]any{
+		"total_exposures":                   totalSpotlightExposures,
+		"exposure_by_tier":                  m.spotlightExposureByTier,
+		"like_by_tier":                      m.spotlightLikeByTier,
+		"match_by_tier":                     m.spotlightMatchByTier,
+		"like_through_rate_by_tier":         spotlightLikeThroughByTier,
+		"non_premium_exposure_share_pct":    safeRatePercent(nonPremiumSpotlightExposures, totalSpotlightExposures),
+		"tracked_eligible_user_count":       len(m.spotlightEligibleUsers),
+		"daily_exposure_tracked_user_count": len(m.spotlightExposureByUser),
+	}
+
 	return map[string]any{
 		"pending_verifications":          verificationPending,
 		"pending_reports":                reportsPending,
@@ -4168,6 +4245,7 @@ func (m *memoryStore) adminAnalyticsOverview() map[string]any {
 		"event_taxonomy":                 eventTaxonomy,
 		"data_quality_checks":            dataQualityChecks,
 		"monetization_policy_compliance": policyCompliance,
+		"spotlight_metrics":              spotlightMetrics,
 		"feature_flags":                  featureFlags,
 		"funnel_metrics":                 funnelMetrics,
 		"total_calls":                    len(m.calls),

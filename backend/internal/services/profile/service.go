@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+	"sync"
 
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -22,12 +23,20 @@ type Repository interface {
 }
 
 type SupabaseRepository struct {
-	db  *supabase.Client
-	cfg config.Config
+	db         *supabase.Client
+	cfg        config.Config
+	mu         sync.Mutex
+	mockUsers  map[string]map[string]any
+	mockPhotos map[string][]string
 }
 
 func NewRepository(db *supabase.Client, cfg config.Config) Repository {
-	return &SupabaseRepository{db: db, cfg: cfg}
+	return &SupabaseRepository{
+		db:         db,
+		cfg:        cfg,
+		mockUsers:  map[string]map[string]any{},
+		mockPhotos: map[string][]string{},
+	}
 }
 
 type Service struct {
@@ -66,7 +75,7 @@ func (s *Service) GetProfile(ctx context.Context, req *structpb.Struct) (*struct
 		s.log.Error("profile_get_photos_failed", zap.String("user_id", userID), zap.Error(err))
 		return nil, err
 	}
-	user["photoUrls"] = photos
+	user["photoUrls"] = stringsToAnySlice(photos)
 
 	s.log.Info("profile_get_completed", zap.String("user_id", userID))
 	return structpb.NewStruct(map[string]any{
@@ -152,6 +161,24 @@ func (r *SupabaseRepository) GetUser(ctx context.Context, userID string) (map[st
 	params.Set("limit", "1")
 	rows, err := r.db.Select(ctx, r.cfg.UserSchema, r.cfg.UsersTable, params)
 	if err != nil {
+		if r.cfg.MockOTPEnabled {
+			r.mu.Lock()
+			defer r.mu.Unlock()
+			if user, ok := r.mockUsers[userID]; ok {
+				return user, true, nil
+			}
+			user := map[string]any{
+				"id":          userID,
+				"name":        "Member",
+				"bio":         "Local mock profile",
+				"dateOfBirth": "1998-01-01",
+				"gender":      "U",
+				"isActive":    true,
+				"isVerified":  false,
+			}
+			r.mockUsers[userID] = user
+			return user, true, nil
+		}
 		return nil, false, err
 	}
 	if len(rows) == 0 {
@@ -169,6 +196,23 @@ func (r *SupabaseRepository) UpsertUser(ctx context.Context, profile map[string]
 		"id",
 	)
 	if err != nil {
+		if r.cfg.MockOTPEnabled {
+			userID := toString(profile["id"])
+			if userID == "" {
+				return map[string]any{}, nil
+			}
+			r.mu.Lock()
+			defer r.mu.Unlock()
+			copyProfile := map[string]any{}
+			for k, v := range profile {
+				copyProfile[k] = v
+			}
+			if _, ok := copyProfile["isActive"]; !ok {
+				copyProfile["isActive"] = true
+			}
+			r.mockUsers[userID] = copyProfile
+			return copyProfile, nil
+		}
 		return nil, err
 	}
 	if len(rows) == 0 {
@@ -183,6 +227,9 @@ func (r *SupabaseRepository) GetPreferences(ctx context.Context, userID string) 
 	params.Set("limit", "1")
 	rows, err := r.db.Select(ctx, r.cfg.UserSchema, r.cfg.PreferencesTable, params)
 	if err != nil {
+		if r.cfg.MockOTPEnabled {
+			return map[string]any{}, nil
+		}
 		return nil, err
 	}
 	if len(rows) == 0 {
@@ -198,6 +245,18 @@ func (r *SupabaseRepository) GetPhotos(ctx context.Context, userID string) ([]st
 	params.Set("order", "ordering.asc")
 	rows, err := r.db.Select(ctx, r.cfg.UserSchema, r.cfg.PhotosTable, params)
 	if err != nil {
+		if r.cfg.MockOTPEnabled {
+			r.mu.Lock()
+			defer r.mu.Unlock()
+			if photos, ok := r.mockPhotos[userID]; ok {
+				return photos, nil
+			}
+			defaultPhotos := []string{
+				r.cfg.DefaultProfileImageURL,
+			}
+			r.mockPhotos[userID] = defaultPhotos
+			return defaultPhotos, nil
+		}
 		return nil, err
 	}
 	out := make([]string, 0, len(rows))
@@ -217,6 +276,14 @@ func (r *SupabaseRepository) GetStats(ctx context.Context, userID string) (map[s
 	likesParams.Set("select", "id")
 	likesRows, err := r.db.Select(ctx, r.cfg.MatchingSchema, r.cfg.SwipesTable, likesParams)
 	if err != nil {
+		if r.cfg.MockOTPEnabled {
+			return map[string]any{
+				"likes_count":    0,
+				"matches_count":  0,
+				"messages_count": 0,
+				"photo_count":    1,
+			}, nil
+		}
 		return nil, err
 	}
 
@@ -227,6 +294,14 @@ func (r *SupabaseRepository) GetStats(ctx context.Context, userID string) (map[s
 	matchesParams.Set("select", "id")
 	matchesRows, err := r.db.Select(ctx, r.cfg.MatchingSchema, r.cfg.MatchesTable, matchesParams)
 	if err != nil {
+		if r.cfg.MockOTPEnabled {
+			return map[string]any{
+				"likes_count":    len(likesRows),
+				"matches_count":  0,
+				"messages_count": 0,
+				"photo_count":    1,
+			}, nil
+		}
 		return nil, err
 	}
 
@@ -235,6 +310,14 @@ func (r *SupabaseRepository) GetStats(ctx context.Context, userID string) (map[s
 	messagesParams.Set("select", "id")
 	messagesRows, err := r.db.Select(ctx, r.cfg.MatchingSchema, r.cfg.MessagesTable, messagesParams)
 	if err != nil {
+		if r.cfg.MockOTPEnabled {
+			return map[string]any{
+				"likes_count":    len(likesRows),
+				"matches_count":  len(matchesRows),
+				"messages_count": 0,
+				"photo_count":    1,
+			}, nil
+		}
 		return nil, err
 	}
 
@@ -243,6 +326,14 @@ func (r *SupabaseRepository) GetStats(ctx context.Context, userID string) (map[s
 	photosParams.Set("select", "id")
 	photosRows, err := r.db.Select(ctx, r.cfg.UserSchema, r.cfg.PhotosTable, photosParams)
 	if err != nil {
+		if r.cfg.MockOTPEnabled {
+			return map[string]any{
+				"likes_count":    len(likesRows),
+				"matches_count":  len(matchesRows),
+				"messages_count": len(messagesRows),
+				"photo_count":    1,
+			}, nil
+		}
 		return nil, err
 	}
 
@@ -259,4 +350,12 @@ func toString(value any) string {
 		return typed
 	}
 	return strings.TrimSpace(fmt.Sprintf("%v", value))
+}
+
+func stringsToAnySlice(values []string) []any {
+	out := make([]any, 0, len(values))
+	for _, value := range values {
+		out = append(out, value)
+	}
+	return out
 }

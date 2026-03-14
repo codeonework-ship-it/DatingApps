@@ -1,0 +1,8 @@
+cluster.name: dating-app-local
+node.name: dating-elasticsearch-local
+discovery.type: single-node
+xpack.security.enabled: false
+http.host: 127.0.0.1
+http.port: 9200
+path.data: ./.run/elk/data/elasticsearch
+path.logs: ./.run/elk/logs/elasticsearch
