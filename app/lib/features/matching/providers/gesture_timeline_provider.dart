@@ -24,8 +24,7 @@ class GestureTimelineItem {
     required this.createdAt,
   });
 
-  factory GestureTimelineItem.fromJson(Map<String, dynamic> json) {
-    return GestureTimelineItem(
+  factory GestureTimelineItem.fromJson(Map<String, dynamic> json) => GestureTimelineItem(
       id: json['id']?.toString() ?? '',
       matchId: json['match_id']?.toString() ?? '',
       senderUserId: json['sender_user_id']?.toString() ?? '',
@@ -43,7 +42,6 @@ class GestureTimelineItem {
           DateTime.tryParse(json['created_at']?.toString() ?? '') ??
           DateTime.now(),
     );
-  }
   final String id;
   final String matchId;
   final String senderUserId;

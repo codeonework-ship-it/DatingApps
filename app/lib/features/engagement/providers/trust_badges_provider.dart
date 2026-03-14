@@ -131,7 +131,7 @@ class TrustBadgesNotifier extends StateNotifier<TrustBadgesState> {
         isLoading: false,
         milestones: milestones,
         badges: badgesRaw
-            .whereType<Map>()
+            .whereType<Map<dynamic, dynamic>>()
             .map((entry) {
               final map = entry.cast<String, dynamic>();
               return TrustBadgeItem(
@@ -144,7 +144,7 @@ class TrustBadgesNotifier extends StateNotifier<TrustBadgesState> {
             .where((item) => item.code.isNotEmpty)
             .toList(growable: false),
         history: historyRaw
-            .whereType<Map>()
+            .whereType<Map<dynamic, dynamic>>()
             .map((entry) {
               final map = entry.cast<String, dynamic>();
               return TrustBadgeHistoryItem(

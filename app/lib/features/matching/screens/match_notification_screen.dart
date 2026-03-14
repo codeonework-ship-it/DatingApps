@@ -5,11 +5,7 @@ import '../../messaging/screens/chat_screen.dart';
 
 class MatchNotificationScreen extends StatelessWidget {
   const MatchNotificationScreen({
-    super.key,
-    required this.matchId,
-    required this.otherUserId,
-    required this.otherUserName,
-    required this.otherUserPhotoUrl,
+    required this.matchId, required this.otherUserId, required this.otherUserName, required this.otherUserPhotoUrl, super.key,
     this.currentUserPhotoUrl,
   });
   final String matchId;

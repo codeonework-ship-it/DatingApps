@@ -7,6 +7,22 @@ import '../../../core/utils/logger.dart';
 import '../../auth/providers/auth_provider.dart';
 
 class ModerationAppealItem {
+
+  factory ModerationAppealItem.fromJson(Map<String, dynamic> json) {
+    return ModerationAppealItem(
+      id: json['id']?.toString() ?? '',
+      userId: json['user_id']?.toString() ?? '',
+      reason: json['reason']?.toString() ?? '',
+      status: json['status']?.toString() ?? 'submitted',
+      slaDeadlineAt: json['sla_deadline_at']?.toString() ?? '',
+      createdAt: json['created_at']?.toString() ?? '',
+      reportId: json['report_id']?.toString(),
+      description: json['description']?.toString(),
+      resolutionReason: json['resolution_reason']?.toString(),
+      reviewedBy: json['reviewed_by']?.toString(),
+      reviewedAt: json['reviewed_at']?.toString(),
+    );
+  }
   const ModerationAppealItem({
     required this.id,
     required this.userId,
@@ -32,22 +48,6 @@ class ModerationAppealItem {
   final String? resolutionReason;
   final String? reviewedBy;
   final String? reviewedAt;
-
-  factory ModerationAppealItem.fromJson(Map<String, dynamic> json) {
-    return ModerationAppealItem(
-      id: json['id']?.toString() ?? '',
-      userId: json['user_id']?.toString() ?? '',
-      reason: json['reason']?.toString() ?? '',
-      status: json['status']?.toString() ?? 'submitted',
-      slaDeadlineAt: json['sla_deadline_at']?.toString() ?? '',
-      createdAt: json['created_at']?.toString() ?? '',
-      reportId: json['report_id']?.toString(),
-      description: json['description']?.toString(),
-      resolutionReason: json['resolution_reason']?.toString(),
-      reviewedBy: json['reviewed_by']?.toString(),
-      reviewedAt: json['reviewed_at']?.toString(),
-    );
-  }
 }
 
 String appealStatusLabel(String status) {

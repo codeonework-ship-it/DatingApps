@@ -275,15 +275,13 @@ class _MatchesListScreenState extends ConsumerState<MatchesListScreen> {
             Future<void>.delayed(Duration.zero, () async {
               final reportId = await showReportUserSheet(
                 context: pageContext,
-                onSubmit: ({required reason, String? description}) async {
-                  return ref
+                onSubmit: ({required reason, description}) async => ref
                       .read(safetyActionsProvider)
                       .reportUser(
                         reportedUserId: match.userId,
                         reason: reason,
                         description: description,
-                      );
-                },
+                      ),
               );
 
               if (!pageContext.mounted) return;

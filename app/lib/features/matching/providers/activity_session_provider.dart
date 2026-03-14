@@ -38,8 +38,7 @@ class ActivitySummary {
     this.generatedAt,
   });
 
-  factory ActivitySummary.fromJson(Map<String, dynamic> json) {
-    return ActivitySummary(
+  factory ActivitySummary.fromJson(Map<String, dynamic> json) => ActivitySummary(
       sessionId: json['session_id']?.toString() ?? '',
       matchId: json['match_id']?.toString() ?? '',
       status: json['status']?.toString() ?? '',
@@ -50,7 +49,6 @@ class ActivitySummary {
       insight: json['insight']?.toString() ?? '',
       generatedAt: DateTime.tryParse(json['generated_at']?.toString() ?? ''),
     );
-  }
   final String sessionId;
   final String matchId;
   final String status;

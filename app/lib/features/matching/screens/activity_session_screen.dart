@@ -9,10 +9,7 @@ import '../providers/activity_session_provider.dart';
 
 class ActivitySessionScreen extends ConsumerStatefulWidget {
   const ActivitySessionScreen({
-    super.key,
-    required this.matchId,
-    required this.otherUserId,
-    required this.otherUserName,
+    required this.matchId, required this.otherUserId, required this.otherUserName, super.key,
     this.enableShareToChat = false,
   });
   final String matchId;

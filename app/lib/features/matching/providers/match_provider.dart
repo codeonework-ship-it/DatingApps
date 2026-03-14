@@ -78,8 +78,11 @@ class MatchNotifier extends _$MatchNotifier {
     try {
       if (kUseMockAuth) {
         await Future<void>.delayed(const Duration(milliseconds: 220));
+        final seeded = _mockMatches();
         state = state.copyWith(
-          matches: _mockMatches(),
+          matches: kUseDummyMatches
+              ? _appendDummyMatches(seeded, currentUserId: 'mock-self')
+              : seeded,
           isLoading: false,
           trustFilterActive: false,
           trustFilteredOutCount: 0,
@@ -159,16 +162,37 @@ class MatchNotifier extends _$MatchNotifier {
           .map((row) {
             final map = row;
             final lastMessageAt =
-                DateTime.tryParse(map['lastMessageTime']?.toString() ?? '') ??
+                DateTime.tryParse(
+                  _pickText(map, const [
+                    'lastMessageTime',
+                    'last_message_time',
+                    'lastMessageAt',
+                    'last_message_at',
+                  ]),
+                ) ??
                 DateTime.now();
+
+            final userName = _cleanText(
+              _pickText(map, const ['userName', 'user_name', 'name']),
+            );
+            final userPhoto = _cleanText(
+              _pickText(map, const ['userPhoto', 'user_photo', 'photo_url']),
+            );
+            final lastMessage = _cleanText(
+              _pickText(map, const ['lastMessage', 'last_message']),
+            );
+            final userId = _cleanText(
+              _pickText(map, const ['userId', 'user_id', 'target_user_id']),
+            );
+
             return Match(
-              id: map['id']?.toString() ?? '',
-              userId: map['userId']?.toString() ?? '',
-              userName: map['userName']?.toString() ?? 'Unknown',
-              userPhoto:
-                  map['userPhoto']?.toString() ??
-                  AppRuntimeConfig.placeholderAvatarImageUrl,
-              lastMessage: map['lastMessage']?.toString() ?? 'Say hi 👋',
+              id: _pickText(map, const ['id', 'match_id']),
+              userId: userId,
+              userName: userName.isEmpty ? 'Unknown' : userName,
+              userPhoto: userPhoto.isEmpty
+                  ? AppRuntimeConfig.placeholderAvatarImageUrl
+                  : userPhoto,
+              lastMessage: lastMessage.isEmpty ? 'Say hi 👋' : lastMessage,
               lastMessageTime: lastMessageAt,
               unreadCount: (map['unreadCount'] as num?)?.toInt() ?? 0,
               isOnline: map['isOnline'] == true,
@@ -177,8 +201,12 @@ class MatchNotifier extends _$MatchNotifier {
           .where((m) => m.id.isNotEmpty)
           .toList();
 
+      final resolvedMatches = kUseDummyMatches
+          ? _appendDummyMatches(mapped, currentUserId: currentUserId)
+          : mapped;
+
       state = state.copyWith(
-        matches: mapped,
+        matches: resolvedMatches,
         isLoading: false,
         error: null,
         trustFilterActive: trustFilter['active'] == true,
@@ -296,4 +324,151 @@ List<Match> _mockMatches() {
       isOnline: false,
     ),
   ];
+}
+
+String _pickText(Map<String, dynamic> map, List<String> keys) {
+  for (final key in keys) {
+    final value = map[key];
+    if (value == null) {
+      continue;
+    }
+    final text = value.toString().trim();
+    if (text.isNotEmpty) {
+      return text;
+    }
+  }
+  return '';
+}
+
+String _cleanText(String value) {
+  final text = value.trim();
+  if (text.isEmpty) {
+    return '';
+  }
+  final lowered = text.toLowerCase();
+  if (lowered == 'nil' || lowered == 'null' || lowered == 'n/a') {
+    return '';
+  }
+  return text;
+}
+
+List<Match> _appendDummyMatches(
+  List<Match> source, {
+  required String currentUserId,
+}) {
+  const targetCount = 10;
+  if (source.length >= targetCount) {
+    return source;
+  }
+
+  final now = DateTime.now();
+  final existingIds = source.map((e) => e.id).toSet();
+  final existingUserIds = source.map((e) => e.userId).toSet();
+
+  final candidates = <Match>[
+    Match(
+      id: 'dummy-match-arya',
+      userId: 'dummy-user-arya',
+      userName: 'Arya',
+      userPhoto:
+          'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?auto=format&fit=crop&w=500&q=80',
+      lastMessage: 'Loved your profile vibe ✨',
+      lastMessageTime: now.subtract(const Duration(minutes: 15)),
+      unreadCount: 1,
+      isOnline: true,
+    ),
+    Match(
+      id: 'dummy-match-kiara',
+      userId: 'dummy-user-kiara',
+      userName: 'Kiara',
+      userPhoto:
+          'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&w=500&q=80',
+      lastMessage: 'Are you free this weekend?',
+      lastMessageTime: now.subtract(const Duration(hours: 1)),
+      unreadCount: 0,
+      isOnline: false,
+    ),
+    Match(
+      id: 'dummy-match-neha',
+      userId: 'dummy-user-neha',
+      userName: 'Neha',
+      userPhoto:
+          'https://images.unsplash.com/photo-1464863979621-258859e62245?auto=format&fit=crop&w=500&q=80',
+      lastMessage: 'Coffee + bookstore plan?',
+      lastMessageTime: now.subtract(const Duration(hours: 5)),
+      unreadCount: 3,
+      isOnline: true,
+    ),
+    Match(
+      id: 'dummy-match-zoya',
+      userId: 'dummy-user-zoya',
+      userName: 'Zoya',
+      userPhoto:
+          'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=500&q=80',
+      lastMessage: 'Good morning ☀️',
+      lastMessageTime: now.subtract(const Duration(days: 1, hours: 2)),
+      unreadCount: 0,
+      isOnline: false,
+    ),
+    Match(
+      id: 'dummy-match-isha',
+      userId: 'dummy-user-isha',
+      userName: 'Isha',
+      userPhoto:
+          'https://images.unsplash.com/photo-1521119989659-a83eee488004?auto=format&fit=crop&w=500&q=80',
+      lastMessage: 'Let’s plan something fun this week!',
+      lastMessageTime: now.subtract(const Duration(days: 1, hours: 8)),
+      unreadCount: 0,
+      isOnline: true,
+    ),
+    Match(
+      id: 'dummy-match-sana',
+      userId: 'dummy-user-sana',
+      userName: 'Sana',
+      userPhoto:
+          'https://images.unsplash.com/photo-1506863530036-1efeddceb993?auto=format&fit=crop&w=500&q=80',
+      lastMessage: 'Your travel stories are amazing ✈️',
+      lastMessageTime: now.subtract(const Duration(days: 2)),
+      unreadCount: 4,
+      isOnline: false,
+    ),
+    Match(
+      id: 'dummy-match-diyaa',
+      userId: 'dummy-user-diyaa',
+      userName: 'Diyaa',
+      userPhoto:
+          'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=500&q=80',
+      lastMessage: 'When are we doing that coffee plan? ☕',
+      lastMessageTime: now.subtract(const Duration(days: 3, hours: 2)),
+      unreadCount: 0,
+      isOnline: true,
+    ),
+    Match(
+      id: 'dummy-match-ritu',
+      userId: 'dummy-user-ritu',
+      userName: 'Ritu',
+      userPhoto:
+          'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=500&q=80',
+      lastMessage: 'Hey! Good to see you here 👋',
+      lastMessageTime: now.subtract(const Duration(days: 4, hours: 3)),
+      unreadCount: 1,
+      isOnline: false,
+    ),
+  ];
+
+  final resolved = <Match>[...source];
+  for (final match in candidates) {
+    if (resolved.length >= targetCount) {
+      break;
+    }
+    if (match.userId == currentUserId) {
+      continue;
+    }
+    if (existingIds.contains(match.id) ||
+        existingUserIds.contains(match.userId)) {
+      continue;
+    }
+    resolved.add(match);
+  }
+  return resolved;
 }

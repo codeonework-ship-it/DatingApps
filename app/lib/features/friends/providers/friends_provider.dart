@@ -14,14 +14,12 @@ class FriendConnection {
     required this.updatedAt,
   });
 
-  factory FriendConnection.fromJson(Map<String, dynamic> json) {
-    return FriendConnection(
+  factory FriendConnection.fromJson(Map<String, dynamic> json) => FriendConnection(
       friendUserId: json['friend_user_id']?.toString() ?? '',
       friendName: json['friend_name']?.toString() ?? 'Friend',
       status: json['status']?.toString() ?? 'accepted',
       updatedAt: json['updated_at']?.toString() ?? '',
     );
-  }
   final String friendUserId;
   final String friendName;
   final String status;
@@ -37,15 +35,13 @@ class FriendActivityItem {
     required this.createdAt,
   });
 
-  factory FriendActivityItem.fromJson(Map<String, dynamic> json) {
-    return FriendActivityItem(
+  factory FriendActivityItem.fromJson(Map<String, dynamic> json) => FriendActivityItem(
       id: json['id']?.toString() ?? '',
       type: json['type']?.toString() ?? '',
       title: json['title']?.toString() ?? 'Activity',
       description: json['description']?.toString() ?? '',
       createdAt: json['created_at']?.toString() ?? '',
     );
-  }
   final String id;
   final String type;
   final String title;

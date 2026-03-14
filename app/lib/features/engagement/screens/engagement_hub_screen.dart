@@ -6,10 +6,13 @@ import '../../../core/widgets/glass_widgets.dart';
 import '../providers/billing_coexistence_provider.dart';
 import '../providers/daily_prompt_provider.dart';
 import 'circle_challenges_screen.dart';
+import 'group_coffee_polls_screen.dart';
+import 'community_groups_screen.dart';
 import 'conversation_rooms_screen.dart';
 import 'daily_prompt_screen.dart';
 import 'trust_badges_screen.dart';
 import 'trust_filter_screen.dart';
+import 'voice_icebreakers_screen.dart';
 import '../../friends/screens/friends_screen.dart';
 
 class EngagementHubScreen extends ConsumerWidget {
@@ -99,7 +102,7 @@ class EngagementHubScreen extends ConsumerWidget {
                   );
                 },
                 loading: () => const SizedBox.shrink(),
-                error: (_, __) => const SizedBox.shrink(),
+                error: (_, _) => const SizedBox.shrink(),
               ),
               const SizedBox(height: 16),
               _premiumTile(
@@ -144,12 +147,51 @@ class EngagementHubScreen extends ConsumerWidget {
               _premiumTile(
                 context,
                 icon: Icons.groups_2_outlined,
+                title: 'Guided Voice Icebreakers',
+                subtitle: 'Send one guided 20-45s voice intro per match/day',
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const VoiceIcebreakersScreen(),
+                    ),
+                  );
+                },
+              ),
+              _premiumTile(
+                context,
+                icon: Icons.groups_2_outlined,
                 title: 'Local Circle Challenges',
                 subtitle: 'Join a city circle and submit this week\'s entry',
                 onTap: () {
                   Navigator.of(context).push(
                     MaterialPageRoute<void>(
                       builder: (_) => const CircleChallengesScreen(),
+                    ),
+                  );
+                },
+              ),
+              _premiumTile(
+                context,
+                icon: Icons.coffee_outlined,
+                title: 'Group Coffee Poll',
+                subtitle: 'Create, vote, and finalize lightweight meetup polls',
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const GroupCoffeePollsScreen(),
+                    ),
+                  );
+                },
+              ),
+              _premiumTile(
+                context,
+                icon: Icons.forum_rounded,
+                title: 'Community Groups',
+                subtitle: 'Create city/fanclub groups and invite members',
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const CommunityGroupsScreen(),
                     ),
                   );
                 },
