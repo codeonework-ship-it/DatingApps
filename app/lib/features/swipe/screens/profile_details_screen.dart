@@ -10,10 +10,10 @@ import '../../common/widgets/report_user_sheet.dart';
 import '../models/discovery_profile.dart';
 import '../providers/profile_details_provider.dart';
 
-enum ProfileDetailsAction { none, like, pass }
+enum ProfileDetailsAction { none, love, message }
 
 class ProfileDetailsScreen extends ConsumerStatefulWidget {
-  const ProfileDetailsScreen({super.key, required this.profile});
+  const ProfileDetailsScreen({required this.profile, super.key});
   final DiscoveryProfile profile;
 
   @override
@@ -116,15 +116,13 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
                                 final reportId = await showReportUserSheet(
                                   context: context,
                                   onSubmit:
-                                      ({required reason, description}) async {
-                                        return ref
+                                      ({required reason, description}) async => ref
                                             .read(safetyActionsProvider)
                                             .reportUser(
                                               reportedUserId: d.userId,
                                               reason: reason,
                                               description: description,
-                                            );
-                                      },
+                                            ),
                                 );
                                 if (!context.mounted) {
                                   return;
@@ -161,16 +159,23 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
                                     .clamp(0.0, 1.0);
                                 final eased = Curves.easeInOutCubicEmphasized
                                     .transform(progress);
-                                final tilt = eased * 0.2;
-                                final scale = 1 - (eased * 0.18);
-                                final lift = eased * 18;
+                                final tilt = eased * 0.28;
+                                final yaw =
+                                    0.06 *
+                                    (1 - (progress - 0.5).abs() * 2).clamp(
+                                      0.0,
+                                      1.0,
+                                    );
+                                final scale = 1 - (eased * 0.16);
+                                final lift = eased * 22;
 
                                 return Transform(
                                   alignment: Alignment.topCenter,
                                   transform: Matrix4.identity()
-                                    ..setEntry(3, 2, 0.003)
-                                    ..translate(0.0, -lift)
-                                    ..rotateX(tilt)
+                                    ..setEntry(3, 2, 0.0022)
+                                    ..translate(0.0, -lift, -28 * eased)
+                                    ..rotateX(-tilt)
+                                    ..rotateY(yaw)
                                     ..scale(scale, scale),
                                   child: GlassContainer(
                                     padding: EdgeInsets.zero,
@@ -186,131 +191,256 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
                                           CrossAxisAlignment.start,
                                       children: [
                                         SizedBox(
-                                          height: 360,
-                                          child: PageView.builder(
-                                            controller: _photoPageController,
-                                            onPageChanged: (index) {
-                                              if (!mounted) {
-                                                return;
-                                              }
-                                              setState(
-                                                () =>
-                                                    _selectedPhotoIndex = index,
-                                              );
-                                            },
-                                            itemCount: safeGalleryPhotos.length,
-                                            itemBuilder: (context, index) {
-                                              final url =
-                                                  safeGalleryPhotos[index];
-                                              return ClipRRect(
-                                                borderRadius:
-                                                    const BorderRadius.vertical(
-                                                      top: Radius.circular(24),
-                                                    ),
-                                                child: Image.network(
-                                                  url,
-                                                  fit: BoxFit.cover,
-                                                  width: double.infinity,
-                                                  errorBuilder:
-                                                      (context, _, _) =>
-                                                          Container(
-                                                            color: Colors
-                                                                .grey
-                                                                .shade300,
-                                                            child: const Center(
-                                                              child: Icon(
-                                                                Icons.image,
-                                                                size: 48,
+                                          height: 404,
+                                          child: Column(
+                                            children: [
+                                              Expanded(
+                                                child: Stack(
+                                                  children: [
+                                                    PageView.builder(
+                                                      controller:
+                                                          _photoPageController,
+                                                      onPageChanged: (index) {
+                                                        if (!mounted) {
+                                                          return;
+                                                        }
+                                                        setState(
+                                                          () =>
+                                                              _selectedPhotoIndex =
+                                                                  index,
+                                                        );
+                                                      },
+                                                      itemCount:
+                                                          safeGalleryPhotos
+                                                              .length,
+                                                      itemBuilder: (context, index) {
+                                                        final url =
+                                                            safeGalleryPhotos[index];
+                                                        return ClipRRect(
+                                                          borderRadius:
+                                                              const BorderRadius.vertical(
+                                                                top:
+                                                                    Radius.circular(
+                                                                      24,
+                                                                    ),
                                                               ),
-                                                            ),
+                                                          child: Stack(
+                                                            fit:
+                                                                StackFit.expand,
+                                                            children: [
+                                                              Image.network(
+                                                                url,
+                                                                fit: BoxFit
+                                                                    .cover,
+                                                                width: double
+                                                                    .infinity,
+                                                                errorBuilder:
+                                                                    (
+                                                                      context,
+                                                                      _,
+                                                                      _,
+                                                                    ) => Container(
+                                                                      color: Colors
+                                                                          .grey
+                                                                          .shade300,
+                                                                      child: const Center(
+                                                                        child: Icon(
+                                                                          Icons
+                                                                              .image,
+                                                                          size:
+                                                                              48,
+                                                                        ),
+                                                                      ),
+                                                                    ),
+                                                              ),
+                                                              Positioned.fill(
+                                                                child: DecoratedBox(
+                                                                  decoration: BoxDecoration(
+                                                                    gradient: LinearGradient(
+                                                                      begin: Alignment
+                                                                          .topCenter,
+                                                                      end: Alignment
+                                                                          .bottomCenter,
+                                                                      colors: [
+                                                                        Colors.black.withValues(
+                                                                          alpha:
+                                                                              0.04,
+                                                                        ),
+                                                                        Colors.black.withValues(
+                                                                          alpha:
+                                                                              0.34,
+                                                                        ),
+                                                                      ],
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            ],
                                                           ),
+                                                        );
+                                                      },
+                                                    ),
+                                                    Positioned(
+                                                      top: 12,
+                                                      right: 12,
+                                                      child: GlassContainer(
+                                                        padding:
+                                                            const EdgeInsets.symmetric(
+                                                              horizontal: 10,
+                                                              vertical: 6,
+                                                            ),
+                                                        backgroundColor: Colors
+                                                            .white
+                                                            .withValues(
+                                                              alpha: 0.26,
+                                                            ),
+                                                        blur: 10,
+                                                        child: Text(
+                                                          '${_selectedPhotoIndex + 1}/${safeGalleryPhotos.length}',
+                                                          style:
+                                                              const TextStyle(
+                                                                color: Colors
+                                                                    .white,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w700,
+                                                              ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
-                                              );
-                                            },
-                                          ),
-                                        ),
-                                        if (safeGalleryPhotos.length > 1)
-                                          SizedBox(
-                                            height: 84,
-                                            child: ListView.separated(
-                                              scrollDirection: Axis.horizontal,
-                                              padding:
-                                                  const EdgeInsets.fromLTRB(
-                                                    12,
-                                                    10,
-                                                    12,
-                                                    6,
-                                                  ),
-                                              itemCount:
-                                                  safeGalleryPhotos.length,
-                                              separatorBuilder: (_, _) =>
-                                                  const SizedBox(width: 10),
-                                              itemBuilder: (context, index) {
-                                                final isSelected =
-                                                    _selectedPhotoIndex ==
-                                                    index;
-                                                return GestureDetector(
-                                                  onTap: () {
-                                                    _photoPageController
-                                                        .animateToPage(
-                                                          index,
+                                              ),
+                                              if (safeGalleryPhotos.length > 1)
+                                                Container(
+                                                  height: 88,
+                                                  width: double.infinity,
+                                                  padding:
+                                                      const EdgeInsets.fromLTRB(
+                                                        14,
+                                                        10,
+                                                        14,
+                                                        10,
+                                                      ),
+                                                  color: Colors.white
+                                                      .withValues(alpha: 0.18),
+                                                  child: ListView.separated(
+                                                    scrollDirection:
+                                                        Axis.horizontal,
+                                                    itemCount: safeGalleryPhotos
+                                                        .length,
+                                                    separatorBuilder: (_, _) =>
+                                                        const SizedBox(
+                                                          width: 10,
+                                                        ),
+                                                    itemBuilder: (context, index) {
+                                                      final isSelected =
+                                                          _selectedPhotoIndex ==
+                                                          index;
+                                                      return GestureDetector(
+                                                        onTap: () {
+                                                          _photoPageController
+                                                              .animateToPage(
+                                                                index,
+                                                                duration:
+                                                                    const Duration(
+                                                                      milliseconds:
+                                                                          220,
+                                                                    ),
+                                                                curve: Curves
+                                                                    .easeOut,
+                                                              );
+                                                          setState(
+                                                            () =>
+                                                                _selectedPhotoIndex =
+                                                                    index,
+                                                          );
+                                                        },
+                                                        child: AnimatedContainer(
                                                           duration:
                                                               const Duration(
                                                                 milliseconds:
-                                                                    220,
+                                                                    180,
                                                               ),
-                                                          curve: Curves.easeOut,
-                                                        );
-                                                    setState(
-                                                      () =>
-                                                          _selectedPhotoIndex =
-                                                              index,
-                                                    );
-                                                  },
-                                                  child: AnimatedContainer(
-                                                    duration: const Duration(
-                                                      milliseconds: 180,
-                                                    ),
-                                                    width: 56,
-                                                    decoration: BoxDecoration(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            12,
-                                                          ),
-                                                      border: Border.all(
-                                                        color: isSelected
-                                                            ? AppTheme
-                                                                  .primaryRed
-                                                            : Colors
-                                                                  .transparent,
-                                                        width: 2,
-                                                      ),
-                                                    ),
-                                                    clipBehavior:
-                                                        Clip.antiAlias,
-                                                    child: Image.network(
-                                                      safeGalleryPhotos[index],
-                                                      fit: BoxFit.cover,
-                                                      errorBuilder:
-                                                          (
-                                                            context,
-                                                            _,
-                                                            _,
-                                                          ) => Container(
-                                                            color: Colors
-                                                                .grey
-                                                                .shade300,
-                                                            child: const Icon(
-                                                              Icons.image,
-                                                              size: 22,
+                                                          width: isSelected
+                                                              ? 72
+                                                              : 58,
+                                                          transform:
+                                                              Matrix4.identity()
+                                                                ..translate(
+                                                                  0.0,
+                                                                  isSelected
+                                                                      ? -3.0
+                                                                      : 0.0,
+                                                                ),
+                                                          decoration: BoxDecoration(
+                                                            borderRadius:
+                                                                BorderRadius.circular(
+                                                                  14,
+                                                                ),
+                                                            border: Border.all(
+                                                              color: isSelected
+                                                                  ? AppTheme
+                                                                        .primaryRed
+                                                                  : Colors.white
+                                                                        .withValues(
+                                                                          alpha:
+                                                                              0.45,
+                                                                        ),
+                                                              width: isSelected
+                                                                  ? 2.2
+                                                                  : 1.4,
                                                             ),
+                                                            boxShadow: [
+                                                              BoxShadow(
+                                                                color: Colors
+                                                                    .black
+                                                                    .withValues(
+                                                                      alpha:
+                                                                          isSelected
+                                                                          ? 0.22
+                                                                          : 0.12,
+                                                                    ),
+                                                                blurRadius:
+                                                                    isSelected
+                                                                    ? 10
+                                                                    : 7,
+                                                                offset:
+                                                                    const Offset(
+                                                                      0,
+                                                                      3,
+                                                                    ),
+                                                              ),
+                                                            ],
                                                           ),
-                                                    ),
+                                                          clipBehavior:
+                                                              Clip.antiAlias,
+                                                          child: Image.network(
+                                                            safeGalleryPhotos[index],
+                                                            fit: BoxFit.cover,
+                                                            errorBuilder:
+                                                                (
+                                                                  context,
+                                                                  _,
+                                                                  _,
+                                                                ) => Container(
+                                                                  color: Colors
+                                                                      .grey
+                                                                      .shade300,
+                                                                  child: const Icon(
+                                                                    Icons.image,
+                                                                    size: 22,
+                                                                  ),
+                                                                ),
+                                                          ),
+                                                        ),
+                                                      );
+                                                    },
                                                   ),
-                                                );
-                                              },
-                                            ),
+                                                ),
+                                            ],
                                           ),
+                                        ),
                                         Padding(
                                           padding: const EdgeInsets.all(16),
                                           child: Column(
@@ -488,30 +618,49 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
                   ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: GlassButton(
-                            label: 'Pass',
-                            backgroundColor: Colors.white.withValues(
-                              alpha: 0.9,
-                            ),
-                            textColor: AppTheme.errorRed,
-                            onPressed: () => Navigator.of(
-                              context,
-                            ).pop(ProfileDetailsAction.pass),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: GlassButton(
-                            label: 'Like',
-                            onPressed: () => Navigator.of(
-                              context,
-                            ).pop(ProfileDetailsAction.like),
-                          ),
-                        ),
-                      ],
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final compact = constraints.maxWidth < 390;
+
+                        final messageButton = GlassButton(
+                          label: 'Message',
+                          icon: Icons.message_rounded,
+                          onPressed: () => Navigator.of(
+                            context,
+                          ).pop(ProfileDetailsAction.message),
+                        );
+                        final loveButton = GlassButton(
+                          label: 'Love',
+                          icon: Icons.favorite_rounded,
+                          onPressed: () => Navigator.of(
+                            context,
+                          ).pop(ProfileDetailsAction.love),
+                        );
+
+                        if (compact) {
+                          return Column(
+                            children: [
+                              SizedBox(
+                                width: double.infinity,
+                                child: messageButton,
+                              ),
+                              const SizedBox(height: 10),
+                              SizedBox(
+                                width: double.infinity,
+                                child: loveButton,
+                              ),
+                            ],
+                          );
+                        }
+
+                        return Row(
+                          children: [
+                            Expanded(child: messageButton),
+                            const SizedBox(width: 12),
+                            Expanded(child: loveButton),
+                          ],
+                        );
+                      },
                     ),
                   ),
                 ],

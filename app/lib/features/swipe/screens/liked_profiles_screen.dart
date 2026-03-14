@@ -6,32 +6,32 @@ import '../../../core/widgets/glass_widgets.dart';
 import '../providers/swipe_provider.dart';
 import 'profile_details_screen.dart';
 
-class PassedProfilesScreen extends ConsumerWidget {
-  const PassedProfilesScreen({super.key});
+class LikedProfilesScreen extends ConsumerWidget {
+  const LikedProfilesScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(swipeNotifierProvider);
-    final passedProfiles = state.passedProfiles;
+    final likedProfiles = state.likedProfiles;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Passed Profiles')),
+      appBar: AppBar(title: Text('Liked Profiles (${likedProfiles.length})')),
       body: Container(
         decoration: const BoxDecoration(gradient: AppTheme.bgGradient),
         child: SafeArea(
-          child: passedProfiles.isEmpty
+          child: likedProfiles.isEmpty
               ? const Center(
                   child: Text(
-                    'No passed profiles yet',
+                    'No liked profiles yet',
                     style: TextStyle(color: Colors.white),
                   ),
                 )
               : ListView.separated(
                   padding: const EdgeInsets.all(16),
-                  itemCount: passedProfiles.length,
+                  itemCount: likedProfiles.length,
                   separatorBuilder: (_, _) => const SizedBox(height: 10),
                   itemBuilder: (context, index) {
-                    final profile = passedProfiles[index];
+                    final profile = likedProfiles[index];
                     final photoUrl = profile.photoUrls.isNotEmpty
                         ? profile.photoUrls.first
                         : '';
@@ -78,7 +78,7 @@ class PassedProfilesScreen extends ConsumerWidget {
                                 const SizedBox(height: 4),
                                 Text(
                                   profile.subtitle.trim().isEmpty
-                                      ? 'Saved for later'
+                                      ? 'Liked profile'
                                       : profile.subtitle,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,

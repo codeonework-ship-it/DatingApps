@@ -65,136 +65,161 @@ class _SetupPreviewScreenState extends ConsumerState<SetupPreviewScreen> {
                       backgroundColor: Colors.white.withValues(alpha: 0.95),
                       blur: 10,
                       borderRadius: const BorderRadius.all(Radius.circular(24)),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Profile completeness: ${draft.profileCompletionPercent}%',
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
-                          const SizedBox(height: 12),
-                          if (photoUrls.isNotEmpty)
-                            Column(
+                      child: LayoutBuilder(
+                        builder: (context, constraints) => SingleChildScrollView(
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              minHeight: constraints.maxHeight,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                SizedBox(
-                                  height: 220,
-                                  child: PageView.builder(
-                                    controller: _photoPageController,
-                                    onPageChanged: (index) {
-                                      if (!mounted) {
-                                        return;
-                                      }
-                                      setState(
-                                        () => _selectedPhotoIndex = index,
-                                      );
-                                    },
-                                    itemCount: photoUrls.length,
-                                    itemBuilder: (context, index) => ClipRRect(
-                                      borderRadius: BorderRadius.circular(16),
-                                      child: Image.network(
-                                        photoUrls[index],
-                                        width: double.infinity,
-                                        fit: BoxFit.cover,
-                                      ),
-                                    ),
-                                  ),
+                                Text(
+                                  'Profile completeness: ${draft.profileCompletionPercent}%',
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.titleMedium,
                                 ),
-                                if (photoUrls.length > 1) ...[
-                                  const SizedBox(height: 10),
-                                  SizedBox(
-                                    height: 70,
-                                    child: ListView.separated(
-                                      scrollDirection: Axis.horizontal,
-                                      itemCount: photoUrls.length,
-                                      separatorBuilder: (_, _) =>
-                                          const SizedBox(width: 10),
-                                      itemBuilder: (context, index) {
-                                        final selected =
-                                            _selectedPhotoIndex == index;
-                                        return GestureDetector(
-                                          onTap: () {
-                                            _photoPageController.animateToPage(
-                                              index,
-                                              duration: const Duration(
-                                                milliseconds: 220,
-                                              ),
-                                              curve: Curves.easeOut,
-                                            );
+                                const SizedBox(height: 12),
+                                if (photoUrls.isNotEmpty)
+                                  Column(
+                                    children: [
+                                      SizedBox(
+                                        height: 220,
+                                        child: PageView.builder(
+                                          controller: _photoPageController,
+                                          onPageChanged: (index) {
+                                            if (!mounted) {
+                                              return;
+                                            }
                                             setState(
                                               () => _selectedPhotoIndex = index,
                                             );
                                           },
-                                          child: AnimatedContainer(
-                                            duration: const Duration(
-                                              milliseconds: 180,
-                                            ),
-                                            width: 60,
-                                            decoration: BoxDecoration(
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                              border: Border.all(
-                                                color: selected
-                                                    ? AppTheme.primaryRed
-                                                    : Colors.transparent,
-                                                width: 2,
+                                          itemCount: photoUrls.length,
+                                          itemBuilder: (context, index) =>
+                                              ClipRRect(
+                                                borderRadius:
+                                                    BorderRadius.circular(16),
+                                                child: Image.network(
+                                                  photoUrls[index],
+                                                  width: double.infinity,
+                                                  fit: BoxFit.cover,
+                                                ),
                                               ),
-                                            ),
-                                            clipBehavior: Clip.antiAlias,
-                                            child: Image.network(
-                                              photoUrls[index],
-                                              fit: BoxFit.cover,
-                                            ),
+                                        ),
+                                      ),
+                                      if (photoUrls.length > 1) ...[
+                                        const SizedBox(height: 10),
+                                        SizedBox(
+                                          height: 70,
+                                          child: ListView.separated(
+                                            scrollDirection: Axis.horizontal,
+                                            itemCount: photoUrls.length,
+                                            separatorBuilder: (_, _) =>
+                                                const SizedBox(width: 10),
+                                            itemBuilder: (context, index) {
+                                              final selected =
+                                                  _selectedPhotoIndex == index;
+                                              return GestureDetector(
+                                                onTap: () {
+                                                  _photoPageController
+                                                      .animateToPage(
+                                                        index,
+                                                        duration:
+                                                            const Duration(
+                                                              milliseconds: 220,
+                                                            ),
+                                                        curve: Curves.easeOut,
+                                                      );
+                                                  setState(
+                                                    () => _selectedPhotoIndex =
+                                                        index,
+                                                  );
+                                                },
+                                                child: AnimatedContainer(
+                                                  duration: const Duration(
+                                                    milliseconds: 180,
+                                                  ),
+                                                  width: 60,
+                                                  decoration: BoxDecoration(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          12,
+                                                        ),
+                                                    border: Border.all(
+                                                      color: selected
+                                                          ? AppTheme.primaryRed
+                                                          : Colors.transparent,
+                                                      width: 2,
+                                                    ),
+                                                  ),
+                                                  clipBehavior: Clip.antiAlias,
+                                                  child: Image.network(
+                                                    photoUrls[index],
+                                                    fit: BoxFit.cover,
+                                                  ),
+                                                ),
+                                              );
+                                            },
                                           ),
-                                        );
-                                      },
-                                    ),
+                                        ),
+                                      ],
+                                    ],
                                   ),
-                                ],
+                                const SizedBox(height: 12),
+                                Text(
+                                  draft.name,
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.headlineSmall,
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  draft.bio,
+                                  maxLines: 4,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 12),
+                                _row('Gender', draft.gender),
+                                _row('Drinking', draft.drinking),
+                                _row('Smoking', draft.smoking),
+                                _row('Religion', draft.religion ?? '—'),
+                                const SizedBox(height: 16),
+                                GlassButton(
+                                  label: 'Complete',
+                                  onPressed: () async {
+                                    try {
+                                      await ref
+                                          .read(
+                                            profileSetupNotifierProvider
+                                                .notifier,
+                                          )
+                                          .completeProfile();
+                                      ref.invalidate(profileCompletionProvider);
+
+                                      if (!context.mounted) return;
+                                      Navigator.of(
+                                        context,
+                                      ).popUntil((r) => r.isFirst);
+                                    } catch (_) {
+                                      if (!context.mounted) return;
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Please complete all required fields (min ${ValidationConstants.minPhotos} photos, bio, and basic info).',
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  },
+                                ),
                               ],
                             ),
-                          const SizedBox(height: 12),
-                          Text(
-                            draft.name,
-                            style: Theme.of(context).textTheme.headlineSmall,
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            draft.bio,
-                            maxLines: 4,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 12),
-                          _row('Gender', draft.gender),
-                          _row('Drinking', draft.drinking),
-                          _row('Smoking', draft.smoking),
-                          _row('Religion', draft.religion ?? '—'),
-                          const Spacer(),
-                          GlassButton(
-                            label: 'Complete',
-                            onPressed: () async {
-                              try {
-                                await ref
-                                    .read(profileSetupNotifierProvider.notifier)
-                                    .completeProfile();
-                                ref.invalidate(profileCompletionProvider);
-
-                                if (!context.mounted) return;
-                                Navigator.of(
-                                  context,
-                                ).popUntil((r) => r.isFirst);
-                              } catch (_) {
-                                if (!context.mounted) return;
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Please complete all required fields (min ${ValidationConstants.minPhotos} photos, bio, and basic info).',
-                                    ),
-                                  ),
-                                );
-                              }
-                            },
-                          ),
-                        ],
+                        ),
                       ),
                     ),
                   ),

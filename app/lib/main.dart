@@ -22,8 +22,10 @@ import 'features/profile/screens/setup/profile_setup_entry_screen.dart';
 Future<void> _bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  if (kUseMockAuth && kReleaseMode) {
-    throw StateError('USE_MOCK_AUTH=true is not allowed in release builds.');
+  if ((kUseMockAuth || kUseMockDiscoveryData) && kReleaseMode) {
+    throw StateError(
+      'USE_MOCK_AUTH/USE_MOCK_DISCOVERY_DATA are not allowed in release builds.',
+    );
   }
 
   var envLoaded = true;

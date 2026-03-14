@@ -4,10 +4,21 @@ import '../../../core/widgets/glass_widgets.dart';
 import '../models/discovery_profile.dart';
 
 class SwipeCard extends StatelessWidget {
-  const SwipeCard({Key? key, required this.profile, this.onTap})
-    : super(key: key);
+  const SwipeCard({
+    super.key,
+    required this.profile,
+    this.onTap,
+    this.onPassTap,
+    this.onLikeTap,
+    this.onMessageTap,
+    this.isActionLocked = false,
+  });
   final DiscoveryProfile profile;
   final VoidCallback? onTap;
+  final VoidCallback? onPassTap;
+  final VoidCallback? onLikeTap;
+  final VoidCallback? onMessageTap;
+  final bool isActionLocked;
 
   double _cardHeight(BuildContext context) {
     final screenSize = MediaQuery.sizeOf(context);
@@ -19,12 +30,17 @@ class SwipeCard extends StatelessWidget {
     return targetHeight > maxHeightByScreen ? maxHeightByScreen : targetHeight;
   }
 
+  String _formattedTierLabel(String raw) {
+    final value = raw.trim().toLowerCase();
+    if (value.isEmpty) {
+      return 'Spotlight';
+    }
+    return '${value[0].toUpperCase()}${value.substring(1)}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final cardHeight = _cardHeight(context);
-    final primaryPhotoUrl = profile.photoUrls.isNotEmpty
-        ? profile.photoUrls.first
-        : '';
     final quickTags = profile.quickPreviewTags.take(3).toList();
 
     return GlassContainer(
@@ -46,40 +62,11 @@ class SwipeCard extends StatelessWidget {
       child: Stack(
         children: [
           // Profile Image
-          ClipRRect(
-            borderRadius: const BorderRadius.all(Radius.circular(20)),
-            child: primaryPhotoUrl.isEmpty
-                ? Container(
-                    height: cardHeight,
-                    decoration: const BoxDecoration(
-                      gradient: AppTheme.postLoginGradient,
-                    ),
-                    child: const Center(
-                      child: Icon(
-                        Icons.person_outline_rounded,
-                        size: 68,
-                        color: AppTheme.textHint,
-                      ),
-                    ),
-                  )
-                : Image.network(
-                    primaryPhotoUrl,
-                    fit: BoxFit.cover,
-                    height: cardHeight,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      height: cardHeight,
-                      decoration: const BoxDecoration(
-                        gradient: AppTheme.postLoginGradient,
-                      ),
-                      child: const Center(
-                        child: Icon(
-                          Icons.person_outline_rounded,
-                          size: 68,
-                          color: AppTheme.textHint,
-                        ),
-                      ),
-                    ),
-                  ),
+          Positioned.fill(
+            child: ClipRRect(
+              borderRadius: const BorderRadius.all(Radius.circular(20)),
+              child: _SwipeCardPrimaryImage(photoUrls: profile.photoUrls),
+            ),
           ),
 
           // Gradient Overlay
@@ -113,14 +100,39 @@ class SwipeCard extends StatelessWidget {
                   // Name and Age
                   Row(
                     children: [
-                      Text(
-                        '${profile.name}, ${profile.age}',
-                        style: Theme.of(context).textTheme.headlineMedium
-                            ?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
+                      Expanded(
+                        child: Text(
+                          '${profile.name}, ${profile.age}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.headlineMedium
+                              ?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                        ),
                       ),
+                      if (profile.isSpotlight) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppTheme.trustBlue.withValues(alpha: 0.85),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            _formattedTierLabel(profile.spotlightTier ?? ''),
+                            style: Theme.of(context).textTheme.labelSmall
+                                ?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
+                        ),
+                      ],
                       const SizedBox(width: 8),
                       if (profile.isVerified)
                         const Padding(
@@ -144,10 +156,15 @@ class SwipeCard extends StatelessWidget {
                         size: 16,
                       ),
                       const SizedBox(width: 4),
-                      Text(
-                        profile.subtitle,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.white.withValues(alpha: 0.9),
+                      Expanded(
+                        child: Text(
+                          profile.subtitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Colors.white.withValues(alpha: 0.9),
+                              ),
                         ),
                       ),
                     ],
@@ -198,27 +215,57 @@ class SwipeCard extends StatelessWidget {
 
                   if (onTap != null) ...[
                     const SizedBox(height: 8),
-                    GestureDetector(
-                      onTap: onTap,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'View more',
-                            style: Theme.of(context).textTheme.labelMedium
-                                ?.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w700,
-                                ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        GestureDetector(
+                          onTap: onTap,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'View more',
+                                style: Theme.of(context).textTheme.labelMedium
+                                    ?.copyWith(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                              ),
+                              const SizedBox(width: 4),
+                              const Icon(
+                                Icons.chevron_right,
+                                size: 16,
+                                color: Colors.white,
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 4),
-                          const Icon(
-                            Icons.chevron_right,
-                            size: 16,
-                            color: Colors.white,
+                        ),
+                        if (onMessageTap != null) ...[
+                          const SizedBox(width: 12),
+                          GestureDetector(
+                            onTap: onMessageTap,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.message_rounded,
+                                  size: 15,
+                                  color: Colors.white,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Message',
+                                  style: Theme.of(context).textTheme.labelMedium
+                                      ?.copyWith(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                ),
+                              ],
+                            ),
                           ),
                         ],
-                      ),
+                      ],
                     ),
                   ],
                 ],
@@ -230,23 +277,29 @@ class SwipeCard extends StatelessWidget {
           Positioned(
             top: 16,
             left: 16,
-            child: GlassContainer(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              backgroundColor: Colors.white.withValues(alpha: 0.16),
-              blur: 10,
-              child: const Row(
-                children: [
-                  Icon(Icons.arrow_back, color: Colors.white, size: 16),
-                  SizedBox(width: 4),
-                  Text(
-                    'PASS',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
+            child: GestureDetector(
+              onTap: isActionLocked ? null : onPassTap,
+              child: GlassContainer(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                backgroundColor: Colors.white.withValues(alpha: 0.22),
+                blur: 10,
+                child: Row(
+                  children: [
+                    const Icon(Icons.arrow_back, color: Colors.white, size: 16),
+                    const SizedBox(width: 4),
+                    Text(
+                      'PASS',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.96),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -254,23 +307,33 @@ class SwipeCard extends StatelessWidget {
           Positioned(
             top: 16,
             right: 16,
-            child: GlassContainer(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              backgroundColor: Colors.white.withValues(alpha: 0.16),
-              blur: 10,
-              child: const Row(
-                children: [
-                  Text(
-                    'LIKE',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
+            child: GestureDetector(
+              onTap: isActionLocked ? null : onLikeTap,
+              child: GlassContainer(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                backgroundColor: Colors.white.withValues(alpha: 0.22),
+                blur: 10,
+                child: Row(
+                  children: [
+                    Text(
+                      'LIKE',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.96),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
-                  ),
-                  SizedBox(width: 4),
-                  Icon(Icons.favorite, color: Colors.red, size: 16),
-                ],
+                    const SizedBox(width: 4),
+                    const Icon(
+                      Icons.favorite,
+                      color: Colors.redAccent,
+                      size: 16,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -278,4 +341,81 @@ class SwipeCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class _SwipeCardPrimaryImage extends StatefulWidget {
+  const _SwipeCardPrimaryImage({required this.photoUrls});
+
+  final List<String> photoUrls;
+
+  @override
+  State<_SwipeCardPrimaryImage> createState() => _SwipeCardPrimaryImageState();
+}
+
+class _SwipeCardPrimaryImageState extends State<_SwipeCardPrimaryImage> {
+  int _activeIndex = 0;
+
+  List<String> get _urls => widget.photoUrls
+      .map((url) => url.trim())
+      .where((url) => url.isNotEmpty)
+      .toList();
+
+  @override
+  void didUpdateWidget(covariant _SwipeCardPrimaryImage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.photoUrls != widget.photoUrls) {
+      _activeIndex = 0;
+    }
+  }
+
+  void _advanceOnError() {
+    if (!mounted) {
+      return;
+    }
+    final urls = _urls;
+    if (_activeIndex + 1 < urls.length) {
+      setState(() => _activeIndex += 1);
+      return;
+    }
+    if (_activeIndex != urls.length) {
+      setState(() => _activeIndex = urls.length);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final urls = _urls;
+    if (urls.isEmpty || _activeIndex >= urls.length) {
+      return const _SwipeCardImageFallback();
+    }
+
+    return Image.network(
+      urls[_activeIndex],
+      width: double.infinity,
+      height: double.infinity,
+      fit: BoxFit.cover,
+      alignment: Alignment.center,
+      filterQuality: FilterQuality.high,
+      errorBuilder: (context, error, stackTrace) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => _advanceOnError());
+        return const _SwipeCardImageFallback();
+      },
+    );
+  }
+}
+
+class _SwipeCardImageFallback extends StatelessWidget {
+  const _SwipeCardImageFallback();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    decoration: const BoxDecoration(gradient: AppTheme.postLoginGradient),
+    child: const Center(
+      child: Icon(
+        Icons.person_outline_rounded,
+        size: 68,
+        color: AppTheme.textHint,
+      ),
+    ),
+  );
 }

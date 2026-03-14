@@ -41,75 +41,87 @@ class _VerificationUploadIdScreenState
                   backgroundColor: Colors.white.withValues(alpha: 0.9),
                   blur: 12,
                   borderRadius: const BorderRadius.all(Radius.circular(24)),
-                  child: Column(
-                    children: [
-                      const Text(
-                        'Take or upload a clear photo of your government ID.',
-                      ),
-                      const SizedBox(height: 12),
-                      if (_id != null)
-                        Expanded(
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(16),
-                            child: Image.file(
-                              File(_id!.path),
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        )
-                      else
-                        const Expanded(
-                          child: Center(child: Icon(Icons.badge, size: 72)),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) => SingleChildScrollView(
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minHeight: constraints.maxHeight,
                         ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: () async {
-                                final picked = await notifier.pickIdPhoto(
-                                  fromCamera: false,
-                                );
-                                if (picked != null) {
-                                  setState(() => _id = picked);
-                                }
-                              },
-                              icon: const Icon(Icons.photo_library),
-                              label: const Text('Gallery'),
+                        child: Column(
+                          children: [
+                            const Text(
+                              'Take or upload a clear photo of your government ID.',
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: () async {
-                                final picked = await notifier.pickIdPhoto(
-                                  fromCamera: true,
-                                );
-                                if (picked != null) {
-                                  setState(() => _id = picked);
-                                }
-                              },
-                              icon: const Icon(Icons.photo_camera),
-                              label: const Text('Camera'),
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              height: 280,
+                              width: double.infinity,
+                              child: _id != null
+                                  ? ClipRRect(
+                                      borderRadius: BorderRadius.circular(16),
+                                      child: Image.file(
+                                        File(_id!.path),
+                                        fit: BoxFit.cover,
+                                      ),
+                                    )
+                                  : const Center(
+                                      child: Icon(Icons.badge, size: 72),
+                                    ),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      GlassButton(
-                        label: 'Next',
-                        onPressed: _id == null
-                            ? null
-                            : () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute<void>(
-                                    builder: (_) =>
-                                        VerificationSelfieScreen(idPhoto: _id!),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed: () async {
+                                      final picked = await notifier.pickIdPhoto(
+                                        fromCamera: false,
+                                      );
+                                      if (picked != null) {
+                                        setState(() => _id = picked);
+                                      }
+                                    },
+                                    icon: const Icon(Icons.photo_library),
+                                    label: const Text('Gallery'),
                                   ),
-                                );
-                              },
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed: () async {
+                                      final picked = await notifier.pickIdPhoto(
+                                        fromCamera: true,
+                                      );
+                                      if (picked != null) {
+                                        setState(() => _id = picked);
+                                      }
+                                    },
+                                    icon: const Icon(Icons.photo_camera),
+                                    label: const Text('Camera'),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            GlassButton(
+                              label: 'Next',
+                              onPressed: _id == null
+                                  ? null
+                                  : () {
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute<void>(
+                                          builder: (_) =>
+                                              VerificationSelfieScreen(
+                                                idPhoto: _id!,
+                                              ),
+                                        ),
+                                      );
+                                    },
+                            ),
+                          ],
+                        ),
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ),

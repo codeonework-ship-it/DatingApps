@@ -12,10 +12,10 @@ class DatingApp extends StatelessWidget {
   Widget build(BuildContext context) => MaterialApp(
     home: Scaffold(
       appBar: AppBar(title: const Text('Dating App')),
-      body: Center(
+      body: const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
+          children: [
             Text('🎉 App is Running!'),
             SizedBox(height: 20),
             Text('Basic layout test passed'),

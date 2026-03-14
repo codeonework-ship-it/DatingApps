@@ -18,6 +18,10 @@ class DiscoveryProfile {
     required this.languageTags,
     required this.isVerified,
     required this.photoUrls,
+    this.isSpotlight = false,
+    this.spotlightTier,
+    this.spotlightScore,
+    this.spotlightReason,
   });
   final String id;
   final String name;
@@ -34,6 +38,10 @@ class DiscoveryProfile {
   final List<String> languageTags;
   final bool isVerified;
   final List<String> photoUrls;
+  final bool isSpotlight;
+  final String? spotlightTier;
+  final double? spotlightScore;
+  final String? spotlightReason;
 
   int get age => dateOfBirth.age;
 

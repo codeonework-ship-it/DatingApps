@@ -3,12 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/glass_widgets.dart';
-import '../../providers/profile_setup_provider.dart';
+import '../../../common/screens/main_navigation_screen.dart';
 import '../../providers/preference_master_data_provider.dart';
-import 'setup_lifestyle_screen.dart';
+import '../../providers/profile_completion_provider.dart';
+import '../../providers/profile_setup_provider.dart';
 
 class SetupPreferencesScreen extends ConsumerStatefulWidget {
-  const SetupPreferencesScreen({super.key});
+  const SetupPreferencesScreen({super.key, this.isSetupFlow});
+
+  final bool? isSetupFlow;
 
   @override
   ConsumerState<SetupPreferencesScreen> createState() =>
@@ -47,6 +50,8 @@ class _SetupPreferencesScreenState
   final _dealBreakerTagsController = TextEditingController();
   var _didInitialize = false;
 
+  bool get _isSetupFlow => widget.isSetupFlow ?? false;
+
   @override
   void dispose() {
     _instagramController.dispose();
@@ -64,7 +69,8 @@ class _SetupPreferencesScreenState
 
   @override
   Widget build(BuildContext context) {
-    final isOffline = ref.watch(preferenceMasterDataOfflineProvider);
+    final offlineFlag = ref.watch(preferenceMasterDataOfflineProvider);
+    final isOffline = offlineFlag == true;
     final draftAsync = ref.watch(profileSetupNotifierProvider);
     final masterData = ref
         .watch(preferenceMasterDataProvider)
@@ -206,31 +212,43 @@ class _SetupPreferencesScreenState
                                           FilterChip(
                                             label: const Text('Men'),
                                             selected: _seeking.contains('M'),
-                                            onSelected: (v) => setState(
-                                              () => v
-                                                  ? _seeking.add('M')
-                                                  : _seeking.remove('M'),
-                                            ),
+                                            onSelected: (selected) {
+                                              setState(() {
+                                                if (selected) {
+                                                  _seeking.add('M');
+                                                } else {
+                                                  _seeking.remove('M');
+                                                }
+                                              });
+                                            },
                                           ),
                                           FilterChip(
                                             label: const Text('Women'),
                                             selected: _seeking.contains('F'),
-                                            onSelected: (v) => setState(
-                                              () => v
-                                                  ? _seeking.add('F')
-                                                  : _seeking.remove('F'),
-                                            ),
+                                            onSelected: (selected) {
+                                              setState(() {
+                                                if (selected) {
+                                                  _seeking.add('F');
+                                                } else {
+                                                  _seeking.remove('F');
+                                                }
+                                              });
+                                            },
                                           ),
                                           FilterChip(
                                             label: const Text('Other'),
                                             selected: _seeking.contains(
                                               'Other',
                                             ),
-                                            onSelected: (v) => setState(
-                                              () => v
-                                                  ? _seeking.add('Other')
-                                                  : _seeking.remove('Other'),
-                                            ),
+                                            onSelected: (selected) {
+                                              setState(() {
+                                                if (selected) {
+                                                  _seeking.add('Other');
+                                                } else {
+                                                  _seeking.remove('Other');
+                                                }
+                                              });
+                                            },
                                           ),
                                         ],
                                       ),
@@ -262,22 +280,31 @@ class _SetupPreferencesScreenState
                                           'Serious relationship only',
                                         ),
                                         value: _seriousOnly,
-                                        onChanged: (v) =>
-                                            setState(() => _seriousOnly = v),
+                                        onChanged: (value) {
+                                          setState(() {
+                                            _seriousOnly = value;
+                                          });
+                                        },
                                       ),
                                       SwitchListTile(
                                         title: const Text(
                                           'Verified profiles only',
                                         ),
                                         value: _verifiedOnly,
-                                        onChanged: (v) =>
-                                            setState(() => _verifiedOnly = v),
+                                        onChanged: (value) {
+                                          setState(() {
+                                            _verifiedOnly = value;
+                                          });
+                                        },
                                       ),
                                       SwitchListTile(
                                         title: const Text('Hookups only'),
                                         value: _hookupOnly,
-                                        onChanged: (v) =>
-                                            setState(() => _hookupOnly = v),
+                                        onChanged: (value) {
+                                          setState(() {
+                                            _hookupOnly = value;
+                                          });
+                                        },
                                       ),
                                       const SizedBox(height: 12),
                                       Text(
@@ -558,113 +585,9 @@ class _SetupPreferencesScreenState
                                       ),
                                       const SizedBox(height: 20),
                                       GlassButton(
-                                        label: 'Next',
-                                        onPressed: () async {
-                                          if (_seeking.isEmpty) {
-                                            ScaffoldMessenger.of(
-                                              context,
-                                            ).showSnackBar(
-                                              const SnackBar(
-                                                content: Text(
-                                                  'Select at least one gender preference.',
-                                                ),
-                                              ),
-                                            );
-                                            return;
-                                          }
-
-                                          await ref
-                                              .read(
-                                                profileSetupNotifierProvider
-                                                    .notifier,
-                                              )
-                                              .savePreferences(
-                                                seekingGenders: _seeking
-                                                    .toList(),
-                                                minAgeYears: _age.start.round(),
-                                                maxAgeYears: _age.end.round(),
-                                                maxDistanceKm: _distance
-                                                    .round(),
-                                                educationFilter: const [],
-                                                seriousOnly: _seriousOnly,
-                                                verifiedOnly: _verifiedOnly,
-                                                country: _selectedCountry,
-                                                regionState: _selectedState,
-                                                city: _selectedCity,
-                                                instagramHandle: _nullableTrim(
-                                                  _instagramController.text,
-                                                ),
-                                                hobbies: _parseTags(
-                                                  _hobbiesController.text,
-                                                ),
-                                                favoriteBooks: _parseTags(
-                                                  _booksController.text,
-                                                ),
-                                                favoriteNovels: _parseTags(
-                                                  _novelsController.text,
-                                                ),
-                                                favoriteSongs: _parseTags(
-                                                  _songsController.text,
-                                                ),
-                                                extraCurriculars: _parseTags(
-                                                  _extraCurricularController
-                                                      .text,
-                                                ),
-                                                additionalInfo: _nullableTrim(
-                                                  _additionalInfoController
-                                                      .text,
-                                                ),
-                                                intentTags: _parseTags(
-                                                  _intentTagsController.text,
-                                                ),
-                                                languageTags:
-                                                    _selectedLanguage == null
-                                                    ? const <String>[]
-                                                    : <String>[
-                                                        _selectedLanguage!,
-                                                      ],
-                                                petPreference: _nullableTrim(
-                                                  _petPreferenceController.text,
-                                                ),
-                                                workoutFrequency:
-                                                    _selectedWorkoutFrequency,
-                                                dietType: _selectedDietType,
-                                                sleepSchedule:
-                                                    _selectedSleepSchedule,
-                                                travelStyle:
-                                                    _selectedTravelStyle,
-                                                politicalComfortRange:
-                                                    _selectedPoliticalComfortRange,
-                                                dealBreakerTags: _parseTags(
-                                                  _dealBreakerTagsController
-                                                      .text,
-                                                ),
-                                                motherTongue:
-                                                    _selectedMotherTongue,
-                                                hookupOnly: _hookupOnly,
-                                                dietPreference:
-                                                    _selectedDietPreference,
-                                              );
-
-                                          await ref
-                                              .read(
-                                                profileSetupNotifierProvider
-                                                    .notifier,
-                                              )
-                                              .saveLifestyle(
-                                                drinking: draft.drinking,
-                                                smoking: draft.smoking,
-                                                religion: _selectedReligion,
-                                              );
-
-                                          if (!context.mounted) return;
-                                          Navigator.of(context).push(
-                                            MaterialPageRoute<void>(
-                                              builder: (_) =>
-                                                  const SetupLifestyleScreen(),
-                                            ),
-                                          );
-                                        },
+                                        label: _isSetupFlow ? 'Finish' : 'Save',
+                                        onPressed: () =>
+                                            _handlePrimaryAction(draft),
                                       ),
                                     ],
                                   ),
@@ -683,6 +606,96 @@ class _SetupPreferencesScreenState
         );
       },
     );
+  }
+
+  Future<void> _handlePrimaryAction(ProfileDraft draft) async {
+    if (_seeking.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Select at least one gender preference.')),
+      );
+      return;
+    }
+
+    await _savePreferencesAndLifestyle(draft);
+
+    if (_isSetupFlow) {
+      try {
+        await ref.read(profileSetupNotifierProvider.notifier).completeProfile();
+        ref.invalidate(profileCompletionProvider);
+      } catch (_) {
+        if (!mounted) {
+          return;
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Please complete all required fields (minimum photos, bio, and basic info).',
+            ),
+          ),
+        );
+        return;
+      }
+    }
+
+    _navigateToDiscover();
+  }
+
+  Future<void> _savePreferencesAndLifestyle(ProfileDraft draft) async {
+    await ref
+        .read(profileSetupNotifierProvider.notifier)
+        .savePreferences(
+          seekingGenders: _seeking.toList(),
+          minAgeYears: _age.start.round(),
+          maxAgeYears: _age.end.round(),
+          maxDistanceKm: _distance.round(),
+          educationFilter: const [],
+          seriousOnly: _seriousOnly,
+          verifiedOnly: _verifiedOnly,
+          country: _selectedCountry,
+          regionState: _selectedState,
+          city: _selectedCity,
+          instagramHandle: _nullableTrim(_instagramController.text),
+          hobbies: _parseTags(_hobbiesController.text),
+          favoriteBooks: _parseTags(_booksController.text),
+          favoriteNovels: _parseTags(_novelsController.text),
+          favoriteSongs: _parseTags(_songsController.text),
+          extraCurriculars: _parseTags(_extraCurricularController.text),
+          additionalInfo: _nullableTrim(_additionalInfoController.text),
+          intentTags: _parseTags(_intentTagsController.text),
+          languageTags: _selectedLanguage == null
+              ? const <String>[]
+              : <String>[_selectedLanguage!],
+          petPreference: _nullableTrim(_petPreferenceController.text),
+          workoutFrequency: _selectedWorkoutFrequency,
+          dietType: _selectedDietType,
+          sleepSchedule: _selectedSleepSchedule,
+          travelStyle: _selectedTravelStyle,
+          politicalComfortRange: _selectedPoliticalComfortRange,
+          dealBreakerTags: _parseTags(_dealBreakerTagsController.text),
+          motherTongue: _selectedMotherTongue,
+          hookupOnly: _hookupOnly,
+          dietPreference: _selectedDietPreference,
+        );
+
+    await ref
+        .read(profileSetupNotifierProvider.notifier)
+        .saveLifestyle(
+          drinking: draft.drinking,
+          smoking: draft.smoking,
+          religion: _selectedReligion,
+        );
+  }
+
+  void _navigateToDiscover() {
+    ref.read(mainNavigationIndexProvider.notifier).state = 0;
+    if (!mounted) {
+      return;
+    }
+    if (_isSetupFlow) {
+      Navigator.of(context).popUntil((route) => route.isFirst);
+      return;
+    }
+    Navigator.of(context).pop();
   }
 
   String? _nullableTrim(String value) {

@@ -5,14 +5,14 @@ import '../../../core/widgets/glass_widgets.dart';
 
 class SwipeButtons extends StatefulWidget {
   const SwipeButtons({
-    Key? key,
+    super.key,
     required this.onPass,
     required this.onLike,
     required this.onSuperLike,
     required this.onMessage,
     required this.onUndo,
     required this.canUndo,
-  }) : super(key: key);
+  });
   final Future<void> Function() onPass;
   final Future<void> Function() onLike;
   final Future<void> Function() onSuperLike;
@@ -32,6 +32,7 @@ class _SwipeButtonsState extends State<SwipeButtons>
   late AnimationController _messageController;
   late AnimationController _undoController;
   bool _isBusy = false;
+  bool _isLikeHovered = false;
 
   @override
   void initState() {
@@ -75,9 +76,10 @@ class _SwipeButtonsState extends State<SwipeButtons>
     if (_isBusy) return;
     setState(() => _isBusy = true);
     try {
-      await controller.forward();
-      await controller.reverse();
       await action();
+      if (!mounted) return;
+      await controller.forward(from: 0);
+      await controller.reverse();
     } finally {
       if (mounted) {
         setState(() => _isBusy = false);
@@ -120,7 +122,7 @@ class _SwipeButtonsState extends State<SwipeButtons>
       children: [
         // Undo Button
         ScaleTransition(
-          scale: Tween<double>(begin: 1.0, end: 0.85).animate(
+          scale: Tween<double>(begin: 1, end: 0.85).animate(
             CurvedAnimation(parent: _undoController, curve: Curves.easeInOut),
           ),
           child: GestureDetector(
@@ -151,7 +153,7 @@ class _SwipeButtonsState extends State<SwipeButtons>
 
         // Pass Button
         ScaleTransition(
-          scale: Tween<double>(begin: 1.0, end: 0.85).animate(
+          scale: Tween<double>(begin: 1, end: 0.85).animate(
             CurvedAnimation(parent: _passController, curve: Curves.easeInOut),
           ),
           child: GestureDetector(
@@ -176,27 +178,41 @@ class _SwipeButtonsState extends State<SwipeButtons>
 
         // Super Like Button (center, larger)
         ScaleTransition(
-          scale: Tween<double>(begin: 1.0, end: 0.9).animate(
+          scale: Tween<double>(begin: 1, end: 0.9).animate(
             CurvedAnimation(parent: _likeController, curve: Curves.easeInOut),
           ),
-          child: GestureDetector(
-            onTap: _isBusy ? null : () => unawaited(_onLikePressed()),
-            child: Container(
-              width: 72,
-              height: 72,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: AppTheme.primaryGradient,
-                boxShadow: [
-                  BoxShadow(
-                    color: AppTheme.primaryRed.withValues(alpha: 0.4),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
+          child: MouseRegion(
+            onEnter: (_) => setState(() => _isLikeHovered = true),
+            onExit: (_) => setState(() => _isLikeHovered = false),
+            child: GestureDetector(
+              onTap: _isBusy ? null : () => unawaited(_onLikePressed()),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOutCubic,
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: _isLikeHovered
+                        ? const [AppTheme.crystalRose, AppTheme.primaryRed]
+                        : AppTheme.primaryGradient.colors,
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
-                ],
-              ),
-              child: const Center(
-                child: Icon(Icons.favorite, color: Colors.white, size: 32),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.primaryRed.withValues(
+                        alpha: _isLikeHovered ? 0.55 : 0.4,
+                      ),
+                      blurRadius: _isLikeHovered ? 24 : 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: const Center(
+                  child: Icon(Icons.favorite, color: Colors.white, size: 47),
+                ),
               ),
             ),
           ),
@@ -204,7 +220,7 @@ class _SwipeButtonsState extends State<SwipeButtons>
 
         // Super Like Button
         ScaleTransition(
-          scale: Tween<double>(begin: 1.0, end: 0.85).animate(
+          scale: Tween<double>(begin: 1, end: 0.85).animate(
             CurvedAnimation(
               parent: _superLikeController,
               curve: Curves.easeInOut,
@@ -223,8 +239,8 @@ class _SwipeButtonsState extends State<SwipeButtons>
                   width: 1.8,
                 ),
               ),
-              child: Center(
-                child: const Icon(
+              child: const Center(
+                child: Icon(
                   Icons.star,
                   color: AppTheme.warningOrange,
                   size: 28,
@@ -236,7 +252,7 @@ class _SwipeButtonsState extends State<SwipeButtons>
 
         // Message Button
         ScaleTransition(
-          scale: Tween<double>(begin: 1.0, end: 0.85).animate(
+          scale: Tween<double>(begin: 1, end: 0.85).animate(
             CurvedAnimation(
               parent: _messageController,
               curve: Curves.easeInOut,

@@ -36,7 +36,9 @@ class VerificationNotifier extends _$VerificationNotifier {
 
     final dio = ref.read(apiClientProvider);
     try {
-      final response = await dio.get('/verification/$userId');
+      final response = await dio.get<Map<String, dynamic>>(
+        '/verification/$userId',
+      );
       final data = (response.data as Map?)?.cast<String, dynamic>() ?? const {};
       return VerificationState(
         status: data['status']?.toString(),
@@ -77,7 +79,7 @@ class VerificationNotifier extends _$VerificationNotifier {
 
     final dio = ref.read(apiClientProvider);
     try {
-      final response = await dio.post(
+      final response = await dio.post<Map<String, dynamic>>(
         '/verification/$userId/submit',
         data: {
           'id_photo_ref': idPhoto.path,
