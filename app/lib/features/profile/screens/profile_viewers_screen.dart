@@ -22,7 +22,7 @@ class ProfileViewersScreen extends ConsumerWidget {
       body: PostLoginBackdrop(
         child: viewersAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (_, __) => Center(
+          error: (_, _) => Center(
             child: GlassContainer(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -51,7 +51,7 @@ class ProfileViewersScreen extends ConsumerWidget {
             return ListView.separated(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
               itemCount: viewers.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 10),
+              separatorBuilder: (_, _) => const SizedBox(height: 10),
               itemBuilder: (context, index) {
                 final item = viewers[index];
                 final subtitle = item.viewedAt.trim().isEmpty

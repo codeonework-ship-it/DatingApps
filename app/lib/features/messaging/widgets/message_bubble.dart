@@ -4,12 +4,12 @@ import '../../../core/widgets/glass_widgets.dart';
 
 class MessageBubble extends StatelessWidget {
   const MessageBubble({
-    Key? key,
+    super.key,
     required this.message,
     required this.isFromCurrentUser,
     required this.timestamp,
     required this.isRead,
-  }) : super(key: key);
+  });
   final String message;
   final bool isFromCurrentUser;
   final DateTime timestamp;

@@ -196,8 +196,9 @@ class _SetupAboutScreenState extends ConsumerState<SetupAboutScreen> {
                               if (!context.mounted) return;
                               Navigator.of(context).push(
                                 MaterialPageRoute<void>(
-                                  builder: (_) =>
-                                      const SetupPreferencesScreen(),
+                                  builder: (_) => const SetupPreferencesScreen(
+                                    isSetupFlow: true,
+                                  ),
                                 ),
                               );
                             },

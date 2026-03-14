@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/glass_widgets.dart';
+import '../../providers/preference_master_data_provider.dart';
 import '../../providers/profile_setup_provider.dart';
 import 'setup_preview_screen.dart';
 
@@ -23,6 +24,10 @@ class _SetupLifestyleScreenState extends ConsumerState<SetupLifestyleScreen> {
   @override
   Widget build(BuildContext context) {
     final draftAsync = ref.watch(profileSetupNotifierProvider);
+    final masterData = ref
+        .watch(preferenceMasterDataProvider)
+        .maybeWhen(data: (data) => data, orElse: PreferenceMasterData.empty);
+    final religionOptions = <String?>[null, ...masterData.religions];
 
     return draftAsync.when(
       loading: () =>
@@ -113,32 +118,14 @@ class _SetupLifestyleScreenState extends ConsumerState<SetupLifestyleScreen> {
                             decoration: const InputDecoration(
                               labelText: 'Religion (optional)',
                             ),
-                            items: const [
-                              DropdownMenuItem(
-                                value: null,
-                                child: Text('Prefer not to say'),
-                              ),
-                              DropdownMenuItem(
-                                value: 'Hindu',
-                                child: Text('Hindu'),
-                              ),
-                              DropdownMenuItem(
-                                value: 'Muslim',
-                                child: Text('Muslim'),
-                              ),
-                              DropdownMenuItem(
-                                value: 'Christian',
-                                child: Text('Christian'),
-                              ),
-                              DropdownMenuItem(
-                                value: 'Sikh',
-                                child: Text('Sikh'),
-                              ),
-                              DropdownMenuItem(
-                                value: 'Other',
-                                child: Text('Other'),
-                              ),
-                            ],
+                            items: religionOptions
+                                .map(
+                                  (value) => DropdownMenuItem<String>(
+                                    value: value,
+                                    child: Text(value ?? 'Prefer not to say'),
+                                  ),
+                                )
+                                .toList(growable: false),
                             onChanged: (v) => setState(() => _religion = v),
                           ),
                           const Spacer(),

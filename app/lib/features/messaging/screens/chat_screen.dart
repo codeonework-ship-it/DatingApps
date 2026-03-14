@@ -11,12 +11,12 @@ import '../widgets/message_bubble.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({
-    Key? key,
+    super.key,
     required this.matchId,
     required this.otherUserId,
     required this.userName,
     required this.userPhotoUrl,
-  }) : super(key: key);
+  });
   final String matchId;
   final String otherUserId;
   final String userName;
@@ -593,8 +593,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.white,
       builder: (context) => StatefulBuilder(
-        builder: (context, setModalState) {
-          return Padding(
+        builder: (context, setModalState) => Padding(
             padding: EdgeInsets.only(
               left: 16,
               right: 16,
@@ -681,8 +680,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 ),
               ],
             ),
-          );
-        },
+          ),
       ),
     );
   }

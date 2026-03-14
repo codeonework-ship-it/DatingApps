@@ -4,6 +4,13 @@ import '../../../core/providers/api_client_provider.dart';
 import '../../auth/providers/auth_provider.dart';
 
 class ProfileViewer {
+
+  factory ProfileViewer.fromJson(Map<String, dynamic> json) => ProfileViewer(
+    userId: json['user_id']?.toString() ?? '',
+    name: (json['name']?.toString() ?? '').trim(),
+    photoUrl: (json['photo_url']?.toString() ?? '').trim(),
+    viewedAt: json['viewed_at']?.toString() ?? '',
+  );
   const ProfileViewer({
     required this.userId,
     required this.name,
@@ -15,13 +22,6 @@ class ProfileViewer {
   final String name;
   final String photoUrl;
   final String viewedAt;
-
-  factory ProfileViewer.fromJson(Map<String, dynamic> json) => ProfileViewer(
-    userId: json['user_id']?.toString() ?? '',
-    name: (json['name']?.toString() ?? '').trim(),
-    photoUrl: (json['photo_url']?.toString() ?? '').trim(),
-    viewedAt: json['viewed_at']?.toString() ?? '',
-  );
 }
 
 final profileViewersProvider = FutureProvider.autoDispose<List<ProfileViewer>>((

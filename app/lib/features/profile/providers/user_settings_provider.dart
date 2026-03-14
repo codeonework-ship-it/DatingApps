@@ -26,7 +26,7 @@ class UserSettingsNotifier extends AsyncNotifier<UserSettings> {
 
     final dio = ref.read(apiClientProvider);
     try {
-      final response = await dio.get('/settings/$userId');
+      final response = await dio.get<Map<String, dynamic>>('/settings/$userId');
       return _fromApi(userId, response.data);
     } on DioException catch (e, stackTrace) {
       log.error('Failed to fetch user settings', e, stackTrace);
@@ -62,7 +62,7 @@ class UserSettingsNotifier extends AsyncNotifier<UserSettings> {
 
     final dio = ref.read(apiClientProvider);
     try {
-      final response = await dio.patch(
+      final response = await dio.patch<Map<String, dynamic>>(
         '/settings/${current.userId}',
         data: {
           'show_age': next.showAge,

@@ -64,12 +64,14 @@ class BlockedUsersNotifier extends AsyncNotifier<List<BlockedUserItem>> {
 
     final dio = ref.read(apiClientProvider);
     try {
-      final response = await dio.get('/blocked-users/$currentUserId');
+      final response = await dio.get<Map<String, dynamic>>(
+        '/blocked-users/$currentUserId',
+      );
       final data = (response.data as Map?)?.cast<String, dynamic>() ?? const {};
       final rows =
           (data['blocked_users'] as List?)?.cast<dynamic>() ?? const [];
       return rows
-          .whereType<Map>()
+          .whereType<Map<dynamic, dynamic>>()
           .map((row) => row.cast<String, dynamic>())
           .map(
             (row) => BlockedUserItem(

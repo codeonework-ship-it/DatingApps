@@ -45,46 +45,153 @@ class SetupPhotosScreen extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Add at least ${ValidationConstants.minPhotos} photos',
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppTheme.trustBlue.withValues(
+                                  alpha: 0.1,
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                '${draft.photos.length}/${ValidationConstants.maxPhotos}',
+                                style: Theme.of(context).textTheme.labelMedium
+                                    ?.copyWith(
+                                      color: AppTheme.textDark,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
                         Text(
-                          'Add at least ${ValidationConstants.minPhotos} photos',
-                          style: Theme.of(context).textTheme.titleMedium,
+                          'Drag to reorder. Your first photo becomes primary.',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: AppTheme.textGrey),
                         ),
                         const SizedBox(height: 12),
                         Expanded(
-                          child: ReorderableListView.builder(
-                            itemCount: draft.photos.length,
-                            onReorder: (oldIndex, newIndex) => ref
-                                .read(profileSetupNotifierProvider.notifier)
-                                .reorderPhotos(oldIndex, newIndex),
-                            itemBuilder: (context, index) {
-                              final photo = draft.photos[index];
-                              return ListTile(
-                                key: ValueKey(photo.id),
-                                leading: ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Image.network(
-                                    photo.photoUrl,
-                                    width: 56,
-                                    height: 56,
-                                    fit: BoxFit.cover,
+                          child: draft.photos.isEmpty
+                              ? Center(
+                                  child: Text(
+                                    'No photos yet. Add from gallery or camera.',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(color: AppTheme.textGrey),
                                   ),
-                                ),
-                                title: Text(
-                                  index == 0
-                                      ? 'Primary photo'
-                                      : 'Photo ${index + 1}',
-                                ),
-                                trailing: IconButton(
-                                  icon: const Icon(Icons.delete),
-                                  onPressed: () => ref
+                                )
+                              : ReorderableListView.builder(
+                                  itemCount: draft.photos.length,
+                                  buildDefaultDragHandles: false,
+                                  onReorder: (oldIndex, newIndex) => ref
                                       .read(
                                         profileSetupNotifierProvider.notifier,
                                       )
-                                      .deletePhoto(photo),
+                                      .reorderPhotos(oldIndex, newIndex),
+                                  itemBuilder: (context, index) {
+                                    final photo = draft.photos[index];
+                                    return Container(
+                                      key: ValueKey(photo.id),
+                                      margin: const EdgeInsets.only(bottom: 10),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withValues(
+                                          alpha: 0.86,
+                                        ),
+                                        borderRadius: BorderRadius.circular(16),
+                                        border: Border.all(
+                                          color: AppTheme.trustBlue.withValues(
+                                            alpha: 0.14,
+                                          ),
+                                        ),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Padding(
+                                            padding: const EdgeInsets.all(8),
+                                            child: ClipRRect(
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                              child: Image.network(
+                                                photo.photoUrl,
+                                                width: 72,
+                                                height: 72,
+                                                fit: BoxFit.cover,
+                                              ),
+                                            ),
+                                          ),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  index == 0
+                                                      ? 'Primary photo'
+                                                      : 'Photo ${index + 1}',
+                                                  style: Theme.of(context)
+                                                      .textTheme
+                                                      .titleSmall
+                                                      ?.copyWith(
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                      ),
+                                                ),
+                                                const SizedBox(height: 2),
+                                                Text(
+                                                  index == 0
+                                                      ? 'Shown first on your profile'
+                                                      : 'Drag up to set as primary',
+                                                  style: Theme.of(context)
+                                                      .textTheme
+                                                      .bodySmall
+                                                      ?.copyWith(
+                                                        color:
+                                                            AppTheme.textGrey,
+                                                      ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          IconButton(
+                                            icon: const Icon(Icons.delete),
+                                            onPressed: () => ref
+                                                .read(
+                                                  profileSetupNotifierProvider
+                                                      .notifier,
+                                                )
+                                                .deletePhoto(photo),
+                                          ),
+                                          ReorderableDragStartListener(
+                                            index: index,
+                                            child: const Padding(
+                                              padding: EdgeInsets.only(
+                                                right: 10,
+                                                left: 2,
+                                              ),
+                                              child: Icon(
+                                                Icons.drag_handle,
+                                                color: AppTheme.textGrey,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
                                 ),
-                              );
-                            },
-                          ),
                         ),
                         const SizedBox(height: 12),
                         Row(
@@ -117,7 +224,7 @@ class SetupPhotosScreen extends ConsumerWidget {
                             if (draft.photos.length <
                                 ValidationConstants.minPhotos) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
+                                const SnackBar(
                                   content: Text(
                                     'Please add at least ${ValidationConstants.minPhotos} photos.',
                                   ),

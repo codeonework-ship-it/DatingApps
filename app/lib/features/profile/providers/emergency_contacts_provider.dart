@@ -56,7 +56,7 @@ class EmergencyContactsNotifier extends AsyncNotifier<List<EmergencyContact>> {
 
     try {
       final dio = ref.read(apiClientProvider);
-      final response = await dio.post(
+      final response = await dio.post<Map<String, dynamic>>(
         '/emergency-contacts/$userId',
         data: {'name': name.trim(), 'phone_number': phoneNumber.trim()},
       );
@@ -93,7 +93,7 @@ class EmergencyContactsNotifier extends AsyncNotifier<List<EmergencyContact>> {
 
     try {
       final dio = ref.read(apiClientProvider);
-      final response = await dio.put(
+      final response = await dio.put<Map<String, dynamic>>(
         '/emergency-contacts/$userId/$contactId',
         data: {'name': name.trim(), 'phone_number': phoneNumber.trim()},
       );
@@ -123,7 +123,7 @@ class EmergencyContactsNotifier extends AsyncNotifier<List<EmergencyContact>> {
 
     try {
       final dio = ref.read(apiClientProvider);
-      final response = await dio.delete(
+      final response = await dio.delete<Map<String, dynamic>>(
         '/emergency-contacts/$userId/$contactId',
       );
       state = AsyncData(_contactsFromApi(userId, response.data));
@@ -141,7 +141,9 @@ class EmergencyContactsNotifier extends AsyncNotifier<List<EmergencyContact>> {
 
     final dio = ref.read(apiClientProvider);
     try {
-      final response = await dio.get('/emergency-contacts/$userId');
+      final response = await dio.get<Map<String, dynamic>>(
+        '/emergency-contacts/$userId',
+      );
       return _contactsFromApi(userId, response.data);
     } on DioException catch (e, stackTrace) {
       log.error('Failed to fetch emergency contacts', e, stackTrace);
@@ -153,7 +155,7 @@ class EmergencyContactsNotifier extends AsyncNotifier<List<EmergencyContact>> {
     final root = (data as Map?)?.cast<String, dynamic>() ?? const {};
     final raw = (root['contacts'] as List?)?.cast<dynamic>() ?? const [];
 
-    return raw.whereType<Map>().map((entry) {
+    return raw.whereType<Map<dynamic, dynamic>>().map((entry) {
       final item = entry.cast<String, dynamic>();
       return EmergencyContact(
         id: item['id']?.toString() ?? '',

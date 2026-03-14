@@ -70,99 +70,131 @@ class _SetupBasicInfoScreenState extends ConsumerState<SetupBasicInfoScreen> {
                       backgroundColor: Colors.white.withValues(alpha: 0.95),
                       blur: 10,
                       borderRadius: const BorderRadius.all(Radius.circular(24)),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Basic Info',
-                            style: Theme.of(context).textTheme.headlineSmall,
-                          ),
-                          const SizedBox(height: 12),
-                          TextField(
-                            controller: _nameController,
-                            decoration: const InputDecoration(
-                              labelText: 'Name',
+                      child: LayoutBuilder(
+                        builder: (context, constraints) => SingleChildScrollView(
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              minHeight: constraints.maxHeight,
                             ),
-                          ),
-                          const SizedBox(height: 12),
-                          ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            title: const Text('Date of birth'),
-                            subtitle: Text(
-                              _dob == null
-                                  ? 'Select'
-                                  : '${_dob!.year}-${_dob!.month.toString().padLeft(2, '0')}-${_dob!.day.toString().padLeft(2, '0')}',
-                            ),
-                            trailing: const Icon(Icons.calendar_today),
-                            onTap: () async {
-                              final now = DateTime.now();
-                              final picked = await showDatePicker(
-                                context: context,
-                                initialDate: DateTime(now.year - 24, 1, 1),
-                                firstDate: DateTime(now.year - 80, 1, 1),
-                                lastDate: DateTime(now.year - 18, 12, 31),
-                              );
-                              if (picked != null) setState(() => _dob = picked);
-                            },
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            'Gender',
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 8,
-                            children: [
-                              _genderChip('M', 'Male'),
-                              _genderChip('F', 'Female'),
-                              _genderChip('Other', 'Other'),
-                            ],
-                          ),
-                          const Spacer(),
-                          GlassButton(
-                            label: 'Next',
-                            onPressed: () async {
-                              final name = _nameController.text.trim();
-                              if (name.length <
-                                  ValidationConstants.minNameLength) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Name must be at least 2 characters.',
-                                    ),
-                                  ),
-                                );
-                                return;
-                              }
-                              if (_dob == null) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Please select your date of birth.',
-                                    ),
-                                  ),
-                                );
-                                return;
-                              }
-
-                              await ref
-                                  .read(profileSetupNotifierProvider.notifier)
-                                  .saveBasicInfo(
-                                    name: name,
-                                    dateOfBirth: _dob!,
-                                    gender: _gender,
-                                  );
-
-                              if (!context.mounted) return;
-                              Navigator.of(context).push(
-                                MaterialPageRoute<void>(
-                                  builder: (_) => const SetupPhotosScreen(),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Basic Info',
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.headlineSmall,
                                 ),
-                              );
-                            },
+                                const SizedBox(height: 6),
+                                Text(
+                                  'Tell matches who you are. You can edit this later.',
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(color: AppTheme.textGrey),
+                                ),
+                                const SizedBox(height: 14),
+                                TextField(
+                                  controller: _nameController,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Name',
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                ListTile(
+                                  contentPadding: EdgeInsets.zero,
+                                  title: const Text('Date of birth'),
+                                  subtitle: Text(
+                                    _dob == null
+                                        ? 'Select'
+                                        : '${_dob!.year}-${_dob!.month.toString().padLeft(2, '0')}-${_dob!.day.toString().padLeft(2, '0')}',
+                                  ),
+                                  trailing: const Icon(Icons.calendar_today),
+                                  onTap: () async {
+                                    final now = DateTime.now();
+                                    final picked = await showDatePicker(
+                                      context: context,
+                                      initialDate: DateTime(
+                                        now.year - 24,
+                                        1,
+                                        1,
+                                      ),
+                                      firstDate: DateTime(now.year - 80, 1, 1),
+                                      lastDate: DateTime(now.year - 18, 12, 31),
+                                    );
+                                    if (picked != null) {
+                                      setState(() => _dob = picked);
+                                    }
+                                  },
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'Gender',
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.titleMedium,
+                                ),
+                                const SizedBox(height: 8),
+                                Wrap(
+                                  spacing: 8,
+                                  children: [
+                                    _genderChip('M', 'Male'),
+                                    _genderChip('F', 'Female'),
+                                    _genderChip('Other', 'Other'),
+                                  ],
+                                ),
+                                const SizedBox(height: 16),
+                                GlassButton(
+                                  label: 'Next',
+                                  onPressed: () async {
+                                    final name = _nameController.text.trim();
+                                    if (name.length <
+                                        ValidationConstants.minNameLength) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Name must be at least 2 characters.',
+                                          ),
+                                        ),
+                                      );
+                                      return;
+                                    }
+                                    if (_dob == null) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Please select your date of birth.',
+                                          ),
+                                        ),
+                                      );
+                                      return;
+                                    }
+
+                                    await ref
+                                        .read(
+                                          profileSetupNotifierProvider.notifier,
+                                        )
+                                        .saveBasicInfo(
+                                          name: name,
+                                          dateOfBirth: _dob!,
+                                          gender: _gender,
+                                        );
+
+                                    if (!context.mounted) return;
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute<void>(
+                                        builder: (_) =>
+                                            const SetupPhotosScreen(),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
                           ),
-                        ],
+                        ),
                       ),
                     ),
                   ),

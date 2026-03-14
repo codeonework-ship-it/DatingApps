@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/extensions/date_time_extensions.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
-import '../../../core/extensions/date_time_extensions.dart';
-import 'profile_viewers_screen.dart';
+import '../../swipe/screens/liked_profiles_screen.dart';
 import '../providers/profile_provider.dart';
+import 'profile_viewers_screen.dart';
 
 class ProfileViewScreen extends ConsumerWidget {
   const ProfileViewScreen({super.key});
@@ -184,6 +186,13 @@ class ProfileViewScreen extends ConsumerWidget {
                         icon: Icons.favorite,
                         value: '${profileState.likesCount}',
                         label: 'Likes',
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => const LikedProfilesScreen(),
+                            ),
+                          );
+                        },
                       ),
                     ),
                   ),
@@ -240,31 +249,35 @@ class ProfileViewScreen extends ConsumerWidget {
     required IconData icon,
     required String value,
     required String label,
-  }) => GlassContainer(
-    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 8),
-    backgroundColor: Colors.white.withValues(alpha: 0.84),
-    blur: 14,
-    crystalEffect: true,
-    child: Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: AppTheme.primaryRed, size: 28),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(color: AppTheme.primaryRed),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: AppTheme.textGrey),
-          ),
-        ],
+    VoidCallback? onTap,
+  }) => GestureDetector(
+    onTap: onTap,
+    child: GlassContainer(
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 8),
+      backgroundColor: Colors.white.withValues(alpha: 0.84),
+      blur: 14,
+      crystalEffect: true,
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: AppTheme.primaryRed, size: 28),
+            const SizedBox(height: 8),
+            Text(
+              value,
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(color: AppTheme.primaryRed),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppTheme.textGrey),
+            ),
+          ],
+        ),
       ),
     ),
   );

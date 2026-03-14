@@ -56,9 +56,15 @@ class MessageNotifier extends _$MessageNotifier {
   String? _currentMatchId;
   Timer? _pollTimer;
 
+  bool get _isPendingConversation =>
+      (_currentMatchId ?? '').startsWith('pending-');
+
   @override
   MessageState build(String matchId) {
     _currentMatchId = matchId;
+    if (_isPendingConversation) {
+      return const MessageState(isLoading: false);
+    }
     Future<void>.microtask(() => _loadMessages(matchId));
     if (!kUseMockAuth) {
       _pollTimer = Timer.periodic(const Duration(seconds: 4), (_) {
@@ -73,6 +79,11 @@ class MessageNotifier extends _$MessageNotifier {
 
   /// Load messages from gateway API
   Future<void> _loadMessages(String matchId, {bool showLoader = true}) async {
+    if (_isPendingConversation) {
+      state = state.copyWith(isLoading: false, error: null);
+      return;
+    }
+
     if (showLoader) {
       state = state.copyWith(isLoading: true, error: null);
     }
@@ -145,6 +156,26 @@ class MessageNotifier extends _$MessageNotifier {
     try {
       final currentUserId = ref.read(authNotifierProvider).userId;
       if (currentUserId == null) return;
+
+      if (_isPendingConversation) {
+        final message = models.Message(
+          id: 'pending-msg-${DateTime.now().millisecondsSinceEpoch}',
+          matchId: _currentMatchId!,
+          senderId: currentUserId,
+          text: text,
+          createdAt: DateTime.now(),
+          deliveredAt: DateTime.now(),
+          readAt: null,
+          isDeleted: false,
+          deletedAt: null,
+        );
+        state = state.copyWith(
+          messages: [message, ...state.messages],
+          error: null,
+          isChatLocked: false,
+        );
+        return;
+      }
 
       if (kUseMockAuth) {
         final message = models.Message(
