@@ -10,5 +10,15 @@ void main() {
       expect(kFeatureTrustBadges, isA<bool>());
       expect(kFeatureConversationRooms, isA<bool>());
     });
+
+    test('defines auth/discovery mock controls', () {
+      expect(kUseMockAuth, isA<bool>());
+      expect(kUseMockDiscoveryData, isA<bool>());
+      expect(kBypassOtpValidation, isA<bool>());
+    });
+
+    test('keeps OTP bypass disabled by default', () {
+      expect(kBypassOtpValidation, isFalse);
+    });
   });
 }

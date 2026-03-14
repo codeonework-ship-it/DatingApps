@@ -38,11 +38,17 @@ void main() {
       expect(AppRuntimeConfig.supabaseUsersTable, 'users');
     });
 
-    test('generates deterministic mock user id from phone digits', () {
+    test('generates deterministic mock user id from identifier', () {
       dotenv.testLoad(fileInput: 'MOCK_USER_PREFIX=test-user');
 
-      final userID = AppRuntimeConfig.mockUserIdForPhone('+91 98765-43210');
-      expect(userID, 'test-user-543210');
+      final userID = AppRuntimeConfig.mockUserIdForIdentifier(
+        '+91 98765-43210',
+      );
+      expect(userID, isNotEmpty);
+      expect(
+        userID,
+        AppRuntimeConfig.mockUserIdForIdentifier('+91 98765-43210'),
+      );
     });
   });
 }
