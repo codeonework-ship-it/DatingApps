@@ -348,6 +348,11 @@ func NewServer(cfg config.Config, log *zap.Logger, httpMetrics *observability.HT
 		v1.Get("/engagement/group-coffee-polls/{pollID}", s.getGroupCoffeePoll)
 		v1.Post("/engagement/group-coffee-polls/{pollID}/votes", s.voteGroupCoffeePoll)
 		v1.Post("/engagement/group-coffee-polls/{pollID}/finalize", s.finalizeGroupCoffeePoll)
+		v1.Post("/engagement/groups", s.createCommunityGroup)
+		v1.Get("/engagement/groups", s.listCommunityGroups)
+		v1.Post("/engagement/groups/{groupID}/invites", s.inviteCommunityGroupMembers)
+		v1.Post("/engagement/groups/{groupID}/invites/respond", s.respondCommunityGroupInvite)
+		v1.Get("/engagement/group-invites", s.listCommunityGroupInvites)
 		v1.Get("/users/{userID}/trust-badges", s.getUserTrustBadges)
 		v1.Get("/users/{userID}/trust-badges/history", s.listUserTrustBadgeHistory)
 		v1.Get("/friends/{userID}", s.listFriends)
@@ -525,7 +530,7 @@ func (s *Server) readyz(w http.ResponseWriter, _ *http.Request) {
 		"chat":     s.connState(s.chatConn),
 	}
 	for _, value := range deps {
-		if toString(value) != connectivity.Ready.String() {
+		if !isHealthyConnState(toString(value)) {
 			ready = false
 		}
 	}
@@ -539,6 +544,15 @@ func (s *Server) readyz(w http.ResponseWriter, _ *http.Request) {
 		"status":  ternary(ready, "ready", "degraded"),
 		"deps":    deps,
 	})
+}
+
+func isHealthyConnState(state string) bool {
+	switch state {
+	case connectivity.Ready.String(), connectivity.Idle.String(), connectivity.Connecting.String():
+		return true
+	default:
+		return false
+	}
 }
 
 func (s *Server) sendOTP(w http.ResponseWriter, r *http.Request) {
@@ -693,6 +707,7 @@ func (s *Server) upsertProfile(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) getDiscoveryCandidates(w http.ResponseWriter, r *http.Request) {
 	userID := strings.TrimSpace(chi.URLParam(r, "userID"))
+	mode := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("mode")))
 
 	limit := 25
 	if raw := r.URL.Query().Get("limit"); raw != "" {
@@ -724,7 +739,23 @@ func (s *Server) getDiscoveryCandidates(w http.ResponseWriter, r *http.Request) 
 	}
 	s.attachAdvancedFilteredDiscovery(resp, userID, r.URL.Query())
 	s.attachTrustFilteredDiscovery(resp, userID)
+	s.attachSpotlightDiscovery(resp, userID)
+	applyDiscoveryMode(resp, mode)
 	writeJSON(w, http.StatusOK, resp)
+}
+
+func applyDiscoveryMode(resp map[string]any, mode string) {
+	if mode != "spotlight" {
+		return
+	}
+
+	spotlightProfiles, ok := resp["spotlight_profiles"].([]any)
+	if !ok {
+		return
+	}
+
+	resp["candidates"] = spotlightProfiles
+	resp["discovery_mode"] = "spotlight"
 }
 
 func (s *Server) swipe(w http.ResponseWriter, r *http.Request) {
@@ -750,6 +781,10 @@ func (s *Server) swipe(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadGateway, errors.New("unexpected swipe response payload"))
 		return
 	}
+	targetUserID := strings.TrimSpace(toString(payload["target_user_id"]))
+	isLike, _ := payload["is_like"].(bool)
+	isMutualMatch := resp["mutual_match"] == true || strings.TrimSpace(toString(resp["match_id"])) != ""
+	s.store.recordSpotlightSwipeOutcome(targetUserID, isLike, isMutualMatch)
 	writeJSON(w, http.StatusOK, resp)
 }
 
@@ -1524,6 +1559,20 @@ func (s *Server) startActivitySession(w http.ResponseWriter, r *http.Request) {
 		},
 	})
 
+	s.store.recordActivity(activityEvent{
+		UserID:   initiatorUserID,
+		Actor:    initiatorUserID,
+		Action:   "mini_activity_started",
+		Status:   "success",
+		Resource: "/activities/sessions/start",
+		Details: map[string]any{
+			"match_id":      session.MatchID,
+			"session_id":    session.ID,
+			"user_id":       initiatorUserID,
+			"activity_type": session.ActivityType,
+		},
+	})
+
 	writeJSON(w, http.StatusOK, map[string]any{
 		"session": session,
 	})
@@ -1576,6 +1625,23 @@ func (s *Server) submitActivitySession(w http.ResponseWriter, r *http.Request) {
 		},
 	})
 
+	if session.Status == activitySessionStatusCompleted {
+		s.store.recordActivity(activityEvent{
+			UserID:   userID,
+			Actor:    userID,
+			Action:   "mini_activity_completed",
+			Status:   "success",
+			Resource: "/activities/sessions/" + sessionID + "/submit",
+			Details: map[string]any{
+				"match_id":            session.MatchID,
+				"session_id":          sessionID,
+				"user_id":             userID,
+				"activity_type":       session.ActivityType,
+				"responses_submitted": len(responses),
+			},
+		})
+	}
+
 	writeJSON(w, http.StatusOK, map[string]any{
 		"session": session,
 	})
@@ -1587,6 +1653,7 @@ func (s *Server) getActivitySessionSummary(w http.ResponseWriter, r *http.Reques
 		writeError(w, http.StatusBadRequest, errors.New("session id is required"))
 		return
 	}
+	viewerUserID := strings.TrimSpace(r.URL.Query().Get("user_id"))
 
 	summary, session, err := s.store.getActivitySessionSummary(sessionID)
 	if err != nil {
@@ -1596,6 +1663,23 @@ func (s *Server) getActivitySessionSummary(w http.ResponseWriter, r *http.Reques
 		}
 		writeError(w, http.StatusBadRequest, err)
 		return
+	}
+
+	if viewerUserID != "" {
+		s.store.recordActivity(activityEvent{
+			UserID:   viewerUserID,
+			Actor:    viewerUserID,
+			Action:   "mini_activity_shared",
+			Status:   "success",
+			Resource: "/activities/sessions/" + sessionID + "/summary",
+			Details: map[string]any{
+				"match_id":       session.MatchID,
+				"session_id":     sessionID,
+				"user_id":        viewerUserID,
+				"activity_type":  session.ActivityType,
+				"summary_status": summary.Status,
+			},
+		})
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{
@@ -2246,6 +2330,19 @@ func (s *Server) createGroupCoffeePoll(w http.ResponseWriter, r *http.Request) {
 		},
 	})
 
+	s.store.recordActivity(activityEvent{
+		UserID:   creatorUserID,
+		Actor:    creatorUserID,
+		Action:   "group_poll_created",
+		Status:   "success",
+		Resource: "/engagement/group-coffee-polls",
+		Details: map[string]any{
+			"poll_id":      poll.ID,
+			"user_id":      creatorUserID,
+			"participants": len(poll.ParticipantUserIDs),
+		},
+	})
+
 	writeJSON(w, http.StatusOK, map[string]any{"poll": poll})
 }
 
@@ -2331,6 +2428,19 @@ func (s *Server) voteGroupCoffeePoll(w http.ResponseWriter, r *http.Request) {
 		},
 	})
 
+	s.store.recordActivity(activityEvent{
+		UserID:   userID,
+		Actor:    userID,
+		Action:   "group_poll_voted",
+		Status:   "success",
+		Resource: "/engagement/group-coffee-polls/" + pollID + "/votes",
+		Details: map[string]any{
+			"poll_id":   poll.ID,
+			"user_id":   userID,
+			"option_id": optionID,
+		},
+	})
+
 	writeJSON(w, http.StatusOK, map[string]any{"poll": poll})
 }
 
@@ -2373,6 +2483,22 @@ func (s *Server) finalizeGroupCoffeePoll(w http.ResponseWriter, r *http.Request)
 			"intro_event_id":        poll.ID,
 			"user_id":               userID,
 			"event_type":            "group_coffee_poll",
+			"selected_option_id":    selectedOption.ID,
+			"selected_day":          selectedOption.Day,
+			"selected_time_window":  selectedOption.TimeWindow,
+			"selected_neighborhood": selectedOption.Neighborhood,
+		},
+	})
+
+	s.store.recordActivity(activityEvent{
+		UserID:   userID,
+		Actor:    userID,
+		Action:   "group_poll_finalized",
+		Status:   "success",
+		Resource: "/engagement/group-coffee-polls/" + pollID + "/finalize",
+		Details: map[string]any{
+			"poll_id":               poll.ID,
+			"user_id":               userID,
 			"selected_option_id":    selectedOption.ID,
 			"selected_day":          selectedOption.Day,
 			"selected_time_window":  selectedOption.TimeWindow,
@@ -2984,33 +3110,23 @@ func (s *Server) persistUploadedPhoto(r *http.Request, userID string) (string, e
 func (s *Server) resolveMediaPublicBaseURL(r *http.Request) string {
 	raw := strings.TrimSpace(s.cfg.MediaPublicBaseURL)
 	normalized := strings.TrimRight(raw, "/")
-	legacyAndroidBase := "http://10.0.2.2:8080"
 	if normalized != "" && !strings.EqualFold(normalized, "auto") {
-		if !strings.EqualFold(normalized, legacyAndroidBase) {
-			return normalized
-		}
+		return normalized
 	}
 
-	platform := strings.ToLower(strings.TrimSpace(r.Header.Get("X-Client-Platform")))
-	switch platform {
-	case "android":
-		return "http://10.0.2.2:8080"
-	case "ios", "macos", "linux", "windows":
-		return "http://localhost:8080"
-	case "web":
-		return requestBaseURL(r)
-	default:
-		return requestBaseURL(r)
-	}
+	return requestBaseURL(r, defaultGatewayHost(s.cfg.APIGatewayAddr))
 }
 
-func requestBaseURL(r *http.Request) string {
+func requestBaseURL(r *http.Request, fallbackHost string) string {
 	host := strings.TrimSpace(r.Header.Get("X-Forwarded-Host"))
 	if host == "" {
 		host = strings.TrimSpace(r.Host)
 	}
 	if host == "" {
-		host = "localhost:8080"
+		host = strings.TrimSpace(fallbackHost)
+	}
+	if host == "" {
+		host = "localhost"
 	}
 
 	scheme := strings.TrimSpace(r.Header.Get("X-Forwarded-Proto"))
@@ -3023,6 +3139,23 @@ func requestBaseURL(r *http.Request) string {
 	}
 
 	return scheme + "://" + host
+}
+
+func defaultGatewayHost(addr string) string {
+	normalized := strings.TrimSpace(addr)
+	if normalized == "" {
+		return ""
+	}
+	if strings.HasPrefix(normalized, ":") {
+		return "localhost" + normalized
+	}
+	if strings.Contains(normalized, "://") {
+		parsed, err := url.Parse(normalized)
+		if err == nil && strings.TrimSpace(parsed.Host) != "" {
+			return strings.TrimSpace(parsed.Host)
+		}
+	}
+	return normalized
 }
 
 var disallowedSegmentChars = regexp.MustCompile(`[^a-zA-Z0-9_-]`)

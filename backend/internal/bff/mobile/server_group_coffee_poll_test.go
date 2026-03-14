@@ -68,6 +68,9 @@ func TestServer_GroupCoffeePollLifecycle(t *testing.T) {
 	assertActionSeen(t, activities, "intro_event_created")
 	assertActionSeen(t, activities, "intro_event_voted")
 	assertActionSeen(t, activities, "intro_event_finalized")
+	assertActionSeen(t, activities, "group_poll_created")
+	assertActionSeen(t, activities, "group_poll_voted")
+	assertActionSeen(t, activities, "group_poll_finalized")
 }
 
 func TestServer_GroupCoffeePollParticipantCap(t *testing.T) {

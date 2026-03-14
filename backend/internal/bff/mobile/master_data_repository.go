@@ -2,6 +2,8 @@ package mobile
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"net/url"
 	"sort"
 	"strings"
@@ -37,6 +39,8 @@ type masterDataRepository struct {
 	refreshing bool
 }
 
+var errMasterDataUnavailable = errors.New("preference master data unavailable from supabase")
+
 func newMasterDataRepository(cfg config.Config) *masterDataRepository {
 	apiKey := strings.TrimSpace(cfg.SupabaseServiceRole)
 	if apiKey == "" {
@@ -55,74 +59,77 @@ func newMasterDataRepository(cfg config.Config) *masterDataRepository {
 	return &masterDataRepository{cfg: cfg, db: client, cacheTTL: cfg.MasterDataCacheTTL()}
 }
 
-func (r *masterDataRepository) getPreferenceMasterData(ctx context.Context) preferenceMasterData {
+func (r *masterDataRepository) getPreferenceMasterData(ctx context.Context) (preferenceMasterData, error) {
 	if cached, ok := r.getCached(); ok {
 		if r.cacheStale() {
 			go r.refreshCache(context.Background())
 		}
-		return cached
+		return cached, nil
 	}
 
-	fresh := r.fetchPreferenceMasterData(ctx)
+	fresh, err := r.fetchPreferenceMasterData(ctx)
+	if err != nil {
+		return preferenceMasterData{}, err
+	}
 	r.setCached(fresh)
-	return fresh
+	return fresh, nil
 }
 
-func (r *masterDataRepository) fetchPreferenceMasterData(ctx context.Context) preferenceMasterData {
+func (r *masterDataRepository) fetchPreferenceMasterData(ctx context.Context) (preferenceMasterData, error) {
 	if r.db == nil {
-		return fallbackMasterData()
+		return preferenceMasterData{}, errMasterDataUnavailable
 	}
 
 	countries, countryCodeToName, err := r.loadCountries(ctx)
 	if err != nil {
-		return fallbackMasterData()
+		return preferenceMasterData{}, fmt.Errorf("load countries: %w", err)
 	}
 
 	statesByCountry, stateCodeToName, err := r.loadStates(ctx, countryCodeToName)
 	if err != nil {
-		return fallbackMasterData()
+		return preferenceMasterData{}, fmt.Errorf("load states: %w", err)
 	}
 
 	citiesByState, err := r.loadCities(ctx, stateCodeToName)
 	if err != nil {
-		return fallbackMasterData()
+		return preferenceMasterData{}, fmt.Errorf("load cities: %w", err)
 	}
 
 	religions, err := r.loadNamedList(ctx, "master_religions")
 	if err != nil {
-		religions = fallbackMasterData().Religions
+		return preferenceMasterData{}, fmt.Errorf("load religions: %w", err)
 	}
 	motherTongues, err := r.loadNamedList(ctx, "master_mother_tongues")
 	if err != nil {
-		motherTongues = fallbackMasterData().MotherTongues
+		return preferenceMasterData{}, fmt.Errorf("load mother tongues: %w", err)
 	}
 	languages, err := r.loadNamedList(ctx, "master_languages")
 	if err != nil {
-		languages = fallbackMasterData().Languages
+		return preferenceMasterData{}, fmt.Errorf("load languages: %w", err)
 	}
 	dietPreferences, err := r.loadNamedList(ctx, "master_diet_preferences")
 	if err != nil {
-		dietPreferences = fallbackMasterData().DietPreferences
+		return preferenceMasterData{}, fmt.Errorf("load diet preferences: %w", err)
 	}
 	workoutFrequencies, err := r.loadNamedList(ctx, "master_workout_frequencies")
 	if err != nil {
-		workoutFrequencies = fallbackMasterData().WorkoutFrequencies
+		return preferenceMasterData{}, fmt.Errorf("load workout frequencies: %w", err)
 	}
 	dietTypes, err := r.loadNamedList(ctx, "master_diet_types")
 	if err != nil {
-		dietTypes = fallbackMasterData().DietTypes
+		return preferenceMasterData{}, fmt.Errorf("load diet types: %w", err)
 	}
 	sleepSchedules, err := r.loadNamedList(ctx, "master_sleep_schedules")
 	if err != nil {
-		sleepSchedules = fallbackMasterData().SleepSchedules
+		return preferenceMasterData{}, fmt.Errorf("load sleep schedules: %w", err)
 	}
 	travelStyles, err := r.loadNamedList(ctx, "master_travel_styles")
 	if err != nil {
-		travelStyles = fallbackMasterData().TravelStyles
+		return preferenceMasterData{}, fmt.Errorf("load travel styles: %w", err)
 	}
 	politicalRanges, err := r.loadNamedList(ctx, "master_political_comfort_ranges")
 	if err != nil {
-		politicalRanges = fallbackMasterData().PoliticalComfortRanges
+		return preferenceMasterData{}, fmt.Errorf("load political comfort ranges: %w", err)
 	}
 
 	return preferenceMasterData{
@@ -138,7 +145,7 @@ func (r *masterDataRepository) fetchPreferenceMasterData(ctx context.Context) pr
 		SleepSchedules:         sleepSchedules,
 		TravelStyles:           travelStyles,
 		PoliticalComfortRanges: politicalRanges,
-	}
+	}, nil
 }
 
 func (r *masterDataRepository) getCached() (preferenceMasterData, bool) {
@@ -188,7 +195,10 @@ func (r *masterDataRepository) refreshCache(ctx context.Context) {
 		defer cancel()
 	}
 
-	fresh := r.fetchPreferenceMasterData(timeoutCtx)
+	fresh, err := r.fetchPreferenceMasterData(timeoutCtx)
+	if err != nil {
+		return
+	}
 	r.setCached(fresh)
 }
 
@@ -299,18 +309,7 @@ func (r *masterDataRepository) selectWithSchemaFallback(
 	table string,
 	params url.Values,
 ) ([]map[string]any, error) {
-	schema := strings.TrimSpace(r.cfg.MatchingSchema)
-	if schema == "" {
-		schema = "matching"
-	}
-	rows, err := r.db.SelectRead(ctx, schema, table, params)
-	if err == nil {
-		return rows, nil
-	}
-	if schema == "matching" {
-		return nil, err
-	}
-	return r.db.SelectRead(ctx, "matching", table, params)
+	return r.db.SelectRead(ctx, "public", table, params)
 }
 
 func uniqueSorted(values []string) []string {
@@ -346,32 +345,4 @@ func uniqueSortedPreservingOrder(values []string) []string {
 		out = append(out, normalized)
 	}
 	return out
-}
-
-func fallbackMasterData() preferenceMasterData {
-	countries := []string{"India"}
-	states := []string{"Karnataka", "Maharashtra", "Delhi", "Tamil Nadu", "Telangana"}
-	statesByCountry := map[string][]string{"India": states}
-	citiesByState := map[string][]string{
-		"Karnataka":   {"Bengaluru", "Mysuru", "Mangaluru"},
-		"Maharashtra": {"Mumbai", "Pune", "Nagpur"},
-		"Delhi":       {"New Delhi", "Delhi"},
-		"Tamil Nadu":  {"Chennai", "Coimbatore", "Madurai"},
-		"Telangana":   {"Hyderabad", "Warangal", "Nizamabad"},
-	}
-
-	return preferenceMasterData{
-		Countries:              countries,
-		StatesByCountry:        statesByCountry,
-		CitiesByState:          citiesByState,
-		Religions:              []string{"Hindu", "Muslim", "Christian", "Sikh", "Buddhist", "Jain", "Spiritual", "Other", "Prefer not to say"},
-		MotherTongues:          []string{"Hindi", "English", "Tamil", "Telugu", "Kannada", "Malayalam", "Marathi", "Gujarati", "Punjabi", "Bengali", "Urdu"},
-		Languages:              []string{"English", "Hindi", "Tamil", "Telugu", "Kannada", "Malayalam", "Marathi", "Gujarati", "Punjabi", "Bengali", "Urdu"},
-		DietPreferences:        []string{"No preference", "Vegetarian", "Eggetarian", "Non-vegetarian", "Vegan", "Jain"},
-		WorkoutFrequencies:     []string{"Never", "1-2 times a week", "3-4 times a week", "5+ times a week", "Daily"},
-		DietTypes:              []string{"Balanced", "High Protein", "Low Carb", "Keto", "Mediterranean", "Intermittent Fasting"},
-		SleepSchedules:         []string{"Early bird", "Night owl", "Flexible", "Shift based"},
-		TravelStyles:           []string{"Homebody", "Occasional traveler", "Frequent traveler", "Adventure seeker", "Luxury traveler", "Backpacker"},
-		PoliticalComfortRanges: []string{"Similar views only", "Open to differences", "Prefer not to discuss", "No strong preference"},
-	}
 }

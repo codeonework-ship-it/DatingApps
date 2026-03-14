@@ -1,0 +1,98 @@
+services:
+  auth-svc:
+    image: golang:1.23
+    working_dir: /workspace/backend
+    command: sh -c "go mod download && go run ./cmd/auth-svc"
+    env_file:
+      - ./config/.env
+    environment:
+      AUTH_SVC_GRPC_ADDR: ":9091"
+      AUTH_SVC_ADMIN_ADDR: ":10091"
+    volumes:
+      - ./:/workspace/backend
+    ports:
+      - "9091:9091"
+      - "10091:10091"
+
+  profile-svc:
+    image: golang:1.23
+    working_dir: /workspace/backend
+    command: sh -c "go mod download && go run ./cmd/profile-svc"
+    env_file:
+      - ./config/.env
+    environment:
+      PROFILE_SVC_GRPC_ADDR: ":9092"
+      PROFILE_SVC_ADMIN_ADDR: ":10092"
+    volumes:
+      - ./:/workspace/backend
+    ports:
+      - "9092:9092"
+      - "10092:10092"
+
+  matching-svc:
+    image: golang:1.23
+    working_dir: /workspace/backend
+    command: sh -c "go mod download && go run ./cmd/matching-svc"
+    env_file:
+      - ./config/.env
+    environment:
+      MATCHING_SVC_GRPC_ADDR: ":9093"
+      MATCHING_SVC_ADMIN_ADDR: ":10093"
+    volumes:
+      - ./:/workspace/backend
+    ports:
+      - "9093:9093"
+      - "10093:10093"
+
+  chat-svc:
+    image: golang:1.23
+    working_dir: /workspace/backend
+    command: sh -c "go mod download && go run ./cmd/chat-svc"
+    env_file:
+      - ./config/.env
+    environment:
+      CHAT_SVC_GRPC_ADDR: ":9094"
+      CHAT_SVC_ADMIN_ADDR: ":10094"
+    volumes:
+      - ./:/workspace/backend
+    ports:
+      - "9094:9094"
+      - "10094:10094"
+
+  mobile-bff:
+    image: golang:1.23
+    working_dir: /workspace/backend
+    command: sh -c "go mod download && go run ./cmd/mobile-bff"
+    env_file:
+      - ./config/.env
+    environment:
+      MOBILE_BFF_ADDR: ":8081"
+      AUTH_SVC_GRPC_ADDR: "auth-svc:9091"
+      PROFILE_SVC_GRPC_ADDR: "profile-svc:9092"
+      MATCHING_SVC_GRPC_ADDR: "matching-svc:9093"
+      CHAT_SVC_GRPC_ADDR: "chat-svc:9094"
+    volumes:
+      - ./:/workspace/backend
+    depends_on:
+      - auth-svc
+      - profile-svc
+      - matching-svc
+      - chat-svc
+    ports:
+      - "8081:8081"
+
+  api-gateway:
+    image: golang:1.23
+    working_dir: /workspace/backend
+    command: sh -c "go mod download && go run ./cmd/api-gateway"
+    env_file:
+      - ./config/.env
+    environment:
+      API_GATEWAY_ADDR: ":8080"
+      MOBILE_BFF_UPSTREAM_URL: "http://mobile-bff:8081"
+    volumes:
+      - ./:/workspace/backend
+    depends_on:
+      - mobile-bff
+    ports:
+      - "8080:8080"

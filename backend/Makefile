@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: proto run-auth run-profile run-matching run-chat run-bff run-gateway run-all stop-all open-docs
+.PHONY: proto run-auth run-profile run-matching run-chat run-bff run-gateway run-all stop-all open-docs elk-up elk-down elk-logs elk-up-local elk-down-local elk-status-local backend-compliance-check
 
 # Requires protoc + protoc-gen-go + protoc-gen-go-grpc installed locally.
 proto:
@@ -34,3 +34,28 @@ stop-all:
 
 open-docs:
 	OPEN_CHROME=true ./scripts/dev_up.sh
+
+elk-up:
+	docker compose -f ./observability/elk/docker-compose.yml up -d
+
+elk-down:
+	docker compose -f ./observability/elk/docker-compose.yml down -v
+
+elk-logs:
+	docker compose -f ./observability/elk/docker-compose.yml logs -f --tail=100
+
+elk-up-local:
+	chmod +x ./observability/elk/scripts/local_up.sh
+	./observability/elk/scripts/local_up.sh
+
+elk-down-local:
+	chmod +x ./observability/elk/scripts/local_down.sh
+	./observability/elk/scripts/local_down.sh
+
+elk-status-local:
+	chmod +x ./observability/elk/scripts/local_status.sh
+	./observability/elk/scripts/local_status.sh
+
+backend-compliance-check:
+	chmod +x ./scripts/check_backend_compliance.sh
+	./scripts/check_backend_compliance.sh

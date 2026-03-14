@@ -29,13 +29,23 @@ func main() {
 	defer func() { _ = log.Sync() }()
 
 	if err := postgres.Probe(cfg.DatabaseURL, cfg.DatabaseHost, cfg.DatabasePort, cfg.GatewayReadyProbeTimeout()); err != nil {
-		log.Fatal("postgres_probe_failed", zap.Error(err))
+		if cfg.GatewaySkipPostgresProbe {
+			log.Warn(
+				"postgres_probe_skipped",
+				zap.Error(err),
+				zap.String("host", cfg.DatabaseHost),
+				zap.Int("port", cfg.DatabasePort),
+			)
+		} else {
+			log.Fatal("postgres_probe_failed", zap.Error(err))
+		}
+	} else {
+		log.Info(
+			"postgres_probe_ok",
+			zap.String("host", cfg.DatabaseHost),
+			zap.Int("port", cfg.DatabasePort),
+		)
 	}
-	log.Info(
-		"postgres_probe_ok",
-		zap.String("host", cfg.DatabaseHost),
-		zap.Int("port", cfg.DatabasePort),
-	)
 
 	reg := prometheus.DefaultRegisterer
 	httpMetrics := observability.NewHTTPMetrics(reg)

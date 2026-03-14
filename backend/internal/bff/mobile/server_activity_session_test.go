@@ -64,7 +64,7 @@ func TestServer_ActivitySessionLifecycleComplete(t *testing.T) {
 		t.Fatalf("expected completed status after both submissions, got %q", got)
 	}
 
-	summaryReq := httptest.NewRequest(http.MethodGet, "/v1/activities/sessions/"+sessionID+"/summary", nil)
+	summaryReq := httptest.NewRequest(http.MethodGet, "/v1/activities/sessions/"+sessionID+"/summary?user_id=user-a", nil)
 	summaryRec := httptest.NewRecorder()
 	server.Handler().ServeHTTP(summaryRec, summaryReq)
 	if summaryRec.Code != http.StatusOK {
@@ -78,6 +78,13 @@ func TestServer_ActivitySessionLifecycleComplete(t *testing.T) {
 	if got := int(summary["responses_submitted"].(float64)); got != 2 {
 		t.Fatalf("expected 2 responses submitted, got %d", got)
 	}
+
+	server.store.mu.RLock()
+	activities := server.store.listActivities(100)
+	server.store.mu.RUnlock()
+	assertActionSeen(t, activities, "mini_activity_started")
+	assertActionSeen(t, activities, "mini_activity_completed")
+	assertActionSeen(t, activities, "mini_activity_shared")
 }
 
 func TestServer_ActivitySessionPartialTimeoutAndSummaryPersistence(t *testing.T) {
