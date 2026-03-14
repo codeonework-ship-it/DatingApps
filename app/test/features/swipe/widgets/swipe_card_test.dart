@@ -11,8 +11,15 @@ void main() {
         name: 'Ananya',
         dateOfBirth: DateTime(1999, 4, 18),
         bio: 'Loves books and coffee',
+        additionalInfo: 'Weekend hiker',
         profession: 'Designer',
         education: null,
+        instagramHandle: '@ananya',
+        hobbies: const <String>['Reading'],
+        favoriteSongs: const <String>['Song A'],
+        extraCurriculars: const <String>['Cycling'],
+        intentTags: const <String>['Long-term'],
+        languageTags: const <String>['English'],
         isVerified: true,
         photoUrls: photoUrls,
       );
@@ -58,4 +65,46 @@ void main() {
 
     expect(find.byIcon(Icons.person_outline_rounded), findsOneWidget);
   });
+
+  testWidgets('renders spotlight tier badge when profile is spotlight', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SwipeCard(
+            profile: buildProfile(
+              photoUrls: <String>['https://example.com/photo.jpg'],
+            ).copyWithSpotlight(),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Gold'), findsOneWidget);
+  });
+}
+
+extension on DiscoveryProfile {
+  DiscoveryProfile copyWithSpotlight() => DiscoveryProfile(
+    id: id,
+    name: name,
+    dateOfBirth: dateOfBirth,
+    bio: bio,
+    additionalInfo: additionalInfo,
+    profession: profession,
+    education: education,
+    instagramHandle: instagramHandle,
+    hobbies: hobbies,
+    favoriteSongs: favoriteSongs,
+    extraCurriculars: extraCurriculars,
+    intentTags: intentTags,
+    languageTags: languageTags,
+    isVerified: isVerified,
+    photoUrls: photoUrls,
+    isSpotlight: true,
+    spotlightTier: 'gold',
+    spotlightScore: 78,
+    spotlightReason: 'paid_plus_activity',
+  );
 }
