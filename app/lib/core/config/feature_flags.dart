@@ -7,11 +7,18 @@ const bool kUseMockAuth = bool.fromEnvironment(
   defaultValue: false,
 );
 
+/// Development-only discovery data mode.
+/// Enable with: `--dart-define=USE_MOCK_DISCOVERY_DATA=true`.
+const bool kUseMockDiscoveryData = bool.fromEnvironment(
+  'USE_MOCK_DISCOVERY_DATA',
+  defaultValue: false,
+);
+
 /// Temporary auth shortcut: bypass OTP verification step.
 /// Disable with: `--dart-define=BYPASS_OTP_VALIDATION=false`.
 const bool kBypassOtpValidation = bool.fromEnvironment(
   'BYPASS_OTP_VALIDATION',
-  defaultValue: true,
+  defaultValue: false,
 );
 
 const bool kFeatureEngagementUnlockMvp = bool.fromEnvironment(
@@ -36,5 +43,12 @@ const bool kFeatureTrustBadges = bool.fromEnvironment(
 
 const bool kFeatureConversationRooms = bool.fromEnvironment(
   'FEATURE_CONVERSATION_ROOMS',
+  defaultValue: true,
+);
+
+/// Optional UI testing helper.
+/// Enable with: `--dart-define=USE_DUMMY_MATCHES=true`.
+const bool kUseDummyMatches = bool.fromEnvironment(
+  'USE_DUMMY_MATCHES',
   defaultValue: true,
 );

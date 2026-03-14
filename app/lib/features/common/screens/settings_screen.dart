@@ -1,19 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
 import '../../auth/providers/auth_provider.dart';
-import '../../profile/screens/setup/setup_basic_info_screen.dart';
-import '../../profile/screens/setup/setup_preferences_screen.dart';
-import '../../profile/screens/setup/setup_photos_screen.dart';
-import '../screens/notification_settings_screen.dart';
-import '../screens/privacy_safety_screen.dart';
-import '../screens/help_support_screen.dart';
-import '../screens/about_app_screen.dart';
+import '../../engagement/screens/conversation_rooms_screen.dart';
 import '../../engagement/screens/trust_badges_screen.dart';
 import '../../engagement/screens/trust_filter_screen.dart';
-import '../../engagement/screens/conversation_rooms_screen.dart';
 import '../../friends/screens/friends_screen.dart';
+import '../../profile/screens/setup/setup_basic_info_screen.dart';
+import '../../profile/screens/setup/setup_photos_screen.dart';
+import '../../profile/screens/setup/setup_preferences_screen.dart';
+import '../screens/about_app_screen.dart';
+import '../screens/help_support_screen.dart';
+import '../screens/notification_settings_screen.dart';
+import '../screens/privacy_safety_screen.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});

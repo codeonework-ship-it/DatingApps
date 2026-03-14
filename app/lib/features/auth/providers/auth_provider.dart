@@ -11,6 +11,7 @@ part 'auth_provider.g.dart';
 /// Auth State
 class AuthState {
   const AuthState({
+    this.phoneNumber,
     this.email,
     this.otp,
     this.isLoading = false,
@@ -19,6 +20,7 @@ class AuthState {
     this.isAuthenticated = false,
     this.userId,
   });
+  final String? phoneNumber;
   final String? email;
   final String? otp;
   final bool isLoading;
@@ -28,6 +30,7 @@ class AuthState {
   final String? userId;
 
   AuthState copyWith({
+    String? phoneNumber,
     String? email,
     String? otp,
     bool? isLoading,
@@ -36,6 +39,7 @@ class AuthState {
     bool? isAuthenticated,
     String? userId,
   }) => AuthState(
+    phoneNumber: phoneNumber ?? this.phoneNumber,
     email: email ?? this.email,
     otp: otp ?? this.otp,
     isLoading: isLoading ?? this.isLoading,
@@ -58,6 +62,7 @@ class AuthNotifier extends _$AuthNotifier {
 
     try {
       final normalized = _normalizePhoneNumber(mobileNumber);
+      final transportEmail = _phoneToAuthEmail(normalized);
       if (normalized.isEmpty) {
         state = state.copyWith(
           error: 'Please enter your mobile number.',
@@ -80,11 +85,30 @@ class AuthNotifier extends _$AuthNotifier {
         await Future<void>.delayed(const Duration(milliseconds: 300));
       } else {
         final dio = ref.read(apiClientProvider);
-        await dio.post<dynamic>('/auth/send-otp', data: {'phone': normalized});
+        try {
+          await dio.post<dynamic>(
+            '/auth/send-otp',
+            data: {'email': transportEmail, 'phone': normalized},
+          );
+        } on DioException catch (e) {
+          final message = _extractApiError(e, fallback: '').toLowerCase();
+          final needsEmailOnlyRetry =
+              message.contains('valid email is required') ||
+              message.contains('email is required');
+          if (!needsEmailOnlyRetry) {
+            rethrow;
+          }
+
+          await dio.post<dynamic>(
+            '/auth/send-otp',
+            data: {'email': transportEmail},
+          );
+        }
       }
 
       state = state.copyWith(
-        email: normalized,
+        phoneNumber: normalized,
+        email: transportEmail,
         isOtpSent: true,
         isLoading: false,
         error: null,
@@ -113,9 +137,9 @@ class AuthNotifier extends _$AuthNotifier {
 
     try {
       final otpToken = otp.trim();
-      final email = state.email;
+      final authEmail = state.email;
 
-      if (email == null || email.isEmpty) {
+      if (authEmail == null || authEmail.isEmpty) {
         state = state.copyWith(
           error: 'Please enter your mobile number first.',
           isLoading: false,
@@ -133,7 +157,7 @@ class AuthNotifier extends _$AuthNotifier {
 
       if (kBypassOtpValidation) {
         await Future<void>.delayed(const Duration(milliseconds: 150));
-        final mockUserId = AppRuntimeConfig.mockUserIdForIdentifier(email);
+        final mockUserId = AppRuntimeConfig.mockUserIdForIdentifier(authEmail);
         state = state.copyWith(
           isAuthenticated: true,
           userId: mockUserId,
@@ -146,7 +170,7 @@ class AuthNotifier extends _$AuthNotifier {
 
       if (kUseMockAuth) {
         await Future<void>.delayed(const Duration(milliseconds: 300));
-        final mockUserId = AppRuntimeConfig.mockUserIdForIdentifier(email);
+        final mockUserId = AppRuntimeConfig.mockUserIdForIdentifier(authEmail);
         state = state.copyWith(
           isAuthenticated: true,
           userId: mockUserId,
@@ -160,7 +184,7 @@ class AuthNotifier extends _$AuthNotifier {
       final dio = ref.read(apiClientProvider);
       final response = await dio.post<dynamic>(
         '/auth/verify-otp',
-        data: {'phone': email, 'otp': otpToken},
+        data: {'email': authEmail, 'phone': state.phoneNumber, 'otp': otpToken},
       );
       final data =
           (response.data as Map?)?.cast<String, dynamic>() ??
@@ -224,6 +248,11 @@ String _normalizePhoneNumber(String input) {
 
 bool _isValidPhoneNumber(String input) =>
     RegExp(r'^\+?[0-9]{10,15}$').hasMatch(input);
+
+String _phoneToAuthEmail(String normalizedPhone) {
+  final localPart = normalizedPhone.replaceAll(RegExp(r'[^0-9]'), '');
+  return 'mobile_$localPart@phone.local';
+}
 
 String _extractApiError(DioException e, {required String fallback}) {
   final data = e.response?.data;

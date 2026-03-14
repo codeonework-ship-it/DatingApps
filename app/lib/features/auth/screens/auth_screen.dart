@@ -264,12 +264,16 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
           const SizedBox(height: 14),
         ],
         _glassFieldShell(
+          onTap: _emailFocusNode.requestFocus,
           child: TextField(
             controller: _emailController,
             focusNode: _emailFocusNode,
+            autofocus: true,
+            enabled: !authState.isLoading,
             keyboardType: TextInputType.phone,
             textInputAction: TextInputAction.done,
             autofillHints: const [AutofillHints.telephoneNumber],
+            onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
             style: Theme.of(context).textTheme.bodyLarge,
             decoration: const InputDecoration(
               hintText: '+91 9876543210',
@@ -304,7 +308,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
     AuthNotifier authNotifier,
   ) {
     final targetPhone = _emailController.text.trim().isEmpty
-        ? (authState.email ?? 'your mobile number')
+        ? (authState.phoneNumber ?? 'your mobile number')
         : _emailController.text.trim();
 
     return KeyedSubtree(
@@ -438,15 +442,17 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
     );
   }
 
-  Widget _glassFieldShell({required Widget child}) => GlassContainer(
-    padding: EdgeInsets.zero,
-    blur: AppTheme.glassBlurRegular,
-    opacity: AppTheme.glassLayerRegularOpacity,
-    borderRadius: BorderRadius.circular(16),
-    backgroundColor: Colors.white.withValues(alpha: 0.72),
-    border: Border.all(color: Colors.white.withValues(alpha: 0.45)),
-    child: child,
-  );
+  Widget _glassFieldShell({required Widget child, VoidCallback? onTap}) =>
+      GlassContainer(
+        onTap: onTap,
+        padding: EdgeInsets.zero,
+        blur: AppTheme.glassBlurRegular,
+        opacity: AppTheme.glassLayerRegularOpacity,
+        borderRadius: BorderRadius.circular(16),
+        backgroundColor: Colors.white.withValues(alpha: 0.72),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.45)),
+        child: child,
+      );
 
   Widget _errorBanner(BuildContext context, String message) => Container(
     width: double.infinity,

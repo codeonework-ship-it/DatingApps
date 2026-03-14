@@ -20,8 +20,7 @@ class ConversationRoom {
     required this.isParticipant,
   });
 
-  factory ConversationRoom.fromJson(Map<String, dynamic> json) {
-    return ConversationRoom(
+  factory ConversationRoom.fromJson(Map<String, dynamic> json) => ConversationRoom(
       id: json['id']?.toString() ?? '',
       theme: json['theme']?.toString() ?? 'Room',
       description: json['description']?.toString() ?? '',
@@ -35,7 +34,6 @@ class ConversationRoom {
           .toList(growable: false),
       isParticipant: json['is_participant'] == true,
     );
-  }
   final String id;
   final String theme;
   final String description;

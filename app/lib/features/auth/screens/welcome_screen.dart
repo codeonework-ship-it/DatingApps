@@ -32,10 +32,10 @@ class WelcomeScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 24),
-              Wrap(
+              const Wrap(
                 spacing: 10,
                 runSpacing: 10,
-                children: const [
+                children: [
                   _TrustChip(
                     icon: Icons.verified_rounded,
                     label: 'Verified Profiles',

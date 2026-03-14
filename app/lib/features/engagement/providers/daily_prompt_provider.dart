@@ -473,7 +473,7 @@ class DailyPromptNotifier extends StateNotifier<DailyPromptState> {
 
       final responders = rawResponders
           .whereType<Map<String, dynamic>>()
-          .map((item) => DailyPromptResponderPreview.fromJson(item))
+          .map(DailyPromptResponderPreview.fromJson)
           .where((item) => item.userId.isNotEmpty)
           .toList(growable: false);
 
@@ -508,5 +508,5 @@ String _extractApiError(DioException e, {required String fallback}) {
 
 final dailyPromptProvider =
     StateNotifierProvider<DailyPromptNotifier, DailyPromptState>(
-      (ref) => DailyPromptNotifier(ref),
+      DailyPromptNotifier.new,
     );

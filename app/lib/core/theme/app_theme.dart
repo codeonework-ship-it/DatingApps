@@ -4,21 +4,36 @@ import 'package:flutter/material.dart';
 class AppTheme {
   AppTheme._();
 
+  static const PageTransitionsTheme _burstPageTransitionsTheme =
+      PageTransitionsTheme(
+        builders: <TargetPlatform, PageTransitionsBuilder>{
+          TargetPlatform.android: _BurstPageTransitionsBuilder(),
+          TargetPlatform.iOS: _BurstPageTransitionsBuilder(),
+          TargetPlatform.linux: _BurstPageTransitionsBuilder(),
+          TargetPlatform.macOS: _BurstPageTransitionsBuilder(),
+          TargetPlatform.windows: _BurstPageTransitionsBuilder(),
+          TargetPlatform.fuchsia: _BurstPageTransitionsBuilder(),
+        },
+      );
+
   // ==========================================================================
   // DESIGN TOKENS: COLORS
   // ==========================================================================
 
   // Core brand colors from the design spec
-  static const Color trustBlue = Color(0xFF2B5995);
+  static const Color trustBlue = Color(0xFF8C6A00);
   static const Color safetyGreen = Color(0xFF10B981);
-  static const Color warmOrange = Color(0xFFFF9500);
+  static const Color warmOrange = Color(0xFFC7920A);
   static const Color neutralGray = Color(0xFF6B7280);
   static const Color alertRed = Color(0xFFEF4444);
-  static const Color accentCyan = Color(0xFF06B6D4);
-  static const Color crystalAqua = Color(0xFF67E8F9);
-  static const Color crystalBlue = Color(0xFF60A5FA);
-  static const Color crystalMint = Color(0xFF86EFAC);
-  static const Color crystalRose = Color(0xFFFDA4AF);
+  static const Color accentCyan = Color(0xFFB88A12);
+  static const Color crystalAqua = Color(0xFFE8C15A);
+  static const Color crystalBlue = Color(0xFFD4A53A);
+  static const Color crystalMint = Color(0xFFF0DDA4);
+  static const Color crystalRose = Color(0xFFECC47C);
+  static const Color crystalGoldDeep = Color(0xFF6E5200);
+  static const Color crystalGoldSoft = Color(0xFFE2B84F);
+  static const Color crystalGoldFog = Color(0xFFF7E8BE);
 
   // Backward-compatible aliases used throughout existing screens
   static const Color primaryRed = trustBlue;
@@ -52,17 +67,17 @@ class AppTheme {
   );
 
   static const Gradient primaryGradient = LinearGradient(
-    colors: [trustBlue, crystalBlue, crystalAqua],
+    colors: [Color(0xFF5B4300), crystalGoldDeep, crystalGoldSoft],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   static const Gradient bgGradient = LinearGradient(
     colors: [
-      Color(0xFF071226),
-      Color(0xFF133D71),
-      Color(0xFF1F7A96),
-      Color(0xFF39BFC4),
+      Color(0xFF1F1403),
+      Color(0xFF4C3307),
+      Color(0xFF7A540E),
+      Color(0xFFB7861E),
     ],
     stops: [0.0, 0.33, 0.72, 1.0],
     begin: Alignment.topCenter,
@@ -72,10 +87,10 @@ class AppTheme {
   /// Softer surface used after login for better readability.
   static const Gradient postLoginGradient = LinearGradient(
     colors: [
-      Color(0xFFF8FBFF),
-      Color(0xFFEFF6FF),
-      Color(0xFFE4EEFA),
-      Color(0xFFD8E7F8),
+      Color(0xFFFFFBF1),
+      Color(0xFFFFF2D9),
+      Color(0xFFF9E3B8),
+      Color(0xFFEFCD90),
     ],
     stops: [0.0, 0.28, 0.68, 1.0],
     begin: Alignment.topCenter,
@@ -90,7 +105,7 @@ class AppTheme {
   );
 
   static const Gradient crystalGlowGradient = LinearGradient(
-    colors: [crystalAqua, crystalBlue, crystalMint],
+    colors: [crystalGoldSoft, trustBlue, crystalMint],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
@@ -195,20 +210,21 @@ class AppTheme {
       onSurface: textDark,
       error: alertRed,
       onError: Colors.white,
-      outline: const Color(0xFFE2E8F0),
-      surfaceContainerHighest: const Color(0xFFF8FAFC),
+      outline: Color(0xFFE2E8F0),
+      surfaceContainerHighest: Color(0xFFF8FAFC),
     );
 
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
       colorScheme: colorScheme,
-      scaffoldBackgroundColor: const Color(0xFFF5FBFF),
+      scaffoldBackgroundColor: const Color(0xFFFFF4DA),
       textTheme: _buildTextTheme(Brightness.light),
+      pageTransitionsTheme: _burstPageTransitionsTheme,
       appBarTheme: AppBarTheme(
         elevation: 0,
         scrolledUnderElevation: 0,
-        backgroundColor: Colors.white.withValues(alpha: 0.9),
+        backgroundColor: const Color(0xFFFFF1CF).withValues(alpha: 0.94),
         foregroundColor: textDark,
         centerTitle: false,
         toolbarHeight: 56,
@@ -217,9 +233,9 @@ class AppTheme {
         ).headlineMedium?.copyWith(color: textDark),
       ),
       cardTheme: CardThemeData(
-        color: Colors.white,
+        color: const Color(0xFFFFF7E4),
         elevation: 0,
-        shadowColor: trustBlue.withValues(alpha: 0.14),
+        shadowColor: trustBlue.withValues(alpha: 0.18),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(radiusM),
           side: BorderSide(color: colorScheme.outline.withValues(alpha: 0.42)),
@@ -254,9 +270,9 @@ class AppTheme {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: trustBlue,
+          foregroundColor: crystalGoldDeep,
           minimumSize: const Size.fromHeight(buttonHeight),
-          side: const BorderSide(color: trustBlue, width: 1.2),
+          side: const BorderSide(color: crystalGoldDeep, width: 1.2),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(radiusS),
           ),
@@ -264,7 +280,7 @@ class AppTheme {
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: trustBlue,
+          foregroundColor: crystalGoldDeep,
           textStyle: _buildTextTheme(Brightness.light).titleMedium,
         ),
       ),
@@ -281,7 +297,7 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radiusS),
-          borderSide: const BorderSide(color: crystalBlue, width: 2),
+          borderSide: const BorderSide(color: crystalGoldDeep, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radiusS),
@@ -298,13 +314,13 @@ class AppTheme {
       ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: Colors.transparent,
-        selectedItemColor: crystalBlue,
+        selectedItemColor: trustBlue,
         unselectedItemColor: textHint,
         elevation: 0,
         type: BottomNavigationBarType.fixed,
       ),
       chipTheme: ChipThemeData(
-        backgroundColor: const Color(0xFFF1F5F9),
+        backgroundColor: const Color(0xFFFFF3D9),
         selectedColor: trustBlue,
         checkmarkColor: Colors.white,
         labelStyle: _buildTextTheme(Brightness.light).bodyMedium,
@@ -317,7 +333,7 @@ class AppTheme {
         ),
       ),
       dialogTheme: DialogThemeData(
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFFFFFDF4),
         elevation: 4,
         shadowColor: trustBlue.withValues(alpha: 0.16),
         shape: RoundedRectangleBorder(
@@ -325,7 +341,7 @@ class AppTheme {
         ),
       ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
-        backgroundColor: trustBlue,
+        backgroundColor: crystalGoldDeep,
         foregroundColor: Colors.white,
         elevation: 2,
         shape: RoundedRectangleBorder(
@@ -335,7 +351,7 @@ class AppTheme {
       iconButtonTheme: IconButtonThemeData(
         style: IconButton.styleFrom(
           foregroundColor: textDark,
-          backgroundColor: Colors.white.withValues(alpha: 0.82),
+          backgroundColor: const Color(0xFFFFEBC0).withValues(alpha: 0.9),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(radiusS),
           ),
@@ -381,24 +397,25 @@ class AppTheme {
       onSecondary: Colors.white,
       tertiary: safetyGreen,
       onTertiary: Colors.white,
-      surface: const Color(0xFF111827),
+      surface: Color(0xFF111827),
       onSurface: textLight,
       error: alertRed,
       onError: Colors.white,
-      outline: const Color(0xFF334155),
-      surfaceContainerHighest: const Color(0xFF1F2937),
+      outline: Color(0xFF334155),
+      surfaceContainerHighest: Color(0xFF1F2937),
     );
 
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
       colorScheme: colorScheme,
-      scaffoldBackgroundColor: const Color(0xFF050A14),
+      scaffoldBackgroundColor: const Color(0xFF0E0902),
       textTheme: _buildTextTheme(Brightness.dark),
+      pageTransitionsTheme: _burstPageTransitionsTheme,
       appBarTheme: AppBarTheme(
         elevation: 0,
         scrolledUnderElevation: 0,
-        backgroundColor: const Color(0xFF0F172A),
+        backgroundColor: const Color(0xFF231803),
         foregroundColor: textLight,
         centerTitle: false,
         toolbarHeight: 56,
@@ -408,7 +425,7 @@ class AppTheme {
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: trustBlue,
+          backgroundColor: crystalGoldDeep,
           foregroundColor: Colors.white,
           minimumSize: const Size.fromHeight(buttonHeight),
           shape: RoundedRectangleBorder(
@@ -421,7 +438,7 @@ class AppTheme {
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: trustBlue,
+          backgroundColor: crystalGoldDeep,
           foregroundColor: Colors.white,
           minimumSize: const Size.fromHeight(buttonHeight),
           shape: RoundedRectangleBorder(
@@ -443,7 +460,7 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radiusS),
-          borderSide: const BorderSide(color: crystalAqua, width: 2),
+          borderSide: const BorderSide(color: crystalGoldSoft, width: 2),
         ),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
@@ -451,7 +468,7 @@ class AppTheme {
         ),
       ),
       cardTheme: CardThemeData(
-        color: const Color(0xFF111827).withValues(alpha: 0.9),
+        color: const Color(0xFF241A06).withValues(alpha: 0.92),
         elevation: 0,
         shadowColor: Colors.black.withValues(alpha: 0.4),
         shape: RoundedRectangleBorder(
@@ -460,7 +477,7 @@ class AppTheme {
         ),
       ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
-        backgroundColor: trustBlue,
+        backgroundColor: crystalGoldDeep,
         foregroundColor: Colors.white,
         elevation: 2,
         shape: RoundedRectangleBorder(
@@ -478,7 +495,7 @@ class AppTheme {
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        backgroundColor: const Color(0xFF0F172A),
+        backgroundColor: const Color(0xFF251A05),
         contentTextStyle: _buildTextTheme(Brightness.dark).bodyMedium?.copyWith(
           color: Colors.white,
           fontWeight: FontWeight.w600,
@@ -495,13 +512,67 @@ class AppTheme {
         showDragHandle: true,
       ),
       listTileTheme: ListTileThemeData(
-        iconColor: crystalAqua,
+        iconColor: crystalGoldSoft,
         textColor: textLight,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
       dividerTheme: DividerThemeData(
         color: Colors.white.withValues(alpha: 0.16),
         thickness: 0.8,
+      ),
+    );
+  }
+}
+
+class _BurstPageTransitionsBuilder extends PageTransitionsBuilder {
+  const _BurstPageTransitionsBuilder();
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    final fade = CurvedAnimation(
+      parent: animation,
+      curve: const Interval(0, 0.65, curve: Curves.easeOutCubic),
+      reverseCurve: Curves.easeInCubic,
+    );
+
+    final burstScale =
+        TweenSequence<double>([
+          TweenSequenceItem<double>(
+            tween: Tween<double>(begin: 0.93, end: 1.035),
+            weight: 46,
+          ),
+          TweenSequenceItem<double>(
+            tween: Tween<double>(begin: 1.035, end: 1),
+            weight: 54,
+          ),
+        ]).animate(
+          CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+            reverseCurve: Curves.easeInCubic,
+          ),
+        );
+
+    final settle =
+        Tween<Offset>(begin: const Offset(0, 0.028), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+            reverseCurve: Curves.easeInCubic,
+          ),
+        );
+
+    return FadeTransition(
+      opacity: fade,
+      child: SlideTransition(
+        position: settle,
+        child: ScaleTransition(scale: burstScale, child: child),
       ),
     );
   }

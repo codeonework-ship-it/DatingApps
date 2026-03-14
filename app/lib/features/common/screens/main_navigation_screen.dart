@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
-import '../../swipe/screens/home_discovery_screen.dart';
-import '../../matching/screens/matches_list_screen.dart';
 import '../../common/screens/settings_screen.dart';
-import '../../profile/screens/profile_view_screen.dart';
-import '../../swipe/providers/swipe_provider.dart';
+import '../../engagement/screens/engagement_hub_screen.dart';
 import '../../matching/providers/match_provider.dart';
 import '../../matching/providers/trust_filter_provider.dart';
-import '../../engagement/screens/engagement_hub_screen.dart';
+import '../../matching/screens/matches_list_screen.dart';
 import '../../profile/providers/preference_master_data_provider.dart';
+import '../../profile/screens/profile_view_screen.dart';
 import '../../profile/screens/setup/setup_preferences_screen.dart';
+import '../../swipe/providers/swipe_provider.dart';
+import '../../swipe/screens/home_discovery_screen.dart';
 
 final mainNavigationIndexProvider = StateProvider<int>((ref) => 0);
 

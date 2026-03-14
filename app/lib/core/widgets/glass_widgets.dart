@@ -7,7 +7,7 @@ import '../theme/app_theme.dart';
 /// Glassmorphism container with crystal-like glossy highlights.
 class GlassContainer extends StatelessWidget {
   const GlassContainer({
-    Key? key,
+    super.key,
     required this.child,
     this.blur = AppTheme.glassBlurRegular,
     this.opacity = AppTheme.glassLayerRegularOpacity,
@@ -21,7 +21,7 @@ class GlassContainer extends StatelessWidget {
     this.width,
     this.height,
     this.crystalEffect = true,
-  }) : super(key: key);
+  });
   final Widget child;
   final double blur;
   final double opacity;
@@ -52,98 +52,102 @@ class GlassContainer extends StatelessWidget {
         ? Colors.white.withValues(alpha: 0.08)
         : Colors.white.withValues(alpha: 0.34);
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: width,
-        height: height,
-        margin: margin,
-        decoration: BoxDecoration(
-          borderRadius: borderRadius,
-          border: border ?? Border.all(color: outerBorderColor, width: 1),
-          boxShadow:
-              shadows ??
-              [
-                BoxShadow(
-                  color: AppTheme.trustBlue.withValues(alpha: 0.16),
-                  blurRadius: 30,
-                  offset: const Offset(0, 12),
+    final content = Container(
+      width: width,
+      height: height,
+      margin: margin,
+      decoration: BoxDecoration(
+        borderRadius: borderRadius,
+        border: border ?? Border.all(color: outerBorderColor, width: 1),
+        boxShadow:
+            shadows ??
+            [
+              BoxShadow(
+                color: AppTheme.trustBlue.withValues(alpha: 0.16),
+                blurRadius: 30,
+                offset: const Offset(0, 12),
+              ),
+              BoxShadow(
+                color: Colors.white.withValues(alpha: isDark ? 0.04 : 0.28),
+                blurRadius: 14,
+                offset: const Offset(0, 2),
+              ),
+            ],
+      ),
+      child: ClipRRect(
+        borderRadius: borderRadius,
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: baseColor,
+                      borderRadius: borderRadius,
+                    ),
+                  ),
                 ),
-                BoxShadow(
-                  color: Colors.white.withValues(alpha: isDark ? 0.04 : 0.28),
-                  blurRadius: 14,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-        ),
-        child: ClipRRect(
-          borderRadius: borderRadius,
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-            child: Stack(
-              children: [
+              ),
+              if (useCrystal)
                 Positioned.fill(
                   child: IgnorePointer(
                     child: DecoratedBox(
                       decoration: BoxDecoration(
-                        color: baseColor,
                         borderRadius: borderRadius,
+                        gradient: AppTheme.crystalSurfaceGradient,
                       ),
                     ),
                   ),
                 ),
-                if (useCrystal)
-                  Positioned.fill(
-                    child: IgnorePointer(
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          borderRadius: borderRadius,
-                          gradient: AppTheme.crystalSurfaceGradient,
-                        ),
-                      ),
-                    ),
-                  ),
-                if (useCrystal)
-                  Positioned(
-                    top: -24,
-                    left: -12,
-                    right: 24,
-                    height: 110,
-                    child: IgnorePointer(
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: RadialGradient(
-                            colors: [
-                              Colors.white.withValues(
-                                alpha: isDark ? 0.18 : 0.42,
-                              ),
-                              Colors.white.withValues(alpha: 0),
-                            ],
-                            radius: 1.1,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                Positioned.fill(
+              if (useCrystal)
+                Positioned(
+                  top: -24,
+                  left: -12,
+                  right: 24,
+                  height: 110,
                   child: IgnorePointer(
-                    child: Container(
+                    child: DecoratedBox(
                       decoration: BoxDecoration(
-                        borderRadius: borderRadius,
-                        border: Border.all(
-                          color: innerBorderColor,
-                          width: 0.95,
+                        gradient: RadialGradient(
+                          colors: [
+                            Colors.white.withValues(
+                              alpha: isDark ? 0.18 : 0.42,
+                            ),
+                            Colors.white.withValues(alpha: 0),
+                          ],
+                          radius: 1.1,
                         ),
                       ),
                     ),
                   ),
                 ),
-                Padding(padding: padding, child: child),
-              ],
-            ),
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: borderRadius,
+                      border: Border.all(color: innerBorderColor, width: 0.95),
+                    ),
+                  ),
+                ),
+              ),
+              Padding(padding: padding, child: child),
+            ],
           ),
         ),
       ),
+    );
+
+    if (onTap == null) {
+      return content;
+    }
+
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: content,
     );
   }
 }
@@ -151,7 +155,7 @@ class GlassContainer extends StatelessWidget {
 /// Animated glossy glass button.
 class GlassButton extends StatefulWidget {
   const GlassButton({
-    Key? key,
+    super.key,
     required this.label,
     required this.onPressed,
     this.isLoading = false,
@@ -159,7 +163,7 @@ class GlassButton extends StatefulWidget {
     this.width,
     this.backgroundColor,
     this.textColor,
-  }) : super(key: key);
+  });
   final String label;
   final VoidCallback? onPressed;
   final bool isLoading;
@@ -317,7 +321,7 @@ class _GlassButtonState extends State<GlassButton>
 /// Soft crystal highlight blob to layer over gradient backgrounds.
 class CrystalBloom extends StatelessWidget {
   const CrystalBloom({
-    Key? key,
+    super.key,
     this.alignment = Alignment.topRight,
     this.size = 220,
     this.colors = const [
@@ -325,7 +329,7 @@ class CrystalBloom extends StatelessWidget {
       Color(0x2EC7F9FF),
       Color(0x00FFFFFF),
     ],
-  }) : super(key: key);
+  });
   final Alignment alignment;
   final double size;
   final List<Color> colors;
@@ -349,11 +353,11 @@ class CrystalBloom extends StatelessWidget {
 /// Glossy shell for full-screen pages.
 class CrystalScaffold extends StatelessWidget {
   const CrystalScaffold({
-    Key? key,
+    super.key,
     required this.child,
     this.padding,
     this.maxContentWidth = AppTheme.contentMaxWidth,
-  }) : super(key: key);
+  });
   final Widget child;
   final EdgeInsetsGeometry? padding;
   final double? maxContentWidth;
@@ -393,11 +397,11 @@ class CrystalScaffold extends StatelessWidget {
 /// Light glossy shell used for post-login tab pages.
 class PostLoginBackdrop extends StatelessWidget {
   const PostLoginBackdrop({
-    Key? key,
+    super.key,
     required this.child,
     this.padding,
     this.maxContentWidth = AppTheme.contentMaxWidth,
-  }) : super(key: key);
+  });
   final Widget child;
   final EdgeInsetsGeometry? padding;
   final double? maxContentWidth;
@@ -447,10 +451,10 @@ class PostLoginBackdrop extends StatelessWidget {
 class GradientText extends StatelessWidget {
   const GradientText(
     this.text, {
-    Key? key,
+    super.key,
     required this.gradient,
     required this.style,
-  }) : super(key: key);
+  });
   final String text;
   final TextStyle style;
   final Gradient gradient;
@@ -466,11 +470,11 @@ class GradientText extends StatelessWidget {
 /// Animated loading overlay.
 class LoadingOverlay extends StatelessWidget {
   const LoadingOverlay({
-    Key? key,
+    super.key,
     required this.isLoading,
     required this.child,
     this.message,
-  }) : super(key: key);
+  });
   final bool isLoading;
   final Widget child;
   final String? message;

@@ -340,5 +340,5 @@ String _extractApiError(DioException e, {required String fallback}) {
 
 final circleChallengeProvider =
     StateNotifierProvider<CircleChallengeNotifier, CircleChallengeState>(
-      (ref) => CircleChallengeNotifier(ref),
+      CircleChallengeNotifier.new,
     );

@@ -16,8 +16,7 @@ class NetworkFailure extends Failure {
 
 /// Server failure with optional status code
 class ServerFailure extends Failure {
-  ServerFailure({required String message, this.statusCode})
-    : super(message: message);
+  ServerFailure({required super.message, this.statusCode});
   final int? statusCode;
 }
 
