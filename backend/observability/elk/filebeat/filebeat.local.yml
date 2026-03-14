@@ -1,0 +1,25 @@
+filebeat.inputs:
+  - type: filestream
+    id: dating-app-backend-logs-local
+    enabled: true
+    paths:
+      - ../../.run/logs/*.log
+    fields:
+      app: dating-app
+      env: local
+    fields_under_root: true
+    parsers:
+      - multiline:
+          type: pattern
+          pattern: '^\d{4}-\d{2}-\d{2}T'
+          negate: true
+          match: after
+
+processors:
+  - add_host_metadata: {}
+  - add_cloud_metadata: {}
+
+output.logstash:
+  hosts: ["127.0.0.1:5044"]
+
+setup.template.enabled: false

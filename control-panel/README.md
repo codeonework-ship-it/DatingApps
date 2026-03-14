@@ -29,3 +29,13 @@ python manage.py runserver 0.0.0.0:8000
 
 Open `http://localhost:8000`.
 
+## Personalized Kibana dashboard
+
+Set these env vars in `control-panel/.env` to enable the embedded Kibana section on the dashboard page:
+
+- `KIBANA_BASE_URL` (default: `http://localhost:5601`)
+- `KIBANA_DISCOVER_INDEX` (default: `dating-app-logs-*`)
+- `KIBANA_DASHBOARD_PATH` (default: `/app/dashboards`)
+
+Use `/?user_id=<uuid>` on the dashboard URL to pre-filter Discover KQL for that user.
+
