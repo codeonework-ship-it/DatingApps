@@ -8,13 +8,13 @@ final getIt = GetIt.instance;
 
 /// Setup all dependencies
 Future<void> setupServiceLocator() async {
-  // TODO: Register repositories
+  // Register repositories here.
 
-  // TODO: Register use cases
+  // Register use cases here.
 
-  // TODO: Register providers/notifiers
+  // Register providers/notifiers here.
 
-  // TODO: Register external services (Supabase APIs, Dio, etc.)
+  // Register external services (Supabase APIs, Dio, etc.) here.
 
   // Example:
   // getIt.registerSingleton<AuthRepository>(AuthRepositoryImpl());

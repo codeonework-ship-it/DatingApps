@@ -30,9 +30,7 @@ class RoutePaths {
 /// Router configuration
 GoRouter createRouter() => GoRouter(
   initialLocation: RoutePaths.login,
-  errorBuilder: (context, state) {
-    return const Scaffold(body: Center(child: Text('Route not found')));
-  },
+  errorBuilder: (context, state) => const Scaffold(body: Center(child: Text('Route not found'))),
   routes: [
     GoRoute(
       path: RoutePaths.login,

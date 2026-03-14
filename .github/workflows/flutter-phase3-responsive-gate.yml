@@ -1,0 +1,41 @@
+name: Flutter Phase3 Responsive Gate
+
+on:
+  pull_request:
+    paths:
+      - 'app/**'
+      - '.github/workflows/flutter-phase3-responsive-gate.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'app/**'
+      - '.github/workflows/flutter-phase3-responsive-gate.yml'
+
+jobs:
+  responsive-gate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Flutter pub get
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Run responsive golden/overflow gate
+        run: flutter test test/features/responsive/phase3_golden_and_overflow_test.dart
+
+      - name: Run full tests
+        run: flutter test

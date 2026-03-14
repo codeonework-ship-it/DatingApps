@@ -30,6 +30,378 @@
 			"type": "shell",
 			"command": "cd backend && ./scripts/dev_up.sh",
 			"isBackground": false
+		},
+		{
+			"label": "elk-up-local-now",
+			"type": "shell",
+			"command": "cd backend && make elk-up-local && make elk-status-local",
+			"isBackground": false
+		},
+		{
+			"label": "install-elk-and-psql",
+			"type": "shell",
+			"command": "brew tap elastic/tap && brew install elastic/tap/elasticsearch-full elastic/tap/logstash-full elastic/tap/kibana-full elastic/tap/filebeat-full libpq",
+			"isBackground": false
+		},
+		{
+			"label": "check-installed-bins",
+			"type": "shell",
+			"command": "command -v elasticsearch && command -v logstash && command -v kibana && command -v filebeat && command -v psql",
+			"isBackground": false
+		},
+		{
+			"label": "install-libpq",
+			"type": "shell",
+			"command": "brew install libpq && brew link --force libpq",
+			"isBackground": false
+		},
+		{
+			"label": "check-container-tooling",
+			"type": "shell",
+			"command": "command -v docker || true; command -v podman || true; command -v colima || true",
+			"isBackground": false
+		},
+		{
+			"label": "check-psql-version",
+			"type": "shell",
+			"command": "which psql && psql --version",
+			"isBackground": false
+		},
+		{
+			"label": "install-elk-modern-formulas",
+			"type": "shell",
+			"command": "brew install elasticsearch kibana logstash filebeat",
+			"isBackground": false
+		},
+		{
+			"label": "install-docker-colima",
+			"type": "shell",
+			"command": "brew install docker docker-compose colima",
+			"isBackground": false
+		},
+		{
+			"label": "check-docker-colima",
+			"type": "shell",
+			"command": "docker --version && docker compose version && colima version",
+			"isBackground": false
+		},
+		{
+			"label": "check-homebrew-bins",
+			"type": "shell",
+			"command": "ls -l /opt/homebrew/bin/docker /opt/homebrew/bin/docker-compose /opt/homebrew/bin/colima /opt/homebrew/opt/libpq/bin/psql",
+			"isBackground": false
+		},
+		{
+			"label": "start-colima-runtime",
+			"type": "shell",
+			"command": "/opt/homebrew/bin/colima start",
+			"isBackground": false
+		},
+		{
+			"label": "check-colima-status",
+			"type": "shell",
+			"command": "/opt/homebrew/bin/colima status && /opt/homebrew/bin/docker info >/dev/null && echo DOCKER_READY",
+			"isBackground": false
+		},
+		{
+			"label": "elk-up-docker",
+			"type": "shell",
+			"command": "cd backend && export PATH=\"/opt/homebrew/bin:$PATH\" && make elk-up && /opt/homebrew/bin/docker compose -f observability/elk/docker-compose.yml ps",
+			"isBackground": false
+		},
+		{
+			"label": "elk-up-docker-compose",
+			"type": "shell",
+			"command": "cd backend && /opt/homebrew/bin/docker-compose -f observability/elk/docker-compose.yml up -d && /opt/homebrew/bin/docker-compose -f observability/elk/docker-compose.yml ps",
+			"isBackground": false
+		},
+		{
+			"label": "elk-status-and-kibana",
+			"type": "shell",
+			"command": "cd backend && /opt/homebrew/bin/docker-compose -f observability/elk/docker-compose.yml ps && curl -sS -o /dev/null -w \"%{http_code}\" http://localhost:5601",
+			"isBackground": false
+		},
+		{
+			"label": "elk-up-retry",
+			"type": "shell",
+			"command": "cd backend && /opt/homebrew/bin/docker-compose -f observability/elk/docker-compose.yml up -d",
+			"isBackground": false
+		},
+		{
+			"label": "elk-status-now",
+			"type": "shell",
+			"command": "cd backend && /opt/homebrew/bin/docker-compose -f observability/elk/docker-compose.yml ps",
+			"isBackground": false
+		},
+		{
+			"label": "elk-up-debug-tail",
+			"type": "shell",
+			"command": "cd backend && /opt/homebrew/bin/docker-compose -f observability/elk/docker-compose.yml up -d 2>&1 | tail -n 80",
+			"isBackground": false
+		},
+		{
+			"label": "elk-clean-and-up",
+			"type": "shell",
+			"command": "cd backend && /opt/homebrew/bin/docker rm -f dating-elasticsearch dating-logstash dating-kibana dating-filebeat >/dev/null 2>&1 || true && /opt/homebrew/bin/docker-compose -f observability/elk/docker-compose.yml up -d && /opt/homebrew/bin/docker-compose -f observability/elk/docker-compose.yml ps && curl -sS -o /dev/null -w \"%{http_code}\" http://localhost:5601",
+			"isBackground": false
+		},
+		{
+			"label": "elk-final-status",
+			"type": "shell",
+			"command": "cd backend && /opt/homebrew/bin/docker-compose -f observability/elk/docker-compose.yml ps && curl -sS -o /dev/null -w \"%{http_code}\" http://localhost:5601 && echo",
+			"isBackground": false
+		},
+		{
+			"label": "wait-kibana-ready",
+			"type": "shell",
+			"command": "sleep 20 && curl -sS -o /dev/null -w \"%{http_code}\" http://localhost:5601 && echo",
+			"isBackground": false
+		},
+		{
+			"label": "apply-supabase-migrations",
+			"type": "shell",
+			"command": "chmod +x backend/.run/apply_required_migrations.sh && backend/.run/apply_required_migrations.sh",
+			"isBackground": false
+		},
+		{
+			"label": "check-supabase-host-dns",
+			"type": "shell",
+			"command": "python3 - <<'PY'\nimport socket\nhost='db.ufrmtgriqpyzqaewvtgn.supabase.co'\ntry:\n    print(socket.gethostbyname(host))\nexcept Exception as e:\n    print('DNS_ERROR:', e)\nPY",
+			"isBackground": false
+		},
+		{
+			"label": "probe-supabase-pooler-dns",
+			"type": "shell",
+			"command": "python3 - <<'PY'\nimport socket\nhosts=[\n'aws-0-ap-south-1.pooler.supabase.com',\n'aws-0-us-east-1.pooler.supabase.com',\n'aws-0-us-west-1.pooler.supabase.com',\n'aws-0-eu-west-1.pooler.supabase.com'\n]\nfor h in hosts:\n  try:\n    print(h, socket.gethostbyname(h))\n  except Exception as e:\n    print(h, 'DNS_ERROR')\nPY",
+			"isBackground": false
+		},
+		{
+			"label": "backend-compose-up",
+			"type": "shell",
+			"command": "cd backend && /opt/homebrew/bin/docker-compose -f docker-compose.backend.yml up -d && /opt/homebrew/bin/docker-compose -f docker-compose.backend.yml ps && curl -sS http://localhost:8080/readyz",
+			"isBackground": false
+		},
+		{
+			"label": "backend-compose-status",
+			"type": "shell",
+			"command": "cd backend && /opt/homebrew/bin/docker-compose -f docker-compose.backend.yml ps && curl -sS -o /dev/null -w \"%{http_code}\" http://localhost:8080/readyz && echo",
+			"isBackground": false
+		},
+		{
+			"label": "backend-compose-restart-verify",
+			"type": "shell",
+			"command": "cd backend && /opt/homebrew/bin/docker-compose -f docker-compose.backend.yml down && /opt/homebrew/bin/docker-compose -f docker-compose.backend.yml up -d && /opt/homebrew/bin/docker-compose -f docker-compose.backend.yml ps --services --filter status=running",
+			"isBackground": false
+		},
+		{
+			"label": "backend-compose-services-running",
+			"type": "shell",
+			"command": "cd backend && /opt/homebrew/bin/docker-compose -f docker-compose.backend.yml ps --services --filter status=running && curl -sS -o /dev/null -w \"%{http_code}\" http://localhost:8080/readyz && echo",
+			"isBackground": false
+		},
+		{
+			"label": "kill-backend-ports-safe",
+			"type": "shell",
+			"command": "for p in 8080 8081 9091 9092 9093 9094 10091 10092 10093 10094; do ids=$(lsof -ti tcp:$p || true); if [ -n \"$ids\" ]; then kill -9 $ids || true; fi; done; echo PORTS_CLEARED",
+			"isBackground": false
+		},
+		{
+			"label": "backend-compose-up-clean",
+			"type": "shell",
+			"command": "cd backend && /opt/homebrew/bin/docker-compose -f docker-compose.backend.yml up -d && /opt/homebrew/bin/docker-compose -f docker-compose.backend.yml ps --services --filter status=running && curl -sS -o /dev/null -w \"%{http_code}\" http://localhost:8080/readyz && echo",
+			"isBackground": false
+		},
+		{
+			"label": "backend-ready-retry",
+			"type": "shell",
+			"command": "sleep 8 && curl -sS -o /dev/null -w \"%{http_code}\" http://localhost:8080/readyz && echo",
+			"isBackground": false
+		},
+		{
+			"label": "backend-gateway-logs",
+			"type": "shell",
+			"command": "cd backend && /opt/homebrew/bin/docker-compose -f docker-compose.backend.yml logs --tail=120 api-gateway",
+			"isBackground": false
+		},
+		{
+			"label": "avd-compose-up",
+			"type": "shell",
+			"command": "cd app && /opt/homebrew/bin/docker-compose -f docker-compose.avd.yml up -d && /opt/homebrew/bin/docker-compose -f docker-compose.avd.yml ps",
+			"isBackground": false
+		},
+		{
+			"label": "avd-compose-status-web",
+			"type": "shell",
+			"command": "cd app && /opt/homebrew/bin/docker-compose -f docker-compose.avd.yml ps && curl -sS -o /dev/null -w \"%{http_code}\" http://localhost:6080 && echo",
+			"isBackground": false
+		},
+		{
+			"label": "avd-compose-up-debug",
+			"type": "shell",
+			"command": "cd app && /opt/homebrew/bin/docker-compose -f docker-compose.avd.yml up -d 2>&1 | tail -n 80",
+			"isBackground": false
+		},
+		{
+			"label": "avd-compose-ps-after-up",
+			"type": "shell",
+			"command": "cd app && /opt/homebrew/bin/docker-compose -f docker-compose.avd.yml ps",
+			"isBackground": false
+		},
+		{
+			"label": "run-required-migrations",
+			"type": "shell",
+			"command": "cd backend && source config/.env && /opt/homebrew/opt/libpq/bin/psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -f scripts/014_engagement_unlock_tables.sql && /opt/homebrew/opt/libpq/bin/psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -f scripts/018_match_gestures_effort_signals.sql && /opt/homebrew/opt/libpq/bin/psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -f scripts/019_remove_public_smoke_compat.sql && /opt/homebrew/opt/libpq/bin/psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -f scripts/020_engagement_surfaces_tables.sql && /opt/homebrew/opt/libpq/bin/psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -f scripts/021_social_graph_and_tag_filter_indexes.sql && /opt/homebrew/opt/libpq/bin/psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -f scripts/025_terms_acceptance_columns.sql && /opt/homebrew/opt/libpq/bin/psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -f scripts/027_remove_smtp_sender_settings.sql && /opt/homebrew/opt/libpq/bin/psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -f scripts/028_daily_prompt_streak_tables.sql && /opt/homebrew/opt/libpq/bin/psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -f scripts/029_community_groups_tables.sql && echo MIGRATIONS_OK",
+			"isBackground": false
+		},
+		{
+			"label": "detect-supabase-pooler-region",
+			"type": "shell",
+			"command": "cd backend && source config/.env && python3 - <<'PY'\nimport subprocess, os\nregions=[\n'ap-south-1','ap-southeast-1','ap-southeast-2','ap-northeast-1','ap-northeast-2',\n'eu-west-1','eu-central-1','eu-north-1','us-east-1','us-east-2','us-west-1','us-west-2','sa-east-1'\n]\nuser=os.environ.get('SUPABASE_DB_USER','')\npwd=os.environ.get('SUPABASE_DB_PASSWORD','')\nfor r in regions:\n    host=f'aws-0-{r}.pooler.supabase.com'\n    cmd=['/opt/homebrew/opt/libpq/bin/psql', f'postgresql://{user}:{pwd}@{host}:6543/postgres?sslmode=require&connect_timeout=3', '-c', 'select 1;']\n    p=subprocess.run(cmd, capture_output=True, text=True)\n    out=(p.stderr or '') + (p.stdout or '')\n    if 'Tenant or user not found' in out:\n        status='tenant_not_found'\n    elif 'password authentication failed' in out:\n        status='auth_failed_but_tenant_found'\n    elif p.returncode==0:\n        status='connected'\n    else:\n        status='other_error'\n    print(f'{host} => {status}')\nPY",
+			"isBackground": false
+		},
+		{
+			"label": "detect-supabase-pooler-region-2",
+			"type": "shell",
+			"command": "cd backend && source config/.env && for r in us-east-1 us-east-2 us-west-1 us-west-2 eu-central-1 eu-north-1 sa-east-1; do host=\"aws-0-$r.pooler.supabase.com\"; out=$(/opt/homebrew/opt/libpq/bin/psql \"postgresql://${SUPABASE_DB_USER}:${SUPABASE_DB_PASSWORD}@${host}:6543/postgres?sslmode=require&connect_timeout=3\" -c \"select 1;\" 2>&1 || true); if echo \"$out\" | grep -q \"Tenant or user not found\"; then s=tenant_not_found; elif echo \"$out\" | grep -q \"password authentication failed\"; then s=auth_failed_but_tenant_found; elif echo \"$out\" | grep -q \" 1 row\"; then s=connected; else s=other_error; fi; echo \"$host => $s\"; done",
+			"isBackground": false
+		},
+		{
+			"label": "check-supabase-project-host",
+			"type": "shell",
+			"command": "python3 - <<'PY'\nimport socket\nfor host in ['ufrmtgriqpyzqaewvtgn.supabase.co','db.ufrmtgriqpyzqaewvtgn.supabase.co']:\n  try:\n    print(host, '=>', socket.gethostbyname(host))\n  except Exception as e:\n    print(host, '=> DNS_ERROR')\nPY",
+			"isBackground": false
+		},
+		{
+			"label": "avd-compose-pull-debug",
+			"type": "shell",
+			"command": "cd app && /opt/homebrew/bin/docker-compose -f docker-compose.avd.yml pull 2>&1 | tail -n 80",
+			"isBackground": false
+		},
+		{
+			"label": "probe-supabase-dsn-matrix",
+			"type": "shell",
+			"command": "cd backend && source config/.env && python3 - <<'PY'\nimport subprocess, os\nref='ufrmtgriqpyzqaewvtgn'\nhosts=['aws-0-ap-south-1.pooler.supabase.com']\nports=['5432','6543']\nusers=[f'postgres.{ref}','postgres']\nfor host in hosts:\n  for port in ports:\n    for user in users:\n      dsn=f\"postgresql://{user}:{os.environ.get('SUPABASE_DB_PASSWORD','')}@{host}:{port}/postgres?sslmode=require&connect_timeout=4\"\n      p=subprocess.run(['/opt/homebrew/opt/libpq/bin/psql', dsn, '-c', 'select 1;'], capture_output=True, text=True)\n      out=(p.stderr or '') + (p.stdout or '')\n      if 'Tenant or user not found' in out:\n        status='tenant_or_user_not_found'\n      elif 'password authentication failed' in out:\n        status='password_auth_failed'\n      elif 'database \"postgres\" does not exist' in out:\n        status='db_not_found'\n      elif p.returncode==0:\n        status='connected'\n      else:\n        status='other_error'\n      print(f'{host}:{port} user={user} => {status}')\nPY",
+			"isBackground": false
+		},
+		{
+			"label": "avd-compose-run-and-logs",
+			"type": "shell",
+			"command": "cd app && /opt/homebrew/bin/docker-compose -f docker-compose.avd.yml up -d && /opt/homebrew/bin/docker-compose -f docker-compose.avd.yml ps && /opt/homebrew/bin/docker-compose -f docker-compose.avd.yml logs --tail=80",
+			"isBackground": false
+		},
+		{
+			"label": "test-supabase-dsn-connect",
+			"type": "shell",
+			"command": "cd backend && source config/.env && /opt/homebrew/opt/libpq/bin/psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -c \"select 1 as ok;\"",
+			"isBackground": false
+		},
+		{
+			"label": "apply-required-migrations-now",
+			"type": "shell",
+			"command": "cd backend && source config/.env && /opt/homebrew/opt/libpq/bin/psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -f scripts/014_engagement_unlock_tables.sql && /opt/homebrew/opt/libpq/bin/psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -f scripts/018_match_gestures_effort_signals.sql && /opt/homebrew/opt/libpq/bin/psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -f scripts/019_remove_public_smoke_compat.sql && /opt/homebrew/opt/libpq/bin/psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -f scripts/020_engagement_surfaces_tables.sql && /opt/homebrew/opt/libpq/bin/psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -f scripts/021_social_graph_and_tag_filter_indexes.sql && /opt/homebrew/opt/libpq/bin/psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -f scripts/025_terms_acceptance_columns.sql && /opt/homebrew/opt/libpq/bin/psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -f scripts/027_remove_smtp_sender_settings.sql && /opt/homebrew/opt/libpq/bin/psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -f scripts/028_daily_prompt_streak_tables.sql && /opt/homebrew/opt/libpq/bin/psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -f scripts/029_community_groups_tables.sql && echo MIGRATIONS_OK",
+			"isBackground": false
+		},
+		{
+			"label": "verify-required-migrations",
+			"type": "shell",
+			"command": "cd backend && source config/.env && /opt/homebrew/opt/libpq/bin/psql \"$DATABASE_URL\" -Atc \"SELECT table_schema||'.'||table_name FROM information_schema.tables WHERE (table_schema,table_name) IN (('matching','match_unlock_states'),('matching','match_quest_templates'),('matching','match_quest_workflows'),('matching','match_gestures'),('matching','activity_sessions'),('matching','daily_prompts'),('matching','community_groups')) ORDER BY 1;\" && /opt/homebrew/opt/libpq/bin/psql \"$DATABASE_URL\" -Atc \"SELECT column_name FROM information_schema.columns WHERE table_schema='user_management' AND table_name='users' AND column_name IN ('terms_accepted','terms_accepted_at','terms_version') ORDER BY 1;\"",
+			"isBackground": false
+		},
+		{
+			"label": "ensure-colima-and-elk-up",
+			"type": "shell",
+			"command": "/opt/homebrew/bin/colima start || true && cd backend && /opt/homebrew/bin/docker rm -f dating-elasticsearch dating-logstash dating-kibana dating-filebeat >/dev/null 2>&1 || true && /opt/homebrew/bin/docker-compose -f observability/elk/docker-compose.yml up -d && /opt/homebrew/bin/docker-compose -f observability/elk/docker-compose.yml ps",
+			"isBackground": false
+		},
+		{
+			"label": "elk-es-logs",
+			"type": "shell",
+			"command": "cd backend && /opt/homebrew/bin/docker logs dating-elasticsearch --tail 120 || true",
+			"isBackground": false
+		},
+		{
+			"label": "elk-restart-after-heap-tune",
+			"type": "shell",
+			"command": "cd backend && /opt/homebrew/bin/docker rm -f dating-elasticsearch dating-logstash dating-kibana dating-filebeat >/dev/null 2>&1 || true && /opt/homebrew/bin/docker-compose -f observability/elk/docker-compose.yml up -d && /opt/homebrew/bin/docker-compose -f observability/elk/docker-compose.yml ps",
+			"isBackground": false
+		},
+		{
+			"label": "elk-health-check",
+			"type": "shell",
+			"command": "cd backend && /opt/homebrew/bin/docker-compose -f observability/elk/docker-compose.yml ps && sleep 20 && curl -sS -o /dev/null -w \"%{http_code}\" http://localhost:5601 && echo",
+			"isBackground": false
+		},
+		{
+			"label": "kibana-200-check",
+			"type": "shell",
+			"command": "sleep 20 && curl -sS -o /dev/null -w \"%{http_code}\" http://localhost:5601 && echo",
+			"isBackground": false
+		},
+		{
+			"label": "apply-extra-migrations-022-024",
+			"type": "shell",
+			"command": "cd backend && source config/.env && /opt/homebrew/opt/libpq/bin/psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -f scripts/022_expand_profile_filter_dimensions.sql && /opt/homebrew/opt/libpq/bin/psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -f scripts/023_india_master_data_and_hookup_filter.sql && /opt/homebrew/opt/libpq/bin/psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -f scripts/024_lifestyle_master_tables_seed.sql && echo EXTRA_MIGRATIONS_OK",
+			"isBackground": false
+		},
+		{
+			"label": "verify-022-024-schema",
+			"type": "shell",
+			"command": "cd backend && source config/.env && /opt/homebrew/opt/libpq/bin/psql \"$DATABASE_URL\" -Atc \"SELECT table_schema||'.'||table_name FROM information_schema.tables WHERE (table_schema,table_name) IN (('matching','master_countries'),('matching','master_states'),('matching','master_cities'),('matching','master_languages'),('matching','master_workout_frequencies'),('matching','master_diet_preferences'),('matching','master_diet_types'),('matching','master_sleep_schedules'),('matching','master_travel_styles'),('matching','master_political_comfort_ranges')) ORDER BY 1;\" && /opt/homebrew/opt/libpq/bin/psql \"$DATABASE_URL\" -Atc \"SELECT column_name FROM information_schema.columns WHERE table_schema='matching' AND table_name='user_profile_tag_filters' AND column_name IN ('religion','mother_tongue','relationship_status','smoking','drinking','personality_type','party_lover','hookup_only','diet_preference') ORDER BY 1;\"",
+			"isBackground": false
+		},
+		{
+			"label": "flutter-validate-new-changes",
+			"type": "shell",
+			"command": "cd app && flutter pub get && flutter analyze",
+			"isBackground": false
+		},
+		{
+			"label": "flutter-devices-and-build",
+			"type": "shell",
+			"command": "cd app && flutter devices && flutter build apk --debug",
+			"isBackground": false
+		},
+		{
+			"label": "final-api-readyz-check",
+			"type": "shell",
+			"command": "curl -sS -o /dev/null -w \"%{http_code}\" http://localhost:8080/readyz && echo",
+			"isBackground": false
+		},
+		{
+			"label": "api-smoke-migrated-paths",
+			"type": "shell",
+			"command": "python3 - <<'PY'\nimport json, urllib.request, urllib.error, sys\n\nBASE = 'http://localhost:8080/v1'\nUSER = 'mock-user-001'\n\nresults = []\n\ndef call(method, path, payload=None, expected=(200,)):\n    url = BASE + path\n    data = None\n    headers = {'Content-Type': 'application/json'}\n    if payload is not None:\n        data = json.dumps(payload).encode('utf-8')\n    req = urllib.request.Request(url, data=data, method=method, headers=headers)\n    try:\n        with urllib.request.urlopen(req, timeout=20) as resp:\n            status = resp.status\n            body = resp.read().decode('utf-8')\n    except urllib.error.HTTPError as e:\n        status = e.code\n        body = e.read().decode('utf-8') if hasattr(e, 'read') else ''\n    except Exception as e:\n        results.append((f'{method} {path}', False, f'EXCEPTION: {e}'))\n        return None\n\n    ok = status in expected\n    results.append((f'{method} {path}', ok, f'status={status}'))\n    if not ok:\n        return None\n    try:\n        return json.loads(body) if body else {}\n    except Exception:\n        return {}\n\n# 0) API ready\nready_req = urllib.request.Request('http://localhost:8080/readyz', method='GET')\ntry:\n    with urllib.request.urlopen(ready_req, timeout=20) as resp:\n        results.append(('GET /readyz', resp.status == 200, f'status={resp.status}'))\nexcept Exception as e:\n    results.append(('GET /readyz', False, f'EXCEPTION: {e}'))\n\n# 1) Terms agreement (025)\ncall('GET', f'/users/{USER}/agreements/terms')\ncall('PATCH', f'/users/{USER}/agreements/terms', {'accepted': True, 'terms_version': 'v2026-03-15'})\nagreement = call('GET', f'/users/{USER}/agreements/terms')\nif agreement:\n    a = agreement.get('agreement', {})\n    ok = bool(a.get('accepted')) and str(a.get('terms_version','')).startswith('v2026-03-15')\n    results.append(('ASSERT terms persisted', ok, f\"accepted={a.get('accepted')} version={a.get('terms_version')}\"))\n\n# 2) Master data (023/024)\nmaster = call('GET', '/master-data/preferences')\nif master:\n    md = master.get('master_data', {})\n    countries = md.get('countries') or []\n    languages = md.get('languages') or []\n    diets = md.get('diet_preferences') or []\n    ok = ('India' in countries) and (len(languages) > 0) and (len(diets) > 0)\n    results.append(('ASSERT master-data seeded', ok, f'countries={len(countries)} languages={len(languages)} diets={len(diets)}'))\n\n# 3) Daily prompt flow (028)\ndaily = call('GET', f'/engagement/daily-prompt/{USER}')\nprompt_id = None\nif daily:\n    prompt_id = (((daily.get('daily_prompt') or {}).get('prompt') or {}).get('id'))\n    ok = bool(prompt_id)\n    results.append(('ASSERT daily prompt id present', ok, f'prompt_id={prompt_id}'))\nif prompt_id:\n    call('POST', f'/engagement/daily-prompt/{USER}/answer', {'prompt_id': prompt_id, 'answer_text': 'Smoke answer from automated check.'})\n    responders = call('GET', f'/engagement/daily-prompt/{USER}/responders?limit=5&offset=0')\n    ok = responders is not None and 'pagination' in responders\n    results.append(('ASSERT daily responders payload', ok, 'pagination present' if ok else 'missing pagination'))\n\n# 4) Community groups flow (029)\nnew_group = call('POST', '/engagement/groups', {\n    'owner_user_id': USER,\n    'name': 'Smoke Group 2026-03-15',\n    'city': 'Bengaluru',\n    'topic': 'fitness',\n    'description': 'Automated smoke test group',\n    'visibility': 'public',\n    'invitee_user_ids': []\n}, expected=(200,201))\nif new_group:\n    group = new_group.get('group', {})\n    gid = group.get('id')\n    results.append(('ASSERT group created', bool(gid), f'group_id={gid}'))\n\nlisted = call('GET', f'/engagement/groups?user_id={USER}&limit=10')\nif listed:\n    groups = listed.get('groups', [])\n    ok = isinstance(groups, list)\n    results.append(('ASSERT groups list returned', ok, f'count={len(groups) if isinstance(groups,list) else -1}'))\n\ninvites = call('GET', f'/engagement/group-invites?user_id={USER}&limit=10')\nif invites:\n    ok = 'invites' in invites\n    results.append(('ASSERT group invites returned', ok, 'invites key present' if ok else 'missing invites key'))\n\n# Summary\nfailed = [r for r in results if not r[1]]\nprint('\\nSMOKE RESULTS')\nfor name, ok, detail in results:\n    print(f\"{'PASS' if ok else 'FAIL'} | {name} | {detail}\")\n\nif failed:\n    print(f\"\\nFAILED_COUNT={len(failed)}\")\n    sys.exit(2)\nprint('\\nALL_SMOKE_CHECKS_PASSED')\nPY",
+			"isBackground": false
+		},
+		{
+			"label": "run-api-smoke-script",
+			"type": "shell",
+			"command": "python3 backend/.run/api_smoke_check.py",
+			"isBackground": false
+		},
+		{
+			"label": "run-smoke-to-file",
+			"type": "shell",
+			"command": "python3 backend/.run/api_smoke_check.py > backend/.run/api_smoke_output.txt 2>&1; echo SMOKE_EXIT:$?",
+			"isBackground": false
+		},
+		{
+			"label": "check-users-schema-tables",
+			"type": "shell",
+			"command": "cd backend && source config/.env && /opt/homebrew/opt/libpq/bin/psql \"$DATABASE_URL\" -Atc \"SELECT table_schema||'.'||table_name FROM information_schema.tables WHERE table_name='users' ORDER BY 1;\"",
+			"isBackground": false
+		},
+		{
+			"label": "inspect-terms-502-body",
+			"type": "shell",
+			"command": "curl -sS -i http://localhost:8080/v1/users/mock-user-001/agreements/terms",
+			"isBackground": false
+		},
+		{
+			"label": "rerun-smoke-to-file-uuid",
+			"type": "shell",
+			"command": "python3 backend/.run/api_smoke_check.py > backend/.run/api_smoke_output.txt 2>&1; echo SMOKE_EXIT:$?",
+			"isBackground": false
 		}
 	]
 }

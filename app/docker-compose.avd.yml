@@ -1,0 +1,14 @@
+services:
+  android-avd:
+    image: budtmo/docker-android:emulator_14.0
+    container_name: dating-android-avd
+    privileged: true
+    environment:
+      EMULATOR_DEVICE: Samsung Galaxy S10
+      WEB_VNC: true
+      APPIUM: false
+    ports:
+      - "6080:6080"
+      - "5554:5554"
+      - "5555:5555"
+    shm_size: "2gb"

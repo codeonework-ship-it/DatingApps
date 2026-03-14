@@ -197,9 +197,9 @@ class AppRuntimeConfig {
   }
 
   static int _fnv1a64(String input) {
-    const int fnvOffsetBasis = 0xcbf29ce484222325;
-    const int fnvPrime = 0x100000001b3;
-    const int mask64 = 0xFFFFFFFFFFFFFFFF;
+    const fnvOffsetBasis = 0xcbf29ce484222325;
+    const fnvPrime = 0x100000001b3;
+    const mask64 = 0xFFFFFFFFFFFFFFFF;
 
     var hash = fnvOffsetBasis;
     for (final codeUnit in input.codeUnits) {
