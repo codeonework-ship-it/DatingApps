@@ -433,33 +433,87 @@ class _SpotlightProfilesScreenState extends State<SpotlightProfilesScreen>
                                           constraints: const BoxConstraints(
                                             maxWidth: 720,
                                           ),
-                                          child: SwipeCard(
-                                            profile: currentProfile,
-                                            onPassTap: () => _advance(
-                                              _SpotlightSwipeAction.pass,
+                                          child: AnimatedSwitcher(
+                                            duration: const Duration(
+                                              milliseconds: 820,
                                             ),
-                                            onLikeTap: () async {
-                                              await _triggerLikeBurst(
-                                                isSuperLike: false,
-                                                waitForCompletion: false,
+                                            switchInCurve: Curves.easeOutCubic,
+                                            switchOutCurve: Curves.easeInCubic,
+                                            transitionBuilder: (child, animation) {
+                                              final fade = CurvedAnimation(
+                                                parent: animation,
+                                                curve: Curves.easeOut,
                                               );
-                                              _advance(
-                                                _SpotlightSwipeAction.like,
+                                              return AnimatedBuilder(
+                                                animation: animation,
+                                                child: child,
+                                                builder: (context, child) {
+                                                  final value = animation.value;
+                                                  final angle =
+                                                      (1 - value) *
+                                                      (math.pi * 2);
+                                                  final scale =
+                                                      0.94 + (value * 0.06);
+                                                  final perspective =
+                                                      Matrix4.identity()
+                                                        ..setEntry(3, 2, 0.0012)
+                                                        ..rotateY(angle)
+                                                        ..multiply(
+                                                          Matrix4.diagonal3Values(
+                                                            scale,
+                                                            scale,
+                                                            1,
+                                                          ),
+                                                        );
+
+                                                  return FadeTransition(
+                                                    opacity: fade,
+                                                    child: Transform(
+                                                      alignment:
+                                                          Alignment.center,
+                                                      transform: perspective,
+                                                      child: child,
+                                                    ),
+                                                  );
+                                                },
                                               );
                                             },
-                                            onMessageTap: () => _advance(
-                                              _SpotlightSwipeAction.message,
-                                            ),
-                                            onTap: () async {
-                                              await Navigator.of(context).push(
-                                                MaterialPageRoute<void>(
-                                                  builder: (_) =>
-                                                      ProfileDetailsScreen(
-                                                        profile: currentProfile,
-                                                      ),
+                                            child: KeyedSubtree(
+                                              key: ValueKey<String>(
+                                                'spotlight-${currentProfile.id}-$_currentIndex',
+                                              ),
+                                              child: SwipeCard(
+                                                profile: currentProfile,
+                                                onPassTap: () => _advance(
+                                                  _SpotlightSwipeAction.pass,
                                                 ),
-                                              );
-                                            },
+                                                onLikeTap: () async {
+                                                  await _triggerLikeBurst(
+                                                    isSuperLike: false,
+                                                    waitForCompletion: false,
+                                                  );
+                                                  _advance(
+                                                    _SpotlightSwipeAction.like,
+                                                  );
+                                                },
+                                                onMessageTap: () => _advance(
+                                                  _SpotlightSwipeAction.message,
+                                                ),
+                                                onTap: () async {
+                                                  await Navigator.of(
+                                                    context,
+                                                  ).push(
+                                                    MaterialPageRoute<void>(
+                                                      builder: (_) =>
+                                                          ProfileDetailsScreen(
+                                                            profile:
+                                                                currentProfile,
+                                                          ),
+                                                    ),
+                                                  );
+                                                },
+                                              ),
+                                            ),
                                           ),
                                         ),
                                       ),
@@ -488,7 +542,7 @@ class _SpotlightProfilesScreenState extends State<SpotlightProfilesScreen>
                                         onSuperLike: () async {
                                           await _triggerLikeBurst(
                                             isSuperLike: true,
-                                            waitForCompletion: true,
+                                            waitForCompletion: false,
                                           );
                                           _advance(
                                             _SpotlightSwipeAction.superLike,

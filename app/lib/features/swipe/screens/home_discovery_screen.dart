@@ -109,11 +109,10 @@ class _HomeDiscoveryScreenState extends ConsumerState<HomeDiscoveryScreen>
     required bool showSuperLikeSnack,
     required bool isSuperLike,
   }) async {
-    if (isSuperLike) {
-      await _triggerLikeBurst(isSuperLike: true, waitForCompletion: true);
-    } else {
-      await _triggerLikeBurst(isSuperLike: false, waitForCompletion: false);
-    }
+    await _triggerLikeBurst(
+      isSuperLike: isSuperLike,
+      waitForCompletion: false,
+    );
 
     final matchId = await swipeNotifier.likeProfile();
     if (!mounted) return;
@@ -1029,7 +1028,7 @@ class _UnreadNotificationsSheet extends StatelessWidget {
   );
 }
 
-class _SpotlightRail extends StatelessWidget {
+class _SpotlightRail extends StatefulWidget {
   const _SpotlightRail({
     required this.profiles,
     required this.onOpenProfile,
@@ -1037,12 +1036,47 @@ class _SpotlightRail extends StatelessWidget {
   });
 
   final List<DiscoveryProfile> profiles;
-  final ValueChanged<DiscoveryProfile> onOpenProfile;
+  final Future<void> Function(DiscoveryProfile) onOpenProfile;
   final VoidCallback onViewMore;
 
   @override
+  State<_SpotlightRail> createState() => _SpotlightRailState();
+}
+
+class _SpotlightRailState extends State<_SpotlightRail> {
+  String? _flippingProfileId;
+  bool _isOpeningProfile = false;
+
+  Future<void> _openWithFlip(DiscoveryProfile profile) async {
+    if (_isOpeningProfile) {
+      return;
+    }
+
+    setState(() {
+      _isOpeningProfile = true;
+      _flippingProfileId = profile.id;
+    });
+
+    try {
+      await Future<void>.delayed(const Duration(milliseconds: 260));
+      if (!mounted) {
+        return;
+      }
+      await widget.onOpenProfile(profile);
+    } finally {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isOpeningProfile = false;
+        _flippingProfileId = null;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final items = profiles.take(6).toList(growable: false);
+    final items = widget.profiles.take(6).toList(growable: false);
     final screenWidth = MediaQuery.sizeOf(context).width;
     final cardWidth = screenWidth < 390
         ? 112.0
@@ -1079,7 +1113,10 @@ class _SpotlightRail extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              TextButton(onPressed: onViewMore, child: const Text('View more')),
+              TextButton(
+                onPressed: widget.onViewMore,
+                child: const Text('View more'),
+              ),
             ],
           ),
           const SizedBox(height: 10),
@@ -1091,71 +1128,110 @@ class _SpotlightRail extends StatelessWidget {
               separatorBuilder: (_, _) => const SizedBox(width: 8),
               itemBuilder: (context, index) {
                 final profile = items[index];
+                final isFlipping = _flippingProfileId == profile.id;
                 return GestureDetector(
-                  onTap: () => onOpenProfile(profile),
+                  onTap: () => _openWithFlip(profile),
                   child: SizedBox(
                     width: cardWidth,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(14),
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          Image.network(
-                            profile.photoUrls.first,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, _, _) => Container(
-                              color: Colors.white,
-                              child: const Icon(
-                                Icons.person,
-                                color: AppTheme.textHint,
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 820),
+                      switchInCurve: Curves.easeOutCubic,
+                      switchOutCurve: Curves.easeInCubic,
+                      transitionBuilder: (child, animation) {
+                        final fade = CurvedAnimation(
+                          parent: animation,
+                          curve: Curves.easeOut,
+                        );
+                        return AnimatedBuilder(
+                          animation: animation,
+                          child: child,
+                          builder: (context, child) {
+                            final value = animation.value;
+                            final angle = (1 - value) * (math.pi * 2);
+                            final scale = 0.94 + (value * 0.06);
+                            final perspective = Matrix4.identity()
+                              ..setEntry(3, 2, 0.0012)
+                              ..rotateY(angle)
+                              ..multiply(
+                                Matrix4.diagonal3Values(scale, scale, 1),
+                              );
+
+                            return FadeTransition(
+                              opacity: fade,
+                              child: Transform(
+                                alignment: Alignment.center,
+                                transform: perspective,
+                                child: child,
+                              ),
+                            );
+                          },
+                        );
+                      },
+                      child: ClipRRect(
+                        key: ValueKey<String>(
+                          'spotlight-rail-${profile.id}-${isFlipping ? 'flip' : 'idle'}',
+                        ),
+                        borderRadius: BorderRadius.circular(14),
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            Image.network(
+                              profile.photoUrls.first,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, _, _) => Container(
+                                color: Colors.white,
+                                child: const Icon(
+                                  Icons.person,
+                                  color: AppTheme.textHint,
+                                ),
                               ),
                             ),
-                          ),
-                          DecoratedBox(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  Colors.transparent,
-                                  Colors.black.withValues(alpha: 0.58),
+                            DecoratedBox(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    Colors.transparent,
+                                    Colors.black.withValues(alpha: 0.58),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              left: 8,
+                              right: 8,
+                              bottom: 8,
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      profile.name,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .labelMedium
+                                          ?.copyWith(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                    ),
+                                  ),
+                                  if (profile.isVerified)
+                                    const Padding(
+                                      padding: EdgeInsets.only(left: 4),
+                                      child: Icon(
+                                        Icons.verified,
+                                        color: Colors.blue,
+                                        size: 14,
+                                      ),
+                                    ),
                                 ],
                               ),
                             ),
-                          ),
-                          Positioned(
-                            left: 8,
-                            right: 8,
-                            bottom: 8,
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    profile.name,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .labelMedium
-                                        ?.copyWith(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                  ),
-                                ),
-                                if (profile.isVerified)
-                                  const Padding(
-                                    padding: EdgeInsets.only(left: 4),
-                                    child: Icon(
-                                      Icons.verified,
-                                      color: Colors.blue,
-                                      size: 14,
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
