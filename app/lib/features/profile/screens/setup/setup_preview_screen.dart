@@ -188,6 +188,7 @@ class _SetupPreviewScreenState extends ConsumerState<SetupPreviewScreen> {
                                 const SizedBox(height: 16),
                                 GlassButton(
                                   label: 'Complete',
+                                  shinyEffect: true,
                                   onPressed: () async {
                                     try {
                                       await ref

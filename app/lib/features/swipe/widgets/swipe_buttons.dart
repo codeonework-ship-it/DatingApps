@@ -12,6 +12,7 @@ class SwipeButtons extends StatefulWidget {
     required this.onMessage,
     required this.onUndo,
     required this.canUndo,
+    this.isSpotlightContext = false,
   });
   final Future<void> Function() onPass;
   final Future<void> Function() onLike;
@@ -19,6 +20,7 @@ class SwipeButtons extends StatefulWidget {
   final Future<void> Function() onMessage;
   final VoidCallback onUndo;
   final bool canUndo;
+  final bool isSpotlightContext;
 
   @override
   State<SwipeButtons> createState() => _SwipeButtonsState();
@@ -176,7 +178,7 @@ class _SwipeButtonsState extends State<SwipeButtons>
           ),
         ),
 
-        // Super Like Button (center, larger)
+        // Like Button (center, larger)
         ScaleTransition(
           scale: Tween<double>(begin: 1, end: 0.9).animate(
             CurvedAnimation(parent: _likeController, curve: Curves.easeInOut),
@@ -200,6 +202,12 @@ class _SwipeButtonsState extends State<SwipeButtons>
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
+                  border: widget.isSpotlightContext
+                      ? Border.all(
+                          color: Colors.white.withValues(alpha: 0.78),
+                          width: 1.1,
+                        )
+                      : null,
                   boxShadow: [
                     BoxShadow(
                       color: AppTheme.primaryRed.withValues(
@@ -208,10 +216,72 @@ class _SwipeButtonsState extends State<SwipeButtons>
                       blurRadius: _isLikeHovered ? 24 : 20,
                       offset: const Offset(0, 8),
                     ),
+                    if (widget.isSpotlightContext)
+                      BoxShadow(
+                        color: Colors.white.withValues(
+                          alpha: _isLikeHovered ? 0.24 : 0.16,
+                        ),
+                        blurRadius: _isLikeHovered ? 30 : 24,
+                        spreadRadius: _isLikeHovered ? 2 : 1,
+                        offset: const Offset(0, 6),
+                      ),
+                    if (widget.isSpotlightContext)
+                      BoxShadow(
+                        color: AppTheme.crystalGoldSoft.withValues(
+                          alpha: _isLikeHovered ? 0.44 : 0.3,
+                        ),
+                        blurRadius: _isLikeHovered ? 28 : 22,
+                        offset: const Offset(0, 6),
+                      ),
                   ],
                 ),
-                child: const Center(
-                  child: Icon(Icons.favorite, color: Colors.white, size: 47),
+                child: Center(
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      if (widget.isSpotlightContext)
+                        Container(
+                          width: 60,
+                          height: 60,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: RadialGradient(
+                              colors: [
+                                Colors.white.withValues(alpha: 0.22),
+                                Colors.transparent,
+                              ],
+                              stops: const [0.0, 0.78],
+                            ),
+                          ),
+                        ),
+                      if (widget.isSpotlightContext)
+                        Icon(
+                          Icons.favorite,
+                          color: Colors.white.withValues(alpha: 0.3),
+                          size: 54,
+                        ),
+                      const Icon(Icons.favorite, color: Colors.white, size: 47),
+                      if (widget.isSpotlightContext)
+                        Positioned(
+                          top: 16,
+                          right: 18,
+                          child: Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.92),
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.white.withValues(alpha: 0.74),
+                                  blurRadius: 8,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ),

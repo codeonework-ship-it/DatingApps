@@ -39,6 +39,7 @@ Use these repo-specific rules to make safe, minimal changes across Flutter (`app
 ## Tests and observability touchpoints
 - Backend: prefer targeted `_test.go` updates near changed modules, then `go test ./...` from `backend/`.
 - Flutter: run focused tests in `app/test/` before broader `flutter test`.
+- Flutter UI/dev loop: after Flutter code changes, hot reload the running emulator/device session when available before reporting completion.
 - Control panel local flow is defined in `control-panel/README.md` (venv, requirements, migrate, runserver).
 - ELK local lifecycle (`backend/`): `make elk-up-local`, `make elk-status-local`, `make elk-down-local`.
 - Kibana index/data-view pattern used across backend + control panel: `dating-app-logs-*`.

@@ -144,6 +144,7 @@ class _SetupBasicInfoScreenState extends ConsumerState<SetupBasicInfoScreen> {
                                 const SizedBox(height: 16),
                                 GlassButton(
                                   label: 'Next',
+                                  shinyEffect: true,
                                   onPressed: () async {
                                     final name = _nameController.text.trim();
                                     if (name.length <

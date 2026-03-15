@@ -131,6 +131,7 @@ class _SetupLifestyleScreenState extends ConsumerState<SetupLifestyleScreen> {
                           const Spacer(),
                           GlassButton(
                             label: 'Next',
+                            shinyEffect: true,
                             onPressed: () async {
                               await ref
                                   .read(profileSetupNotifierProvider.notifier)

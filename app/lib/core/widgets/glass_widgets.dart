@@ -163,6 +163,7 @@ class GlassButton extends StatefulWidget {
     this.width,
     this.backgroundColor,
     this.textColor,
+    this.shinyEffect = false,
   });
   final String label;
   final VoidCallback? onPressed;
@@ -171,15 +172,17 @@ class GlassButton extends StatefulWidget {
   final double? width;
   final Color? backgroundColor;
   final Color? textColor;
+  final bool shinyEffect;
 
   @override
   State<GlassButton> createState() => _GlassButtonState();
 }
 
 class _GlassButtonState extends State<GlassButton>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
+  AnimationController? _shineController;
 
   @override
   void initState() {
@@ -192,11 +195,36 @@ class _GlassButtonState extends State<GlassButton>
       begin: 1,
       end: 0.95,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+    if (widget.shinyEffect) {
+      _shineController = AnimationController(
+        duration: const Duration(milliseconds: 1900),
+        vsync: this,
+      )..repeat();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant GlassButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.shinyEffect == widget.shinyEffect) {
+      return;
+    }
+
+    if (widget.shinyEffect) {
+      _shineController = AnimationController(
+        duration: const Duration(milliseconds: 1900),
+        vsync: this,
+      )..repeat();
+    } else {
+      _shineController?.dispose();
+      _shineController = null;
+    }
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    _shineController?.dispose();
     super.dispose();
   }
 
@@ -255,6 +283,41 @@ class _GlassButtonState extends State<GlassButton>
               ),
               child: Stack(
                 children: [
+                  if (widget.shinyEffect)
+                    Positioned.fill(
+                      child: IgnorePointer(
+                        child: ClipRRect(
+                          borderRadius: radius,
+                          child: AnimatedBuilder(
+                            animation: _shineController ?? _controller,
+                            builder: (context, child) {
+                              final t = _shineController?.value ?? 0;
+                              final left = -1.3 + (2.6 * t);
+                              final right = left + 0.78;
+                              return DecoratedBox(
+                                decoration: BoxDecoration(
+                                  borderRadius: radius,
+                                  gradient: LinearGradient(
+                                    begin: Alignment(left, -1),
+                                    end: Alignment(right, 1),
+                                    colors: [
+                                      Colors.transparent,
+                                      Colors.white.withValues(alpha: 0.16),
+                                      AppTheme.crystalGoldSoft.withValues(
+                                        alpha: 0.24,
+                                      ),
+                                      Colors.white.withValues(alpha: 0.16),
+                                      Colors.transparent,
+                                    ],
+                                    stops: const [0.0, 0.42, 0.5, 0.58, 1.0],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                    ),
                   Positioned.fill(
                     child: IgnorePointer(
                       child: DecoratedBox(

@@ -67,6 +67,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
       HomeDiscoveryScreen(
         onOpenFilters: () => _openFilterSheet(context),
         onOpenMessages: () => _setSelectedIndex(1),
+        activeFilterChips: _discoverActiveFilterChips,
       ),
       const MatchesListScreen(),
       const EngagementHubScreen(),
@@ -769,6 +770,44 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
     }
 
     return payload;
+  }
+
+  List<String> get _discoverActiveFilterChips {
+    final chips = <String>[];
+
+    if (_filterVerifiedOnly) {
+      chips.add('Verified only');
+    }
+
+    if (_filterAge != const RangeValues(20, 50)) {
+      chips.add('${_filterAge.start.round()}–${_filterAge.end.round()}');
+    }
+
+    if (_filterDistance.round() != 50) {
+      chips.add('${_filterDistance.round()} km');
+    }
+
+    void addIfSet(String? value) {
+      final normalized = value?.trim();
+      if (normalized != null && normalized.isNotEmpty) {
+        chips.add(normalized);
+      }
+    }
+
+    addIfSet(_filterReligion);
+    addIfSet(_filterMotherTongue);
+    addIfSet(_filterCountry);
+    addIfSet(_filterState);
+    addIfSet(_filterCity);
+
+    if (_filterPartyLoverOnly) {
+      chips.add('Party lover');
+    }
+    if (_filterHookupOnly) {
+      chips.add('Hookup only');
+    }
+
+    return chips;
   }
 
   Widget _buildDropdownFilterField({

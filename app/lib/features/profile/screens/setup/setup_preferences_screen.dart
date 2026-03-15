@@ -586,6 +586,7 @@ class _SetupPreferencesScreenState
                                       const SizedBox(height: 20),
                                       GlassButton(
                                         label: _isSetupFlow ? 'Finish' : 'Save',
+                                        shinyEffect: _isSetupFlow,
                                         onPressed: () =>
                                             _handlePrimaryAction(draft),
                                       ),

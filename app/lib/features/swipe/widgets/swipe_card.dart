@@ -20,12 +20,17 @@ class SwipeCard extends StatelessWidget {
   final VoidCallback? onMessageTap;
   final bool isActionLocked;
 
+  double _cardWidth(BuildContext context) {
+    final screenSize = MediaQuery.sizeOf(context);
+    return (screenSize.width - 40).clamp(300.0, 460.0).toDouble();
+  }
+
   double _cardHeight(BuildContext context) {
     final screenSize = MediaQuery.sizeOf(context);
-    final cardWidth = (screenSize.width - 40).clamp(280.0, 420.0).toDouble();
-    final targetHeight = cardWidth * 1.35;
-    final maxHeightByScreen = (screenSize.height * 0.62)
-        .clamp(360.0, 620.0)
+    final cardWidth = _cardWidth(context);
+    final targetHeight = cardWidth * 1.54;
+    final maxHeightByScreen = (screenSize.height * 0.69)
+        .clamp(380.0, 710.0)
         .toDouble();
     return targetHeight > maxHeightByScreen ? maxHeightByScreen : targetHeight;
   }
@@ -40,13 +45,14 @@ class SwipeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cardWidth = _cardWidth(context);
     final cardHeight = _cardHeight(context);
     final quickTags = profile.quickPreviewTags.take(3).toList();
 
     return GlassContainer(
-      width: double.infinity,
+      width: cardWidth,
       height: cardHeight,
-      margin: const EdgeInsets.symmetric(horizontal: 20),
+      margin: EdgeInsets.zero,
       padding: EdgeInsets.zero,
       backgroundColor: Colors.white.withValues(alpha: 0.84),
       blur: 12,
@@ -269,71 +275,6 @@ class SwipeCard extends StatelessWidget {
                     ),
                   ],
                 ],
-              ),
-            ),
-          ),
-
-          // Swipe Hint Badges
-          Positioned(
-            top: 16,
-            left: 16,
-            child: GestureDetector(
-              onTap: isActionLocked ? null : onPassTap,
-              child: GlassContainer(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
-                ),
-                backgroundColor: Colors.white.withValues(alpha: 0.22),
-                blur: 10,
-                child: Row(
-                  children: [
-                    const Icon(Icons.arrow_back, color: Colors.white, size: 16),
-                    const SizedBox(width: 4),
-                    Text(
-                      'PASS',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.96),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-          Positioned(
-            top: 16,
-            right: 16,
-            child: GestureDetector(
-              onTap: isActionLocked ? null : onLikeTap,
-              child: GlassContainer(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
-                ),
-                backgroundColor: Colors.white.withValues(alpha: 0.22),
-                blur: 10,
-                child: Row(
-                  children: [
-                    Text(
-                      'LIKE',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.96),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    const Icon(
-                      Icons.favorite,
-                      color: Colors.redAccent,
-                      size: 16,
-                    ),
-                  ],
-                ),
               ),
             ),
           ),

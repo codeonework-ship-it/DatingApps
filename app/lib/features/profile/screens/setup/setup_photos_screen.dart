@@ -220,6 +220,7 @@ class SetupPhotosScreen extends ConsumerWidget {
                         const SizedBox(height: 12),
                         GlassButton(
                           label: 'Next',
+                          shinyEffect: true,
                           onPressed: () {
                             if (draft.photos.length <
                                 ValidationConstants.minPhotos) {

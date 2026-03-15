@@ -164,6 +164,7 @@ class _SetupAboutScreenState extends ConsumerState<SetupAboutScreen> {
                           const Spacer(),
                           GlassButton(
                             label: 'Next',
+                            shinyEffect: true,
                             onPressed: () async {
                               final bio = _bioController.text.trim();
                               if (bio.length <

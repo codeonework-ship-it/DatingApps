@@ -10,6 +10,8 @@ Pre-step (durable persistence migrations):
 0.6) apply SQL cleanup `backend/scripts/027_remove_smtp_sender_settings.sql` to remove temporary SMTP sender settings persistence
 0.7) apply SQL migration `backend/scripts/028_daily_prompt_streak_tables.sql` for daily prompt responses and streak tracking
 0.8) apply SQL migration `backend/scripts/029_community_groups_tables.sql` for user-created community groups, memberships, and invite lifecycle
+0.9) apply SQL migration `backend/scripts/030_public_master_data_views.sql` to expose `public.master_*` views backed by `matching.master_*` tables
+0.10) apply SQL migration `backend/scripts/031_activity_notifications.sql` for unread/latest discovery notifications (`who_replied_me`, `who_liked_me`)
 
 Note:
 - Canonical production path uses `matching` and `user_management` schemas.

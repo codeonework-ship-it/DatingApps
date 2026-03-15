@@ -54,6 +54,7 @@ class WelcomeScreen extends StatelessWidget {
               GlassButton(
                 label: 'Start Secure Sign In',
                 icon: Icons.arrow_forward_rounded,
+                shinyEffect: true,
                 onPressed: () {
                   Navigator.of(context).push(
                     MaterialPageRoute<void>(builder: (_) => const AuthScreen()),

@@ -294,6 +294,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
         GlassButton(
           label: 'Send OTP to Mobile',
           icon: Icons.arrow_forward_rounded,
+          shinyEffect: true,
           isLoading: authState.isLoading,
           onPressed: () => _sendOtp(authNotifier),
           backgroundColor: AppTheme.trustBlue,
@@ -420,6 +421,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
           GlassButton(
             label: 'Verify & Continue',
             icon: Icons.verified_user_rounded,
+            shinyEffect: true,
             isLoading: authState.isLoading,
             onPressed: (kBypassOtpValidation || _otpController.text.length == 6)
                 ? () => _verifyOtp(authNotifier)

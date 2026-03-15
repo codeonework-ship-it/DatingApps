@@ -6,23 +6,28 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
 import '../../engagement/providers/daily_prompt_provider.dart';
-import '../../engagement/screens/daily_prompt_screen.dart';
 import '../../matching/providers/match_provider.dart';
-import '../../matching/screens/matches_list_screen.dart';
 import '../../matching/screens/match_notification_screen.dart';
 import '../../messaging/screens/chat_screen.dart';
 import '../models/discovery_profile.dart';
+import '../models/discovery_notification_item.dart';
 import '../providers/swipe_provider.dart';
 import '../widgets/swipe_buttons.dart';
 import '../widgets/swipe_card.dart';
-import 'liked_profiles_screen.dart';
 import 'passed_profiles_screen.dart';
 import 'profile_details_screen.dart';
+import 'spotlight_profiles_screen.dart';
 
 class HomeDiscoveryScreen extends ConsumerStatefulWidget {
-  const HomeDiscoveryScreen({super.key, this.onOpenFilters, this.onOpenMessages});
+  const HomeDiscoveryScreen({
+    super.key,
+    this.onOpenFilters,
+    this.onOpenMessages,
+    this.activeFilterChips = const <String>[],
+  });
   final VoidCallback? onOpenFilters;
   final VoidCallback? onOpenMessages;
+  final List<String> activeFilterChips;
 
   @override
   ConsumerState<HomeDiscoveryScreen> createState() =>
@@ -218,8 +223,13 @@ class _HomeDiscoveryScreenState extends ConsumerState<HomeDiscoveryScreen>
   Widget build(BuildContext context) {
     final swipeState = ref.watch(swipeNotifierProvider);
     final swipeNotifier = ref.read(swipeNotifierProvider.notifier);
+    final matchState = ref.watch(matchNotifierProvider);
     final dailyPromptState = ref.watch(dailyPromptProvider);
     final spotlightProfiles = swipeState.spotlightProfiles;
+    final unreadNotifications = buildDiscoveryNotificationStack(
+      repliedCount: dailyPromptState.responders.length,
+      likedMeCount: matchState.matches.length,
+    );
     final isSpotlightMode =
         swipeState.discoveryMode == SwipeNotifier.discoveryModeSpotlight;
 
@@ -250,143 +260,44 @@ class _HomeDiscoveryScreenState extends ConsumerState<HomeDiscoveryScreen>
                       ],
                       child: LayoutBuilder(
                         builder: (context, constraints) {
-                          final compact = constraints.maxWidth < 430;
-                          final medium = constraints.maxWidth < 760;
-                          final likesValue = swipeState.likeCount.toString();
+                          final width = constraints.maxWidth;
+                          final actionSpacing = width < 390 ? 6.0 : 8.0;
+                          final smallActionLabel = width < 390;
                           final passedValue = swipeState.passedProfiles.length
                               .toString();
-                          final leftValue =
-                              (swipeState.profiles.length -
-                                      swipeState.currentIndex)
-                                  .clamp(0, swipeState.profiles.length)
-                                  .toString();
 
-                          Widget titleBlock() => Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                isSpotlightMode ? 'Spotlight' : 'Discover',
-                                style: Theme.of(context).textTheme.headlineSmall
-                                    ?.copyWith(
-                                      color: AppTheme.textDark,
-                                      fontWeight: FontWeight.w700,
-                                      letterSpacing: 0.2,
-                                    ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                isSpotlightMode
-                                    ? 'Top boosted profiles for you'
-                                    : 'Find meaningful verified matches',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: Theme.of(context).textTheme.bodySmall
-                                    ?.copyWith(
-                                      color: AppTheme.textGrey,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                              ),
-                              const SizedBox(height: 8),
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  _DiscoveryModeChip(
-                                    label: 'Discover',
-                                    selected: !isSpotlightMode,
-                                    onTap: () => swipeNotifier.setDiscoveryMode(
-                                      SwipeNotifier.discoveryModeAll,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  _DiscoveryModeChip(
-                                    label: 'Spotlight',
-                                    selected: isSpotlightMode,
-                                    onTap: () => swipeNotifier.setDiscoveryMode(
-                                      SwipeNotifier.discoveryModeSpotlight,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          );
-
-                          Widget filtersButton() => GestureDetector(
+                          Widget filtersButton() => _HeaderActionButton(
+                            icon: Icons.tune_rounded,
+                            label: 'Filters',
                             onTap: widget.onOpenFilters,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 9,
-                              ),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(12),
-                                color: Colors.white.withValues(alpha: 0.88),
-                                border: Border.all(
-                                  color: AppTheme.trustBlue.withValues(
-                                    alpha: 0.2,
-                                  ),
-                                ),
-                              ),
-                              child: const Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.tune_rounded,
-                                    size: 16,
-                                    color: AppTheme.textDark,
-                                  ),
-                                  SizedBox(width: 6),
-                                  Text(
-                                    'Filters',
-                                    style: TextStyle(
-                                      color: AppTheme.textDark,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                            compact: smallActionLabel,
                           );
 
-                          Widget messagesButton() => GestureDetector(
+                          Widget notificationsButton() =>
+                              _NotificationBellButton(
+                                unreadCount: unreadNotifications.length,
+                                onTap: () {
+                                  showModalBottomSheet<void>(
+                                    context: context,
+                                    backgroundColor: Colors.transparent,
+                                    isScrollControlled: true,
+                                    builder: (_) => _UnreadNotificationsSheet(
+                                      notifications: unreadNotifications,
+                                    ),
+                                  );
+                                },
+                              );
+
+                          Widget messagesButton() => _HeaderActionButton(
+                            icon: Icons.chat_bubble_outline_rounded,
+                            label: 'Messages',
                             onTap: widget.onOpenMessages,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 9,
-                              ),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(12),
-                                color: Colors.white.withValues(alpha: 0.88),
-                                border: Border.all(
-                                  color: AppTheme.trustBlue.withValues(
-                                    alpha: 0.2,
-                                  ),
-                                ),
-                              ),
-                              child: const Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.chat_bubble_outline_rounded,
-                                    size: 16,
-                                    color: AppTheme.textDark,
-                                  ),
-                                  SizedBox(width: 6),
-                                  Text(
-                                    'Messages',
-                                    style: TextStyle(
-                                      color: AppTheme.textDark,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                            compact: smallActionLabel,
                           );
 
-                          Widget passedButton() => GestureDetector(
+                          Widget passedButton() => _HeaderActionButton(
+                            icon: Icons.history,
+                            label: 'Passed ($passedValue)',
                             onTap: () {
                               Navigator.of(context).push(
                                 MaterialPageRoute<void>(
@@ -394,170 +305,77 @@ class _HomeDiscoveryScreenState extends ConsumerState<HomeDiscoveryScreen>
                                 ),
                               );
                             },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 9,
-                              ),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(12),
-                                color: Colors.white.withValues(alpha: 0.88),
-                                border: Border.all(
-                                  color: AppTheme.trustBlue.withValues(
-                                    alpha: 0.2,
-                                  ),
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(
-                                    Icons.history,
-                                    size: 16,
-                                    color: AppTheme.textDark,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    'Passed ($passedValue)',
-                                    style: const TextStyle(
-                                      color: AppTheme.textDark,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                            compact: smallActionLabel,
                           );
 
-                          if (compact) {
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(children: [Expanded(child: titleBlock())]),
-                                const SizedBox(height: 10),
-                                Wrap(
-                                  spacing: 8,
-                                  runSpacing: 8,
-                                  children: [
-                                    passedButton(),
-                                    messagesButton(),
-                                    filtersButton(),
-                                  ],
-                                ),
-                                const SizedBox(height: 10),
-                                Row(
-                                  children: [
-                                    _MiniStatChip(
-                                      label: 'Likes',
-                                      value: likesValue,
-                                      onTap: () {
-                                        Navigator.of(context).push(
-                                          MaterialPageRoute<void>(
-                                            builder: (_) =>
-                                                const LikedProfilesScreen(),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                    const SizedBox(width: 8),
-                                    _MiniStatChip(
-                                      label: 'Left',
-                                      value: leftValue,
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            );
-                          }
-
-                          if (medium) {
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(children: [Expanded(child: titleBlock())]),
-                                const SizedBox(height: 10),
-                                Wrap(
-                                  spacing: 8,
-                                  runSpacing: 8,
-                                  children: [
-                                    _MiniStatChip(
-                                      label: 'Likes',
-                                      value: likesValue,
-                                      onTap: () {
-                                        Navigator.of(context).push(
-                                          MaterialPageRoute<void>(
-                                            builder: (_) =>
-                                                const LikedProfilesScreen(),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                    _MiniStatChip(
-                                      label: 'Left',
-                                      value: leftValue,
-                                    ),
-                                    messagesButton(),
-                                    passedButton(),
-                                    filtersButton(),
-                                  ],
-                                ),
-                              ],
-                            );
-                          }
-
-                          return Row(
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Expanded(child: titleBlock()),
-                              const SizedBox(width: 8),
-                              _MiniStatChip(
-                                label: 'Likes',
-                                value: likesValue,
-                                onTap: () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute<void>(
-                                      builder: (_) =>
-                                          const LikedProfilesScreen(),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Discover Matches',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .titleMedium
+                                              ?.copyWith(
+                                                color: AppTheme.textDark,
+                                                fontWeight: FontWeight.w700,
+                                              ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          'Find meaningful verified matches',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall
+                                              ?.copyWith(
+                                                color: AppTheme.textGrey,
+                                              ),
+                                        ),
+                                        if (widget.activeFilterChips.isNotEmpty)
+                                          const SizedBox(height: 6),
+                                        if (widget.activeFilterChips.isNotEmpty)
+                                          Wrap(
+                                            spacing: 6,
+                                            runSpacing: 6,
+                                            children: widget.activeFilterChips
+                                                .map(
+                                                  (chip) => _ActiveFilterChip(
+                                                    label: chip,
+                                                  ),
+                                                )
+                                                .toList(growable: false),
+                                          ),
+                                      ],
                                     ),
-                                  );
-                                },
+                                  ),
+                                  const SizedBox(width: 8),
+                                  notificationsButton(),
+                                ],
                               ),
-                              const SizedBox(width: 8),
-                              _MiniStatChip(label: 'Left', value: leftValue),
-                              const SizedBox(width: 10),
-                              messagesButton(),
-                              const SizedBox(width: 10),
-                              passedButton(),
-                              const SizedBox(width: 10),
-                              filtersButton(),
+                              const SizedBox(height: 10),
+                              Row(
+                                children: [
+                                  Expanded(child: passedButton()),
+                                  SizedBox(width: actionSpacing),
+                                  Expanded(child: messagesButton()),
+                                  SizedBox(width: actionSpacing),
+                                  Expanded(child: filtersButton()),
+                                ],
+                              ),
                             ],
                           );
                         },
                       ),
                     ),
                   ),
-                  if (dailyPromptState.view != null ||
-                      dailyPromptState.isLoading)
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                      child: _DailyPromptReplyPanel(
-                        state: dailyPromptState,
-                        responders: dailyPromptState.responders,
-                        onOpen: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute<void>(
-                              builder: (_) => const DailyPromptScreen(),
-                            ),
-                          );
-                        },
-                        onOpenProfile: (responder) => _openResponderProfile(
-                          context,
-                          responder,
-                          swipeState.profiles,
-                        ),
-                        onOpenChat: (responder) => _openResponderChat(context),
-                      ),
-                    ),
                   if (!isSpotlightMode && spotlightProfiles.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
@@ -568,6 +386,15 @@ class _HomeDiscoveryScreenState extends ConsumerState<HomeDiscoveryScreen>
                             MaterialPageRoute<void>(
                               builder: (_) =>
                                   ProfileDetailsScreen(profile: profile),
+                            ),
+                          );
+                        },
+                        onViewMore: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => SpotlightProfilesScreen(
+                                profiles: spotlightProfiles,
+                              ),
                             ),
                           );
                         },
@@ -636,225 +463,271 @@ class _HomeDiscoveryScreenState extends ConsumerState<HomeDiscoveryScreen>
                             )
                           : LayoutBuilder(
                               builder: (context, constraints) {
-                                final compactHeight =
-                                    constraints.maxHeight < 760;
-                                final controlsGap = compactHeight ? 8.0 : 24.0;
-                                final bottomGap = compactHeight ? 8.0 : 72.0;
+                                final controlsGap = 8.0;
+                                final bottomGap = 12.0;
+                                final width = constraints.maxWidth;
+                                final horizontalContentPadding = width < 390
+                                    ? 12.0
+                                    : width < 600
+                                    ? 16.0
+                                    : width < 900
+                                    ? 24.0
+                                    : 32.0;
                                 final currentProfile = swipeState
                                     .profiles[swipeState.currentIndex];
 
-                                return SingleChildScrollView(
-                                  child: ConstrainedBox(
-                                    constraints: BoxConstraints(
-                                      minHeight: constraints.maxHeight,
-                                    ),
-                                    child: Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        AnimatedSwitcher(
-                                          duration: const Duration(
-                                            milliseconds: 820,
-                                          ),
-                                          switchInCurve: Curves.easeOutCubic,
-                                          switchOutCurve: Curves.easeInCubic,
-                                          transitionBuilder: (child, animation) {
-                                            final fade = CurvedAnimation(
-                                              parent: animation,
-                                              curve: Curves.easeOut,
-                                            );
-                                            return AnimatedBuilder(
-                                              animation: animation,
-                                              child: child,
-                                              builder: (context, child) {
-                                                final value = animation.value;
-                                                final angle =
-                                                    (1 - value) * (math.pi * 2);
-                                                final scale =
-                                                    0.94 + (value * 0.06);
-                                                final perspective =
-                                                    Matrix4.identity()
-                                                      ..setEntry(3, 2, 0.0012)
-                                                      ..rotateY(angle)
-                                                      ..multiply(
-                                                        Matrix4.diagonal3Values(
-                                                          scale,
-                                                          scale,
-                                                          1,
-                                                        ),
-                                                      );
+                                return SizedBox(
+                                  height: constraints.maxHeight,
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Expanded(
+                                        child: Center(
+                                          child: Padding(
+                                            padding: EdgeInsets.symmetric(
+                                              horizontal:
+                                                  horizontalContentPadding,
+                                            ),
+                                            child: AnimatedSwitcher(
+                                              duration: const Duration(
+                                                milliseconds: 820,
+                                              ),
+                                              switchInCurve:
+                                                  Curves.easeOutCubic,
+                                              switchOutCurve:
+                                                  Curves.easeInCubic,
+                                              transitionBuilder: (child, animation) {
+                                                final fade = CurvedAnimation(
+                                                  parent: animation,
+                                                  curve: Curves.easeOut,
+                                                );
+                                                return AnimatedBuilder(
+                                                  animation: animation,
+                                                  child: child,
+                                                  builder: (context, child) {
+                                                    final value =
+                                                        animation.value;
+                                                    final angle =
+                                                        (1 - value) *
+                                                        (math.pi * 2);
+                                                    final scale =
+                                                        0.94 + (value * 0.06);
+                                                    final perspective =
+                                                        Matrix4.identity()
+                                                          ..setEntry(
+                                                            3,
+                                                            2,
+                                                            0.0012,
+                                                          )
+                                                          ..rotateY(angle)
+                                                          ..multiply(
+                                                            Matrix4.diagonal3Values(
+                                                              scale,
+                                                              scale,
+                                                              1,
+                                                            ),
+                                                          );
 
-                                                return FadeTransition(
-                                                  opacity: fade,
-                                                  child: Transform(
-                                                    alignment: Alignment.center,
-                                                    transform: perspective,
-                                                    child: child,
-                                                  ),
+                                                    return FadeTransition(
+                                                      opacity: fade,
+                                                      child: Transform(
+                                                        alignment:
+                                                            Alignment.center,
+                                                        transform: perspective,
+                                                        child: child,
+                                                      ),
+                                                    );
+                                                  },
                                                 );
                                               },
-                                            );
-                                          },
-                                          child: KeyedSubtree(
-                                            key: ValueKey<String>(
-                                              'profile-${currentProfile.id}-${swipeState.currentIndex}',
-                                            ),
-                                            child: AnimatedBuilder(
-                                              animation:
-                                                  _cardSpinController ??
-                                                  const AlwaysStoppedAnimation<
-                                                    double
-                                                  >(0),
-                                              child: GestureDetector(
-                                                onDoubleTap: _triggerCardSpin,
-                                                child: SwipeCard(
-                                                  profile: currentProfile,
-                                                  isActionLocked: _isActionBusy,
-                                                  onPassTap: () =>
-                                                      _runLockedAction(
-                                                        swipeNotifier.passProfile,
-                                                      ),
-                                                  onLikeTap: () =>
-                                                      _runLockedAction(
-                                                        () => _handleLikeAction(
-                                                          swipeNotifier:
-                                                              swipeNotifier,
-                                                          currentProfile:
-                                                              currentProfile,
-                                                          showSuperLikeSnack:
-                                                              false,
-                                                          isSuperLike: false,
-                                                        ),
-                                                      ),
-                                                  onMessageTap: () =>
-                                                      _runLockedAction(
-                                                        () =>
-                                                            _openConversationForProfile(
-                                                              profile:
-                                                                  currentProfile,
-                                                              swipeNotifier:
-                                                                  swipeNotifier,
-                                                            ),
-                                                      ),
-                                                  onTap: () async {
-                                                    swipeNotifier
-                                                        .recordProfileView(
-                                                          currentProfile.id,
-                                                        );
-                                                    final action =
-                                                        await Navigator.of(
-                                                          context,
-                                                        ).push<
-                                                          ProfileDetailsAction
-                                                        >(
-                                                          MaterialPageRoute<
-                                                            ProfileDetailsAction
-                                                          >(
-                                                            builder: (_) =>
-                                                                ProfileDetailsScreen(
-                                                                  profile:
-                                                                      currentProfile,
-                                                                ),
+                                              child: KeyedSubtree(
+                                                key: ValueKey<String>(
+                                                  'profile-${currentProfile.id}-${swipeState.currentIndex}',
+                                                ),
+                                                child: AnimatedBuilder(
+                                                  animation:
+                                                      _cardSpinController ??
+                                                      const AlwaysStoppedAnimation<
+                                                        double
+                                                      >(0),
+                                                  child: GestureDetector(
+                                                    onDoubleTap:
+                                                        _triggerCardSpin,
+                                                    child: ConstrainedBox(
+                                                      constraints:
+                                                          const BoxConstraints(
+                                                            maxWidth: 720,
                                                           ),
-                                                        );
-
-                                                    if (!context.mounted) {
-                                                      return;
-                                                    }
-                                                    if (action ==
-                                                        ProfileDetailsAction
-                                                            .love) {
-                                                      await _runLockedAction(
-                                                        () => _handleLikeAction(
-                                                          swipeNotifier:
-                                                              swipeNotifier,
-                                                          currentProfile:
-                                                              currentProfile,
-                                                          showSuperLikeSnack:
-                                                              true,
-                                                          isSuperLike: true,
-                                                        ),
-                                                      );
-                                                    } else if (action ==
-                                                        ProfileDetailsAction
-                                                            .message) {
-                                                      await _runLockedAction(
-                                                        () =>
-                                                            _openConversationForProfile(
-                                                              profile:
-                                                                  currentProfile,
-                                                              swipeNotifier:
-                                                                  swipeNotifier,
+                                                      child: SwipeCard(
+                                                        profile: currentProfile,
+                                                        isActionLocked:
+                                                            _isActionBusy,
+                                                        onPassTap: () =>
+                                                            _runLockedAction(
+                                                              swipeNotifier
+                                                                  .passProfile,
                                                             ),
-                                                      );
-                                                    }
+                                                        onLikeTap: () => _runLockedAction(
+                                                          () => _handleLikeAction(
+                                                            swipeNotifier:
+                                                                swipeNotifier,
+                                                            currentProfile:
+                                                                currentProfile,
+                                                            showSuperLikeSnack:
+                                                                false,
+                                                            isSuperLike: false,
+                                                          ),
+                                                        ),
+                                                        onMessageTap: () =>
+                                                            _runLockedAction(
+                                                              () => _openConversationForProfile(
+                                                                profile:
+                                                                    currentProfile,
+                                                                swipeNotifier:
+                                                                    swipeNotifier,
+                                                              ),
+                                                            ),
+                                                        onTap: () async {
+                                                          swipeNotifier
+                                                              .recordProfileView(
+                                                                currentProfile
+                                                                    .id,
+                                                              );
+                                                          final action =
+                                                              await Navigator.of(
+                                                                context,
+                                                              ).push<
+                                                                ProfileDetailsAction
+                                                              >(
+                                                                MaterialPageRoute<
+                                                                  ProfileDetailsAction
+                                                                >(
+                                                                  builder: (_) =>
+                                                                      ProfileDetailsScreen(
+                                                                        profile:
+                                                                            currentProfile,
+                                                                      ),
+                                                                ),
+                                                              );
+
+                                                          if (!context
+                                                              .mounted) {
+                                                            return;
+                                                          }
+                                                          if (action ==
+                                                              ProfileDetailsAction
+                                                                  .love) {
+                                                            await _runLockedAction(
+                                                              () => _handleLikeAction(
+                                                                swipeNotifier:
+                                                                    swipeNotifier,
+                                                                currentProfile:
+                                                                    currentProfile,
+                                                                showSuperLikeSnack:
+                                                                    true,
+                                                                isSuperLike:
+                                                                    true,
+                                                              ),
+                                                            );
+                                                          } else if (action ==
+                                                              ProfileDetailsAction
+                                                                  .message) {
+                                                            await _runLockedAction(
+                                                              () => _openConversationForProfile(
+                                                                profile:
+                                                                    currentProfile,
+                                                                swipeNotifier:
+                                                                    swipeNotifier,
+                                                              ),
+                                                            );
+                                                          }
+                                                        },
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  builder: (context, child) {
+                                                    final spinValue =
+                                                        _cardSpinController
+                                                            ?.value ??
+                                                        0;
+                                                    return Transform(
+                                                      alignment:
+                                                          Alignment.center,
+                                                      transform: Matrix4.identity()
+                                                        ..setEntry(3, 2, 0.0017)
+                                                        ..rotateY(
+                                                          math.pi *
+                                                              2 *
+                                                              Curves
+                                                                  .easeInOutCubic
+                                                                  .transform(
+                                                                    spinValue,
+                                                                  ),
+                                                        ),
+                                                      child: child,
+                                                    );
                                                   },
                                                 ),
                                               ),
-                                              builder: (context, child) {
-                                                final spinValue =
-                                                    _cardSpinController
-                                                        ?.value ??
-                                                    0;
-                                                return Transform(
-                                                  alignment: Alignment.center,
-                                                  transform: Matrix4.identity()
-                                                    ..setEntry(3, 2, 0.0017)
-                                                    ..rotateY(
-                                                      math.pi *
-                                                          2 *
-                                                          Curves.easeInOutCubic
-                                                              .transform(
-                                                                spinValue,
-                                                              ),
-                                                    ),
-                                                  child: child,
-                                                );
-                                              },
                                             ),
                                           ),
                                         ),
-                                        SizedBox(height: controlsGap),
-                                        SwipeButtons(
-                                          onPass: () async {
-                                            await _runLockedAction(
-                                              swipeNotifier.passProfile,
-                                            );
-                                          },
-                                          onLike: () async {
-                                            await _runLockedAction(
-                                              () => _handleLikeAction(
-                                                swipeNotifier: swipeNotifier,
-                                                currentProfile: currentProfile,
-                                                showSuperLikeSnack: false,
-                                                isSuperLike: false,
-                                              ),
-                                            );
-                                          },
-                                          onSuperLike: () async {
-                                            await _runLockedAction(
-                                              () => _handleLikeAction(
-                                                swipeNotifier: swipeNotifier,
-                                                currentProfile: currentProfile,
-                                                showSuperLikeSnack: true,
-                                                isSuperLike: true,
-                                              ),
-                                            );
-                                          },
-                                          onMessage: () async {
-                                            await _runLockedAction(
-                                              () => _openConversationForProfile(
-                                                profile: currentProfile,
-                                                swipeNotifier: swipeNotifier,
-                                              ),
-                                            );
-                                          },
-                                          onUndo: swipeNotifier.undoSwipe,
-                                          canUndo: swipeState.currentIndex > 0,
+                                      ),
+                                      SizedBox(height: controlsGap),
+                                      Padding(
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: horizontalContentPadding,
                                         ),
-                                        SizedBox(height: bottomGap),
-                                      ],
-                                    ),
+                                        child: ConstrainedBox(
+                                          constraints: const BoxConstraints(
+                                            maxWidth: 720,
+                                          ),
+                                          child: SwipeButtons(
+                                            onPass: () async {
+                                              await _runLockedAction(
+                                                swipeNotifier.passProfile,
+                                              );
+                                            },
+                                            onLike: () async {
+                                              await _runLockedAction(
+                                                () => _handleLikeAction(
+                                                  swipeNotifier: swipeNotifier,
+                                                  currentProfile:
+                                                      currentProfile,
+                                                  showSuperLikeSnack: false,
+                                                  isSuperLike: false,
+                                                ),
+                                              );
+                                            },
+                                            onSuperLike: () async {
+                                              await _runLockedAction(
+                                                () => _handleLikeAction(
+                                                  swipeNotifier: swipeNotifier,
+                                                  currentProfile:
+                                                      currentProfile,
+                                                  showSuperLikeSnack: true,
+                                                  isSuperLike: true,
+                                                ),
+                                              );
+                                            },
+                                            onMessage: () async {
+                                              await _runLockedAction(
+                                                () =>
+                                                    _openConversationForProfile(
+                                                      profile: currentProfile,
+                                                      swipeNotifier:
+                                                          swipeNotifier,
+                                                    ),
+                                              );
+                                            },
+                                            onUndo: swipeNotifier.undoSwipe,
+                                            canUndo:
+                                                swipeState.currentIndex > 0,
+                                          ),
+                                        ),
+                                      ),
+                                      SizedBox(height: bottomGap),
+                                    ],
                                   ),
                                 );
                               },
@@ -881,40 +754,30 @@ class _HomeDiscoveryScreenState extends ConsumerState<HomeDiscoveryScreen>
       ),
     );
   }
+}
 
-  void _openResponderProfile(
-    BuildContext context,
-    DailyPromptResponderPreview responder,
-    List<DiscoveryProfile> profiles,
-  ) {
-    for (final profile in profiles) {
-      if (profile.id != responder.userId) {
-        continue;
-      }
-      Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) => ProfileDetailsScreen(profile: profile),
-        ),
-      );
-      return;
-    }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Profile preview unavailable for ${responder.displayName}.',
+class _ActiveFilterChip extends StatelessWidget {
+  const _ActiveFilterChip({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(999),
+        color: AppTheme.trustBlue.withValues(alpha: 0.12),
+        border: Border.all(color: AppTheme.trustBlue.withValues(alpha: 0.24)),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: AppTheme.textDark,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );
-  }
-
-  Future<void> _openResponderChat(BuildContext context) async {
-    if (widget.onOpenMessages != null) {
-      widget.onOpenMessages!();
-      return;
-    }
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute<void>(builder: (_) => const MatchesListScreen()));
   }
 }
 
@@ -970,75 +833,45 @@ class _LikeDecisionBurst extends StatelessWidget {
   );
 }
 
-class _DiscoveryModeChip extends StatelessWidget {
-  const _DiscoveryModeChip({
+class _HeaderActionButton extends StatelessWidget {
+  const _HeaderActionButton({
+    required this.icon,
     required this.label,
-    required this.selected,
     required this.onTap,
+    this.compact = false,
   });
 
+  final IconData icon;
   final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(999),
-          color: selected
-              ? AppTheme.trustBlue.withValues(alpha: 0.14)
-              : Colors.white.withValues(alpha: 0.86),
-          border: Border.all(
-            color: selected
-                ? AppTheme.trustBlue.withValues(alpha: 0.35)
-                : AppTheme.trustBlue.withValues(alpha: 0.18),
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: selected ? AppTheme.trustBlue : AppTheme.textDark,
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ),
-    );
-}
-
-class _MiniStatChip extends StatelessWidget {
-  const _MiniStatChip({required this.label, required this.value, this.onTap});
-  final String label;
-  final String value;
   final VoidCallback? onTap;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) => GestureDetector(
     onTap: onTap,
     child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 9),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
         color: Colors.white.withValues(alpha: 0.88),
+        border: Border.all(color: AppTheme.trustBlue.withValues(alpha: 0.2)),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(
-            value,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              color: AppTheme.textDark,
-              fontWeight: FontWeight.w700,
+          Icon(icon, size: compact ? 14 : 15, color: AppTheme.textDark),
+          SizedBox(width: compact ? 4 : 5),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: AppTheme.textDark,
+                fontWeight: FontWeight.w700,
+                fontSize: compact ? 10 : null,
+              ),
             ),
-          ),
-          Text(
-            label,
-            style: Theme.of(
-              context,
-            ).textTheme.labelSmall?.copyWith(color: AppTheme.textGrey),
           ),
         ],
       ),
@@ -1046,15 +879,181 @@ class _MiniStatChip extends StatelessWidget {
   );
 }
 
+class _NotificationBellButton extends StatelessWidget {
+  const _NotificationBellButton({
+    required this.unreadCount,
+    required this.onTap,
+  });
+
+  final int unreadCount;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+    onTap: onTap,
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        color: Colors.white.withValues(alpha: 0.88),
+        border: Border.all(color: AppTheme.trustBlue.withValues(alpha: 0.2)),
+      ),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          const Icon(
+            Icons.notifications_rounded,
+            size: 18,
+            color: AppTheme.textDark,
+          ),
+          if (unreadCount > 0)
+            Positioned(
+              right: -7,
+              top: -6,
+              child: Container(
+                constraints: const BoxConstraints(minWidth: 14, minHeight: 14),
+                padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
+                decoration: BoxDecoration(
+                  color: AppTheme.errorRed,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  unreadCount > 9 ? '9+' : unreadCount.toString(),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    ),
+  );
+}
+
+class _UnreadNotificationsSheet extends StatelessWidget {
+  const _UnreadNotificationsSheet({required this.notifications});
+
+  final List<DiscoveryNotificationItem> notifications;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(color: AppTheme.trustBlue.withValues(alpha: 0.18)),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.08),
+          blurRadius: 14,
+          offset: const Offset(0, 6),
+        ),
+      ],
+    ),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Latest unread notifications',
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+            color: AppTheme.textDark,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 10),
+        if (notifications.isEmpty)
+          Text(
+            'No unread notifications',
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: AppTheme.textGrey),
+          )
+        else
+          ...notifications.map(
+            (notification) => Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                color: AppTheme.trustBlue.withValues(alpha: 0.06),
+                border: Border.all(
+                  color: AppTheme.trustBlue.withValues(alpha: 0.14),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    notification.type == DiscoveryNotificationType.whoRepliedMe
+                        ? Icons.visibility_outlined
+                        : Icons.favorite_border_rounded,
+                    size: 16,
+                    color: AppTheme.trustBlue,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          notification.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: AppTheme.textDark,
+                                fontWeight: FontWeight.w700,
+                              ),
+                        ),
+                        Text(
+                          notification.subtitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(color: AppTheme.textGrey),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
+    ),
+  );
+}
+
 class _SpotlightRail extends StatelessWidget {
-  const _SpotlightRail({required this.profiles, required this.onOpenProfile});
+  const _SpotlightRail({
+    required this.profiles,
+    required this.onOpenProfile,
+    required this.onViewMore,
+  });
 
   final List<DiscoveryProfile> profiles;
   final ValueChanged<DiscoveryProfile> onOpenProfile;
+  final VoidCallback onViewMore;
 
   @override
   Widget build(BuildContext context) {
     final items = profiles.take(6).toList(growable: false);
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final cardWidth = screenWidth < 390
+        ? 112.0
+        : screenWidth < 600
+        ? 128.0
+        : 140.0;
+    final railHeight = screenWidth < 390
+        ? 132.0
+        : screenWidth < 600
+        ? 142.0
+        : 152.0;
     return GlassContainer(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       backgroundColor: Colors.white.withValues(alpha: 0.8),
@@ -1079,246 +1078,91 @@ class _SpotlightRail extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                 ),
               ),
+              const Spacer(),
+              TextButton(onPressed: onViewMore, child: const Text('View more')),
             ],
           ),
           const SizedBox(height: 10),
           SizedBox(
-            height: 74,
+            height: railHeight,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: items.length,
               separatorBuilder: (_, _) => const SizedBox(width: 8),
               itemBuilder: (context, index) {
                 final profile = items[index];
-                final tier = (profile.spotlightTier ?? '').trim();
-                final tierLabel = tier.isEmpty
-                    ? 'Spotlight'
-                    : '${tier[0].toUpperCase()}${tier.substring(1)}';
                 return GestureDetector(
                   onTap: () => onOpenProfile(profile),
-                  child: Container(
-                    width: 188,
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.88),
+                  child: SizedBox(
+                    width: cardWidth,
+                    child: ClipRRect(
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: AppTheme.trustBlue.withValues(alpha: 0.2),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 20,
-                          backgroundImage: profile.photoUrls.isNotEmpty
-                              ? NetworkImage(profile.photoUrls.first)
-                              : null,
-                          child: profile.photoUrls.isEmpty
-                              ? const Icon(Icons.person_outline_rounded)
-                              : null,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                profile.name,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: Theme.of(context).textTheme.labelLarge
-                                    ?.copyWith(
-                                      color: AppTheme.textDark,
-                                      fontWeight: FontWeight.w700,
-                                    ),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          Image.network(
+                            profile.photoUrls.first,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, _, _) => Container(
+                              color: Colors.white,
+                              child: const Icon(
+                                Icons.person,
+                                color: AppTheme.textHint,
                               ),
-                              const SizedBox(height: 2),
-                              Text(
-                                tierLabel,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: Theme.of(context).textTheme.labelSmall
-                                    ?.copyWith(
-                                      color: AppTheme.textGrey,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                              ),
-                            ],
+                            ),
                           ),
-                        ),
-                      ],
+                          DecoratedBox(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  Colors.transparent,
+                                  Colors.black.withValues(alpha: 0.58),
+                                ],
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            left: 8,
+                            right: 8,
+                            bottom: 8,
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    profile.name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .labelMedium
+                                        ?.copyWith(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                  ),
+                                ),
+                                if (profile.isVerified)
+                                  const Padding(
+                                    padding: EdgeInsets.only(left: 4),
+                                    child: Icon(
+                                      Icons.verified,
+                                      color: Colors.blue,
+                                      size: 14,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 );
               },
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _DailyPromptReplyPanel extends StatelessWidget {
-  const _DailyPromptReplyPanel({
-    required this.state,
-    required this.responders,
-    required this.onOpen,
-    required this.onOpenProfile,
-    required this.onOpenChat,
-  });
-
-  final DailyPromptState state;
-  final List<DailyPromptResponderPreview> responders;
-  final VoidCallback onOpen;
-  final ValueChanged<DailyPromptResponderPreview> onOpenProfile;
-  final ValueChanged<DailyPromptResponderPreview> onOpenChat;
-
-  @override
-  Widget build(BuildContext context) {
-    final view = state.view;
-    if (state.isLoading && view == null) {
-      return GlassContainer(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        backgroundColor: Colors.white.withValues(alpha: 0.8),
-        blur: 8,
-        borderRadius: BorderRadius.circular(16),
-        child: Row(
-          children: [
-            const SizedBox(
-              width: 18,
-              height: 18,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation<Color>(AppTheme.trustBlue),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Text(
-              'Loading daily prompt activity...',
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: AppTheme.textGrey),
-            ),
-          ],
-        ),
-      );
-    }
-    if (view == null) {
-      return const SizedBox.shrink();
-    }
-
-    final statusLine = view.answer == null
-        ? 'Today: ${view.spark.participantsToday} replies'
-        : 'You replied · ${view.spark.similarAnswerCount} similar answers';
-
-    return GlassContainer(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      backgroundColor: Colors.white.withValues(alpha: 0.8),
-      blur: 8,
-      borderRadius: BorderRadius.circular(16),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  color: AppTheme.trustBlue.withValues(alpha: 0.14),
-                ),
-                child: const Icon(
-                  Icons.visibility_outlined,
-                  color: AppTheme.trustBlue,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'See who replied',
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: AppTheme.textDark,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    Text(
-                      statusLine,
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodySmall?.copyWith(color: AppTheme.textGrey),
-                    ),
-                  ],
-                ),
-              ),
-              TextButton(onPressed: onOpen, child: const Text('Open')),
-            ],
-          ),
-          if (state.isRespondersLoading && responders.isEmpty)
-            const Padding(
-              padding: EdgeInsets.only(top: 8),
-              child: SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            )
-          else if (responders.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            ...responders
-                .take(3)
-                .map(
-                  (item) => Padding(
-                    padding: const EdgeInsets.only(bottom: 6),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 14,
-                          backgroundImage: item.photoUrl.trim().isEmpty
-                              ? null
-                              : NetworkImage(item.photoUrl),
-                          child: item.photoUrl.trim().isEmpty
-                              ? Text(
-                                  item.displayName.isNotEmpty
-                                      ? item.displayName[0].toUpperCase()
-                                      : '?',
-                                  style: const TextStyle(fontSize: 12),
-                                )
-                              : null,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            item.displayName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  color: AppTheme.textDark,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: () => onOpenProfile(item),
-                          icon: const Icon(Icons.person_outline, size: 18),
-                          tooltip: 'Open profile',
-                        ),
-                        IconButton(
-                          onPressed: () => onOpenChat(item),
-                          icon: const Icon(Icons.chat_bubble_outline, size: 18),
-                          tooltip: 'Open chat',
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-          ],
         ],
       ),
     );
