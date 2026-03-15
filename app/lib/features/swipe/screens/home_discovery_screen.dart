@@ -1058,7 +1058,7 @@ class _SpotlightRailState extends State<_SpotlightRail> {
     });
 
     try {
-      await Future<void>.delayed(const Duration(milliseconds: 260));
+      await Future<void>.delayed(const Duration(milliseconds: 180));
       if (!mounted) {
         return;
       }
