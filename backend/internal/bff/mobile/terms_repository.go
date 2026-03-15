@@ -29,6 +29,29 @@ type termsAgreementRepository struct {
 	local map[string]termsAgreementRecord
 }
 
+func (r *termsAgreementRepository) localRecord(userID string) (termsAgreementRecord, bool) {
+	r.mu.RLock()
+	record, ok := r.local[userID]
+	r.mu.RUnlock()
+	return record, ok
+}
+
+func (r *termsAgreementRepository) storeLocalRecord(record termsAgreementRecord) termsAgreementRecord {
+	r.mu.Lock()
+	r.local[record.UserID] = record
+	r.mu.Unlock()
+	return record
+}
+
+func defaultTermsAgreementRecord(userID string) termsAgreementRecord {
+	return termsAgreementRecord{
+		UserID:          userID,
+		Accepted:        false,
+		PersistedInDB:   false,
+		PersistenceMode: "memory",
+	}
+}
+
 func newTermsAgreementRepository(cfg config.Config) *termsAgreementRepository {
 	apiKey := strings.TrimSpace(cfg.SupabaseServiceRole)
 	if apiKey == "" {
@@ -64,18 +87,11 @@ func (r *termsAgreementRepository) getAgreement(
 		return termsAgreementRecord{}, errors.New("user id is required")
 	}
 	if r.db == nil {
-		r.mu.RLock()
-		record, ok := r.local[trimmedUserID]
-		r.mu.RUnlock()
+		record, ok := r.localRecord(trimmedUserID)
 		if ok {
 			return record, nil
 		}
-		return termsAgreementRecord{
-			UserID:          trimmedUserID,
-			Accepted:        false,
-			PersistedInDB:   false,
-			PersistenceMode: "memory",
-		}, nil
+		return defaultTermsAgreementRecord(trimmedUserID), nil
 	}
 
 	params := url.Values{}
@@ -85,12 +101,13 @@ func (r *termsAgreementRepository) getAgreement(
 
 	rows, err := r.db.SelectRead(ctx, r.cfg.UserSchema, r.cfg.UsersTable, params)
 	if err != nil {
-		return termsAgreementRecord{}, err
+		if record, ok := r.localRecord(trimmedUserID); ok {
+			return record, nil
+		}
+		return defaultTermsAgreementRecord(trimmedUserID), nil
 	}
 	if len(rows) == 0 {
-		r.mu.RLock()
-		record, ok := r.local[trimmedUserID]
-		r.mu.RUnlock()
+		record, ok := r.localRecord(trimmedUserID)
 		if ok {
 			return record, nil
 		}
@@ -168,7 +185,20 @@ func (r *termsAgreementRepository) updateAgreement(
 	filters.Set("id", "eq."+trimmedUserID)
 	rows, err := r.db.Update(ctx, r.cfg.UserSchema, r.cfg.UsersTable, payload, filters)
 	if err != nil {
-		return termsAgreementRecord{}, err
+		acceptedAt := ""
+		if accepted {
+			acceptedAt = now
+		}
+		record := termsAgreementRecord{
+			UserID:          trimmedUserID,
+			Accepted:        accepted,
+			AcceptedAt:      acceptedAt,
+			TermsVersion:    cleanVersion,
+			UpdatedAt:       now,
+			PersistedInDB:   false,
+			PersistenceMode: "memory",
+		}
+		return r.storeLocalRecord(record), nil
 	}
 	if len(rows) == 0 {
 		acceptedAt := ""
@@ -184,10 +214,7 @@ func (r *termsAgreementRepository) updateAgreement(
 			PersistedInDB:   false,
 			PersistenceMode: "memory",
 		}
-		r.mu.Lock()
-		r.local[trimmedUserID] = record
-		r.mu.Unlock()
-		return record, nil
+		return r.storeLocalRecord(record), nil
 	}
 
 	row := rows[0]
