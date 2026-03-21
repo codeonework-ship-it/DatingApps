@@ -109,10 +109,7 @@ class _HomeDiscoveryScreenState extends ConsumerState<HomeDiscoveryScreen>
     required bool showSuperLikeSnack,
     required bool isSuperLike,
   }) async {
-    await _triggerLikeBurst(
-      isSuperLike: isSuperLike,
-      waitForCompletion: false,
-    );
+    await _triggerLikeBurst(isSuperLike: isSuperLike, waitForCompletion: false);
 
     final matchId = await swipeNotifier.likeProfile();
     if (!mounted) return;
@@ -192,18 +189,18 @@ class _HomeDiscoveryScreenState extends ConsumerState<HomeDiscoveryScreen>
 
     if (selectedMatch == null) {
       selectedMatch = Match(
-        id: 'pending-${profile.id}',
+        id: 'local-match-${profile.id}',
         userId: profile.id,
         userName: profile.name,
         userPhoto: profile.photoUrls.isNotEmpty ? profile.photoUrls.first : '',
-        lastMessage: 'Start your conversation',
+        lastMessage: 'It’s a match — try a gesture',
         lastMessageTime: DateTime.now(),
         unreadCount: 0,
-        isOnline: false,
+        isOnline: true,
       );
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Conversation started with ${profile.name}')),
-      );
+      ref
+          .read(matchNotifierProvider.notifier)
+          .upsertLocalTestMatch(selectedMatch);
     }
 
     await Navigator.of(context).push(
@@ -555,7 +552,7 @@ class _HomeDiscoveryScreenState extends ConsumerState<HomeDiscoveryScreen>
                                                     child: ConstrainedBox(
                                                       constraints:
                                                           const BoxConstraints(
-                                                            maxWidth: 720,
+                                                            maxWidth: 680,
                                                           ),
                                                       child: SwipeCard(
                                                         profile: currentProfile,
@@ -1079,15 +1076,15 @@ class _SpotlightRailState extends State<_SpotlightRail> {
     final items = widget.profiles.take(6).toList(growable: false);
     final screenWidth = MediaQuery.sizeOf(context).width;
     final cardWidth = screenWidth < 390
-        ? 112.0
+        ? 104.0
         : screenWidth < 600
-        ? 128.0
-        : 140.0;
+        ? 120.0
+        : 132.0;
     final railHeight = screenWidth < 390
-        ? 132.0
+        ? 124.0
         : screenWidth < 600
-        ? 142.0
-        : 152.0;
+        ? 134.0
+        : 144.0;
     return GlassContainer(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       backgroundColor: Colors.white.withValues(alpha: 0.8),
@@ -1115,7 +1112,20 @@ class _SpotlightRailState extends State<_SpotlightRail> {
               const Spacer(),
               TextButton(
                 onPressed: widget.onViewMore,
-                child: const Text('View more'),
+                style: Theme.of(context).textButtonTheme.style?.copyWith(
+                  visualDensity: VisualDensity.compact,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  padding: const WidgetStatePropertyAll<EdgeInsetsGeometry>(
+                    EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  ),
+                  minimumSize: const WidgetStatePropertyAll<Size>(Size.zero),
+                ),
+                child: Text(
+                  'View more',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w700),
+                ),
               ),
             ],
           ),
@@ -1175,17 +1185,26 @@ class _SpotlightRailState extends State<_SpotlightRail> {
                         child: Stack(
                           fit: StackFit.expand,
                           children: [
-                            Image.network(
-                              profile.photoUrls.first,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, _, _) => Container(
+                            if (profile.photoUrls.isNotEmpty)
+                              Image.network(
+                                profile.photoUrls.first,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, _, _) => Container(
+                                  color: Colors.white,
+                                  child: const Icon(
+                                    Icons.person,
+                                    color: AppTheme.textHint,
+                                  ),
+                                ),
+                              )
+                            else
+                              Container(
                                 color: Colors.white,
                                 child: const Icon(
                                   Icons.person,
                                   color: AppTheme.textHint,
                                 ),
                               ),
-                            ),
                             DecoratedBox(
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(

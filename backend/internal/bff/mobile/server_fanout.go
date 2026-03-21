@@ -130,7 +130,8 @@ func (f *asyncFanout) updateAggregates(event activityEvent) {
 	switch {
 	case strings.Contains(action, "/swipe"):
 		f.agg.SwipeEvents++
-	case strings.Contains(action, "/chat/") && strings.Contains(action, "/messages"):
+	case strings.Contains(action, "/chat/") &&
+		(strings.Contains(action, "/messages") || strings.Contains(action, "/gifts/send")):
 		f.agg.MessageEvents++
 	case strings.Contains(action, "/safety/report"):
 		f.agg.ReportEvents++

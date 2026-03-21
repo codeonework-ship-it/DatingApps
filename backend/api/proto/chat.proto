@@ -32,7 +32,19 @@ message SendMessageResponse {
   string message_id = 2;
 }
 
+message DeleteMessageRequest {
+  string match_id = 1;
+  string message_id = 2;
+  string requester_user_id = 3;
+}
+
+message DeleteMessageResponse {
+  bool deleted = 1;
+  string message_id = 2;
+}
+
 service ChatService {
   rpc ListMessages(ListMessagesRequest) returns (ListMessagesResponse);
   rpc SendMessage(SendMessageRequest) returns (SendMessageResponse);
+  rpc DeleteMessage(DeleteMessageRequest) returns (DeleteMessageResponse);
 }

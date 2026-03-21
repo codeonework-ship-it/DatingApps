@@ -10,6 +10,9 @@ This snapshot includes the implemented engagement API surface used by the mobile
 - Activity session start/submit/summary endpoints
 - Trust badge and trust-filter endpoints
 - Conversation room list/join/leave/moderate endpoints
+- Chat message delete endpoint (`/v1/chat/{matchID}/messages/{messageID}`)
+- Rose gift catalog/send and wallet coin endpoints
+- Discovery `mode` query support (`all`, `spotlight`) with spotlight metadata
 - Chat locked response contract with domain error code `CHAT_LOCKED_REQUIREMENT_PENDING`
 
 ## Error envelope contract

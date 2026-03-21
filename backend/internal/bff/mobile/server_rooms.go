@@ -16,7 +16,28 @@ func (s *Server) listConversationRooms(w http.ResponseWriter, r *http.Request) {
 	friendOnly := parseBoolQuery(r.URL.Query().Get("friend_only"))
 	limit := parseRoomLimit(r.URL.Query().Get("limit"), 50)
 
-	rooms := s.store.listConversationRooms(userID, state, friendOnly, limit, time.Now().UTC())
+	now := time.Now().UTC()
+	var (
+		rooms []conversationRoomView
+		err   error
+	)
+	if s.rooms != nil {
+		ctx, cancel := s.withRequestTimeout(r.Context())
+		rooms, err = s.rooms.listConversationRooms(ctx, userID, state, friendOnly, limit, now)
+		cancel()
+		if err != nil && (!isConversationRoomRepoPersistenceUnavailable(err) || s.cfg.RequireDurableEngagementStore) {
+			writeError(w, http.StatusBadGateway, err)
+			return
+		}
+	}
+	if s.rooms == nil || (err != nil && isConversationRoomRepoPersistenceUnavailable(err) && !s.cfg.RequireDurableEngagementStore) {
+		rooms = s.store.listConversationRooms(userID, state, friendOnly, limit, now)
+	}
+	if err != nil && s.rooms == nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+
 	writeJSON(w, http.StatusOK, map[string]any{
 		"rooms":          rooms,
 		"count":          len(rooms),
@@ -34,7 +55,50 @@ func (s *Server) joinConversationRoom(w http.ResponseWriter, r *http.Request) {
 	}
 	userID := strings.TrimSpace(toString(payload["user_id"]))
 
-	room, err := s.store.joinConversationRoom(roomID, userID, time.Now().UTC())
+	now := time.Now().UTC()
+	var (
+		room conversationRoomView
+		err  error
+	)
+	if s.rooms != nil {
+		ctx, cancel := s.withRequestTimeout(r.Context())
+		room, err = s.rooms.joinConversationRoom(ctx, roomID, userID, now)
+		cancel()
+		if err != nil && (!isConversationRoomRepoPersistenceUnavailable(err) || s.cfg.RequireDurableEngagementStore) {
+			switch {
+			case errors.Is(err, errRoomNotFound):
+				writeError(w, http.StatusNotFound, err)
+				return
+			case errors.Is(err, errRoomClosed):
+				writeJSON(w, http.StatusConflict, map[string]any{
+					"success":    false,
+					"error":      err.Error(),
+					"error_code": "ROOM_CLOSED",
+				})
+				return
+			case errors.Is(err, errRoomCapacityReached):
+				writeJSON(w, http.StatusConflict, map[string]any{
+					"success":    false,
+					"error":      err.Error(),
+					"error_code": "ROOM_CAPACITY_REACHED",
+				})
+				return
+			case errors.Is(err, errRoomBlockedActiveSession):
+				writeJSON(w, http.StatusConflict, map[string]any{
+					"success":    false,
+					"error":      err.Error(),
+					"error_code": "ROOM_BLOCKED_ACTIVE_SESSION",
+				})
+				return
+			default:
+				writeError(w, http.StatusBadRequest, err)
+				return
+			}
+		}
+	}
+	if s.rooms == nil || (err != nil && isConversationRoomRepoPersistenceUnavailable(err) && !s.cfg.RequireDurableEngagementStore) {
+		room, err = s.store.joinConversationRoom(roomID, userID, now)
+	}
 	if err != nil {
 		switch {
 		case errors.Is(err, errRoomNotFound):
@@ -94,7 +158,36 @@ func (s *Server) leaveConversationRoom(w http.ResponseWriter, r *http.Request) {
 	}
 	userID := strings.TrimSpace(toString(payload["user_id"]))
 
-	room, err := s.store.leaveConversationRoom(roomID, userID, time.Now().UTC())
+	now := time.Now().UTC()
+	var (
+		room conversationRoomView
+		err  error
+	)
+	if s.rooms != nil {
+		ctx, cancel := s.withRequestTimeout(r.Context())
+		room, err = s.rooms.leaveConversationRoom(ctx, roomID, userID, now)
+		cancel()
+		if err != nil && (!isConversationRoomRepoPersistenceUnavailable(err) || s.cfg.RequireDurableEngagementStore) {
+			switch {
+			case errors.Is(err, errRoomNotFound):
+				writeError(w, http.StatusNotFound, err)
+				return
+			case errors.Is(err, errRoomNotParticipant):
+				writeJSON(w, http.StatusConflict, map[string]any{
+					"success":    false,
+					"error":      err.Error(),
+					"error_code": "ROOM_NOT_JOINED",
+				})
+				return
+			default:
+				writeError(w, http.StatusBadRequest, err)
+				return
+			}
+		}
+	}
+	if s.rooms == nil || (err != nil && isConversationRoomRepoPersistenceUnavailable(err) && !s.cfg.RequireDurableEngagementStore) {
+		room, err = s.store.leaveConversationRoom(roomID, userID, now)
+	}
 	if err != nil {
 		switch {
 		case errors.Is(err, errRoomNotFound):
@@ -144,14 +237,55 @@ func (s *Server) moderateConversationRoom(w http.ResponseWriter, r *http.Request
 	action := strings.TrimSpace(toString(payload["action"]))
 	reason := strings.TrimSpace(toString(payload["reason"]))
 
-	room, moderationAction, err := s.store.moderateConversationRoom(
-		roomID,
-		moderatorUserID,
-		targetUserID,
-		action,
-		reason,
-		time.Now().UTC(),
+	now := time.Now().UTC()
+	var (
+		room             conversationRoomView
+		moderationAction conversationRoomModerationAction
+		err              error
 	)
+	if s.rooms != nil {
+		ctx, cancel := s.withRequestTimeout(r.Context())
+		room, moderationAction, err = s.rooms.moderateConversationRoom(
+			ctx,
+			roomID,
+			moderatorUserID,
+			targetUserID,
+			action,
+			reason,
+			now,
+		)
+		cancel()
+		if err != nil && (!isConversationRoomRepoPersistenceUnavailable(err) || s.cfg.RequireDurableEngagementStore) {
+			switch {
+			case errors.Is(err, errRoomNotFound):
+				writeError(w, http.StatusNotFound, err)
+				return
+			case errors.Is(err, errRoomModerationAction):
+				writeError(w, http.StatusBadRequest, err)
+				return
+			case errors.Is(err, errRoomModerationNotActive):
+				writeJSON(w, http.StatusConflict, map[string]any{
+					"success":    false,
+					"error":      err.Error(),
+					"error_code": "ROOM_NOT_ACTIVE",
+				})
+				return
+			default:
+				writeError(w, http.StatusBadRequest, err)
+				return
+			}
+		}
+	}
+	if s.rooms == nil || (err != nil && isConversationRoomRepoPersistenceUnavailable(err) && !s.cfg.RequireDurableEngagementStore) {
+		room, moderationAction, err = s.store.moderateConversationRoom(
+			roomID,
+			moderatorUserID,
+			targetUserID,
+			action,
+			reason,
+			now,
+		)
+	}
 	if err != nil {
 		switch {
 		case errors.Is(err, errRoomNotFound):

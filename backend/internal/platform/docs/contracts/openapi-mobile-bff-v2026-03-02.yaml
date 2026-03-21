@@ -69,9 +69,15 @@ paths:
             type: integer
             minimum: 1
             maximum: 100
+        - in: query
+          name: mode
+          required: false
+          schema:
+            type: string
+            enum: [all, spotlight]
       responses:
         '200':
-          description: Candidate list
+          description: Candidate list with optional spotlight metadata (`is_spotlight`, `spotlight_tier`, `spotlight_score`, `spotlight_reason`) and response summary (`spotlight_summary`, `spotlight_profiles`).
   /v1/swipe:
     post:
       summary: Swipe target profile
@@ -497,6 +503,304 @@ paths:
                     unlock_state: quest_pending
                     unlock_policy_variant: require_quest_template
                     correlation_id: req-abc-123
+  /v1/chat/{matchID}/messages/{messageID}:
+    delete:
+      summary: Delete a chat message for everyone
+      parameters:
+        - in: path
+          name: matchID
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: messageID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [requester_user_id]
+              properties:
+                requester_user_id:
+                  type: string
+      responses:
+        '200':
+          description: Message deleted for everyone
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deleted:
+                    type: boolean
+                  message_id:
+                    type: string
+                  reason_code:
+                    type: string
+                  delete_attempts_24h:
+                    type: integer
+                  delete_success_24h:
+                    type: integer
+                  delete_blocked_24h:
+                    type: integer
+                  delete_abuse_flagged:
+                    type: boolean
+        '409':
+          description: Delete window expired
+        '404':
+          description: Message not found or requester not owner
+  /v1/chat/gifts:
+    get:
+      summary: List available rose GIF gifts catalog
+      responses:
+        '200':
+          description: Gifts catalog payload
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  gifts:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RoseGiftCatalogItem'
+                  count:
+                    type: integer
+  /v1/chat/{matchID}/gifts/send:
+    post:
+      summary: Send a rose gift in chat
+      description: >
+        Supports idempotent retries via `Idempotency-Key`. Repeat requests with
+        the same key for the same actor and route replay the original response
+        without charging wallet coins again.
+      parameters:
+        - in: path
+          name: matchID
+          required: true
+          schema:
+            type: string
+        - in: header
+          name: Idempotency-Key
+          required: false
+          schema:
+            type: string
+          description: Client-generated key to prevent duplicate debits on retry.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sender_user_id, receiver_user_id, gift_id]
+              properties:
+                sender_user_id:
+                  type: string
+                receiver_user_id:
+                  type: string
+                gift_id:
+                  type: string
+      responses:
+        '200':
+          description: Gift sent successfully
+          headers:
+            X-Idempotent-Replay:
+              description: Present and `true` when response is served from idempotency replay cache.
+              schema:
+                type: string
+                enum: ["true"]
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  gift_send:
+                    $ref: '#/components/schemas/RoseGiftSendView'
+                  wallet:
+                    $ref: '#/components/schemas/WalletView'
+        '402':
+          description: Insufficient wallet coins
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error: insufficient wallet coins
+                error_code: INSUFFICIENT_COINS
+        '423':
+          description: Chat is locked pending engagement requirement completion
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatLockedErrorResponse'
+  /v1/chat/{matchID}/gifts/events:
+    post:
+      summary: Record rose gift telemetry event
+      description: >
+        Ingests client-side rose gift funnel events (for example panel open and
+        preview open) into the backend activity stream for analytics dashboards.
+      parameters:
+        - in: path
+          name: matchID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [event_name, user_id]
+              properties:
+                event_name:
+                  type: string
+                  enum:
+                    - gift_panel_opened
+                    - gift_preview_opened
+                    - gift_send_attempted
+                    - gift_send_succeeded
+                    - gift_send_failed_insufficient_coins
+                    - gift_send_failed_chat_locked
+                    - gift_send_failed
+                user_id:
+                  type: string
+                match_id:
+                  type: string
+                gift_id:
+                  type: string
+                tier:
+                  type: string
+                price_coins:
+                  type: integer
+                wallet_coins:
+                  type: integer
+                catalog_count:
+                  type: integer
+                is_limited:
+                  type: boolean
+                error_code:
+                  type: string
+                unlock_state:
+                  type: string
+                unlock_policy_variant:
+                  type: string
+                idempotency_key:
+                  type: string
+      responses:
+        '202':
+          description: Telemetry event accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accepted:
+                    type: boolean
+  /v1/wallet/{userID}/coins:
+    get:
+      summary: Get wallet coin balance for user
+      parameters:
+        - in: path
+          name: userID
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Wallet balance payload
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  wallet:
+                    $ref: '#/components/schemas/WalletView'
+  /v1/wallet/{userID}/coins/buy:
+    post:
+      summary: Buy wallet coins and credit balance
+      parameters:
+        - in: path
+          name: userID
+          required: true
+          schema:
+            type: string
+        - in: header
+          name: Idempotency-Key
+          required: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [coins]
+              properties:
+                package_id:
+                  type: string
+                coins:
+                  type: integer
+                  minimum: 1
+                amount_minor:
+                  type: integer
+                  minimum: 0
+                currency:
+                  type: string
+                provider:
+                  type: string
+                purchase_ref:
+                  type: string
+                idempotency_key:
+                  type: string
+      responses:
+        '200':
+          description: Wallet credited and purchase recorded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  wallet:
+                    $ref: '#/components/schemas/WalletView'
+                  purchase:
+                    $ref: '#/components/schemas/WalletCoinPurchaseView'
+  /v1/wallet/{userID}/coins/top-up:
+    post:
+      summary: Top-up user wallet coins (MVP controlled path)
+      parameters:
+        - in: path
+          name: userID
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount]
+              properties:
+                amount:
+                  type: integer
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: Wallet updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  wallet:
+                    $ref: '#/components/schemas/WalletView'
   /v1/matches/{matchID}/unlock-state:
     get:
       summary: Get match unlock state
@@ -1388,6 +1692,89 @@ components:
         error_code:
           type: string
         correlation_id:
+          type: string
+    RoseGiftCatalogItem:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        icon_key:
+          type: string
+        tier:
+          type: string
+        price_coins:
+          type: integer
+        is_limited:
+          type: boolean
+        is_active:
+          type: boolean
+        sort_order:
+          type: integer
+    WalletView:
+      type: object
+      properties:
+        user_id:
+          type: string
+        coin_balance:
+          type: integer
+        updated_at:
+          type: string
+    WalletCoinPurchaseView:
+      type: object
+      properties:
+        id:
+          type: string
+        user_id:
+          type: string
+        package_id:
+          type: string
+        source:
+          type: string
+        provider:
+          type: string
+        purchase_ref:
+          type: string
+        idempotency_key:
+          type: string
+        coins:
+          type: integer
+        amount_minor:
+          type: integer
+        currency:
+          type: string
+        wallet_balance_after:
+          type: integer
+        metadata:
+          type: object
+          additionalProperties: true
+        created_at:
+          type: string
+    RoseGiftSendView:
+      type: object
+      properties:
+        id:
+          type: string
+        match_id:
+          type: string
+        sender_user_id:
+          type: string
+        receiver_user_id:
+          type: string
+        gift_id:
+          type: string
+        gift_name:
+          type: string
+        icon_key:
+          type: string
+        price_coins:
+          type: integer
+        created_at:
+          type: string
+        remaining_coins:
+          type: integer
+        message_id:
           type: string
     ChatLockedErrorResponse:
       allOf:

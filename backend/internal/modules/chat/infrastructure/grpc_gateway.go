@@ -23,3 +23,7 @@ func (g *GRPCGateway) ListMessages(ctx context.Context, matchID string, limit in
 func (g *GRPCGateway) SendMessage(ctx context.Context, payload map[string]any) (map[string]any, error) {
 	return rpc.InvokeStruct(ctx, g.client, rpc.ChatMethodSendMessage, payload)
 }
+
+func (g *GRPCGateway) DeleteMessage(ctx context.Context, payload map[string]any) (map[string]any, error) {
+	return rpc.InvokeStruct(ctx, g.client, rpc.ChatMethodDeleteMessage, payload)
+}

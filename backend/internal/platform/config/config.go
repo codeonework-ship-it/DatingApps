@@ -82,6 +82,11 @@ type Config struct {
 	QuestTemplatesTable        string
 	QuestWorkflowsTable        string
 	GesturesTable              string
+	GiftCatalogTable           string
+	UserWalletsTable           string
+	MatchGiftSendsTable        string
+	GiftSpendActivitiesTable   string
+	WalletCoinPurchasesTable   string
 	CommunityGroupsTable       string
 	CommunityGroupMembersTable string
 	CommunityGroupInvitesTable string
@@ -200,19 +205,24 @@ func Load() (Config, error) {
 		DatabaseUser:                     databaseUser,
 		DatabasePassword:                 databasePassword,
 		DatabaseSSLMode:                  databaseSSLMode,
-		UserSchema:                       getOrDefault("SUPABASE_USER_SCHEMA", "public"),
+		UserSchema:                       getOrDefault("SUPABASE_USER_SCHEMA", "user_management"),
 		UsersTable:                       getOrDefault("SUPABASE_USERS_TABLE", "users"),
 		PreferencesTable:                 getOrDefault("SUPABASE_PREFERENCES_TABLE", "preferences"),
 		PhotosTable:                      getOrDefault("SUPABASE_PHOTOS_TABLE", "photos"),
-		MatchingSchema:                   getOrDefault("SUPABASE_MATCHING_SCHEMA", "public"),
+		MatchingSchema:                   getOrDefault("SUPABASE_MATCHING_SCHEMA", "matching"),
 		SwipesTable:                      getOrDefault("SUPABASE_SWIPES_TABLE", "swipes"),
 		MatchesTable:                     getOrDefault("SUPABASE_MATCHES_TABLE", "matches"),
 		MessagesTable:                    getOrDefault("SUPABASE_MESSAGES_TABLE", "messages"),
-		EngagementSchema:                 getOrDefault("SUPABASE_ENGAGEMENT_SCHEMA", "public"),
+		EngagementSchema:                 getOrDefault("SUPABASE_ENGAGEMENT_SCHEMA", "matching"),
 		UnlockStatesTable:                getOrDefault("SUPABASE_UNLOCK_STATES_TABLE", "match_unlock_states"),
 		QuestTemplatesTable:              getOrDefault("SUPABASE_QUEST_TEMPLATES_TABLE", "match_quest_templates"),
 		QuestWorkflowsTable:              getOrDefault("SUPABASE_QUEST_WORKFLOWS_TABLE", "match_quest_workflows"),
 		GesturesTable:                    getOrDefault("SUPABASE_GESTURES_TABLE", "match_gestures"),
+		GiftCatalogTable:                 getOrDefault("SUPABASE_GIFT_CATALOG_TABLE", "gift_catalog"),
+		UserWalletsTable:                 getOrDefault("SUPABASE_USER_WALLETS_TABLE", "user_wallets"),
+		MatchGiftSendsTable:              getOrDefault("SUPABASE_MATCH_GIFT_SENDS_TABLE", "match_gift_sends"),
+		GiftSpendActivitiesTable:         getOrDefault("SUPABASE_GIFT_SPEND_ACTIVITIES_TABLE", "gift_spend_activities"),
+		WalletCoinPurchasesTable:         getOrDefault("SUPABASE_WALLET_COIN_PURCHASES_TABLE", "wallet_coin_purchases"),
 		CommunityGroupsTable:             getOrDefault("SUPABASE_COMMUNITY_GROUPS_TABLE", "community_groups"),
 		CommunityGroupMembersTable:       getOrDefault("SUPABASE_COMMUNITY_GROUP_MEMBERS_TABLE", "community_group_members"),
 		CommunityGroupInvitesTable:       getOrDefault("SUPABASE_COMMUNITY_GROUP_INVITES_TABLE", "community_group_invites"),

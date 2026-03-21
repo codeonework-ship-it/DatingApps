@@ -1,45 +1,100 @@
-# Copilot Instructions
 
-Use these repo-specific rules to make safe, minimal changes across Flutter (`app/`), Go backend (`backend/`), and Django control panel (`control-panel/`).
+# Copilot Instructions for AI Coding Agents
 
-## Architecture (work from boundaries)
-- Request flow: Flutter / Django Control Panel → API Gateway (`backend/cmd/api-gateway`) → Mobile BFF (`backend/cmd/mobile-bff`) → module gateways + Supabase/Postgres.
-- Gateway (`backend/internal/gateway/http/server.go`) is a resiliency edge, not feature logic: reverse proxying, correlation IDs, panic envelope, inflight shed, IP rate limit, ready-probe to BFF.
-- Mobile BFF (`backend/internal/bff/mobile/server.go`) is the composition boundary: mediator registration, module orchestration, bulkheads, idempotency, activity/admin surfaces.
-- Module layering is enforced as `backend/internal/modules/<module>/{application,infrastructure}`; compliance script validates this (`backend/scripts/check_backend_compliance.sh`).
+## Monorepo shape and request flow
+- Runtime surfaces: Flutter app (`app/`), Go backend (`backend/`), Django operator console (`control-panel/`).
+- Runtime path is: client/control-panel → API Gateway (`backend/cmd/api-gateway`) → Mobile BFF (`backend/cmd/mobile-bff`) → module services/stores.
+- Keep gateway thin (reverse proxy + edge middleware). Put feature orchestration in Mobile BFF or module `application` services.
+- Backend module boundary is enforced: `backend/internal/modules/<module>/{application,infrastructure}` (`backend/scripts/check_backend_compliance.sh`).
 
-## Non-negotiable backend contracts
-- Keep runtime config in `backend/internal/platform/config/config.go`; avoid hardcoded `localhost` / emulator URLs in runtime Go files.
-- Do not spend time probing for an active git repo; assume the provided workspace is authoritative and proceed with code/file workflows directly.
-- Do not inspect active git changed-file state (`git status`/diff tooling) unless the user explicitly asks.
-- Preserve middleware order:
-  - Gateway: correlation → exception → inflight shed → `httprate` → request logging
-  - BFF: correlation → exception → inflight shed → bulkhead → idempotency → request logging
-- Keep observability HTTP contract in `backend/internal/platform/observability/http.go`:
-  - header round-trip: `X-Correlation-ID`
-  - panic envelope keys: `success`, `error`, `error_code`, `correlation_id`
-- Add new backend behavior in module `application` and register handlers in BFF bootstrap (mediator wiring in `backend/internal/bff/mobile/server.go`).
+## Non-negotiable backend conventions
+- Preserve middleware order exactly:
+  - Gateway (`backend/internal/gateway/http/server.go`): CorrelationID → exception handler → inflight shedding → IP rate limit → request logging.
+  - Mobile BFF (`backend/internal/bff/mobile/server.go`): CorrelationID → exception handler → inflight shedding → bulkhead → idempotency → request logging → activity middleware.
+- Correlation is end-to-end: backend expects `X-Correlation-ID`; Flutter injects it in `app/lib/core/providers/api_client_provider.dart`.
+- Do not hardcode runtime local URLs in non-test Go files (`http://localhost`, `10.0.2.2`) except config defaults; compliance check fails otherwise.
+- For route renames, keep compatibility using `withAliasDeprecation` in BFF routes.
+- `validateDurableEngagementReadiness` in BFF startup can block boot when durable persistence is required; schema changes must respect this gate.
 
-## Critical workflows
-- Backend lifecycle (`backend/`): `make run-all`, `make stop-all`, `make backend-compliance-check`.
-- `make run-all` runs `backend/scripts/dev_up.sh` (loads `config/.env` or `.env.local`, writes logs to `.run/logs`, pids to `.run/pids`).
-- Fast health checks:
-  - Gateway: `http://localhost:8080/healthz`, `/readyz`, `/docs`, `/openapi.yaml`
-  - BFF: `http://localhost:8081/healthz`, `/readyz`
-- Proto updates: edit `backend/api/proto/*.proto` then run `make proto`.
-- Durable engagement SQL rollout is order-sensitive; follow `backend/scripts_run_order.txt` (notably `014`, `018`, `019`, `020`, `021`, `025`, `027`, `028`, `029`).
+## API contract + persistence workflow
+- OpenAPI source of truth: `backend/internal/platform/docs/openapi.yaml`.
+- After API changes: update OpenAPI, run `make proto` (from `backend/`), and sync contract snapshot in `backend/internal/platform/docs/contracts/`.
+- Apply DB migrations in strict order from `backend/scripts_run_order.txt` (canonical schemas: `matching`, `user_management`).
+- Durable engagement features commonly use repository + fallback memory patterns under `backend/internal/bff/mobile/` (see `groups.go` + `groups_repository.go`).
 
-## Cross-app integration points
-- OpenAPI source of truth: `backend/internal/platform/docs/openapi.yaml`; keep snapshots in `backend/internal/platform/docs/contracts/` in sync.
-- Flutter sets `X-Correlation-ID` and `X-Client-Platform` in `app/lib/core/providers/api_client_provider.dart`; backend changes must not break these headers.
-- Flutter runtime config is env + dart-define (`app/lib/core/config/app_runtime_config.dart`), default Android emulator API URL: `http://10.0.2.2:8080/v1`.
-- `app/lib/main.dart` blocks `USE_MOCK_AUTH` / `USE_MOCK_DISCOVERY_DATA` in release mode; do not introduce release paths that rely on mock flags.
-- Control panel is BFF-consumer-only: use `control-panel/control_panel/services/go_client.py` (`X-Admin-User` required), keep domain logic in Go services.
+## Persistence-first module policy (mandatory)
+- In-memory-only product functionality is not allowed for backend production paths.
+- Any new module or feature state must have a durable repository and table(s) before endpoint rollout.
+- Treat `memoryStore` as temporary fallback/test scaffolding only; do not introduce new persistent product state there.
+- If a fallback is temporarily required, gate it behind config and keep `RequireDurableEngagementStore=true` compatibility.
+- Every persistence-bearing endpoint must document:
+  - storage table(s),
+  - idempotency strategy,
+  - retry/recovery behavior,
+  - reporting/event outputs.
+- Use repository + application service orchestration (Clean Architecture) for all new persistent flows.
 
-## Tests and observability touchpoints
-- Backend: prefer targeted `_test.go` updates near changed modules, then `go test ./...` from `backend/`.
-- Flutter: run focused tests in `app/test/` before broader `flutter test`.
-- Flutter UI/dev loop: after Flutter code changes, hot reload the running emulator/device session when available before reporting completion.
-- Control panel local flow is defined in `control-panel/README.md` (venv, requirements, migrate, runserver).
-- ELK local lifecycle (`backend/`): `make elk-up-local`, `make elk-status-local`, `make elk-down-local`.
-- Kibana index/data-view pattern used across backend + control panel: `dating-app-logs-*`.
+### Persistence enforcement (PR blocking)
+- Reject any PR that introduces new product state fields/maps/slices in `backend/internal/bff/mobile/memoryStore` unless the same PR includes durable table(s) + repository + migration.
+- Reject any PR that exposes a write endpoint without:
+  - durable table write path,
+  - idempotency contract (header/key + conflict behavior),
+  - retry/recovery handling,
+  - event emission into reporting pipeline (`matching.activity_events` or module-specific durable event table).
+- Reject any PR that adds analytics from process memory. Analytics/reporting must be generated from durable tables or materialized views.
+
+### Mandatory persistent module design pattern
+- `application` layer:
+  - define use-cases/commands/queries and transaction boundaries,
+  - enforce invariants and idempotency semantics,
+  - emit domain events for reporting.
+- `infrastructure` layer:
+  - implement repository interfaces against PostgreSQL/Supabase,
+  - include optimistic concurrency/version or uniqueness constraints where needed,
+  - support deterministic retries and compensating updates where multi-write flows exist.
+- `delivery` (BFF handlers):
+  - call application services only,
+  - no direct in-memory mutation for persistent product state,
+  - preserve correlation-id and structured logging.
+
+### Definition of done for persistent features
+- Migration SQL created and ordered in `backend/scripts_run_order.txt`.
+- OpenAPI updated and contracts regenerated where API changed.
+- Durable-mode startup passes (`RequireDurableEngagementStore=true`).
+- Tests cover happy path + idempotent replay + failure/retry path + reporting event output.
+
+### Required backend module pattern for persistent features
+- Add use-cases in `backend/internal/modules/<module>/application`.
+- Add adapters/repositories in `backend/internal/modules/<module>/infrastructure`.
+- Wire BFF handlers to application services, not direct in-memory state mutation.
+- Add migration SQL under `backend/scripts/` and append ordering in `backend/scripts_run_order.txt`.
+- Add read models/queries needed for reporting and admin analytics at implementation time.
+
+### Mandatory table backlog reference
+- Use `documents/codex/PERSISTENCE_TABLE_BACKLOG_2026-03-21.md` as the source backlog for eliminating in-memory state and creating missing durable tables.
+
+## Critical local workflows
+- Backend lifecycle (from `backend/`): `make run-all`, `make stop-all`.
+- Health checks: gateway `:8080/healthz` + `:8080/readyz`, BFF `:8081/healthz` + `:8081/readyz`.
+- Validation loop for backend changes: `go test ./...` then `make backend-compliance-check`.
+- ELK local stack: `make elk-up-local`, `make elk-status-local`, `make elk-down-local` (docker fallback: `make elk-up`, `make elk-down`).
+- Flutter checks (from `app/`): `flutter analyze`, `flutter test`.
+
+## Flutter + Django integration points
+- Flutter runtime config precedence is `.env.local/.env` → `--dart-define` → defaults (`app/lib/core/config/app_runtime_config.dart`).
+- `app/lib/main.dart` explicitly disallows mock-auth/mock-discovery flags in release; keep this guard.
+- Flutter API client always sends `X-Correlation-ID` and `X-Client-Platform`; do not remove.
+- Control panel is API-consumer only (no duplicated domain logic): `control-panel/control_panel/services/go_client.py`.
+- Admin API calls rely on `X-Admin-User` header set by `GoBFFClient`; preserve this behavior when adding `/v1/admin/*` endpoints.
+
+## High-value implementation patterns
+- New backend capability: add module use-case in `internal/modules/<module>/application`, adapter in `infrastructure`, then wire BFF route/handler.
+- New BFF persistence feature: follow `*_repository.go` + store wrapper pattern with durable-first behavior and controlled fallback.
+- New client-visible API: update OpenAPI and keep error envelope compatibility (`components.schemas.ErrorResponse`, `ChatLockedErrorResponse`).
+
+## Delivery guardrails
+- Prefer Clean Architecture, DDD, Mediator/MediatR-style request orchestration, KISS, DRY, and SOLID for all new changes.
+- Every transactional workflow must preserve ACID properties end-to-end across application logic, persistence, retries, and recovery handling.
+- For Flutter and Go changes, preserve structured logging, correlation-id propagation, and explicit exception/error handling on every networked or stateful flow.
+- Add explicit user-facing handling for network instability: detect offline/weak-network states, notify users clearly, and design networked experiences around a minimum smooth-usage target of roughly 5 Mbps.
+- Keep UI fixes thin in screens/widgets and move non-trivial orchestration into providers, application services, or module/application layers.

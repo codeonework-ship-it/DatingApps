@@ -81,6 +81,11 @@ Widget _appWithOverride(_FakeProfileSetupNotifier notifier) => ProviderScope(
   child: const MaterialApp(home: SetupBasicInfoScreen()),
 );
 
+Future<void> _pumpUi(WidgetTester tester) async {
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 400));
+}
+
 void main() {
   testWidgets('renders without overflow on compact phone viewport', (
     tester,
@@ -91,7 +96,7 @@ void main() {
 
     final notifier = _FakeProfileSetupNotifier(_draft(name: 'Asha'));
     await tester.pumpWidget(_appWithOverride(notifier));
-    await tester.pumpAndSettle();
+    await _pumpUi(tester);
 
     expect(find.text('Basic Info'), findsAtLeastNWidgets(1));
     expect(tester.takeException(), isNull);
@@ -106,7 +111,7 @@ void main() {
       _draft(name: 'Priya', dob: DateTime(1997, 10, 12)),
     );
     await tester.pumpWidget(_appWithOverride(notifier));
-    await tester.pumpAndSettle();
+    await _pumpUi(tester);
 
     expect(
       find.text('Tell matches who you are. You can edit this later.'),
@@ -119,7 +124,7 @@ void main() {
   testWidgets('shows validation when name is too short', (tester) async {
     final notifier = _FakeProfileSetupNotifier(_draft(name: '', dob: null));
     await tester.pumpWidget(_appWithOverride(notifier));
-    await tester.pumpAndSettle();
+    await _pumpUi(tester);
 
     await tester.enterText(find.byType(TextField).first, 'A');
     await tester.tap(find.text('Next'));
@@ -132,7 +137,7 @@ void main() {
   testWidgets('shows validation when date of birth is missing', (tester) async {
     final notifier = _FakeProfileSetupNotifier(_draft(name: '', dob: null));
     await tester.pumpWidget(_appWithOverride(notifier));
-    await tester.pumpAndSettle();
+    await _pumpUi(tester);
 
     await tester.enterText(find.byType(TextField).first, 'Ananya');
     await tester.tap(find.text('Next'));
@@ -149,11 +154,11 @@ void main() {
       _draft(name: 'Ananya', dob: DateTime(1998, 6, 20)),
     );
     await tester.pumpWidget(_appWithOverride(notifier));
-    await tester.pumpAndSettle();
+    await _pumpUi(tester);
 
     await tester.enterText(find.byType(TextField).first, 'Ananya Singh');
     await tester.tap(find.text('Next'));
-    await tester.pumpAndSettle();
+    await _pumpUi(tester);
 
     expect(notifier.saveCalls, 1);
     expect(find.text('Photos'), findsOneWidget);

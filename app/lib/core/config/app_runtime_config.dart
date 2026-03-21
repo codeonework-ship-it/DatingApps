@@ -46,10 +46,40 @@ class AppRuntimeConfig {
     }
   }
 
-  static String get apiBaseUrl => _pick(<String>[
-    _fromEnv('API_BASE_URL'),
-    const String.fromEnvironment('API_BASE_URL'),
+  static String get apiEnvironment => _pick(<String>[
+    _fromEnv('API_ENV'),
+    const String.fromEnvironment('API_ENV'),
+  ], 'local').toLowerCase();
+
+  static String get apiLocalBaseUrl => _pick(<String>[
+    _fromEnv('API_LOCAL_BASE_URL'),
+    const String.fromEnvironment('API_LOCAL_BASE_URL'),
   ], 'http://10.0.2.2:8080/v1');
+
+  static String get apiProdBaseUrl => _pick(<String>[
+    _fromEnv('API_PROD_BASE_URL'),
+    const String.fromEnvironment('API_PROD_BASE_URL'),
+  ], 'http://72.61.242.87/v1');
+
+  static String get apiBaseUrl {
+    final explicitApiBaseUrl = _pick(<String>[
+      _fromEnv('API_BASE_URL'),
+      const String.fromEnvironment('API_BASE_URL'),
+    ], '');
+
+    if (explicitApiBaseUrl.isNotEmpty) {
+      return explicitApiBaseUrl;
+    }
+
+    switch (apiEnvironment) {
+      case 'prod':
+      case 'production':
+        return apiProdBaseUrl;
+      case 'local':
+      default:
+        return apiLocalBaseUrl;
+    }
+  }
 
   static int get apiTimeoutMs {
     final raw = _pick(<String>[

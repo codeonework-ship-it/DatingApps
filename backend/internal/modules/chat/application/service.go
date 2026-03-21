@@ -13,6 +13,7 @@ import (
 type Gateway interface {
 	ListMessages(context.Context, string, int) (map[string]any, error)
 	SendMessage(context.Context, map[string]any) (map[string]any, error)
+	DeleteMessage(context.Context, map[string]any) (map[string]any, error)
 }
 
 type Service struct {
@@ -38,6 +39,13 @@ func RegisterHandlers(bus *mediatr.Mediator, service *Service) {
 			return nil, fmt.Errorf("%w: invalid send message command", ErrValidation)
 		}
 		return service.HandleSendMessage(ctx, command)
+	})
+	bus.Register(DeleteMessageCommandName, func(ctx context.Context, request any) (any, error) {
+		command, ok := request.(DeleteMessageCommand)
+		if !ok {
+			return nil, fmt.Errorf("%w: invalid delete message command", ErrValidation)
+		}
+		return service.HandleDeleteMessage(ctx, command)
 	})
 }
 
@@ -74,6 +82,25 @@ func (s *Service) HandleSendMessage(ctx context.Context, command SendMessageComm
 	response, err := s.gateway.SendMessage(ctx, payload)
 	if err != nil {
 		return nil, fmt.Errorf("send message failed: %w", err)
+	}
+	return response, nil
+}
+
+func (s *Service) HandleDeleteMessage(ctx context.Context, command DeleteMessageCommand) (map[string]any, error) {
+	matchID := strings.TrimSpace(command.MatchID)
+	if matchID == "" {
+		return nil, fmt.Errorf("%w: match id is required", ErrValidation)
+	}
+	payload := command.Payload
+	if payload == nil {
+		return nil, fmt.Errorf("%w: payload is required", ErrValidation)
+	}
+	payload["match_id"] = matchID
+
+	s.log.Info("chat_delete_message_command")
+	response, err := s.gateway.DeleteMessage(ctx, payload)
+	if err != nil {
+		return nil, fmt.Errorf("delete message failed: %w", err)
 	}
 	return response, nil
 }

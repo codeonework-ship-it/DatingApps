@@ -1,0 +1,142 @@
+{
+  "timestamp_utc": "20260319T045557Z",
+  "base": "http://localhost:8080/v1",
+  "participants": {
+    "sender_user_id": "11111111-1111-1111-1111-111111111111",
+    "receiver_user_id": "22222222-2222-2222-2222-222222222222"
+  },
+  "steps": {
+    "match_bootstrap": {
+      "swipe_sender_status": 200,
+      "swipe_receiver_status": 200,
+      "list_matches_status": 200,
+      "match_id": "1a7e109a-d0db-4576-9eee-5a25c2c12efd",
+      "matches_body": {
+        "advanced_filter": {
+          "active": true,
+          "applied": {
+            "city": "",
+            "country": "",
+            "deal_breaker_tags": [],
+            "diet_preference": "",
+            "diet_type": "",
+            "drinking": "never",
+            "hookup_only": false,
+            "intent_tags": [],
+            "language_tags": [],
+            "mother_tongue": "",
+            "party_lover": false,
+            "personality_type": "",
+            "pet_preference": "",
+            "political_comfort_range": "",
+            "relationship_status": "",
+            "religion": "",
+            "sleep_schedule": "",
+            "smoking": "never",
+            "state": "",
+            "travel_style": "",
+            "workout_frequency": ""
+          },
+          "filtered_out_count": 0
+        },
+        "correlation_id": "afe9a6d3-4653-4341-88b3-50c4c81768f8",
+        "matches": [
+          {
+            "id": "1a7e109a-d0db-4576-9eee-5a25c2c12efd",
+            "isOnline": false,
+            "lastMessage": "Quest approved, welcome to chat!",
+            "lastMessageTime": "2026-02-28T20:39:26Z",
+            "unlock_state": "matched",
+            "unreadCount": 0,
+            "userId": "22222222-2222-2222-2222-222222222222",
+            "userName": "Smoke User B",
+            "userPhoto": "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=500&q=80"
+          },
+          {
+            "id": "b26d1a55-03a0-4d67-aee7-6e76a3342cfe",
+            "isOnline": false,
+            "lastMessage": "<nil>",
+            "lastMessageTime": "2026-03-15T07:11:24Z",
+            "unlock_state": "matched",
+            "unreadCount": 0,
+            "userId": "f2683b47-ef45-4af5-947b-87997288e0ca",
+            "userName": "Member",
+            "userPhoto": "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=500&q=80"
+          }
+        ],
+        "trust_filter": {
+          "active": false,
+          "filtered_out_count": 0,
+          "minimum_active_badges": 0,
+          "required_badge_codes": []
+        }
+      }
+    },
+    "sent": {
+      "status": 200,
+      "body": {
+        "accepted": true,
+        "correlation_id": "1ff76e2d-5dac-4969-a728-b7395f4de7fa",
+        "message_id": "a6485ab1-b21c-4f52-8cc7-1b759886f338"
+      },
+      "text": "Receipt proof ping at 20260319T045557Z"
+    },
+    "sender_view_before_receiver_poll": {
+      "status": 200,
+      "message": {
+        "createdAt": "2026-03-19T04:56:00.380638+00:00",
+        "deletedAt": null,
+        "deliveredAt": null,
+        "id": "a6485ab1-b21c-4f52-8cc7-1b759886f338",
+        "isDeleted": false,
+        "matchId": "1a7e109a-d0db-4576-9eee-5a25c2c12efd",
+        "readAt": null,
+        "senderId": "11111111-1111-1111-1111-111111111111",
+        "text": "Receipt proof ping at 20260319T045557Z"
+      }
+    },
+    "delivered_receiver_session": {
+      "status": 200,
+      "receiver_seen_sender_message": true,
+      "message": {
+        "createdAt": "2026-03-19T04:56:00.380638+00:00",
+        "deletedAt": null,
+        "deliveredAt": null,
+        "id": "a6485ab1-b21c-4f52-8cc7-1b759886f338",
+        "isDeleted": false,
+        "matchId": "1a7e109a-d0db-4576-9eee-5a25c2c12efd",
+        "readAt": null,
+        "senderId": "11111111-1111-1111-1111-111111111111",
+        "text": "Receipt proof ping at 20260319T045557Z"
+      }
+    },
+    "mark_read_by_receiver": {
+      "status": 200,
+      "body": {
+        "correlation_id": "7a9e650a-ff32-4e54-ab77-5b4fa855cd80",
+        "success": true
+      }
+    },
+    "sender_view_after_read": {
+      "status": 200,
+      "message": {
+        "createdAt": "2026-03-19T04:56:00.380638+00:00",
+        "deletedAt": null,
+        "deliveredAt": null,
+        "id": "a6485ab1-b21c-4f52-8cc7-1b759886f338",
+        "isDeleted": false,
+        "matchId": "1a7e109a-d0db-4576-9eee-5a25c2c12efd",
+        "readAt": "2026-03-19T04:56:00+00:00",
+        "senderId": "11111111-1111-1111-1111-111111111111",
+        "text": "Receipt proof ping at 20260319T045557Z"
+      }
+    }
+  },
+  "match_id": "1a7e109a-d0db-4576-9eee-5a25c2c12efd",
+  "assertions": {
+    "sent": true,
+    "delivered": true,
+    "read": true
+  },
+  "result": "PASS"
+}

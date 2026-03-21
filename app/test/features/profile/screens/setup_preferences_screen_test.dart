@@ -175,13 +175,18 @@ Widget _hostApp({
   ),
 );
 
+Future<void> _pumpUi(WidgetTester tester) async {
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 450));
+}
+
 void main() {
   testWidgets('shows Save when opened from non-setup flows', (tester) async {
     final notifier = _FakeProfileSetupNotifier(_draft());
     await tester.pumpWidget(_hostApp(isSetupFlow: false, notifier: notifier));
 
     await tester.tap(find.text('Open Preferences'));
-    await tester.pumpAndSettle();
+    await _pumpUi(tester);
 
     expect(find.text('Save'), findsOneWidget);
     expect(find.text('Finish'), findsNothing);
@@ -194,7 +199,7 @@ void main() {
     await tester.pumpWidget(_hostApp(isSetupFlow: null, notifier: notifier));
 
     await tester.tap(find.text('Open Preferences'));
-    await tester.pumpAndSettle();
+    await _pumpUi(tester);
 
     expect(find.text('Save'), findsOneWidget);
     expect(find.text('Finish'), findsNothing);
@@ -206,7 +211,7 @@ void main() {
     await tester.pumpWidget(_hostApp(isSetupFlow: true, notifier: notifier));
 
     await tester.tap(find.text('Open Preferences'));
-    await tester.pumpAndSettle();
+    await _pumpUi(tester);
 
     expect(find.text('Finish'), findsOneWidget);
     expect(find.text('Save'), findsNothing);
@@ -224,11 +229,11 @@ void main() {
     container.read(mainNavigationIndexProvider.notifier).state = 4;
 
     await tester.tap(find.text('Open Preferences'));
-    await tester.pumpAndSettle();
+    await _pumpUi(tester);
 
     await tester.ensureVisible(find.text('Finish'));
     await tester.tap(find.text('Finish'));
-    await tester.pumpAndSettle();
+    await _pumpUi(tester);
 
     expect(notifier.savePreferencesCalls, 1);
     expect(notifier.saveLifestyleCalls, 1);
@@ -248,11 +253,11 @@ void main() {
     container.read(mainNavigationIndexProvider.notifier).state = 4;
 
     await tester.tap(find.text('Open Preferences'));
-    await tester.pumpAndSettle();
+    await _pumpUi(tester);
 
     await tester.ensureVisible(find.text('Save'));
     await tester.tap(find.text('Save'));
-    await tester.pumpAndSettle();
+    await _pumpUi(tester);
 
     expect(notifier.savePreferencesCalls, 1);
     expect(notifier.saveLifestyleCalls, 1);

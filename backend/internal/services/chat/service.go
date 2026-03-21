@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -18,6 +19,7 @@ import (
 type Repository interface {
 	ListMessages(context.Context, string, int) ([]map[string]any, error)
 	SendMessage(context.Context, string, string, string) (string, error)
+	DeleteMessage(context.Context, string, string, string) (bool, string, error)
 }
 
 type SupabaseRepository struct {
@@ -132,9 +134,58 @@ func (s *Service) SendMessage(ctx context.Context, req *structpb.Struct) (*struc
 	})
 }
 
+func (s *Service) DeleteMessage(ctx context.Context, req *structpb.Struct) (*structpb.Struct, error) {
+	payload := req.AsMap()
+	matchID, _ := payload["match_id"].(string)
+	messageID, _ := payload["message_id"].(string)
+	requesterUserID, _ := payload["requester_user_id"].(string)
+	matchID = strings.TrimSpace(matchID)
+	messageID = strings.TrimSpace(messageID)
+	requesterUserID = strings.TrimSpace(requesterUserID)
+
+	s.log.Info(
+		"chat_delete_message_requested",
+		zap.String("match_id", matchID),
+		zap.String("message_id", messageID),
+		zap.String("requester_user_id", requesterUserID),
+	)
+
+	if matchID == "" || messageID == "" || requesterUserID == "" {
+		return structpb.NewStruct(map[string]any{
+			"deleted": false,
+			"error":   "match_id, message_id and requester_user_id are required",
+		})
+	}
+
+	deleted, reasonCode, err := s.repo.DeleteMessage(ctx, matchID, messageID, requesterUserID)
+	if err != nil {
+		s.log.Error(
+			"chat_delete_message_failed",
+			zap.String("match_id", matchID),
+			zap.String("message_id", messageID),
+			zap.Error(err),
+		)
+		return nil, err
+	}
+
+	s.log.Info(
+		"chat_delete_message_completed",
+		zap.String("match_id", matchID),
+		zap.String("message_id", messageID),
+		zap.Bool("deleted", deleted),
+	)
+
+	return structpb.NewStruct(map[string]any{
+		"deleted":    deleted,
+		"message_id": messageID,
+		"reason_code": reasonCode,
+	})
+}
+
 func (r *SupabaseRepository) ListMessages(ctx context.Context, matchID string, limit int) ([]map[string]any, error) {
 	params := url.Values{}
 	params.Set("matchId", "eq."+matchID)
+	params.Set("or", "(isDeleted.is.null,isDeleted.eq.false)")
 	params.Set("select", "id,matchId,senderId,text,createdAt,deliveredAt,readAt,isDeleted,deletedAt")
 	params.Set("order", "createdAt.desc")
 	params.Set("limit", strconv.Itoa(limit))
@@ -155,6 +206,59 @@ func (r *SupabaseRepository) SendMessage(ctx context.Context, matchID, senderID,
 	}
 	id, _ := rows[0]["id"].(string)
 	return id, nil
+}
+
+func (r *SupabaseRepository) DeleteMessage(
+	ctx context.Context,
+	matchID,
+	messageID,
+	requesterUserID string,
+) (bool, string, error) {
+	lookup := url.Values{}
+	lookup.Set("id", "eq."+messageID)
+	lookup.Set("matchId", "eq."+matchID)
+	lookup.Set("senderId", "eq."+requesterUserID)
+	lookup.Set("or", "(isDeleted.is.null,isDeleted.eq.false)")
+	lookup.Set("select", "id,createdAt")
+	lookup.Set("limit", "1")
+
+	rows, err := r.db.Select(ctx, r.cfg.MatchingSchema, r.cfg.MessagesTable, lookup)
+	if err != nil {
+		return false, "", err
+	}
+	if len(rows) == 0 {
+		return false, "NOT_FOUND_OR_NOT_OWNER", nil
+	}
+
+	createdAtRaw, _ := rows[0]["createdAt"].(string)
+	createdAt, parseErr := time.Parse(time.RFC3339, strings.TrimSpace(createdAtRaw))
+	if parseErr == nil && time.Since(createdAt.UTC()) > 24*time.Hour {
+		return false, "DELETE_WINDOW_EXPIRED", nil
+	}
+
+	filters := url.Values{}
+	filters.Set("id", "eq."+messageID)
+	filters.Set("matchId", "eq."+matchID)
+	filters.Set("senderId", "eq."+requesterUserID)
+	filters.Set("or", "(isDeleted.is.null,isDeleted.eq.false)")
+
+	updatedRows, err := r.db.Update(
+		ctx,
+		r.cfg.MatchingSchema,
+		r.cfg.MessagesTable,
+		map[string]any{
+			"isDeleted": true,
+			"deletedAt": time.Now().UTC().Format(time.RFC3339),
+		},
+		filters,
+	)
+	if err != nil {
+		return false, "", err
+	}
+	if len(updatedRows) == 0 {
+		return false, "NOT_FOUND_OR_NOT_OWNER", nil
+	}
+	return true, "DELETED", nil
 }
 
 func mapsToAnySlice(input []map[string]any) []any {

@@ -202,6 +202,9 @@ func (s *Server) shouldApplyIdempotency(r *http.Request) bool {
 	if r.Method == http.MethodPost && strings.HasPrefix(path, "chat/") && strings.HasSuffix(path, "/messages") {
 		return true
 	}
+	if r.Method == http.MethodPost && strings.HasPrefix(path, "chat/") && strings.HasSuffix(path, "/gifts/send") {
+		return true
+	}
 	if r.Method == http.MethodPost && strings.Contains(path, "/quest-workflow/submit") {
 		return true
 	}

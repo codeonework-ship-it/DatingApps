@@ -16,13 +16,37 @@ func (s *Server) getUserTrustBadges(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	milestone, badges, err := s.store.recomputeUserTrustBadges(userID)
+	var (
+		milestone trustMilestone
+		badges    []trustBadge
+		history   []trustBadgeHistoryEvent
+		err       error
+	)
+	if s.trust != nil {
+		milestone, badges, err = s.trust.recomputeUserTrustBadges(r.Context(), userID)
+		if err != nil && (!isTrustRepoPersistenceUnavailable(err) || s.cfg.RequireDurableEngagementStore) {
+			writeError(w, http.StatusBadGateway, err)
+			return
+		}
+	}
+	if s.trust == nil || (err != nil && isTrustRepoPersistenceUnavailable(err) && !s.cfg.RequireDurableEngagementStore) {
+		milestone, badges, err = s.store.recomputeUserTrustBadges(userID)
+	}
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err)
 		return
 	}
 
-	history, err := s.store.listUserTrustBadgeHistory(userID, 20)
+	if s.trust != nil {
+		history, err = s.trust.listUserTrustBadgeHistory(r.Context(), userID, 20)
+		if err != nil && (!isTrustRepoPersistenceUnavailable(err) || s.cfg.RequireDurableEngagementStore) {
+			writeError(w, http.StatusBadGateway, err)
+			return
+		}
+	}
+	if s.trust == nil || (err != nil && isTrustRepoPersistenceUnavailable(err) && !s.cfg.RequireDurableEngagementStore) {
+		history, err = s.store.listUserTrustBadgeHistory(userID, 20)
+	}
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err)
 		return
@@ -61,7 +85,20 @@ func (s *Server) listUserTrustBadgeHistory(w http.ResponseWriter, r *http.Reques
 		}
 	}
 
-	history, err := s.store.listUserTrustBadgeHistory(userID, limit)
+	var (
+		history []trustBadgeHistoryEvent
+		err     error
+	)
+	if s.trust != nil {
+		history, err = s.trust.listUserTrustBadgeHistory(r.Context(), userID, limit)
+		if err != nil && (!isTrustRepoPersistenceUnavailable(err) || s.cfg.RequireDurableEngagementStore) {
+			writeError(w, http.StatusBadGateway, err)
+			return
+		}
+	}
+	if s.trust == nil || (err != nil && isTrustRepoPersistenceUnavailable(err) && !s.cfg.RequireDurableEngagementStore) {
+		history, err = s.store.listUserTrustBadgeHistory(userID, limit)
+	}
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err)
 		return

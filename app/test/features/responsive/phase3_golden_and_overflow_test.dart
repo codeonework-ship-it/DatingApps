@@ -1,4 +1,6 @@
 @Tags(<String>['golden'])
+library;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -111,6 +113,11 @@ Widget _discoverApp() => ProviderScope(
 );
 
 void main() {
+  Future<void> pumpUi(WidgetTester tester) async {
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 450));
+  }
+
   Future<void> setViewport(WidgetTester tester, Size logicalSize) async {
     tester.view.physicalSize = logicalSize;
     tester.view.devicePixelRatio = 1.0;
@@ -120,7 +127,7 @@ void main() {
   testWidgets('setup basic info phone golden has no overflow', (tester) async {
     await setViewport(tester, const Size(360, 780));
     await tester.pumpWidget(_setupApp(_draft(name: 'Asha')));
-    await tester.pumpAndSettle();
+    await pumpUi(tester);
 
     expect(tester.takeException(), isNull);
     await expectLater(
@@ -134,7 +141,7 @@ void main() {
     await tester.pumpWidget(
       _setupApp(_draft(name: 'Priya', dob: DateTime(1997, 10, 12))),
     );
-    await tester.pumpAndSettle();
+    await pumpUi(tester);
 
     expect(tester.takeException(), isNull);
     await expectLater(
@@ -146,7 +153,7 @@ void main() {
   testWidgets('discover phone golden has no overflow', (tester) async {
     await setViewport(tester, const Size(360, 780));
     await tester.pumpWidget(_discoverApp());
-    await tester.pumpAndSettle();
+    await pumpUi(tester);
 
     expect(find.text('Messages'), findsOneWidget);
     expect(tester.takeException(), isNull);
@@ -159,7 +166,7 @@ void main() {
   testWidgets('discover tablet golden has no overflow', (tester) async {
     await setViewport(tester, const Size(1024, 1366));
     await tester.pumpWidget(_discoverApp());
-    await tester.pumpAndSettle();
+    await pumpUi(tester);
 
     expect(find.text('Messages'), findsOneWidget);
     expect(tester.takeException(), isNull);

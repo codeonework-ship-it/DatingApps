@@ -65,6 +65,8 @@ class MatchState {
 /// Match Provider
 @riverpod
 class MatchNotifier extends _$MatchNotifier {
+  final List<Match> _localMatches = <Match>[];
+
   @override
   MatchState build() {
     Future<void>.microtask(_loadMatches);
@@ -80,9 +82,11 @@ class MatchNotifier extends _$MatchNotifier {
         await Future<void>.delayed(const Duration(milliseconds: 220));
         final seeded = _mockMatches();
         state = state.copyWith(
-          matches: kUseDummyMatches
-              ? _appendDummyMatches(seeded, currentUserId: 'mock-self')
-              : seeded,
+          matches: _mergeWithLocalMatches(
+            kUseDummyMatches
+                ? _appendDummyMatches(seeded, currentUserId: 'mock-self')
+                : seeded,
+          ),
           isLoading: false,
           trustFilterActive: false,
           trustFilteredOutCount: 0,
@@ -206,7 +210,7 @@ class MatchNotifier extends _$MatchNotifier {
           : mapped;
 
       state = state.copyWith(
-        matches: resolvedMatches,
+        matches: _mergeWithLocalMatches(resolvedMatches),
         isLoading: false,
         error: null,
         trustFilterActive: trustFilter['active'] == true,
@@ -295,6 +299,35 @@ class MatchNotifier extends _$MatchNotifier {
   /// Manual refresh for pull-to-refresh patterns.
   Future<void> refresh() async {
     await _loadMatches();
+  }
+
+  void upsertLocalTestMatch(Match match) {
+    _localMatches.removeWhere(
+      (item) => item.id == match.id || item.userId == match.userId,
+    );
+    _localMatches.insert(0, match);
+    state = state.copyWith(matches: _mergeWithLocalMatches(state.matches));
+  }
+
+  List<Match> _mergeWithLocalMatches(List<Match> baseMatches) {
+    final merged = <Match>[];
+    final seen = <String>{};
+
+    void addMatch(Match match) {
+      final key = '${match.id}|${match.userId}';
+      if (seen.add(key)) {
+        merged.add(match);
+      }
+    }
+
+    for (final match in _localMatches) {
+      addMatch(match);
+    }
+    for (final match in baseMatches) {
+      addMatch(match);
+    }
+
+    return merged;
   }
 }
 

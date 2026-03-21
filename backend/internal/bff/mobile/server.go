@@ -34,6 +34,8 @@ import (
 	callsinfra "github.com/verified-dating/backend/internal/modules/calls/infrastructure"
 	chatapp "github.com/verified-dating/backend/internal/modules/chat/application"
 	chatinfra "github.com/verified-dating/backend/internal/modules/chat/infrastructure"
+	engagementapp "github.com/verified-dating/backend/internal/modules/engagement/application"
+	engagementinfra "github.com/verified-dating/backend/internal/modules/engagement/infrastructure"
 	matchingapp "github.com/verified-dating/backend/internal/modules/matching/application"
 	matchinginfra "github.com/verified-dating/backend/internal/modules/matching/infrastructure"
 	profileapp "github.com/verified-dating/backend/internal/modules/profile/application"
@@ -60,6 +62,11 @@ type Server struct {
 	store           *memoryStore
 	masterData      *masterDataRepository
 	termsAgreements *termsAgreementRepository
+	dailyPrompts    *dailyPromptRepository
+	spotlight       *spotlightRepository
+	activities      *activityRepository
+	trust           *trustRepository
+	rooms           *conversationRoomRepository
 	mediator        *mediatr.Mediator
 	bulkheads       map[string]chan struct{}
 	idempotency     *idempotencyStore
@@ -102,6 +109,11 @@ func NewServer(cfg config.Config, log *zap.Logger, httpMetrics *observability.HT
 		store:           newMemoryStore(cfg),
 		masterData:      newMasterDataRepository(cfg),
 		termsAgreements: newTermsAgreementRepository(cfg),
+		dailyPrompts:    newDailyPromptRepository(cfg),
+		spotlight:       newSpotlightRepository(cfg),
+		activities:      newActivityRepository(cfg),
+		trust:           newTrustRepository(cfg),
+		rooms:           newConversationRoomRepository(cfg),
 		mediator:        mediatr.New(),
 		bulkheads:       newBulkheadLimiters(cfg),
 		idempotency:     newIdempotencyStore(cfg.IdempotencyTTL()),
@@ -216,6 +228,88 @@ func NewServer(cfg config.Config, log *zap.Logger, httpMetrics *observability.HT
 	callsService := callsapp.NewService(callsGateway, log)
 	callsapp.RegisterHandlers(s.mediator, callsService)
 
+	engagementGateway := engagementinfra.NewStoreGateway(
+		func(circleID, userID string) (any, error) {
+			return s.store.getCircleChallengeView(circleID, userID, time.Now().UTC())
+		},
+		func(circleID, userID string) (any, error) {
+			return s.store.joinCircle(circleID, userID, time.Now().UTC())
+		},
+		func(circleID, challengeID, userID, entryText, imageURL string) (any, any, error) {
+			return s.store.submitCircleChallengeEntry(circleID, challengeID, userID, entryText, imageURL, time.Now().UTC())
+		},
+		func(userID string) (any, error) {
+			return s.store.getDailyPromptView(userID, time.Now().UTC())
+		},
+		func(userID, promptID, answerText string) (any, bool, error) {
+			return s.store.submitDailyPromptAnswer(userID, promptID, answerText, time.Now().UTC())
+		},
+		func(userID string, limit, offset int) (any, error) {
+			return s.store.listDailyPromptResponders(userID, time.Now().UTC(), limit, offset)
+		},
+		func(matchID, userID, counterpartyUserID, nudgeType string) (any, error) {
+			return s.store.sendMatchNudge(matchID, userID, counterpartyUserID, nudgeType, time.Now().UTC())
+		},
+		func(nudgeID, userID string) (any, error) {
+			return s.store.markMatchNudgeClicked(nudgeID, userID, time.Now().UTC())
+		},
+		func(matchID, userID, triggerNudgeID string) (any, error) {
+			return s.store.markConversationResumed(matchID, userID, triggerNudgeID, time.Now().UTC())
+		},
+		func() any {
+			return s.store.listVoiceIcebreakerPrompts()
+		},
+		func(matchID, senderUserID, receiverUserID, promptID string) (any, error) {
+			return s.store.startVoiceIcebreaker(matchID, senderUserID, receiverUserID, promptID, time.Now().UTC())
+		},
+		func(icebreakerID, senderUserID, transcript string, durationSeconds int) (any, error) {
+			return s.store.sendVoiceIcebreaker(icebreakerID, senderUserID, transcript, durationSeconds, time.Now().UTC())
+		},
+		func(icebreakerID, userID string) (any, error) {
+			return s.store.markVoiceIcebreakerPlayed(icebreakerID, userID, time.Now().UTC())
+		},
+		func(creatorUserID string, participantUserIDs []string, options []engagementapp.GroupCoffeeOptionInput, deadlineAt string) (any, error) {
+			normalized := make([]groupCoffeePollOption, 0, len(options))
+			for _, option := range options {
+				normalized = append(normalized, groupCoffeePollOption{
+					Day:          option.Day,
+					TimeWindow:   option.TimeWindow,
+					Neighborhood: option.Neighborhood,
+				})
+			}
+			return s.store.createGroupCoffeePoll(creatorUserID, participantUserIDs, normalized, deadlineAt, time.Now().UTC())
+		},
+		func(userID, status string, limit int) any {
+			return s.store.listGroupCoffeePolls(userID, status, limit)
+		},
+		func(pollID string) (any, bool) {
+			return s.store.getGroupCoffeePoll(pollID)
+		},
+		func(pollID, userID, optionID string) (any, error) {
+			return s.store.voteGroupCoffeePoll(pollID, userID, optionID)
+		},
+		func(pollID, userID string) (any, any, error) {
+			return s.store.finalizeGroupCoffeePoll(pollID, userID, time.Now().UTC())
+		},
+		func(ownerUserID, name, city, topic, description, visibility string, inviteeUserIDs []string) (any, any, error) {
+			return s.store.createCommunityGroup(ownerUserID, name, city, topic, description, visibility, inviteeUserIDs, time.Now().UTC())
+		},
+		func(userID, city, topic string, onlyJoined bool, limit int) any {
+			return s.store.listCommunityGroups(userID, city, topic, onlyJoined, limit)
+		},
+		func(groupID, inviterUserID string, inviteeUserIDs []string) (any, error) {
+			return s.store.createCommunityGroupInvites(groupID, inviterUserID, inviteeUserIDs, time.Now().UTC())
+		},
+		func(groupID, userID, decision string) (any, any, error) {
+			return s.store.respondCommunityGroupInvite(groupID, userID, decision, time.Now().UTC())
+		},
+		func(userID, status string, limit int) any {
+			return s.store.listCommunityGroupInvites(userID, status, limit)
+		},
+	)
+	engagementService := engagementapp.NewService(engagementGateway, log)
+	engagementapp.RegisterHandlers(s.mediator, engagementService)
+
 	verificationGateway := verificationinfra.NewStoreGateway(
 		func(userID string) any { return s.store.getVerification(userID) },
 		func(userID string) any { return s.store.submitVerification(userID) },
@@ -324,6 +418,14 @@ func NewServer(cfg config.Config, log *zap.Logger, httpMetrics *observability.HT
 		v1.Get("/matches/{matchID}/gestures/{gestureID}/score", s.getGestureScore)
 		v1.Get("/chat/{matchID}/messages", s.listMessages)
 		v1.Post("/chat/{matchID}/messages", s.sendMessage)
+		v1.Delete("/chat/{matchID}/messages/{messageID}", s.deleteMessage)
+		v1.Get("/chat/gifts", s.listRoseGifts)
+		v1.Post("/chat/{matchID}/gifts/send", s.sendRoseGift)
+		v1.Post("/chat/{matchID}/gifts/events", s.recordRoseGiftTelemetryEvent)
+		v1.Get("/wallet/{userID}/coins", s.getWalletCoins)
+		v1.Post("/wallet/{userID}/coins/buy", s.buyWalletCoins)
+		v1.Post("/wallet/{userID}/coins/top-up", s.topUpWalletCoins)
+		v1.Get("/wallet/{userID}/coins/audit", s.listWalletCoinAudit)
 		v1.Post("/matches/{matchID}/activities/start", s.withAliasDeprecation("/v1/activities/sessions/start", s.startActivitySession))
 		v1.Post("/activities/{sessionID}/responses", s.withAliasDeprecation("/v1/activities/sessions/{sessionID}/submit", s.submitActivitySession))
 		v1.Get("/activities/{sessionID}/summary", s.withAliasDeprecation("/v1/activities/sessions/{sessionID}/summary", s.getActivitySessionSummary))
@@ -410,13 +512,13 @@ func (s *Server) validateDurableEngagementReadiness() error {
 	}
 
 	unsupported := make([]string, 0, 3)
-	if s.cfg.FeatureMiniActivities {
+	if s.cfg.FeatureMiniActivities && s.activities == nil {
 		unsupported = append(unsupported, "mini_activities")
 	}
-	if s.cfg.FeatureTrustBadges {
+	if s.cfg.FeatureTrustBadges && s.trust == nil {
 		unsupported = append(unsupported, "trust_badges")
 	}
-	if s.cfg.FeatureConversationRooms {
+	if s.cfg.FeatureConversationRooms && s.rooms == nil {
 		unsupported = append(unsupported, "conversation_rooms")
 	}
 	if len(unsupported) > 0 {
@@ -739,7 +841,7 @@ func (s *Server) getDiscoveryCandidates(w http.ResponseWriter, r *http.Request) 
 	}
 	s.attachAdvancedFilteredDiscovery(resp, userID, r.URL.Query())
 	s.attachTrustFilteredDiscovery(resp, userID)
-	s.attachSpotlightDiscovery(resp, userID)
+	s.attachSpotlightDiscoveryWithContext(r.Context(), resp, userID)
 	applyDiscoveryMode(resp, mode)
 	writeJSON(w, http.StatusOK, resp)
 }
@@ -784,7 +886,17 @@ func (s *Server) swipe(w http.ResponseWriter, r *http.Request) {
 	targetUserID := strings.TrimSpace(toString(payload["target_user_id"]))
 	isLike, _ := payload["is_like"].(bool)
 	isMutualMatch := resp["mutual_match"] == true || strings.TrimSpace(toString(resp["match_id"])) != ""
-	s.store.recordSpotlightSwipeOutcome(targetUserID, isLike, isMutualMatch)
+	if s.spotlight != nil {
+		if err := s.spotlight.recordSpotlightSwipeOutcome(r.Context(), targetUserID, isLike, isMutualMatch); err != nil {
+			if !isSpotlightRepoPersistenceUnavailable(err) || s.cfg.RequireDurableEngagementStore {
+				s.log.Warn("failed to persist spotlight swipe outcome", zap.Error(err))
+			} else {
+				s.store.recordSpotlightSwipeOutcome(targetUserID, isLike, isMutualMatch)
+			}
+		}
+	} else {
+		s.store.recordSpotlightSwipeOutcome(targetUserID, isLike, isMutualMatch)
+	}
 	writeJSON(w, http.StatusOK, resp)
 }
 
@@ -1522,6 +1634,98 @@ func (s *Server) sendMessage(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, resp)
 }
 
+func (s *Server) deleteMessage(w http.ResponseWriter, r *http.Request) {
+	matchID := strings.TrimSpace(chi.URLParam(r, "matchID"))
+	messageID := strings.TrimSpace(chi.URLParam(r, "messageID"))
+	if matchID == "" || messageID == "" {
+		writeError(w, http.StatusBadRequest, errors.New("match id and message id are required"))
+		return
+	}
+
+	payload, ok := readJSON(w, r)
+	if !ok {
+		return
+	}
+	requesterUserID := strings.TrimSpace(toString(payload["requester_user_id"]))
+	if requesterUserID == "" {
+		writeError(w, http.StatusBadRequest, errors.New("requester_user_id is required"))
+		return
+	}
+
+	ctx, cancel := s.withRequestTimeout(r.Context())
+	defer cancel()
+
+	respAny, err := s.mediator.Send(
+		ctx,
+		chatapp.DeleteMessageCommandName,
+		chatapp.DeleteMessageCommand{
+			MatchID: matchID,
+			Payload: map[string]any{
+				"message_id":        messageID,
+				"requester_user_id": requesterUserID,
+			},
+		},
+	)
+	if err != nil {
+		if errors.Is(err, chatapp.ErrValidation) {
+			writeError(w, http.StatusBadRequest, err)
+			return
+		}
+		writeError(w, http.StatusBadGateway, err)
+		return
+	}
+	resp, ok := respAny.(map[string]any)
+	if !ok {
+		writeError(w, http.StatusBadGateway, errors.New("unexpected delete message response payload"))
+		return
+	}
+	deleted, _ := resp["deleted"].(bool)
+	reasonCode := strings.TrimSpace(toString(resp["reason_code"]))
+	audit := s.store.trackMessageDeleteAudit(requesterUserID, deleted)
+	s.store.recordActivity(activityEvent{
+		UserID: requesterUserID,
+		Actor:  requesterUserID,
+		Action: "chat.message.delete",
+		Status: func() string {
+			if deleted {
+				return "success"
+			}
+			return "client_error"
+		}(),
+		Resource: "/chat/" + matchID + "/messages/" + messageID,
+		Details: mergeDetails(
+			map[string]any{
+				"match_id":    matchID,
+				"message_id":  messageID,
+				"deleted":     deleted,
+				"reason_code": reasonCode,
+			},
+			audit,
+		),
+	})
+
+	if !deleted {
+		if reasonCode == "DELETE_WINDOW_EXPIRED" {
+			writeJSON(w, http.StatusConflict, map[string]any{
+				"deleted":     false,
+				"message_id":  messageID,
+				"reason_code": reasonCode,
+				"error":       "delete window expired (24h)",
+			})
+			return
+		}
+		writeJSON(w, http.StatusNotFound, map[string]any{
+			"deleted":     false,
+			"message_id":  messageID,
+			"reason_code": reasonCode,
+			"error":       "message not found or not owned by requester",
+		})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, mergeDetails(resp, audit))
+}
+
 func (s *Server) startActivitySession(w http.ResponseWriter, r *http.Request) {
 	payload, ok := readJSON(w, r)
 	if !ok {
@@ -1534,13 +1738,33 @@ func (s *Server) startActivitySession(w http.ResponseWriter, r *http.Request) {
 	activityType := strings.TrimSpace(toString(payload["activity_type"]))
 	metadata, _ := payload["metadata"].(map[string]any)
 
-	session, err := s.store.startActivitySession(
-		matchID,
-		initiatorUserID,
-		participantUserID,
-		activityType,
-		metadata,
+	var (
+		session activitySession
+		err     error
 	)
+	if s.activities != nil {
+		session, err = s.activities.startActivitySession(
+			r.Context(),
+			matchID,
+			initiatorUserID,
+			participantUserID,
+			activityType,
+			metadata,
+		)
+		if err != nil && (!isActivityRepoPersistenceUnavailable(err) || s.cfg.RequireDurableEngagementStore) {
+			writeError(w, http.StatusBadGateway, err)
+			return
+		}
+	}
+	if s.activities == nil || (err != nil && isActivityRepoPersistenceUnavailable(err) && !s.cfg.RequireDurableEngagementStore) {
+		session, err = s.store.startActivitySession(
+			matchID,
+			initiatorUserID,
+			participantUserID,
+			activityType,
+			metadata,
+		)
+	}
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err)
 		return
@@ -1593,7 +1817,33 @@ func (s *Server) submitActivitySession(w http.ResponseWriter, r *http.Request) {
 	userID := strings.TrimSpace(toString(payload["user_id"]))
 	responses, _ := toStringSlice(payload["responses"])
 
-	session, err := s.store.submitActivitySessionResponses(sessionID, userID, responses)
+	var (
+		session activitySession
+		err     error
+	)
+	if s.activities != nil {
+		session, err = s.activities.submitActivitySessionResponses(r.Context(), sessionID, userID, responses)
+		if err != nil && (!isActivityRepoPersistenceUnavailable(err) || s.cfg.RequireDurableEngagementStore) {
+			errMsg := strings.ToLower(err.Error())
+			if strings.Contains(errMsg, "expired") {
+				writeError(w, http.StatusRequestTimeout, err)
+				return
+			}
+			if strings.Contains(errMsg, "completed") {
+				writeError(w, http.StatusConflict, err)
+				return
+			}
+			if strings.Contains(errMsg, "not found") {
+				writeError(w, http.StatusNotFound, err)
+				return
+			}
+			writeError(w, http.StatusBadGateway, err)
+			return
+		}
+	}
+	if s.activities == nil || (err != nil && isActivityRepoPersistenceUnavailable(err) && !s.cfg.RequireDurableEngagementStore) {
+		session, err = s.store.submitActivitySessionResponses(sessionID, userID, responses)
+	}
 	if err != nil {
 		errMsg := strings.ToLower(err.Error())
 		if strings.Contains(errMsg, "expired") {
@@ -1655,7 +1905,25 @@ func (s *Server) getActivitySessionSummary(w http.ResponseWriter, r *http.Reques
 	}
 	viewerUserID := strings.TrimSpace(r.URL.Query().Get("user_id"))
 
-	summary, session, err := s.store.getActivitySessionSummary(sessionID)
+	var (
+		summary activitySessionSummary
+		session activitySession
+		err     error
+	)
+	if s.activities != nil {
+		summary, session, err = s.activities.getActivitySessionSummary(r.Context(), sessionID)
+		if err != nil && (!isActivityRepoPersistenceUnavailable(err) || s.cfg.RequireDurableEngagementStore) {
+			if strings.Contains(strings.ToLower(err.Error()), "not found") {
+				writeError(w, http.StatusNotFound, err)
+				return
+			}
+			writeError(w, http.StatusBadGateway, err)
+			return
+		}
+	}
+	if s.activities == nil || (err != nil && isActivityRepoPersistenceUnavailable(err) && !s.cfg.RequireDurableEngagementStore) {
+		summary, session, err = s.store.getActivitySessionSummary(sessionID)
+	}
 	if err != nil {
 		if strings.Contains(strings.ToLower(err.Error()), "not found") {
 			writeError(w, http.StatusNotFound, err)
@@ -1694,11 +1962,39 @@ func (s *Server) getDailyPrompt(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, errors.New("user id is required"))
 		return
 	}
+	ctx, cancel := s.withRequestTimeout(r.Context())
+	defer cancel()
 
-	view, err := s.store.getDailyPromptView(userID, time.Now().UTC())
+	respAny, err := s.mediator.Send(
+		ctx,
+		engagementapp.GetDailyPromptCommandName,
+		engagementapp.GetDailyPromptCommand{UserID: userID},
+	)
 	if err != nil {
+		if errors.Is(err, engagementapp.ErrValidation) {
+			writeError(w, http.StatusBadRequest, err)
+			return
+		}
+		errMsg := strings.ToLower(err.Error())
+		if strings.Contains(errMsg, "not found") {
+			writeError(w, http.StatusNotFound, err)
+			return
+		}
 		writeError(w, http.StatusBadRequest, err)
 		return
+	}
+
+	resp, ok := respAny.(map[string]any)
+	if !ok {
+		writeError(w, http.StatusBadGateway, errors.New("unexpected get daily prompt response payload"))
+		return
+	}
+	view, _ := resp["daily_prompt"].(map[string]any)
+	prompt, _ := view["prompt"].(map[string]any)
+	answer, hasAnswer := view["answer"]
+	_, hasAnswered := answer.(map[string]any)
+	if !hasAnswered {
+		hasAnswered = hasAnswer && answer != nil
 	}
 
 	s.store.recordActivity(activityEvent{
@@ -1709,9 +2005,9 @@ func (s *Server) getDailyPrompt(w http.ResponseWriter, r *http.Request) {
 		Resource: "/engagement/daily-prompt/" + userID,
 		Details: map[string]any{
 			"user_id":      userID,
-			"prompt_id":    view.Prompt.ID,
-			"prompt_date":  view.Prompt.PromptDate,
-			"has_answered": view.Answer != nil,
+			"prompt_id":    toString(prompt["id"]),
+			"prompt_date":  toString(prompt["prompt_date"]),
+			"has_answered": hasAnswered,
 		},
 	})
 
@@ -1734,12 +2030,13 @@ func (s *Server) submitDailyPromptAnswer(w http.ResponseWriter, r *http.Request)
 
 	promptID := strings.TrimSpace(toString(payload["prompt_id"]))
 	answerText := strings.TrimSpace(toString(payload["answer_text"]))
+	ctx, cancel := s.withRequestTimeout(r.Context())
+	defer cancel()
 
-	view, isEdit, err := s.store.submitDailyPromptAnswer(
-		userID,
-		promptID,
-		answerText,
-		time.Now().UTC(),
+	respAny, err := s.mediator.Send(
+		ctx,
+		engagementapp.SubmitDailyPromptAnswerCommandName,
+		engagementapp.SubmitDailyPromptAnswerCommand{UserID: userID, PromptID: promptID, AnswerText: answerText},
 	)
 	if err != nil {
 		errMsg := strings.ToLower(err.Error())
@@ -1747,9 +2044,24 @@ func (s *Server) submitDailyPromptAnswer(w http.ResponseWriter, r *http.Request)
 			writeError(w, http.StatusConflict, err)
 			return
 		}
+		if errors.Is(err, engagementapp.ErrValidation) {
+			writeError(w, http.StatusBadRequest, err)
+			return
+		}
 		writeError(w, http.StatusBadRequest, err)
 		return
 	}
+
+	resp, ok := respAny.(map[string]any)
+	if !ok {
+		writeError(w, http.StatusBadGateway, errors.New("unexpected submit daily prompt response payload"))
+		return
+	}
+	view, _ := resp["daily_prompt"].(map[string]any)
+	isEdit, _ := resp["is_edit"].(bool)
+	prompt, _ := view["prompt"].(map[string]any)
+	streak, _ := view["streak"].(map[string]any)
+	spark, _ := view["spark"].(map[string]any)
 
 	s.store.recordActivity(activityEvent{
 		UserID:   userID,
@@ -1759,15 +2071,15 @@ func (s *Server) submitDailyPromptAnswer(w http.ResponseWriter, r *http.Request)
 		Resource: "/engagement/daily-prompt/" + userID + "/answer",
 		Details: map[string]any{
 			"user_id":             userID,
-			"prompt_id":           view.Prompt.ID,
-			"prompt_date":         view.Prompt.PromptDate,
+			"prompt_id":           toString(prompt["id"]),
+			"prompt_date":         toString(prompt["prompt_date"]),
 			"is_edit":             isEdit,
-			"current_streak_days": view.Streak.CurrentDays,
-			"participants_today":  view.Spark.ParticipantsToday,
+			"current_streak_days": numericValue(streak["current_days"]),
+			"participants_today":  numericValue(spark["participants_today"]),
 		},
 	})
 
-	if view.Streak.MilestoneReached > 0 {
+	if numericValue(streak["milestone_reached"]) > 0 {
 		s.store.recordActivity(activityEvent{
 			UserID:   userID,
 			Actor:    userID,
@@ -1776,10 +2088,10 @@ func (s *Server) submitDailyPromptAnswer(w http.ResponseWriter, r *http.Request)
 			Resource: "/engagement/daily-prompt/" + userID + "/answer",
 			Details: map[string]any{
 				"user_id":        userID,
-				"streak_days":    view.Streak.CurrentDays,
-				"milestone":      view.Streak.MilestoneReached,
-				"prompt_date":    view.Prompt.PromptDate,
-				"next_milestone": view.Streak.NextMilestone,
+				"streak_days":    numericValue(streak["current_days"]),
+				"milestone":      numericValue(streak["milestone_reached"]),
+				"prompt_date":    toString(prompt["prompt_date"]),
+				"next_milestone": numericValue(streak["next_milestone"]),
 			},
 		})
 	}
@@ -1816,11 +2128,29 @@ func (s *Server) listDailyPromptResponders(w http.ResponseWriter, r *http.Reques
 		offset = parsedOffset
 	}
 
-	page, err := s.store.listDailyPromptResponders(userID, time.Now().UTC(), limit, offset)
+	ctx, cancel := s.withRequestTimeout(r.Context())
+	defer cancel()
+
+	respAny, err := s.mediator.Send(
+		ctx,
+		engagementapp.ListDailyPromptRespondersCommandName,
+		engagementapp.ListDailyPromptRespondersCommand{UserID: userID, Limit: limit, Offset: offset},
+	)
 	if err != nil {
+		if errors.Is(err, engagementapp.ErrValidation) {
+			writeError(w, http.StatusBadRequest, err)
+			return
+		}
 		writeError(w, http.StatusBadRequest, err)
 		return
 	}
+
+	page, ok := respAny.(map[string]any)
+	if !ok {
+		writeError(w, http.StatusBadGateway, errors.New("unexpected list daily prompt responders response payload"))
+		return
+	}
+	responders := mapSlice(page["responders"])
 
 	s.store.recordActivity(activityEvent{
 		UserID:   userID,
@@ -1830,25 +2160,25 @@ func (s *Server) listDailyPromptResponders(w http.ResponseWriter, r *http.Reques
 		Resource: "/engagement/daily-prompt/" + userID + "/responders",
 		Details: map[string]any{
 			"user_id":       userID,
-			"prompt_id":     page.PromptID,
-			"prompt_date":   page.PromptDate,
-			"limit":         page.Limit,
-			"offset":        page.Offset,
-			"returned":      len(page.Responders),
-			"total_matches": page.Total,
+			"prompt_id":     toString(page["prompt_id"]),
+			"prompt_date":   toString(page["prompt_date"]),
+			"limit":         numericValue(page["limit"]),
+			"offset":        numericValue(page["offset"]),
+			"returned":      len(responders),
+			"total_matches": numericValue(page["total"]),
 		},
 	})
 
 	writeJSON(w, http.StatusOK, map[string]any{
-		"responders": page.Responders,
+		"responders": responders,
 		"pagination": map[string]any{
-			"prompt_id":     page.PromptID,
-			"prompt_date":   page.PromptDate,
-			"limit":         page.Limit,
-			"offset":        page.Offset,
-			"next_offset":   page.NextOffset,
-			"has_more":      page.HasMore,
-			"total_matches": page.Total,
+			"prompt_id":     page["prompt_id"],
+			"prompt_date":   page["prompt_date"],
+			"limit":         page["limit"],
+			"offset":        page["offset"],
+			"next_offset":   page["next_offset"],
+			"has_more":      page["has_more"],
+			"total_matches": page["total"],
 		},
 	})
 }
@@ -1863,8 +2193,19 @@ func (s *Server) sendMatchNudge(w http.ResponseWriter, r *http.Request) {
 	userID := strings.TrimSpace(toString(payload["user_id"]))
 	counterpartyUserID := strings.TrimSpace(toString(payload["counterparty_user_id"]))
 	nudgeType := strings.TrimSpace(toString(payload["nudge_type"]))
+	ctx, cancel := s.withRequestTimeout(r.Context())
+	defer cancel()
 
-	nudge, err := s.store.sendMatchNudge(matchID, userID, counterpartyUserID, nudgeType, time.Now().UTC())
+	respAny, err := s.mediator.Send(
+		ctx,
+		engagementapp.SendMatchNudgeCommandName,
+		engagementapp.SendMatchNudgeCommand{
+			MatchID:            matchID,
+			UserID:             userID,
+			CounterpartyUserID: counterpartyUserID,
+			NudgeType:          nudgeType,
+		},
+	)
 	if err != nil {
 		errMsg := strings.ToLower(err.Error())
 		switch {
@@ -1880,17 +2221,24 @@ func (s *Server) sendMatchNudge(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	resp, ok := respAny.(map[string]any)
+	if !ok {
+		writeError(w, http.StatusBadGateway, errors.New("unexpected send match nudge response payload"))
+		return
+	}
+	nudge, _ := resp["nudge"].(map[string]any)
+
 	s.store.recordActivity(activityEvent{
-		UserID:   nudge.UserID,
+		UserID:   toString(nudge["user_id"]),
 		Actor:    "system",
 		Action:   "match_nudge_sent",
 		Status:   "success",
 		Resource: "/engagement/match-nudges/send",
 		Details: map[string]any{
-			"match_id":   nudge.MatchID,
-			"user_id":    nudge.UserID,
-			"nudge_type": nudge.NudgeType,
-			"nudge_id":   nudge.ID,
+			"match_id":   toString(nudge["match_id"]),
+			"user_id":    toString(nudge["user_id"]),
+			"nudge_type": toString(nudge["nudge_type"]),
+			"nudge_id":   toString(nudge["id"]),
 		},
 	})
 
@@ -1912,7 +2260,14 @@ func (s *Server) clickMatchNudge(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userID := strings.TrimSpace(toString(payload["user_id"]))
-	nudge, err := s.store.markMatchNudgeClicked(nudgeID, userID, time.Now().UTC())
+	ctx, cancel := s.withRequestTimeout(r.Context())
+	defer cancel()
+
+	respAny, err := s.mediator.Send(
+		ctx,
+		engagementapp.ClickMatchNudgeCommandName,
+		engagementapp.ClickMatchNudgeCommand{NudgeID: nudgeID, UserID: userID},
+	)
 	if err != nil {
 		errMsg := strings.ToLower(err.Error())
 		switch {
@@ -1928,17 +2283,24 @@ func (s *Server) clickMatchNudge(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	resp, ok := respAny.(map[string]any)
+	if !ok {
+		writeError(w, http.StatusBadGateway, errors.New("unexpected click match nudge response payload"))
+		return
+	}
+	nudge, _ := resp["nudge"].(map[string]any)
+
 	s.store.recordActivity(activityEvent{
-		UserID:   nudge.UserID,
-		Actor:    nudge.UserID,
+		UserID:   toString(nudge["user_id"]),
+		Actor:    toString(nudge["user_id"]),
 		Action:   "match_nudge_clicked",
 		Status:   "success",
 		Resource: "/engagement/match-nudges/" + nudgeID + "/click",
 		Details: map[string]any{
-			"match_id":   nudge.MatchID,
-			"user_id":    nudge.UserID,
-			"nudge_type": nudge.NudgeType,
-			"nudge_id":   nudge.ID,
+			"match_id":   toString(nudge["match_id"]),
+			"user_id":    toString(nudge["user_id"]),
+			"nudge_type": toString(nudge["nudge_type"]),
+			"nudge_id":   toString(nudge["id"]),
 		},
 	})
 
@@ -1961,7 +2323,14 @@ func (s *Server) markConversationResumed(w http.ResponseWriter, r *http.Request)
 
 	userID := strings.TrimSpace(toString(payload["user_id"]))
 	triggerNudgeID := strings.TrimSpace(toString(payload["trigger_nudge_id"]))
-	resumed, err := s.store.markConversationResumed(matchID, userID, triggerNudgeID, time.Now().UTC())
+	ctx, cancel := s.withRequestTimeout(r.Context())
+	defer cancel()
+
+	respAny, err := s.mediator.Send(
+		ctx,
+		engagementapp.MarkConversationResumedCommandName,
+		engagementapp.MarkConversationResumedCommand{MatchID: matchID, UserID: userID, TriggerNudgeID: triggerNudgeID},
+	)
 	if err != nil {
 		errMsg := strings.ToLower(err.Error())
 		if strings.Contains(errMsg, "invalid") {
@@ -1972,16 +2341,23 @@ func (s *Server) markConversationResumed(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	resp, ok := respAny.(map[string]any)
+	if !ok {
+		writeError(w, http.StatusBadGateway, errors.New("unexpected mark conversation resumed response payload"))
+		return
+	}
+	resumed, _ := resp["conversation"].(map[string]any)
+
 	s.store.recordActivity(activityEvent{
-		UserID:   resumed.UserID,
-		Actor:    resumed.UserID,
+		UserID:   toString(resumed["user_id"]),
+		Actor:    toString(resumed["user_id"]),
 		Action:   "conversation_resumed",
 		Status:   "success",
 		Resource: "/engagement/matches/" + matchID + "/resume",
 		Details: map[string]any{
-			"match_id":         resumed.MatchID,
-			"user_id":          resumed.UserID,
-			"trigger_nudge_id": resumed.TriggerNudgeID,
+			"match_id":         toString(resumed["match_id"]),
+			"user_id":          toString(resumed["user_id"]),
+			"trigger_nudge_id": toString(resumed["trigger_nudge_id"]),
 		},
 	})
 
@@ -1992,14 +2368,20 @@ func (s *Server) markConversationResumed(w http.ResponseWriter, r *http.Request)
 
 func (s *Server) getCircleChallenge(w http.ResponseWriter, r *http.Request) {
 	circleID := strings.TrimSpace(chi.URLParam(r, "circleID"))
-	if circleID == "" {
-		writeError(w, http.StatusBadRequest, errors.New("circle id is required"))
-		return
-	}
-
 	userID := strings.TrimSpace(r.URL.Query().Get("user_id"))
-	view, err := s.store.getCircleChallengeView(circleID, userID, time.Now().UTC())
+	ctx, cancel := s.withRequestTimeout(r.Context())
+	defer cancel()
+
+	respAny, err := s.mediator.Send(
+		ctx,
+		engagementapp.GetCircleChallengeCommandName,
+		engagementapp.GetCircleChallengeCommand{CircleID: circleID, UserID: userID},
+	)
 	if err != nil {
+		if errors.Is(err, engagementapp.ErrValidation) {
+			writeError(w, http.StatusBadRequest, err)
+			return
+		}
 		if strings.Contains(strings.ToLower(err.Error()), "not found") {
 			writeError(w, http.StatusNotFound, err)
 			return
@@ -2007,6 +2389,14 @@ func (s *Server) getCircleChallenge(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, err)
 		return
 	}
+
+	resp, ok := respAny.(map[string]any)
+	if !ok {
+		writeError(w, http.StatusBadGateway, errors.New("unexpected get circle challenge response payload"))
+		return
+	}
+	view, _ := resp["circle_challenge"].(map[string]any)
+	challenge, _ := view["challenge"].(map[string]any)
 
 	s.store.recordActivity(activityEvent{
 		UserID:   userID,
@@ -2015,23 +2405,17 @@ func (s *Server) getCircleChallenge(w http.ResponseWriter, r *http.Request) {
 		Status:   "success",
 		Resource: "/engagement/circles/" + circleID + "/challenge",
 		Details: map[string]any{
-			"circle_id":    view.CircleID,
+			"circle_id":    toString(view["circle_id"]),
 			"user_id":      userID,
-			"challenge_id": view.Challenge.ID,
+			"challenge_id": toString(challenge["id"]),
 		},
 	})
 
-	writeJSON(w, http.StatusOK, map[string]any{
-		"circle_challenge": view,
-	})
+	writeJSON(w, http.StatusOK, resp)
 }
 
 func (s *Server) joinCircle(w http.ResponseWriter, r *http.Request) {
 	circleID := strings.TrimSpace(chi.URLParam(r, "circleID"))
-	if circleID == "" {
-		writeError(w, http.StatusBadRequest, errors.New("circle id is required"))
-		return
-	}
 
 	payload, ok := readJSON(w, r)
 	if !ok {
@@ -2039,8 +2423,19 @@ func (s *Server) joinCircle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userID := strings.TrimSpace(toString(payload["user_id"]))
-	membership, err := s.store.joinCircle(circleID, userID, time.Now().UTC())
+	ctx, cancel := s.withRequestTimeout(r.Context())
+	defer cancel()
+
+	respAny, err := s.mediator.Send(
+		ctx,
+		engagementapp.JoinCircleCommandName,
+		engagementapp.JoinCircleCommand{CircleID: circleID, UserID: userID},
+	)
 	if err != nil {
+		if errors.Is(err, engagementapp.ErrValidation) {
+			writeError(w, http.StatusBadRequest, err)
+			return
+		}
 		if strings.Contains(strings.ToLower(err.Error()), "not found") {
 			writeError(w, http.StatusNotFound, err)
 			return
@@ -2049,6 +2444,13 @@ func (s *Server) joinCircle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	resp, ok := respAny.(map[string]any)
+	if !ok {
+		writeError(w, http.StatusBadGateway, errors.New("unexpected join circle response payload"))
+		return
+	}
+	membership, _ := resp["membership"].(map[string]any)
+
 	s.store.recordActivity(activityEvent{
 		UserID:   userID,
 		Actor:    userID,
@@ -2056,23 +2458,17 @@ func (s *Server) joinCircle(w http.ResponseWriter, r *http.Request) {
 		Status:   "success",
 		Resource: "/engagement/circles/" + circleID + "/join",
 		Details: map[string]any{
-			"circle_id": membership.CircleID,
-			"user_id":   membership.UserID,
-			"joined_at": membership.JoinedAt,
+			"circle_id": toString(membership["circle_id"]),
+			"user_id":   toString(membership["user_id"]),
+			"joined_at": membership["joined_at"],
 		},
 	})
 
-	writeJSON(w, http.StatusOK, map[string]any{
-		"membership": membership,
-	})
+	writeJSON(w, http.StatusOK, resp)
 }
 
 func (s *Server) submitCircleChallenge(w http.ResponseWriter, r *http.Request) {
 	circleID := strings.TrimSpace(chi.URLParam(r, "circleID"))
-	if circleID == "" {
-		writeError(w, http.StatusBadRequest, errors.New("circle id is required"))
-		return
-	}
 
 	payload, ok := readJSON(w, r)
 	if !ok {
@@ -2084,15 +2480,25 @@ func (s *Server) submitCircleChallenge(w http.ResponseWriter, r *http.Request) {
 	entryText := strings.TrimSpace(toString(payload["entry_text"]))
 	imageURL := strings.TrimSpace(toString(payload["image_url"]))
 
-	view, entry, err := s.store.submitCircleChallengeEntry(
-		circleID,
-		challengeID,
-		userID,
-		entryText,
-		imageURL,
-		time.Now().UTC(),
+	ctx, cancel := s.withRequestTimeout(r.Context())
+	defer cancel()
+
+	respAny, err := s.mediator.Send(
+		ctx,
+		engagementapp.SubmitCircleChallengeCommandName,
+		engagementapp.SubmitCircleChallengeCommand{
+			CircleID:    circleID,
+			ChallengeID: challengeID,
+			UserID:      userID,
+			EntryText:   entryText,
+			ImageURL:    imageURL,
+		},
 	)
 	if err != nil {
+		if errors.Is(err, engagementapp.ErrValidation) {
+			writeError(w, http.StatusBadRequest, err)
+			return
+		}
 		errMsg := strings.ToLower(err.Error())
 		switch {
 		case strings.Contains(errMsg, "already submitted"):
@@ -2107,6 +2513,15 @@ func (s *Server) submitCircleChallenge(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	resp, ok := respAny.(map[string]any)
+	if !ok {
+		writeError(w, http.StatusBadGateway, errors.New("unexpected submit circle challenge response payload"))
+		return
+	}
+	view, _ := resp["circle_challenge"].(map[string]any)
+	entry, _ := resp["entry"].(map[string]any)
+	challenge, _ := view["challenge"].(map[string]any)
+
 	s.store.recordActivity(activityEvent{
 		UserID:   userID,
 		Actor:    userID,
@@ -2114,24 +2529,32 @@ func (s *Server) submitCircleChallenge(w http.ResponseWriter, r *http.Request) {
 		Status:   "success",
 		Resource: "/engagement/circles/" + circleID + "/challenge/entries",
 		Details: map[string]any{
-			"circle_id":           view.CircleID,
+			"circle_id":           toString(view["circle_id"]),
 			"user_id":             userID,
-			"challenge_id":        view.Challenge.ID,
-			"challenge_entry_id":  entry.ID,
-			"participation_count": view.ParticipationCount,
+			"challenge_id":        toString(challenge["id"]),
+			"challenge_entry_id":  toString(entry["id"]),
+			"participation_count": view["participation_count"],
 		},
 	})
 
-	writeJSON(w, http.StatusOK, map[string]any{
-		"circle_challenge": view,
-		"entry":            entry,
-	})
+	writeJSON(w, http.StatusOK, resp)
 }
 
 func (s *Server) listVoiceIcebreakerPrompts(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]any{
-		"prompts": s.store.listVoiceIcebreakerPrompts(),
-	})
+	ctx, cancel := s.withRequestTimeout(context.Background())
+	defer cancel()
+
+	respAny, err := s.mediator.Send(ctx, engagementapp.ListVoicePromptsCommandName, engagementapp.ListVoicePromptsCommand{})
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	resp, ok := respAny.(map[string]any)
+	if !ok {
+		writeError(w, http.StatusBadGateway, errors.New("unexpected list voice prompts response payload"))
+		return
+	}
+	writeJSON(w, http.StatusOK, resp)
 }
 
 func (s *Server) startVoiceIcebreaker(w http.ResponseWriter, r *http.Request) {
@@ -2145,8 +2568,24 @@ func (s *Server) startVoiceIcebreaker(w http.ResponseWriter, r *http.Request) {
 	receiverUserID := strings.TrimSpace(toString(payload["receiver_user_id"]))
 	promptID := strings.TrimSpace(toString(payload["prompt_id"]))
 
-	item, err := s.store.startVoiceIcebreaker(matchID, senderUserID, receiverUserID, promptID, time.Now().UTC())
+	ctx, cancel := s.withRequestTimeout(r.Context())
+	defer cancel()
+
+	respAny, err := s.mediator.Send(
+		ctx,
+		engagementapp.StartVoiceIcebreakerCommandName,
+		engagementapp.StartVoiceIcebreakerCommand{
+			MatchID:        matchID,
+			SenderUserID:   senderUserID,
+			ReceiverUserID: receiverUserID,
+			PromptID:       promptID,
+		},
+	)
 	if err != nil {
+		if errors.Is(err, engagementapp.ErrValidation) {
+			writeError(w, http.StatusBadRequest, err)
+			return
+		}
 		errMsg := strings.ToLower(err.Error())
 		switch {
 		case strings.Contains(errMsg, "already created"):
@@ -2160,23 +2599,27 @@ func (s *Server) startVoiceIcebreaker(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	resp, ok := respAny.(map[string]any)
+	if !ok {
+		writeError(w, http.StatusBadGateway, errors.New("unexpected start voice icebreaker response payload"))
+		return
+	}
+	item, _ := resp["voice_icebreaker"].(map[string]any)
 
 	s.store.recordActivity(activityEvent{
-		UserID:   item.SenderUserID,
-		Actor:    item.SenderUserID,
+		UserID:   toString(item["sender_user_id"]),
+		Actor:    toString(item["sender_user_id"]),
 		Action:   "voice_icebreaker_started",
 		Status:   "success",
 		Resource: "/engagement/voice-icebreakers/start",
 		Details: map[string]any{
-			"match_id":  item.MatchID,
-			"user_id":   item.SenderUserID,
-			"prompt_id": item.PromptID,
+			"match_id":  toString(item["match_id"]),
+			"user_id":   toString(item["sender_user_id"]),
+			"prompt_id": toString(item["prompt_id"]),
 		},
 	})
 
-	writeJSON(w, http.StatusOK, map[string]any{
-		"voice_icebreaker": item,
-	})
+	writeJSON(w, http.StatusOK, resp)
 }
 
 func (s *Server) sendVoiceIcebreaker(w http.ResponseWriter, r *http.Request) {
@@ -2199,8 +2642,24 @@ func (s *Server) sendVoiceIcebreaker(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	item, err := s.store.sendVoiceIcebreaker(icebreakerID, senderUserID, transcript, durationSeconds, time.Now().UTC())
+	ctx, cancel := s.withRequestTimeout(r.Context())
+	defer cancel()
+
+	respAny, err := s.mediator.Send(
+		ctx,
+		engagementapp.SendVoiceIcebreakerCommandName,
+		engagementapp.SendVoiceIcebreakerCommand{
+			IcebreakerID:    icebreakerID,
+			SenderUserID:    senderUserID,
+			Transcript:      transcript,
+			DurationSeconds: durationSeconds,
+		},
+	)
 	if err != nil {
+		if errors.Is(err, engagementapp.ErrValidation) {
+			writeError(w, http.StatusBadRequest, err)
+			return
+		}
 		errMsg := strings.ToLower(err.Error())
 		switch {
 		case strings.Contains(errMsg, "not found"):
@@ -2214,24 +2673,28 @@ func (s *Server) sendVoiceIcebreaker(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	resp, ok := respAny.(map[string]any)
+	if !ok {
+		writeError(w, http.StatusBadGateway, errors.New("unexpected send voice icebreaker response payload"))
+		return
+	}
+	item, _ := resp["voice_icebreaker"].(map[string]any)
 
 	s.store.recordActivity(activityEvent{
-		UserID:   item.SenderUserID,
-		Actor:    item.SenderUserID,
+		UserID:   toString(item["sender_user_id"]),
+		Actor:    toString(item["sender_user_id"]),
 		Action:   "voice_icebreaker_sent",
 		Status:   "success",
 		Resource: "/engagement/voice-icebreakers/" + icebreakerID + "/send",
 		Details: map[string]any{
-			"match_id":         item.MatchID,
-			"user_id":          item.SenderUserID,
-			"prompt_id":        item.PromptID,
-			"duration_seconds": item.DurationSeconds,
+			"match_id":         toString(item["match_id"]),
+			"user_id":          toString(item["sender_user_id"]),
+			"prompt_id":        toString(item["prompt_id"]),
+			"duration_seconds": item["duration_seconds"],
 		},
 	})
 
-	writeJSON(w, http.StatusOK, map[string]any{
-		"voice_icebreaker": item,
-	})
+	writeJSON(w, http.StatusOK, resp)
 }
 
 func (s *Server) playVoiceIcebreaker(w http.ResponseWriter, r *http.Request) {
@@ -2247,8 +2710,19 @@ func (s *Server) playVoiceIcebreaker(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userID := strings.TrimSpace(toString(payload["user_id"]))
-	item, err := s.store.markVoiceIcebreakerPlayed(icebreakerID, userID, time.Now().UTC())
+	ctx, cancel := s.withRequestTimeout(r.Context())
+	defer cancel()
+
+	respAny, err := s.mediator.Send(
+		ctx,
+		engagementapp.PlayVoiceIcebreakerCommandName,
+		engagementapp.PlayVoiceIcebreakerCommand{IcebreakerID: icebreakerID, UserID: userID},
+	)
 	if err != nil {
+		if errors.Is(err, engagementapp.ErrValidation) {
+			writeError(w, http.StatusBadRequest, err)
+			return
+		}
 		errMsg := strings.ToLower(err.Error())
 		switch {
 		case strings.Contains(errMsg, "not found"):
@@ -2262,6 +2736,12 @@ func (s *Server) playVoiceIcebreaker(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	resp, ok := respAny.(map[string]any)
+	if !ok {
+		writeError(w, http.StatusBadGateway, errors.New("unexpected play voice icebreaker response payload"))
+		return
+	}
+	item, _ := resp["voice_icebreaker"].(map[string]any)
 
 	s.store.recordActivity(activityEvent{
 		UserID:   userID,
@@ -2270,15 +2750,13 @@ func (s *Server) playVoiceIcebreaker(w http.ResponseWriter, r *http.Request) {
 		Status:   "success",
 		Resource: "/engagement/voice-icebreakers/" + icebreakerID + "/play",
 		Details: map[string]any{
-			"match_id":      item.MatchID,
+			"match_id":      toString(item["match_id"]),
 			"user_id":       userID,
-			"icebreaker_id": item.ID,
+			"icebreaker_id": toString(item["id"]),
 		},
 	})
 
-	writeJSON(w, http.StatusOK, map[string]any{
-		"voice_icebreaker": item,
-	})
+	writeJSON(w, http.StatusOK, resp)
 }
 
 func (s *Server) createGroupCoffeePoll(w http.ResponseWriter, r *http.Request) {
@@ -2310,11 +2788,43 @@ func (s *Server) createGroupCoffeePoll(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	poll, err := s.store.createGroupCoffeePoll(creatorUserID, participantUserIDs, options, deadlineAt, time.Now().UTC())
+	moduleOptions := make([]engagementapp.GroupCoffeeOptionInput, 0, len(options))
+	for _, option := range options {
+		moduleOptions = append(moduleOptions, engagementapp.GroupCoffeeOptionInput{
+			Day:          option.Day,
+			TimeWindow:   option.TimeWindow,
+			Neighborhood: option.Neighborhood,
+		})
+	}
+
+	ctx, cancel := s.withRequestTimeout(r.Context())
+	defer cancel()
+
+	respAny, err := s.mediator.Send(
+		ctx,
+		engagementapp.CreateGroupCoffeePollCommandName,
+		engagementapp.CreateGroupCoffeePollCommand{
+			CreatorUserID:      creatorUserID,
+			ParticipantUserIDs: participantUserIDs,
+			Options:            moduleOptions,
+			DeadlineAt:         deadlineAt,
+		},
+	)
 	if err != nil {
+		if errors.Is(err, engagementapp.ErrValidation) {
+			writeError(w, http.StatusBadRequest, err)
+			return
+		}
 		writeError(w, http.StatusBadRequest, err)
 		return
 	}
+	resp, ok := respAny.(map[string]any)
+	if !ok {
+		writeError(w, http.StatusBadGateway, errors.New("unexpected create group coffee poll response payload"))
+		return
+	}
+	poll, _ := resp["poll"].(map[string]any)
+	participantList, _ := poll["participant_user_ids"].([]any)
 
 	s.store.recordActivity(activityEvent{
 		UserID:   creatorUserID,
@@ -2323,10 +2833,10 @@ func (s *Server) createGroupCoffeePoll(w http.ResponseWriter, r *http.Request) {
 		Status:   "success",
 		Resource: "/engagement/group-coffee-polls",
 		Details: map[string]any{
-			"intro_event_id": poll.ID,
+			"intro_event_id": toString(poll["id"]),
 			"user_id":        creatorUserID,
 			"event_type":     "group_coffee_poll",
-			"participants":   len(poll.ParticipantUserIDs),
+			"participants":   len(participantList),
 		},
 	})
 
@@ -2337,13 +2847,13 @@ func (s *Server) createGroupCoffeePoll(w http.ResponseWriter, r *http.Request) {
 		Status:   "success",
 		Resource: "/engagement/group-coffee-polls",
 		Details: map[string]any{
-			"poll_id":      poll.ID,
+			"poll_id":      toString(poll["id"]),
 			"user_id":      creatorUserID,
-			"participants": len(poll.ParticipantUserIDs),
+			"participants": len(participantList),
 		},
 	})
 
-	writeJSON(w, http.StatusOK, map[string]any{"poll": poll})
+	writeJSON(w, http.StatusOK, resp)
 }
 
 func (s *Server) listGroupCoffeePolls(w http.ResponseWriter, r *http.Request) {
@@ -2364,8 +2874,28 @@ func (s *Server) listGroupCoffeePolls(w http.ResponseWriter, r *http.Request) {
 		limit = parsed
 	}
 
-	polls := s.store.listGroupCoffeePolls(userID, status, limit)
-	writeJSON(w, http.StatusOK, map[string]any{"polls": polls})
+	ctx, cancel := s.withRequestTimeout(r.Context())
+	defer cancel()
+
+	respAny, err := s.mediator.Send(
+		ctx,
+		engagementapp.ListGroupCoffeePollsCommandName,
+		engagementapp.ListGroupCoffeePollsCommand{UserID: userID, Status: status, Limit: limit},
+	)
+	if err != nil {
+		if errors.Is(err, engagementapp.ErrValidation) {
+			writeError(w, http.StatusBadRequest, err)
+			return
+		}
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+	resp, ok := respAny.(map[string]any)
+	if !ok {
+		writeError(w, http.StatusBadGateway, errors.New("unexpected list group coffee polls response payload"))
+		return
+	}
+	writeJSON(w, http.StatusOK, resp)
 }
 
 func (s *Server) getGroupCoffeePoll(w http.ResponseWriter, r *http.Request) {
@@ -2375,13 +2905,32 @@ func (s *Server) getGroupCoffeePoll(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	poll, ok := s.store.getGroupCoffeePoll(pollID)
-	if !ok {
-		writeError(w, http.StatusNotFound, errors.New("group coffee poll not found"))
+	ctx, cancel := s.withRequestTimeout(r.Context())
+	defer cancel()
+
+	respAny, err := s.mediator.Send(
+		ctx,
+		engagementapp.GetGroupCoffeePollCommandName,
+		engagementapp.GetGroupCoffeePollCommand{PollID: pollID},
+	)
+	if err != nil {
+		if errors.Is(err, engagementapp.ErrValidation) {
+			writeError(w, http.StatusBadRequest, err)
+			return
+		}
+		if strings.Contains(strings.ToLower(err.Error()), "not found") {
+			writeError(w, http.StatusNotFound, err)
+			return
+		}
+		writeError(w, http.StatusBadRequest, err)
 		return
 	}
-
-	writeJSON(w, http.StatusOK, map[string]any{"poll": poll})
+	resp, ok := respAny.(map[string]any)
+	if !ok {
+		writeError(w, http.StatusBadGateway, errors.New("unexpected get group coffee poll response payload"))
+		return
+	}
+	writeJSON(w, http.StatusOK, resp)
 }
 
 func (s *Server) voteGroupCoffeePoll(w http.ResponseWriter, r *http.Request) {
@@ -2398,8 +2947,19 @@ func (s *Server) voteGroupCoffeePoll(w http.ResponseWriter, r *http.Request) {
 	userID := strings.TrimSpace(toString(payload["user_id"]))
 	optionID := strings.TrimSpace(toString(payload["option_id"]))
 
-	poll, err := s.store.voteGroupCoffeePoll(pollID, userID, optionID)
+	ctx, cancel := s.withRequestTimeout(r.Context())
+	defer cancel()
+
+	respAny, err := s.mediator.Send(
+		ctx,
+		engagementapp.VoteGroupCoffeePollCommandName,
+		engagementapp.VoteGroupCoffeePollCommand{PollID: pollID, UserID: userID, OptionID: optionID},
+	)
 	if err != nil {
+		if errors.Is(err, engagementapp.ErrValidation) {
+			writeError(w, http.StatusBadRequest, err)
+			return
+		}
 		errMsg := strings.ToLower(err.Error())
 		switch {
 		case strings.Contains(errMsg, "not found"):
@@ -2413,6 +2973,12 @@ func (s *Server) voteGroupCoffeePoll(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	resp, ok := respAny.(map[string]any)
+	if !ok {
+		writeError(w, http.StatusBadGateway, errors.New("unexpected vote group coffee poll response payload"))
+		return
+	}
+	poll, _ := resp["poll"].(map[string]any)
 
 	s.store.recordActivity(activityEvent{
 		UserID:   userID,
@@ -2421,7 +2987,7 @@ func (s *Server) voteGroupCoffeePoll(w http.ResponseWriter, r *http.Request) {
 		Status:   "success",
 		Resource: "/engagement/group-coffee-polls/" + pollID + "/votes",
 		Details: map[string]any{
-			"intro_event_id": poll.ID,
+			"intro_event_id": toString(poll["id"]),
 			"user_id":        userID,
 			"option_id":      optionID,
 			"event_type":     "group_coffee_poll",
@@ -2435,13 +3001,13 @@ func (s *Server) voteGroupCoffeePoll(w http.ResponseWriter, r *http.Request) {
 		Status:   "success",
 		Resource: "/engagement/group-coffee-polls/" + pollID + "/votes",
 		Details: map[string]any{
-			"poll_id":   poll.ID,
+			"poll_id":   toString(poll["id"]),
 			"user_id":   userID,
 			"option_id": optionID,
 		},
 	})
 
-	writeJSON(w, http.StatusOK, map[string]any{"poll": poll})
+	writeJSON(w, http.StatusOK, resp)
 }
 
 func (s *Server) finalizeGroupCoffeePoll(w http.ResponseWriter, r *http.Request) {
@@ -2457,8 +3023,19 @@ func (s *Server) finalizeGroupCoffeePoll(w http.ResponseWriter, r *http.Request)
 	}
 	userID := strings.TrimSpace(toString(payload["user_id"]))
 
-	poll, selectedOption, err := s.store.finalizeGroupCoffeePoll(pollID, userID, time.Now().UTC())
+	ctx, cancel := s.withRequestTimeout(r.Context())
+	defer cancel()
+
+	respAny, err := s.mediator.Send(
+		ctx,
+		engagementapp.FinalizeGroupCoffeePollCommandName,
+		engagementapp.FinalizeGroupCoffeePollCommand{PollID: pollID, UserID: userID},
+	)
 	if err != nil {
+		if errors.Is(err, engagementapp.ErrValidation) {
+			writeError(w, http.StatusBadRequest, err)
+			return
+		}
 		errMsg := strings.ToLower(err.Error())
 		switch {
 		case strings.Contains(errMsg, "not found"):
@@ -2472,6 +3049,13 @@ func (s *Server) finalizeGroupCoffeePoll(w http.ResponseWriter, r *http.Request)
 			return
 		}
 	}
+	resp, ok := respAny.(map[string]any)
+	if !ok {
+		writeError(w, http.StatusBadGateway, errors.New("unexpected finalize group coffee poll response payload"))
+		return
+	}
+	poll, _ := resp["poll"].(map[string]any)
+	selectedOption, _ := resp["selected_option"].(map[string]any)
 
 	s.store.recordActivity(activityEvent{
 		UserID:   userID,
@@ -2480,13 +3064,13 @@ func (s *Server) finalizeGroupCoffeePoll(w http.ResponseWriter, r *http.Request)
 		Status:   "success",
 		Resource: "/engagement/group-coffee-polls/" + pollID + "/finalize",
 		Details: map[string]any{
-			"intro_event_id":        poll.ID,
+			"intro_event_id":        toString(poll["id"]),
 			"user_id":               userID,
 			"event_type":            "group_coffee_poll",
-			"selected_option_id":    selectedOption.ID,
-			"selected_day":          selectedOption.Day,
-			"selected_time_window":  selectedOption.TimeWindow,
-			"selected_neighborhood": selectedOption.Neighborhood,
+			"selected_option_id":    toString(selectedOption["id"]),
+			"selected_day":          toString(selectedOption["day"]),
+			"selected_time_window":  toString(selectedOption["time_window"]),
+			"selected_neighborhood": toString(selectedOption["neighborhood"]),
 		},
 	})
 
@@ -2497,19 +3081,16 @@ func (s *Server) finalizeGroupCoffeePoll(w http.ResponseWriter, r *http.Request)
 		Status:   "success",
 		Resource: "/engagement/group-coffee-polls/" + pollID + "/finalize",
 		Details: map[string]any{
-			"poll_id":               poll.ID,
+			"poll_id":               toString(poll["id"]),
 			"user_id":               userID,
-			"selected_option_id":    selectedOption.ID,
-			"selected_day":          selectedOption.Day,
-			"selected_time_window":  selectedOption.TimeWindow,
-			"selected_neighborhood": selectedOption.Neighborhood,
+			"selected_option_id":    toString(selectedOption["id"]),
+			"selected_day":          toString(selectedOption["day"]),
+			"selected_time_window":  toString(selectedOption["time_window"]),
+			"selected_neighborhood": toString(selectedOption["neighborhood"]),
 		},
 	})
 
-	writeJSON(w, http.StatusOK, map[string]any{
-		"poll":            poll,
-		"selected_option": selectedOption,
-	})
+	writeJSON(w, http.StatusOK, resp)
 }
 
 func (s *Server) startCall(w http.ResponseWriter, r *http.Request) {
@@ -4400,6 +4981,14 @@ func toString(value any) string {
 		return typed
 	}
 	return ""
+}
+
+func numericValue(value any) int {
+	parsed, ok := toInt(value)
+	if !ok {
+		return 0
+	}
+	return parsed
 }
 
 func toFloat64(value any) (float64, bool) {

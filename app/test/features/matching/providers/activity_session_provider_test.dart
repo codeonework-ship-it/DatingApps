@@ -7,11 +7,11 @@ void main() {
       final questions = buildDefaultActivityQuestions();
       final state = ActivitySessionState(
         questions: questions,
-        selectedAnswers: <String, String>{
-          questions[0].id: questions[0].options.first,
-          questions[1].id: questions[1].options.first,
-          questions[2].id: questions[2].options.first,
-        },
+        selectedAnswers: Map<String, String>.fromEntries(
+          questions.map(
+            (q) => MapEntry<String, String>(q.id, q.options.first),
+          ),
+        ),
       );
 
       expect(state.allQuestionsAnswered, isTrue);
@@ -87,13 +87,13 @@ void main() {
   });
 
   group('buildDefaultActivityQuestions', () {
-    test('returns three required activity interfaces', () {
+    test('returns eight required activity interfaces', () {
       final questions = buildDefaultActivityQuestions();
 
-      expect(questions, hasLength(3));
+      expect(questions, hasLength(8));
       expect(questions[0].type, ActivityQuestionType.thisOrThat);
-      expect(questions[1].type, ActivityQuestionType.valueMatch);
-      expect(questions[2].type, ActivityQuestionType.scenarioChoice);
+      expect(questions[1].type, ActivityQuestionType.thisOrThat);
+      expect(questions[2].type, ActivityQuestionType.thisOrThat);
       expect(questions.every((q) => q.options.isNotEmpty), isTrue);
     });
   });

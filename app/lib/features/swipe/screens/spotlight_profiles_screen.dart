@@ -431,7 +431,7 @@ class _SpotlightProfilesScreenState extends State<SpotlightProfilesScreen>
                                         ),
                                         child: ConstrainedBox(
                                           constraints: const BoxConstraints(
-                                            maxWidth: 720,
+                                            maxWidth: 680,
                                           ),
                                           child: AnimatedSwitcher(
                                             duration: const Duration(
@@ -526,7 +526,7 @@ class _SpotlightProfilesScreenState extends State<SpotlightProfilesScreen>
                                     ),
                                     child: ConstrainedBox(
                                       constraints: const BoxConstraints(
-                                        maxWidth: 720,
+                                        maxWidth: 680,
                                       ),
                                       child: SwipeButtons(
                                         onPass: () async => _advance(

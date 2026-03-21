@@ -22,15 +22,15 @@ class SwipeCard extends StatelessWidget {
 
   double _cardWidth(BuildContext context) {
     final screenSize = MediaQuery.sizeOf(context);
-    return (screenSize.width - 40).clamp(300.0, 460.0).toDouble();
+    return (screenSize.width - 52).clamp(288.0, 436.0).toDouble();
   }
 
   double _cardHeight(BuildContext context) {
     final screenSize = MediaQuery.sizeOf(context);
     final cardWidth = _cardWidth(context);
     final targetHeight = cardWidth * 1.54;
-    final maxHeightByScreen = (screenSize.height * 0.69)
-        .clamp(380.0, 710.0)
+    final maxHeightByScreen = (screenSize.height * 0.66)
+        .clamp(364.0, 680.0)
         .toDouble();
     return targetHeight > maxHeightByScreen ? maxHeightByScreen : targetHeight;
   }
@@ -231,16 +231,16 @@ class SwipeCard extends StatelessWidget {
                             children: [
                               Text(
                                 'View more',
-                                style: Theme.of(context).textTheme.labelMedium
+                                style: Theme.of(context).textTheme.labelSmall
                                     ?.copyWith(
                                       color: Colors.white,
                                       fontWeight: FontWeight.w700,
                                     ),
                               ),
-                              const SizedBox(width: 4),
+                              const SizedBox(width: 2),
                               const Icon(
                                 Icons.chevron_right,
-                                size: 16,
+                                size: 14,
                                 color: Colors.white,
                               ),
                             ],

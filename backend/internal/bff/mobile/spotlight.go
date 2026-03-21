@@ -1,10 +1,13 @@
 package mobile
 
 import (
+	"context"
 	"math"
 	"sort"
 	"strings"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 type spotlightTierPolicy struct {
@@ -93,6 +96,10 @@ func normalizeSpotlightTier(raw string) string {
 }
 
 func (s *Server) attachSpotlightDiscovery(resp map[string]any, viewerUserID string) {
+	s.attachSpotlightDiscoveryWithContext(context.Background(), resp, viewerUserID)
+}
+
+func (s *Server) attachSpotlightDiscoveryWithContext(ctx context.Context, resp map[string]any, viewerUserID string) {
 	rows, ok := resp["candidates"].([]any)
 	if !ok || len(rows) == 0 {
 		resp["spotlight_summary"] = map[string]any{
@@ -103,6 +110,28 @@ func (s *Server) attachSpotlightDiscovery(resp map[string]any, viewerUserID stri
 		}
 		resp["spotlight_profiles"] = []any{}
 		return
+	}
+
+	if s.spotlight != nil {
+		selected, annotated, summary, err := s.spotlight.annotateDiscoverySpotlight(ctx, rows, viewerUserID)
+		if err == nil {
+			resp["candidates"] = annotated
+			resp["spotlight_profiles"] = selected
+			resp["spotlight_summary"] = summary
+			return
+		}
+		if !isSpotlightRepoPersistenceUnavailable(err) || s.cfg.RequireDurableEngagementStore {
+			s.log.Warn("spotlight durable annotation failed", zap.Error(err))
+			resp["spotlight_summary"] = map[string]any{
+				"active":           false,
+				"injected_count":   0,
+				"tier_mix":         map[string]int{},
+				"fairness_applied": false,
+				"degraded":         true,
+			}
+			resp["spotlight_profiles"] = []any{}
+			return
+		}
 	}
 
 	selected, annotated, summary := s.store.annotateDiscoverySpotlight(rows, viewerUserID)

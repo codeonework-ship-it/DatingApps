@@ -110,7 +110,7 @@ func (m *memoryStore) createCommunityGroup(
 	now time.Time,
 ) (communityGroupView, []communityGroupInviteView, error) {
 	if m.communityGroupRepo != nil {
-		view, invites, err := m.communityGroupRepo.createGroup(
+		return m.communityGroupRepo.createGroup(
 			context.Background(),
 			ownerUserID,
 			name,
@@ -121,12 +121,6 @@ func (m *memoryStore) createCommunityGroup(
 			inviteeUserIDs,
 			now,
 		)
-		if err == nil {
-			return view, invites, nil
-		}
-		if m.durableEngagementRequired() || !isCommunityGroupRepoPersistenceUnavailable(err) {
-			return communityGroupView{}, nil, err
-		}
 	}
 
 	if m.durableEngagementRequired() {
@@ -189,19 +183,13 @@ func (m *memoryStore) createCommunityGroupInvites(
 	now time.Time,
 ) ([]communityGroupInviteView, error) {
 	if m.communityGroupRepo != nil {
-		invites, err := m.communityGroupRepo.createInvites(
+		return m.communityGroupRepo.createInvites(
 			context.Background(),
 			groupID,
 			inviterUserID,
 			inviteeUserIDs,
 			now,
 		)
-		if err == nil {
-			return invites, nil
-		}
-		if m.durableEngagementRequired() || !isCommunityGroupRepoPersistenceUnavailable(err) {
-			return nil, err
-		}
 	}
 
 	if m.durableEngagementRequired() {
@@ -297,19 +285,13 @@ func (m *memoryStore) respondCommunityGroupInvite(
 	now time.Time,
 ) (communityGroupView, communityGroupInviteView, error) {
 	if m.communityGroupRepo != nil {
-		group, invite, err := m.communityGroupRepo.respondInvite(
+		return m.communityGroupRepo.respondInvite(
 			context.Background(),
 			groupID,
 			userID,
 			decision,
 			now,
 		)
-		if err == nil {
-			return group, invite, nil
-		}
-		if m.durableEngagementRequired() || !isCommunityGroupRepoPersistenceUnavailable(err) {
-			return communityGroupView{}, communityGroupInviteView{}, err
-		}
 	}
 
 	if m.durableEngagementRequired() {
@@ -391,9 +373,7 @@ func (m *memoryStore) listCommunityGroups(
 		if err == nil {
 			return groups
 		}
-		if m.durableEngagementRequired() || !isCommunityGroupRepoPersistenceUnavailable(err) {
-			return []communityGroupView{}
-		}
+		return []communityGroupView{}
 	}
 
 	if m.durableEngagementRequired() {
@@ -454,9 +434,7 @@ func (m *memoryStore) listCommunityGroupInvites(userID, status string, limit int
 		if err == nil {
 			return invites
 		}
-		if m.durableEngagementRequired() || !isCommunityGroupRepoPersistenceUnavailable(err) {
-			return []communityGroupInviteView{}
-		}
+		return []communityGroupInviteView{}
 	}
 
 	if m.durableEngagementRequired() {

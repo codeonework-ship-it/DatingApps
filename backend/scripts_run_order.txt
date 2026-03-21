@@ -12,10 +12,21 @@ Pre-step (durable persistence migrations):
 0.8) apply SQL migration `backend/scripts/029_community_groups_tables.sql` for user-created community groups, memberships, and invite lifecycle
 0.9) apply SQL migration `backend/scripts/030_public_master_data_views.sql` to expose `public.master_*` views backed by `matching.master_*` tables
 0.10) apply SQL migration `backend/scripts/031_activity_notifications.sql` for unread/latest discovery notifications (`who_replied_me`, `who_liked_me`)
+0.11) apply SQL migration `backend/scripts/032_rose_gifts_wallet_tables.sql` for rose GIF catalog, user wallets, and match gift sends
+0.12) apply SQL migration `backend/scripts/033_rose_gifts_model_alignment.sql` for gift icon keys and durable gift-send idempotency columns/indexes
+0.13) apply SQL migration `backend/scripts/034_gift_spend_activities.sql` for durable sender gift-spend activity logs used by spend reporting
+0.14) apply SQL migration `backend/scripts/038_voice_and_group_coffee_persistence_alignment.sql` for voice playback/moderation fields and durable coffee poll participants
+0.15) apply SQL migration `backend/scripts/039_wallet_coin_purchases.sql` for durable wallet coin purchase/top-up transactions with idempotency
+0.16) apply SQL migration `backend/scripts/040_gifts_wallet_relationship_constraints.sql` to enforce gift/wallet/user foreign-key relationships and receiver lookup indexing
 
 Note:
 - Canonical production path uses `matching` and `user_management` schemas.
 - `015/016/017` public smoke scripts are temporary troubleshooting artifacts and should not be used for production-hardening runs.
+
+Optional full rebuild (destructive, for local/dev reset only):
+- `backend/scripts/035_full_drop_all_screens_schema.sql`
+- `backend/scripts/036_full_create_all_screens_schema.sql`
+- `backend/scripts/037_seed_full_screens_100_users_50_matches.sql`
 
 1) go run ./cmd/auth-svc
 2) go run ./cmd/profile-svc

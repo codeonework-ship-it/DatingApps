@@ -47,6 +47,10 @@
         "/^cd '/Users/anandsadasivan/Documents/Workspaces/Development/GitHub/Dating apps/app' && flutter run -d chrome$/": {
             "approve": true,
             "matchCommandLine": true
+        },
+        "/^git -C \"\\$PWD\" status --short && echo '---' && git -C \"\\$PWD\" rev-parse --abbrev-ref HEAD && echo '---' && git -C \"\\$PWD\" remote -v$/": {
+            "approve": true,
+            "matchCommandLine": true
         }
     },
     "java.import.gradle.java.home": "/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home",

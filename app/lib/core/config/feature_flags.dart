@@ -46,6 +46,16 @@ const bool kFeatureConversationRooms = bool.fromEnvironment(
   defaultValue: true,
 );
 
+const bool kFeatureRoseGiftTray = bool.fromEnvironment(
+  'FEATURE_ROSE_GIFT_TRAY',
+  defaultValue: true,
+);
+
+const bool kShowDeletedPlaceholderForSender = bool.fromEnvironment(
+  'SHOW_DELETED_PLACEHOLDER_FOR_SENDER',
+  defaultValue: true,
+);
+
 /// Optional UI testing helper.
 /// Enable with: `--dart-define=USE_DUMMY_MATCHES=true`.
 const bool kUseDummyMatches = bool.fromEnvironment(

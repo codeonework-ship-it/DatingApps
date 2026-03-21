@@ -1,6 +1,7 @@
 package mobile
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"sort"
@@ -17,7 +18,20 @@ func (s *Server) getDiscoveryTrustFilter(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	filter, err := s.store.getTrustFilterPreference(userID)
+	var (
+		filter trustFilterPreference
+		err    error
+	)
+	if s.trust != nil {
+		filter, err = s.trust.getTrustFilterPreference(r.Context(), userID)
+		if err != nil && (!isTrustRepoPersistenceUnavailable(err) || s.cfg.RequireDurableEngagementStore) {
+			writeError(w, http.StatusBadGateway, err)
+			return
+		}
+	}
+	if s.trust == nil || (err != nil && isTrustRepoPersistenceUnavailable(err) && !s.cfg.RequireDurableEngagementStore) {
+		filter, err = s.store.getTrustFilterPreference(userID)
+	}
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err)
 		return
@@ -45,12 +59,31 @@ func (s *Server) patchDiscoveryTrustFilter(w http.ResponseWriter, r *http.Reques
 	minimumActiveBadges, _ := toInt(payload["minimum_active_badges"])
 	requiredBadgeCodes, _ := toStringSlice(payload["required_badge_codes"])
 
-	filter, err := s.store.upsertTrustFilterPreference(
-		userID,
-		enabled,
-		minimumActiveBadges,
-		requiredBadgeCodes,
+	var (
+		filter trustFilterPreference
+		err    error
 	)
+	if s.trust != nil {
+		filter, err = s.trust.upsertTrustFilterPreference(
+			r.Context(),
+			userID,
+			enabled,
+			minimumActiveBadges,
+			requiredBadgeCodes,
+		)
+		if err != nil && (!isTrustRepoPersistenceUnavailable(err) || s.cfg.RequireDurableEngagementStore) {
+			writeError(w, http.StatusBadGateway, err)
+			return
+		}
+	}
+	if s.trust == nil || (err != nil && isTrustRepoPersistenceUnavailable(err) && !s.cfg.RequireDurableEngagementStore) {
+		filter, err = s.store.upsertTrustFilterPreference(
+			userID,
+			enabled,
+			minimumActiveBadges,
+			requiredBadgeCodes,
+		)
+	}
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err)
 		return
@@ -80,7 +113,7 @@ func (s *Server) attachTrustFilteredDiscovery(resp map[string]any, userID string
 	if !ok {
 		return
 	}
-	filteredRows, summary := s.applyTrustFilterToRows(rows, userID, "id")
+	filteredRows, summary := s.applyTrustFilterToRowsWithContext(context.Background(), rows, userID, "id")
 	resp["candidates"] = filteredRows
 	resp["trust_filter"] = summary
 }
@@ -90,13 +123,29 @@ func (s *Server) attachTrustFilteredMatches(resp map[string]any, userID string) 
 	if !ok {
 		return
 	}
-	filteredRows, summary := s.applyTrustFilterToRows(rows, userID, "userId")
+	filteredRows, summary := s.applyTrustFilterToRowsWithContext(context.Background(), rows, userID, "userId")
 	resp["matches"] = filteredRows
 	resp["trust_filter"] = summary
 }
 
 func (s *Server) applyTrustFilterToRows(rows []any, userID, idField string) ([]any, map[string]any) {
-	filter, err := s.store.getTrustFilterPreference(userID)
+	return s.applyTrustFilterToRowsWithContext(context.Background(), rows, userID, idField)
+}
+
+func (s *Server) applyTrustFilterToRowsWithContext(ctx context.Context, rows []any, userID, idField string) ([]any, map[string]any) {
+	var (
+		filter trustFilterPreference
+		err    error
+	)
+	if s.trust != nil {
+		filter, err = s.trust.getTrustFilterPreference(ctx, userID)
+		if err != nil && (!isTrustRepoPersistenceUnavailable(err) || s.cfg.RequireDurableEngagementStore) {
+			return rows, map[string]any{"active": false}
+		}
+	}
+	if s.trust == nil || (err != nil && isTrustRepoPersistenceUnavailable(err) && !s.cfg.RequireDurableEngagementStore) {
+		filter, err = s.store.getTrustFilterPreference(userID)
+	}
 	if err != nil {
 		return rows, map[string]any{"active": false}
 	}
@@ -127,7 +176,18 @@ func (s *Server) applyTrustFilterToRows(rows []any, userID, idField string) ([]a
 			continue
 		}
 
-		activeBadges, badgeErr := s.store.listActiveTrustBadgeCodes(targetUserID)
+		var (
+			activeBadges []string
+			badgeErr     error
+		)
+		if s.trust != nil {
+			activeBadges, badgeErr = s.trust.listActiveTrustBadgeCodes(ctx, targetUserID)
+			if badgeErr != nil && isTrustRepoPersistenceUnavailable(badgeErr) && !s.cfg.RequireDurableEngagementStore {
+				activeBadges, badgeErr = s.store.listActiveTrustBadgeCodes(targetUserID)
+			}
+		} else {
+			activeBadges, badgeErr = s.store.listActiveTrustBadgeCodes(targetUserID)
+		}
 		if badgeErr != nil {
 			activeBadges = []string{}
 		}

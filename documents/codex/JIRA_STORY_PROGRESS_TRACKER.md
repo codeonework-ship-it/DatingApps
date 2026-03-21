@@ -57,7 +57,7 @@ Backlog Source: `documents/codex/JIRA_IMPORT_READY_ACTIVITY_UNLOCK_BACKLOG.md`
   - Runbook/checklist created and validated.
   - Emulator base URL documented as `http://10.0.2.2:8080/v1`.
   - Recovery playbooks documented for ADB offline, gateway 503/502, and Supabase schema exposure.
-  - Evidence: `documents/codex/PHASE_1_STORY_1_1_ANDROID_EMULATOR_RUNBOOK.md`
+  - Evidence: `documents/codex/completed/PHASE_1_STORY_1_1_ANDROID_EMULATOR_RUNBOOK.md`
 
 - Story 1.2 Baseline regression suite (8 SP): **Completed**
   - Structured backend + Flutter logging foundation completed.
@@ -76,7 +76,7 @@ Backlog Source: `documents/codex/JIRA_IMPORT_READY_ACTIVITY_UNLOCK_BACKLOG.md`
     - `backend/scripts/019_remove_public_smoke_compat.sql`
   - Regression artifact updated with command evidence and blocker details.
   - Evidence:
-    - `documents/codex/PHASE_1_STORY_1_2_BASELINE_REGRESSION_REPORT.md`
+    - `documents/codex/completed/PHASE_1_STORY_1_2_BASELINE_REGRESSION_REPORT.md`
     - `documents/codex/CANONICAL_SMOKE_EVIDENCE_20260228T183910Z.json`
     - `documents/codex/artifacts/story_1_2_emulator/01_welcome.png`
     - `documents/codex/artifacts/story_1_2_emulator/02_auth_phone_step.png`
@@ -249,7 +249,7 @@ Backlog Source: `documents/codex/JIRA_IMPORT_READY_ACTIVITY_UNLOCK_BACKLOG.md`
     - `backend/internal/bff/mobile/server.go`
     - `backend/internal/bff/mobile/server_activity_session_test.go`
     - `documents/codex/ACTIVITY_SESSION_SMOKE_20260228T185526Z.json`
-    - `documents/codex/EPIC4_STORY_4_1_ACTIVITY_SESSION_LIFECYCLE_REPORT.md`
+    - `documents/codex/completed/EPIC4_STORY_4_1_ACTIVITY_SESSION_LIFECYCLE_REPORT.md`
 
 - Story 4.2 Build activity UI flows in Flutter (13 SP): **Completed**
   - Added new activity session provider for Story 4.1 APIs:
@@ -268,7 +268,7 @@ Backlog Source: `documents/codex/JIRA_IMPORT_READY_ACTIVITY_UNLOCK_BACKLOG.md`
     - `app/lib/features/matching/screens/activity_session_screen.dart`
     - `app/lib/features/messaging/screens/chat_screen.dart`
     - `app/test/features/matching/providers/activity_session_provider_test.dart`
-    - `documents/codex/EPIC4_STORY_4_2_ACTIVITY_UI_FLOW_REPORT.md`
+    - `documents/codex/completed/EPIC4_STORY_4_2_ACTIVITY_UI_FLOW_REPORT.md`
     - `documents/codex/EPIC4_STORY_4_2_EMULATOR_EVIDENCE_20260301.json`
     - `documents/codex/artifacts/story_4_2_emulator/01_discover_after_auth.png`
     - `documents/codex/artifacts/story_4_2_emulator/02_matches_tab.png`
@@ -298,7 +298,7 @@ Backlog Source: `documents/codex/JIRA_IMPORT_READY_ACTIVITY_UNLOCK_BACKLOG.md`
     - `backend/internal/bff/mobile/store.go`
     - `backend/internal/bff/mobile/server.go`
     - `backend/internal/bff/mobile/server_trust_badges_test.go`
-    - `documents/codex/EPIC5_STORY_5_1_TRUST_BADGES_REPORT.md`
+    - `documents/codex/completed/EPIC5_STORY_5_1_TRUST_BADGES_REPORT.md`
 
 - Story 5.2 Women trust filter controls in discovery/matches (8 SP): **Completed**
   - Added trust filter persistence model and validation with per-user storage:
@@ -330,7 +330,7 @@ Backlog Source: `documents/codex/JIRA_IMPORT_READY_ACTIVITY_UNLOCK_BACKLOG.md`
     - `app/lib/features/swipe/screens/home_discovery_screen.dart`
     - `app/lib/features/matching/screens/matches_list_screen.dart`
     - `app/test/features/matching/providers/trust_filter_provider_test.dart`
-    - `documents/codex/EPIC5_STORY_5_2_TRUST_FILTERS_REPORT.md`
+    - `documents/codex/completed/EPIC5_STORY_5_2_TRUST_FILTERS_REPORT.md`
 
 ### Epic 6
 - Story 6.1 Room scheduling and participation endpoints (8 SP): **Completed**
@@ -349,7 +349,7 @@ Backlog Source: `documents/codex/JIRA_IMPORT_READY_ACTIVITY_UNLOCK_BACKLOG.md`
     - `backend/internal/bff/mobile/server.go`
     - `backend/internal/bff/mobile/store.go`
     - `backend/internal/bff/mobile/server_rooms_test.go`
-    - `documents/codex/EPIC6_STORY_6_1_ROOM_ENDPOINTS_REPORT.md`
+    - `documents/codex/completed/EPIC6_STORY_6_1_ROOM_ENDPOINTS_REPORT.md`
 
 - Story 6.2 Moderator controls for room safety (8 SP): **Completed**
   - Added moderator endpoint for room safety actions:
@@ -367,7 +367,7 @@ Backlog Source: `documents/codex/JIRA_IMPORT_READY_ACTIVITY_UNLOCK_BACKLOG.md`
     - `backend/internal/bff/mobile/server.go`
     - `backend/internal/bff/mobile/store.go`
     - `backend/internal/bff/mobile/server_room_moderation_test.go`
-    - `documents/codex/EPIC6_STORY_6_2_ROOM_MODERATION_REPORT.md`
+    - `documents/codex/completed/EPIC6_STORY_6_2_ROOM_MODERATION_REPORT.md`
 
 ### Epic 7
 - Story 7.1 Add test coverage for success/failure/edge scenarios (13 SP): **Completed**
@@ -392,7 +392,7 @@ Backlog Source: `documents/codex/JIRA_IMPORT_READY_ACTIVITY_UNLOCK_BACKLOG.md`
     - `backend/internal/bff/mobile/server_quest_workflow_test.go`
     - `backend/internal/bff/mobile/server_gesture_timeline_test.go`
     - `backend/internal/bff/mobile/server_trust_badges_test.go`
-    - `documents/codex/EPIC7_STORY_7_1_TEST_COVERAGE_REPORT.md`
+    - `documents/codex/completed/EPIC7_STORY_7_1_TEST_COVERAGE_REPORT.md`
 
 - Story 7.2 Production metrics and feature flag rollout (8 SP): **Completed**
   - Added capability feature flags across backend + Flutter runtime configuration:
@@ -416,7 +416,7 @@ Backlog Source: `documents/codex/JIRA_IMPORT_READY_ACTIVITY_UNLOCK_BACKLOG.md`
     - `backend/config/.env`
     - `app/lib/core/config/feature_flags.dart`
     - `app/test/core/config/feature_flags_test.dart`
-    - `documents/codex/EPIC7_STORY_7_2_FEATURE_FLAGS_METRICS_REPORT.md`
+    - `documents/codex/completed/EPIC7_STORY_7_2_FEATURE_FLAGS_METRICS_REPORT.md`
 
 ### Epic 7 (Post-backlog enhancements requested on 1 Mar 2026)
 - Story 7.3 Advanced profile tags + real discovery/match filtering (extension): **Completed**

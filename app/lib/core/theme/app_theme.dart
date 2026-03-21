@@ -34,6 +34,10 @@ class AppTheme {
   static const Color crystalGoldDeep = Color(0xFF6E5200);
   static const Color crystalGoldSoft = Color(0xFFE2B84F);
   static const Color crystalGoldFog = Color(0xFFF7E8BE);
+  static const Color pureGoldCore = Color(0xFFC88A12);
+  static const Color pureGoldBright = Color(0xFFF4C84E);
+  static const Color pureGoldHighlight = Color(0xFFFFE7A2);
+  static const Color pureGoldInk = Color(0xFF2D1900);
 
   // Backward-compatible aliases used throughout existing screens
   static const Color primaryRed = trustBlue;
@@ -194,6 +198,119 @@ class AppTheme {
     );
   }
 
+  static ButtonStyle _goldSlidingButtonStyle(
+    Brightness brightness, {
+    bool compact = false,
+    bool outlined = false,
+  }) {
+    final textStyle = compact
+        ? _buildTextTheme(
+            brightness,
+          ).titleMedium?.copyWith(fontWeight: FontWeight.w700)
+        : _buildTextTheme(
+            brightness,
+          ).labelLarge?.copyWith(fontSize: 16, fontWeight: FontWeight.w700);
+
+    return ButtonStyle(
+      textStyle: WidgetStatePropertyAll<TextStyle?>(textStyle),
+      foregroundColor: WidgetStateProperty.resolveWith<Color>((states) {
+        if (states.contains(WidgetState.disabled)) {
+          return pureGoldInk.withValues(alpha: 0.52);
+        }
+        return pureGoldInk;
+      }),
+      backgroundColor: const WidgetStatePropertyAll<Color>(Colors.transparent),
+      surfaceTintColor: const WidgetStatePropertyAll<Color>(Colors.transparent),
+      overlayColor: const WidgetStatePropertyAll<Color>(Colors.transparent),
+      shape: WidgetStatePropertyAll<OutlinedBorder>(
+        RoundedRectangleBorder(borderRadius: BorderRadius.circular(radiusM)),
+      ),
+      side: outlined
+          ? WidgetStatePropertyAll<BorderSide>(
+              BorderSide(
+                color: pureGoldHighlight.withValues(alpha: 0.82),
+                width: 1.15,
+              ),
+            )
+          : null,
+      padding: WidgetStatePropertyAll<EdgeInsetsGeometry>(
+        compact
+            ? const EdgeInsets.symmetric(horizontal: 16, vertical: 10)
+            : const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      ),
+      minimumSize: compact
+          ? const WidgetStatePropertyAll<Size?>(Size(0, 40))
+          : const WidgetStatePropertyAll<Size?>(Size.fromHeight(buttonHeight)),
+      shadowColor: WidgetStatePropertyAll<Color>(
+        pureGoldBright.withValues(
+          alpha: brightness == Brightness.dark ? 0.34 : 0.24,
+        ),
+      ),
+      elevation: WidgetStateProperty.resolveWith<double>((states) {
+        if (states.contains(WidgetState.disabled)) {
+          return 0;
+        }
+        if (states.contains(WidgetState.pressed)) {
+          return 0.6;
+        }
+        return compact ? 0.9 : 1.2;
+      }),
+      splashFactory: NoSplash.splashFactory,
+      animationDuration: const Duration(milliseconds: 180),
+      backgroundBuilder: (context, states, child) => _GoldButtonBackgroundLayer(
+        states: states,
+        outlined: outlined,
+        child: child,
+      ),
+      foregroundBuilder: (context, states, child) =>
+          _GoldButtonForegroundLayer(states: states, child: child),
+    );
+  }
+
+  static ButtonStyle _goldSlidingIconButtonStyle(
+    Brightness brightness,
+  ) => ButtonStyle(
+    foregroundColor: WidgetStateProperty.resolveWith<Color>((states) {
+      if (states.contains(WidgetState.disabled)) {
+        return pureGoldInk.withValues(alpha: 0.5);
+      }
+      return pureGoldInk;
+    }),
+    backgroundColor: const WidgetStatePropertyAll<Color>(Colors.transparent),
+    surfaceTintColor: const WidgetStatePropertyAll<Color>(Colors.transparent),
+    overlayColor: const WidgetStatePropertyAll<Color>(Colors.transparent),
+    shape: WidgetStatePropertyAll<OutlinedBorder>(
+      RoundedRectangleBorder(borderRadius: BorderRadius.circular(radiusM)),
+    ),
+    fixedSize: const WidgetStatePropertyAll<Size>(Size(40, 40)),
+    padding: const WidgetStatePropertyAll<EdgeInsetsGeometry>(
+      EdgeInsets.all(8),
+    ),
+    shadowColor: WidgetStatePropertyAll<Color>(
+      pureGoldBright.withValues(
+        alpha: brightness == Brightness.dark ? 0.34 : 0.24,
+      ),
+    ),
+    elevation: WidgetStateProperty.resolveWith<double>((states) {
+      if (states.contains(WidgetState.disabled)) {
+        return 0;
+      }
+      if (states.contains(WidgetState.pressed)) {
+        return 0.6;
+      }
+      return 1;
+    }),
+    splashFactory: NoSplash.splashFactory,
+    animationDuration: const Duration(milliseconds: 180),
+    backgroundBuilder: (context, states, child) => _GoldButtonBackgroundLayer(
+      states: states,
+      outlined: false,
+      child: child,
+    ),
+    foregroundBuilder: (context, states, child) =>
+        _GoldButtonForegroundLayer(states: states, child: child),
+  );
+
   // ==========================================================================
   // LIGHT THEME
   // ==========================================================================
@@ -242,47 +359,16 @@ class AppTheme {
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: trustBlue,
-          foregroundColor: Colors.white,
-          minimumSize: const Size.fromHeight(buttonHeight),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(radiusS),
-          ),
-          textStyle: _buildTextTheme(
-            Brightness.light,
-          ).labelLarge?.copyWith(fontSize: 16),
-          elevation: 1,
-          shadowColor: trustBlue.withValues(alpha: 0.24),
-        ),
+        style: _goldSlidingButtonStyle(Brightness.light),
       ),
       filledButtonTheme: FilledButtonThemeData(
-        style: FilledButton.styleFrom(
-          backgroundColor: trustBlue,
-          foregroundColor: Colors.white,
-          minimumSize: const Size.fromHeight(buttonHeight),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(radiusS),
-          ),
-          textStyle: _buildTextTheme(Brightness.light).labelLarge,
-        ),
+        style: _goldSlidingButtonStyle(Brightness.light),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
-        style: OutlinedButton.styleFrom(
-          foregroundColor: crystalGoldDeep,
-          minimumSize: const Size.fromHeight(buttonHeight),
-          side: const BorderSide(color: crystalGoldDeep, width: 1.2),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(radiusS),
-          ),
-        ),
+        style: _goldSlidingButtonStyle(Brightness.light, outlined: true),
       ),
       textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(
-          foregroundColor: crystalGoldDeep,
-          textStyle: _buildTextTheme(Brightness.light).titleMedium,
-        ),
+        style: _goldSlidingButtonStyle(Brightness.light, compact: true),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
@@ -341,21 +427,15 @@ class AppTheme {
         ),
       ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
-        backgroundColor: crystalGoldDeep,
-        foregroundColor: Colors.white,
+        backgroundColor: pureGoldCore,
+        foregroundColor: pureGoldInk,
         elevation: 2,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(radiusM),
         ),
       ),
       iconButtonTheme: IconButtonThemeData(
-        style: IconButton.styleFrom(
-          foregroundColor: textDark,
-          backgroundColor: const Color(0xFFFFEBC0).withValues(alpha: 0.9),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(radiusS),
-          ),
-        ),
+        style: _goldSlidingIconButtonStyle(Brightness.light),
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
@@ -424,28 +504,16 @@ class AppTheme {
         ).headlineMedium?.copyWith(color: textLight),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: crystalGoldDeep,
-          foregroundColor: Colors.white,
-          minimumSize: const Size.fromHeight(buttonHeight),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(radiusS),
-          ),
-          textStyle: _buildTextTheme(Brightness.dark).labelLarge,
-          elevation: 1,
-          shadowColor: Colors.black.withValues(alpha: 0.35),
-        ),
+        style: _goldSlidingButtonStyle(Brightness.dark),
       ),
       filledButtonTheme: FilledButtonThemeData(
-        style: FilledButton.styleFrom(
-          backgroundColor: crystalGoldDeep,
-          foregroundColor: Colors.white,
-          minimumSize: const Size.fromHeight(buttonHeight),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(radiusS),
-          ),
-          textStyle: _buildTextTheme(Brightness.dark).labelLarge,
-        ),
+        style: _goldSlidingButtonStyle(Brightness.dark),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: _goldSlidingButtonStyle(Brightness.dark, outlined: true),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: _goldSlidingButtonStyle(Brightness.dark, compact: true),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
@@ -477,21 +545,15 @@ class AppTheme {
         ),
       ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
-        backgroundColor: crystalGoldDeep,
-        foregroundColor: Colors.white,
+        backgroundColor: pureGoldCore,
+        foregroundColor: pureGoldInk,
         elevation: 2,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(radiusM),
         ),
       ),
       iconButtonTheme: IconButtonThemeData(
-        style: IconButton.styleFrom(
-          foregroundColor: textLight,
-          backgroundColor: Colors.white.withValues(alpha: 0.08),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(radiusS),
-          ),
-        ),
+        style: _goldSlidingIconButtonStyle(Brightness.dark),
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
@@ -573,6 +635,181 @@ class _BurstPageTransitionsBuilder extends PageTransitionsBuilder {
       child: SlideTransition(
         position: settle,
         child: ScaleTransition(scale: burstScale, child: child),
+      ),
+    );
+  }
+}
+
+class _GoldButtonBackgroundLayer extends StatelessWidget {
+  const _GoldButtonBackgroundLayer({
+    required this.states,
+    required this.outlined,
+    required this.child,
+  });
+
+  final Set<WidgetState> states;
+  final bool outlined;
+  final Widget? child;
+
+  @override
+  Widget build(BuildContext context) {
+    final disabled = states.contains(WidgetState.disabled);
+    final pressed = states.contains(WidgetState.pressed);
+    final radius = BorderRadius.circular(AppTheme.radiusM);
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: radius,
+        gradient: LinearGradient(
+          colors: [
+            const Color(0xFFE0B238).withValues(alpha: disabled ? 0.58 : 0.98),
+            const Color(0xFFF0C54B).withValues(alpha: disabled ? 0.56 : 0.99),
+            const Color(0xFFF4CC61).withValues(alpha: disabled ? 0.54 : 0.99),
+            const Color(0xFFE8BB3F).withValues(alpha: disabled ? 0.5 : 0.99),
+            const Color(0xFFF1C95A).withValues(alpha: disabled ? 0.48 : 0.98),
+          ],
+          stops: const [0.0, 0.22, 0.54, 0.82, 1.0],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        border: outlined
+            ? Border.all(
+                color: AppTheme.pureGoldHighlight.withValues(
+                  alpha: disabled ? 0.42 : 0.82,
+                ),
+                width: 1.15,
+              )
+            : null,
+        boxShadow: disabled
+            ? null
+            : [
+                BoxShadow(
+                  color: AppTheme.pureGoldBright.withValues(alpha: 0.24),
+                  blurRadius: pressed ? 12 : 20,
+                  offset: Offset(0, pressed ? 4 : 9),
+                ),
+                BoxShadow(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  blurRadius: pressed ? 6 : 12,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+      ),
+      child: child,
+    );
+  }
+}
+
+class _GoldButtonForegroundLayer extends StatefulWidget {
+  const _GoldButtonForegroundLayer({required this.states, required this.child});
+
+  final Set<WidgetState> states;
+  final Widget? child;
+
+  @override
+  State<_GoldButtonForegroundLayer> createState() =>
+      _GoldButtonForegroundLayerState();
+}
+
+class _GoldButtonForegroundLayerState extends State<_GoldButtonForegroundLayer>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 1900),
+      vsync: this,
+    );
+    _syncAnimation();
+  }
+
+  @override
+  void didUpdateWidget(covariant _GoldButtonForegroundLayer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _syncAnimation();
+  }
+
+  void _syncAnimation() {
+    final disabled = widget.states.contains(WidgetState.disabled);
+    if (disabled) {
+      _controller.stop();
+      return;
+    }
+    if (!_controller.isAnimating) {
+      _controller.repeat();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final disabled = widget.states.contains(WidgetState.disabled);
+    final radius = BorderRadius.circular(AppTheme.radiusM);
+
+    return ClipRRect(
+      borderRadius: radius,
+      child: Stack(
+        fit: StackFit.passthrough,
+        children: [
+          if (widget.child != null) widget.child!,
+          if (!disabled)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: AnimatedBuilder(
+                  animation: _controller,
+                  builder: (context, _) {
+                    final t = _controller.value;
+                    final left = -1.3 + (2.6 * t);
+                    final right = left + 0.78;
+                    return DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment(left, -1),
+                          end: Alignment(right, 1),
+                          colors: [
+                            Colors.transparent,
+                            AppTheme.pureGoldHighlight.withValues(alpha: 0.14),
+                            Colors.white.withValues(alpha: 0.24),
+                            AppTheme.pureGoldBright.withValues(alpha: 0.34),
+                            Colors.white.withValues(alpha: 0.22),
+                            Colors.transparent,
+                          ],
+                          stops: const [0.0, 0.32, 0.46, 0.58, 0.72, 1.0],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          Positioned.fill(
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppTheme.pureGoldHighlight.withValues(
+                        alpha: disabled ? 0.18 : 0.34,
+                      ),
+                      Colors.white.withValues(alpha: disabled ? 0.04 : 0.08),
+                      Colors.white.withValues(alpha: 0),
+                    ],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    stops: const [0.0, 0.28, 0.6],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

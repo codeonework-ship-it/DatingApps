@@ -17,3 +17,16 @@ local.properties
 # Environment secrets
 app/.env.local
 app/.env
+
+# Flutter local build/cache artifacts
+app/.dart_tool/
+app/build/
+
+# Backend local runtime artifacts
+backend/.run/*
+!backend/.run/api_smoke_check.py
+backend/api-gateway
+backend/mobile-bff
+
+# Local generated proto mirror
+backend/github.com/

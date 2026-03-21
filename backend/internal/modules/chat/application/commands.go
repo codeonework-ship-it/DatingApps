@@ -1,8 +1,9 @@
 package application
 
 const (
-	ListMessagesCommandName = "chat.messages.list"
-	SendMessageCommandName  = "chat.messages.send"
+	ListMessagesCommandName  = "chat.messages.list"
+	SendMessageCommandName   = "chat.messages.send"
+	DeleteMessageCommandName = "chat.messages.delete"
 )
 
 type ListMessagesCommand struct {
@@ -11,6 +12,11 @@ type ListMessagesCommand struct {
 }
 
 type SendMessageCommand struct {
+	MatchID string
+	Payload map[string]any
+}
+
+type DeleteMessageCommand struct {
 	MatchID string
 	Payload map[string]any
 }

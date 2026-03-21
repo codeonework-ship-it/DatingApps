@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/providers/network_quality_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
 import '../../common/screens/settings_screen.dart';
@@ -61,6 +62,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
   @override
   Widget build(BuildContext context) {
     final isOffline = ref.watch(preferenceMasterDataOfflineProvider);
+    final networkState = ref.watch(networkQualityProvider);
     final selectedIndex = ref.watch(mainNavigationIndexProvider);
 
     final screens = <Widget>[
@@ -91,6 +93,27 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                   'Offline mode: Some data may be outdated.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          if (networkState.status != NetworkQualityStatus.healthy)
+            Container(
+              width: double.infinity,
+              color: networkState.status == NetworkQualityStatus.offline
+                  ? AppTheme.errorRed
+                  : AppTheme.warningOrange,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: SafeArea(
+                bottom: false,
+                child: Text(
+                  networkState.message ??
+                      'Weak network detected. Use at least 5 Mbps '
+                          'for smoother app performance.',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
                   ),

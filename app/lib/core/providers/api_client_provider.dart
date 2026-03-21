@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../config/app_runtime_config.dart';
 import '../utils/logger.dart';
+import 'network_quality_provider.dart';
 
 final apiClientProvider = Provider<Dio>((ref) {
   final dio = Dio(
@@ -52,6 +53,7 @@ final apiClientProvider = Provider<Dio>((ref) {
           'status': response.statusCode,
           'duration_ms': durationMs,
         }, correlationId);
+        ref.read(networkQualityProvider.notifier).reportSuccess(durationMs);
         handler.next(response);
       },
       onError: (error, handler) {
@@ -73,6 +75,7 @@ final apiClientProvider = Provider<Dio>((ref) {
           'status': error.response?.statusCode,
           'duration_ms': durationMs,
         }, correlationId);
+        ref.read(networkQualityProvider.notifier).reportFailure(error);
         handler.next(error);
       },
     ),

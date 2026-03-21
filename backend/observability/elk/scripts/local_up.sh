@@ -66,18 +66,29 @@ LS_BIN="$(resolve_bin logstash LOGSTASH_BIN || true)"
 KB_BIN="$(resolve_bin kibana KIBANA_BIN || true)"
 FB_BIN="$(resolve_bin filebeat FILEBEAT_BIN || true)"
 
-if [[ -z "$ES_BIN" || -z "$LS_BIN" || -z "$KB_BIN" || -z "$FB_BIN" ]]; then
-  echo "Missing ELK binaries. Required: elasticsearch, logstash, kibana, filebeat"
+if [[ -z "$ES_BIN" || -z "$KB_BIN" ]]; then
+  echo "Missing required binaries. Required: elasticsearch, kibana"
+  echo "Optional: logstash, filebeat"
   echo "You can set explicit paths via ELASTICSEARCH_BIN, LOGSTASH_BIN, KIBANA_BIN, FILEBEAT_BIN"
   exit 1
 fi
 
-start_proc "elasticsearch" "cd '$ROOT_DIR' && '$ES_BIN' -Epath.data='$DATA_DIR/elasticsearch' -Epath.logs='$LOG_DIR/elasticsearch' -Ediscovery.type=single-node -Expack.security.enabled=false -Ehttp.host=127.0.0.1 -Ehttp.port=9200"
+start_proc "elasticsearch" "cd '$ROOT_DIR' && ES_JAVA_OPTS='${ES_JAVA_OPTS:--Xms256m -Xmx256m}' '$ES_BIN' -Epath.data='$DATA_DIR/elasticsearch' -Epath.logs='$LOG_DIR/elasticsearch' -Ediscovery.type=single-node -Expack.security.enabled=false -Ehttp.host=127.0.0.1 -Ehttp.port=9200"
 wait_http "http://127.0.0.1:9200" 90
 
-start_proc "logstash" "cd '$ROOT_DIR' && '$LS_BIN' --path.data '$DATA_DIR/logstash' -f '$ELK_DIR/logstash/pipeline/logstash.local.conf'"
-start_proc "kibana" "cd '$ROOT_DIR' && '$KB_BIN' --path.data '$DATA_DIR/kibana' -c '$ELK_DIR/kibana/kibana.local.yml'"
-start_proc "filebeat" "cd '$ROOT_DIR' && '$FB_BIN' --strict.perms=false --path.data '$DATA_DIR/filebeat' --path.logs '$LOG_DIR/filebeat' -c '$ELK_DIR/filebeat/filebeat.local.yml'"
+if [[ -n "$LS_BIN" ]]; then
+  start_proc "logstash" "cd '$ROOT_DIR' && LS_JAVA_OPTS='${LS_JAVA_OPTS:--Xms256m -Xmx256m}' '$LS_BIN' --path.data '$DATA_DIR/logstash' -f '$ELK_DIR/logstash/pipeline/logstash.local.conf'"
+else
+  echo "Skipping logstash: binary not found"
+fi
+
+start_proc "kibana" "cd '$ROOT_DIR' && NODE_OPTIONS='${KIBANA_NODE_OPTIONS:---max-old-space-size=512}' '$KB_BIN' --path.data '$DATA_DIR/kibana' -c '$ELK_DIR/kibana/kibana.local.yml'"
+
+if [[ -n "$FB_BIN" ]]; then
+  start_proc "filebeat" "cd '$ROOT_DIR' && '$FB_BIN' --strict.perms=false --path.data '$DATA_DIR/filebeat' --path.logs '$LOG_DIR/filebeat' -c '$ELK_DIR/filebeat/filebeat.local.yml'"
+else
+  echo "Skipping filebeat: binary not found"
+fi
 
 wait_http "http://127.0.0.1:5601" 120
 

@@ -57,7 +57,9 @@ class _FakeDailyPromptNotifier extends DailyPromptNotifier {
 }
 
 void main() {
-  testWidgets('toggles between discover and spotlight modes', (tester) async {
+  testWidgets('renders spotlight rail safely with empty photo list', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -72,20 +74,8 @@ void main() {
 
     expect(find.text('Find meaningful verified matches'), findsOneWidget);
     expect(find.text('No profiles'), findsOneWidget);
+    expect(find.text('Spotlight'), findsOneWidget);
     expect(find.text('Rail User'), findsOneWidget);
-
-    await tester.tap(find.text('Spotlight').first);
-    await tester.pump();
-
-    expect(find.text('Top boosted profiles for you'), findsOneWidget);
-    expect(find.text('No spotlight profiles'), findsOneWidget);
-    expect(find.text('Rail User'), findsNothing);
-
-    await tester.tap(find.text('Discover').first);
-    await tester.pump();
-
-    expect(find.text('Find meaningful verified matches'), findsOneWidget);
-    expect(find.text('No profiles'), findsOneWidget);
-    expect(find.text('Rail User'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }

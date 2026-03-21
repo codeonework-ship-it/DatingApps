@@ -260,6 +260,148 @@ func TestServer_AdminAnalyticsOverviewIncludesFeatureFlagsAndFunnelMetrics(t *te
 	}
 }
 
+func TestServer_AdminAnalyticsOverviewIncludesRoseGiftFunnelMetrics(t *testing.T) {
+	cfg := config.Config{
+		APIPrefix:        "/v1",
+		AuthGRPCAddr:     "127.0.0.1:19091",
+		ProfileGRPCAddr:  "127.0.0.1:19092",
+		MatchingGRPCAddr: "127.0.0.1:19093",
+		ChatGRPCAddr:     "127.0.0.1:19094",
+	}
+	reg := prometheus.NewRegistry()
+	metrics := observability.NewHTTPMetrics(reg)
+
+	server, err := NewServer(cfg, zap.NewNop(), metrics)
+	if err != nil {
+		t.Fatalf("NewServer() error = %v", err)
+	}
+	defer server.Close()
+
+	now := time.Now().UTC().Format(time.RFC3339)
+	server.store.mu.Lock()
+	server.store.activities = append(server.store.activities,
+		activityEvent{
+			ID:       "gift-analytics-1",
+			UserID:   "gift-user-1",
+			Actor:    "gift-user-1",
+			Action:   "gift_panel_opened",
+			Status:   "success",
+			Resource: "/chat/match-analytics-gift-1/gifts/events",
+			Details: map[string]any{
+				"match_id":      "match-analytics-gift-1",
+				"wallet_coins":  12,
+				"catalog_count": 8,
+			},
+			CreatedAt: now,
+		},
+		activityEvent{
+			ID:       "gift-analytics-2",
+			UserID:   "gift-user-1",
+			Actor:    "gift-user-1",
+			Action:   "gift_preview_opened",
+			Status:   "success",
+			Resource: "/chat/match-analytics-gift-1/gifts/events",
+			Details: map[string]any{
+				"match_id":    "match-analytics-gift-1",
+				"gift_id":     "rose_blue_rare",
+				"tier":        "premium_common",
+				"price_coins": 1,
+			},
+			CreatedAt: now,
+		},
+		activityEvent{
+			ID:       "gift-analytics-3",
+			UserID:   "gift-user-1",
+			Actor:    "gift-user-1",
+			Action:   "gift_send_attempted",
+			Status:   "attempt",
+			Resource: "/chat/match-analytics-gift-1/gifts/send",
+			Details: map[string]any{
+				"match_id": "match-analytics-gift-1",
+				"gift_id":  "rose_blue_rare",
+			},
+			CreatedAt: now,
+		},
+		activityEvent{
+			ID:       "gift-analytics-4",
+			UserID:   "gift-user-1",
+			Actor:    "gift-user-1",
+			Action:   "gift_send_succeeded",
+			Status:   "success",
+			Resource: "/chat/match-analytics-gift-1/gifts/send",
+			Details: map[string]any{
+				"match_id":        "match-analytics-gift-1",
+				"gift_id":         "rose_blue_rare",
+				"price_coins":     1,
+				"remaining_coins": 11,
+			},
+			CreatedAt: now,
+		},
+		activityEvent{
+			ID:       "gift-analytics-5",
+			UserID:   "gift-user-1",
+			Actor:    "gift-user-1",
+			Action:   "wallet.topup",
+			Status:   "success",
+			Resource: "/wallet/gift-user-1/coins/top-up",
+			Details: map[string]any{
+				"amount":  5,
+				"reason":  "qa_seed",
+				"balance": 16,
+			},
+			CreatedAt: now,
+		},
+	)
+	server.store.mu.Unlock()
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/admin/analytics/overview", nil)
+	rec := httptest.NewRecorder()
+	server.Handler().ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("admin analytics overview code = %d body=%s", rec.Code, rec.Body.String())
+	}
+
+	var payload map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &payload); err != nil {
+		t.Fatalf("decode analytics payload: %v", err)
+	}
+	metricsMap, ok := payload["metrics"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected metrics payload")
+	}
+	funnel, ok := metricsMap["funnel_metrics"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected funnel_metrics payload")
+	}
+
+	if got := adminIntValue(funnel["gift_panel_opened_count"]); got != 1 {
+		t.Fatalf("expected gift_panel_opened_count=1, got %d", got)
+	}
+	if got := adminIntValue(funnel["gift_preview_opened_count"]); got != 1 {
+		t.Fatalf("expected gift_preview_opened_count=1, got %d", got)
+	}
+	if got := adminIntValue(funnel["gift_send_attempted_count"]); got != 1 {
+		t.Fatalf("expected gift_send_attempted_count=1, got %d", got)
+	}
+	if got := adminIntValue(funnel["gift_send_success_count"]); got != 1 {
+		t.Fatalf("expected gift_send_success_count=1, got %d", got)
+	}
+	if got := adminIntValue(funnel["gift_coins_earned_total"]); got != 5 {
+		t.Fatalf("expected gift_coins_earned_total=5, got %d", got)
+	}
+	if got := adminIntValue(funnel["gift_coins_spent_total"]); got != 1 {
+		t.Fatalf("expected gift_coins_spent_total=1, got %d", got)
+	}
+
+	tierDistribution, ok := funnel["gift_send_tier_distribution"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected gift_send_tier_distribution map")
+	}
+	if got := adminIntValue(tierDistribution["premium_common"]); got != 1 {
+		t.Fatalf("expected premium_common tier distribution count=1, got %d", got)
+	}
+}
+
 func adminIntValue(value any) int {
 	switch typed := value.(type) {
 	case int:

@@ -22,26 +22,31 @@ class GestureTimelineItem {
     required this.profanityFlagged,
     required this.safetyFlagged,
     required this.createdAt,
+    this.giftDeliveryStatus = 'none',
+    this.giftDeliveryMessage,
   });
 
-  factory GestureTimelineItem.fromJson(Map<String, dynamic> json) => GestureTimelineItem(
-      id: json['id']?.toString() ?? '',
-      matchId: json['match_id']?.toString() ?? '',
-      senderUserId: json['sender_user_id']?.toString() ?? '',
-      receiverUserId: json['receiver_user_id']?.toString() ?? '',
-      gestureType: json['gesture_type']?.toString() ?? '',
-      contentText: json['content_text']?.toString() ?? '',
-      tone: json['tone']?.toString() ?? 'neutral',
-      status: json['status']?.toString() ?? 'sent',
-      effortScore: (json['effort_score'] as num?)?.toInt() ?? 0,
-      minimumQualityPass: json['minimum_quality_pass'] == true,
-      originalityPass: json['originality_pass'] == true,
-      profanityFlagged: json['profanity_flagged'] == true,
-      safetyFlagged: json['safety_flagged'] == true,
-      createdAt:
-          DateTime.tryParse(json['created_at']?.toString() ?? '') ??
-          DateTime.now(),
-    );
+  factory GestureTimelineItem.fromJson(Map<String, dynamic> json) =>
+      GestureTimelineItem(
+        id: json['id']?.toString() ?? '',
+        matchId: json['match_id']?.toString() ?? '',
+        senderUserId: json['sender_user_id']?.toString() ?? '',
+        receiverUserId: json['receiver_user_id']?.toString() ?? '',
+        gestureType: json['gesture_type']?.toString() ?? '',
+        contentText: json['content_text']?.toString() ?? '',
+        tone: json['tone']?.toString() ?? 'neutral',
+        status: json['status']?.toString() ?? 'sent',
+        effortScore: (json['effort_score'] as num?)?.toInt() ?? 0,
+        minimumQualityPass: json['minimum_quality_pass'] == true,
+        originalityPass: json['originality_pass'] == true,
+        profanityFlagged: json['profanity_flagged'] == true,
+        safetyFlagged: json['safety_flagged'] == true,
+        createdAt:
+            DateTime.tryParse(json['created_at']?.toString() ?? '') ??
+            DateTime.now(),
+        giftDeliveryStatus: 'none',
+        giftDeliveryMessage: null,
+      );
   final String id;
   final String matchId;
   final String senderUserId;
@@ -56,6 +61,56 @@ class GestureTimelineItem {
   final bool profanityFlagged;
   final bool safetyFlagged;
   final DateTime createdAt;
+  final String giftDeliveryStatus;
+  final String? giftDeliveryMessage;
+
+  GestureTimelineItem copyWith({
+    String? id,
+    String? matchId,
+    String? senderUserId,
+    String? receiverUserId,
+    String? gestureType,
+    String? contentText,
+    String? tone,
+    String? status,
+    int? effortScore,
+    bool? minimumQualityPass,
+    bool? originalityPass,
+    bool? profanityFlagged,
+    bool? safetyFlagged,
+    DateTime? createdAt,
+    String? giftDeliveryStatus,
+    String? giftDeliveryMessage,
+  }) => GestureTimelineItem(
+    id: id ?? this.id,
+    matchId: matchId ?? this.matchId,
+    senderUserId: senderUserId ?? this.senderUserId,
+    receiverUserId: receiverUserId ?? this.receiverUserId,
+    gestureType: gestureType ?? this.gestureType,
+    contentText: contentText ?? this.contentText,
+    tone: tone ?? this.tone,
+    status: status ?? this.status,
+    effortScore: effortScore ?? this.effortScore,
+    minimumQualityPass: minimumQualityPass ?? this.minimumQualityPass,
+    originalityPass: originalityPass ?? this.originalityPass,
+    profanityFlagged: profanityFlagged ?? this.profanityFlagged,
+    safetyFlagged: safetyFlagged ?? this.safetyFlagged,
+    createdAt: createdAt ?? this.createdAt,
+    giftDeliveryStatus: giftDeliveryStatus ?? this.giftDeliveryStatus,
+    giftDeliveryMessage: giftDeliveryMessage ?? this.giftDeliveryMessage,
+  );
+}
+
+class GestureCreateResult {
+  const GestureCreateResult({
+    required this.success,
+    this.gestureId,
+    this.error,
+  });
+
+  final bool success;
+  final String? gestureId;
+  final String? error;
 }
 
 class GestureTimelineState {
@@ -88,11 +143,21 @@ class GestureTimelineNotifier extends StateNotifier<GestureTimelineState> {
   final Ref _ref;
   final String _matchId;
 
+  bool get _isLocalTestConversation => _matchId.startsWith('local-match-');
+
+  bool get _isPendingConversation => _matchId.startsWith('pending-');
+
+  bool get _usesLocalTimelineSandbox =>
+      _isPendingConversation || _isLocalTestConversation;
+
   Future<void> loadTimeline() async {
     state = state.copyWith(isLoading: true, error: null);
     try {
-      if (kUseMockAuth) {
-        state = state.copyWith(isLoading: false, items: const []);
+      if (kUseMockAuth || _usesLocalTimelineSandbox) {
+        state = state.copyWith(
+          isLoading: false,
+          items: _isLocalTestConversation ? state.items : const [],
+        );
         return;
       }
 
@@ -119,7 +184,7 @@ class GestureTimelineNotifier extends StateNotifier<GestureTimelineState> {
         isLoading: false,
         error: 'Failed to load timeline',
       );
-    } catch (e, stackTrace) {
+    } on Object catch (e, stackTrace) {
       log.error('Failed to load gesture timeline', e, stackTrace);
       state = state.copyWith(
         isLoading: false,
@@ -128,7 +193,7 @@ class GestureTimelineNotifier extends StateNotifier<GestureTimelineState> {
     }
   }
 
-  Future<void> createGesture({
+  Future<GestureCreateResult> createGesture({
     required String receiverUserId,
     required String gestureType,
     required String contentText,
@@ -137,29 +202,185 @@ class GestureTimelineNotifier extends StateNotifier<GestureTimelineState> {
     final senderUserId = _ref.read(authNotifierProvider).userId;
     if (senderUserId == null || senderUserId.isEmpty) {
       state = state.copyWith(error: 'User session not available.');
-      return;
+      return const GestureCreateResult(
+        success: false,
+        error: 'User session not available.',
+      );
     }
 
+    if (_isLocalTestConversation) {
+      final localGestureId =
+          'local-gesture-${DateTime.now().millisecondsSinceEpoch}';
+      final item = GestureTimelineItem(
+        id: localGestureId,
+        matchId: _matchId,
+        senderUserId: senderUserId,
+        receiverUserId: receiverUserId,
+        gestureType: gestureType,
+        contentText: contentText,
+        tone: tone,
+        status: 'sent',
+        effortScore: contentText.trim().length.clamp(55, 96),
+        minimumQualityPass: true,
+        originalityPass: true,
+        profanityFlagged: false,
+        safetyFlagged: false,
+        createdAt: DateTime.now(),
+      );
+      state = state.copyWith(
+        items: [item, ...state.items],
+        isLoading: false,
+        error: null,
+      );
+      return GestureCreateResult(success: true, gestureId: localGestureId);
+    }
+
+    if (_isPendingConversation) {
+      const pendingError =
+          'Gestures unlock after this pending conversation '
+          'becomes a real match.';
+      state = state.copyWith(isLoading: false, error: pendingError);
+      return const GestureCreateResult(success: false, error: pendingError);
+    }
+
+    final correlationId = CorrelationContext.generate();
+    final optimisticGestureId =
+        'gesture-optimistic-${DateTime.now().millisecondsSinceEpoch}';
+    final optimisticItem = GestureTimelineItem(
+      id: optimisticGestureId,
+      matchId: _matchId,
+      senderUserId: senderUserId,
+      receiverUserId: receiverUserId,
+      gestureType: gestureType,
+      contentText: contentText,
+      tone: tone,
+      status: 'sending',
+      effortScore: contentText.trim().length.clamp(40, 94),
+      minimumQualityPass: contentText.trim().length >= 20,
+      originalityPass: true,
+      profanityFlagged: false,
+      safetyFlagged: false,
+      createdAt: DateTime.now(),
+    );
+    state = state.copyWith(
+      items: [optimisticItem, ...state.items],
+      error: null,
+    );
+
     try {
-      final dio = _ref.read(apiClientProvider);
-      await dio.post<Map<String, dynamic>>(
-        '/matches/$_matchId/gestures',
-        data: {
-          'sender_user_id': senderUserId,
+      return await CorrelationContext.runWithId(correlationId, () async {
+        log.info('Creating gesture', null, null, {
+          'correlation_id': correlationId,
+          'match_id': _matchId,
           'receiver_user_id': receiverUserId,
           'gesture_type': gestureType,
-          'content_text': contentText,
-          'tone': tone,
-        },
-      );
-      await loadTimeline();
+        });
+
+        final dio = _ref.read(apiClientProvider);
+        state = state.copyWith(error: null);
+        final response = await dio.post<Map<String, dynamic>>(
+          '/matches/$_matchId/gestures',
+          data: {
+            'sender_user_id': senderUserId,
+            'receiver_user_id': receiverUserId,
+            'gesture_type': gestureType,
+            'content_text': contentText,
+            'tone': tone,
+          },
+          options: Options(extra: {'correlation_id': correlationId}),
+        );
+        final body =
+            (response.data as Map?)?.cast<String, dynamic>() ??
+            <String, dynamic>{};
+        final gestureRaw = body['gesture'];
+        final gesture = gestureRaw is Map
+            ? gestureRaw.cast<String, dynamic>()
+            : <String, dynamic>{};
+        final createdGestureId =
+            gesture['id']?.toString() ??
+            body['id']?.toString() ??
+            optimisticGestureId;
+        final updatedItems = state.items.map((item) {
+          if (item.id != optimisticGestureId) {
+            return item;
+          }
+          return item.copyWith(id: createdGestureId, status: 'sent');
+        }).toList();
+        state = state.copyWith(
+          items: updatedItems,
+          error: null,
+          isLoading: false,
+        );
+        log.info('Gesture created successfully', null, null, {
+          'correlation_id': correlationId,
+          'match_id': _matchId,
+          'receiver_user_id': receiverUserId,
+          'gesture_type': gestureType,
+        });
+        return GestureCreateResult(success: true, gestureId: createdGestureId);
+      });
     } on DioException catch (e, stackTrace) {
-      log.error('Failed to create gesture', e, stackTrace);
-      state = state.copyWith(error: 'Failed to send gesture.');
-    } catch (e, stackTrace) {
-      log.error('Failed to create gesture', e, stackTrace);
-      state = state.copyWith(error: 'Failed to send gesture.');
+      final responseError = e.response?.data;
+      final responseMap = responseError is Map
+          ? responseError.cast<String, dynamic>()
+          : const <String, dynamic>{};
+      final apiMessage = responseMap['error']?.toString();
+      log.error('Failed to create gesture', e, stackTrace, {
+        'correlation_id': correlationId,
+        'match_id': _matchId,
+        'receiver_user_id': receiverUserId,
+        'gesture_type': gestureType,
+        'status_code': e.response?.statusCode,
+      });
+      state = state.copyWith(
+        items: state.items
+            .where((item) => item.id != optimisticGestureId)
+            .toList(),
+        error: apiMessage?.isNotEmpty == true
+            ? apiMessage
+            : 'Failed to send gesture.',
+      );
+      return GestureCreateResult(
+        success: false,
+        error: apiMessage?.isNotEmpty == true
+            ? apiMessage
+            : 'Failed to send gesture.',
+      );
+    } on Object catch (e, stackTrace) {
+      log.error('Failed to create gesture', e, stackTrace, {
+        'correlation_id': correlationId,
+        'match_id': _matchId,
+        'receiver_user_id': receiverUserId,
+        'gesture_type': gestureType,
+      });
+      state = state.copyWith(
+        items: state.items
+            .where((item) => item.id != optimisticGestureId)
+            .toList(),
+        error: 'Failed to send gesture.',
+      );
+      return const GestureCreateResult(
+        success: false,
+        error: 'Failed to send gesture.',
+      );
     }
+  }
+
+  void markGiftDeliveryOutcome({
+    required String gestureId,
+    required bool success,
+    String? message,
+  }) {
+    final updatedItems = state.items.map((item) {
+      if (item.id != gestureId) {
+        return item;
+      }
+      return item.copyWith(
+        giftDeliveryStatus: success ? 'gift_sent' : 'gift_failed',
+        giftDeliveryMessage: message,
+      );
+    }).toList();
+    state = state.copyWith(items: updatedItems, error: null);
   }
 
   Future<void> decideGesture({
@@ -167,6 +388,34 @@ class GestureTimelineNotifier extends StateNotifier<GestureTimelineState> {
     required String decision,
     String reason = '',
   }) async {
+    if (_isLocalTestConversation) {
+      final updated = state.items.map((item) {
+        if (item.id != gestureId) {
+          return item;
+        }
+        return GestureTimelineItem(
+          id: item.id,
+          matchId: item.matchId,
+          senderUserId: item.senderUserId,
+          receiverUserId: item.receiverUserId,
+          gestureType: item.gestureType,
+          contentText: item.contentText,
+          tone: item.tone,
+          status: decision,
+          effortScore: item.effortScore,
+          minimumQualityPass: item.minimumQualityPass,
+          originalityPass: item.originalityPass,
+          profanityFlagged: item.profanityFlagged,
+          safetyFlagged: item.safetyFlagged,
+          createdAt: item.createdAt,
+          giftDeliveryStatus: item.giftDeliveryStatus,
+          giftDeliveryMessage: item.giftDeliveryMessage,
+        );
+      }).toList();
+      state = state.copyWith(items: updated, error: null, isLoading: false);
+      return;
+    }
+
     final reviewerUserId = _ref.read(authNotifierProvider).userId;
     if (reviewerUserId == null || reviewerUserId.isEmpty) {
       state = state.copyWith(error: 'User session not available.');
@@ -187,7 +436,7 @@ class GestureTimelineNotifier extends StateNotifier<GestureTimelineState> {
     } on DioException catch (e, stackTrace) {
       log.error('Failed to decide gesture', e, stackTrace);
       state = state.copyWith(error: 'Failed to update gesture status.');
-    } catch (e, stackTrace) {
+    } on Object catch (e, stackTrace) {
       log.error('Failed to decide gesture', e, stackTrace);
       state = state.copyWith(error: 'Failed to update gesture status.');
     }

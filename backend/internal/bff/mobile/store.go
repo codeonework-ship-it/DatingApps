@@ -571,106 +571,136 @@ var (
 )
 
 type memoryStore struct {
-	mu                      sync.RWMutex
-	cfg                     config.Config
-	profiles                map[string]profileDraft
-	settings                map[string]userSettings
-	contacts                map[string][]emergencyContact
-	blockedUsers            map[string]map[string]blockedUser
-	verification            map[string]verificationState
-	activities              []activityEvent
-	activitySeq             uint64
-	calls                   map[string]videoCallSession
-	sosAlerts               map[string]sosAlert
-	plans                   []subscriptionPlan
-	subscriptions           map[string]userSubscription
-	payments                map[string][]paymentRecord
-	reports                 []moderationReport
-	appeals                 []moderationAppeal
-	trustMilestones         map[string]trustMilestone
-	userBadges              map[string]map[string]trustBadge
-	badgeHistory            map[string][]trustBadgeHistoryEvent
-	trustFilters            map[string]trustFilterPreference
-	rooms                   map[string]conversationRoomRecord
-	roomParticipants        map[string]map[string]conversationRoomParticipant
-	roomModerationActions   map[string][]conversationRoomModerationAction
-	roomActiveBlocks        map[string]map[string]conversationRoomBlock
-	friends                 map[string]map[string]friendConnection
-	friendActivities        map[string][]friendActivity
-	activitySessions        map[string]activitySession
-	dailyPromptAnswers      map[string]map[string]dailyPromptAnswer
-	dailyPromptStreaks      map[string]dailyPromptStreak
-	matchNudges             map[string][]matchNudge
-	conversationResumes     map[string][]conversationResumed
-	circleMembers           map[string]map[string]circleMembership
-	circleChallengeEntries  map[string]map[string]circleChallengeEntry
-	communityGroups         map[string]communityGroupRecord
-	communityGroupMembers   map[string]map[string]communityGroupMember
-	communityGroupInvites   map[string]map[string]communityGroupInvite
-	voiceIcebreakers        map[string]voiceIcebreaker
-	groupCoffeePolls        map[string]groupCoffeePoll
-	groupCoffeePollVotes    map[string]map[string]string
-	questTemplates          map[string]questTemplateRequirement
-	questWorkflows          map[string]questSubmissionWorkflow
-	matchGestures           map[string][]matchGesture
-	spotlightExposureByTier map[string]int
-	spotlightLikeByTier     map[string]int
-	spotlightMatchByTier    map[string]int
-	spotlightExposureByUser map[string]int
-	spotlightEligibleUsers  map[string]string
-	spotlightLastResetDate  string
-	questRepo               *questRepository
-	communityGroupRepo      *communityGroupRepository
+	mu                          sync.RWMutex
+	cfg                         config.Config
+	profiles                    map[string]profileDraft
+	settings                    map[string]userSettings
+	contacts                    map[string][]emergencyContact
+	blockedUsers                map[string]map[string]blockedUser
+	verification                map[string]verificationState
+	activities                  []activityEvent
+	activitySeq                 uint64
+	calls                       map[string]videoCallSession
+	sosAlerts                   map[string]sosAlert
+	plans                       []subscriptionPlan
+	subscriptions               map[string]userSubscription
+	payments                    map[string][]paymentRecord
+	reports                     []moderationReport
+	appeals                     []moderationAppeal
+	trustMilestones             map[string]trustMilestone
+	userBadges                  map[string]map[string]trustBadge
+	badgeHistory                map[string][]trustBadgeHistoryEvent
+	trustFilters                map[string]trustFilterPreference
+	rooms                       map[string]conversationRoomRecord
+	roomParticipants            map[string]map[string]conversationRoomParticipant
+	roomModerationActions       map[string][]conversationRoomModerationAction
+	roomActiveBlocks            map[string]map[string]conversationRoomBlock
+	friends                     map[string]map[string]friendConnection
+	friendActivities            map[string][]friendActivity
+	activitySessions            map[string]activitySession
+	dailyPromptAnswers          map[string]map[string]dailyPromptAnswer
+	dailyPromptStreaks          map[string]dailyPromptStreak
+	matchNudges                 map[string][]matchNudge
+	conversationResumes         map[string][]conversationResumed
+	circleMembers               map[string]map[string]circleMembership
+	circleChallengeEntries      map[string]map[string]circleChallengeEntry
+	communityGroups             map[string]communityGroupRecord
+	communityGroupMembers       map[string]map[string]communityGroupMember
+	communityGroupInvites       map[string]map[string]communityGroupInvite
+	giftCatalog                 map[string]roseGiftCatalogItem
+	walletCoinsByUser           map[string]int
+	giftSendEventsByMatch       map[string][]roseGiftSendView
+	giftSendByIdempotency       map[string]roseGiftSendView
+	messageDeleteAttemptsByUser map[string][]time.Time
+	messageDeleteSuccessByUser  map[string][]time.Time
+	messageDeleteBlockedByUser  map[string][]time.Time
+	voiceIcebreakers            map[string]voiceIcebreaker
+	groupCoffeePolls            map[string]groupCoffeePoll
+	groupCoffeePollVotes        map[string]map[string]string
+	questTemplates              map[string]questTemplateRequirement
+	questWorkflows              map[string]questSubmissionWorkflow
+	matchGestures               map[string][]matchGesture
+	engagementRepo              *engagementRepository
+	profileRepo                 *profileRepository
+	socialRepo                  *socialRepository
+	verificationRepo            *verificationRepository
+	safetyRepo                  *safetyRepository
+	spotlightExposureByTier     map[string]int
+	spotlightLikeByTier         map[string]int
+	spotlightMatchByTier        map[string]int
+	spotlightExposureByUser     map[string]int
+	spotlightEligibleUsers      map[string]string
+	spotlightLastResetDate      string
+	questRepo                   *questRepository
+	dailyPromptRepo             *dailyPromptRepository
+	activityRepo                *activityRepository
+	communityGroupRepo          *communityGroupRepository
+	giftsRepo                   *roseGiftRepository
 }
 
 func newMemoryStore(cfg config.Config) *memoryStore {
 	return &memoryStore{
-		cfg:                     cfg,
-		profiles:                make(map[string]profileDraft),
-		settings:                make(map[string]userSettings),
-		contacts:                make(map[string][]emergencyContact),
-		blockedUsers:            make(map[string]map[string]blockedUser),
-		verification:            make(map[string]verificationState),
-		activities:              make([]activityEvent, 0, 512),
-		calls:                   make(map[string]videoCallSession),
-		sosAlerts:               make(map[string]sosAlert),
-		plans:                   defaultSubscriptionPlans(),
-		subscriptions:           make(map[string]userSubscription),
-		payments:                make(map[string][]paymentRecord),
-		reports:                 make([]moderationReport, 0, 128),
-		trustMilestones:         make(map[string]trustMilestone),
-		userBadges:              make(map[string]map[string]trustBadge),
-		badgeHistory:            make(map[string][]trustBadgeHistoryEvent),
-		trustFilters:            make(map[string]trustFilterPreference),
-		rooms:                   defaultConversationRoomRecords(),
-		roomParticipants:        make(map[string]map[string]conversationRoomParticipant),
-		roomModerationActions:   make(map[string][]conversationRoomModerationAction),
-		roomActiveBlocks:        make(map[string]map[string]conversationRoomBlock),
-		friends:                 make(map[string]map[string]friendConnection),
-		friendActivities:        make(map[string][]friendActivity),
-		activitySessions:        make(map[string]activitySession),
-		dailyPromptAnswers:      make(map[string]map[string]dailyPromptAnswer),
-		dailyPromptStreaks:      make(map[string]dailyPromptStreak),
-		matchNudges:             make(map[string][]matchNudge),
-		conversationResumes:     make(map[string][]conversationResumed),
-		circleMembers:           make(map[string]map[string]circleMembership),
-		circleChallengeEntries:  make(map[string]map[string]circleChallengeEntry),
-		communityGroups:         make(map[string]communityGroupRecord),
-		communityGroupMembers:   make(map[string]map[string]communityGroupMember),
-		communityGroupInvites:   make(map[string]map[string]communityGroupInvite),
-		voiceIcebreakers:        make(map[string]voiceIcebreaker),
-		groupCoffeePolls:        make(map[string]groupCoffeePoll),
-		groupCoffeePollVotes:    make(map[string]map[string]string),
-		questTemplates:          make(map[string]questTemplateRequirement),
-		questWorkflows:          make(map[string]questSubmissionWorkflow),
-		matchGestures:           make(map[string][]matchGesture),
-		spotlightExposureByTier: make(map[string]int),
-		spotlightLikeByTier:     make(map[string]int),
-		spotlightMatchByTier:    make(map[string]int),
-		spotlightExposureByUser: make(map[string]int),
-		spotlightEligibleUsers:  make(map[string]string),
-		questRepo:               newQuestRepository(cfg),
-		communityGroupRepo:      newCommunityGroupRepository(cfg),
+		cfg:                         cfg,
+		profiles:                    make(map[string]profileDraft),
+		settings:                    make(map[string]userSettings),
+		contacts:                    make(map[string][]emergencyContact),
+		blockedUsers:                make(map[string]map[string]blockedUser),
+		verification:                make(map[string]verificationState),
+		activities:                  make([]activityEvent, 0, 512),
+		calls:                       make(map[string]videoCallSession),
+		sosAlerts:                   make(map[string]sosAlert),
+		plans:                       defaultSubscriptionPlans(),
+		subscriptions:               make(map[string]userSubscription),
+		payments:                    make(map[string][]paymentRecord),
+		reports:                     make([]moderationReport, 0, 128),
+		trustMilestones:             make(map[string]trustMilestone),
+		userBadges:                  make(map[string]map[string]trustBadge),
+		badgeHistory:                make(map[string][]trustBadgeHistoryEvent),
+		trustFilters:                make(map[string]trustFilterPreference),
+		rooms:                       defaultConversationRoomRecords(),
+		roomParticipants:            make(map[string]map[string]conversationRoomParticipant),
+		roomModerationActions:       make(map[string][]conversationRoomModerationAction),
+		roomActiveBlocks:            make(map[string]map[string]conversationRoomBlock),
+		friends:                     make(map[string]map[string]friendConnection),
+		friendActivities:            make(map[string][]friendActivity),
+		activitySessions:            make(map[string]activitySession),
+		dailyPromptAnswers:          make(map[string]map[string]dailyPromptAnswer),
+		dailyPromptStreaks:          make(map[string]dailyPromptStreak),
+		matchNudges:                 make(map[string][]matchNudge),
+		conversationResumes:         make(map[string][]conversationResumed),
+		circleMembers:               make(map[string]map[string]circleMembership),
+		circleChallengeEntries:      make(map[string]map[string]circleChallengeEntry),
+		communityGroups:             make(map[string]communityGroupRecord),
+		communityGroupMembers:       make(map[string]map[string]communityGroupMember),
+		communityGroupInvites:       make(map[string]map[string]communityGroupInvite),
+		giftCatalog:                 defaultRoseGiftCatalogMap(),
+		walletCoinsByUser:           make(map[string]int),
+		giftSendEventsByMatch:       make(map[string][]roseGiftSendView),
+		giftSendByIdempotency:       make(map[string]roseGiftSendView),
+		messageDeleteAttemptsByUser: make(map[string][]time.Time),
+		messageDeleteSuccessByUser:  make(map[string][]time.Time),
+		messageDeleteBlockedByUser:  make(map[string][]time.Time),
+		voiceIcebreakers:            make(map[string]voiceIcebreaker),
+		groupCoffeePolls:            make(map[string]groupCoffeePoll),
+		groupCoffeePollVotes:        make(map[string]map[string]string),
+		questTemplates:              make(map[string]questTemplateRequirement),
+		questWorkflows:              make(map[string]questSubmissionWorkflow),
+		matchGestures:               make(map[string][]matchGesture),
+		engagementRepo:              newEngagementRepository(cfg),
+		profileRepo:                 newProfileRepository(cfg),
+		socialRepo:                  newSocialRepository(cfg),
+		verificationRepo:            newVerificationRepository(cfg),
+		safetyRepo:                  newSafetyRepository(cfg),
+		spotlightExposureByTier:     make(map[string]int),
+		spotlightLikeByTier:         make(map[string]int),
+		spotlightMatchByTier:        make(map[string]int),
+		spotlightExposureByUser:     make(map[string]int),
+		spotlightEligibleUsers:      make(map[string]string),
+		questRepo:                   newQuestRepository(cfg),
+		dailyPromptRepo:             newDailyPromptRepository(cfg),
+		activityRepo:                newActivityRepository(cfg),
+		communityGroupRepo:          newCommunityGroupRepository(cfg),
+		giftsRepo:                   newRoseGiftRepository(cfg),
 	}
 }
 
@@ -686,6 +716,17 @@ func isQuestRepoPersistenceUnavailable(err error) bool {
 }
 
 func isCommunityGroupRepoPersistenceUnavailable(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "pgrst106") ||
+		strings.Contains(msg, "pgrst205") ||
+		strings.Contains(msg, "invalid schema") ||
+		strings.Contains(msg, "could not find the table")
+}
+
+func isGiftRepoPersistenceUnavailable(err error) bool {
 	if err == nil {
 		return false
 	}
@@ -1002,17 +1043,17 @@ func (m *memoryStore) submitQuestResponse(
 		return questSubmissionWorkflow{}, errors.New("durable quest persistence unavailable")
 	}
 
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
 	now := time.Now().UTC()
 	trimmedResponse := strings.TrimSpace(responseText)
 
+	m.mu.Lock()
 	template, ok := m.questTemplates[trimmedMatchID]
 	if !ok {
+		m.mu.Unlock()
 		return questSubmissionWorkflow{}, errors.New("quest template not found for match")
 	}
 	if len(trimmedResponse) < template.MinChars || len(trimmedResponse) > template.MaxChars {
+		m.mu.Unlock()
 		return questSubmissionWorkflow{}, fmt.Errorf(
 			"response text must be between %d and %d characters",
 			template.MinChars,
@@ -1029,6 +1070,7 @@ func (m *memoryStore) submitQuestResponse(
 	if isCooldownActive(workflow, now) {
 		workflow.Status = questWorkflowStatusCooldown
 		m.questWorkflows[trimmedMatchID] = workflow
+		m.mu.Unlock()
 		return questSubmissionWorkflow{}, errors.New("quest submission is in cooldown period")
 	}
 
@@ -1041,6 +1083,7 @@ func (m *memoryStore) submitQuestResponse(
 		workflow.Status = questWorkflowStatusCooldown
 		workflow.CooldownUntil = now.Add(questRateLimitCooldown).Format(time.RFC3339)
 		m.questWorkflows[trimmedMatchID] = workflow
+		m.mu.Unlock()
 		return questSubmissionWorkflow{}, errors.New("quest submission rate limit exceeded")
 	}
 
@@ -1057,7 +1100,14 @@ func (m *memoryStore) submitQuestResponse(
 
 	m.questWorkflows[trimmedMatchID] = workflow
 	normalized := normalizeQuestWorkflow(workflow)
-	if shouldAutoApprove, reviewerUserID, reason := m.assistedReviewDecisionWithTemplate(template, trimmedSubmitter, trimmedResponse); shouldAutoApprove {
+	shouldAutoApprove, reviewerUserID, reason := m.assistedReviewDecisionWithTemplate(
+		template,
+		trimmedSubmitter,
+		trimmedResponse,
+	)
+	m.mu.Unlock()
+
+	if shouldAutoApprove {
 		autoReviewed, err := m.reviewQuestResponse(trimmedMatchID, reviewerUserID, questWorkflowStatusApproved, reason)
 		if err == nil {
 			return autoReviewed, nil
@@ -1371,6 +1421,19 @@ func transitionUnlockState(current string, action matchingdomain.UnlockAction) s
 }
 
 func (m *memoryStore) getDraft(userID string) profileDraft {
+	if m.profileRepo != nil {
+		draft, err := m.profileRepo.getDraft(context.Background(), userID)
+		if err == nil {
+			m.mu.Lock()
+			m.profiles[userID] = copyDraft(draft)
+			m.mu.Unlock()
+			return copyDraft(draft)
+		}
+		if m.durableEngagementRequired() || !isProfileRepoPersistenceUnavailable(err) {
+			return defaultDraft(userID)
+		}
+	}
+
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	draft, ok := m.profiles[userID]
@@ -1381,15 +1444,7 @@ func (m *memoryStore) getDraft(userID string) profileDraft {
 	return copyDraft(draft)
 }
 
-func (m *memoryStore) patchDraft(userID string, payload map[string]any) profileDraft {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	draft, ok := m.profiles[userID]
-	if !ok {
-		draft = defaultDraft(userID)
-	}
-
+func applyDraftPatch(draft profileDraft, payload map[string]any) profileDraft {
 	if value := strings.TrimSpace(toString(payload["phone_number"])); value != "" {
 		draft.PhoneNumber = value
 	}
@@ -1522,6 +1577,35 @@ func (m *memoryStore) patchDraft(userID string, payload map[string]any) profileD
 	if value, ok := payload["hookup_only"].(bool); ok {
 		draft.HookupOnly = value
 	}
+	return draft
+}
+
+func (m *memoryStore) patchDraft(userID string, payload map[string]any) profileDraft {
+	if m.profileRepo != nil {
+		draft, err := m.profileRepo.getDraft(context.Background(), userID)
+		if err == nil {
+			updated := applyDraftPatch(draft, payload)
+			if saveErr := m.profileRepo.upsertDraft(context.Background(), updated); saveErr == nil {
+				m.mu.Lock()
+				m.profiles[userID] = copyDraft(updated)
+				m.mu.Unlock()
+				return copyDraft(updated)
+			}
+		}
+		if err != nil && (m.durableEngagementRequired() || !isProfileRepoPersistenceUnavailable(err)) {
+			return defaultDraft(userID)
+		}
+	}
+
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	draft, ok := m.profiles[userID]
+	if !ok {
+		draft = defaultDraft(userID)
+	}
+
+	draft = applyDraftPatch(draft, payload)
 
 	m.profiles[userID] = draft
 	return copyDraft(draft)
@@ -1632,6 +1716,19 @@ func (m *memoryStore) completeProfile(userID string) (profileDraft, error) {
 }
 
 func (m *memoryStore) getSettings(userID string) userSettings {
+	if m.profileRepo != nil {
+		settings, err := m.profileRepo.getSettings(context.Background(), userID)
+		if err == nil {
+			m.mu.Lock()
+			m.settings[userID] = settings
+			m.mu.Unlock()
+			return settings
+		}
+		if m.durableEngagementRequired() || !isProfileRepoPersistenceUnavailable(err) {
+			return defaultSettings(userID)
+		}
+	}
+
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -1643,15 +1740,7 @@ func (m *memoryStore) getSettings(userID string) userSettings {
 	return settings
 }
 
-func (m *memoryStore) patchSettings(userID string, payload map[string]any) userSettings {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	settings, ok := m.settings[userID]
-	if !ok {
-		settings = defaultSettings(userID)
-	}
-
+func applySettingsPatch(settings userSettings, payload map[string]any) userSettings {
 	if value, ok := payload["show_age"].(bool); ok {
 		settings.ShowAge = value
 	}
@@ -1674,18 +1763,81 @@ func (m *memoryStore) patchSettings(userID string, payload map[string]any) userS
 		settings.Theme = value
 	}
 	settings.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
+	return settings
+}
+
+func (m *memoryStore) patchSettings(userID string, payload map[string]any) userSettings {
+	if m.profileRepo != nil {
+		settings, err := m.profileRepo.getSettings(context.Background(), userID)
+		if err == nil {
+			settings = applySettingsPatch(settings, payload)
+			if saveErr := m.profileRepo.upsertSettings(context.Background(), settings); saveErr == nil {
+				m.mu.Lock()
+				m.settings[userID] = settings
+				m.mu.Unlock()
+				return settings
+			}
+		}
+		if err != nil && (m.durableEngagementRequired() || !isProfileRepoPersistenceUnavailable(err)) {
+			return defaultSettings(userID)
+		}
+	}
+
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	settings, ok := m.settings[userID]
+	if !ok {
+		settings = defaultSettings(userID)
+	}
+
+	settings = applySettingsPatch(settings, payload)
 
 	m.settings[userID] = settings
 	return settings
 }
 
 func (m *memoryStore) listEmergencyContacts(userID string) []emergencyContact {
+	if m.profileRepo != nil {
+		items, err := m.profileRepo.listEmergencyContacts(context.Background(), userID)
+		if err == nil {
+			m.mu.Lock()
+			m.contacts[userID] = copyContacts(items)
+			m.mu.Unlock()
+			return copyContacts(items)
+		}
+		if m.durableEngagementRequired() || !isProfileRepoPersistenceUnavailable(err) {
+			return []emergencyContact{}
+		}
+	}
+
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	return copyContacts(m.contacts[userID])
 }
 
 func (m *memoryStore) addEmergencyContact(userID, name, phoneNumber string) ([]emergencyContact, error) {
+	if m.profileRepo != nil {
+		existing, err := m.profileRepo.listEmergencyContacts(context.Background(), userID)
+		if err == nil {
+			if len(existing) >= 3 {
+				return nil, errors.New("maximum 3 emergency contacts allowed")
+			}
+			if _, addErr := m.profileRepo.addEmergencyContact(context.Background(), userID, name, phoneNumber, len(existing)+1); addErr == nil {
+				updated, listErr := m.profileRepo.listEmergencyContacts(context.Background(), userID)
+				if listErr == nil {
+					m.mu.Lock()
+					m.contacts[userID] = copyContacts(updated)
+					m.mu.Unlock()
+					return copyContacts(updated), nil
+				}
+			}
+		}
+		if err != nil && (m.durableEngagementRequired() || !isProfileRepoPersistenceUnavailable(err)) {
+			return nil, errors.New("emergency contacts unavailable")
+		}
+	}
+
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -1706,6 +1858,22 @@ func (m *memoryStore) addEmergencyContact(userID, name, phoneNumber string) ([]e
 }
 
 func (m *memoryStore) updateEmergencyContact(userID, contactID, name, phoneNumber string) ([]emergencyContact, error) {
+	if m.profileRepo != nil {
+		err := m.profileRepo.updateEmergencyContact(context.Background(), userID, contactID, name, phoneNumber)
+		if err == nil {
+			updated, listErr := m.profileRepo.listEmergencyContacts(context.Background(), userID)
+			if listErr == nil {
+				m.mu.Lock()
+				m.contacts[userID] = copyContacts(updated)
+				m.mu.Unlock()
+				return copyContacts(updated), nil
+			}
+		}
+		if m.durableEngagementRequired() || !isProfileRepoPersistenceUnavailable(err) {
+			return nil, errors.New("contact not found")
+		}
+	}
+
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -1727,6 +1895,23 @@ func (m *memoryStore) updateEmergencyContact(userID, contactID, name, phoneNumbe
 }
 
 func (m *memoryStore) deleteEmergencyContact(userID, contactID string) []emergencyContact {
+	if m.profileRepo != nil {
+		err := m.profileRepo.deleteEmergencyContact(context.Background(), userID, contactID)
+		if err == nil {
+			_ = m.profileRepo.reorderEmergencyContacts(context.Background(), userID)
+			updated, listErr := m.profileRepo.listEmergencyContacts(context.Background(), userID)
+			if listErr == nil {
+				m.mu.Lock()
+				m.contacts[userID] = copyContacts(updated)
+				m.mu.Unlock()
+				return copyContacts(updated)
+			}
+		}
+		if m.durableEngagementRequired() || !isProfileRepoPersistenceUnavailable(err) {
+			return []emergencyContact{}
+		}
+	}
+
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -1746,6 +1931,16 @@ func (m *memoryStore) deleteEmergencyContact(userID, contactID string) []emergen
 }
 
 func (m *memoryStore) listBlockedUsers(userID string) []blockedUser {
+	if m.profileRepo != nil {
+		items, err := m.profileRepo.listBlockedUsers(context.Background(), userID)
+		if err == nil {
+			return items
+		}
+		if m.durableEngagementRequired() || !isProfileRepoPersistenceUnavailable(err) {
+			return []blockedUser{}
+		}
+	}
+
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
@@ -1758,6 +1953,16 @@ func (m *memoryStore) listBlockedUsers(userID string) []blockedUser {
 }
 
 func (m *memoryStore) blockUser(userID, blockedUserID string) {
+	if m.profileRepo != nil {
+		err := m.profileRepo.blockUser(context.Background(), userID, blockedUserID, "")
+		if err == nil {
+			return
+		}
+		if m.durableEngagementRequired() || !isProfileRepoPersistenceUnavailable(err) {
+			return
+		}
+	}
+
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -1772,6 +1977,16 @@ func (m *memoryStore) blockUser(userID, blockedUserID string) {
 }
 
 func (m *memoryStore) unblockUser(userID, blockedUserID string) {
+	if m.profileRepo != nil {
+		err := m.profileRepo.unblockUser(context.Background(), userID, blockedUserID)
+		if err == nil {
+			return
+		}
+		if m.durableEngagementRequired() || !isProfileRepoPersistenceUnavailable(err) {
+			return
+		}
+	}
+
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -1780,6 +1995,17 @@ func (m *memoryStore) unblockUser(userID, blockedUserID string) {
 }
 
 func (m *memoryStore) listFriends(userID string) []friendConnection {
+	if m.socialRepo != nil {
+		friends, err := m.socialRepo.listFriends(context.Background(), userID)
+		if err == nil {
+			sortFriendConnectionsByUpdatedAt(friends)
+			return friends
+		}
+		if m.durableEngagementRequired() || !isSocialRepoPersistenceUnavailable(err) {
+			return []friendConnection{}
+		}
+	}
+
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	entries := m.friends[userID]
@@ -1801,6 +2027,16 @@ func (m *memoryStore) addFriend(userID, friendUserID string) (friendConnection, 
 	}
 	if trimmedUserID == trimmedFriendID {
 		return friendConnection{}, errors.New("cannot add yourself as friend")
+	}
+
+	if m.socialRepo != nil {
+		connection, err := m.socialRepo.addFriend(context.Background(), trimmedUserID, trimmedFriendID, time.Now().UTC())
+		if err == nil {
+			return connection, nil
+		}
+		if m.durableEngagementRequired() || !isSocialRepoPersistenceUnavailable(err) {
+			return friendConnection{}, err
+		}
 	}
 
 	m.mu.Lock()
@@ -1868,6 +2104,16 @@ func (m *memoryStore) addFriend(userID, friendUserID string) (friendConnection, 
 }
 
 func (m *memoryStore) removeFriend(userID, friendUserID string) {
+	if m.socialRepo != nil {
+		err := m.socialRepo.removeFriend(context.Background(), userID, friendUserID)
+		if err == nil {
+			return
+		}
+		if m.durableEngagementRequired() || !isSocialRepoPersistenceUnavailable(err) {
+			return
+		}
+	}
+
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if entries, ok := m.friends[userID]; ok {
@@ -1882,6 +2128,17 @@ func (m *memoryStore) listFriendActivities(userID string, limit int) []friendAct
 	if limit <= 0 || limit > 100 {
 		limit = 20
 	}
+
+	if m.socialRepo != nil {
+		items, err := m.socialRepo.listFriendActivities(context.Background(), userID, limit)
+		if err == nil && len(items) > 0 {
+			return items
+		}
+		if err != nil && (m.durableEngagementRequired() || !isSocialRepoPersistenceUnavailable(err)) {
+			return []friendActivity{}
+		}
+	}
+
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	items := append([]friendActivity{}, m.friendActivities[userID]...)
@@ -1906,6 +2163,16 @@ func (m *memoryStore) listFriendActivities(userID string, limit int) []friendAct
 }
 
 func (m *memoryStore) getVerification(userID string) verificationState {
+	if m.verificationRepo != nil {
+		state, err := m.verificationRepo.getVerification(context.Background(), userID)
+		if err == nil {
+			return state
+		}
+		if m.durableEngagementRequired() || !isVerificationRepoPersistenceUnavailable(err) {
+			return verificationState{UserID: userID}
+		}
+	}
+
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	if current, ok := m.verification[userID]; ok {
@@ -1915,6 +2182,16 @@ func (m *memoryStore) getVerification(userID string) verificationState {
 }
 
 func (m *memoryStore) submitVerification(userID string) verificationState {
+	if m.verificationRepo != nil {
+		state, err := m.verificationRepo.submitVerification(context.Background(), userID)
+		if err == nil {
+			return state
+		}
+		if m.durableEngagementRequired() || !isVerificationRepoPersistenceUnavailable(err) {
+			return verificationState{UserID: userID}
+		}
+	}
+
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	state := verificationState{
@@ -1932,6 +2209,16 @@ func (m *memoryStore) reviewVerification(
 	rejectionReason string,
 	reviewedBy string,
 ) (verificationState, error) {
+	if m.verificationRepo != nil {
+		state, err := m.verificationRepo.reviewVerification(context.Background(), userID, status, rejectionReason, reviewedBy)
+		if err == nil {
+			return state, nil
+		}
+		if m.durableEngagementRequired() || !isVerificationRepoPersistenceUnavailable(err) {
+			return verificationState{}, err
+		}
+	}
+
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -1949,6 +2236,16 @@ func (m *memoryStore) reviewVerification(
 }
 
 func (m *memoryStore) listVerifications(status string, limit int) []verificationState {
+	if m.verificationRepo != nil {
+		states, err := m.verificationRepo.listVerifications(context.Background(), status, limit)
+		if err == nil {
+			return states
+		}
+		if m.durableEngagementRequired() || !isVerificationRepoPersistenceUnavailable(err) {
+			return []verificationState{}
+		}
+	}
+
 	if limit <= 0 || limit > 500 {
 		limit = 100
 	}
@@ -1975,11 +2272,6 @@ func (m *memoryStore) listVerifications(status string, limit int) []verification
 }
 
 func (m *memoryStore) recordActivity(event activityEvent) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	m.activitySeq++
-	event.ID = fmt.Sprintf("act-%d", m.activitySeq)
 	if event.CreatedAt == "" {
 		event.CreatedAt = time.Now().UTC().Format(time.RFC3339)
 	}
@@ -1987,6 +2279,20 @@ func (m *memoryStore) recordActivity(event activityEvent) {
 		event.Details = map[string]any{}
 	}
 	m.applyExperimentDimensions(&event)
+
+	if m.activityRepo != nil {
+		if _, err := m.activityRepo.recordActivityEvent(context.Background(), event); err == nil {
+			return
+		} else if m.durableEngagementRequired() {
+			return
+		}
+	}
+
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	m.activitySeq++
+	event.ID = fmt.Sprintf("act-%d", m.activitySeq)
 
 	m.activities = append(m.activities, event)
 	if len(m.activities) > 2000 {
@@ -2056,6 +2362,16 @@ func experimentBucket(userID, experimentKey string) int {
 }
 
 func (m *memoryStore) listActivities(limit int) []activityEvent {
+	if m.activityRepo != nil {
+		items, err := m.activityRepo.listActivityEvents(context.Background(), limit)
+		if err == nil {
+			return items
+		}
+		if m.durableEngagementRequired() {
+			return []activityEvent{}
+		}
+	}
+
 	if limit <= 0 || limit > 1000 {
 		limit = 100
 	}
@@ -2082,6 +2398,69 @@ func (m *memoryStore) listActivities(limit int) []activityEvent {
 		out = append(out, item)
 	}
 	return out
+}
+
+func (m *memoryStore) trackMessageDeleteAudit(userID string, deleted bool) map[string]any {
+	trimmedUserID := strings.TrimSpace(userID)
+	if trimmedUserID == "" {
+		return map[string]any{}
+	}
+
+	now := time.Now().UTC()
+	windowStart := now.Add(-24 * time.Hour)
+
+	prune := func(values []time.Time) []time.Time {
+		if len(values) == 0 {
+			return values
+		}
+		filtered := make([]time.Time, 0, len(values))
+		for _, ts := range values {
+			if ts.After(windowStart) {
+				filtered = append(filtered, ts)
+			}
+		}
+		return filtered
+	}
+
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	attempts := prune(m.messageDeleteAttemptsByUser[trimmedUserID])
+	attempts = append(attempts, now)
+	m.messageDeleteAttemptsByUser[trimmedUserID] = attempts
+
+	successes := prune(m.messageDeleteSuccessByUser[trimmedUserID])
+	blocked := prune(m.messageDeleteBlockedByUser[trimmedUserID])
+	if deleted {
+		successes = append(successes, now)
+	} else {
+		blocked = append(blocked, now)
+	}
+	m.messageDeleteSuccessByUser[trimmedUserID] = successes
+	m.messageDeleteBlockedByUser[trimmedUserID] = blocked
+
+	flagged := len(attempts) >= 20 || len(blocked) >= 10
+	if m.safetyRepo != nil {
+		err := m.safetyRepo.recordMessageDeleteAudit(
+			context.Background(),
+			trimmedUserID,
+			deleted,
+			len(attempts),
+			len(successes),
+			len(blocked),
+			flagged,
+		)
+		if err != nil && m.durableEngagementRequired() && !isSafetyRepoPersistenceUnavailable(err) {
+			return map[string]any{}
+		}
+	}
+
+	return map[string]any{
+		"delete_attempts_24h":  len(attempts),
+		"delete_success_24h":   len(successes),
+		"delete_blocked_24h":   len(blocked),
+		"delete_abuse_flagged": flagged,
+	}
 }
 
 func (m *memoryStore) startActivitySession(matchID, initiatorUserID, participantUserID, activityType string, metadata map[string]any) (activitySession, error) {
@@ -2230,6 +2609,10 @@ func (m *memoryStore) getActivitySessionSummary(sessionID string) (activitySessi
 }
 
 func (m *memoryStore) getDailyPromptView(userID string, now time.Time) (dailyPromptView, error) {
+	if m.dailyPromptRepo != nil {
+		return m.dailyPromptRepo.getDailyPromptView(context.Background(), userID, now)
+	}
+
 	trimmedUserID := strings.TrimSpace(userID)
 	if trimmedUserID == "" {
 		return dailyPromptView{}, errors.New("user id is required")
@@ -2244,6 +2627,10 @@ func (m *memoryStore) getDailyPromptView(userID string, now time.Time) (dailyPro
 }
 
 func (m *memoryStore) submitDailyPromptAnswer(userID, promptID, answerText string, now time.Time) (dailyPromptView, bool, error) {
+	if m.dailyPromptRepo != nil {
+		return m.dailyPromptRepo.submitDailyPromptAnswer(context.Background(), userID, promptID, answerText, now)
+	}
+
 	trimmedUserID := strings.TrimSpace(userID)
 	trimmedPromptID := strings.TrimSpace(promptID)
 	trimmedAnswer := strings.TrimSpace(answerText)
@@ -2383,6 +2770,10 @@ func (m *memoryStore) buildDailyPromptSparkLocked(userID, promptDate, normalized
 }
 
 func (m *memoryStore) listDailyPromptResponders(userID string, now time.Time, limit, offset int) (dailyPromptRespondersPage, error) {
+	if m.dailyPromptRepo != nil {
+		return m.dailyPromptRepo.listDailyPromptResponders(context.Background(), userID, now, limit, offset)
+	}
+
 	trimmedUserID := strings.TrimSpace(userID)
 	if trimmedUserID == "" {
 		return dailyPromptRespondersPage{}, errors.New("user id is required")
@@ -2519,6 +2910,10 @@ func (m *memoryStore) updateDailyPromptStreakLocked(userID, promptDate string, n
 }
 
 func (m *memoryStore) sendMatchNudge(matchID, userID, counterpartyUserID, nudgeType string, now time.Time) (matchNudge, error) {
+	if m.socialRepo != nil {
+		return m.socialRepo.sendMatchNudge(context.Background(), matchID, userID, counterpartyUserID, nudgeType, now)
+	}
+
 	trimmedMatchID := strings.TrimSpace(matchID)
 	trimmedUserID := strings.TrimSpace(userID)
 	trimmedCounterparty := strings.TrimSpace(counterpartyUserID)
@@ -2572,6 +2967,10 @@ func (m *memoryStore) sendMatchNudge(matchID, userID, counterpartyUserID, nudgeT
 }
 
 func (m *memoryStore) markMatchNudgeClicked(nudgeID, userID string, now time.Time) (matchNudge, error) {
+	if m.socialRepo != nil {
+		return m.socialRepo.markMatchNudgeClicked(context.Background(), nudgeID, userID, now)
+	}
+
 	trimmedNudgeID := strings.TrimSpace(nudgeID)
 	trimmedUserID := strings.TrimSpace(userID)
 	if trimmedNudgeID == "" || trimmedUserID == "" {
@@ -2601,6 +3000,10 @@ func (m *memoryStore) markMatchNudgeClicked(nudgeID, userID string, now time.Tim
 }
 
 func (m *memoryStore) markConversationResumed(matchID, userID, triggerNudgeID string, now time.Time) (conversationResumed, error) {
+	if m.socialRepo != nil {
+		return m.socialRepo.markConversationResumed(context.Background(), matchID, userID, triggerNudgeID, now)
+	}
+
 	trimmedMatchID := strings.TrimSpace(matchID)
 	trimmedUserID := strings.TrimSpace(userID)
 	trimmedTrigger := strings.TrimSpace(triggerNudgeID)
@@ -2683,6 +3086,35 @@ func (m *memoryStore) getCircleChallengeView(circleID, userID string, now time.T
 		return circleChallengeView{}, err
 	}
 
+	if m.engagementRepo != nil {
+		participationCount, countErr := m.engagementRepo.countCircleChallengeEntries(context.Background(), trimmedCircleID, challenge, now.UTC())
+		if countErr == nil {
+			isJoined := false
+			if trimmedUserID != "" {
+				joined, joinedErr := m.engagementRepo.isCircleMember(context.Background(), trimmedCircleID, trimmedUserID)
+				if joinedErr == nil {
+					isJoined = joined
+				}
+			}
+			view := circleChallengeView{
+				CircleID:           trimmedCircleID,
+				Challenge:          challenge,
+				ParticipationCount: participationCount,
+				IsJoined:           isJoined,
+			}
+			view.Challenge.ParticipationCount = participationCount
+			if trimmedUserID != "" {
+				entry, entryErr := m.engagementRepo.getCircleChallengeEntry(context.Background(), trimmedCircleID, trimmedUserID, challenge, now.UTC())
+				if entryErr == nil && entry != nil {
+					entryCopy := *entry
+					view.UserEntry = &entryCopy
+				}
+			}
+			return view, nil
+		}
+		return circleChallengeView{}, countErr
+	}
+
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
@@ -2713,6 +3145,22 @@ func (m *memoryStore) joinCircle(circleID, userID string, now time.Time) (circle
 		return circleMembership{}, errors.New("user_id is required")
 	}
 	if _, err := circleChallengeForWeek(trimmedCircleID, now.UTC()); err != nil {
+		return circleMembership{}, err
+	}
+
+	if m.engagementRepo != nil {
+		membership, err := m.engagementRepo.joinCircle(context.Background(), trimmedCircleID, trimmedUserID, now.UTC())
+		if err == nil {
+			m.mu.Lock()
+			membersByCircle := m.circleMembers[trimmedCircleID]
+			if membersByCircle == nil {
+				membersByCircle = make(map[string]circleMembership)
+				m.circleMembers[trimmedCircleID] = membersByCircle
+			}
+			membersByCircle[trimmedUserID] = membership
+			m.mu.Unlock()
+			return membership, nil
+		}
 		return circleMembership{}, err
 	}
 
@@ -2785,6 +3233,35 @@ func (m *memoryStore) submitCircleChallengeEntry(
 		return circleChallengeView{}, circleChallengeEntry{}, errors.New("challenge_id does not match active challenge")
 	}
 
+	if m.engagementRepo != nil {
+		entry, err := m.engagementRepo.submitCircleChallengeEntry(
+			context.Background(),
+			trimmedCircleID,
+			trimmedUserID,
+			trimmedEntryText,
+			trimmedImageURL,
+			challenge,
+			now.UTC(),
+		)
+		if err == nil {
+			count, countErr := m.engagementRepo.countCircleChallengeEntries(context.Background(), trimmedCircleID, challenge, now.UTC())
+			if countErr != nil {
+				count = 1
+			}
+			entryCopy := entry
+			view := circleChallengeView{
+				CircleID:           trimmedCircleID,
+				Challenge:          challenge,
+				ParticipationCount: count,
+				UserEntry:          &entryCopy,
+				IsJoined:           true,
+			}
+			view.Challenge.ParticipationCount = count
+			return view, entry, nil
+		}
+		return circleChallengeView{}, circleChallengeEntry{}, err
+	}
+
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -2840,6 +3317,30 @@ func (m *memoryStore) startVoiceIcebreaker(matchID, senderUserID, receiverUserID
 	prompt := resolveVoiceIcebreakerPrompt(trimmedPromptID)
 	if prompt.ID == "" {
 		return voiceIcebreaker{}, errors.New("prompt_id is invalid")
+	}
+
+	if m.engagementRepo != nil {
+		m.mu.Lock()
+		suppressed := m.isNudgeSuppressedBySafetyLocked(trimmedSenderID, trimmedReceiverID, now.UTC())
+		m.mu.Unlock()
+		if suppressed {
+			return voiceIcebreaker{}, errors.New("voice icebreaker suppressed due to safety state")
+		}
+		hasToday, err := m.engagementRepo.hasVoiceIcebreakerForToday(context.Background(), trimmedMatchID, trimmedSenderID, now.UTC())
+		if err == nil {
+			if hasToday {
+				return voiceIcebreaker{}, errors.New("voice icebreaker already created for this match today")
+			}
+			item, createErr := m.engagementRepo.startVoiceIcebreaker(context.Background(), trimmedMatchID, trimmedSenderID, trimmedReceiverID, prompt, now.UTC())
+			if createErr == nil {
+				m.mu.Lock()
+				m.voiceIcebreakers[item.ID] = item
+				m.mu.Unlock()
+				return item, nil
+			}
+			return voiceIcebreaker{}, createErr
+		}
+		return voiceIcebreaker{}, err
 	}
 
 	m.mu.Lock()
@@ -2902,6 +3403,30 @@ func (m *memoryStore) sendVoiceIcebreaker(icebreakerID, senderUserID, transcript
 		return voiceIcebreaker{}, fmt.Errorf("transcript exceeds max length of %d", voiceIcebreakerMaxTranscriptChars)
 	}
 
+	if m.engagementRepo != nil {
+		existing, err := m.engagementRepo.findVoiceIcebreakerByID(context.Background(), trimmedIcebreakerID)
+		if err == nil {
+			if strings.TrimSpace(existing.ID) == "" {
+				return voiceIcebreaker{}, errors.New("voice icebreaker not found")
+			}
+			if existing.SenderUserID != trimmedSenderID {
+				return voiceIcebreaker{}, errors.New("voice icebreaker does not belong to sender")
+			}
+			if strings.TrimSpace(existing.SentAt) != "" || existing.Status == "sent" {
+				return voiceIcebreaker{}, errors.New("voice icebreaker already sent")
+			}
+			updated, updateErr := m.engagementRepo.sendVoiceIcebreaker(context.Background(), trimmedIcebreakerID, trimmedTranscript, durationSeconds, now.UTC())
+			if updateErr == nil {
+				m.mu.Lock()
+				m.voiceIcebreakers[updated.ID] = updated
+				m.mu.Unlock()
+				return updated, nil
+			}
+			return voiceIcebreaker{}, updateErr
+		}
+		return voiceIcebreaker{}, err
+	}
+
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -2930,6 +3455,30 @@ func (m *memoryStore) markVoiceIcebreakerPlayed(icebreakerID, userID string, now
 	trimmedUserID := strings.TrimSpace(userID)
 	if trimmedIcebreakerID == "" || trimmedUserID == "" {
 		return voiceIcebreaker{}, errors.New("icebreaker_id and user_id are required")
+	}
+
+	if m.engagementRepo != nil {
+		existing, err := m.engagementRepo.findVoiceIcebreakerByID(context.Background(), trimmedIcebreakerID)
+		if err == nil {
+			if strings.TrimSpace(existing.ID) == "" {
+				return voiceIcebreaker{}, errors.New("voice icebreaker not found")
+			}
+			if existing.Status != "sent" && existing.Status != "played" {
+				return voiceIcebreaker{}, errors.New("voice icebreaker is not sent yet")
+			}
+			if trimmedUserID != existing.ReceiverUserID && trimmedUserID != existing.SenderUserID {
+				return voiceIcebreaker{}, errors.New("user cannot play this voice icebreaker")
+			}
+			updated, updateErr := m.engagementRepo.markVoiceIcebreakerPlayed(context.Background(), trimmedIcebreakerID, now.UTC())
+			if updateErr == nil {
+				m.mu.Lock()
+				m.voiceIcebreakers[updated.ID] = updated
+				m.mu.Unlock()
+				return updated, nil
+			}
+			return voiceIcebreaker{}, updateErr
+		}
+		return voiceIcebreaker{}, err
 	}
 
 	m.mu.Lock()
@@ -3011,6 +3560,17 @@ func (m *memoryStore) createGroupCoffeePoll(
 		return groupCoffeePoll{}, errors.New("deadline_at must be in the future")
 	}
 
+	if m.engagementRepo != nil {
+		poll, err := m.engagementRepo.createGroupCoffeePoll(context.Background(), trimmedCreator, participants, normalizedOptions, parsedDeadline, now.UTC())
+		if err == nil {
+			m.mu.Lock()
+			m.groupCoffeePolls[poll.ID] = poll
+			m.mu.Unlock()
+			return poll, nil
+		}
+		return groupCoffeePoll{}, err
+	}
+
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -3035,6 +3595,17 @@ func (m *memoryStore) voteGroupCoffeePoll(pollID, userID, optionID string) (grou
 	trimmedOptionID := strings.TrimSpace(optionID)
 	if trimmedPollID == "" || trimmedUserID == "" || trimmedOptionID == "" {
 		return groupCoffeePoll{}, errors.New("poll_id, user_id, and option_id are required")
+	}
+
+	if m.engagementRepo != nil {
+		poll, err := m.engagementRepo.voteGroupCoffeePoll(context.Background(), trimmedPollID, trimmedUserID, trimmedOptionID)
+		if err == nil {
+			m.mu.Lock()
+			m.groupCoffeePolls[poll.ID] = poll
+			m.mu.Unlock()
+			return poll, nil
+		}
+		return groupCoffeePoll{}, err
 	}
 
 	m.mu.Lock()
@@ -3104,6 +3675,17 @@ func (m *memoryStore) finalizeGroupCoffeePoll(pollID, userID string, now time.Ti
 		return groupCoffeePoll{}, groupCoffeePollOption{}, errors.New("poll_id and user_id are required")
 	}
 
+	if m.engagementRepo != nil {
+		poll, selected, err := m.engagementRepo.finalizeGroupCoffeePoll(context.Background(), trimmedPollID, trimmedUserID, now.UTC())
+		if err == nil {
+			m.mu.Lock()
+			m.groupCoffeePolls[poll.ID] = poll
+			m.mu.Unlock()
+			return poll, selected, nil
+		}
+		return groupCoffeePoll{}, groupCoffeePollOption{}, err
+	}
+
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -3148,6 +3730,19 @@ func (m *memoryStore) getGroupCoffeePoll(pollID string) (groupCoffeePoll, bool) 
 		return groupCoffeePoll{}, false
 	}
 
+	if m.engagementRepo != nil {
+		poll, found, err := m.engagementRepo.getGroupCoffeePollByID(context.Background(), trimmedPollID)
+		if err == nil {
+			if found {
+				m.mu.Lock()
+				m.groupCoffeePolls[poll.ID] = poll
+				m.mu.Unlock()
+			}
+			return poll, found
+		}
+		return groupCoffeePoll{}, false
+	}
+
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
@@ -3172,6 +3767,14 @@ func (m *memoryStore) listGroupCoffeePolls(userID, status string, limit int) []g
 		limit = 50
 	} else if limit > 200 {
 		limit = 200
+	}
+
+	if m.engagementRepo != nil {
+		items, err := m.engagementRepo.listGroupCoffeePolls(context.Background(), trimmedUserID, trimmedStatus, limit)
+		if err == nil {
+			return items
+		}
+		return []groupCoffeePoll{}
 	}
 
 	m.mu.RLock()
@@ -3260,6 +3863,17 @@ func (m *memoryStore) buildActivitySummaryLocked(session activitySession, now ti
 }
 
 func (m *memoryStore) startVideoCall(matchID, initiatorID, recipientID string) (videoCallSession, error) {
+	if m.engagementRepo != nil {
+		session, err := m.engagementRepo.startVideoCall(context.Background(), matchID, initiatorID, recipientID, time.Now().UTC())
+		if err == nil {
+			m.mu.Lock()
+			m.calls[session.ID] = session
+			m.mu.Unlock()
+			return session, nil
+		}
+		return videoCallSession{}, err
+	}
+
 	initiatorID = strings.TrimSpace(initiatorID)
 	recipientID = strings.TrimSpace(recipientID)
 	if initiatorID == "" || recipientID == "" {
@@ -3289,6 +3903,17 @@ func (m *memoryStore) startVideoCall(matchID, initiatorID, recipientID string) (
 }
 
 func (m *memoryStore) endVideoCall(callID, endedBy string) (videoCallSession, error) {
+	if m.engagementRepo != nil {
+		session, err := m.engagementRepo.endVideoCall(context.Background(), callID, endedBy, time.Now().UTC())
+		if err == nil {
+			m.mu.Lock()
+			m.calls[session.ID] = session
+			m.mu.Unlock()
+			return session, nil
+		}
+		return videoCallSession{}, err
+	}
+
 	callID = strings.TrimSpace(callID)
 	if callID == "" {
 		return videoCallSession{}, errors.New("call_id is required")
@@ -3321,6 +3946,14 @@ func (m *memoryStore) endVideoCall(callID, endedBy string) (videoCallSession, er
 }
 
 func (m *memoryStore) listVideoCalls(userID string, limit int) []videoCallSession {
+	if m.engagementRepo != nil {
+		items, err := m.engagementRepo.listVideoCalls(context.Background(), userID, limit)
+		if err == nil {
+			return items
+		}
+		return []videoCallSession{}
+	}
+
 	userID = strings.TrimSpace(userID)
 	if limit <= 0 || limit > 500 {
 		limit = 100
@@ -3348,6 +3981,16 @@ func (m *memoryStore) createSOSAlert(
 	userID, matchID, level, message string,
 	latitude, longitude float64,
 ) (sosAlert, error) {
+	if m.safetyRepo != nil {
+		alert, err := m.safetyRepo.createSOSAlert(context.Background(), userID, matchID, level, message, latitude, longitude)
+		if err == nil {
+			return alert, nil
+		}
+		if m.durableEngagementRequired() || !isSafetyRepoPersistenceUnavailable(err) {
+			return sosAlert{}, err
+		}
+	}
+
 	userID = strings.TrimSpace(userID)
 	if userID == "" {
 		return sosAlert{}, errors.New("user_id is required")
@@ -3388,6 +4031,16 @@ func (m *memoryStore) createSOSAlert(
 }
 
 func (m *memoryStore) resolveSOSAlert(alertID, resolvedBy, note string) (sosAlert, error) {
+	if m.safetyRepo != nil {
+		alert, err := m.safetyRepo.resolveSOSAlert(context.Background(), alertID, resolvedBy, note)
+		if err == nil {
+			return alert, nil
+		}
+		if m.durableEngagementRequired() || !isSafetyRepoPersistenceUnavailable(err) {
+			return sosAlert{}, err
+		}
+	}
+
 	alertID = strings.TrimSpace(alertID)
 	if alertID == "" {
 		return sosAlert{}, errors.New("alert_id is required")
@@ -3412,6 +4065,16 @@ func (m *memoryStore) resolveSOSAlert(alertID, resolvedBy, note string) (sosAler
 }
 
 func (m *memoryStore) listSOSAlerts(userID string, limit int) []sosAlert {
+	if m.safetyRepo != nil {
+		alerts, err := m.safetyRepo.listSOSAlerts(context.Background(), userID, limit)
+		if err == nil {
+			return alerts
+		}
+		if m.durableEngagementRequired() || !isSafetyRepoPersistenceUnavailable(err) {
+			return []sosAlert{}
+		}
+	}
+
 	userID = strings.TrimSpace(userID)
 	if limit <= 0 || limit > 500 {
 		limit = 100
@@ -3612,6 +4275,16 @@ func (m *memoryStore) billingCoexistenceMatrix() map[string]any {
 func (m *memoryStore) createReport(
 	reporterUserID, reportedUserID, reason, description string,
 ) (moderationReport, error) {
+	if m.safetyRepo != nil {
+		report, err := m.safetyRepo.createReport(context.Background(), reporterUserID, reportedUserID, reason, description)
+		if err == nil {
+			return report, nil
+		}
+		if m.durableEngagementRequired() || !isSafetyRepoPersistenceUnavailable(err) {
+			return moderationReport{}, err
+		}
+	}
+
 	reporterUserID = strings.TrimSpace(reporterUserID)
 	reportedUserID = strings.TrimSpace(reportedUserID)
 	reason = strings.TrimSpace(reason)
@@ -3640,6 +4313,16 @@ func (m *memoryStore) createReport(
 }
 
 func (m *memoryStore) listReports(status string, limit int) []moderationReport {
+	if m.safetyRepo != nil {
+		reports, err := m.safetyRepo.listReports(context.Background(), status, limit)
+		if err == nil {
+			return reports
+		}
+		if m.durableEngagementRequired() || !isSafetyRepoPersistenceUnavailable(err) {
+			return []moderationReport{}
+		}
+	}
+
 	if limit <= 0 || limit > 500 {
 		limit = 100
 	}
@@ -3665,6 +4348,16 @@ func (m *memoryStore) listReports(status string, limit int) []moderationReport {
 func (m *memoryStore) actionReport(
 	reportID, status, action, reviewedBy string,
 ) (moderationReport, error) {
+	if m.safetyRepo != nil {
+		report, err := m.safetyRepo.actionReport(context.Background(), reportID, status, action, reviewedBy)
+		if err == nil {
+			return report, nil
+		}
+		if m.durableEngagementRequired() || !isSafetyRepoPersistenceUnavailable(err) {
+			return moderationReport{}, err
+		}
+	}
+
 	reportID = strings.TrimSpace(reportID)
 	status = strings.ToLower(strings.TrimSpace(status))
 	if reportID == "" || status == "" {
@@ -3699,6 +4392,16 @@ func (m *memoryStore) actionReport(
 func (m *memoryStore) submitModerationAppeal(
 	userID, reportID, reason, description string,
 ) (moderationAppeal, error) {
+	if m.safetyRepo != nil {
+		appeal, err := m.safetyRepo.submitModerationAppeal(context.Background(), userID, reportID, reason, description)
+		if err == nil {
+			return appeal, nil
+		}
+		if m.durableEngagementRequired() || !isSafetyRepoPersistenceUnavailable(err) {
+			return moderationAppeal{}, err
+		}
+	}
+
 	trimmedUserID := strings.TrimSpace(userID)
 	trimmedReason := strings.TrimSpace(reason)
 	if trimmedUserID == "" || trimmedReason == "" {
@@ -3728,6 +4431,16 @@ func (m *memoryStore) submitModerationAppeal(
 }
 
 func (m *memoryStore) getModerationAppeal(appealID, requesterUserID string, admin bool) (moderationAppeal, error) {
+	if m.safetyRepo != nil {
+		appeal, err := m.safetyRepo.getModerationAppeal(context.Background(), appealID, requesterUserID, admin)
+		if err == nil {
+			return appeal, nil
+		}
+		if m.durableEngagementRequired() || !isSafetyRepoPersistenceUnavailable(err) {
+			return moderationAppeal{}, err
+		}
+	}
+
 	trimmedAppealID := strings.TrimSpace(appealID)
 	if trimmedAppealID == "" {
 		return moderationAppeal{}, errors.New("appeal_id is required")
@@ -3751,6 +4464,16 @@ func (m *memoryStore) getModerationAppeal(appealID, requesterUserID string, admi
 }
 
 func (m *memoryStore) listModerationAppeals(status string, limit int) []moderationAppeal {
+	if m.safetyRepo != nil {
+		appeals, err := m.safetyRepo.listModerationAppeals(context.Background(), status, limit)
+		if err == nil {
+			return appeals
+		}
+		if m.durableEngagementRequired() || !isSafetyRepoPersistenceUnavailable(err) {
+			return []moderationAppeal{}
+		}
+	}
+
 	if limit <= 0 || limit > 500 {
 		limit = 100
 	}
@@ -3774,6 +4497,16 @@ func (m *memoryStore) listModerationAppeals(status string, limit int) []moderati
 }
 
 func (m *memoryStore) listModerationAppealsForUser(userID, status string, limit int) []moderationAppeal {
+	if m.safetyRepo != nil {
+		appeals, err := m.safetyRepo.listModerationAppealsForUser(context.Background(), userID, status, limit)
+		if err == nil {
+			return appeals
+		}
+		if m.durableEngagementRequired() || !isSafetyRepoPersistenceUnavailable(err) {
+			return []moderationAppeal{}
+		}
+	}
+
 	trimmedUserID := strings.TrimSpace(userID)
 	if trimmedUserID == "" {
 		return []moderationAppeal{}
@@ -3806,6 +4539,16 @@ func (m *memoryStore) listModerationAppealsForUser(userID, status string, limit 
 func (m *memoryStore) actionModerationAppeal(
 	appealID, status, resolutionReason, reviewedBy string,
 ) (moderationAppeal, error) {
+	if m.safetyRepo != nil {
+		appeal, err := m.safetyRepo.actionModerationAppeal(context.Background(), appealID, status, resolutionReason, reviewedBy)
+		if err == nil {
+			return appeal, nil
+		}
+		if m.durableEngagementRequired() || !isSafetyRepoPersistenceUnavailable(err) {
+			return moderationAppeal{}, err
+		}
+	}
+
 	trimmedAppealID := strings.TrimSpace(appealID)
 	normalizedStatus := strings.ToLower(strings.TrimSpace(status))
 	if trimmedAppealID == "" || normalizedStatus == "" {
@@ -3949,6 +4692,15 @@ func (m *memoryStore) adminAnalyticsOverview() map[string]any {
 	chatLocksByPolicy := map[string]int{}
 	billingEventCount := 0
 	billingPolicyDimensionCount := 0
+	giftPanelOpenedCount := 0
+	giftPreviewOpenedCount := 0
+	giftSendAttemptedCount := 0
+	giftSendSucceededCount := 0
+	giftSendFailedInsufficientCount := 0
+	giftSendFailedChatLockedCount := 0
+	giftCoinsEarnedTotal := 0
+	giftCoinsSpentTotal := 0
+	giftSendTierDistribution := map[string]int{}
 	for _, workflow := range m.questWorkflows {
 		if workflow.AttemptCount > 0 {
 			unlockAttempts += workflow.AttemptCount
@@ -3966,6 +4718,36 @@ func (m *memoryStore) adminAnalyticsOverview() map[string]any {
 			if strings.TrimSpace(toString(event.Details["monetization_matrix_version"])) != "" {
 				billingPolicyDimensionCount++
 			}
+		}
+		switch action {
+		case "wallet.topup":
+			giftCoinsEarnedTotal += toIntOrZero(event.Details["amount"])
+		case "gift_panel_opened":
+			giftPanelOpenedCount++
+		case "gift_preview_opened":
+			giftPreviewOpenedCount++
+		case "gift_send_attempted":
+			giftSendAttemptedCount++
+		case "gift_send_succeeded":
+			giftSendSucceededCount++
+			giftCoinsSpentTotal += toIntOrZero(event.Details["price_coins"])
+			tier := strings.TrimSpace(toString(event.Details["gift_tier"]))
+			if tier == "" {
+				giftID := strings.TrimSpace(toString(event.Details["gift_id"]))
+				if giftID != "" {
+					if giftItem, exists := m.giftCatalog[giftID]; exists {
+						tier = strings.TrimSpace(giftItem.Tier)
+					}
+				}
+			}
+			if tier == "" {
+				tier = "unknown"
+			}
+			giftSendTierDistribution[tier]++
+		case "gift_send_failed_insufficient_coins":
+			giftSendFailedInsufficientCount++
+		case "gift_send_failed_chat_locked":
+			giftSendFailedChatLockedCount++
 		}
 		if variant == "" {
 			continue
@@ -4029,23 +4811,34 @@ func (m *memoryStore) adminAnalyticsOverview() map[string]any {
 	}
 
 	funnelMetrics := map[string]any{
-		"unlock_attempt_count":             unlockAttempts,
-		"unlock_completion_count":          unlockCompletions,
-		"unlock_completion_rate":           safeRatePercent(unlockCompletions, unlockAttempts),
-		"unlock_attempt_count_by_policy":   unlockAttemptsByPolicy,
-		"chat_lock_count_by_policy":        chatLocksByPolicy,
-		"gesture_decision_count":           totalGestures,
-		"gesture_acceptance_count":         acceptedGestures,
-		"gesture_acceptance_rate":          safeRatePercent(acceptedGestures, totalGestures),
-		"activity_session_count":           totalActivities,
-		"activity_completion_count":        completedActivities,
-		"activity_completion_rate":         safeRatePercent(completedActivities, totalActivities),
-		"daily_prompt_answer_count":        totalDailyPromptAnswers,
-		"daily_prompt_active_streak_users": activePromptStreakUsers,
-		"report_count":                     totalReports,
-		"interaction_count":                interactionCount,
-		"report_rate_per_1k_interactions":  reportRatePerThousand,
-		"appeal_resolution_count":          appealsResolved,
+		"unlock_attempt_count":                unlockAttempts,
+		"unlock_completion_count":             unlockCompletions,
+		"unlock_completion_rate":              safeRatePercent(unlockCompletions, unlockAttempts),
+		"unlock_attempt_count_by_policy":      unlockAttemptsByPolicy,
+		"chat_lock_count_by_policy":           chatLocksByPolicy,
+		"gesture_decision_count":              totalGestures,
+		"gesture_acceptance_count":            acceptedGestures,
+		"gesture_acceptance_rate":             safeRatePercent(acceptedGestures, totalGestures),
+		"activity_session_count":              totalActivities,
+		"activity_completion_count":           completedActivities,
+		"activity_completion_rate":            safeRatePercent(completedActivities, totalActivities),
+		"daily_prompt_answer_count":           totalDailyPromptAnswers,
+		"daily_prompt_active_streak_users":    activePromptStreakUsers,
+		"report_count":                        totalReports,
+		"interaction_count":                   interactionCount,
+		"report_rate_per_1k_interactions":     reportRatePerThousand,
+		"appeal_resolution_count":             appealsResolved,
+		"gift_panel_opened_count":             giftPanelOpenedCount,
+		"gift_preview_opened_count":           giftPreviewOpenedCount,
+		"gift_send_attempted_count":           giftSendAttemptedCount,
+		"gift_send_success_count":             giftSendSucceededCount,
+		"gift_send_completion_rate":           safeRatePercent(giftSendSucceededCount, giftSendAttemptedCount),
+		"gift_preview_to_send_attempt_rate":   safeRatePercent(giftSendAttemptedCount, giftPreviewOpenedCount),
+		"gift_send_failed_insufficient_count": giftSendFailedInsufficientCount,
+		"gift_send_failed_chat_locked_count":  giftSendFailedChatLockedCount,
+		"gift_coins_earned_total":             giftCoinsEarnedTotal,
+		"gift_coins_spent_total":              giftCoinsSpentTotal,
+		"gift_send_tier_distribution":         giftSendTierDistribution,
 	}
 
 	dashboardPanels := []string{
@@ -4057,10 +4850,17 @@ func (m *memoryStore) adminAnalyticsOverview() map[string]any {
 		"daily_prompt_answer_count",
 		"report_rate_per_1k_interactions",
 		"appeal_resolution_count",
+		"gift_panel_opened_count",
+		"gift_preview_opened_count",
+		"gift_send_completion_rate",
+		"gift_preview_to_send_attempt_rate",
+		"gift_send_failed_insufficient_count",
+		"gift_coins_spent_total",
+		"gift_send_tier_distribution",
 	}
 
 	eventTaxonomy := map[string]any{
-		"version": "engagement_unlock.v2026-03-03",
+		"version": "engagement_unlock.v2026-03-19",
 		"events": []map[string]any{
 			{
 				"name":                "quest.submit",
@@ -4161,6 +4961,34 @@ func (m *memoryStore) adminAnalyticsOverview() map[string]any {
 			{
 				"name":                "group_poll_finalized",
 				"required_properties": []string{"poll_id", "user_id", "selected_option_id"},
+			},
+			{
+				"name":                "gift_send_attempted",
+				"required_properties": []string{"match_id", "gift_id"},
+			},
+			{
+				"name":                "gift_panel_opened",
+				"required_properties": []string{"match_id", "wallet_coins", "catalog_count"},
+			},
+			{
+				"name":                "gift_preview_opened",
+				"required_properties": []string{"match_id", "gift_id", "tier", "price_coins"},
+			},
+			{
+				"name":                "wallet.topup",
+				"required_properties": []string{"amount", "reason", "balance", "requested_by", "audit_receipt_id"},
+			},
+			{
+				"name":                "gift_send_succeeded",
+				"required_properties": []string{"match_id", "gift_id", "price_coins", "remaining_coins"},
+			},
+			{
+				"name":                "gift_send_failed_insufficient_coins",
+				"required_properties": []string{"match_id", "gift_id", "error_code"},
+			},
+			{
+				"name":                "gift_send_failed_chat_locked",
+				"required_properties": []string{"match_id", "gift_id", "unlock_state", "error_code"},
 			},
 		},
 	}
