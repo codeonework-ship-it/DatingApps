@@ -50,7 +50,7 @@ class TermsAcceptance extends _$TermsAcceptance {
     }
   }
 
-  Future<void> accept() async {
+  Future<bool> accept() async {
     state = const AsyncLoading();
     final prefs = await SharedPreferences.getInstance();
     final authState = ref.read(authNotifierProvider);
@@ -60,13 +60,13 @@ class TermsAcceptance extends _$TermsAcceptance {
       if (kUseMockAuth) {
         await _persistLocalValue(prefs, userId: userId, accepted: true);
         state = const AsyncData(true);
-        return;
+        return true;
       }
 
       if (userId.isEmpty) {
         log.warning('terms_acceptance_missing_user');
         state = const AsyncData(false);
-        return;
+        return false;
       }
 
       final dio = ref.read(apiClientProvider);
@@ -76,12 +76,15 @@ class TermsAcceptance extends _$TermsAcceptance {
       );
       await _persistLocalValue(prefs, userId: userId, accepted: true);
       state = const AsyncData(true);
+      return true;
     } on DioException catch (error, stackTrace) {
       log.warning('terms_acceptance_remote_failed', error, stackTrace);
       state = const AsyncData(false);
+      return false;
     } on Object catch (error, stackTrace) {
       log.warning('terms_acceptance_submit_failed', error, stackTrace);
       state = const AsyncData(false);
+      return false;
     }
   }
 

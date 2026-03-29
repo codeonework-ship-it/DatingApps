@@ -634,6 +634,7 @@ class MessageNotifier extends _$MessageNotifier {
 
       final dio = ref.read(apiClientProvider);
       var sentViaGiftEndpoint = false;
+      var shouldPostMessageFallback = true;
       var updatedWalletCoins = state.walletCoins;
       try {
         final giftSendResponse = await dio.post<Map<String, dynamic>>(
@@ -653,6 +654,13 @@ class MessageNotifier extends _$MessageNotifier {
         final body =
             (giftSendResponse.data as Map?)?.cast<String, dynamic>() ??
             <String, dynamic>{};
+        final messagePayload =
+            (body['message'] as Map?)?.cast<String, dynamic>() ??
+            <String, dynamic>{};
+        final responseText = (messagePayload['text'] ?? body['text'] ?? '')
+            .toString();
+        shouldPostMessageFallback =
+            responseText.trim().isEmpty || !responseText.contains('[gift:');
         final wallet =
             (body['wallet'] as Map?)?.cast<String, dynamic>() ??
             <String, dynamic>{};
@@ -668,7 +676,7 @@ class MessageNotifier extends _$MessageNotifier {
         }
       }
 
-      if (!sentViaGiftEndpoint) {
+      if (!sentViaGiftEndpoint || shouldPostMessageFallback) {
         await dio.post<Map<String, dynamic>>(
           '/chat/${_currentMatchId!}/messages',
           data: {'sender_id': trimmedCurrentUserId, 'text': payloadText},
@@ -1026,14 +1034,17 @@ class MessageNotifier extends _$MessageNotifier {
 }
 
 String _encodeGiftMessage(RoseGift gift) {
+  final leadingText = gift.isFree
+      ? 'Send Free Rose 🌹'
+      : 'Sent ${gift.name} 🌹';
   final safeName = gift.name.replaceAll('|', '/');
   final safeURL = RoseGift.resolvePreferredGifPathById(
     gift.id,
     fallbackUrl: gift.gifUrl,
   ).replaceAll('|', '%7C');
   final safeIcon = (gift.iconKey ?? '').replaceAll('|', '');
-  return '[gift:id=${gift.id}|icon=$safeIcon|name=$safeName|url=$safeURL|'
-      'price=${gift.priceCoins}]';
+  return '$leadingText\n[gift:id=${gift.id}|icon=$safeIcon|name=$safeName|'
+      'url=$safeURL|price=${gift.priceCoins}]';
 }
 
 String _encodeGestureGiftMessage({

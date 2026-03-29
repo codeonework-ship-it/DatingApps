@@ -1,0 +1,262 @@
+{
+  "meta": {
+    "started_at": "2026-02-28T18:38:30.695528Z",
+    "base": "http://localhost:8081/v1",
+    "uidA": "11111111-1111-1111-1111-111111111111",
+    "target_user_id": "22222222-2222-2222-2222-222222222222",
+    "match_id": "1a7e109a-d0db-4576-9eee-5a25c2c12efd",
+    "gesture_id": "gesture-1772303914156754000"
+  },
+  "steps": {
+    "ready:http://localhost:8080/readyz": {
+      "ok": true,
+      "status": 200,
+      "body": {
+        "service": "api-gateway",
+        "status": "ready"
+      }
+    },
+    "ready:http://localhost:8081/readyz": {
+      "ok": true,
+      "status": 200,
+      "body": {
+        "correlation_id": "557c5e77-07d2-4593-9d69-26605ab5c619",
+        "deps": {
+          "auth": "READY",
+          "chat": "READY",
+          "matching": "READY",
+          "profile": "READY"
+        },
+        "service": "mobile-bff",
+        "status": "ready"
+      }
+    },
+    "discovery_uidA": {
+      "ok": true,
+      "status": 200,
+      "url": "http://localhost:8081/v1/discovery/11111111-1111-1111-1111-111111111111?limit=15",
+      "body": {
+        "candidates": [],
+        "correlation_id": "d6ac8185-3b7d-4233-a48b-1262a7703319"
+      }
+    },
+    "swipe_uidA_to_target": {
+      "ok": true,
+      "status": 200,
+      "url": "http://localhost:8081/v1/swipe",
+      "body": {
+        "accepted": true,
+        "correlation_id": "1aa188fa-a2dc-4216-9797-9ddaaaa43571",
+        "match_id": "1a7e109a-d0db-4576-9eee-5a25c2c12efd",
+        "mutual_match": true
+      }
+    },
+    "swipe_target_to_uidA": {
+      "ok": true,
+      "status": 200,
+      "url": "http://localhost:8081/v1/swipe",
+      "body": {
+        "accepted": true,
+        "correlation_id": "77e8144c-cc76-4bae-b21c-70ec09d38128",
+        "match_id": "1a7e109a-d0db-4576-9eee-5a25c2c12efd",
+        "mutual_match": true
+      }
+    },
+    "matches_uidA": {
+      "ok": true,
+      "status": 200,
+      "url": "http://localhost:8081/v1/matches/11111111-1111-1111-1111-111111111111",
+      "body": {
+        "correlation_id": "ca23ac1f-9202-4bd8-9cee-ab7a5ece9246",
+        "matches": [
+          {
+            "id": "1a7e109a-d0db-4576-9eee-5a25c2c12efd",
+            "isOnline": false,
+            "lastMessage": "Quest approved \u2705 Great answer \u2014 happy to continue chatting!",
+            "lastMessageTime": "2026-02-28T18:34:31Z",
+            "unlock_state": "matched",
+            "unreadCount": 0,
+            "userId": "22222222-2222-2222-2222-222222222222",
+            "userName": "Smoke User B",
+            "userPhoto": "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=500&q=80"
+          }
+        ]
+      }
+    },
+    "quest_template_put": {
+      "ok": true,
+      "status": 200,
+      "url": "http://localhost:8081/v1/matches/1a7e109a-d0db-4576-9eee-5a25c2c12efd/quest-template",
+      "body": {
+        "correlation_id": "4658cd73-f1d1-4b49-a6cd-a818cc0aac15",
+        "quest_template": {
+          "creator_user_id": "11111111-1111-1111-1111-111111111111",
+          "match_id": "1a7e109a-d0db-4576-9eee-5a25c2c12efd",
+          "max_chars": 280,
+          "min_chars": 20,
+          "prompt_template": "Share one recent moment that genuinely made you smile and why.",
+          "template_id": "quest-template-1a7e109a-d0db-4576-9eee-5a25c2c12efd",
+          "updated_at": "2026-02-28T18:38:33Z"
+        }
+      }
+    },
+    "quest_workflow_get_before": {
+      "ok": true,
+      "status": 200,
+      "url": "http://localhost:8081/v1/matches/1a7e109a-d0db-4576-9eee-5a25c2c12efd/quest-workflow",
+      "body": {
+        "correlation_id": "6c7c82ae-bdf1-47a4-b8e3-b502501e2f8e",
+        "quest_workflow": {
+          "attempt_count": 0,
+          "match_id": "1a7e109a-d0db-4576-9eee-5a25c2c12efd",
+          "status": "pending",
+          "template_id": "quest-template-1a7e109a-d0db-4576-9eee-5a25c2c12efd",
+          "unlock_state": "quest_pending"
+        }
+      }
+    },
+    "quest_submit": {
+      "ok": true,
+      "status": 200,
+      "url": "http://localhost:8081/v1/matches/1a7e109a-d0db-4576-9eee-5a25c2c12efd/quest-workflow/submit",
+      "body": {
+        "correlation_id": "1fd28236-d90e-4e56-a989-f87bbe723ee5",
+        "quest_workflow": {
+          "attempt_count": 1,
+          "match_id": "1a7e109a-d0db-4576-9eee-5a25c2c12efd",
+          "response_text": "I helped my younger cousin prepare for an interview, and seeing her confidence grow made my whole week better.",
+          "status": "pending",
+          "submitted_at": "2026-02-28T18:38:33Z",
+          "submitter_user_id": "22222222-2222-2222-2222-222222222222",
+          "template_id": "quest-template-1a7e109a-d0db-4576-9eee-5a25c2c12efd",
+          "unlock_state": "quest_under_review",
+          "window_started_at": "2026-02-28T18:38:33Z"
+        }
+      }
+    },
+    "quest_review": {
+      "ok": true,
+      "status": 200,
+      "url": "http://localhost:8081/v1/matches/1a7e109a-d0db-4576-9eee-5a25c2c12efd/quest-workflow/review",
+      "body": {
+        "correlation_id": "bb8ef5aa-ab5c-4de2-9e6a-32a17aa7d576",
+        "quest_workflow": {
+          "attempt_count": 1,
+          "match_id": "1a7e109a-d0db-4576-9eee-5a25c2c12efd",
+          "response_text": "I helped my younger cousin prepare for an interview, and seeing her confidence grow made my whole week better.",
+          "reviewed_at": "2026-02-28T18:38:33Z",
+          "reviewer_user_id": "11111111-1111-1111-1111-111111111111",
+          "status": "approved",
+          "submitted_at": "2026-02-28T18:38:33Z",
+          "submitter_user_id": "22222222-2222-2222-2222-222222222222",
+          "template_id": "quest-template-1a7e109a-d0db-4576-9eee-5a25c2c12efd",
+          "unlock_state": "conversation_unlocked",
+          "window_started_at": "2026-02-28T18:38:33Z"
+        }
+      }
+    },
+    "unlock_state_after_review": {
+      "ok": true,
+      "status": 200,
+      "url": "http://localhost:8081/v1/matches/1a7e109a-d0db-4576-9eee-5a25c2c12efd/unlock-state",
+      "body": {
+        "chat_unlocked": true,
+        "correlation_id": "00f42af7-5a5c-47be-97bc-9ebc49ffa993",
+        "has_requirement": true,
+        "match_id": "1a7e109a-d0db-4576-9eee-5a25c2c12efd",
+        "unlock_state": "conversation_unlocked"
+      }
+    },
+    "chat_send_after_unlock": {
+      "ok": true,
+      "status": 200,
+      "url": "http://localhost:8081/v1/chat/1a7e109a-d0db-4576-9eee-5a25c2c12efd/messages",
+      "body": {
+        "accepted": true,
+        "correlation_id": "8f64722a-d237-4196-afd1-067b71f06250",
+        "message_id": "7a466e3d-2538-4040-bd90-1afd82d64f61"
+      }
+    },
+    "gesture_create": {
+      "ok": true,
+      "status": 200,
+      "url": "http://localhost:8081/v1/matches/1a7e109a-d0db-4576-9eee-5a25c2c12efd/gestures",
+      "body": {
+        "correlation_id": "46416345-0a45-4f4e-9231-40c8158f68e6",
+        "gesture": {
+          "content_text": "I liked your profile energy. What is one ritual that keeps your week grounded?",
+          "created_at": "2026-02-28T18:38:34Z",
+          "effort_score": 100,
+          "gesture_type": "thoughtful_opener",
+          "id": "gesture-1772303914156754000",
+          "match_id": "1a7e109a-d0db-4576-9eee-5a25c2c12efd",
+          "minimum_quality_pass": true,
+          "originality_pass": true,
+          "profanity_flagged": false,
+          "receiver_user_id": "22222222-2222-2222-2222-222222222222",
+          "safety_flagged": false,
+          "sender_user_id": "11111111-1111-1111-1111-111111111111",
+          "status": "sent",
+          "tone": "warm",
+          "updated_at": "2026-02-28T18:38:34Z"
+        }
+      }
+    },
+    "gesture_decision": {
+      "ok": false,
+      "status": 400,
+      "url": "http://localhost:8081/v1/matches/1a7e109a-d0db-4576-9eee-5a25c2c12efd/gestures/gesture-1772303914156754000/decision",
+      "body": {
+        "correlation_id": "dedb22ff-6f97-4b3a-8317-3200bc0824e5",
+        "error": "validation error: decision must be appreciate, decline, or request_better",
+        "error_code": "BAD_REQUEST",
+        "success": false
+      }
+    },
+    "gesture_score": {
+      "ok": true,
+      "status": 200,
+      "url": "http://localhost:8081/v1/matches/1a7e109a-d0db-4576-9eee-5a25c2c12efd/gestures/gesture-1772303914156754000/score",
+      "body": {
+        "correlation_id": "b95e846e-712f-463a-b176-d2457cd71f94",
+        "effort_score": {
+          "effort_score": 100,
+          "gesture_id": "gesture-1772303914156754000",
+          "match_id": "1a7e109a-d0db-4576-9eee-5a25c2c12efd",
+          "minimum_quality_pass": true,
+          "originality_pass": true,
+          "profanity_flagged": false,
+          "safety_flagged": false,
+          "status": "sent"
+        }
+      }
+    },
+    "timeline_after_gesture": {
+      "ok": true,
+      "status": 200,
+      "url": "http://localhost:8081/v1/matches/1a7e109a-d0db-4576-9eee-5a25c2c12efd/timeline",
+      "body": {
+        "correlation_id": "5fe6fa26-2e76-4d42-97ba-3053b8a59b30",
+        "timeline": [
+          {
+            "content_text": "I liked your profile energy. What is one ritual that keeps your week grounded?",
+            "created_at": "2026-02-28T18:38:34Z",
+            "effort_score": 100,
+            "gesture_type": "thoughtful_opener",
+            "id": "gesture-1772303914156754000",
+            "match_id": "1a7e109a-d0db-4576-9eee-5a25c2c12efd",
+            "minimum_quality_pass": true,
+            "originality_pass": true,
+            "profanity_flagged": false,
+            "receiver_user_id": "22222222-2222-2222-2222-222222222222",
+            "safety_flagged": false,
+            "sender_user_id": "11111111-1111-1111-1111-111111111111",
+            "status": "sent",
+            "tone": "warm",
+            "updated_at": "2026-02-28T18:38:34Z"
+          }
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "generated_at": "2026-02-28T20:47:51.631524+00:00",
+  "device": "emulator-5554",
+  "steps": [
+    {
+      "screen": "App Foreground",
+      "pass": true,
+      "detail": "already_foreground"
+    },
+    {
+      "screen": "Mock Sign In",
+      "pass": true,
+      "detail": "completed"
+    },
+    {
+      "screen": "Discover",
+      "pass": true,
+      "detail": "tap_90_2305",
+      "screenshot": "/Users/anandsadasivan/Documents/Workspaces/Development/GitHub/Dating apps/documents/codex/artifacts/ui_smoke_20260301/01_discover.png"
+    },
+    {
+      "screen": "Matches",
+      "pass": true,
+      "detail": "tap_270_2305",
+      "screenshot": "/Users/anandsadasivan/Documents/Workspaces/Development/GitHub/Dating apps/documents/codex/artifacts/ui_smoke_20260301/02_matches.png"
+    },
+    {
+      "screen": "Engagement",
+      "pass": true,
+      "detail": "tap_450_2305",
+      "screenshot": "/Users/anandsadasivan/Documents/Workspaces/Development/GitHub/Dating apps/documents/codex/artifacts/ui_smoke_20260301/03_engagement.png"
+    },
+    {
+      "screen": "Friends",
+      "pass": true,
+      "detail": "tap_630_2305",
+      "screenshot": "/Users/anandsadasivan/Documents/Workspaces/Development/GitHub/Dating apps/documents/codex/artifacts/ui_smoke_20260301/04_friends.png"
+    },
+    {
+      "screen": "Rooms",
+      "pass": true,
+      "detail": "tap_540_984",
+      "screenshot": "/Users/anandsadasivan/Documents/Workspaces/Development/GitHub/Dating apps/documents/codex/artifacts/ui_smoke_20260301/05_rooms.png"
+    }
+  ],
+  "all_passed": true
+}

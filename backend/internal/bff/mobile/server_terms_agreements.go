@@ -56,6 +56,19 @@ func (s *Server) patchTermsAgreement(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	s.store.recordActivity(activityEvent{
+		UserID:   userID,
+		Actor:    userID,
+		Action:   "terms.agreement.updated",
+		Status:   "success",
+		Resource: "/v1/users/" + userID + "/agreements/terms",
+		Details: map[string]any{
+			"accepted":      record.Accepted,
+			"accepted_at":   record.AcceptedAt,
+			"terms_version": record.TermsVersion,
+		},
+	})
+
 	writeJSON(w, http.StatusOK, map[string]any{
 		"agreement": record,
 	})

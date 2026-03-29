@@ -756,9 +756,10 @@ class _GoldButtonForegroundLayerState extends State<_GoldButtonForegroundLayer>
     return ClipRRect(
       borderRadius: radius,
       child: Stack(
-        fit: StackFit.passthrough,
+        fit: StackFit.expand,
         children: [
-          if (widget.child != null) widget.child!,
+          const SizedBox.expand(),
+          if (widget.child != null) Center(child: widget.child!),
           if (!disabled)
             Positioned.fill(
               child: IgnorePointer(

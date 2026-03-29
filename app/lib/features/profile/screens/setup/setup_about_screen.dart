@@ -72,7 +72,19 @@ class _SetupAboutScreenState extends ConsumerState<SetupAboutScreen> {
                       blur: 10,
                       borderRadius: const BorderRadius.all(Radius.circular(24)),
                       child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          Text(
+                            'Make your profile stand out',
+                            style: Theme.of(context).textTheme.headlineSmall,
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Step 3 of 4 · About you',
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: AppTheme.textGrey),
+                          ),
+                          const SizedBox(height: 12),
                           TextField(
                             controller: _bioController,
                             maxLength: ValidationConstants.maxBioLength,

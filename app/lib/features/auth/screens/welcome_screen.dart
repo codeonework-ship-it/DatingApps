@@ -56,6 +56,8 @@ class WelcomeScreen extends StatelessWidget {
                 label: 'Start Secure Sign In',
                 icon: Icons.arrow_forward_rounded,
                 shinyEffect: true,
+                textColor: AppTheme.textDark,
+                fontWeight: FontWeight.w800,
                 onPressed: () {
                   Navigator.of(context).push(
                     MaterialPageRoute<void>(builder: (_) => const AuthScreen()),

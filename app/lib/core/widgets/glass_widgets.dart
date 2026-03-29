@@ -163,6 +163,7 @@ class GlassButton extends StatefulWidget {
     this.width,
     this.backgroundColor,
     this.textColor,
+    this.fontWeight,
     this.shinyEffect = true,
   });
   final String label;
@@ -172,6 +173,7 @@ class GlassButton extends StatefulWidget {
   final double? width;
   final Color? backgroundColor;
   final Color? textColor;
+  final FontWeight? fontWeight;
   final bool shinyEffect;
 
   @override
@@ -251,6 +253,7 @@ class _GlassButtonState extends State<GlassButton>
     final buttonTextColor = widget.textColor ?? AppTheme.pureGoldInk;
     final baseColor = widget.backgroundColor ?? AppTheme.pureGoldCore;
     final radius = BorderRadius.circular(AppTheme.radiusM);
+    final width = widget.width;
     final buttonStops = widget.shinyEffect
         ? const [0.0, 0.22, 0.54, 0.82, 1.0]
         : const [0.0, 0.5, 1.0];
@@ -273,6 +276,207 @@ class _GlassButtonState extends State<GlassButton>
       end: Alignment.bottomRight,
     );
 
+    final buttonChild = ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 50),
+      child: GlassContainer(
+        width: width,
+        padding: EdgeInsets.zero,
+        borderRadius: radius,
+        backgroundColor: baseColor.withValues(alpha: 0.34),
+        blur: AppTheme.glassBlurThick,
+        opacity: AppTheme.glassLayerThickOpacity,
+        shadows: [
+          BoxShadow(
+            color: AppTheme.pureGoldBright.withValues(alpha: 0.24),
+            blurRadius: 28,
+            offset: const Offset(0, 10),
+          ),
+          BoxShadow(
+            color: Colors.white.withValues(alpha: 0.22),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        child: Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            borderRadius: radius,
+            gradient: buttonGradient,
+          ),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: ClipRRect(
+                    borderRadius: radius,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        borderRadius: radius,
+                        gradient: RadialGradient(
+                          center: const Alignment(-0.85, -0.9),
+                          radius: 1.35,
+                          colors: [
+                            AppTheme.pureGoldHighlight.withValues(alpha: 0.28),
+                            Colors.transparent,
+                          ],
+                          stops: const [0.0, 0.78],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: ClipRRect(
+                    borderRadius: radius,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        borderRadius: radius,
+                        gradient: RadialGradient(
+                          center: const Alignment(0.95, 1.1),
+                          radius: 1.1,
+                          colors: [
+                            const Color(0xFFFFC640).withValues(alpha: 0.34),
+                            Colors.transparent,
+                          ],
+                          stops: const [0.0, 0.78],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              if (widget.shinyEffect)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: ClipRRect(
+                      borderRadius: radius,
+                      child: AnimatedBuilder(
+                        animation: _shineController ?? _controller,
+                        builder: (context, child) {
+                          final t = _shineController?.value ?? 0;
+                          final primaryLeft = -1.4 + (2.8 * t);
+                          final primaryRight = primaryLeft + 0.96;
+                          final secondaryLeft = -1.9 + (2.8 * t);
+                          final secondaryRight = secondaryLeft + 0.82;
+
+                          return Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              DecoratedBox(
+                                decoration: BoxDecoration(
+                                  borderRadius: radius,
+                                  gradient: LinearGradient(
+                                    begin: Alignment(primaryLeft, -1),
+                                    end: Alignment(primaryRight, 1),
+                                    colors: [
+                                      Colors.transparent,
+                                      const Color(0xFFFFE7A3).withValues(alpha: 0.18),
+                                      Colors.white.withValues(alpha: 0.22),
+                                      const Color(0xFFFFC640).withValues(alpha: 0.34),
+                                      Colors.transparent,
+                                    ],
+                                    stops: const [0.0, 0.35, 0.52, 0.66, 1.0],
+                                  ),
+                                ),
+                              ),
+                              DecoratedBox(
+                                decoration: BoxDecoration(
+                                  borderRadius: radius,
+                                  gradient: LinearGradient(
+                                    begin: Alignment(secondaryLeft, -1),
+                                    end: Alignment(secondaryRight, 1),
+                                    colors: [
+                                      Colors.transparent,
+                                      const Color(0xFFFFF0C9).withValues(alpha: 0.14),
+                                      AppTheme.pureGoldBright.withValues(alpha: 0.28),
+                                      Colors.transparent,
+                                    ],
+                                    stops: const [0.0, 0.45, 0.56, 1.0],
+                                  ),
+                                ),
+                              ),
+                              DecoratedBox(
+                                decoration: BoxDecoration(
+                                  borderRadius: radius,
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      AppTheme.pureGoldHighlight.withValues(alpha: 0.24),
+                                      const Color(0xFFFFD36B).withValues(alpha: 0.08),
+                                      Colors.transparent,
+                                    ],
+                                    stops: const [0.0, 0.36, 0.72],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      borderRadius: radius,
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.white.withValues(alpha: 0.34),
+                          Colors.white.withValues(alpha: 0),
+                        ],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        stops: const [0.0, 0.55],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 15),
+                child: widget.isLoading
+                    ? SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(buttonTextColor),
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (widget.icon != null) ...[
+                            Icon(widget.icon, color: buttonTextColor, size: 18),
+                            const SizedBox(width: 8),
+                          ],
+                          Flexible(
+                            child: Text(
+                              widget.label,
+                              textAlign: TextAlign.center,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                                color: buttonTextColor,
+                                fontWeight: widget.fontWeight ?? FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
     return AnimatedOpacity(
       duration: const Duration(milliseconds: 150),
       opacity: isEnabled ? 1 : 0.55,
@@ -282,223 +486,9 @@ class _GlassButtonState extends State<GlassButton>
         onTapCancel: isEnabled ? _onTapCancel : null,
         child: ScaleTransition(
           scale: _scaleAnimation,
-          child: GlassContainer(
-            width: widget.width ?? double.infinity,
-            padding: EdgeInsets.zero,
-            borderRadius: radius,
-            backgroundColor: baseColor.withValues(alpha: 0.34),
-            blur: AppTheme.glassBlurThick,
-            opacity: AppTheme.glassLayerThickOpacity,
-            shadows: [
-              BoxShadow(
-                color: AppTheme.pureGoldBright.withValues(alpha: 0.24),
-                blurRadius: 28,
-                offset: const Offset(0, 10),
-              ),
-              BoxShadow(
-                color: Colors.white.withValues(alpha: 0.22),
-                blurRadius: 16,
-                offset: const Offset(0, 4),
-              ),
-            ],
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                borderRadius: radius,
-                gradient: buttonGradient,
-              ),
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: IgnorePointer(
-                      child: ClipRRect(
-                        borderRadius: radius,
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            borderRadius: radius,
-                            gradient: RadialGradient(
-                              center: const Alignment(-0.85, -0.9),
-                              radius: 1.35,
-                              colors: [
-                                AppTheme.pureGoldHighlight.withValues(
-                                  alpha: 0.28,
-                                ),
-                                Colors.transparent,
-                              ],
-                              stops: const [0.0, 0.78],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned.fill(
-                    child: IgnorePointer(
-                      child: ClipRRect(
-                        borderRadius: radius,
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            borderRadius: radius,
-                            gradient: RadialGradient(
-                              center: const Alignment(0.95, 1.1),
-                              radius: 1.1,
-                              colors: [
-                                const Color(0xFFFFC640).withValues(alpha: 0.34),
-                                Colors.transparent,
-                              ],
-                              stops: const [0.0, 0.78],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  if (widget.shinyEffect)
-                    Positioned.fill(
-                      child: IgnorePointer(
-                        child: ClipRRect(
-                          borderRadius: radius,
-                          child: AnimatedBuilder(
-                            animation: _shineController ?? _controller,
-                            builder: (context, child) {
-                              final t = _shineController?.value ?? 0;
-                              final primaryLeft = -1.4 + (2.8 * t);
-                              final primaryRight = primaryLeft + 0.96;
-                              final secondaryLeft = -1.9 + (2.8 * t);
-                              final secondaryRight = secondaryLeft + 0.82;
-
-                              return Stack(
-                                fit: StackFit.expand,
-                                children: [
-                                  DecoratedBox(
-                                    decoration: BoxDecoration(
-                                      borderRadius: radius,
-                                      gradient: LinearGradient(
-                                        begin: Alignment(primaryLeft, -1),
-                                        end: Alignment(primaryRight, 1),
-                                        colors: [
-                                          Colors.transparent,
-                                          const Color(
-                                            0xFFFFE7A3,
-                                          ).withValues(alpha: 0.18),
-                                          Colors.white.withValues(alpha: 0.22),
-                                          const Color(
-                                            0xFFFFC640,
-                                          ).withValues(alpha: 0.34),
-                                          Colors.transparent,
-                                        ],
-                                        stops: const [
-                                          0.0,
-                                          0.35,
-                                          0.52,
-                                          0.66,
-                                          1.0,
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  DecoratedBox(
-                                    decoration: BoxDecoration(
-                                      borderRadius: radius,
-                                      gradient: LinearGradient(
-                                        begin: Alignment(secondaryLeft, -1),
-                                        end: Alignment(secondaryRight, 1),
-                                        colors: [
-                                          Colors.transparent,
-                                          const Color(
-                                            0xFFFFF0C9,
-                                          ).withValues(alpha: 0.14),
-                                          AppTheme.pureGoldBright.withValues(
-                                            alpha: 0.28,
-                                          ),
-                                          Colors.transparent,
-                                        ],
-                                        stops: const [0.0, 0.45, 0.56, 1.0],
-                                      ),
-                                    ),
-                                  ),
-                                  DecoratedBox(
-                                    decoration: BoxDecoration(
-                                      borderRadius: radius,
-                                      gradient: LinearGradient(
-                                        begin: Alignment.topCenter,
-                                        end: Alignment.bottomCenter,
-                                        colors: [
-                                          AppTheme.pureGoldHighlight.withValues(
-                                            alpha: 0.24,
-                                          ),
-                                          const Color(
-                                            0xFFFFD36B,
-                                          ).withValues(alpha: 0.08),
-                                          Colors.transparent,
-                                        ],
-                                        stops: const [0.0, 0.36, 0.72],
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              );
-                            },
-                          ),
-                        ),
-                      ),
-                    ),
-                  Positioned.fill(
-                    child: IgnorePointer(
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          borderRadius: radius,
-                          gradient: LinearGradient(
-                            colors: [
-                              Colors.white.withValues(alpha: 0.34),
-                              Colors.white.withValues(alpha: 0),
-                            ],
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            stops: const [0.0, 0.55],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 15,
-                    ),
-                    child: widget.isLoading
-                        ? SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                buttonTextColor,
-                              ),
-                              strokeWidth: 2,
-                            ),
-                          )
-                        : Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              if (widget.icon != null) ...[
-                                Icon(
-                                  widget.icon,
-                                  color: buttonTextColor,
-                                  size: 18,
-                                ),
-                                const SizedBox(width: 8),
-                              ],
-                              Text(
-                                widget.label,
-                                style: Theme.of(context).textTheme.labelLarge
-                                    ?.copyWith(color: buttonTextColor),
-                              ),
-                            ],
-                          ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+          child: width == null
+              ? SizedBox(width: double.infinity, child: buttonChild)
+              : buttonChild,
         ),
       ),
     );

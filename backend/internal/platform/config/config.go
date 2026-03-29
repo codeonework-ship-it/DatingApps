@@ -139,15 +139,17 @@ func Load() (Config, error) {
 	databaseSSLMode := getOrDefault("DATABASE_SSLMODE", getOrDefault("SUPABASE_DB_SSLMODE", "require"))
 
 	databaseURL := getOrDefault("DATABASE_URL", getOrDefault("SUPABASE_DATABASE_URL", ""))
-	if databaseURL == "" {
-		databaseURL = buildPostgresURL(
+	if getOrDefault("USE_LOCAL_DB", "false") == "true" {
+		databaseURL = getOrDefault("LOCAL_DATABASE_URL", "postgresql://postgres:root@123@localhost:5433/Dating_Apps?sslmode=disable")
+	} else if databaseURL == "" {
+		databaseURL = getOrDefault("PROD_DATABASE_URL", buildPostgresURL(
 			databaseHost,
 			databasePort,
 			databaseName,
 			databaseUser,
 			databasePassword,
 			databaseSSLMode,
-		)
+		))
 	}
 
 	supabaseURL := getOrDefault("SUPABASE_URL", deriveSupabaseURLFromDBHost(databaseHost))

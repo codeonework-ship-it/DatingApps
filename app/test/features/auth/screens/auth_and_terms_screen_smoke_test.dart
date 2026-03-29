@@ -30,8 +30,9 @@ class _TermsStubNotifier extends TermsAcceptance {
   Future<bool> build() async => false;
 
   @override
-  Future<void> accept() async {
+  Future<bool> accept() async {
     state = const AsyncData(true);
+    return true;
   }
 }
 

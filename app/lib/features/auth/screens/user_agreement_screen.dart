@@ -1,10 +1,9 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
+import '../../profile/screens/setup/profile_setup_entry_screen.dart';
 import '../providers/terms_provider.dart';
 
 class UserAgreementScreen extends ConsumerStatefulWidget {
@@ -115,57 +114,91 @@ class _UserAgreementScreenState extends ConsumerState<UserAgreementScreen> {
                             ),
                           ),
                           const SizedBox(height: 18),
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(18),
-                              border: Border.all(
-                                color: AppTheme.crystalGoldSoft.withValues(
-                                  alpha: 0.34,
+                          InkWell(
+                            onTap: () {
+                              setState(() {
+                                _accepted = !_accepted;
+                              });
+                            },
+                            borderRadius: BorderRadius.circular(18),
+                            child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(18),
+                                border: Border.all(
+                                  color: _accepted
+                                      ? AppTheme.trustBlue
+                                      : AppTheme.crystalGoldSoft.withValues(
+                                          alpha: 0.5,
+                                        ),
+                                  width: _accepted ? 1.5 : 1.0,
                                 ),
                               ),
-                            ),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Checkbox(
-                                  value: _accepted,
-                                  activeColor: AppTheme.crystalGoldSoft,
-                                  checkColor: AppTheme.textDark,
-                                  onChanged: (value) {
-                                    setState(() {
-                                      _accepted = value ?? false;
-                                    });
-                                  },
-                                ),
-                                const Expanded(
-                                  child: Padding(
-                                    padding: EdgeInsets.only(top: 10),
-                                    child: Text(
-                                      'I agree to the Terms & Privacy Policy',
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Checkbox(
+                                    value: _accepted,
+                                    activeColor: AppTheme.trustBlue,
+                                    checkColor: Colors.white,
+                                    onChanged: (value) {
+                                      setState(() {
+                                        _accepted = value ?? false;
+                                      });
+                                    },
+                                  ),
+                                  const Expanded(
+                                    child: Padding(
+                                      padding: EdgeInsets.only(
+                                        top: 2,
+                                        bottom: 2,
+                                      ),
+                                      child: Text(
+                                        'I agree to the Terms & Privacy Policy',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
                                     ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
                           const SizedBox(height: 18),
                           GlassButton(
-                            label: 'I Agree & Continue',
+                            label: 'I Accept and Continue',
                             icon: Icons.check_circle_rounded,
                             shinyEffect: true,
                             isLoading: termsState.isLoading,
                             onPressed: !_accepted
                                 ? null
-                                : () {
-                                    unawaited(
-                                      ref
-                                          .read(
-                                            termsAcceptanceProvider.notifier,
-                                          )
-                                          .accept(),
+                                : () async {
+                                    final saved = await ref
+                                        .read(termsAcceptanceProvider.notifier)
+                                        .accept();
+                                    if (!context.mounted) {
+                                      return;
+                                    }
+                                    if (!saved) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Could not save your agreement. Please check network and try again.',
+                                          ),
+                                        ),
+                                      );
+                                      return;
+                                    }
+                                    await Navigator.of(context).pushReplacement(
+                                      MaterialPageRoute<void>(
+                                        builder: (_) =>
+                                            const ProfileSetupEntryScreen(),
+                                      ),
                                     );
                                   },
                           ),
@@ -200,7 +233,7 @@ class _UserAgreementScreenState extends ConsumerState<UserAgreementScreen> {
       ),
       const SizedBox(height: 14),
       GradientText(
-        'Terms & Conditions',
+        'Terms and Conditions',
         style: Theme.of(context).textTheme.displaySmall!,
         gradient: const LinearGradient(
           colors: [Colors.white, Color(0xFFF8E2A8)],

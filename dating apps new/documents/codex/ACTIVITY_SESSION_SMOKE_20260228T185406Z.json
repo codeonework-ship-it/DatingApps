@@ -1,0 +1,15 @@
+{
+  "meta": {
+    "started_at": "2026-02-28T18:54:06.057134Z",
+    "base": "http://localhost:8081/v1",
+    "session_id": ""
+  },
+  "steps": {
+    "start_session": {
+      "ok": false,
+      "status": 404,
+      "url": "http://localhost:8081/v1/activities/sessions/start",
+      "body": "404 page not found\n"
+    }
+  }
+}

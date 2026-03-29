@@ -3867,6 +3867,17 @@ func (s *Server) completeProfile(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadGateway, errors.New("unexpected complete profile response payload"))
 		return
 	}
+
+	s.store.recordActivity(activityEvent{
+		UserID:   userID,
+		Actor:    userID,
+		Action:   "profile.completed",
+		Status:   "success",
+		Resource: "/v1/profile/" + userID + "/complete",
+		Details: map[string]any{
+			"completion": 100,
+		},
+	})
 	writeJSON(w, http.StatusOK, resp)
 }
 

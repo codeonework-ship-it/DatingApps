@@ -38,3 +38,7 @@ Optional full rebuild (destructive, for local/dev reset only):
 Gateway URL for Flutter:
 - Android emulator: http://10.0.2.2:8080/v1
 - iOS simulator/macOS: http://localhost:8080/v1
+
+# 2026-03-29 Photo upload + 100-user seed
+scripts/041_photos_storage_path_and_bucket.sql
+scripts/042_seed_100_users_25_25_spec.sql

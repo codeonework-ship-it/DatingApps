@@ -1,11 +1,16 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide MultipartFile;
 
 import '../../../core/config/app_runtime_config.dart';
 import '../../../core/config/feature_flags.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/providers/api_client_provider.dart';
+import '../../../core/providers/supabase_client_provider.dart';
 import '../../../core/utils/logger.dart';
 import '../../auth/providers/auth_provider.dart';
 
@@ -460,31 +465,88 @@ class ProfileSetupNotifier extends _$ProfileSetupNotifier {
       return;
     }
 
-    final seed = '${current.userId}-${DateTime.now().millisecondsSinceEpoch}';
+    final ts = DateTime.now().millisecondsSinceEpoch;
+    final photoId = '${current.userId}-$ts';
+    final ext = _imageExtension(file.name);
+
+    // ── 1. Optimistic local entry ──────────────────────────────────────────
     final optimisticPhoto = ProfilePhotoItem(
-      id: 'local-$seed',
+      id: 'local-$photoId',
       photoUrl: AppRuntimeConfig.placeholderProfileImageUrl,
       storagePath: file.path,
       ordering: current.photos.length,
     );
-    final optimistic = current.copyWith(
-      photos: [...current.photos, optimisticPhoto],
+    state = AsyncData(
+      current.copyWith(photos: [...current.photos, optimisticPhoto]),
     );
-    state = AsyncData(optimistic);
 
     if (kUseMockAuth) {
       return;
     }
 
-    final dio = ref.read(apiClientProvider);
     try {
-      final multipart = FormData.fromMap({
-        'image': await MultipartFile.fromFile(file.path, filename: file.name),
-      });
+      // ── 2. Save a local copy under AppDocDir/profile_photos/{userId}/ ──────
+      final appDocDir = await getApplicationDocumentsDirectory();
+      final localDir = Directory(
+        '${appDocDir.path}/profile_photos/${current.userId}',
+      );
+      await localDir.create(recursive: true);
+      final localFile = File('${localDir.path}/$photoId$ext');
+      await File(file.path).copy(localFile.path);
+
+      // ── 3. Upload to Supabase Storage ─────────────────────────────────────
+      final supabase = ref.read(supabaseClientProvider);
+      final storagePath = 'user-photos/${current.userId}/$photoId$ext';
+      final bytes = await localFile.readAsBytes();
+
+      String photoUrl;
+      try {
+        await supabase.storage
+            .from(SupabaseConstants.profilePhotosBucket)
+            .uploadBinary(
+              storagePath,
+              bytes,
+              fileOptions: const FileOptions(
+                contentType: 'image/jpeg',
+                upsert: true,
+              ),
+            );
+        photoUrl = supabase.storage
+            .from(SupabaseConstants.profilePhotosBucket)
+            .getPublicUrl(storagePath);
+      } on StorageException catch (storageErr, st) {
+        log.warning(
+          'Supabase storage upload failed, falling back to backend upload: ${storageErr.message}',
+        );
+        log.error('Supabase storage error', storageErr, st);
+        // Fall back to backend multipart upload
+        final dio = ref.read(apiClientProvider);
+        final multipart = FormData.fromMap({
+          'image': await MultipartFile.fromFile(
+            localFile.path,
+            filename: '$photoId$ext',
+          ),
+        });
+        final fallbackResp = await dio.post<Map<String, dynamic>>(
+          '/profile/${current.userId}/photos',
+          data: multipart,
+          options: Options(contentType: 'multipart/form-data'),
+        );
+        state = AsyncData(
+          _draftFromApi(
+            current.userId,
+            fallbackResp.data,
+            fallbackPhone: current.phoneNumber,
+          ),
+        );
+        return;
+      }
+
+      // ── 4. Register URL + storage path in the backend DB ─────────────────
+      final dio = ref.read(apiClientProvider);
       final response = await dio.post<Map<String, dynamic>>(
         '/profile/${current.userId}/photos',
-        data: multipart,
-        options: Options(contentType: 'multipart/form-data'),
+        data: {'photo_url': photoUrl, 'storage_path': storagePath},
       );
       state = AsyncData(
         _draftFromApi(
@@ -494,9 +556,29 @@ class ProfileSetupNotifier extends _$ProfileSetupNotifier {
         ),
       );
     } on DioException catch (e, stackTrace) {
-      log.error('Failed to add photo', e, stackTrace);
+      log.error('Failed to register photo', e, stackTrace);
+      // Keep optimistic so user sees the photo
+      final optimistic = current.copyWith(
+        photos: [...current.photos, optimisticPhoto],
+      );
+      state = AsyncData(optimistic);
+    } catch (e, stackTrace) {
+      log.error('Unexpected error during photo upload', e, stackTrace);
+      final optimistic = current.copyWith(
+        photos: [...current.photos, optimisticPhoto],
+      );
       state = AsyncData(optimistic);
     }
+  }
+
+  /// Returns the lower-cased extension including the dot, defaulting to .jpg.
+  static String _imageExtension(String filename) {
+    final dot = filename.lastIndexOf('.');
+    if (dot < 0) return '.jpg';
+    final ext = filename.substring(dot).toLowerCase();
+    return const {'.jpg', '.jpeg', '.png', '.webp', '.heic'}.contains(ext)
+        ? ext
+        : '.jpg';
   }
 
   Future<void> deletePhoto(ProfilePhotoItem photo) async {
