@@ -93,7 +93,7 @@ class _MatchesListScreenState extends ConsumerState<MatchesListScreen> {
                 ],
               ),
 
-              // Matches List or Empty State
+              // Matches List or Empty/Error State
               if (matchState.isLoading)
                 SliverFillRemaining(
                   child: Center(
@@ -112,6 +112,45 @@ class _MatchesListScreenState extends ConsumerState<MatchesListScreen> {
                               ?.copyWith(color: AppTheme.textDark),
                         ),
                       ],
+                    ),
+                  ),
+                )
+              else if (matchState.error != null && matchState.matches.isEmpty)
+                SliverFillRemaining(
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 32),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.cloud_off_rounded,
+                            color: AppTheme.textHint.withValues(alpha: 0.7),
+                            size: 56,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Unable to load matches',
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(
+                                  color: AppTheme.textDark,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            matchState.error!,
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: AppTheme.textGrey),
+                          ),
+                          const SizedBox(height: 20),
+                          GlassButton(
+                            label: 'Retry',
+                            onPressed: () => matchNotifier.refresh(),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 )
@@ -276,12 +315,12 @@ class _MatchesListScreenState extends ConsumerState<MatchesListScreen> {
               final reportId = await showReportUserSheet(
                 context: pageContext,
                 onSubmit: ({required reason, description}) async => ref
-                      .read(safetyActionsProvider)
-                      .reportUser(
-                        reportedUserId: match.userId,
-                        reason: reason,
-                        description: description,
-                      ),
+                    .read(safetyActionsProvider)
+                    .reportUser(
+                      reportedUserId: match.userId,
+                      reason: reason,
+                      description: description,
+                    ),
               );
 
               if (!pageContext.mounted) return;

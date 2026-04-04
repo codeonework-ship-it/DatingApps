@@ -140,7 +140,7 @@ func Load() (Config, error) {
 
 	databaseURL := getOrDefault("DATABASE_URL", getOrDefault("SUPABASE_DATABASE_URL", ""))
 	if getOrDefault("USE_LOCAL_DB", "false") == "true" {
-		databaseURL = getOrDefault("LOCAL_DATABASE_URL", "postgresql://postgres:root@123@localhost:5433/Dating_Apps?sslmode=disable")
+		databaseURL = getOrDefault("LOCAL_DATABASE_URL", "postgresql://postgres:root%40123@localhost:5433/dating_app?sslmode=disable")
 	} else if databaseURL == "" {
 		databaseURL = getOrDefault("PROD_DATABASE_URL", buildPostgresURL(
 			databaseHost,

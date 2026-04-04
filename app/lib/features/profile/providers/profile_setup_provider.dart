@@ -7,7 +7,6 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide MultipartFile;
 
 import '../../../core/config/app_runtime_config.dart';
-import '../../../core/config/feature_flags.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/providers/api_client_provider.dart';
 import '../../../core/providers/supabase_client_provider.dart';
@@ -243,9 +242,6 @@ class ProfileSetupNotifier extends _$ProfileSetupNotifier {
     }
 
     final fallbackPhone = auth.email ?? '';
-    if (kUseMockAuth) {
-      return _defaultDraft(userId, fallbackPhone);
-    }
 
     try {
       return await _fetchDraft(userId, fallbackPhone: fallbackPhone);
@@ -274,10 +270,6 @@ class ProfileSetupNotifier extends _$ProfileSetupNotifier {
     );
     state = AsyncData(next);
 
-    if (kUseMockAuth) {
-      return;
-    }
-
     await _patchRemoteDraft(next.userId, next.phoneNumber, {
       'name': next.name,
       'date_of_birth': _toIsoDate(next.dateOfBirth),
@@ -301,10 +293,6 @@ class ProfileSetupNotifier extends _$ProfileSetupNotifier {
       incomeRange: incomeRange,
     );
     state = AsyncData(next);
-
-    if (kUseMockAuth) {
-      return;
-    }
 
     await _patchRemoteDraft(next.userId, next.phoneNumber, {
       'bio': next.bio.trim().isEmpty ? null : next.bio.trim(),
@@ -380,10 +368,6 @@ class ProfileSetupNotifier extends _$ProfileSetupNotifier {
     );
     state = AsyncData(next);
 
-    if (kUseMockAuth) {
-      return;
-    }
-
     await _patchRemoteDraft(next.userId, next.phoneNumber, {
       'seeking_genders': next.seekingGenders,
       'min_age_years': next.minAgeYears,
@@ -430,10 +414,6 @@ class ProfileSetupNotifier extends _$ProfileSetupNotifier {
     );
     state = AsyncData(next);
 
-    if (kUseMockAuth) {
-      return;
-    }
-
     await _patchRemoteDraft(next.userId, next.phoneNumber, {
       'drinking': next.drinking,
       'smoking': next.smoking,
@@ -479,10 +459,6 @@ class ProfileSetupNotifier extends _$ProfileSetupNotifier {
     state = AsyncData(
       current.copyWith(photos: [...current.photos, optimisticPhoto]),
     );
-
-    if (kUseMockAuth) {
-      return;
-    }
 
     try {
       // ── 2. Save a local copy under AppDocDir/profile_photos/{userId}/ ──────
@@ -599,10 +575,6 @@ class ProfileSetupNotifier extends _$ProfileSetupNotifier {
     final optimistic = current.copyWith(photos: normalized);
     state = AsyncData(optimistic);
 
-    if (kUseMockAuth) {
-      return;
-    }
-
     final dio = ref.read(apiClientProvider);
     try {
       final response = await dio.delete<Map<String, dynamic>>(
@@ -642,10 +614,6 @@ class ProfileSetupNotifier extends _$ProfileSetupNotifier {
     final optimistic = current.copyWith(photos: normalized);
     state = AsyncData(optimistic);
 
-    if (kUseMockAuth) {
-      return;
-    }
-
     final dio = ref.read(apiClientProvider);
     try {
       final response = await dio.post<Map<String, dynamic>>(
@@ -676,10 +644,6 @@ class ProfileSetupNotifier extends _$ProfileSetupNotifier {
 
     if (!isValid) {
       throw StateError('Profile is incomplete');
-    }
-
-    if (kUseMockAuth) {
-      return;
     }
 
     final dio = ref.read(apiClientProvider);

@@ -5,6 +5,11 @@ import '../../../auth/providers/auth_provider.dart';
 import '../../providers/profile_completion_provider.dart';
 import 'setup_basic_info_screen.dart';
 
+/// Entry point for the profile setup flow.
+///
+/// Checks auth state, loads profile completion status from the Go BFF
+/// (`/profile/{userId}/summary` then `/profile/{userId}/draft`), then
+/// shows [SetupBasicInfoScreen] as step 1 of the setup wizard.
 class ProfileSetupEntryScreen extends ConsumerWidget {
   const ProfileSetupEntryScreen({super.key});
 

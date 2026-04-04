@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:verified_dating_app/core/widgets/glass_widgets.dart';
 import 'package:verified_dating_app/features/profile/providers/profile_setup_provider.dart';
 import 'package:verified_dating_app/features/profile/screens/setup/setup_basic_info_screen.dart';
 
@@ -98,7 +99,7 @@ void main() {
     await tester.pumpWidget(_appWithOverride(notifier));
     await _pumpUi(tester);
 
-    expect(find.text('Basic Info'), findsAtLeastNWidgets(1));
+    expect(find.text('Tell us about you'), findsAtLeastNWidgets(1));
     expect(tester.takeException(), isNull);
   });
 
@@ -114,20 +115,24 @@ void main() {
     await _pumpUi(tester);
 
     expect(
-      find.text('Tell matches who you are. You can edit this later.'),
+      find.text('This helps us find your best matches.'),
       findsOneWidget,
     );
-    expect(find.text('Next'), findsOneWidget);
+    expect(find.text('Continue'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
   testWidgets('shows validation when name is too short', (tester) async {
+    tester.view.physicalSize = const Size(400, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
     final notifier = _FakeProfileSetupNotifier(_draft(name: '', dob: null));
     await tester.pumpWidget(_appWithOverride(notifier));
     await _pumpUi(tester);
 
     await tester.enterText(find.byType(TextField).first, 'A');
-    await tester.tap(find.text('Next'));
+    await tester.tap(find.byType(GlassButton));
     await tester.pump();
 
     expect(find.text('Name must be at least 2 characters.'), findsOneWidget);
@@ -135,12 +140,16 @@ void main() {
   });
 
   testWidgets('shows validation when date of birth is missing', (tester) async {
+    tester.view.physicalSize = const Size(400, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
     final notifier = _FakeProfileSetupNotifier(_draft(name: '', dob: null));
     await tester.pumpWidget(_appWithOverride(notifier));
     await _pumpUi(tester);
 
     await tester.enterText(find.byType(TextField).first, 'Ananya');
-    await tester.tap(find.text('Next'));
+    await tester.tap(find.byType(GlassButton));
     await tester.pump();
 
     expect(find.text('Please select your date of birth.'), findsOneWidget);
@@ -150,6 +159,10 @@ void main() {
   testWidgets('submits and navigates to photos when basic info is valid', (
     tester,
   ) async {
+    tester.view.physicalSize = const Size(400, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
     final notifier = _FakeProfileSetupNotifier(
       _draft(name: 'Ananya', dob: DateTime(1998, 6, 20)),
     );
@@ -157,10 +170,11 @@ void main() {
     await _pumpUi(tester);
 
     await tester.enterText(find.byType(TextField).first, 'Ananya Singh');
-    await tester.tap(find.text('Next'));
-    await _pumpUi(tester);
+    await tester.tap(find.byType(GlassButton));
+    await tester.pump(); // triggers addPostFrameCallback
+    await tester.pump(const Duration(milliseconds: 600)); // render new screen
 
     expect(notifier.saveCalls, 1);
-    expect(find.text('Photos'), findsOneWidget);
+    expect(find.text('Add your photos'), findsOneWidget);
   });
 }

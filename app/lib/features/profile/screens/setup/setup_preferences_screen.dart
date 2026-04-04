@@ -9,7 +9,11 @@ import '../../providers/profile_completion_provider.dart';
 import '../../providers/profile_setup_provider.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SetupPreferencesScreen — two-tab glass UI (Basic | Advanced)
+// SetupPreferencesScreen — two-tab Crystal Gold glass UI (Basic | Advanced)
+//
+// Dual-mode screen:
+//   • isSetupFlow == true  → completes profile, navigates to Discover
+//   • isSetupFlow == false → saves & pops (standalone edit from settings)
 // ─────────────────────────────────────────────────────────────────────────────
 
 class SetupPreferencesScreen extends ConsumerStatefulWidget {
@@ -85,6 +89,10 @@ class _SetupPreferencesScreenState extends ConsumerState<SetupPreferencesScreen>
     super.dispose();
   }
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // Build
+  // ─────────────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     final offlineFlag = ref.watch(preferenceMasterDataOfflineProvider);
@@ -95,246 +103,287 @@ class _SetupPreferencesScreenState extends ConsumerState<SetupPreferencesScreen>
         .maybeWhen(data: (data) => data, orElse: PreferenceMasterData.empty);
 
     return draftAsync.when(
-      loading: () =>
-          const Scaffold(body: Center(child: CircularProgressIndicator())),
-      error: (_, _) => Scaffold(
-        body: Center(
-          child: TextButton(
-            onPressed: () => ref.invalidate(profileSetupNotifierProvider),
-            child: const Text('Retry'),
+      loading: () => Scaffold(
+        body: Container(
+          decoration: const BoxDecoration(gradient: AppTheme.bgGradient),
+          child: const Center(
+            child: CircularProgressIndicator(color: AppTheme.crystalGoldSoft),
+          ),
+        ),
+      ),
+      error: (_, __) => Scaffold(
+        body: Container(
+          decoration: const BoxDecoration(gradient: AppTheme.bgGradient),
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.error_outline,
+                  color: AppTheme.crystalGoldSoft,
+                  size: 48,
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Failed to load preferences',
+                  style: TextStyle(color: Colors.white70, fontSize: 16),
+                ),
+                const SizedBox(height: 12),
+                GlassButton(
+                  label: 'Retry',
+                  onPressed: () => ref.invalidate(profileSetupNotifierProvider),
+                ),
+              ],
+            ),
           ),
         ),
       ),
       data: (draft) {
-        if (!_didInitialize) {
-          _age = RangeValues(
-            draft.minAgeYears.toDouble(),
-            draft.maxAgeYears.toDouble(),
-          );
-          _distance = draft.maxDistanceKm.toDouble();
-          _seriousOnly = draft.seriousOnly;
-          _verifiedOnly = draft.verifiedOnly;
-          _hookupOnly = draft.hookupOnly;
-          _seeking
-            ..clear()
-            ..addAll(draft.seekingGenders);
-          final defaultCountry = masterData.countries.isNotEmpty
-              ? masterData.countries.first
-              : null;
-          _selectedCountry = draft.country ?? defaultCountry;
-          final states =
-              masterData.statesByCountry[_selectedCountry] ?? const <String>[];
-          _selectedState = states.contains(draft.regionState)
-              ? draft.regionState
-              : null;
-          final seededCities =
-              masterData.citiesByState[_selectedState] ?? const <String>[];
-          _selectedCity = seededCities.contains(draft.city) ? draft.city : null;
-          _selectedReligion = masterData.religions.contains(draft.religion)
-              ? draft.religion
-              : null;
-          _selectedMotherTongue =
-              masterData.motherTongues.contains(draft.motherTongue)
-              ? draft.motherTongue
-              : null;
-          _selectedLanguage = draft.languageTags.isNotEmpty
-              ? draft.languageTags.first
-              : null;
-          _selectedDietPreference = draft.dietPreference;
-          _selectedWorkoutFrequency = draft.workoutFrequency;
-          _selectedDietType = draft.dietType;
-          _selectedSleepSchedule = draft.sleepSchedule;
-          _selectedTravelStyle = draft.travelStyle;
-          _selectedPoliticalComfortRange = draft.politicalComfortRange;
-          _instagramController.text = draft.instagramHandle ?? '';
-          _booksController.text = draft.favoriteBooks.join(', ');
-          _novelsController.text = draft.favoriteNovels.join(', ');
-          _songsController.text = draft.favoriteSongs.join(', ');
-          _hobbiesController.text = draft.hobbies.join(', ');
-          _extraCurricularController.text = draft.extraCurriculars.join(', ');
-          _additionalInfoController.text = draft.additionalInfo ?? '';
-          _intentTagsController.text = draft.intentTags.join(', ');
-          _petPreferenceController.text = draft.petPreference ?? '';
-          _dealBreakerTagsController.text = draft.dealBreakerTags.join(', ');
-          _didInitialize = true;
-        }
-
-        return Scaffold(
-          body: Container(
-            decoration: const BoxDecoration(gradient: AppTheme.bgGradient),
-            child: SafeArea(
-              child: Column(
-                children: [
-                  // ── offline banner ─────────────────────────────────────
-                  if (isOffline)
-                    Container(
-                      width: double.infinity,
-                      color: AppTheme.primaryRed,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      child: const Text(
-                        'Offline mode: some data may be outdated.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-
-                  // ── header ─────────────────────────────────────────────
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-                    child: Row(
-                      children: [
-                        if (!_isSetupFlow)
-                          IconButton(
-                            icon: const Icon(
-                              Icons.arrow_back_ios_new,
-                              color: Colors.white,
-                            ),
-                            onPressed: () => Navigator.of(context).pop(),
-                          ),
-                        Expanded(
-                          child: Text(
-                            _isSetupFlow
-                                ? 'Your Preferences'
-                                : 'Edit Preferences',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 24,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.3,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // ── glass tab bar ──────────────────────────────────────
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: _GlassTabBar(controller: _tabController),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // ── tab content ────────────────────────────────────────
-                  Expanded(
-                    child: TabBarView(
-                      controller: _tabController,
-                      children: [
-                        _BasicTab(
-                          age: _age,
-                          distance: _distance,
-                          seeking: _seeking,
-                          seriousOnly: _seriousOnly,
-                          verifiedOnly: _verifiedOnly,
-                          hookupOnly: _hookupOnly,
-                          onAgeChanged: (v) => setState(() => _age = v),
-                          onDistanceChanged: (v) =>
-                              setState(() => _distance = v),
-                          onSeekingToggled: (code, selected) => setState(() {
-                            if (selected) {
-                              _seeking.add(code);
-                            } else {
-                              _seeking.remove(code);
-                            }
-                          }),
-                          onSeriousChanged: (v) =>
-                              setState(() => _seriousOnly = v),
-                          onVerifiedChanged: (v) =>
-                              setState(() => _verifiedOnly = v),
-                          onHookupChanged: (v) =>
-                              setState(() => _hookupOnly = v),
-                        ),
-                        _AdvancedTab(
-                          masterData: masterData,
-                          selectedCountry: _selectedCountry,
-                          selectedState: _selectedState,
-                          selectedCity: _selectedCity,
-                          selectedReligion: _selectedReligion,
-                          selectedMotherTongue: _selectedMotherTongue,
-                          selectedLanguage: _selectedLanguage,
-                          selectedDietPreference: _selectedDietPreference,
-                          selectedWorkoutFrequency: _selectedWorkoutFrequency,
-                          selectedDietType: _selectedDietType,
-                          selectedSleepSchedule: _selectedSleepSchedule,
-                          selectedTravelStyle: _selectedTravelStyle,
-                          selectedPoliticalComfortRange:
-                              _selectedPoliticalComfortRange,
-                          instagramController: _instagramController,
-                          booksController: _booksController,
-                          novelsController: _novelsController,
-                          songsController: _songsController,
-                          hobbiesController: _hobbiesController,
-                          extraCurricularController: _extraCurricularController,
-                          additionalInfoController: _additionalInfoController,
-                          intentTagsController: _intentTagsController,
-                          petPreferenceController: _petPreferenceController,
-                          dealBreakerTagsController: _dealBreakerTagsController,
-                          onCountryChanged: (v) => setState(() {
-                            _selectedCountry = v;
-                            _selectedState = null;
-                            _selectedCity = null;
-                          }),
-                          onStateChanged: (v) => setState(() {
-                            _selectedState = v;
-                            _selectedCity = null;
-                          }),
-                          onCityChanged: (v) =>
-                              setState(() => _selectedCity = v),
-                          onReligionChanged: (v) =>
-                              setState(() => _selectedReligion = v),
-                          onMotherTongueChanged: (v) =>
-                              setState(() => _selectedMotherTongue = v),
-                          onLanguageChanged: (v) =>
-                              setState(() => _selectedLanguage = v),
-                          onDietPreferenceChanged: (v) =>
-                              setState(() => _selectedDietPreference = v),
-                          onWorkoutFrequencyChanged: (v) =>
-                              setState(() => _selectedWorkoutFrequency = v),
-                          onDietTypeChanged: (v) =>
-                              setState(() => _selectedDietType = v),
-                          onSleepScheduleChanged: (v) =>
-                              setState(() => _selectedSleepSchedule = v),
-                          onTravelStyleChanged: (v) =>
-                              setState(() => _selectedTravelStyle = v),
-                          onPoliticalComfortRangeChanged: (v) => setState(
-                            () => _selectedPoliticalComfortRange = v,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // ── save button ────────────────────────────────────────
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-                    child: GlassButton(
-                      label: _isSetupFlow
-                          ? 'Finish & Find Matches'
-                          : 'Save Preferences',
-                      shinyEffect: _isSetupFlow,
-                      isLoading: _isSaving,
-                      onPressed: _isSaving
-                          ? null
-                          : () => _handlePrimaryAction(draft),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
+        _initializeState(draft, masterData);
+        return _buildBody(draft, masterData, isOffline);
       },
     );
   }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Initialize state from draft (once)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  void _initializeState(ProfileDraft draft, PreferenceMasterData masterData) {
+    if (_didInitialize) return;
+    _age = RangeValues(
+      draft.minAgeYears.toDouble(),
+      draft.maxAgeYears.toDouble(),
+    );
+    _distance = draft.maxDistanceKm.toDouble();
+    _seriousOnly = draft.seriousOnly;
+    _verifiedOnly = draft.verifiedOnly;
+    _hookupOnly = draft.hookupOnly;
+    _seeking
+      ..clear()
+      ..addAll(draft.seekingGenders);
+
+    final defaultCountry = masterData.countries.isNotEmpty
+        ? masterData.countries.first
+        : null;
+    _selectedCountry = draft.country ?? defaultCountry;
+    final states =
+        masterData.statesByCountry[_selectedCountry] ?? const <String>[];
+    _selectedState = states.contains(draft.regionState)
+        ? draft.regionState
+        : null;
+    final seededCities =
+        masterData.citiesByState[_selectedState] ?? const <String>[];
+    _selectedCity = seededCities.contains(draft.city) ? draft.city : null;
+    _selectedReligion = masterData.religions.contains(draft.religion)
+        ? draft.religion
+        : null;
+    _selectedMotherTongue =
+        masterData.motherTongues.contains(draft.motherTongue)
+        ? draft.motherTongue
+        : null;
+    _selectedLanguage = draft.languageTags.isNotEmpty
+        ? draft.languageTags.first
+        : null;
+    _selectedDietPreference = draft.dietPreference;
+    _selectedWorkoutFrequency = draft.workoutFrequency;
+    _selectedDietType = draft.dietType;
+    _selectedSleepSchedule = draft.sleepSchedule;
+    _selectedTravelStyle = draft.travelStyle;
+    _selectedPoliticalComfortRange = draft.politicalComfortRange;
+    _instagramController.text = draft.instagramHandle ?? '';
+    _booksController.text = draft.favoriteBooks.join(', ');
+    _novelsController.text = draft.favoriteNovels.join(', ');
+    _songsController.text = draft.favoriteSongs.join(', ');
+    _hobbiesController.text = draft.hobbies.join(', ');
+    _extraCurricularController.text = draft.extraCurriculars.join(', ');
+    _additionalInfoController.text = draft.additionalInfo ?? '';
+    _intentTagsController.text = draft.intentTags.join(', ');
+    _petPreferenceController.text = draft.petPreference ?? '';
+    _dealBreakerTagsController.text = draft.dealBreakerTags.join(', ');
+    _didInitialize = true;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Main body scaffold
+  // ─────────────────────────────────────────────────────────────────────────
+
+  Widget _buildBody(
+    ProfileDraft draft,
+    PreferenceMasterData masterData,
+    bool isOffline,
+  ) {
+    return Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(gradient: AppTheme.bgGradient),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // ── offline banner ─────────────────────────────────────────
+              if (isOffline)
+                Container(
+                  width: double.infinity,
+                  color: AppTheme.primaryRed,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  child: const Text(
+                    'Offline mode — some data may be outdated.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+
+              // ── header ─────────────────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                child: Row(
+                  children: [
+                    if (!_isSetupFlow)
+                      IconButton(
+                        icon: const Icon(
+                          Icons.arrow_back_ios_new,
+                          color: Colors.white,
+                        ),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    Expanded(
+                      child: Text(
+                        _isSetupFlow ? 'Your Preferences' : 'Edit Preferences',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              // ── glass tab bar ──────────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: _GlassTabBar(controller: _tabController),
+              ),
+
+              const SizedBox(height: 12),
+
+              // ── tab content ────────────────────────────────────────────
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _BasicTab(
+                      age: _age,
+                      distance: _distance,
+                      seeking: _seeking,
+                      seriousOnly: _seriousOnly,
+                      verifiedOnly: _verifiedOnly,
+                      hookupOnly: _hookupOnly,
+                      onAgeChanged: (v) => setState(() => _age = v),
+                      onDistanceChanged: (v) => setState(() => _distance = v),
+                      onSeekingToggled: (code, selected) => setState(() {
+                        if (selected) {
+                          _seeking.add(code);
+                        } else {
+                          _seeking.remove(code);
+                        }
+                      }),
+                      onSeriousChanged: (v) => setState(() => _seriousOnly = v),
+                      onVerifiedChanged: (v) =>
+                          setState(() => _verifiedOnly = v),
+                      onHookupChanged: (v) => setState(() => _hookupOnly = v),
+                    ),
+                    _AdvancedTab(
+                      masterData: masterData,
+                      selectedCountry: _selectedCountry,
+                      selectedState: _selectedState,
+                      selectedCity: _selectedCity,
+                      selectedReligion: _selectedReligion,
+                      selectedMotherTongue: _selectedMotherTongue,
+                      selectedLanguage: _selectedLanguage,
+                      selectedDietPreference: _selectedDietPreference,
+                      selectedWorkoutFrequency: _selectedWorkoutFrequency,
+                      selectedDietType: _selectedDietType,
+                      selectedSleepSchedule: _selectedSleepSchedule,
+                      selectedTravelStyle: _selectedTravelStyle,
+                      selectedPoliticalComfortRange:
+                          _selectedPoliticalComfortRange,
+                      instagramController: _instagramController,
+                      booksController: _booksController,
+                      novelsController: _novelsController,
+                      songsController: _songsController,
+                      hobbiesController: _hobbiesController,
+                      extraCurricularController: _extraCurricularController,
+                      additionalInfoController: _additionalInfoController,
+                      intentTagsController: _intentTagsController,
+                      petPreferenceController: _petPreferenceController,
+                      dealBreakerTagsController: _dealBreakerTagsController,
+                      onCountryChanged: (v) => setState(() {
+                        _selectedCountry = v;
+                        _selectedState = null;
+                        _selectedCity = null;
+                      }),
+                      onStateChanged: (v) => setState(() {
+                        _selectedState = v;
+                        _selectedCity = null;
+                      }),
+                      onCityChanged: (v) => setState(() => _selectedCity = v),
+                      onReligionChanged: (v) =>
+                          setState(() => _selectedReligion = v),
+                      onMotherTongueChanged: (v) =>
+                          setState(() => _selectedMotherTongue = v),
+                      onLanguageChanged: (v) =>
+                          setState(() => _selectedLanguage = v),
+                      onDietPreferenceChanged: (v) =>
+                          setState(() => _selectedDietPreference = v),
+                      onWorkoutFrequencyChanged: (v) =>
+                          setState(() => _selectedWorkoutFrequency = v),
+                      onDietTypeChanged: (v) =>
+                          setState(() => _selectedDietType = v),
+                      onSleepScheduleChanged: (v) =>
+                          setState(() => _selectedSleepSchedule = v),
+                      onTravelStyleChanged: (v) =>
+                          setState(() => _selectedTravelStyle = v),
+                      onPoliticalComfortRangeChanged: (v) =>
+                          setState(() => _selectedPoliticalComfortRange = v),
+                    ),
+                  ],
+                ),
+              ),
+
+              // ── save button ────────────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+                child: GlassButton(
+                  label: _isSetupFlow
+                      ? 'Finish & Find Matches'
+                      : 'Save Preferences',
+                  shinyEffect: _isSetupFlow,
+                  isLoading: _isSaving,
+                  onPressed: _isSaving
+                      ? null
+                      : () => _handlePrimaryAction(draft),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Save + navigate
+  // ─────────────────────────────────────────────────────────────────────────
 
   Future<void> _handlePrimaryAction(ProfileDraft draft) async {
     if (_seeking.isEmpty) {
@@ -367,7 +416,7 @@ class _SetupPreferencesScreenState extends ConsumerState<SetupPreferencesScreen>
         }
       }
 
-      _navigateToDiscover();
+      _navigateAfterSave();
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -419,19 +468,17 @@ class _SetupPreferencesScreenState extends ConsumerState<SetupPreferencesScreen>
         );
   }
 
-  void _navigateToDiscover() {
-    ref.read(mainNavigationIndexProvider.notifier).state = 0;
-    if (!mounted) {
-      return;
-    }
+  void _navigateAfterSave() {
+    if (!mounted) return;
     if (_isSetupFlow) {
+      ref.read(mainNavigationIndexProvider.notifier).state = 0;
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute<void>(builder: (_) => const MainNavigationScreen()),
         (route) => false,
       );
-      return;
+    } else {
+      Navigator.of(context).pop();
     }
-    Navigator.of(context).pop();
   }
 
   String? _nullableTrim(String value) {

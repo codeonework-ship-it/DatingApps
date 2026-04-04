@@ -59,7 +59,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
 
-      expect(find.text('Enter mobile number'), findsOneWidget);
+      expect(find.text('Mobile number'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
 
@@ -76,7 +76,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
 
-      expect(find.text('Enter verification code'), findsOneWidget);
+      expect(find.text('Code sent to'), findsOneWidget);
       expect(find.text('Verify & Continue'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
@@ -96,12 +96,12 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
 
-      expect(find.text('Terms & Conditions'), findsOneWidget);
+      expect(find.text('Terms and Conditions'), findsOneWidget);
       expect(
         find.text('I agree to the Terms & Privacy Policy'),
         findsOneWidget,
       );
-      expect(find.text('I Agree & Continue'), findsOneWidget);
+      expect(find.text('I Accept and Continue'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
   });

@@ -110,13 +110,15 @@ class _AppGate extends ConsumerWidget {
 
     final termsAccepted = ref.watch(termsAcceptanceProvider);
     return termsAccepted.when(
-      loading: () =>
-          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      loading: () => const _GateLoadingScreen(message: 'Checking terms…'),
       error: (_, _) => Scaffold(
-        body: Center(
-          child: TextButton(
-            onPressed: () => ref.invalidate(termsAcceptanceProvider),
-            child: const Text('Retry'),
+        body: Container(
+          decoration: const BoxDecoration(gradient: AppTheme.bgGradient),
+          child: Center(
+            child: TextButton(
+              onPressed: () => ref.invalidate(termsAcceptanceProvider),
+              child: const Text('Retry', style: TextStyle(color: Colors.white)),
+            ),
           ),
         ),
       ),
@@ -128,7 +130,7 @@ class _AppGate extends ConsumerWidget {
         final completion = ref.watch(profileCompletionProvider);
         return completion.when(
           loading: () =>
-              const Scaffold(body: Center(child: CircularProgressIndicator())),
+              const _GateLoadingScreen(message: 'Loading your profile…'),
           error: (error, _) => _SupabaseConnectionIssue(
             message: error.toString(),
             onRetry: () => ref.invalidate(profileCompletionProvider),
@@ -145,6 +147,46 @@ class _AppGate extends ConsumerWidget {
   }
 }
 
+/// Branded loading screen used during gate transitions so the user never
+/// sees a bare white scaffold between screens.
+class _GateLoadingScreen extends StatelessWidget {
+  const _GateLoadingScreen({this.message});
+  final String? message;
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    body: Container(
+      decoration: const BoxDecoration(gradient: AppTheme.bgGradient),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(
+              width: 36,
+              height: 36,
+              child: CircularProgressIndicator(
+                strokeWidth: 3,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  AppTheme.crystalGoldSoft,
+                ),
+              ),
+            ),
+            if (message != null) ...[
+              const SizedBox(height: 16),
+              Text(
+                message!,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Colors.white.withValues(alpha: 0.7),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
 class _SupabaseConnectionIssue extends StatelessWidget {
   const _SupabaseConnectionIssue({
     required this.message,
@@ -155,18 +197,48 @@ class _SupabaseConnectionIssue extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    body: Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.wifi_off, size: 40),
-            const SizedBox(height: 12),
-            Text(message, textAlign: TextAlign.center),
-            const SizedBox(height: 12),
-            ElevatedButton(onPressed: onRetry, child: const Text('Retry')),
-          ],
+    body: Container(
+      decoration: const BoxDecoration(gradient: AppTheme.bgGradient),
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.wifi_off_rounded,
+                size: 48,
+                color: Colors.white.withValues(alpha: 0.7),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Connection issue',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                maxLines: 4,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Colors.white.withValues(alpha: 0.6),
+                ),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: onRetry,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.crystalGoldSoft,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
         ),
       ),
     ),

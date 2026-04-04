@@ -481,6 +481,7 @@ class _GlassButtonState extends State<GlassButton>
       duration: const Duration(milliseconds: 150),
       opacity: isEnabled ? 1 : 0.55,
       child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTapDown: isEnabled ? _onTapDown : null,
         onTapUp: isEnabled ? _onTapUp : null,
         onTapCancel: isEnabled ? _onTapCancel : null,

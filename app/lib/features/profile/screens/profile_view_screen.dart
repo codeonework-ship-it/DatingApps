@@ -61,29 +61,68 @@ class ProfileViewScreen extends ConsumerWidget {
                 const Center(
                   child: Padding(
                     padding: EdgeInsets.symmetric(vertical: 48),
-                    child: CircularProgressIndicator(),
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        AppTheme.trustBlue,
+                      ),
+                    ),
                   ),
                 )
               else if (profileState.error != null)
                 GlassContainer(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(20),
                   backgroundColor: Colors.white.withValues(alpha: 0.84),
                   blur: 14,
                   crystalEffect: true,
-                  child: Text(
-                    profileState.error!,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodyMedium?.copyWith(color: AppTheme.errorRed),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.error_outline_rounded,
+                        color: AppTheme.errorRed,
+                        size: 40,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        profileState.error!,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppTheme.textGrey,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      GlassButton(
+                        label: 'Retry',
+                        onPressed: () => ref
+                            .read(profileNotifierProvider.notifier)
+                            .refresh(),
+                      ),
+                    ],
                   ),
                 )
               else if (profileState.user == null)
                 GlassContainer(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(20),
                   backgroundColor: Colors.white.withValues(alpha: 0.84),
                   blur: 14,
                   crystalEffect: true,
-                  child: const Text('No profile data found.'),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.person_outline_rounded,
+                        color: AppTheme.textHint,
+                        size: 40,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'No profile data found.',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppTheme.textGrey,
+                        ),
+                      ),
+                    ],
+                  ),
                 )
               else
                 GlassContainer(

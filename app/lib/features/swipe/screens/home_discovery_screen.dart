@@ -404,6 +404,14 @@ class _HomeDiscoveryScreenState extends ConsumerState<HomeDiscoveryScreen>
                                 AppTheme.trustBlue,
                               ),
                             )
+                          : swipeState.error != null &&
+                                swipeState.profiles.isEmpty
+                          ? _DiscoveryErrorState(
+                              error: swipeState.error!,
+                              onRetry: () => ref
+                                  .read(swipeNotifierProvider.notifier)
+                                  .refreshProfiles(),
+                            )
                           : swipeState.profiles.isEmpty
                           ? Column(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -435,6 +443,14 @@ class _HomeDiscoveryScreenState extends ConsumerState<HomeDiscoveryScreen>
                                         ),
                                   ),
                                 ],
+                                const SizedBox(height: 20),
+                                TextButton.icon(
+                                  onPressed: () => ref
+                                      .read(swipeNotifierProvider.notifier)
+                                      .refreshProfiles(),
+                                  icon: const Icon(Icons.refresh),
+                                  label: const Text('Refresh'),
+                                ),
                               ],
                             )
                           : swipeState.currentIndex >=
@@ -1262,4 +1278,47 @@ class _SpotlightRailState extends State<_SpotlightRail> {
       ),
     );
   }
+}
+
+/// Error state widget shown in the discovery feed when profile loading fails.
+/// Provides a clear error message and a retry action.
+class _DiscoveryErrorState extends StatelessWidget {
+  const _DiscoveryErrorState({required this.error, required this.onRetry});
+  final String error;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 32),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          Icons.cloud_off_rounded,
+          color: AppTheme.textHint.withValues(alpha: 0.7),
+          size: 56,
+        ),
+        const SizedBox(height: 16),
+        Text(
+          'Unable to load profiles',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            color: AppTheme.textDark,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          error,
+          textAlign: TextAlign.center,
+          maxLines: 3,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: AppTheme.textGrey),
+        ),
+        const SizedBox(height: 20),
+        GlassButton(label: 'Try Again', onPressed: onRetry),
+      ],
+    ),
+  );
 }

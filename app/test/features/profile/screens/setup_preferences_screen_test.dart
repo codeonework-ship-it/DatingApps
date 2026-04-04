@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:verified_dating_app/core/widgets/glass_widgets.dart';
 import 'package:verified_dating_app/features/common/screens/main_navigation_screen.dart';
 import 'package:verified_dating_app/features/profile/providers/preference_master_data_provider.dart';
 import 'package:verified_dating_app/features/profile/providers/profile_setup_provider.dart';
@@ -188,8 +189,8 @@ void main() {
     await tester.tap(find.text('Open Preferences'));
     await _pumpUi(tester);
 
-    expect(find.text('Save'), findsOneWidget);
-    expect(find.text('Finish'), findsNothing);
+    expect(find.text('Save Preferences'), findsOneWidget);
+    expect(find.text('Finish & Find Matches'), findsNothing);
   });
 
   testWidgets('treats null setup flag as non-setup flow safely', (
@@ -201,8 +202,8 @@ void main() {
     await tester.tap(find.text('Open Preferences'));
     await _pumpUi(tester);
 
-    expect(find.text('Save'), findsOneWidget);
-    expect(find.text('Finish'), findsNothing);
+    expect(find.text('Save Preferences'), findsOneWidget);
+    expect(find.text('Finish & Find Matches'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
@@ -213,8 +214,8 @@ void main() {
     await tester.tap(find.text('Open Preferences'));
     await _pumpUi(tester);
 
-    expect(find.text('Finish'), findsOneWidget);
-    expect(find.text('Save'), findsNothing);
+    expect(find.text('Finish & Find Matches'), findsOneWidget);
+    expect(find.text('Save Preferences'), findsNothing);
   });
 
   testWidgets('setup flow Finish saves data and completes profile', (
@@ -231,8 +232,9 @@ void main() {
     await tester.tap(find.text('Open Preferences'));
     await _pumpUi(tester);
 
-    await tester.ensureVisible(find.text('Finish'));
-    await tester.tap(find.text('Finish'));
+    await tester.ensureVisible(find.byType(GlassButton));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.byType(GlassButton));
     await _pumpUi(tester);
 
     expect(notifier.savePreferencesCalls, 1);
@@ -255,8 +257,9 @@ void main() {
     await tester.tap(find.text('Open Preferences'));
     await _pumpUi(tester);
 
-    await tester.ensureVisible(find.text('Save'));
-    await tester.tap(find.text('Save'));
+    await tester.ensureVisible(find.byType(GlassButton));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.byType(GlassButton));
     await _pumpUi(tester);
 
     expect(notifier.savePreferencesCalls, 1);
