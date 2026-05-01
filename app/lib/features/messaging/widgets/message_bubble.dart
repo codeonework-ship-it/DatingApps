@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/widgets/glass_widgets.dart';
 import '../models/rose_gift.dart';
 import 'rose_gift_glyph.dart';
 
@@ -38,6 +37,7 @@ class MessageBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     final resolvedMessage = _resolveMessageContent(message);
     final maxWidthFactor = _maxWidthFactorForType(resolvedMessage.layoutType);
+    final isGiftLike = resolvedMessage.layoutType != _MessageLayoutType.plain;
 
     return Align(
       alignment: isFromCurrentUser
@@ -52,37 +52,53 @@ class MessageBubble extends StatelessWidget {
               ? CrossAxisAlignment.end
               : CrossAxisAlignment.start,
           children: [
-            GlassContainer(
+            Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              backgroundColor: isFromCurrentUser
-                  ? AppTheme.primaryRed.withValues(alpha: 0.9)
-                  : AppTheme.glassContainer,
-              blur: isFromCurrentUser ? 10 : 15,
-              borderRadius: BorderRadius.only(
-                topLeft: const Radius.circular(16),
-                topRight: const Radius.circular(16),
-                bottomLeft: isFromCurrentUser
-                    ? const Radius.circular(16)
-                    : Radius.zero,
-                bottomRight: isFromCurrentUser
-                    ? Radius.zero
-                    : const Radius.circular(16),
-              ),
-              border: Border.all(
-                color: isFromCurrentUser
-                    ? AppTheme.primaryRed.withValues(alpha: 0.5)
-                    : Colors.white.withValues(alpha: 0.2),
-                width: 1,
-              ),
-              shadows: [
-                BoxShadow(
-                  color: isFromCurrentUser
-                      ? AppTheme.primaryRed.withValues(alpha: 0.2)
-                      : Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
+              decoration: BoxDecoration(
+                color: isGiftLike
+                    ? null
+                    : isFromCurrentUser
+                    ? AppTheme.primaryRed.withValues(alpha: 0.95)
+                    : Colors.white,
+                gradient: isGiftLike
+                    ? LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Colors.white.withValues(alpha: 0.98),
+                          AppTheme.pureGoldHighlight.withValues(alpha: 0.34),
+                          AppTheme.crystalGoldSoft.withValues(alpha: 0.46),
+                        ],
+                      )
+                    : null,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(isGiftLike ? 22 : 16),
+                  topRight: Radius.circular(isGiftLike ? 22 : 16),
+                  bottomLeft: isFromCurrentUser
+                      ? Radius.circular(isGiftLike ? 22 : 16)
+                      : Radius.zero,
+                  bottomRight: isFromCurrentUser
+                      ? Radius.zero
+                      : Radius.circular(isGiftLike ? 22 : 16),
                 ),
-              ],
+                border: Border.all(
+                  color: isGiftLike
+                      ? AppTheme.pureGoldBright.withValues(alpha: 0.46)
+                      : isFromCurrentUser
+                      ? AppTheme.primaryRed.withValues(alpha: 0.45)
+                      : Colors.grey.withValues(alpha: 0.28),
+                  width: 1,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: isGiftLike
+                        ? AppTheme.pureGoldBright.withValues(alpha: 0.22)
+                        : Colors.black.withValues(alpha: 0.06),
+                    blurRadius: isGiftLike ? 22 : 8,
+                    offset: Offset(0, isGiftLike ? 8 : 2),
+                  ),
+                ],
+              ),
               child: _buildContent(context, resolvedMessage),
             ),
             Padding(
@@ -195,7 +211,11 @@ class MessageBubble extends StatelessWidget {
   ) {
     final segments = resolvedMessage.segments;
     final plainText = resolvedMessage.plainText.trim();
-    final textColor = isFromCurrentUser ? Colors.white : AppTheme.textDark;
+    final textColor = segments.isNotEmpty
+        ? AppTheme.pureGoldInk
+        : isFromCurrentUser
+        ? Colors.white
+        : AppTheme.textDark;
 
     if (segments.isEmpty) {
       return Text(
@@ -240,155 +260,148 @@ class MessageBubble extends StatelessWidget {
     BuildContext context,
     _GestureGiftPayload gestureGift,
     Color textColor,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildPill(context, label: 'Gesture + Rose Gift', color: textColor),
-        const SizedBox(height: 14),
-        _buildMessageSection(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 34,
-                    height: 34,
-                    decoration: BoxDecoration(
-                      color: textColor.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      Icons.auto_awesome_rounded,
-                      size: 18,
-                      color: textColor,
-                    ),
+  ) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      _buildPill(context, label: 'Gesture + Rose Gift', color: textColor),
+      const SizedBox(height: 14),
+      _buildMessageSection(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: textColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _humanizeGestureType(gestureGift.gestureType),
-                          style: Theme.of(context).textTheme.titleSmall
-                              ?.copyWith(
-                                color: textColor,
-                                fontWeight: FontWeight.w800,
-                              ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'Tone: ${_titleCase(gestureGift.tone)}',
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
-                                color: textColor.withValues(alpha: 0.82),
-                                fontWeight: FontWeight.w600,
-                              ),
-                        ),
-                      ],
-                    ),
+                  child: Icon(
+                    Icons.auto_awesome_rounded,
+                    size: 18,
+                    color: textColor,
                   ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text(
-                gestureGift.gestureText,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: textColor,
-                  height: 1.45,
                 ),
-              ),
-            ],
-          ),
-          color: textColor,
-        ),
-        const SizedBox(height: 14),
-        _buildMessageSection(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  RoseGiftGlyph(
-                    iconKey: gestureGift.giftIcon,
-                    giftId: gestureGift.giftId,
-                    giftName: gestureGift.giftName,
-                    size: 22,
-                    iconSize: 14,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      gestureGift.giftName,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: textColor,
-                        fontWeight: FontWeight.w800,
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _humanizeGestureType(gestureGift.gestureType),
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          color: textColor,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Tone: ${_titleCase(gestureGift.tone)}',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: textColor.withValues(alpha: 0.82),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
-                  Text(
-                    gestureGift.giftPrice > 0
-                        ? '${gestureGift.giftPrice} coins'
-                        : 'Free gift',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: textColor.withValues(alpha: 0.86),
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              _buildGiftPreview(
-                giftName: gestureGift.giftName,
-                giftUrl: gestureGift.giftUrl,
-                giftId: gestureGift.giftId,
-                giftIcon: gestureGift.giftIcon,
-              ),
-            ],
-          ),
-          color: textColor,
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              gestureGift.gestureText,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: textColor, height: 1.45),
+            ),
+          ],
         ),
-      ],
-    );
-  }
+        color: textColor,
+      ),
+      const SizedBox(height: 14),
+      _buildMessageSection(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                RoseGiftGlyph(
+                  iconKey: gestureGift.giftIcon,
+                  giftId: gestureGift.giftId,
+                  giftName: gestureGift.giftName,
+                  size: 22,
+                  iconSize: 14,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    gestureGift.giftName,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: textColor,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                Text(
+                  gestureGift.giftPrice > 0
+                      ? '${gestureGift.giftPrice} coins'
+                      : 'Free gift',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: textColor.withValues(alpha: 0.86),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _buildGiftPreview(
+              giftName: gestureGift.giftName,
+              giftUrl: gestureGift.giftUrl,
+              giftId: gestureGift.giftId,
+              giftIcon: gestureGift.giftIcon,
+            ),
+          ],
+        ),
+        color: textColor,
+      ),
+    ],
+  );
 
   Widget _buildGiftSection(
     BuildContext context,
     _GiftPayload gift,
     Color textColor,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildPill(context, label: 'Rose Gift', color: textColor),
-        const SizedBox(height: 12),
-        _buildGiftPreview(
-          giftName: gift.name,
-          giftUrl: gift.url,
-          giftId: gift.id,
-          giftIcon: gift.iconKey,
+  ) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      _buildPill(context, label: 'Glossy Rose Gift', color: textColor),
+      const SizedBox(height: 12),
+      _buildGiftPreview(
+        giftName: gift.name,
+        giftUrl: gift.url,
+        giftId: gift.id,
+        giftIcon: gift.iconKey,
+      ),
+      const SizedBox(height: 10),
+      Text(
+        gift.name,
+        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+          color: textColor,
+          fontWeight: FontWeight.w800,
         ),
-        const SizedBox(height: 10),
-        Text(
-          gift.name,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: textColor,
-            fontWeight: FontWeight.w800,
-          ),
+      ),
+      const SizedBox(height: 2),
+      Text(
+        gift.price > 0 ? '${gift.price} coins' : 'Free gift',
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: textColor.withValues(alpha: 0.9),
+          fontWeight: FontWeight.w600,
         ),
-        const SizedBox(height: 2),
-        Text(
-          gift.price > 0 ? '${gift.price} coins' : 'Free gift',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: textColor.withValues(alpha: 0.9),
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
-    );
-  }
+      ),
+    ],
+  );
 
   Widget _buildPill(
     BuildContext context, {

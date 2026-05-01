@@ -609,17 +609,21 @@ class SetupErrorState extends StatelessWidget {
         overflow: TextOverflow.ellipsis,
       ),
       const SizedBox(height: 16),
-      TextButton.icon(
-        onPressed: onRetry,
-        icon: const Icon(
-          Icons.refresh_rounded,
-          color: AppTheme.crystalGoldSoft,
-        ),
-        label: Text(
-          'Retry',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+      SizedBox(
+        width: 140,
+        height: 48,
+        child: TextButton.icon(
+          onPressed: onRetry,
+          icon: const Icon(
+            Icons.refresh_rounded,
             color: AppTheme.crystalGoldSoft,
-            fontWeight: FontWeight.w700,
+          ),
+          label: Text(
+            'Retry',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: AppTheme.crystalGoldSoft,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
       ),

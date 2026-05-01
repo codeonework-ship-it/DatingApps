@@ -1,0 +1,86 @@
+{% extends "control_panel/base.html" %}
+{% block topbar_title %}Billing Transactions{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1><i class="bi bi-clock-history header-icon"></i> Billing Transactions</h1>
+    <p class="text-muted mb-0">Wallet coin purchases and top-ups</p>
+  </div>
+  <a href="{% url 'billing_dashboard' %}" class="btn btn-glass">
+    <i class="bi bi-arrow-left me-2"></i>Back to Billing
+  </a>
+</div>
+
+{% if error %}
+<div class="alert-glass alert-glass-warning"><i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}</div>
+{% endif %}
+
+<div class="glass-card">
+  {% if transactions %}
+  <div class="table-responsive">
+    <table class="glass-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>User</th>
+          <th>Coins</th>
+          <th>Amount</th>
+          <th>Source</th>
+          <th>Provider</th>
+          <th>Ref</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for tx in transactions %}
+        <tr>
+          <td class="text-muted small">{{ tx.created_at|date:"M d, Y H:i"|default:"—" }}</td>
+          <td>
+            <a href="{% url 'user_detail' tx.user_id %}" class="text-decoration-none" style="color:var(--aqua);">
+              {{ tx.user_id|truncatechars:12 }}
+            </a>
+          </td>
+          <td style="color:var(--gold);font-weight:600;">
+            {% if tx.coins > 0 %}+{% endif %}{{ tx.coins }}
+          </td>
+          <td class="text-muted">
+            {% if tx.amount_minor %}
+              ${{ tx.amount_minor|floatformat:0 }}
+              {% if tx.currency %}<span class="small">{{ tx.currency }}</span>{% endif %}
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          <td><span class="badge badge-purple">{{ tx.source|default:"—" }}</span></td>
+          <td class="text-muted small">{{ tx.provider|default:"—" }}</td>
+          <td class="text-muted small font-monospace">{{ tx.purchase_ref|default:"—"|truncatechars:16 }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <div class="d-flex justify-content-between align-items-center mt-3">
+    <span class="text-muted small">{{ total }} transaction{{ total|pluralize }}</span>
+    <div class="d-flex gap-2">
+      {% if offset > 0 %}
+      <a href="?offset={{ prev_offset }}" class="btn btn-glass btn-sm">
+        <i class="bi bi-chevron-left me-1"></i>Prev
+      </a>
+      {% endif %}
+      {% if transactions|length >= limit %}
+      <a href="?offset={{ next_offset }}" class="btn btn-glass btn-sm">
+        Next<i class="bi bi-chevron-right ms-1"></i>
+      </a>
+      {% endif %}
+    </div>
+  </div>
+  {% else %}
+  <div class="text-center py-5 text-muted">
+    <i class="bi bi-clock-history" style="font-size:2.5rem;opacity:0.3;"></i>
+    <p class="mt-2">No transactions found.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -135,7 +135,10 @@ final profileDetailsProvider = FutureProvider.family<ProfileDetails, String>((
       userId: profile['id']?.toString() ?? userId,
       name: profile['name']?.toString() ?? 'User',
       dateOfBirth:
-          DateTime.tryParse(profile['dateOfBirth']?.toString() ?? '') ??
+          DateTime.tryParse(
+            (profile['dateOfBirth'] ?? profile['date_of_birth'])?.toString() ??
+                '',
+          ) ??
           DateTime(1998, 1, 1),
       gender: profile['gender']?.toString() ?? 'Other',
       bio: _firstString(profile, draft, const ['bio']),
@@ -143,11 +146,11 @@ final profileDetailsProvider = FutureProvider.family<ProfileDetails, String>((
         'additional_info',
         'additionalInfo',
       ]),
-      heightCm: (profile['heightCm'] as num?)?.toInt(),
-      education: profile['education']?.toString(),
-      profession: profile['profession']?.toString(),
-      drinking: profile['drinking']?.toString(),
-      smoking: profile['smoking']?.toString(),
+      heightCm: _resolveHeightCm(profile, draft),
+      education: _firstString(profile, draft, const ['education']),
+      profession: _firstString(profile, draft, const ['profession']),
+      drinking: _firstString(profile, draft, const ['drinking']),
+      smoking: _firstString(profile, draft, const ['smoking']),
       religion: _firstString(profile, draft, const ['religion']),
       motherTongue: _firstString(profile, draft, const [
         'mother_tongue',
@@ -197,7 +200,8 @@ final profileDetailsProvider = FutureProvider.family<ProfileDetails, String>((
         'language_tags',
         'languageTags',
       ]),
-      isVerified: profile['isVerified'] == true,
+      isVerified:
+          profile['isVerified'] == true || profile['is_verified'] == true,
       photoUrls: photoUrls.isEmpty
           ? <String>[AppRuntimeConfig.placeholderProfileImageUrl]
           : photoUrls,
@@ -385,6 +389,17 @@ ProfileDetails _mockProfileDetailsFor(String userId) {
           'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=900&q=80',
         ],
       );
+}
+
+/// Resolves heightCm from both camelCase (gRPC) and snake_case (draft/PostgREST) keys.
+int? _resolveHeightCm(
+  Map<String, dynamic> profile,
+  Map<String, dynamic> draft,
+) {
+  final fromProfile = (profile['heightCm'] ?? profile['height_cm']) as num?;
+  if (fromProfile != null) return fromProfile.toInt();
+  final fromDraft = (draft['height_cm'] ?? draft['heightCm']) as num?;
+  return fromDraft?.toInt();
 }
 
 bool? _firstNullableBool(

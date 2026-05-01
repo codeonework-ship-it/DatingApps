@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -420,7 +421,7 @@ func (r *SupabaseRepository) GetSwipedTargetIDs(ctx context.Context, userID stri
 	params.Set("userId", "eq."+userID)
 	params.Set("isLike", "eq.true")
 	params.Set("select", "targetUserId")
-	rows, err := r.db.Select(ctx, r.cfg.MatchingSchema, r.cfg.SwipesTable, params)
+	rows, err := r.selectRows(ctx, r.cfg.MatchingSchema, r.cfg.SwipesTable, params)
 	if err != nil {
 		if r.cfg.MockOTPEnabled {
 			r.mu.Lock()
@@ -450,7 +451,7 @@ func (r *SupabaseRepository) GetMatchedUserPairs(ctx context.Context, userID str
 	params := url.Values{}
 	params.Set("or", "(userId1.eq."+userID+",userId2.eq."+userID+")")
 	params.Set("select", "userId1,userId2")
-	rows, err := r.db.Select(ctx, r.cfg.MatchingSchema, r.cfg.MatchesTable, params)
+	rows, err := r.selectRows(ctx, r.cfg.MatchingSchema, r.cfg.MatchesTable, params)
 	if err != nil {
 		if r.cfg.MockOTPEnabled {
 			r.mu.Lock()
@@ -471,11 +472,12 @@ func (r *SupabaseRepository) GetMatchedUserPairs(ctx context.Context, userID str
 }
 
 func (r *SupabaseRepository) ListActiveUsers(ctx context.Context, limit int) ([]map[string]any, error) {
+	userSchema := r.matchingUserSchema()
 	params := url.Values{}
 	params.Set("select", "id,name,dateOfBirth,bio,profession,education,isVerified,gender")
 	params.Set("isActive", "eq.true")
 	params.Set("limit", strconv.Itoa(limit))
-	rows, err := r.db.Select(ctx, r.cfg.UserSchema, r.cfg.UsersTable, params)
+	rows, err := r.selectRows(ctx, userSchema, r.cfg.UsersTable, params)
 	if err != nil {
 		if r.cfg.MockOTPEnabled {
 			return r.mockUsers(limit), nil
@@ -492,11 +494,12 @@ func (r *SupabaseRepository) GetUserPhotos(ctx context.Context, userIDs []string
 	if len(userIDs) == 0 {
 		return map[string][]string{}, nil
 	}
+	photoSchema := r.matchingPhotoSchema()
 	params := url.Values{}
 	params.Set("select", "userId,photoUrl,ordering")
 	params.Set("userId", "in."+buildIn(unique(userIDs)))
 	params.Set("order", "ordering.asc")
-	rows, err := r.db.Select(ctx, r.cfg.UserSchema, r.cfg.PhotosTable, params)
+	rows, err := r.selectRows(ctx, photoSchema, r.cfg.PhotosTable, params)
 	if err != nil {
 		if r.cfg.MockOTPEnabled {
 			photosByUser := map[string][]string{}
@@ -534,7 +537,7 @@ func (r *SupabaseRepository) GetUserPhotos(ctx context.Context, userIDs []string
 }
 
 func (r *SupabaseRepository) UpsertSwipe(ctx context.Context, userID, targetUserID string, isLike bool) error {
-	_, err := r.db.Upsert(ctx, r.cfg.MatchingSchema, r.cfg.SwipesTable, []map[string]any{{
+	_, err := r.upsertRows(ctx, r.cfg.MatchingSchema, r.cfg.SwipesTable, []map[string]any{{
 		"userId":       userID,
 		"targetUserId": targetUserID,
 		"isLike":       isLike,
@@ -556,11 +559,12 @@ func (r *SupabaseRepository) EnsureUsersExist(ctx context.Context, userIDs []str
 	if len(ids) == 0 {
 		return nil
 	}
+	userSchema := r.matchingUserSchema()
 
 	params := url.Values{}
 	params.Set("id", "in."+buildIn(ids))
 	params.Set("select", "id")
-	rows, err := r.db.Select(ctx, r.cfg.UserSchema, r.cfg.UsersTable, params)
+	rows, err := r.selectRows(ctx, userSchema, r.cfg.UsersTable, params)
 	if err != nil {
 		if r.cfg.MockOTPEnabled {
 			return nil
@@ -590,7 +594,7 @@ func (r *SupabaseRepository) EnsureUsersExist(ctx context.Context, userIDs []str
 			"phoneNumber": "bootstrap-" + suffix,
 			"name":        "Member",
 			"dateOfBirth": "1998-01-01",
-			"gender":      "U",
+			"gender":      "other",
 			"isVerified":  false,
 			"isActive":    true,
 		})
@@ -600,11 +604,24 @@ func (r *SupabaseRepository) EnsureUsersExist(ctx context.Context, userIDs []str
 		return nil
 	}
 
-	_, err = r.db.Upsert(ctx, r.cfg.UserSchema, r.cfg.UsersTable, missing, "id")
+	_, err = r.upsertRows(ctx, userSchema, r.cfg.UsersTable, missing, "id")
 	if err != nil && r.cfg.MockOTPEnabled {
 		return nil
 	}
-	return err
+	if err != nil {
+		return err
+	}
+
+	auxSchema := strings.TrimSpace(r.cfg.UserSchema)
+	if auxSchema != "" && !strings.EqualFold(auxSchema, userSchema) {
+		if _, auxErr := r.upsertRows(ctx, auxSchema, r.cfg.UsersTable, missing, "id"); auxErr != nil {
+			if r.cfg.MockOTPEnabled {
+				return nil
+			}
+			return auxErr
+		}
+	}
+	return nil
 }
 
 func (r *SupabaseRepository) HasMutualLike(ctx context.Context, userID, targetUserID string) (bool, error) {
@@ -614,7 +631,7 @@ func (r *SupabaseRepository) HasMutualLike(ctx context.Context, userID, targetUs
 	params.Set("isLike", "eq.true")
 	params.Set("select", "id")
 	params.Set("limit", "1")
-	rows, err := r.db.Select(ctx, r.cfg.MatchingSchema, r.cfg.SwipesTable, params)
+	rows, err := r.selectRows(ctx, r.cfg.MatchingSchema, r.cfg.SwipesTable, params)
 	if err != nil {
 		if r.cfg.MockOTPEnabled {
 			r.mu.Lock()
@@ -631,7 +648,7 @@ func (r *SupabaseRepository) UpsertMatch(ctx context.Context, userID, targetUser
 	if userID1 > userID2 {
 		userID1, userID2 = userID2, userID1
 	}
-	_, err := r.db.Upsert(ctx, r.cfg.MatchingSchema, r.cfg.MatchesTable, []map[string]any{{
+	_, err := r.upsertRows(ctx, r.cfg.MatchingSchema, r.cfg.MatchesTable, []map[string]any{{
 		"userId1": userID1,
 		"userId2": userID2,
 	}}, "userId1,userId2")
@@ -658,7 +675,7 @@ func (r *SupabaseRepository) UpsertMatch(ctx context.Context, userID, targetUser
 	params.Set("userId2", "eq."+userID2)
 	params.Set("select", "id")
 	params.Set("limit", "1")
-	rows, err := r.db.Select(ctx, r.cfg.MatchingSchema, r.cfg.MatchesTable, params)
+	rows, err := r.selectRows(ctx, r.cfg.MatchingSchema, r.cfg.MatchesTable, params)
 	if err != nil {
 		if r.cfg.MockOTPEnabled {
 			matchID := "mock-match-" + strings.ReplaceAll(userID1+"-"+userID2, "-", "")
@@ -692,7 +709,7 @@ func (r *SupabaseRepository) ListMatches(ctx context.Context, userID string) ([]
 	params.Set("user1Status", "eq.active")
 	params.Set("user2Status", "eq.active")
 	params.Set("order", "lastMessageAt.desc")
-	rows, err := r.db.Select(ctx, r.cfg.MatchingSchema, r.cfg.MatchesTable, params)
+	rows, err := r.selectRows(ctx, r.cfg.MatchingSchema, r.cfg.MatchesTable, params)
 	if err != nil {
 		if r.cfg.MockOTPEnabled {
 			r.mu.Lock()
@@ -716,10 +733,11 @@ func (r *SupabaseRepository) GetUsersByIDs(ctx context.Context, userIDs []string
 	if len(userIDs) == 0 {
 		return map[string]map[string]any{}, nil
 	}
+	userSchema := r.matchingUserSchema()
 	params := url.Values{}
 	params.Set("id", "in."+buildIn(unique(userIDs)))
 	params.Set("select", "id,name,lastLogin")
-	rows, err := r.db.Select(ctx, r.cfg.UserSchema, r.cfg.UsersTable, params)
+	rows, err := r.selectRows(ctx, userSchema, r.cfg.UsersTable, params)
 	if err != nil {
 		if r.cfg.MockOTPEnabled {
 			out := map[string]map[string]any{}
@@ -749,11 +767,12 @@ func (r *SupabaseRepository) GetPrimaryPhotosByUserIDs(ctx context.Context, user
 	if len(userIDs) == 0 {
 		return map[string]string{}, nil
 	}
+	photoSchema := r.matchingPhotoSchema()
 	params := url.Values{}
 	params.Set("userId", "in."+buildIn(unique(userIDs)))
 	params.Set("select", "userId,photoUrl,ordering")
 	params.Set("order", "ordering.asc")
-	rows, err := r.db.Select(ctx, r.cfg.UserSchema, r.cfg.PhotosTable, params)
+	rows, err := r.selectRows(ctx, photoSchema, r.cfg.PhotosTable, params)
 	if err != nil {
 		if r.cfg.MockOTPEnabled {
 			out := map[string]string{}
@@ -787,7 +806,7 @@ func (r *SupabaseRepository) GetLatestMessagesByMatchIDs(ctx context.Context, ma
 	params.Set("matchId", "in."+buildIn(unique(matchIDs)))
 	params.Set("select", "matchId,text,createdAt")
 	params.Set("order", "createdAt.desc")
-	rows, err := r.db.Select(ctx, r.cfg.MatchingSchema, r.cfg.MessagesTable, params)
+	rows, err := r.selectRows(ctx, r.cfg.MatchingSchema, r.cfg.MessagesTable, params)
 	if err != nil {
 		if r.cfg.MockOTPEnabled {
 			return map[string]map[string]any{}, nil
@@ -817,7 +836,7 @@ func (r *SupabaseRepository) GetUnreadCounts(ctx context.Context, matchIDs []str
 	params.Set("readAt", "is.null")
 	params.Set("senderId", "neq."+currentUserID)
 	params.Set("select", "matchId")
-	rows, err := r.db.Select(ctx, r.cfg.MatchingSchema, r.cfg.MessagesTable, params)
+	rows, err := r.selectRows(ctx, r.cfg.MatchingSchema, r.cfg.MessagesTable, params)
 	if err != nil {
 		if r.cfg.MockOTPEnabled {
 			return map[string]int{}, nil
@@ -840,7 +859,7 @@ func (r *SupabaseRepository) GetMatchByID(ctx context.Context, matchID string) (
 	params.Set("id", "eq."+matchID)
 	params.Set("select", "id,userId1,userId2")
 	params.Set("limit", "1")
-	rows, err := r.db.Select(ctx, r.cfg.MatchingSchema, r.cfg.MatchesTable, params)
+	rows, err := r.selectRows(ctx, r.cfg.MatchingSchema, r.cfg.MatchesTable, params)
 	if err != nil {
 		return nil, err
 	}
@@ -853,7 +872,7 @@ func (r *SupabaseRepository) GetMatchByID(ctx context.Context, matchID string) (
 func (r *SupabaseRepository) UpdateMatchStatus(ctx context.Context, matchID string, fields map[string]any) error {
 	filters := url.Values{}
 	filters.Set("id", "eq."+matchID)
-	_, err := r.db.Update(ctx, r.cfg.MatchingSchema, r.cfg.MatchesTable, fields, filters)
+	_, err := r.updateRows(ctx, r.cfg.MatchingSchema, r.cfg.MatchesTable, fields, filters)
 	return err
 }
 
@@ -867,10 +886,276 @@ func (r *SupabaseRepository) MarkMessagesRead(
 	filters.Set("matchId", "eq."+matchID)
 	filters.Set("readAt", "is.null")
 	filters.Set("senderId", "neq."+currentUserID)
-	_, err := r.db.Update(ctx, r.cfg.MatchingSchema, r.cfg.MessagesTable, map[string]any{
+	_, err := r.updateRows(ctx, r.cfg.MatchingSchema, r.cfg.MessagesTable, map[string]any{
 		"readAt": readAtISO,
 	}, filters)
 	return err
+}
+
+func (r *SupabaseRepository) selectRows(ctx context.Context, schema, table string, params url.Values) ([]map[string]any, error) {
+	effectiveSchema := r.effectiveSchemaForTable(schema, table)
+	normalizedParams := normalizeParamsForSchema(effectiveSchema, params)
+	rows, err := r.db.Select(ctx, effectiveSchema, table, normalizedParams)
+	if err == nil || !isSchemaFallbackEligible(err) || strings.EqualFold(strings.TrimSpace(effectiveSchema), "public") {
+		return normalizeRowsForSchema(effectiveSchema, rows), err
+	}
+	rows, err = r.db.Select(ctx, "public", table, normalizeParamsForSchema("public", params))
+	return normalizeRowsForSchema("public", rows), err
+}
+
+func (r *SupabaseRepository) upsertRows(ctx context.Context, schema, table string, payload any, onConflict string) ([]map[string]any, error) {
+	effectiveSchema := r.effectiveSchemaForTable(schema, table)
+	normalizedPayload := normalizePayloadForSchema(effectiveSchema, payload)
+	normalizedOnConflict := normalizeOnConflictForSchema(effectiveSchema, onConflict)
+	rows, err := r.db.Upsert(ctx, effectiveSchema, table, normalizedPayload, normalizedOnConflict)
+	if err == nil || !isSchemaFallbackEligible(err) || strings.EqualFold(strings.TrimSpace(effectiveSchema), "public") {
+		return normalizeRowsForSchema(effectiveSchema, rows), err
+	}
+	rows, err = r.db.Upsert(ctx, "public", table, normalizePayloadForSchema("public", payload), normalizeOnConflictForSchema("public", onConflict))
+	return normalizeRowsForSchema("public", rows), err
+}
+
+func (r *SupabaseRepository) updateRows(ctx context.Context, schema, table string, payload any, filters url.Values) ([]map[string]any, error) {
+	effectiveSchema := r.effectiveSchemaForTable(schema, table)
+	normalizedPayload := normalizePayloadForSchema(effectiveSchema, payload)
+	normalizedFilters := normalizeParamsForSchema(effectiveSchema, filters)
+	rows, err := r.db.Update(ctx, effectiveSchema, table, normalizedPayload, normalizedFilters)
+	if err == nil || !isSchemaFallbackEligible(err) || strings.EqualFold(strings.TrimSpace(effectiveSchema), "public") {
+		return normalizeRowsForSchema(effectiveSchema, rows), err
+	}
+	rows, err = r.db.Update(ctx, "public", table, normalizePayloadForSchema("public", payload), normalizeParamsForSchema("public", filters))
+	return normalizeRowsForSchema("public", rows), err
+}
+
+func isSchemaFallbackEligible(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "pgrst106") ||
+		strings.Contains(msg, "pgrst205") ||
+		strings.Contains(msg, "invalid schema") ||
+		strings.Contains(msg, "could not find the table")
+}
+
+func (r *SupabaseRepository) matchingUserSchema() string {
+	if usesSnakeCaseSchema(r.cfg.MatchingSchema) {
+		return "public"
+	}
+	return r.cfg.UserSchema
+}
+
+func (r *SupabaseRepository) matchingPhotoSchema() string {
+	if usesSnakeCaseSchema(r.cfg.MatchingSchema) {
+		return "public"
+	}
+	return r.cfg.UserSchema
+}
+
+func (r *SupabaseRepository) effectiveSchemaForTable(schema, table string) string {
+	if usesSnakeCaseSchema(schema) && r.prefersPublicCoreTables() {
+		switch strings.TrimSpace(table) {
+		case r.cfg.SwipesTable, r.cfg.MatchesTable, r.cfg.MessagesTable:
+			return "public"
+		}
+	}
+	return schema
+}
+
+func (r *SupabaseRepository) prefersPublicCoreTables() bool {
+	base := strings.TrimRight(strings.TrimSpace(r.cfg.SupabaseURL), "/")
+	if base == "" || strings.HasSuffix(base, "/rest/v1") {
+		return false
+	}
+	parsed, err := url.Parse(base)
+	if err != nil {
+		return false
+	}
+	host := strings.ToLower(parsed.Hostname())
+	return host == "localhost" || host == "127.0.0.1"
+}
+
+var filterFieldPattern = regexp.MustCompile(`([A-Za-z][A-Za-z0-9]*)\.(eq|neq|gt|gte|lt|lte|like|ilike|in|is|fts|plfts|phfts|wfts|cs|cd|ov|sl|sr|nxr|nxl|adj|not)`)
+
+func normalizeParamsForSchema(schema string, params url.Values) url.Values {
+	if len(params) == 0 {
+		return params
+	}
+	if !usesSnakeCaseSchema(schema) {
+		cloned := url.Values{}
+		for key, values := range params {
+			for _, value := range values {
+				cloned.Add(key, value)
+			}
+		}
+		return cloned
+	}
+	out := url.Values{}
+	for key, values := range params {
+		normalizedKey := normalizeQueryKey(key)
+		for _, value := range values {
+			out.Add(normalizedKey, normalizeQueryValue(key, value))
+		}
+	}
+	return out
+}
+
+func normalizeQueryKey(key string) string {
+	switch key {
+	case "select", "order", "limit", "offset", "or", "and":
+		return key
+	case "on_conflict":
+		return key
+	default:
+		return camelToSnake(key)
+	}
+}
+
+func normalizeQueryValue(key, value string) string {
+	switch key {
+	case "select", "on_conflict":
+		parts := strings.Split(value, ",")
+		for i, part := range parts {
+			parts[i] = camelToSnake(strings.TrimSpace(part))
+		}
+		return strings.Join(parts, ",")
+	case "order":
+		parts := strings.Split(value, ",")
+		for i, part := range parts {
+			trimmed := strings.TrimSpace(part)
+			if trimmed == "" {
+				continue
+			}
+			segments := strings.Split(trimmed, ".")
+			segments[0] = camelToSnake(segments[0])
+			parts[i] = strings.Join(segments, ".")
+		}
+		return strings.Join(parts, ",")
+	case "or", "and":
+		return filterFieldPattern.ReplaceAllStringFunc(value, func(match string) string {
+			parts := strings.SplitN(match, ".", 2)
+			if len(parts) != 2 {
+				return match
+			}
+			return camelToSnake(parts[0]) + "." + parts[1]
+		})
+	default:
+		return value
+	}
+}
+
+func normalizePayloadForSchema(schema string, payload any) any {
+	if !usesSnakeCaseSchema(schema) || payload == nil {
+		return payload
+	}
+	switch typed := payload.(type) {
+	case map[string]any:
+		out := make(map[string]any, len(typed))
+		for key, value := range typed {
+			out[camelToSnake(key)] = normalizePayloadForSchema(schema, value)
+		}
+		return out
+	case []map[string]any:
+		out := make([]map[string]any, 0, len(typed))
+		for _, row := range typed {
+			out = append(out, normalizePayloadForSchema(schema, row).(map[string]any))
+		}
+		return out
+	case []any:
+		out := make([]any, 0, len(typed))
+		for _, item := range typed {
+			out = append(out, normalizePayloadForSchema(schema, item))
+		}
+		return out
+	default:
+		return payload
+	}
+}
+
+func normalizeOnConflictForSchema(schema, value string) string {
+	if !usesSnakeCaseSchema(schema) || strings.TrimSpace(value) == "" {
+		return value
+	}
+	parts := strings.Split(value, ",")
+	for i, part := range parts {
+		parts[i] = camelToSnake(strings.TrimSpace(part))
+	}
+	return strings.Join(parts, ",")
+}
+
+func normalizeRowsForSchema(schema string, rows []map[string]any) []map[string]any {
+	if !usesSnakeCaseSchema(schema) || len(rows) == 0 {
+		return rows
+	}
+	out := make([]map[string]any, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, normalizeRowKeys(row))
+	}
+	return out
+}
+
+func normalizeRowKeys(row map[string]any) map[string]any {
+	out := make(map[string]any, len(row))
+	for key, value := range row {
+		out[snakeToCamel(key)] = value
+	}
+	return out
+}
+
+func usesSnakeCaseSchema(schema string) bool {
+	trimmed := strings.TrimSpace(schema)
+	return trimmed != "" && !strings.EqualFold(trimmed, "public")
+}
+
+func camelToSnake(value string) string {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return trimmed
+	}
+	var b strings.Builder
+	var prev rune
+	for i, r := range trimmed {
+		if r >= 'A' && r <= 'Z' {
+			if i > 0 && prev != '_' {
+				b.WriteByte('_')
+			}
+			b.WriteRune(r + ('a' - 'A'))
+		} else {
+			if i > 0 && r >= '0' && r <= '9' && prev != '_' && !(prev >= '0' && prev <= '9') {
+				b.WriteByte('_')
+			}
+			b.WriteRune(r)
+		}
+		prev = r
+	}
+	return b.String()
+}
+
+func snakeToCamel(value string) string {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" || !strings.Contains(trimmed, "_") {
+		return trimmed
+	}
+	parts := strings.Split(trimmed, "_")
+	if len(parts) == 0 {
+		return trimmed
+	}
+	var b strings.Builder
+	b.WriteString(parts[0])
+	for _, part := range parts[1:] {
+		if part == "" {
+			continue
+		}
+		if part[0] >= '0' && part[0] <= '9' {
+			b.WriteString(part)
+			continue
+		}
+		b.WriteString(strings.ToUpper(part[:1]))
+		if len(part) > 1 {
+			b.WriteString(part[1:])
+		}
+	}
+	return b.String()
 }
 
 func unique(input []string) []string {

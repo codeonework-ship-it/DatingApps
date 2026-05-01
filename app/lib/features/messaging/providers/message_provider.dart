@@ -35,8 +35,9 @@ class MessageState {
     this.isChatLocked = false,
     this.unlockState,
     this.unlockPolicyVariant,
-    this.giftCatalog = RoseGift.phaseOneCatalog,
-    this.walletCoins = 12,
+    this.giftCatalog = const [],
+    this.giftCategories = const [],
+    this.walletCoins = 0,
     this.isSendingGift = false,
     this.pendingDeleteIds = const <String>{},
   });
@@ -48,6 +49,7 @@ class MessageState {
   final String? unlockState;
   final String? unlockPolicyVariant;
   final List<RoseGift> giftCatalog;
+  final List<String> giftCategories;
   final int walletCoins;
   final bool isSendingGift;
   final Set<String> pendingDeleteIds;
@@ -61,6 +63,7 @@ class MessageState {
     String? unlockState,
     String? unlockPolicyVariant,
     List<RoseGift>? giftCatalog,
+    List<String>? giftCategories,
     int? walletCoins,
     bool? isSendingGift,
     Set<String>? pendingDeleteIds,
@@ -73,6 +76,7 @@ class MessageState {
     unlockState: unlockState ?? this.unlockState,
     unlockPolicyVariant: unlockPolicyVariant ?? this.unlockPolicyVariant,
     giftCatalog: giftCatalog ?? this.giftCatalog,
+    giftCategories: giftCategories ?? this.giftCategories,
     walletCoins: walletCoins ?? this.walletCoins,
     isSendingGift: isSendingGift ?? this.isSendingGift,
     pendingDeleteIds: pendingDeleteIds ?? this.pendingDeleteIds,
@@ -104,19 +108,15 @@ class MessageNotifier extends _$MessageNotifier {
   final Map<String, models.Message> _senderDeletedPlaceholders =
       <String, models.Message>{};
 
-  bool get _isLocalTestConversation =>
-      (_currentMatchId ?? '').startsWith('local-match-');
-
   bool get _isPendingConversation =>
       (_currentMatchId ?? '').startsWith('pending-');
 
-  bool get _usesLocalConversationSandbox =>
-      _isPendingConversation || _isLocalTestConversation;
+  bool get _usesLocalConversationSandbox => _isPendingConversation;
 
   @override
   MessageState build(String matchId) {
     _currentMatchId = matchId;
-    if (kFeatureRoseGiftTray) {
+    if (kFeatureRoseGiftTray && !_usesLocalConversationSandbox) {
       Future<void>.microtask(_loadRoseEconomy);
     }
     if (_usesLocalConversationSandbox) {
@@ -138,8 +138,8 @@ class MessageNotifier extends _$MessageNotifier {
     });
     return const MessageState(
       isLoading: true,
-      giftCatalog: RoseGift.phaseOneCatalog,
-      walletCoins: 12,
+      giftCatalog: <RoseGift>[],
+      walletCoins: 0,
     );
   }
 
@@ -154,11 +154,15 @@ class MessageNotifier extends _$MessageNotifier {
 
       final catalogResponse = await dio.get<Map<String, dynamic>>(
         '/chat/gifts',
+        options: Options(headers: {'X-User-ID': currentUserId}),
       );
       final catalogBody =
           (catalogResponse.data as Map?)?.cast<String, dynamic>() ??
           <String, dynamic>{};
       final giftsRaw = (catalogBody['gifts'] as List?) ?? const [];
+      final catalogCategories =
+          (catalogBody['categories'] as List?)?.whereType<String>().toList() ??
+          const <String>[];
       final mappedGifts = giftsRaw
           .whereType<Map<String, dynamic>>()
           .map((item) {
@@ -173,7 +177,10 @@ class MessageNotifier extends _$MessageNotifier {
               iconKey: item['icon_key']?.toString(),
               priceCoins: (item['price_coins'] as num?)?.toInt() ?? 0,
               tier: item['tier']?.toString() ?? 'free',
+              category: item['category']?.toString() ?? 'roses',
               isLimited: item['is_limited'] == true,
+              maxPerMatchPerDay:
+                  (item['max_per_match_per_day'] as num?)?.toInt() ?? 0,
             );
           })
           .where((gift) => gift.id.isNotEmpty && gift.name.isNotEmpty)
@@ -181,6 +188,7 @@ class MessageNotifier extends _$MessageNotifier {
 
       final walletResponse = await dio.get<Map<String, dynamic>>(
         '/wallet/$currentUserId/coins',
+        options: Options(headers: {'X-User-ID': currentUserId}),
       );
       final walletBody =
           (walletResponse.data as Map?)?.cast<String, dynamic>() ??
@@ -193,14 +201,19 @@ class MessageNotifier extends _$MessageNotifier {
 
       state = state.copyWith(
         giftCatalog: mappedGifts.isEmpty ? state.giftCatalog : mappedGifts,
+        giftCategories: catalogCategories.isEmpty
+            ? state.giftCategories
+            : catalogCategories,
         walletCoins: walletCoins,
       );
-    } on DioException {
-      // Keep local fallback catalog/wallet for development resilience.
-    } on Object {
-      // Keep local fallback catalog/wallet for development resilience.
+    } on DioException catch (e, stackTrace) {
+      log.error('Failed to load rose gift economy', e, stackTrace);
+    } on Object catch (e, stackTrace) {
+      log.error('Failed to load rose gift economy', e, stackTrace);
     }
   }
+
+  Future<void> refreshRoseEconomy() => _loadRoseEconomy();
 
   /// Load messages from gateway API
   Future<void> _loadMessages(String matchId, {bool showLoader = true}) async {
@@ -231,6 +244,9 @@ class MessageNotifier extends _$MessageNotifier {
       final response = await dio.get<Map<String, dynamic>>(
         '/chat/$matchId/messages',
         queryParameters: {'limit': 100},
+        options: Options(
+          headers: {'X-User-ID': ref.read(authNotifierProvider).userId},
+        ),
       );
       final body =
           (response.data as Map?)?.cast<String, dynamic>() ??
@@ -242,16 +258,27 @@ class MessageNotifier extends _$MessageNotifier {
           .map(
             (map) => models.Message.fromJson({
               'id': map['id']?.toString() ?? '',
-              'matchId': map['matchId']?.toString() ?? matchId,
-              'senderId': map['senderId']?.toString() ?? '',
+              'matchId':
+                  map['matchId']?.toString() ??
+                  map['match_id']?.toString() ??
+                  matchId,
+              'senderId':
+                  map['senderId']?.toString() ??
+                  map['sender_id']?.toString() ??
+                  '',
               'text': map['text']?.toString() ?? '',
               'createdAt':
                   map['createdAt']?.toString() ??
+                  map['created_at']?.toString() ??
                   DateTime.now().toIso8601String(),
-              'deliveredAt': map['deliveredAt']?.toString(),
-              'readAt': map['readAt']?.toString(),
-              'isDeleted': map['isDeleted'] == true,
-              'deletedAt': map['deletedAt']?.toString(),
+              'deliveredAt':
+                  map['deliveredAt']?.toString() ??
+                  map['delivered_at']?.toString(),
+              'readAt': map['readAt']?.toString() ?? map['read_at']?.toString(),
+              'isDeleted':
+                  map['isDeleted'] == true || map['is_deleted'] == true,
+              'deletedAt':
+                  map['deletedAt']?.toString() ?? map['deleted_at']?.toString(),
             }),
           )
           .toList();
@@ -343,6 +370,7 @@ class MessageNotifier extends _$MessageNotifier {
       final dio = ref.read(apiClientProvider);
       await dio.post<Map<String, dynamic>>(
         '/chat/${_currentMatchId!}/messages',
+        options: Options(headers: {'X-User-ID': currentUserId}),
         data: {'sender_id': currentUserId, 'text': text},
       );
       state = state.copyWith(
@@ -538,26 +566,31 @@ class MessageNotifier extends _$MessageNotifier {
     );
   }
 
-  Future<void> sendRoseGift({
+  Future<bool> sendRoseGift({
     required RoseGift gift,
     required String receiverUserId,
+    String messageText = '',
   }) async {
     if (!kFeatureRoseGiftTray) {
       state = state.copyWith(error: 'Rose gifts are currently unavailable.');
-      return;
+      return false;
     }
 
     if (_currentMatchId == null) {
-      return;
+      return false;
     }
 
     final currentUserId = ref.read(authNotifierProvider).userId;
     if (currentUserId == null) {
-      return;
+      return false;
     }
     final trimmedCurrentUserId = currentUserId.trim();
     if (trimmedCurrentUserId.isEmpty) {
-      return;
+      return false;
+    }
+
+    if (!gift.isFree && state.walletCoins < gift.priceCoins) {
+      await _loadRoseEconomy();
     }
 
     if (!gift.isFree && state.walletCoins < gift.priceCoins) {
@@ -575,10 +608,14 @@ class MessageNotifier extends _$MessageNotifier {
         error: 'Not enough coins to send ${gift.name}.',
         isChatLocked: false,
       );
-      return;
+      return false;
     }
 
-    final payloadText = _encodeGiftMessage(gift);
+    final trimmedMessageText = messageText.trim();
+    final payloadText = _encodeGiftMessage(
+      gift,
+      messageText: trimmedMessageText,
+    );
     final idempotencyKey = _buildGiftSendIdempotencyKey(
       senderUserId: trimmedCurrentUserId,
       matchId: _currentMatchId!,
@@ -629,66 +666,55 @@ class MessageNotifier extends _$MessageNotifier {
                 : state.walletCoins - gift.priceCoins,
           },
         );
-        return;
+        return true;
       }
 
       final dio = ref.read(apiClientProvider);
-      var sentViaGiftEndpoint = false;
-      var shouldPostMessageFallback = true;
       var updatedWalletCoins = state.walletCoins;
-      try {
-        final giftSendResponse = await dio.post<Map<String, dynamic>>(
-          '/chat/${_currentMatchId!}/gifts/send',
-          options: Options(
-            headers: {
-              'Idempotency-Key': idempotencyKey,
-              'X-User-ID': trimmedCurrentUserId,
-            },
-          ),
-          data: {
-            'sender_user_id': trimmedCurrentUserId,
-            'receiver_user_id': receiverUserId,
-            'gift_id': gift.id,
+      final giftSendResponse = await dio.post<Map<String, dynamic>>(
+        '/chat/${_currentMatchId!}/gifts/send',
+        options: Options(
+          headers: {
+            'Idempotency-Key': idempotencyKey,
+            'X-User-ID': trimmedCurrentUserId,
           },
-        );
-        final body =
-            (giftSendResponse.data as Map?)?.cast<String, dynamic>() ??
-            <String, dynamic>{};
-        final messagePayload =
-            (body['message'] as Map?)?.cast<String, dynamic>() ??
-            <String, dynamic>{};
-        final responseText = (messagePayload['text'] ?? body['text'] ?? '')
-            .toString();
-        shouldPostMessageFallback =
-            responseText.trim().isEmpty || !responseText.contains('[gift:');
-        final wallet =
-            (body['wallet'] as Map?)?.cast<String, dynamic>() ??
-            <String, dynamic>{};
-        final apiBalance = (wallet['coin_balance'] as num?)?.toInt();
-        if (apiBalance != null && apiBalance >= 0) {
-          updatedWalletCoins = apiBalance;
-        }
-        sentViaGiftEndpoint = true;
-      } on DioException catch (e) {
-        final status = e.response?.statusCode ?? 0;
-        if (status != 404 && status != 405 && status != 501) {
-          rethrow;
-        }
+        ),
+        data: {
+          'sender_user_id': trimmedCurrentUserId,
+          'receiver_user_id': receiverUserId,
+          'gift_id': gift.id,
+          if (trimmedMessageText.isNotEmpty) 'message_text': trimmedMessageText,
+        },
+      );
+      final body =
+          (giftSendResponse.data as Map?)?.cast<String, dynamic>() ??
+          <String, dynamic>{};
+      final messagePayload =
+          (body['message'] as Map?)?.cast<String, dynamic>() ??
+          <String, dynamic>{};
+      final returnedMessage = _messageFromGiftResponse(
+        messagePayload,
+        fallbackMatchId: _currentMatchId!,
+        fallbackSenderId: trimmedCurrentUserId,
+        fallbackText: payloadText,
+      );
+      final wallet =
+          (body['wallet'] as Map?)?.cast<String, dynamic>() ??
+          <String, dynamic>{};
+      final apiBalance = (wallet['coin_balance'] as num?)?.toInt();
+      if (apiBalance != null && apiBalance >= 0) {
+        updatedWalletCoins = apiBalance;
       }
 
-      if (!sentViaGiftEndpoint || shouldPostMessageFallback) {
-        await dio.post<Map<String, dynamic>>(
-          '/chat/${_currentMatchId!}/messages',
-          data: {'sender_id': trimmedCurrentUserId, 'text': payloadText},
-        );
-      }
-
-      final finalWalletCoins = sentViaGiftEndpoint
-          ? updatedWalletCoins
-          : (gift.isFree
-                ? state.walletCoins
-                : state.walletCoins - gift.priceCoins);
+      final finalWalletCoins = updatedWalletCoins;
+      final nextMessages = returnedMessage == null
+          ? state.messages
+          : [
+              returnedMessage,
+              ...state.messages.where((item) => item.id != returnedMessage.id),
+            ];
       state = state.copyWith(
+        messages: nextMessages,
         walletCoins: finalWalletCoins,
         isSendingGift: false,
         isChatLocked: false,
@@ -700,15 +726,14 @@ class MessageNotifier extends _$MessageNotifier {
         attributes: {
           'match_id': _currentMatchId,
           'gift_id': gift.id,
-          'delivery': sentViaGiftEndpoint
-              ? 'gift_endpoint'
-              : 'message_endpoint_fallback',
+          'delivery': 'gift_endpoint',
           'price_coins': gift.priceCoins,
           'remaining_coins': finalWalletCoins,
           'idempotency_key': idempotencyKey,
         },
       );
       await _loadMessages(_currentMatchId!, showLoader: false);
+      return true;
     } on DioException catch (e, stackTrace) {
       log.error('Failed to send rose gift', e, stackTrace);
       final body = (e.response?.data as Map?)?.cast<String, dynamic>();
@@ -730,7 +755,7 @@ class MessageNotifier extends _$MessageNotifier {
           isSendingGift: false,
           isChatLocked: false,
         );
-        return;
+        return false;
       }
       if (errorCode == 'CHAT_LOCKED_REQUIREMENT_PENDING' ||
           e.response?.statusCode == 423) {
@@ -754,7 +779,16 @@ class MessageNotifier extends _$MessageNotifier {
           unlockPolicyVariant: (body?['unlock_policy_variant'] ?? '')
               .toString(),
         );
-        return;
+        return false;
+      }
+      if (errorCode == 'GIFT_DAILY_LIMIT_REACHED' ||
+          e.response?.statusCode == 429) {
+        state = state.copyWith(
+          error: 'This exclusive gift can only be sent once today.',
+          isSendingGift: false,
+          isChatLocked: false,
+        );
+        return false;
       }
       _emitRoseGiftTelemetryStub(
         eventName: 'gift_send_failed',
@@ -769,6 +803,7 @@ class MessageNotifier extends _$MessageNotifier {
         error: 'Failed to send gift.',
         isSendingGift: false,
       );
+      return false;
     } on Object catch (e, stackTrace) {
       log.error('Failed to send rose gift', e, stackTrace);
       _emitRoseGiftTelemetryStub(
@@ -784,6 +819,7 @@ class MessageNotifier extends _$MessageNotifier {
         error: 'Failed to send gift.',
         isSendingGift: false,
       );
+      return false;
     }
   }
 
@@ -1033,8 +1069,46 @@ class MessageNotifier extends _$MessageNotifier {
   }
 }
 
-String _encodeGiftMessage(RoseGift gift) {
-  final leadingText = gift.isFree
+models.Message? _messageFromGiftResponse(
+  Map<String, dynamic> payload, {
+  required String fallbackMatchId,
+  required String fallbackSenderId,
+  required String fallbackText,
+}) {
+  final id = payload['id']?.toString().trim() ?? '';
+  if (id.isEmpty) {
+    return null;
+  }
+  final createdAtRaw =
+      payload['createdAt']?.toString() ??
+      payload['created_at']?.toString() ??
+      DateTime.now().toIso8601String();
+  return models.Message.fromJson({
+    'id': id,
+    'matchId':
+        payload['matchId']?.toString() ??
+        payload['match_id']?.toString() ??
+        fallbackMatchId,
+    'senderId':
+        payload['senderId']?.toString() ??
+        payload['sender_id']?.toString() ??
+        fallbackSenderId,
+    'text': payload['text']?.toString() ?? fallbackText,
+    'createdAt': createdAtRaw,
+    'deliveredAt':
+        payload['deliveredAt']?.toString() ??
+        payload['delivered_at']?.toString(),
+    'readAt': payload['readAt']?.toString() ?? payload['read_at']?.toString(),
+    'isDeleted': payload['isDeleted'] == true || payload['is_deleted'] == true,
+    'deletedAt':
+        payload['deletedAt']?.toString() ?? payload['deleted_at']?.toString(),
+  });
+}
+
+String _encodeGiftMessage(RoseGift gift, {String messageText = ''}) {
+  final leadingText = messageText.trim().isNotEmpty
+      ? messageText.trim()
+      : gift.isFree
       ? 'Send Free Rose 🌹'
       : 'Sent ${gift.name} 🌹';
   final safeName = gift.name.replaceAll('|', '/');

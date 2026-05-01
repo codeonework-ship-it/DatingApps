@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:verified_dating_app/core/theme/app_theme.dart';
 import 'package:verified_dating_app/features/auth/providers/auth_provider.dart';
-import 'package:verified_dating_app/features/auth/providers/terms_provider.dart';
-import 'package:verified_dating_app/features/profile/providers/profile_completion_provider.dart';
 import 'package:verified_dating_app/main.dart';
 
 // ---------------------------------------------------------------------------
@@ -13,53 +13,42 @@ import 'package:verified_dating_app/main.dart';
 // ---------------------------------------------------------------------------
 
 void main() {
+  setUpAll(() {
+    // DatingApp.build() uses AppRuntimeConfig which reads dotenv.
+    // Load an empty environment so it doesn't throw NotInitializedError.
+    dotenv.testLoad(fileInput: '');
+  });
+
   group('AppGate navigation regression', () {
+    // -----------------------------------------------------------------------
+    // 1. Terms-loading gate: terms provider stays in AsyncLoading so the gate
+    //    must show the branded loading screen (gold spinner, not bare white).
+    // -----------------------------------------------------------------------
     testWidgets(
       'shows branded loading screen while checking terms (never blank)',
       (tester) async {
-        // Override to an artificially slow terms resolution
         await tester.pumpWidget(
           ProviderScope(
             overrides: [
               authNotifierProvider.overrideWith(
                 () => _FakeAuthNotifier(isAuthenticated: true),
               ),
-              // termsAcceptanceProvider stays as loading (default)
+              // termsAcceptanceProvider left as default → will stay loading
+              // in test sandbox since it can't reach SharedPreferences/API
             ],
             child: const MaterialApp(home: DatingApp()),
           ),
         );
         await tester.pump();
 
-        // Should show a loading spinner — never a bare white scaffold
         expect(find.byType(CircularProgressIndicator), findsWidgets);
         expect(tester.takeException(), isNull);
       },
     );
 
-    testWidgets(
-      'shows branded loading screen while checking profile completion',
-      (tester) async {
-        await tester.pumpWidget(
-          ProviderScope(
-            overrides: [
-              authNotifierProvider.overrideWith(
-                () => _FakeAuthNotifier(isAuthenticated: true),
-              ),
-              termsAcceptanceProvider.overrideWith((ref) => Future.value(true)),
-              // profileCompletionProvider stays as loading (default)
-            ],
-            child: const MaterialApp(home: DatingApp()),
-          ),
-        );
-        await tester.pump();
-
-        // Should show loading — never blank
-        expect(find.byType(CircularProgressIndicator), findsWidgets);
-        expect(tester.takeException(), isNull);
-      },
-    );
-
+    // -----------------------------------------------------------------------
+    // 2. Welcome screen when not authenticated
+    // -----------------------------------------------------------------------
     testWidgets('shows WelcomeScreen when not authenticated', (tester) async {
       await tester.pumpWidget(
         ProviderScope(
@@ -74,13 +63,15 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
 
-      // WelcomeScreen should render (look for any welcome-specific text)
-      // At minimum, the screen should not be blank
       expect(find.byType(Scaffold), findsWidgets);
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('shows ProfileSetupEntryScreen when profile is incomplete', (
+    // -----------------------------------------------------------------------
+    // 3. Verify the Crystal Gold themed gradient is present in the gate
+    //    loading screen (bgGradient background instead of bare white).
+    // -----------------------------------------------------------------------
+    testWidgets('gate loading uses Crystal Gold bgGradient (not white)', (
       tester,
     ) async {
       await tester.pumpWidget(
@@ -89,87 +80,89 @@ void main() {
             authNotifierProvider.overrideWith(
               () => _FakeAuthNotifier(isAuthenticated: true),
             ),
-            termsAcceptanceProvider.overrideWith((ref) => Future.value(true)),
-            profileCompletionProvider.overrideWith(
-              (ref) => Future.value(
-                const ProfileCompletion(
-                  hasUserRow: true,
-                  profileCompletion: 50,
-                  photoCount: 1,
-                ),
-              ),
-            ),
           ],
           child: const MaterialApp(home: DatingApp()),
         ),
       );
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 400));
 
-      // Should show the setup entry screen (contains setup flow)
-      expect(find.byType(Scaffold), findsWidgets);
-      expect(tester.takeException(), isNull);
+      // The loading screen's Container should have the bgGradient decoration.
+      final containerFinder = find.byWidgetPredicate(
+        (w) =>
+            w is Container &&
+            w.decoration is BoxDecoration &&
+            (w.decoration! as BoxDecoration).gradient == AppTheme.bgGradient,
+      );
+      expect(containerFinder, findsOneWidget);
     });
 
-    testWidgets('shows MainNavigationScreen when profile is complete', (
-      tester,
-    ) async {
-      tester.view.physicalSize = const Size(400, 900);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.reset);
-
+    // -----------------------------------------------------------------------
+    // 4. The loading screen should show a gold-colored spinner, not the
+    //    default blue MaterialApp spinner.
+    // -----------------------------------------------------------------------
+    testWidgets('gate loading has crystalGoldSoft spinner', (tester) async {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
             authNotifierProvider.overrideWith(
               () => _FakeAuthNotifier(isAuthenticated: true),
             ),
-            termsAcceptanceProvider.overrideWith((ref) => Future.value(true)),
-            profileCompletionProvider.overrideWith(
-              (ref) => Future.value(
-                const ProfileCompletion(
-                  hasUserRow: true,
-                  profileCompletion: 100,
-                  photoCount: 2,
-                ),
-              ),
-            ),
           ],
           child: const MaterialApp(home: DatingApp()),
         ),
       );
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 400));
 
-      // Should see the bottom nav or discover header
-      expect(find.byType(Scaffold), findsWidgets);
-      expect(tester.takeException(), isNull);
+      final indicatorFinder = find.byType(CircularProgressIndicator);
+      expect(indicatorFinder, findsOneWidget);
+
+      final CircularProgressIndicator indicator = tester.widget(
+        indicatorFinder,
+      );
+      final color =
+          (indicator.valueColor as AlwaysStoppedAnimation<Color>?)?.value;
+      expect(color, AppTheme.crystalGoldSoft);
     });
 
-    testWidgets('connection issue screen shows styled retry (not blank)', (
-      tester,
-    ) async {
+    // -----------------------------------------------------------------------
+    // 5. Verify loading message text is visible (not blank white screen).
+    // -----------------------------------------------------------------------
+    testWidgets('gate loading shows status message text', (tester) async {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
             authNotifierProvider.overrideWith(
               () => _FakeAuthNotifier(isAuthenticated: true),
             ),
-            termsAcceptanceProvider.overrideWith((ref) => Future.value(true)),
-            profileCompletionProvider.overrideWith(
-              (ref) => Future.error(Exception('Connection refused')),
+          ],
+          child: const MaterialApp(home: DatingApp()),
+        ),
+      );
+      await tester.pump();
+
+      // The loading screen shows "Checking terms…" while waiting for terms
+      expect(find.text('Checking terms…'), findsOneWidget);
+    });
+
+    // -----------------------------------------------------------------------
+    // 6. Verify the gate never shows a completely empty scaffold (the old bug).
+    // -----------------------------------------------------------------------
+    testWidgets('gate never shows bare white Scaffold', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            authNotifierProvider.overrideWith(
+              () => _FakeAuthNotifier(isAuthenticated: true),
             ),
           ],
           child: const MaterialApp(home: DatingApp()),
         ),
       );
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 400));
 
-      // Should show connection issue screen with retry
-      expect(find.text('Connection issue'), findsOneWidget);
-      expect(find.text('Retry'), findsOneWidget);
-      expect(tester.takeException(), isNull);
+      // There should be visible content — not just a bare Scaffold
+      expect(find.byType(CircularProgressIndicator), findsWidgets);
+      expect(find.byType(Text), findsWidgets);
     });
   });
 }

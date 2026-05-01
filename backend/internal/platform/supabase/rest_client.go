@@ -38,7 +38,7 @@ func (c *Client) SetReadBaseURL(readBaseURL string) {
 }
 
 func (c *Client) Select(ctx context.Context, schema, table string, params url.Values) ([]map[string]any, error) {
-	path := fmt.Sprintf("%s/rest/v1/%s", c.baseURL, table)
+	path := restPath(c.baseURL, table)
 	if params == nil {
 		params = url.Values{}
 	}
@@ -69,7 +69,7 @@ func (c *Client) SelectRead(ctx context.Context, schema, table string, params ur
 		base = c.readBaseURL
 	}
 
-	path := fmt.Sprintf("%s/rest/v1/%s", base, table)
+	path := restPath(base, table)
 	if params == nil {
 		params = url.Values{}
 	}
@@ -95,7 +95,7 @@ func (c *Client) SelectRead(ctx context.Context, schema, table string, params ur
 }
 
 func (c *Client) Insert(ctx context.Context, schema, table string, payload any) ([]map[string]any, error) {
-	path := fmt.Sprintf("%s/rest/v1/%s", c.baseURL, table)
+	path := restPath(c.baseURL, table)
 	body, err := json.Marshal(payload)
 	if err != nil {
 		return nil, err
@@ -120,7 +120,7 @@ func (c *Client) Insert(ctx context.Context, schema, table string, payload any) 
 }
 
 func (c *Client) Upsert(ctx context.Context, schema, table string, payload any, onConflict string) ([]map[string]any, error) {
-	path := fmt.Sprintf("%s/rest/v1/%s", c.baseURL, table)
+	path := restPath(c.baseURL, table)
 	body, err := json.Marshal(payload)
 	if err != nil {
 		return nil, err
@@ -156,7 +156,7 @@ func (c *Client) Update(
 	payload any,
 	filters url.Values,
 ) ([]map[string]any, error) {
-	path := fmt.Sprintf("%s/rest/v1/%s", c.baseURL, table)
+	path := restPath(c.baseURL, table)
 	body, err := json.Marshal(payload)
 	if err != nil {
 		return nil, err
@@ -190,7 +190,7 @@ func (c *Client) Update(
 }
 
 func (c *Client) Delete(ctx context.Context, schema, table string, filters url.Values) ([]map[string]any, error) {
-	path := fmt.Sprintf("%s/rest/v1/%s", c.baseURL, table)
+	path := restPath(c.baseURL, table)
 	if filters == nil {
 		filters = url.Values{}
 	}
@@ -219,8 +219,12 @@ func (c *Client) do(req *http.Request, schema string) ([]byte, error) {
 		apiKey = c.serviceKey
 	}
 
-	req.Header.Set("apikey", apiKey)
-	req.Header.Set("Authorization", "Bearer "+apiKey)
+	if apiKey != "" {
+		req.Header.Set("apikey", apiKey)
+		if shouldAttachBearerToken(req.URL.String(), apiKey) {
+			req.Header.Set("Authorization", "Bearer "+apiKey)
+		}
+	}
 	req.Header.Set("Content-Type", "application/json")
 	if schema != "" {
 		req.Header.Set("Accept-Profile", schema)
@@ -243,4 +247,44 @@ func (c *Client) do(req *http.Request, schema string) ([]byte, error) {
 	}
 
 	return resBody, nil
+}
+
+func shouldAttachBearerToken(rawURL, apiKey string) bool {
+	trimmedKey := strings.TrimSpace(apiKey)
+	if trimmedKey == "" {
+		return false
+	}
+	if looksLikeJWT(trimmedKey) {
+		return true
+	}
+	parsed, err := url.Parse(rawURL)
+	if err != nil {
+		return true
+	}
+	host := strings.ToLower(parsed.Hostname())
+	return host != "localhost" && host != "127.0.0.1"
+}
+
+func looksLikeJWT(value string) bool {
+	parts := strings.Split(value, ".")
+	return len(parts) == 3 && parts[0] != "" && parts[1] != "" && parts[2] != ""
+}
+
+func restPath(baseURL, table string) string {
+	base := strings.TrimRight(strings.TrimSpace(baseURL), "/")
+	if base == "" {
+		return "/" + strings.TrimLeft(table, "/")
+	}
+	if strings.HasSuffix(base, "/rest/v1") {
+		return fmt.Sprintf("%s/%s", base, strings.TrimLeft(table, "/"))
+	}
+	parsed, err := url.Parse(base)
+	if err == nil {
+		host := strings.ToLower(parsed.Hostname())
+		path := strings.TrimSpace(parsed.Path)
+		if (host == "localhost" || host == "127.0.0.1") && (path == "" || path == "/") {
+			return fmt.Sprintf("%s/%s", base, strings.TrimLeft(table, "/"))
+		}
+	}
+	return fmt.Sprintf("%s/rest/v1/%s", base, strings.TrimLeft(table, "/"))
 }

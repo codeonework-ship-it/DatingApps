@@ -13,8 +13,9 @@ import 'setup_shared_widgets.dart';
 /// Step 3 of 4 — bio, height, education, profession, lifestyle (drinking,
 /// smoking, religion).
 ///
-/// Merges the old About + Lifestyle screens into a single Crystal Gold glass
-/// form. Saves via [ProfileSetupNotifier.saveAbout] + [saveLifestyle].
+/// Uses the same [ConsumerStatefulWidget] + single-Scaffold pattern as
+/// [SetupBasicInfoScreen] to keep the widget-tree identity stable across
+/// provider rebuilds.
 class SetupAboutScreen extends ConsumerStatefulWidget {
   const SetupAboutScreen({super.key});
 
@@ -44,6 +45,20 @@ class _SetupAboutScreenState extends ConsumerState<SetupAboutScreen> {
     super.dispose();
   }
 
+  /// Initialise local state from the draft exactly once.
+  void _initFromDraft(ProfileDraft draft) {
+    if (_didInitialize) return;
+    _didInitialize = true;
+    _bioController.text = draft.bio;
+    _professionController.text = draft.profession ?? '';
+    _height = draft.heightCm;
+    _education = draft.education;
+    _income = draft.incomeRange;
+    _drinking = draft.drinking;
+    _smoking = draft.smoking;
+    _religion = draft.religion;
+  }
+
   Future<void> _save() async {
     final bio = _bioController.text.trim();
     if (bio.length < ValidationConstants.minBioLength) {
@@ -52,8 +67,7 @@ class _SetupAboutScreenState extends ConsumerState<SetupAboutScreen> {
       );
       return;
     }
-    _isSaving = true;
-    setState(() {});
+    setState(() => _isSaving = true);
     try {
       final notifier = ref.read(profileSetupNotifierProvider.notifier);
       await notifier.saveAbout(
@@ -73,21 +87,52 @@ class _SetupAboutScreenState extends ConsumerState<SetupAboutScreen> {
       if (!mounted) return;
       SchedulerBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        _isSaving = false;
+        setState(() => _isSaving = false);
         Navigator.of(context).push<void>(
           MaterialPageRoute<void>(builder: (_) => const SetupPreviewScreen()),
         );
       });
     } on Exception catch (_) {
       if (!mounted) return;
-      _isSaving = false;
-      setState(() {});
-      _snack('Failed to save — please try again.');
+      setState(() => _isSaving = false);
+      _snack('Failed to save \u2014 please try again.');
     }
   }
 
-  void _snack(String msg) =>
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  void _snack(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  /// Auto-saves the current form values to the provider when the user presses
+  /// the system/hardware back button without explicitly pressing "Save &
+  /// Continue". This ensures that if the user navigates forward again (which
+  /// creates a brand-new widget instance), the draft already contains their
+  /// latest edits and the controllers are pre-populated correctly.
+  void _autoSaveOnBack() {
+    if (!_didInitialize) return;
+    final notifier = ref.read(profileSetupNotifierProvider.notifier);
+    final bio = _bioController.text.trim();
+    if (bio.isNotEmpty) {
+      // Fire-and-forget: persist latest form values to BFF draft.
+      // ignore: discarded_futures
+      notifier.saveAbout(
+        bio: bio,
+        heightCm: _height,
+        education: _education,
+        profession: _professionController.text.trim().isEmpty
+            ? null
+            : _professionController.text.trim(),
+        incomeRange: _income,
+      );
+      // ignore: discarded_futures
+      notifier.saveLifestyle(
+        drinking: _drinking,
+        smoking: _smoking,
+        religion: _religion,
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -102,110 +147,111 @@ class _SetupAboutScreenState extends ConsumerState<SetupAboutScreen> {
         ? keyboardInset + 32.0
         : safeBottomInset + 36.0;
 
-    draftAsync.whenData((draft) {
-      if (_didInitialize) return;
-      _didInitialize = true;
-      _bioController.text = draft.bio;
-      _professionController.text = draft.profession ?? '';
-      _height = draft.heightCm;
-      _education = draft.education;
-      _income = draft.incomeRange;
-      _drinking = draft.drinking;
-      _smoking = draft.smoking;
-      _religion = draft.religion;
-    });
+    // Initialise local fields once from provider data.
+    final draft = draftAsync.valueOrNull;
+    if (draft != null) _initFromDraft(draft);
 
-    return Scaffold(
-      resizeToAvoidBottomInset: true,
-      body: DecoratedBox(
-        decoration: const BoxDecoration(gradient: AppTheme.bgGradient),
-        child: SafeArea(
-          child: Column(
-            children: [
-              SetupHeader(
-                currentStep: 3,
-                totalSteps: 4,
-                onBack: () => Navigator.of(context).pop(),
-              ),
-              Expanded(
-                child: SingleChildScrollView(
-                  keyboardDismissBehavior:
-                      ScrollViewKeyboardDismissBehavior.onDrag,
-                  padding: EdgeInsets.fromLTRB(20, 16, 20, bottomPad),
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(
-                        maxWidth: AppTheme.contentMaxWidth,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Text(
-                            'Make your profile shine',
-                            style: Theme.of(context).textTheme.headlineSmall
-                                ?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                  color: Colors.white,
-                                  letterSpacing: -0.3,
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) _autoSaveOnBack();
+      },
+      child: Scaffold(
+        resizeToAvoidBottomInset: true,
+        body: DecoratedBox(
+          decoration: const BoxDecoration(gradient: AppTheme.bgGradient),
+          child: SafeArea(
+            child: Column(
+              children: [
+                SetupHeader(
+                  currentStep: 3,
+                  totalSteps: 4,
+                  onBack: () => Navigator.of(context).pop(),
+                ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
+                    padding: EdgeInsets.fromLTRB(20, 16, 20, bottomPad),
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(
+                          maxWidth: AppTheme.contentMaxWidth,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(
+                              'Make your profile shine',
+                              style: Theme.of(context).textTheme.headlineSmall
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                    color: Colors.white,
+                                    letterSpacing: -0.3,
+                                  ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'These details help find better matches.',
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: Colors.white.withValues(alpha: 0.60),
+                                  ),
+                            ),
+                            const SizedBox(height: 24),
+                            FormCard(
+                              child: draftAsync.when(
+                                loading: () => const Center(
+                                  child: Padding(
+                                    padding: EdgeInsets.symmetric(vertical: 32),
+                                    child: CircularProgressIndicator(
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        AppTheme.crystalGoldSoft,
+                                      ),
+                                    ),
+                                  ),
                                 ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'These details help find better matches.',
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  color: Colors.white.withValues(alpha: 0.60),
+                                error: (e, _) => SetupErrorState(
+                                  message: e.toString(),
+                                  onRetry: () => ref.invalidate(
+                                    profileSetupNotifierProvider,
+                                  ),
                                 ),
-                          ),
-                          const SizedBox(height: 24),
-                          FormCard(
-                            child: draftAsync.when(
-                              loading: () => const Center(
-                                child: Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 32),
-                                  child: CircularProgressIndicator(),
+                                data: (_) => _AboutForm(
+                                  bioController: _bioController,
+                                  professionController: _professionController,
+                                  height: _height,
+                                  education: _education,
+                                  income: _income,
+                                  drinking: _drinking,
+                                  smoking: _smoking,
+                                  religion: _religion,
+                                  religionOptions: religionOptions,
+                                  isSaving: _isSaving,
+                                  onHeightChanged: (v) =>
+                                      setState(() => _height = v),
+                                  onEducationChanged: (v) =>
+                                      setState(() => _education = v),
+                                  onIncomeChanged: (v) =>
+                                      setState(() => _income = v),
+                                  onDrinkingChanged: (v) =>
+                                      setState(() => _drinking = v ?? 'Never'),
+                                  onSmokingChanged: (v) =>
+                                      setState(() => _smoking = v ?? 'Never'),
+                                  onReligionChanged: (v) =>
+                                      setState(() => _religion = v),
+                                  onSave: _save,
                                 ),
-                              ),
-                              error: (e, _) => SetupErrorState(
-                                message: e.toString(),
-                                onRetry: () => ref.invalidate(
-                                  profileSetupNotifierProvider,
-                                ),
-                              ),
-                              data: (_) => _AboutForm(
-                                bioController: _bioController,
-                                professionController: _professionController,
-                                height: _height,
-                                education: _education,
-                                income: _income,
-                                drinking: _drinking,
-                                smoking: _smoking,
-                                religion: _religion,
-                                religionOptions: religionOptions,
-                                isSaving: _isSaving,
-                                onHeightChanged: (v) =>
-                                    setState(() => _height = v),
-                                onEducationChanged: (v) =>
-                                    setState(() => _education = v),
-                                onIncomeChanged: (v) =>
-                                    setState(() => _income = v),
-                                onDrinkingChanged: (v) =>
-                                    setState(() => _drinking = v ?? 'Never'),
-                                onSmokingChanged: (v) =>
-                                    setState(() => _smoking = v ?? 'Never'),
-                                onReligionChanged: (v) =>
-                                    setState(() => _religion = v),
-                                onSave: _save,
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -259,9 +305,9 @@ class _AboutForm extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Column(
     mainAxisSize: MainAxisSize.min,
-    crossAxisAlignment: CrossAxisAlignment.start,
+    crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      // ── Bio ──────────────────────────────────────────────────────────
+      // -- Bio
       setupFormLabel(context, 'Bio', Icons.auto_stories_rounded),
       const SizedBox(height: 8),
       TextField(
@@ -278,7 +324,8 @@ class _AboutForm extends StatelessWidget {
         ),
         decoration:
             glassInputDecoration(
-              hint: 'Tell people about you (min 10 chars)',
+              hint:
+                  'Tell people about you (min ${ValidationConstants.minBioLength} chars)',
             ).copyWith(
               counterStyle: TextStyle(
                 color: Colors.white.withValues(alpha: 0.45),
@@ -291,35 +338,38 @@ class _AboutForm extends StatelessWidget {
       setupSectionDivider(),
       const SizedBox(height: 20),
 
-      // ── Height ────────────────────────────────────────────────────────
+      // -- Height
       setupFormLabel(context, 'Height (cm)', Icons.height_rounded),
       const SizedBox(height: 8),
       GlassDropdown<int>(
         hint: 'Select height',
         value: height,
         enabled: !isSaving,
-        items: List.generate(61, (i) => 150 + i),
+        items: List.generate(
+          ValidationConstants.maxHeightCm - ValidationConstants.minHeightCm + 1,
+          (i) => ValidationConstants.minHeightCm + i,
+        ),
         labelBuilder: (v) => '$v cm',
         onChanged: onHeightChanged,
       ),
 
       const SizedBox(height: 20),
 
-      // ── Education ─────────────────────────────────────────────────────
+      // -- Education
       setupFormLabel(context, 'Education', Icons.school_rounded),
       const SizedBox(height: 8),
       GlassDropdown<String>(
         hint: 'Select education',
         value: education,
         enabled: !isSaving,
-        items: const ['High School', "Bachelor's", "Master's", 'PhD', 'Other'],
+        items: ProfileOptionsConstants.educationLevels,
         labelBuilder: (v) => v,
         onChanged: onEducationChanged,
       ),
 
       const SizedBox(height: 20),
 
-      // ── Profession ────────────────────────────────────────────────────
+      // -- Profession
       setupFormLabel(context, 'Profession', Icons.work_outline_rounded),
       const SizedBox(height: 8),
       TextField(
@@ -337,14 +387,14 @@ class _AboutForm extends StatelessWidget {
 
       const SizedBox(height: 20),
 
-      // ── Income ────────────────────────────────────────────────────────
+      // -- Income
       setupFormLabel(context, 'Income (optional)', Icons.attach_money_rounded),
       const SizedBox(height: 8),
       GlassDropdown<String>(
         hint: 'Prefer not to say',
         value: income,
         enabled: !isSaving,
-        items: const ['0-5L', '5-10L', '10-20L', '20L+'],
+        items: ProfileOptionsConstants.incomeRanges,
         labelBuilder: (v) => v,
         onChanged: onIncomeChanged,
       ),
@@ -353,7 +403,7 @@ class _AboutForm extends StatelessWidget {
       setupSectionDivider(),
       const SizedBox(height: 20),
 
-      // ── Lifestyle section ─────────────────────────────────────────────
+      // -- Lifestyle section
       Text(
         'Lifestyle',
         style: Theme.of(context).textTheme.titleSmall?.copyWith(
@@ -364,35 +414,35 @@ class _AboutForm extends StatelessWidget {
       ),
       const SizedBox(height: 16),
 
-      // ── Drinking ──────────────────────────────────────────────────────
+      // -- Drinking
       setupFormLabel(context, 'Drinking', Icons.local_bar_rounded),
       const SizedBox(height: 8),
       GlassDropdown<String>(
         hint: 'Select',
         value: drinking,
         enabled: !isSaving,
-        items: const ['Never', 'Socially', 'Regularly'],
+        items: ProfileOptionsConstants.drinkingOptions,
         labelBuilder: (v) => v,
         onChanged: onDrinkingChanged,
       ),
 
       const SizedBox(height: 20),
 
-      // ── Smoking ───────────────────────────────────────────────────────
+      // -- Smoking
       setupFormLabel(context, 'Smoking', Icons.smoking_rooms_rounded),
       const SizedBox(height: 8),
       GlassDropdown<String>(
         hint: 'Select',
         value: smoking,
         enabled: !isSaving,
-        items: const ['Never', 'Socially', 'Regularly'],
+        items: ProfileOptionsConstants.smokingOptions,
         labelBuilder: (v) => v,
         onChanged: onSmokingChanged,
       ),
 
       const SizedBox(height: 20),
 
-      // ── Religion ──────────────────────────────────────────────────────
+      // -- Religion
       setupFormLabel(
         context,
         'Religion (optional)',
@@ -410,7 +460,7 @@ class _AboutForm extends StatelessWidget {
 
       const SizedBox(height: 32),
 
-      // ── Next ──────────────────────────────────────────────────────────
+      // -- Next
       SizedBox(
         width: double.infinity,
         height: 54,

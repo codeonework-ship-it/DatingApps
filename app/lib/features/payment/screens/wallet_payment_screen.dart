@@ -16,6 +16,7 @@ class WalletPaymentScreen extends StatelessWidget {
       backgroundColor: const Color(0xFFF7F1E6),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
+        foregroundColor: AppTheme.textDark,
         elevation: 0,
         title: const Text('Wallet & Payments'),
       ),
@@ -89,20 +90,27 @@ class WalletPaymentScreen extends StatelessWidget {
                           ],
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.28),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Text(
-                          'Instant top-up',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: AppTheme.pureGoldInk,
-                            fontWeight: FontWeight.w800,
+                      GestureDetector(
+                        onTap: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Instant top-up processing...')),
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.28),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Text(
+                            'Instant top-up',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: AppTheme.pureGoldInk,
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
                         ),
                       ),
@@ -476,20 +484,27 @@ class _CoinPackCard extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 7,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.28),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  'Top up',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppTheme.pureGoldInk,
-                    fontWeight: FontWeight.w800,
+              GestureDetector(
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Processing purchase for $coins coins...')),
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 7,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.28),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    'Top up',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppTheme.pureGoldInk,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
               ),

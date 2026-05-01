@@ -1,0 +1,315 @@
+{% extends "control_panel/base.html" %}
+{% block topbar_title %}User Detail{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1><i class="bi bi-person-circle header-icon"></i> User Detail</h1>
+    <p class="text-muted mb-0 font-monospace small">{{ user_id }}</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'user_edit' user_id %}" class="btn btn-glow">
+      <i class="bi bi-pencil-fill me-2"></i>Edit
+    </a>
+    <form method="post" action="{% url 'user_delete' user_id %}" class="d-inline"
+      onsubmit="return confirm('Permanently delete this user?');">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-danger-glass">
+        <i class="bi bi-trash-fill me-2"></i>Delete
+      </button>
+    </form>
+    <a href="{% url 'user_list' %}" class="btn btn-glass">
+      <i class="bi bi-arrow-left me-2"></i>Back to Users
+    </a>
+  </div>
+</div>
+
+{% if error %}
+<div class="alert-glass alert-glass-warning"><i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}</div>
+{% endif %}
+
+{% if user %}
+<div class="row g-4">
+  <!-- Profile Card -->
+  <div class="col-lg-4">
+    <div class="glass-card text-center">
+      <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3"
+        style="width:80px;height:80px;background:linear-gradient(135deg,var(--purple-accent),#6d28d9);font-size:1.8rem;font-weight:700;">
+        {{ user.name|default:user.phone_number|slice:":1"|upper }}
+      </div>
+      <h4 class="mb-1">{{ user.name|default:"Unknown" }}</h4>
+      <p class="text-muted mb-3">{{ user.phone_number|default:"No phone" }}</p>
+
+      <div class="d-flex justify-content-center gap-2 mb-3">
+        {% if user.is_banned %}
+          <span class="badge badge-danger px-3 py-2">Banned</span>
+        {% elif user.suspended_at %}
+          <span class="badge badge-warning px-3 py-2">Suspended</span>
+        {% else %}
+          <span class="badge badge-active px-3 py-2">Active</span>
+        {% endif %}
+        {% if user.is_verified %}
+          <span class="badge badge-active px-3 py-2"><i class="bi bi-shield-check me-1"></i>Verified</span>
+        {% else %}
+          <span class="badge badge-inactive px-3 py-2">Unverified</span>
+        {% endif %}
+      </div>
+
+      <div class="text-muted small">
+        <div class="d-flex justify-content-between py-2" style="border-top:1px solid rgba(255,255,255,0.06);">
+          <span>Gender</span>
+          <span class="text-capitalize">{{ user.gender|default:"—" }}</span>
+        </div>
+        <div class="d-flex justify-content-between py-2" style="border-top:1px solid rgba(255,255,255,0.06);">
+          <span>Joined</span>
+          <span>{{ user.created_at|date:"M d, Y"|default:"—" }}</span>
+        </div>
+        <div class="d-flex justify-content-between py-2" style="border-top:1px solid rgba(255,255,255,0.06);">
+          <span>Last Seen</span>
+          <span>{{ user.last_login_at|date:"M d, Y"|default:"—" }}</span>
+        </div>
+        <div class="d-flex justify-content-between py-2" style="border-top:1px solid rgba(255,255,255,0.06);">
+          <span>Coin Balance</span>
+          <span style="color:var(--gold);"><i class="bi bi-coin me-1"></i>{{ wallet_balance|default:"0" }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Profile Details -->
+    <div class="glass-card mt-3">
+      <h6 class="mb-3" style="color:rgba(255,255,255,0.7);"><i class="bi bi-person-lines-fill me-2"></i>Profile Details</h6>
+      <div class="text-muted small">
+        {% if user.bio %}
+        <div class="mb-2">
+          <span class="d-block" style="color:rgba(255,255,255,0.5);">Bio</span>
+          <span>{{ user.bio|truncatechars:200 }}</span>
+        </div>
+        {% endif %}
+        <div class="row g-2">
+          <div class="col-6">
+            <div class="py-1" style="border-bottom:1px solid rgba(255,255,255,0.04);">
+              <span style="color:rgba(255,255,255,0.4);">Height</span><br>
+              {% if user.height_cm %}{{ user.height_cm }} cm{% else %}—{% endif %}
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="py-1" style="border-bottom:1px solid rgba(255,255,255,0.04);">
+              <span style="color:rgba(255,255,255,0.4);">Education</span><br>
+              {{ user.education|default:"—" }}
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="py-1" style="border-bottom:1px solid rgba(255,255,255,0.04);">
+              <span style="color:rgba(255,255,255,0.4);">Profession</span><br>
+              {{ user.profession|default:"—" }}
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="py-1" style="border-bottom:1px solid rgba(255,255,255,0.04);">
+              <span style="color:rgba(255,255,255,0.4);">Income</span><br>
+              {{ user.income_range|default:"—" }}
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="py-1" style="border-bottom:1px solid rgba(255,255,255,0.04);">
+              <span style="color:rgba(255,255,255,0.4);">Religion</span><br>
+              {{ user.religion|default:"—" }}
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="py-1" style="border-bottom:1px solid rgba(255,255,255,0.04);">
+              <span style="color:rgba(255,255,255,0.4);">Mother Tongue</span><br>
+              {{ user.mother_tongue|default:"—" }}
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="py-1" style="border-bottom:1px solid rgba(255,255,255,0.04);">
+              <span style="color:rgba(255,255,255,0.4);">Drinking</span><br>
+              {{ user.drinking|default:"—" }}
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="py-1" style="border-bottom:1px solid rgba(255,255,255,0.04);">
+              <span style="color:rgba(255,255,255,0.4);">Smoking</span><br>
+              {{ user.smoking|default:"—" }}
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="py-1" style="border-bottom:1px solid rgba(255,255,255,0.04);">
+              <span style="color:rgba(255,255,255,0.4);">Personality</span><br>
+              {{ user.personality_type|default:"—" }}
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="py-1" style="border-bottom:1px solid rgba(255,255,255,0.04);">
+              <span style="color:rgba(255,255,255,0.4);">Location</span><br>
+              {% if user.city %}{{ user.city }}{% if user.state %}, {{ user.state }}{% endif %}{% else %}—{% endif %}
+            </div>
+          </div>
+        </div>
+        {% if user.profile_completion %}
+        <div class="mt-3">
+          <span style="color:rgba(255,255,255,0.4);">Profile Completion</span>
+          <div class="progress mt-1" style="height:6px;background:rgba(255,255,255,0.06);">
+            <div class="progress-bar" role="progressbar" style="width:{{ user.profile_completion }}%;background:var(--gold);"
+              aria-valuenow="{{ user.profile_completion }}" aria-valuemin="0" aria-valuemax="100"></div>
+          </div>
+          <span class="small" style="color:var(--gold);">{{ user.profile_completion }}%</span>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Actions Panel -->
+  <div class="col-lg-8">
+
+    <!-- Suspend / Unsuspend -->
+    {% if user.suspended_at %}
+    <div class="glass-card mb-3" style="border-left:3px solid #f59e0b;">
+      <h6 class="mb-2" style="color:#f59e0b;"><i class="bi bi-slash-circle-fill me-2"></i>Currently Suspended</h6>
+      <p class="text-muted small mb-3">
+        Reason: {{ user.suspended_reason|default:"Not specified" }}<br>
+        Until: {{ user.suspended_until|default:"Indefinite" }}
+      </p>
+      <form method="post" action="{% url 'user_unsuspend' user_id %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-success-glass">
+          <i class="bi bi-person-check-fill me-2"></i>Lift Suspension
+        </button>
+      </form>
+    </div>
+    {% else %}
+    <div class="glass-card mb-3">
+      <h6 class="mb-3" style="color:rgba(255,255,255,0.7);"><i class="bi bi-slash-circle me-2"></i>Suspend User</h6>
+      <form method="post" action="{% url 'user_suspend' user_id %}">
+        {% csrf_token %}
+        <div class="row g-3">
+          <div class="col-md-8">
+            <label class="form-label text-muted small">Reason *</label>
+            <input type="text" name="reason" class="glass-input form-control" required placeholder="Reason for suspension…">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label text-muted small">Days (0 = indefinite)</label>
+            <input type="number" name="days" class="glass-input form-control" min="0" value="0" placeholder="0">
+          </div>
+        </div>
+        <button type="submit" class="btn btn-danger-glass mt-3">
+          <i class="bi bi-slash-circle-fill me-2"></i>Suspend User
+        </button>
+      </form>
+    </div>
+    {% endif %}
+
+    <!-- Ban / Unban -->
+    {% if user.is_banned %}
+    <div class="glass-card mb-3" style="border-left:3px solid #ef4444;">
+      <h6 class="mb-2" style="color:#ef4444;"><i class="bi bi-x-octagon-fill me-2"></i>Currently Banned</h6>
+      <p class="text-muted small mb-3">
+        Reason: {{ user.suspended_reason|default:"Not specified" }}
+      </p>
+      <form method="post" action="{% url 'user_unban' user_id %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-success-glass">
+          <i class="bi bi-person-check-fill me-2"></i>Lift Ban
+        </button>
+      </form>
+    </div>
+    {% else %}
+    <div class="glass-card mb-3">
+      <h6 class="mb-3" style="color:rgba(255,255,255,0.7);"><i class="bi bi-x-octagon me-2"></i>Ban User</h6>
+      <form method="post" action="{% url 'user_ban' user_id %}">
+        {% csrf_token %}
+        <div class="row g-3">
+          <div class="col-md-12">
+            <label class="form-label text-muted small">Reason *</label>
+            <input type="text" name="reason" class="glass-input form-control" required placeholder="Reason for ban…">
+          </div>
+        </div>
+        <button type="submit" class="btn btn-danger-glass mt-3">
+          <i class="bi bi-x-octagon-fill me-2"></i>Ban User
+        </button>
+      </form>
+    </div>
+    {% endif %}
+
+    <!-- Force Verify -->
+    {% if not user.is_verified %}
+    <div class="glass-card mb-3">
+      <h6 class="mb-3" style="color:rgba(255,255,255,0.7);"><i class="bi bi-shield-check me-2"></i>Verification</h6>
+      <p class="text-muted small mb-3">This user is <strong>not verified</strong>. Force-verify to grant a verified badge without selfie check.</p>
+      <form method="post" action="{% url 'user_force_verify' user_id %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-glow">
+          <i class="bi bi-shield-check me-2"></i>Force Verify
+        </button>
+      </form>
+    </div>
+    {% endif %}
+
+    <!-- Grant Coins -->
+    <div class="glass-card mb-3">
+      <h6 class="mb-3" style="color:var(--gold);"><i class="bi bi-coin me-2"></i>Grant Coins</h6>
+      <form method="post" action="{% url 'user_grant_coins' user_id %}">
+        {% csrf_token %}
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label text-muted small">Amount *</label>
+            <input type="number" name="coins" class="glass-input form-control" min="1" required placeholder="50">
+          </div>
+          <div class="col-md-8">
+            <label class="form-label text-muted small">Reason</label>
+            <input type="text" name="reason" class="glass-input form-control" placeholder="compensation, promo, test…" value="admin_grant">
+          </div>
+        </div>
+        <button type="submit" class="btn btn-glow mt-3">
+          <i class="bi bi-coin me-2"></i>Grant Coins
+        </button>
+      </form>
+    </div>
+
+    <!-- Wallet Transactions -->
+    {% if wallet_transactions %}
+    <div class="glass-card mb-3">
+      <h6 class="mb-3" style="color:rgba(255,255,255,0.7);"><i class="bi bi-clock-history me-2"></i>Recent Transactions</h6>
+      <div class="table-responsive">
+        <table class="glass-table">
+          <thead>
+            <tr>
+              <th>Coins</th>
+              <th>Source</th>
+              <th>Provider</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for tx in wallet_transactions %}
+            <tr>
+              <td style="color:var(--gold);font-weight:600;">
+                {% if tx.coins > 0 %}+{% endif %}{{ tx.coins }}
+              </td>
+              <td><span class="badge badge-purple">{{ tx.source|default:"—" }}</span></td>
+              <td class="text-muted small">{{ tx.provider|default:"—" }}</td>
+              <td class="text-muted small">{{ tx.created_at|date:"M d, Y H:i"|default:"—" }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Raw Data -->
+    <div class="glass-card">
+      <h6 class="mb-3" style="color:rgba(255,255,255,0.7);"><i class="bi bi-code-slash me-2"></i>Raw Data</h6>
+      <pre class="p-3 rounded small text-muted" style="background:rgba(0,0,0,0.3);overflow-x:auto;max-height:300px;">{{ user|pprint }}</pre>
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="text-center py-5 text-muted">
+  <i class="bi bi-person-x" style="font-size:3rem;opacity:0.3;"></i>
+  <p class="mt-3">User not found or API error.</p>
+</div>
+{% endif %}
+{% endblock %}

@@ -16,7 +16,7 @@ type Gateway interface {
 	UpsertProfile(context.Context, map[string]any) (map[string]any, error)
 	GetDraft(context.Context, string) (map[string]any, error)
 	PatchDraft(context.Context, string, map[string]any) (map[string]any, error)
-	AddPhoto(context.Context, string, string) (map[string]any, error)
+	AddPhoto(context.Context, string, string, string) (map[string]any, error)
 	DeletePhoto(context.Context, string, string) (map[string]any, error)
 	ReorderPhotos(context.Context, string, []string) (map[string]any, error)
 	CompleteProfile(context.Context, string) (map[string]any, error)
@@ -244,7 +244,7 @@ func (s *Service) HandleAddProfilePhoto(ctx context.Context, command AddProfileP
 	if userID == "" {
 		return nil, fmt.Errorf("%w: user id is required", ErrValidation)
 	}
-	draft, err := s.gateway.AddPhoto(ctx, userID, strings.TrimSpace(command.PhotoURL))
+	draft, err := s.gateway.AddPhoto(ctx, userID, strings.TrimSpace(command.PhotoURL), strings.TrimSpace(command.StoragePath))
 	if err != nil {
 		return nil, fmt.Errorf("add profile photo failed: %w", err)
 	}

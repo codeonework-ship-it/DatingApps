@@ -1,0 +1,129 @@
+{% extends "control_panel/base.html" %}
+{% block topbar_title %}Moderation Reports{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1><i class="bi bi-flag-fill header-icon"></i> Moderation Reports</h1>
+    <p class="text-muted mb-0">Review and action user-submitted reports</p>
+  </div>
+</div>
+
+{% if error %}
+<div class="alert-glass alert-glass-warning"><i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}</div>
+{% endif %}
+
+<!-- Filter -->
+<div class="glass-card mb-4">
+  <form method="get" class="d-flex flex-wrap gap-3 align-items-end">
+    <div>
+      <label class="form-label text-muted small">Status</label>
+      <select name="status" class="glass-select" style="min-width:140px;">
+        <option value="">All Reports</option>
+        <option value="pending" {% if status_filter == "pending" %}selected{% endif %}>Pending</option>
+        <option value="resolved" {% if status_filter == "resolved" %}selected{% endif %}>Resolved</option>
+        <option value="dismissed" {% if status_filter == "dismissed" %}selected{% endif %}>Dismissed</option>
+      </select>
+    </div>
+    <div class="d-flex gap-2">
+      <button type="submit" class="btn btn-glow"><i class="bi bi-funnel-fill me-1"></i>Filter</button>
+      <a href="{% url 'moderation_reports' %}" class="btn btn-glass">Clear</a>
+    </div>
+  </form>
+</div>
+
+<!-- Reports Table -->
+<div class="glass-card">
+  <div class="mb-3">
+    <span class="text-muted small">{{ reports|length }} report{{ reports|length|pluralize }}</span>
+  </div>
+
+  {% if reports %}
+  <div class="table-responsive">
+    <table class="glass-table">
+      <thead>
+        <tr>
+          <th>Reporter</th>
+          <th>Reported User</th>
+          <th>Category</th>
+          <th>Description</th>
+          <th>Status</th>
+          <th>Reported At</th>
+          <th class="text-end">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for report in reports %}
+        <tr>
+          <td class="font-monospace small text-muted">{{ report.reporter_id|slice:":8" }}…</td>
+          <td class="font-monospace small text-muted">{{ report.reported_user_id|slice:":8" }}…</td>
+          <td><span class="badge badge-warning">{{ report.category|default:"general"|capfirst }}</span></td>
+          <td class="text-muted small">{{ report.description|default:"—"|truncatechars:80 }}</td>
+          <td>
+            {% if report.status == "pending" %}
+              <span class="badge badge-warning">Pending</span>
+            {% elif report.status == "resolved" %}
+              <span class="badge badge-active">Resolved</span>
+            {% else %}
+              <span class="badge badge-inactive">{{ report.status|capfirst }}</span>
+            {% endif %}
+          </td>
+          <td class="text-muted small">{{ report.created_at|date:"M d, Y"|default:"—" }}</td>
+          <td class="text-end">
+            {% if report.status == "pending" %}
+            <button type="button" class="btn btn-glow btn-sm"
+              data-bs-toggle="modal" data-bs-target="#actionModal{{ forloop.counter }}">
+              <i class="bi bi-gavel me-1"></i>Action
+            </button>
+
+            <!-- Modal -->
+            <div class="modal fade" id="actionModal{{ forloop.counter }}" tabindex="-1">
+              <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content" style="background:var(--card-bg);border:1px solid var(--card-border);backdrop-filter:blur(20px);">
+                  <div class="modal-header" style="border-bottom:1px solid rgba(255,255,255,0.08);">
+                    <h5 class="modal-title">Action Report</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                  </div>
+                  <form method="post" action="{% url 'action_report' report.id %}">
+                    {% csrf_token %}
+                    <div class="modal-body">
+                      <div class="mb-3">
+                        <label class="form-label text-muted small">Action *</label>
+                        <select name="action" class="glass-select" required>
+                          <option value="warn">Warn Reporter</option>
+                          <option value="suspend_reported">Suspend Reported User</option>
+                          <option value="ban_reported">Ban Reported User</option>
+                          <option value="dismiss">Dismiss Report</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label class="form-label text-muted small">Reason / Notes</label>
+                        <textarea name="reason" class="glass-input" rows="3"
+                          placeholder="Optional notes…"></textarea>
+                      </div>
+                    </div>
+                    <div class="modal-footer" style="border-top:1px solid rgba(255,255,255,0.08);">
+                      <button type="button" class="btn btn-glass" data-bs-dismiss="modal">Cancel</button>
+                      <button type="submit" class="btn btn-glow">Submit Action</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+            {% else %}
+            <span class="text-muted small">Done</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="text-center py-5 text-muted">
+    <i class="bi bi-flag" style="font-size:3rem;opacity:0.3;"></i>
+    <p class="mt-3">No reports found. The community is behaving! 🎉</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

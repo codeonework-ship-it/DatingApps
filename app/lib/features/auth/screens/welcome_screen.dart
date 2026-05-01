@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
 import 'auth_screen.dart';
+import 'signup_screen.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
@@ -53,18 +54,48 @@ class WelcomeScreen extends StatelessWidget {
               ),
               const Spacer(),
               GlassButton(
-                label: 'Start Secure Sign In',
-                icon: Icons.arrow_forward_rounded,
+                label: 'Create Account',
+                icon: Icons.person_add_alt_1_rounded,
                 shinyEffect: true,
                 textColor: AppTheme.textDark,
                 fontWeight: FontWeight.w800,
                 onPressed: () {
                   Navigator.of(context).push(
-                    MaterialPageRoute<void>(builder: (_) => const AuthScreen()),
+                    MaterialPageRoute<void>(
+                      builder: (_) => const SignupScreen(),
+                    ),
                   );
                 },
               ),
               const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    side: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.32),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                  ),
+                  icon: const Icon(Icons.login_rounded, size: 19),
+                  label: const Text(
+                    'I already have an account',
+                    style: TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const AuthScreen(),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 8),
               Text(
                 'By continuing, you agree to our Terms and Privacy Policy.',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(

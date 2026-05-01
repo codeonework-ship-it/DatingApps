@@ -373,9 +373,13 @@ class _GlassButtonState extends State<GlassButton>
                                     end: Alignment(primaryRight, 1),
                                     colors: [
                                       Colors.transparent,
-                                      const Color(0xFFFFE7A3).withValues(alpha: 0.18),
+                                      const Color(
+                                        0xFFFFE7A3,
+                                      ).withValues(alpha: 0.18),
                                       Colors.white.withValues(alpha: 0.22),
-                                      const Color(0xFFFFC640).withValues(alpha: 0.34),
+                                      const Color(
+                                        0xFFFFC640,
+                                      ).withValues(alpha: 0.34),
                                       Colors.transparent,
                                     ],
                                     stops: const [0.0, 0.35, 0.52, 0.66, 1.0],
@@ -390,8 +394,12 @@ class _GlassButtonState extends State<GlassButton>
                                     end: Alignment(secondaryRight, 1),
                                     colors: [
                                       Colors.transparent,
-                                      const Color(0xFFFFF0C9).withValues(alpha: 0.14),
-                                      AppTheme.pureGoldBright.withValues(alpha: 0.28),
+                                      const Color(
+                                        0xFFFFF0C9,
+                                      ).withValues(alpha: 0.14),
+                                      AppTheme.pureGoldBright.withValues(
+                                        alpha: 0.28,
+                                      ),
                                       Colors.transparent,
                                     ],
                                     stops: const [0.0, 0.45, 0.56, 1.0],
@@ -405,8 +413,12 @@ class _GlassButtonState extends State<GlassButton>
                                     begin: Alignment.topCenter,
                                     end: Alignment.bottomCenter,
                                     colors: [
-                                      AppTheme.pureGoldHighlight.withValues(alpha: 0.24),
-                                      const Color(0xFFFFD36B).withValues(alpha: 0.08),
+                                      AppTheme.pureGoldHighlight.withValues(
+                                        alpha: 0.24,
+                                      ),
+                                      const Color(
+                                        0xFFFFD36B,
+                                      ).withValues(alpha: 0.08),
                                       Colors.transparent,
                                     ],
                                     stops: const [0.0, 0.36, 0.72],
@@ -439,13 +451,18 @@ class _GlassButtonState extends State<GlassButton>
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 15),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 15,
+                ),
                 child: widget.isLoading
                     ? SizedBox(
                         height: 20,
                         width: 20,
                         child: CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(buttonTextColor),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            buttonTextColor,
+                          ),
                           strokeWidth: 2,
                         ),
                       )
@@ -462,10 +479,12 @@ class _GlassButtonState extends State<GlassButton>
                               widget.label,
                               textAlign: TextAlign.center,
                               overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                color: buttonTextColor,
-                                fontWeight: widget.fontWeight ?? FontWeight.w700,
-                              ),
+                              style: Theme.of(context).textTheme.labelLarge
+                                  ?.copyWith(
+                                    color: buttonTextColor,
+                                    fontWeight:
+                                        widget.fontWeight ?? FontWeight.w700,
+                                  ),
                             ),
                           ),
                         ],

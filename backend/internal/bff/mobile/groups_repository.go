@@ -19,6 +19,11 @@ type communityGroupRepository struct {
 }
 
 func newCommunityGroupRepository(cfg config.Config) *communityGroupRepository {
+	databaseURL := strings.ToLower(strings.TrimSpace(cfg.DatabaseURL))
+	if strings.Contains(databaseURL, "localhost") || strings.Contains(databaseURL, "127.0.0.1") {
+		return nil
+	}
+
 	apiKey := strings.TrimSpace(cfg.SupabaseServiceRole)
 	if apiKey == "" {
 		apiKey = strings.TrimSpace(cfg.SupabaseAnonKey)

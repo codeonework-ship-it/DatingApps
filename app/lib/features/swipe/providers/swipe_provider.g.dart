@@ -6,7 +6,7 @@ part of 'swipe_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$swipeNotifierHash() => r'cfabfc7f8886818c30814f6b129167dfb681c3f9';
+String _$swipeNotifierHash() => r'56afc78cf83a0997b43ac8d8e4da671dacf477ca';
 
 /// Swipe Provider
 ///
@@ -14,14 +14,14 @@ String _$swipeNotifierHash() => r'cfabfc7f8886818c30814f6b129167dfb681c3f9';
 @ProviderFor(SwipeNotifier)
 final swipeNotifierProvider =
     AutoDisposeNotifierProvider<SwipeNotifier, SwipeState>.internal(
-      SwipeNotifier.new,
-      name: r'swipeNotifierProvider',
-      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-          ? null
-          : _$swipeNotifierHash,
-      dependencies: null,
-      allTransitiveDependencies: null,
-    );
+  SwipeNotifier.new,
+  name: r'swipeNotifierProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$swipeNotifierHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
 
 typedef _$SwipeNotifier = AutoDisposeNotifier<SwipeState>;
 // ignore_for_file: type=lint

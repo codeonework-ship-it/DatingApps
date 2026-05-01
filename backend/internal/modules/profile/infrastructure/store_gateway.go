@@ -9,7 +9,7 @@ import (
 type StoreGateway struct {
 	getDraft               func(string) any
 	patchDraft             func(string, map[string]any) any
-	addPhoto               func(string, string) any
+	addPhoto               func(string, string, string) any
 	deletePhoto            func(string, string) any
 	reorderPhotos          func(string, []string) any
 	completeProfile        func(string) (any, error)
@@ -25,7 +25,7 @@ type StoreGateway struct {
 func NewStoreGateway(
 	getDraft func(string) any,
 	patchDraft func(string, map[string]any) any,
-	addPhoto func(string, string) any,
+	addPhoto func(string, string, string) any,
 	deletePhoto func(string, string) any,
 	reorderPhotos func(string, []string) any,
 	completeProfile func(string) (any, error),
@@ -74,8 +74,8 @@ func (g *StoreGateway) PatchDraft(_ context.Context, userID string, payload map[
 	return toMap(g.patchDraft(userID, payload))
 }
 
-func (g *StoreGateway) AddPhoto(_ context.Context, userID, photoURL string) (map[string]any, error) {
-	return toMap(g.addPhoto(userID, photoURL))
+func (g *StoreGateway) AddPhoto(_ context.Context, userID, photoURL, storagePath string) (map[string]any, error) {
+	return toMap(g.addPhoto(userID, photoURL, storagePath))
 }
 
 func (g *StoreGateway) DeletePhoto(_ context.Context, userID, photoID string) (map[string]any, error) {

@@ -6,20 +6,20 @@ part of 'terms_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$termsAcceptanceHash() => r'c556e31b0d4658bf54a524935abf487342d75283';
+String _$termsAcceptanceHash() => r'df4748daa8a827d948fa420b772cd55a65085cf9';
 
 /// See also [TermsAcceptance].
 @ProviderFor(TermsAcceptance)
 final termsAcceptanceProvider =
     AutoDisposeAsyncNotifierProvider<TermsAcceptance, bool>.internal(
-      TermsAcceptance.new,
-      name: r'termsAcceptanceProvider',
-      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-          ? null
-          : _$termsAcceptanceHash,
-      dependencies: null,
-      allTransitiveDependencies: null,
-    );
+  TermsAcceptance.new,
+  name: r'termsAcceptanceProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$termsAcceptanceHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
 
 typedef _$TermsAcceptance = AutoDisposeAsyncNotifier<bool>;
 // ignore_for_file: type=lint

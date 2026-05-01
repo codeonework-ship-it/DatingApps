@@ -1,0 +1,117 @@
+{% extends "control_panel/base.html" %}
+{% block topbar_title %}Subscriptions{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1><i class="bi bi-person-badge-fill header-icon"></i> Subscriptions</h1>
+    <p class="text-muted mb-0">Active and historical user subscriptions</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'billing_dashboard' %}" class="btn btn-glass">
+      <i class="bi bi-arrow-left me-2"></i>Billing
+    </a>
+  </div>
+</div>
+
+{% if error %}
+<div class="alert-glass alert-glass-warning mb-3"><i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}</div>
+{% endif %}
+
+<!-- Filters -->
+<div class="glass-card mb-4">
+  <form method="get" class="row g-2 align-items-end">
+    <div class="col-sm-4">
+      <label class="form-label small text-muted">Status</label>
+      <select name="status" class="glass-input">
+        <option value="">All</option>
+        {% for s in "active,cancelled,expired,paused"|make_list %}{% endfor %}
+        <option value="active" {% if status_filter == "active" %}selected{% endif %}>Active</option>
+        <option value="cancelled" {% if status_filter == "cancelled" %}selected{% endif %}>Cancelled</option>
+        <option value="expired" {% if status_filter == "expired" %}selected{% endif %}>Expired</option>
+        <option value="paused" {% if status_filter == "paused" %}selected{% endif %}>Paused</option>
+      </select>
+    </div>
+    <div class="col-sm-4">
+      <label class="form-label small text-muted">Plan Code</label>
+      <input type="text" name="plan_code" class="glass-input" value="{{ plan_filter }}" placeholder="e.g. Gold">
+    </div>
+    <div class="col-sm-4">
+      <button type="submit" class="btn btn-glass w-100"><i class="bi bi-funnel me-1"></i>Filter</button>
+    </div>
+  </form>
+</div>
+
+<div class="glass-card">
+  <div class="mb-3 text-muted small">Showing {{ subscriptions|length }} of {{ total }} subscriptions (offset {{ offset }})</div>
+
+  {% if subscriptions %}
+  <div class="table-responsive">
+    <table class="glass-table w-100">
+      <thead>
+        <tr>
+          <th>User ID</th>
+          <th>Plan</th>
+          <th>Status</th>
+          <th>Cycle</th>
+          <th>Start</th>
+          <th>End</th>
+          <th>Auto-Renew</th>
+          <th>Provider ID</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for sub in subscriptions %}
+        <tr>
+          <td class="text-truncate" style="max-width:180px;" title="{{ sub.user_id }}">
+            <a href="{% url 'user_detail' sub.user_id %}" class="text-decoration-none" style="color:var(--aqua);">
+              {{ sub.user_id|truncatechars:12 }}
+            </a>
+          </td>
+          <td><span class="badge badge-purple">{{ sub.plan_code }}</span></td>
+          <td>
+            {% if sub.status == "active" %}
+            <span class="badge badge-active">{{ sub.status }}</span>
+            {% elif sub.status == "cancelled" %}
+            <span class="badge badge-danger">{{ sub.status }}</span>
+            {% elif sub.status == "expired" %}
+            <span class="badge badge-inactive">{{ sub.status }}</span>
+            {% else %}
+            <span class="badge badge-warning">{{ sub.status }}</span>
+            {% endif %}
+          </td>
+          <td>{{ sub.billing_cycle }}</td>
+          <td class="small">{{ sub.start_date|truncatechars:10 }}</td>
+          <td class="small">{{ sub.end_date|default:"—"|truncatechars:10 }}</td>
+          <td>{% if sub.auto_renew %}<i class="bi bi-check-circle text-success"></i>{% else %}<i class="bi bi-x-circle text-muted"></i>{% endif %}</td>
+          <td class="text-truncate small" style="max-width:120px;" title="{{ sub.provider_subscription_id }}">{{ sub.provider_subscription_id|default:"—"|truncatechars:12 }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <div class="d-flex justify-content-between align-items-center mt-3">
+    {% if offset > 0 %}
+    <a href="?offset={{ prev_offset }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if plan_filter %}&plan_code={{ plan_filter }}{% endif %}" class="btn btn-glass btn-sm">
+      <i class="bi bi-chevron-left me-1"></i>Prev
+    </a>
+    {% else %}
+    <span></span>
+    {% endif %}
+
+    {% if subscriptions|length >= limit %}
+    <a href="?offset={{ next_offset }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if plan_filter %}&plan_code={{ plan_filter }}{% endif %}" class="btn btn-glass btn-sm">
+      Next<i class="bi bi-chevron-right ms-1"></i>
+    </a>
+    {% endif %}
+  </div>
+  {% else %}
+  <div class="text-center py-4 text-muted">
+    <i class="bi bi-person-badge" style="font-size:2.5rem;opacity:0.3;"></i>
+    <p class="mt-2">No subscriptions found.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

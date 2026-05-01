@@ -42,3 +42,18 @@ Gateway URL for Flutter:
 # 2026-03-29 Photo upload + 100-user seed
 scripts/041_photos_storage_path_and_bucket.sql
 scripts/042_seed_100_users_25_25_spec.sql
+
+# Profile setup completion tracking (durable audit table + draft metadata columns)
+scripts/043_profile_setup_completion_tracking.sql
+
+# Rich 100-user seed with spotlight eligibility and 3 photos per user
+scripts/044_seed_100_users_rich_matches_spotlight.sql
+
+# Gift catalog expansion: new categories, daily entitlements, admirer escrow
+scripts/045_gift_catalog_expansion.sql
+
+# Admin control panel: feature flags, user suspension columns, daily prompts, coin packages
+scripts/046_feature_flags_and_admin.sql
+
+# Admin billing: coin package bonus/description columns + durable billing_plans table
+scripts/047_coin_package_extras_and_billing_plans.sql

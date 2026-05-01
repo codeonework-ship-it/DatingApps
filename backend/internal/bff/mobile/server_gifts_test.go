@@ -270,7 +270,8 @@ func TestServer_SendRoseGiftSuccess(t *testing.T) {
 	body := `{
 		"gift_id":"rose_blue_rare",
 		"sender_user_id":"gift-sender-1",
-		"receiver_user_id":"gift-receiver-1"
+		"receiver_user_id":"gift-receiver-1",
+		"message_text":"Hello with a classy rose"
 	}`
 	req := httptest.NewRequest(http.MethodPost, "/v1/chat/match-gift-1/gifts/send", strings.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -290,6 +291,10 @@ func TestServer_SendRoseGiftSuccess(t *testing.T) {
 	}
 	if got := int(giftSend["remaining_coins"].(float64)); got != 11 {
 		t.Fatalf("expected remaining_coins=11, got=%d", got)
+	}
+	message := toMap(t, payload["message"])
+	if got := stringValue(message["text"]); !strings.Contains(got, "Hello with a classy rose") || !strings.Contains(got, "[gift:") {
+		t.Fatalf("expected returned message to include note and gift token, got %q", got)
 	}
 }
 

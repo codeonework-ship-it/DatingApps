@@ -12,8 +12,7 @@ part of 'admin_models.dart';
 T _$identity<T>(T value) => value;
 
 final _privateConstructorUsedError = UnsupportedError(
-  'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models',
-);
+    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
 
 AdminUser _$AdminUserFromJson(Map<String, dynamic> json) {
   return _AdminUser.fromJson(json);
@@ -23,11 +22,11 @@ AdminUser _$AdminUserFromJson(Map<String, dynamic> json) {
 mixin _$AdminUser {
   String get id => throw _privateConstructorUsedError;
   String get userId => throw _privateConstructorUsedError;
+  String get email => throw _privateConstructorUsedError;
+  String get passwordHash => throw _privateConstructorUsedError;
   String get role =>
       throw _privateConstructorUsedError; // admin, moderator, analyst
   List<String> get permissions => throw _privateConstructorUsedError;
-  String get email => throw _privateConstructorUsedError;
-  String get passwordHash => throw _privateConstructorUsedError;
   bool get isActive => throw _privateConstructorUsedError;
   DateTime? get lastLogin => throw _privateConstructorUsedError;
   String? get notes => throw _privateConstructorUsedError;
@@ -45,19 +44,18 @@ abstract class $AdminUserCopyWith<$Res> {
   factory $AdminUserCopyWith(AdminUser value, $Res Function(AdminUser) then) =
       _$AdminUserCopyWithImpl<$Res, AdminUser>;
   @useResult
-  $Res call({
-    String id,
-    String userId,
-    String role,
-    List<String> permissions,
-    String email,
-    String passwordHash,
-    bool isActive,
-    DateTime? lastLogin,
-    String? notes,
-    DateTime? createdAt,
-    DateTime? updatedAt,
-  });
+  $Res call(
+      {String id,
+      String userId,
+      String email,
+      String passwordHash,
+      String role,
+      List<String> permissions,
+      bool isActive,
+      DateTime? lastLogin,
+      String? notes,
+      DateTime? createdAt,
+      DateTime? updatedAt});
 }
 
 /// @nodoc
@@ -75,65 +73,62 @@ class _$AdminUserCopyWithImpl<$Res, $Val extends AdminUser>
   $Res call({
     Object? id = null,
     Object? userId = null,
-    Object? role = null,
-    Object? permissions = null,
     Object? email = null,
     Object? passwordHash = null,
+    Object? role = null,
+    Object? permissions = null,
     Object? isActive = null,
     Object? lastLogin = freezed,
     Object? notes = freezed,
     Object? createdAt = freezed,
     Object? updatedAt = freezed,
   }) {
-    return _then(
-      _value.copyWith(
-            id: null == id
-                ? _value.id
-                : id // ignore: cast_nullable_to_non_nullable
-                      as String,
-            userId: null == userId
-                ? _value.userId
-                : userId // ignore: cast_nullable_to_non_nullable
-                      as String,
-            role: null == role
-                ? _value.role
-                : role // ignore: cast_nullable_to_non_nullable
-                      as String,
-            permissions: null == permissions
-                ? _value.permissions
-                : permissions // ignore: cast_nullable_to_non_nullable
-                      as List<String>,
-            email: null == email
-                ? _value.email
-                : email // ignore: cast_nullable_to_non_nullable
-                      as String,
-            passwordHash: null == passwordHash
-                ? _value.passwordHash
-                : passwordHash // ignore: cast_nullable_to_non_nullable
-                      as String,
-            isActive: null == isActive
-                ? _value.isActive
-                : isActive // ignore: cast_nullable_to_non_nullable
-                      as bool,
-            lastLogin: freezed == lastLogin
-                ? _value.lastLogin
-                : lastLogin // ignore: cast_nullable_to_non_nullable
-                      as DateTime?,
-            notes: freezed == notes
-                ? _value.notes
-                : notes // ignore: cast_nullable_to_non_nullable
-                      as String?,
-            createdAt: freezed == createdAt
-                ? _value.createdAt
-                : createdAt // ignore: cast_nullable_to_non_nullable
-                      as DateTime?,
-            updatedAt: freezed == updatedAt
-                ? _value.updatedAt
-                : updatedAt // ignore: cast_nullable_to_non_nullable
-                      as DateTime?,
-          )
-          as $Val,
-    );
+    return _then(_value.copyWith(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      userId: null == userId
+          ? _value.userId
+          : userId // ignore: cast_nullable_to_non_nullable
+              as String,
+      email: null == email
+          ? _value.email
+          : email // ignore: cast_nullable_to_non_nullable
+              as String,
+      passwordHash: null == passwordHash
+          ? _value.passwordHash
+          : passwordHash // ignore: cast_nullable_to_non_nullable
+              as String,
+      role: null == role
+          ? _value.role
+          : role // ignore: cast_nullable_to_non_nullable
+              as String,
+      permissions: null == permissions
+          ? _value.permissions
+          : permissions // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      isActive: null == isActive
+          ? _value.isActive
+          : isActive // ignore: cast_nullable_to_non_nullable
+              as bool,
+      lastLogin: freezed == lastLogin
+          ? _value.lastLogin
+          : lastLogin // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      notes: freezed == notes
+          ? _value.notes
+          : notes // ignore: cast_nullable_to_non_nullable
+              as String?,
+      createdAt: freezed == createdAt
+          ? _value.createdAt
+          : createdAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      updatedAt: freezed == updatedAt
+          ? _value.updatedAt
+          : updatedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+    ) as $Val);
   }
 }
 
@@ -141,24 +136,22 @@ class _$AdminUserCopyWithImpl<$Res, $Val extends AdminUser>
 abstract class _$$AdminUserImplCopyWith<$Res>
     implements $AdminUserCopyWith<$Res> {
   factory _$$AdminUserImplCopyWith(
-    _$AdminUserImpl value,
-    $Res Function(_$AdminUserImpl) then,
-  ) = __$$AdminUserImplCopyWithImpl<$Res>;
+          _$AdminUserImpl value, $Res Function(_$AdminUserImpl) then) =
+      __$$AdminUserImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({
-    String id,
-    String userId,
-    String role,
-    List<String> permissions,
-    String email,
-    String passwordHash,
-    bool isActive,
-    DateTime? lastLogin,
-    String? notes,
-    DateTime? createdAt,
-    DateTime? updatedAt,
-  });
+  $Res call(
+      {String id,
+      String userId,
+      String email,
+      String passwordHash,
+      String role,
+      List<String> permissions,
+      bool isActive,
+      DateTime? lastLogin,
+      String? notes,
+      DateTime? createdAt,
+      DateTime? updatedAt});
 }
 
 /// @nodoc
@@ -166,92 +159,89 @@ class __$$AdminUserImplCopyWithImpl<$Res>
     extends _$AdminUserCopyWithImpl<$Res, _$AdminUserImpl>
     implements _$$AdminUserImplCopyWith<$Res> {
   __$$AdminUserImplCopyWithImpl(
-    _$AdminUserImpl _value,
-    $Res Function(_$AdminUserImpl) _then,
-  ) : super(_value, _then);
+      _$AdminUserImpl _value, $Res Function(_$AdminUserImpl) _then)
+      : super(_value, _then);
 
   @pragma('vm:prefer-inline')
   @override
   $Res call({
     Object? id = null,
     Object? userId = null,
-    Object? role = null,
-    Object? permissions = null,
     Object? email = null,
     Object? passwordHash = null,
+    Object? role = null,
+    Object? permissions = null,
     Object? isActive = null,
     Object? lastLogin = freezed,
     Object? notes = freezed,
     Object? createdAt = freezed,
     Object? updatedAt = freezed,
   }) {
-    return _then(
-      _$AdminUserImpl(
-        id: null == id
-            ? _value.id
-            : id // ignore: cast_nullable_to_non_nullable
-                  as String,
-        userId: null == userId
-            ? _value.userId
-            : userId // ignore: cast_nullable_to_non_nullable
-                  as String,
-        role: null == role
-            ? _value.role
-            : role // ignore: cast_nullable_to_non_nullable
-                  as String,
-        permissions: null == permissions
-            ? _value._permissions
-            : permissions // ignore: cast_nullable_to_non_nullable
-                  as List<String>,
-        email: null == email
-            ? _value.email
-            : email // ignore: cast_nullable_to_non_nullable
-                  as String,
-        passwordHash: null == passwordHash
-            ? _value.passwordHash
-            : passwordHash // ignore: cast_nullable_to_non_nullable
-                  as String,
-        isActive: null == isActive
-            ? _value.isActive
-            : isActive // ignore: cast_nullable_to_non_nullable
-                  as bool,
-        lastLogin: freezed == lastLogin
-            ? _value.lastLogin
-            : lastLogin // ignore: cast_nullable_to_non_nullable
-                  as DateTime?,
-        notes: freezed == notes
-            ? _value.notes
-            : notes // ignore: cast_nullable_to_non_nullable
-                  as String?,
-        createdAt: freezed == createdAt
-            ? _value.createdAt
-            : createdAt // ignore: cast_nullable_to_non_nullable
-                  as DateTime?,
-        updatedAt: freezed == updatedAt
-            ? _value.updatedAt
-            : updatedAt // ignore: cast_nullable_to_non_nullable
-                  as DateTime?,
-      ),
-    );
+    return _then(_$AdminUserImpl(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      userId: null == userId
+          ? _value.userId
+          : userId // ignore: cast_nullable_to_non_nullable
+              as String,
+      email: null == email
+          ? _value.email
+          : email // ignore: cast_nullable_to_non_nullable
+              as String,
+      passwordHash: null == passwordHash
+          ? _value.passwordHash
+          : passwordHash // ignore: cast_nullable_to_non_nullable
+              as String,
+      role: null == role
+          ? _value.role
+          : role // ignore: cast_nullable_to_non_nullable
+              as String,
+      permissions: null == permissions
+          ? _value._permissions
+          : permissions // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      isActive: null == isActive
+          ? _value.isActive
+          : isActive // ignore: cast_nullable_to_non_nullable
+              as bool,
+      lastLogin: freezed == lastLogin
+          ? _value.lastLogin
+          : lastLogin // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      notes: freezed == notes
+          ? _value.notes
+          : notes // ignore: cast_nullable_to_non_nullable
+              as String?,
+      createdAt: freezed == createdAt
+          ? _value.createdAt
+          : createdAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      updatedAt: freezed == updatedAt
+          ? _value.updatedAt
+          : updatedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+    ));
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$AdminUserImpl implements _AdminUser {
-  const _$AdminUserImpl({
-    required this.id,
-    required this.userId,
-    this.role = 'moderator',
-    final List<String> permissions = const [],
-    required this.email,
-    required this.passwordHash,
-    this.isActive = true,
-    this.lastLogin,
-    this.notes,
-    this.createdAt,
-    this.updatedAt,
-  }) : _permissions = permissions;
+  const _$AdminUserImpl(
+      {required this.id,
+      required this.userId,
+      required this.email,
+      required this.passwordHash,
+      this.role = 'moderator',
+      final List<String> permissions = const [],
+      this.isActive = true,
+      this.lastLogin,
+      this.notes,
+      this.createdAt,
+      this.updatedAt})
+      : _permissions = permissions;
 
   factory _$AdminUserImpl.fromJson(Map<String, dynamic> json) =>
       _$$AdminUserImplFromJson(json);
@@ -261,11 +251,15 @@ class _$AdminUserImpl implements _AdminUser {
   @override
   final String userId;
   @override
+  final String email;
+  @override
+  final String passwordHash;
+  @override
   @JsonKey()
   final String role;
-  // admin, moderator, analyst
+// admin, moderator, analyst
   final List<String> _permissions;
-  // admin, moderator, analyst
+// admin, moderator, analyst
   @override
   @JsonKey()
   List<String> get permissions {
@@ -274,10 +268,6 @@ class _$AdminUserImpl implements _AdminUser {
     return EqualUnmodifiableListView(_permissions);
   }
 
-  @override
-  final String email;
-  @override
-  final String passwordHash;
   @override
   @JsonKey()
   final bool isActive;
@@ -292,7 +282,7 @@ class _$AdminUserImpl implements _AdminUser {
 
   @override
   String toString() {
-    return 'AdminUser(id: $id, userId: $userId, role: $role, permissions: $permissions, email: $email, passwordHash: $passwordHash, isActive: $isActive, lastLogin: $lastLogin, notes: $notes, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'AdminUser(id: $id, userId: $userId, email: $email, passwordHash: $passwordHash, role: $role, permissions: $permissions, isActive: $isActive, lastLogin: $lastLogin, notes: $notes, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 
   @override
@@ -302,14 +292,12 @@ class _$AdminUserImpl implements _AdminUser {
             other is _$AdminUserImpl &&
             (identical(other.id, id) || other.id == id) &&
             (identical(other.userId, userId) || other.userId == userId) &&
-            (identical(other.role, role) || other.role == role) &&
-            const DeepCollectionEquality().equals(
-              other._permissions,
-              _permissions,
-            ) &&
             (identical(other.email, email) || other.email == email) &&
             (identical(other.passwordHash, passwordHash) ||
                 other.passwordHash == passwordHash) &&
+            (identical(other.role, role) || other.role == role) &&
+            const DeepCollectionEquality()
+                .equals(other._permissions, _permissions) &&
             (identical(other.isActive, isActive) ||
                 other.isActive == isActive) &&
             (identical(other.lastLogin, lastLogin) ||
@@ -324,19 +312,18 @@ class _$AdminUserImpl implements _AdminUser {
   @JsonKey(ignore: true)
   @override
   int get hashCode => Object.hash(
-    runtimeType,
-    id,
-    userId,
-    role,
-    const DeepCollectionEquality().hash(_permissions),
-    email,
-    passwordHash,
-    isActive,
-    lastLogin,
-    notes,
-    createdAt,
-    updatedAt,
-  );
+      runtimeType,
+      id,
+      userId,
+      email,
+      passwordHash,
+      role,
+      const DeepCollectionEquality().hash(_permissions),
+      isActive,
+      lastLogin,
+      notes,
+      createdAt,
+      updatedAt);
 
   @JsonKey(ignore: true)
   @override
@@ -346,24 +333,25 @@ class _$AdminUserImpl implements _AdminUser {
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$AdminUserImplToJson(this);
+    return _$$AdminUserImplToJson(
+      this,
+    );
   }
 }
 
 abstract class _AdminUser implements AdminUser {
-  const factory _AdminUser({
-    required final String id,
-    required final String userId,
-    final String role,
-    final List<String> permissions,
-    required final String email,
-    required final String passwordHash,
-    final bool isActive,
-    final DateTime? lastLogin,
-    final String? notes,
-    final DateTime? createdAt,
-    final DateTime? updatedAt,
-  }) = _$AdminUserImpl;
+  const factory _AdminUser(
+      {required final String id,
+      required final String userId,
+      required final String email,
+      required final String passwordHash,
+      final String role,
+      final List<String> permissions,
+      final bool isActive,
+      final DateTime? lastLogin,
+      final String? notes,
+      final DateTime? createdAt,
+      final DateTime? updatedAt}) = _$AdminUserImpl;
 
   factory _AdminUser.fromJson(Map<String, dynamic> json) =
       _$AdminUserImpl.fromJson;
@@ -373,13 +361,13 @@ abstract class _AdminUser implements AdminUser {
   @override
   String get userId;
   @override
-  String get role;
-  @override // admin, moderator, analyst
-  List<String> get permissions;
-  @override
   String get email;
   @override
   String get passwordHash;
+  @override
+  String get role;
+  @override // admin, moderator, analyst
+  List<String> get permissions;
   @override
   bool get isActive;
   @override
@@ -424,23 +412,21 @@ mixin _$Notification {
 /// @nodoc
 abstract class $NotificationCopyWith<$Res> {
   factory $NotificationCopyWith(
-    Notification value,
-    $Res Function(Notification) then,
-  ) = _$NotificationCopyWithImpl<$Res, Notification>;
+          Notification value, $Res Function(Notification) then) =
+      _$NotificationCopyWithImpl<$Res, Notification>;
   @useResult
-  $Res call({
-    String id,
-    String userId,
-    String type,
-    String? title,
-    String? body,
-    Map<String, dynamic> data,
-    bool isRead,
-    DateTime? readAt,
-    DateTime? sentAt,
-    DateTime? expiresAt,
-    DateTime? createdAt,
-  });
+  $Res call(
+      {String id,
+      String userId,
+      String type,
+      String? title,
+      String? body,
+      Map<String, dynamic> data,
+      bool isRead,
+      DateTime? readAt,
+      DateTime? sentAt,
+      DateTime? expiresAt,
+      DateTime? createdAt});
 }
 
 /// @nodoc
@@ -468,55 +454,52 @@ class _$NotificationCopyWithImpl<$Res, $Val extends Notification>
     Object? expiresAt = freezed,
     Object? createdAt = freezed,
   }) {
-    return _then(
-      _value.copyWith(
-            id: null == id
-                ? _value.id
-                : id // ignore: cast_nullable_to_non_nullable
-                      as String,
-            userId: null == userId
-                ? _value.userId
-                : userId // ignore: cast_nullable_to_non_nullable
-                      as String,
-            type: null == type
-                ? _value.type
-                : type // ignore: cast_nullable_to_non_nullable
-                      as String,
-            title: freezed == title
-                ? _value.title
-                : title // ignore: cast_nullable_to_non_nullable
-                      as String?,
-            body: freezed == body
-                ? _value.body
-                : body // ignore: cast_nullable_to_non_nullable
-                      as String?,
-            data: null == data
-                ? _value.data
-                : data // ignore: cast_nullable_to_non_nullable
-                      as Map<String, dynamic>,
-            isRead: null == isRead
-                ? _value.isRead
-                : isRead // ignore: cast_nullable_to_non_nullable
-                      as bool,
-            readAt: freezed == readAt
-                ? _value.readAt
-                : readAt // ignore: cast_nullable_to_non_nullable
-                      as DateTime?,
-            sentAt: freezed == sentAt
-                ? _value.sentAt
-                : sentAt // ignore: cast_nullable_to_non_nullable
-                      as DateTime?,
-            expiresAt: freezed == expiresAt
-                ? _value.expiresAt
-                : expiresAt // ignore: cast_nullable_to_non_nullable
-                      as DateTime?,
-            createdAt: freezed == createdAt
-                ? _value.createdAt
-                : createdAt // ignore: cast_nullable_to_non_nullable
-                      as DateTime?,
-          )
-          as $Val,
-    );
+    return _then(_value.copyWith(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      userId: null == userId
+          ? _value.userId
+          : userId // ignore: cast_nullable_to_non_nullable
+              as String,
+      type: null == type
+          ? _value.type
+          : type // ignore: cast_nullable_to_non_nullable
+              as String,
+      title: freezed == title
+          ? _value.title
+          : title // ignore: cast_nullable_to_non_nullable
+              as String?,
+      body: freezed == body
+          ? _value.body
+          : body // ignore: cast_nullable_to_non_nullable
+              as String?,
+      data: null == data
+          ? _value.data
+          : data // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>,
+      isRead: null == isRead
+          ? _value.isRead
+          : isRead // ignore: cast_nullable_to_non_nullable
+              as bool,
+      readAt: freezed == readAt
+          ? _value.readAt
+          : readAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      sentAt: freezed == sentAt
+          ? _value.sentAt
+          : sentAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      expiresAt: freezed == expiresAt
+          ? _value.expiresAt
+          : expiresAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      createdAt: freezed == createdAt
+          ? _value.createdAt
+          : createdAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+    ) as $Val);
   }
 }
 
@@ -524,24 +507,22 @@ class _$NotificationCopyWithImpl<$Res, $Val extends Notification>
 abstract class _$$NotificationImplCopyWith<$Res>
     implements $NotificationCopyWith<$Res> {
   factory _$$NotificationImplCopyWith(
-    _$NotificationImpl value,
-    $Res Function(_$NotificationImpl) then,
-  ) = __$$NotificationImplCopyWithImpl<$Res>;
+          _$NotificationImpl value, $Res Function(_$NotificationImpl) then) =
+      __$$NotificationImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({
-    String id,
-    String userId,
-    String type,
-    String? title,
-    String? body,
-    Map<String, dynamic> data,
-    bool isRead,
-    DateTime? readAt,
-    DateTime? sentAt,
-    DateTime? expiresAt,
-    DateTime? createdAt,
-  });
+  $Res call(
+      {String id,
+      String userId,
+      String type,
+      String? title,
+      String? body,
+      Map<String, dynamic> data,
+      bool isRead,
+      DateTime? readAt,
+      DateTime? sentAt,
+      DateTime? expiresAt,
+      DateTime? createdAt});
 }
 
 /// @nodoc
@@ -549,9 +530,8 @@ class __$$NotificationImplCopyWithImpl<$Res>
     extends _$NotificationCopyWithImpl<$Res, _$NotificationImpl>
     implements _$$NotificationImplCopyWith<$Res> {
   __$$NotificationImplCopyWithImpl(
-    _$NotificationImpl _value,
-    $Res Function(_$NotificationImpl) _then,
-  ) : super(_value, _then);
+      _$NotificationImpl _value, $Res Function(_$NotificationImpl) _then)
+      : super(_value, _then);
 
   @pragma('vm:prefer-inline')
   @override
@@ -568,73 +548,71 @@ class __$$NotificationImplCopyWithImpl<$Res>
     Object? expiresAt = freezed,
     Object? createdAt = freezed,
   }) {
-    return _then(
-      _$NotificationImpl(
-        id: null == id
-            ? _value.id
-            : id // ignore: cast_nullable_to_non_nullable
-                  as String,
-        userId: null == userId
-            ? _value.userId
-            : userId // ignore: cast_nullable_to_non_nullable
-                  as String,
-        type: null == type
-            ? _value.type
-            : type // ignore: cast_nullable_to_non_nullable
-                  as String,
-        title: freezed == title
-            ? _value.title
-            : title // ignore: cast_nullable_to_non_nullable
-                  as String?,
-        body: freezed == body
-            ? _value.body
-            : body // ignore: cast_nullable_to_non_nullable
-                  as String?,
-        data: null == data
-            ? _value._data
-            : data // ignore: cast_nullable_to_non_nullable
-                  as Map<String, dynamic>,
-        isRead: null == isRead
-            ? _value.isRead
-            : isRead // ignore: cast_nullable_to_non_nullable
-                  as bool,
-        readAt: freezed == readAt
-            ? _value.readAt
-            : readAt // ignore: cast_nullable_to_non_nullable
-                  as DateTime?,
-        sentAt: freezed == sentAt
-            ? _value.sentAt
-            : sentAt // ignore: cast_nullable_to_non_nullable
-                  as DateTime?,
-        expiresAt: freezed == expiresAt
-            ? _value.expiresAt
-            : expiresAt // ignore: cast_nullable_to_non_nullable
-                  as DateTime?,
-        createdAt: freezed == createdAt
-            ? _value.createdAt
-            : createdAt // ignore: cast_nullable_to_non_nullable
-                  as DateTime?,
-      ),
-    );
+    return _then(_$NotificationImpl(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      userId: null == userId
+          ? _value.userId
+          : userId // ignore: cast_nullable_to_non_nullable
+              as String,
+      type: null == type
+          ? _value.type
+          : type // ignore: cast_nullable_to_non_nullable
+              as String,
+      title: freezed == title
+          ? _value.title
+          : title // ignore: cast_nullable_to_non_nullable
+              as String?,
+      body: freezed == body
+          ? _value.body
+          : body // ignore: cast_nullable_to_non_nullable
+              as String?,
+      data: null == data
+          ? _value._data
+          : data // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>,
+      isRead: null == isRead
+          ? _value.isRead
+          : isRead // ignore: cast_nullable_to_non_nullable
+              as bool,
+      readAt: freezed == readAt
+          ? _value.readAt
+          : readAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      sentAt: freezed == sentAt
+          ? _value.sentAt
+          : sentAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      expiresAt: freezed == expiresAt
+          ? _value.expiresAt
+          : expiresAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      createdAt: freezed == createdAt
+          ? _value.createdAt
+          : createdAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+    ));
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$NotificationImpl implements _Notification {
-  const _$NotificationImpl({
-    required this.id,
-    required this.userId,
-    this.type = 'info',
-    this.title,
-    this.body,
-    final Map<String, dynamic> data = const {},
-    this.isRead = false,
-    this.readAt,
-    this.sentAt,
-    this.expiresAt,
-    this.createdAt,
-  }) : _data = data;
+  const _$NotificationImpl(
+      {required this.id,
+      required this.userId,
+      this.type = 'info',
+      this.title,
+      this.body,
+      final Map<String, dynamic> data = const {},
+      this.isRead = false,
+      this.readAt,
+      this.sentAt,
+      this.expiresAt,
+      this.createdAt})
+      : _data = data;
 
   factory _$NotificationImpl.fromJson(Map<String, dynamic> json) =>
       _$$NotificationImplFromJson(json);
@@ -646,7 +624,7 @@ class _$NotificationImpl implements _Notification {
   @override
   @JsonKey()
   final String type;
-  // info, warning, error, success
+// info, warning, error, success
   @override
   final String? title;
   @override
@@ -700,19 +678,18 @@ class _$NotificationImpl implements _Notification {
   @JsonKey(ignore: true)
   @override
   int get hashCode => Object.hash(
-    runtimeType,
-    id,
-    userId,
-    type,
-    title,
-    body,
-    const DeepCollectionEquality().hash(_data),
-    isRead,
-    readAt,
-    sentAt,
-    expiresAt,
-    createdAt,
-  );
+      runtimeType,
+      id,
+      userId,
+      type,
+      title,
+      body,
+      const DeepCollectionEquality().hash(_data),
+      isRead,
+      readAt,
+      sentAt,
+      expiresAt,
+      createdAt);
 
   @JsonKey(ignore: true)
   @override
@@ -722,24 +699,25 @@ class _$NotificationImpl implements _Notification {
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$NotificationImplToJson(this);
+    return _$$NotificationImplToJson(
+      this,
+    );
   }
 }
 
 abstract class _Notification implements Notification {
-  const factory _Notification({
-    required final String id,
-    required final String userId,
-    final String type,
-    final String? title,
-    final String? body,
-    final Map<String, dynamic> data,
-    final bool isRead,
-    final DateTime? readAt,
-    final DateTime? sentAt,
-    final DateTime? expiresAt,
-    final DateTime? createdAt,
-  }) = _$NotificationImpl;
+  const factory _Notification(
+      {required final String id,
+      required final String userId,
+      final String type,
+      final String? title,
+      final String? body,
+      final Map<String, dynamic> data,
+      final bool isRead,
+      final DateTime? readAt,
+      final DateTime? sentAt,
+      final DateTime? expiresAt,
+      final DateTime? createdAt}) = _$NotificationImpl;
 
   factory _Notification.fromJson(Map<String, dynamic> json) =
       _$NotificationImpl.fromJson;
@@ -799,21 +777,19 @@ mixin _$ActivityLog {
 /// @nodoc
 abstract class $ActivityLogCopyWith<$Res> {
   factory $ActivityLogCopyWith(
-    ActivityLog value,
-    $Res Function(ActivityLog) then,
-  ) = _$ActivityLogCopyWithImpl<$Res, ActivityLog>;
+          ActivityLog value, $Res Function(ActivityLog) then) =
+      _$ActivityLogCopyWithImpl<$Res, ActivityLog>;
   @useResult
-  $Res call({
-    String id,
-    String userId,
-    String action,
-    String? resourceType,
-    String? resourceId,
-    Map<String, dynamic> metadata,
-    String? ipAddress,
-    String? userAgent,
-    DateTime? createdAt,
-  });
+  $Res call(
+      {String id,
+      String userId,
+      String action,
+      String? resourceType,
+      String? resourceId,
+      Map<String, dynamic> metadata,
+      String? ipAddress,
+      String? userAgent,
+      DateTime? createdAt});
 }
 
 /// @nodoc
@@ -839,47 +815,44 @@ class _$ActivityLogCopyWithImpl<$Res, $Val extends ActivityLog>
     Object? userAgent = freezed,
     Object? createdAt = freezed,
   }) {
-    return _then(
-      _value.copyWith(
-            id: null == id
-                ? _value.id
-                : id // ignore: cast_nullable_to_non_nullable
-                      as String,
-            userId: null == userId
-                ? _value.userId
-                : userId // ignore: cast_nullable_to_non_nullable
-                      as String,
-            action: null == action
-                ? _value.action
-                : action // ignore: cast_nullable_to_non_nullable
-                      as String,
-            resourceType: freezed == resourceType
-                ? _value.resourceType
-                : resourceType // ignore: cast_nullable_to_non_nullable
-                      as String?,
-            resourceId: freezed == resourceId
-                ? _value.resourceId
-                : resourceId // ignore: cast_nullable_to_non_nullable
-                      as String?,
-            metadata: null == metadata
-                ? _value.metadata
-                : metadata // ignore: cast_nullable_to_non_nullable
-                      as Map<String, dynamic>,
-            ipAddress: freezed == ipAddress
-                ? _value.ipAddress
-                : ipAddress // ignore: cast_nullable_to_non_nullable
-                      as String?,
-            userAgent: freezed == userAgent
-                ? _value.userAgent
-                : userAgent // ignore: cast_nullable_to_non_nullable
-                      as String?,
-            createdAt: freezed == createdAt
-                ? _value.createdAt
-                : createdAt // ignore: cast_nullable_to_non_nullable
-                      as DateTime?,
-          )
-          as $Val,
-    );
+    return _then(_value.copyWith(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      userId: null == userId
+          ? _value.userId
+          : userId // ignore: cast_nullable_to_non_nullable
+              as String,
+      action: null == action
+          ? _value.action
+          : action // ignore: cast_nullable_to_non_nullable
+              as String,
+      resourceType: freezed == resourceType
+          ? _value.resourceType
+          : resourceType // ignore: cast_nullable_to_non_nullable
+              as String?,
+      resourceId: freezed == resourceId
+          ? _value.resourceId
+          : resourceId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      metadata: null == metadata
+          ? _value.metadata
+          : metadata // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>,
+      ipAddress: freezed == ipAddress
+          ? _value.ipAddress
+          : ipAddress // ignore: cast_nullable_to_non_nullable
+              as String?,
+      userAgent: freezed == userAgent
+          ? _value.userAgent
+          : userAgent // ignore: cast_nullable_to_non_nullable
+              as String?,
+      createdAt: freezed == createdAt
+          ? _value.createdAt
+          : createdAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+    ) as $Val);
   }
 }
 
@@ -887,22 +860,20 @@ class _$ActivityLogCopyWithImpl<$Res, $Val extends ActivityLog>
 abstract class _$$ActivityLogImplCopyWith<$Res>
     implements $ActivityLogCopyWith<$Res> {
   factory _$$ActivityLogImplCopyWith(
-    _$ActivityLogImpl value,
-    $Res Function(_$ActivityLogImpl) then,
-  ) = __$$ActivityLogImplCopyWithImpl<$Res>;
+          _$ActivityLogImpl value, $Res Function(_$ActivityLogImpl) then) =
+      __$$ActivityLogImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({
-    String id,
-    String userId,
-    String action,
-    String? resourceType,
-    String? resourceId,
-    Map<String, dynamic> metadata,
-    String? ipAddress,
-    String? userAgent,
-    DateTime? createdAt,
-  });
+  $Res call(
+      {String id,
+      String userId,
+      String action,
+      String? resourceType,
+      String? resourceId,
+      Map<String, dynamic> metadata,
+      String? ipAddress,
+      String? userAgent,
+      DateTime? createdAt});
 }
 
 /// @nodoc
@@ -910,9 +881,8 @@ class __$$ActivityLogImplCopyWithImpl<$Res>
     extends _$ActivityLogCopyWithImpl<$Res, _$ActivityLogImpl>
     implements _$$ActivityLogImplCopyWith<$Res> {
   __$$ActivityLogImplCopyWithImpl(
-    _$ActivityLogImpl _value,
-    $Res Function(_$ActivityLogImpl) _then,
-  ) : super(_value, _then);
+      _$ActivityLogImpl _value, $Res Function(_$ActivityLogImpl) _then)
+      : super(_value, _then);
 
   @pragma('vm:prefer-inline')
   @override
@@ -927,63 +897,61 @@ class __$$ActivityLogImplCopyWithImpl<$Res>
     Object? userAgent = freezed,
     Object? createdAt = freezed,
   }) {
-    return _then(
-      _$ActivityLogImpl(
-        id: null == id
-            ? _value.id
-            : id // ignore: cast_nullable_to_non_nullable
-                  as String,
-        userId: null == userId
-            ? _value.userId
-            : userId // ignore: cast_nullable_to_non_nullable
-                  as String,
-        action: null == action
-            ? _value.action
-            : action // ignore: cast_nullable_to_non_nullable
-                  as String,
-        resourceType: freezed == resourceType
-            ? _value.resourceType
-            : resourceType // ignore: cast_nullable_to_non_nullable
-                  as String?,
-        resourceId: freezed == resourceId
-            ? _value.resourceId
-            : resourceId // ignore: cast_nullable_to_non_nullable
-                  as String?,
-        metadata: null == metadata
-            ? _value._metadata
-            : metadata // ignore: cast_nullable_to_non_nullable
-                  as Map<String, dynamic>,
-        ipAddress: freezed == ipAddress
-            ? _value.ipAddress
-            : ipAddress // ignore: cast_nullable_to_non_nullable
-                  as String?,
-        userAgent: freezed == userAgent
-            ? _value.userAgent
-            : userAgent // ignore: cast_nullable_to_non_nullable
-                  as String?,
-        createdAt: freezed == createdAt
-            ? _value.createdAt
-            : createdAt // ignore: cast_nullable_to_non_nullable
-                  as DateTime?,
-      ),
-    );
+    return _then(_$ActivityLogImpl(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      userId: null == userId
+          ? _value.userId
+          : userId // ignore: cast_nullable_to_non_nullable
+              as String,
+      action: null == action
+          ? _value.action
+          : action // ignore: cast_nullable_to_non_nullable
+              as String,
+      resourceType: freezed == resourceType
+          ? _value.resourceType
+          : resourceType // ignore: cast_nullable_to_non_nullable
+              as String?,
+      resourceId: freezed == resourceId
+          ? _value.resourceId
+          : resourceId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      metadata: null == metadata
+          ? _value._metadata
+          : metadata // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>,
+      ipAddress: freezed == ipAddress
+          ? _value.ipAddress
+          : ipAddress // ignore: cast_nullable_to_non_nullable
+              as String?,
+      userAgent: freezed == userAgent
+          ? _value.userAgent
+          : userAgent // ignore: cast_nullable_to_non_nullable
+              as String?,
+      createdAt: freezed == createdAt
+          ? _value.createdAt
+          : createdAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+    ));
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$ActivityLogImpl implements _ActivityLog {
-  const _$ActivityLogImpl({
-    required this.id,
-    required this.userId,
-    required this.action,
-    this.resourceType,
-    this.resourceId,
-    final Map<String, dynamic> metadata = const {},
-    this.ipAddress,
-    this.userAgent,
-    this.createdAt,
-  }) : _metadata = metadata;
+  const _$ActivityLogImpl(
+      {required this.id,
+      required this.userId,
+      required this.action,
+      this.resourceType,
+      this.resourceId,
+      final Map<String, dynamic> metadata = const {},
+      this.ipAddress,
+      this.userAgent,
+      this.createdAt})
+      : _metadata = metadata;
 
   factory _$ActivityLogImpl.fromJson(Map<String, dynamic> json) =>
       _$$ActivityLogImplFromJson(json);
@@ -994,10 +962,10 @@ class _$ActivityLogImpl implements _ActivityLog {
   final String userId;
   @override
   final String action;
-  // login, update_profile, send_message, etc
+// login, update_profile, send_message, etc
   @override
   final String? resourceType;
-  // user, match, message, etc
+// user, match, message, etc
   @override
   final String? resourceId;
   final Map<String, dynamic> _metadata;
@@ -1045,17 +1013,16 @@ class _$ActivityLogImpl implements _ActivityLog {
   @JsonKey(ignore: true)
   @override
   int get hashCode => Object.hash(
-    runtimeType,
-    id,
-    userId,
-    action,
-    resourceType,
-    resourceId,
-    const DeepCollectionEquality().hash(_metadata),
-    ipAddress,
-    userAgent,
-    createdAt,
-  );
+      runtimeType,
+      id,
+      userId,
+      action,
+      resourceType,
+      resourceId,
+      const DeepCollectionEquality().hash(_metadata),
+      ipAddress,
+      userAgent,
+      createdAt);
 
   @JsonKey(ignore: true)
   @override
@@ -1065,22 +1032,23 @@ class _$ActivityLogImpl implements _ActivityLog {
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$ActivityLogImplToJson(this);
+    return _$$ActivityLogImplToJson(
+      this,
+    );
   }
 }
 
 abstract class _ActivityLog implements ActivityLog {
-  const factory _ActivityLog({
-    required final String id,
-    required final String userId,
-    required final String action,
-    final String? resourceType,
-    final String? resourceId,
-    final Map<String, dynamic> metadata,
-    final String? ipAddress,
-    final String? userAgent,
-    final DateTime? createdAt,
-  }) = _$ActivityLogImpl;
+  const factory _ActivityLog(
+      {required final String id,
+      required final String userId,
+      required final String action,
+      final String? resourceType,
+      final String? resourceId,
+      final Map<String, dynamic> metadata,
+      final String? ipAddress,
+      final String? userAgent,
+      final DateTime? createdAt}) = _$ActivityLogImpl;
 
   factory _ActivityLog.fromJson(Map<String, dynamic> json) =
       _$ActivityLogImpl.fromJson;
@@ -1141,27 +1109,25 @@ mixin _$AnalyticsMetrics {
 /// @nodoc
 abstract class $AnalyticsMetricsCopyWith<$Res> {
   factory $AnalyticsMetricsCopyWith(
-    AnalyticsMetrics value,
-    $Res Function(AnalyticsMetrics) then,
-  ) = _$AnalyticsMetricsCopyWithImpl<$Res, AnalyticsMetrics>;
+          AnalyticsMetrics value, $Res Function(AnalyticsMetrics) then) =
+      _$AnalyticsMetricsCopyWithImpl<$Res, AnalyticsMetrics>;
   @useResult
-  $Res call({
-    String id,
-    DateTime metricDate,
-    String metricType,
-    int totalUsers,
-    int activeUsers,
-    int newUsers,
-    int totalMatches,
-    int totalSwipes,
-    int totalMessages,
-    double verificationRate,
-    double premiumConversion,
-    int averageSessionTime,
-    int reportCount,
-    Map<String, dynamic> metadata,
-    DateTime? createdAt,
-  });
+  $Res call(
+      {String id,
+      DateTime metricDate,
+      String metricType,
+      int totalUsers,
+      int activeUsers,
+      int newUsers,
+      int totalMatches,
+      int totalSwipes,
+      int totalMessages,
+      double verificationRate,
+      double premiumConversion,
+      int averageSessionTime,
+      int reportCount,
+      Map<String, dynamic> metadata,
+      DateTime? createdAt});
 }
 
 /// @nodoc
@@ -1193,110 +1159,104 @@ class _$AnalyticsMetricsCopyWithImpl<$Res, $Val extends AnalyticsMetrics>
     Object? metadata = null,
     Object? createdAt = freezed,
   }) {
-    return _then(
-      _value.copyWith(
-            id: null == id
-                ? _value.id
-                : id // ignore: cast_nullable_to_non_nullable
-                      as String,
-            metricDate: null == metricDate
-                ? _value.metricDate
-                : metricDate // ignore: cast_nullable_to_non_nullable
-                      as DateTime,
-            metricType: null == metricType
-                ? _value.metricType
-                : metricType // ignore: cast_nullable_to_non_nullable
-                      as String,
-            totalUsers: null == totalUsers
-                ? _value.totalUsers
-                : totalUsers // ignore: cast_nullable_to_non_nullable
-                      as int,
-            activeUsers: null == activeUsers
-                ? _value.activeUsers
-                : activeUsers // ignore: cast_nullable_to_non_nullable
-                      as int,
-            newUsers: null == newUsers
-                ? _value.newUsers
-                : newUsers // ignore: cast_nullable_to_non_nullable
-                      as int,
-            totalMatches: null == totalMatches
-                ? _value.totalMatches
-                : totalMatches // ignore: cast_nullable_to_non_nullable
-                      as int,
-            totalSwipes: null == totalSwipes
-                ? _value.totalSwipes
-                : totalSwipes // ignore: cast_nullable_to_non_nullable
-                      as int,
-            totalMessages: null == totalMessages
-                ? _value.totalMessages
-                : totalMessages // ignore: cast_nullable_to_non_nullable
-                      as int,
-            verificationRate: null == verificationRate
-                ? _value.verificationRate
-                : verificationRate // ignore: cast_nullable_to_non_nullable
-                      as double,
-            premiumConversion: null == premiumConversion
-                ? _value.premiumConversion
-                : premiumConversion // ignore: cast_nullable_to_non_nullable
-                      as double,
-            averageSessionTime: null == averageSessionTime
-                ? _value.averageSessionTime
-                : averageSessionTime // ignore: cast_nullable_to_non_nullable
-                      as int,
-            reportCount: null == reportCount
-                ? _value.reportCount
-                : reportCount // ignore: cast_nullable_to_non_nullable
-                      as int,
-            metadata: null == metadata
-                ? _value.metadata
-                : metadata // ignore: cast_nullable_to_non_nullable
-                      as Map<String, dynamic>,
-            createdAt: freezed == createdAt
-                ? _value.createdAt
-                : createdAt // ignore: cast_nullable_to_non_nullable
-                      as DateTime?,
-          )
-          as $Val,
-    );
+    return _then(_value.copyWith(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      metricDate: null == metricDate
+          ? _value.metricDate
+          : metricDate // ignore: cast_nullable_to_non_nullable
+              as DateTime,
+      metricType: null == metricType
+          ? _value.metricType
+          : metricType // ignore: cast_nullable_to_non_nullable
+              as String,
+      totalUsers: null == totalUsers
+          ? _value.totalUsers
+          : totalUsers // ignore: cast_nullable_to_non_nullable
+              as int,
+      activeUsers: null == activeUsers
+          ? _value.activeUsers
+          : activeUsers // ignore: cast_nullable_to_non_nullable
+              as int,
+      newUsers: null == newUsers
+          ? _value.newUsers
+          : newUsers // ignore: cast_nullable_to_non_nullable
+              as int,
+      totalMatches: null == totalMatches
+          ? _value.totalMatches
+          : totalMatches // ignore: cast_nullable_to_non_nullable
+              as int,
+      totalSwipes: null == totalSwipes
+          ? _value.totalSwipes
+          : totalSwipes // ignore: cast_nullable_to_non_nullable
+              as int,
+      totalMessages: null == totalMessages
+          ? _value.totalMessages
+          : totalMessages // ignore: cast_nullable_to_non_nullable
+              as int,
+      verificationRate: null == verificationRate
+          ? _value.verificationRate
+          : verificationRate // ignore: cast_nullable_to_non_nullable
+              as double,
+      premiumConversion: null == premiumConversion
+          ? _value.premiumConversion
+          : premiumConversion // ignore: cast_nullable_to_non_nullable
+              as double,
+      averageSessionTime: null == averageSessionTime
+          ? _value.averageSessionTime
+          : averageSessionTime // ignore: cast_nullable_to_non_nullable
+              as int,
+      reportCount: null == reportCount
+          ? _value.reportCount
+          : reportCount // ignore: cast_nullable_to_non_nullable
+              as int,
+      metadata: null == metadata
+          ? _value.metadata
+          : metadata // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>,
+      createdAt: freezed == createdAt
+          ? _value.createdAt
+          : createdAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+    ) as $Val);
   }
 }
 
 /// @nodoc
 abstract class _$$AnalyticsMetricsImplCopyWith<$Res>
     implements $AnalyticsMetricsCopyWith<$Res> {
-  factory _$$AnalyticsMetricsImplCopyWith(
-    _$AnalyticsMetricsImpl value,
-    $Res Function(_$AnalyticsMetricsImpl) then,
-  ) = __$$AnalyticsMetricsImplCopyWithImpl<$Res>;
+  factory _$$AnalyticsMetricsImplCopyWith(_$AnalyticsMetricsImpl value,
+          $Res Function(_$AnalyticsMetricsImpl) then) =
+      __$$AnalyticsMetricsImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({
-    String id,
-    DateTime metricDate,
-    String metricType,
-    int totalUsers,
-    int activeUsers,
-    int newUsers,
-    int totalMatches,
-    int totalSwipes,
-    int totalMessages,
-    double verificationRate,
-    double premiumConversion,
-    int averageSessionTime,
-    int reportCount,
-    Map<String, dynamic> metadata,
-    DateTime? createdAt,
-  });
+  $Res call(
+      {String id,
+      DateTime metricDate,
+      String metricType,
+      int totalUsers,
+      int activeUsers,
+      int newUsers,
+      int totalMatches,
+      int totalSwipes,
+      int totalMessages,
+      double verificationRate,
+      double premiumConversion,
+      int averageSessionTime,
+      int reportCount,
+      Map<String, dynamic> metadata,
+      DateTime? createdAt});
 }
 
 /// @nodoc
 class __$$AnalyticsMetricsImplCopyWithImpl<$Res>
     extends _$AnalyticsMetricsCopyWithImpl<$Res, _$AnalyticsMetricsImpl>
     implements _$$AnalyticsMetricsImplCopyWith<$Res> {
-  __$$AnalyticsMetricsImplCopyWithImpl(
-    _$AnalyticsMetricsImpl _value,
-    $Res Function(_$AnalyticsMetricsImpl) _then,
-  ) : super(_value, _then);
+  __$$AnalyticsMetricsImplCopyWithImpl(_$AnalyticsMetricsImpl _value,
+      $Res Function(_$AnalyticsMetricsImpl) _then)
+      : super(_value, _then);
 
   @pragma('vm:prefer-inline')
   @override
@@ -1317,93 +1277,91 @@ class __$$AnalyticsMetricsImplCopyWithImpl<$Res>
     Object? metadata = null,
     Object? createdAt = freezed,
   }) {
-    return _then(
-      _$AnalyticsMetricsImpl(
-        id: null == id
-            ? _value.id
-            : id // ignore: cast_nullable_to_non_nullable
-                  as String,
-        metricDate: null == metricDate
-            ? _value.metricDate
-            : metricDate // ignore: cast_nullable_to_non_nullable
-                  as DateTime,
-        metricType: null == metricType
-            ? _value.metricType
-            : metricType // ignore: cast_nullable_to_non_nullable
-                  as String,
-        totalUsers: null == totalUsers
-            ? _value.totalUsers
-            : totalUsers // ignore: cast_nullable_to_non_nullable
-                  as int,
-        activeUsers: null == activeUsers
-            ? _value.activeUsers
-            : activeUsers // ignore: cast_nullable_to_non_nullable
-                  as int,
-        newUsers: null == newUsers
-            ? _value.newUsers
-            : newUsers // ignore: cast_nullable_to_non_nullable
-                  as int,
-        totalMatches: null == totalMatches
-            ? _value.totalMatches
-            : totalMatches // ignore: cast_nullable_to_non_nullable
-                  as int,
-        totalSwipes: null == totalSwipes
-            ? _value.totalSwipes
-            : totalSwipes // ignore: cast_nullable_to_non_nullable
-                  as int,
-        totalMessages: null == totalMessages
-            ? _value.totalMessages
-            : totalMessages // ignore: cast_nullable_to_non_nullable
-                  as int,
-        verificationRate: null == verificationRate
-            ? _value.verificationRate
-            : verificationRate // ignore: cast_nullable_to_non_nullable
-                  as double,
-        premiumConversion: null == premiumConversion
-            ? _value.premiumConversion
-            : premiumConversion // ignore: cast_nullable_to_non_nullable
-                  as double,
-        averageSessionTime: null == averageSessionTime
-            ? _value.averageSessionTime
-            : averageSessionTime // ignore: cast_nullable_to_non_nullable
-                  as int,
-        reportCount: null == reportCount
-            ? _value.reportCount
-            : reportCount // ignore: cast_nullable_to_non_nullable
-                  as int,
-        metadata: null == metadata
-            ? _value._metadata
-            : metadata // ignore: cast_nullable_to_non_nullable
-                  as Map<String, dynamic>,
-        createdAt: freezed == createdAt
-            ? _value.createdAt
-            : createdAt // ignore: cast_nullable_to_non_nullable
-                  as DateTime?,
-      ),
-    );
+    return _then(_$AnalyticsMetricsImpl(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      metricDate: null == metricDate
+          ? _value.metricDate
+          : metricDate // ignore: cast_nullable_to_non_nullable
+              as DateTime,
+      metricType: null == metricType
+          ? _value.metricType
+          : metricType // ignore: cast_nullable_to_non_nullable
+              as String,
+      totalUsers: null == totalUsers
+          ? _value.totalUsers
+          : totalUsers // ignore: cast_nullable_to_non_nullable
+              as int,
+      activeUsers: null == activeUsers
+          ? _value.activeUsers
+          : activeUsers // ignore: cast_nullable_to_non_nullable
+              as int,
+      newUsers: null == newUsers
+          ? _value.newUsers
+          : newUsers // ignore: cast_nullable_to_non_nullable
+              as int,
+      totalMatches: null == totalMatches
+          ? _value.totalMatches
+          : totalMatches // ignore: cast_nullable_to_non_nullable
+              as int,
+      totalSwipes: null == totalSwipes
+          ? _value.totalSwipes
+          : totalSwipes // ignore: cast_nullable_to_non_nullable
+              as int,
+      totalMessages: null == totalMessages
+          ? _value.totalMessages
+          : totalMessages // ignore: cast_nullable_to_non_nullable
+              as int,
+      verificationRate: null == verificationRate
+          ? _value.verificationRate
+          : verificationRate // ignore: cast_nullable_to_non_nullable
+              as double,
+      premiumConversion: null == premiumConversion
+          ? _value.premiumConversion
+          : premiumConversion // ignore: cast_nullable_to_non_nullable
+              as double,
+      averageSessionTime: null == averageSessionTime
+          ? _value.averageSessionTime
+          : averageSessionTime // ignore: cast_nullable_to_non_nullable
+              as int,
+      reportCount: null == reportCount
+          ? _value.reportCount
+          : reportCount // ignore: cast_nullable_to_non_nullable
+              as int,
+      metadata: null == metadata
+          ? _value._metadata
+          : metadata // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>,
+      createdAt: freezed == createdAt
+          ? _value.createdAt
+          : createdAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+    ));
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$AnalyticsMetricsImpl implements _AnalyticsMetrics {
-  const _$AnalyticsMetricsImpl({
-    required this.id,
-    required this.metricDate,
-    this.metricType = 'daily',
-    this.totalUsers = 0,
-    this.activeUsers = 0,
-    this.newUsers = 0,
-    this.totalMatches = 0,
-    this.totalSwipes = 0,
-    this.totalMessages = 0,
-    this.verificationRate = 0.0,
-    this.premiumConversion = 0.0,
-    this.averageSessionTime = 0,
-    this.reportCount = 0,
-    final Map<String, dynamic> metadata = const {},
-    this.createdAt,
-  }) : _metadata = metadata;
+  const _$AnalyticsMetricsImpl(
+      {required this.id,
+      required this.metricDate,
+      this.metricType = 'daily',
+      this.totalUsers = 0,
+      this.activeUsers = 0,
+      this.newUsers = 0,
+      this.totalMatches = 0,
+      this.totalSwipes = 0,
+      this.totalMessages = 0,
+      this.verificationRate = 0.0,
+      this.premiumConversion = 0.0,
+      this.averageSessionTime = 0,
+      this.reportCount = 0,
+      final Map<String, dynamic> metadata = const {},
+      this.createdAt})
+      : _metadata = metadata;
 
   factory _$AnalyticsMetricsImpl.fromJson(Map<String, dynamic> json) =>
       _$$AnalyticsMetricsImplFromJson(json);
@@ -1415,7 +1373,7 @@ class _$AnalyticsMetricsImpl implements _AnalyticsMetrics {
   @override
   @JsonKey()
   final String metricType;
-  // daily, weekly, monthly
+// daily, weekly, monthly
   @override
   @JsonKey()
   final int totalUsers;
@@ -1501,57 +1459,55 @@ class _$AnalyticsMetricsImpl implements _AnalyticsMetrics {
   @JsonKey(ignore: true)
   @override
   int get hashCode => Object.hash(
-    runtimeType,
-    id,
-    metricDate,
-    metricType,
-    totalUsers,
-    activeUsers,
-    newUsers,
-    totalMatches,
-    totalSwipes,
-    totalMessages,
-    verificationRate,
-    premiumConversion,
-    averageSessionTime,
-    reportCount,
-    const DeepCollectionEquality().hash(_metadata),
-    createdAt,
-  );
+      runtimeType,
+      id,
+      metricDate,
+      metricType,
+      totalUsers,
+      activeUsers,
+      newUsers,
+      totalMatches,
+      totalSwipes,
+      totalMessages,
+      verificationRate,
+      premiumConversion,
+      averageSessionTime,
+      reportCount,
+      const DeepCollectionEquality().hash(_metadata),
+      createdAt);
 
   @JsonKey(ignore: true)
   @override
   @pragma('vm:prefer-inline')
   _$$AnalyticsMetricsImplCopyWith<_$AnalyticsMetricsImpl> get copyWith =>
       __$$AnalyticsMetricsImplCopyWithImpl<_$AnalyticsMetricsImpl>(
-        this,
-        _$identity,
-      );
+          this, _$identity);
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$AnalyticsMetricsImplToJson(this);
+    return _$$AnalyticsMetricsImplToJson(
+      this,
+    );
   }
 }
 
 abstract class _AnalyticsMetrics implements AnalyticsMetrics {
-  const factory _AnalyticsMetrics({
-    required final String id,
-    required final DateTime metricDate,
-    final String metricType,
-    final int totalUsers,
-    final int activeUsers,
-    final int newUsers,
-    final int totalMatches,
-    final int totalSwipes,
-    final int totalMessages,
-    final double verificationRate,
-    final double premiumConversion,
-    final int averageSessionTime,
-    final int reportCount,
-    final Map<String, dynamic> metadata,
-    final DateTime? createdAt,
-  }) = _$AnalyticsMetricsImpl;
+  const factory _AnalyticsMetrics(
+      {required final String id,
+      required final DateTime metricDate,
+      final String metricType,
+      final int totalUsers,
+      final int activeUsers,
+      final int newUsers,
+      final int totalMatches,
+      final int totalSwipes,
+      final int totalMessages,
+      final double verificationRate,
+      final double premiumConversion,
+      final int averageSessionTime,
+      final int reportCount,
+      final Map<String, dynamic> metadata,
+      final DateTime? createdAt}) = _$AnalyticsMetricsImpl;
 
   factory _AnalyticsMetrics.fromJson(Map<String, dynamic> json) =
       _$AnalyticsMetricsImpl.fromJson;

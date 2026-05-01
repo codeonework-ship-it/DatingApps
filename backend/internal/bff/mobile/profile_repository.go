@@ -18,6 +18,14 @@ type profileRepository struct {
 	db  *supabase.Client
 }
 
+type signupBootstrapInput struct {
+	UserID      string
+	PhoneNumber string
+	Name        string
+	DateOfBirth string
+	Gender      string
+}
+
 func newProfileRepository(cfg config.Config) *profileRepository {
 	apiKey := strings.TrimSpace(cfg.SupabaseServiceRole)
 	if apiKey == "" {
@@ -100,6 +108,80 @@ func (r *profileRepository) upsertDraft(ctx context.Context, draft profileDraft)
 		"updated_at":    time.Now().UTC().Format(time.RFC3339),
 	}}, "user_id")
 	return err
+}
+
+func (r *profileRepository) bootstrapSignup(ctx context.Context, input signupBootstrapInput) (profileDraft, bool, error) {
+	trimmedUserID := strings.TrimSpace(input.UserID)
+	if trimmedUserID == "" {
+		return profileDraft{}, false, errors.New("user_id is required")
+	}
+	usersTable := strings.TrimSpace(r.cfg.UsersTable)
+	if usersTable == "" {
+		usersTable = "users"
+	}
+
+	params := url.Values{}
+	params.Set("id", "eq."+trimmedUserID)
+	params.Set("limit", "1")
+	params.Set("select", "id,phone_number,name,date_of_birth,gender,profile_completion")
+	rows, err := r.db.SelectRead(ctx, r.cfg.UserSchema, usersTable, params)
+	if err != nil {
+		return profileDraft{}, false, err
+	}
+
+	now := time.Now().UTC().Format(time.RFC3339)
+	created := len(rows) == 0
+	if created {
+		_, err = r.db.Insert(ctx, r.cfg.UserSchema, usersTable, []map[string]any{{
+			"id":                 trimmedUserID,
+			"phone_number":       strings.TrimSpace(input.PhoneNumber),
+			"name":               strings.TrimSpace(input.Name),
+			"date_of_birth":      strings.TrimSpace(input.DateOfBirth),
+			"gender":             strings.TrimSpace(input.Gender),
+			"profile_completion": 25,
+			"is_active":          true,
+			"created_at":         now,
+			"updated_at":         now,
+		}})
+		if err != nil {
+			return profileDraft{}, false, err
+		}
+	} else {
+		row := rows[0]
+		patch := map[string]any{"updated_at": now}
+		if strings.TrimSpace(toString(row["phone_number"])) == "" {
+			patch["phone_number"] = strings.TrimSpace(input.PhoneNumber)
+		}
+		if strings.TrimSpace(toString(row["name"])) == "" {
+			patch["name"] = strings.TrimSpace(input.Name)
+		}
+		if strings.TrimSpace(toString(row["date_of_birth"])) == "" {
+			patch["date_of_birth"] = strings.TrimSpace(input.DateOfBirth)
+		}
+		if strings.TrimSpace(toString(row["gender"])) == "" {
+			patch["gender"] = strings.TrimSpace(input.Gender)
+		}
+		if _, ok := toInt(row["profile_completion"]); !ok {
+			patch["profile_completion"] = 25
+		}
+		if len(patch) > 1 {
+			filters := url.Values{}
+			filters.Set("id", "eq."+trimmedUserID)
+			if _, err := r.db.Update(ctx, r.cfg.UserSchema, usersTable, patch, filters); err != nil {
+				return profileDraft{}, false, err
+			}
+		}
+	}
+
+	draft, err := r.getDraft(ctx, trimmedUserID)
+	if err != nil {
+		return profileDraft{}, created, err
+	}
+	draft = mergeSignupIntoDraft(draft, input)
+	if err := r.upsertDraft(ctx, draft); err != nil {
+		return profileDraft{}, created, err
+	}
+	return copyDraft(draft), created, nil
 }
 
 func (r *profileRepository) getSettings(ctx context.Context, userID string) (userSettings, error) {

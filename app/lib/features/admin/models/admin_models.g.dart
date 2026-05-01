@@ -10,14 +10,13 @@ _$AdminUserImpl _$$AdminUserImplFromJson(Map<String, dynamic> json) =>
     _$AdminUserImpl(
       id: json['id'] as String,
       userId: json['userId'] as String,
+      email: json['email'] as String,
+      passwordHash: json['passwordHash'] as String,
       role: json['role'] as String? ?? 'moderator',
-      permissions:
-          (json['permissions'] as List<dynamic>?)
+      permissions: (json['permissions'] as List<dynamic>?)
               ?.map((e) => e as String)
               .toList() ??
           const [],
-      email: json['email'] as String,
-      passwordHash: json['passwordHash'] as String,
       isActive: json['isActive'] as bool? ?? true,
       lastLogin: json['lastLogin'] == null
           ? null
@@ -35,10 +34,10 @@ Map<String, dynamic> _$$AdminUserImplToJson(_$AdminUserImpl instance) =>
     <String, dynamic>{
       'id': instance.id,
       'userId': instance.userId,
-      'role': instance.role,
-      'permissions': instance.permissions,
       'email': instance.email,
       'passwordHash': instance.passwordHash,
+      'role': instance.role,
+      'permissions': instance.permissions,
       'isActive': instance.isActive,
       'lastLogin': instance.lastLogin?.toIso8601String(),
       'notes': instance.notes,
@@ -113,43 +112,43 @@ Map<String, dynamic> _$$ActivityLogImplToJson(_$ActivityLogImpl instance) =>
     };
 
 _$AnalyticsMetricsImpl _$$AnalyticsMetricsImplFromJson(
-  Map<String, dynamic> json,
-) => _$AnalyticsMetricsImpl(
-  id: json['id'] as String,
-  metricDate: DateTime.parse(json['metricDate'] as String),
-  metricType: json['metricType'] as String? ?? 'daily',
-  totalUsers: (json['totalUsers'] as num?)?.toInt() ?? 0,
-  activeUsers: (json['activeUsers'] as num?)?.toInt() ?? 0,
-  newUsers: (json['newUsers'] as num?)?.toInt() ?? 0,
-  totalMatches: (json['totalMatches'] as num?)?.toInt() ?? 0,
-  totalSwipes: (json['totalSwipes'] as num?)?.toInt() ?? 0,
-  totalMessages: (json['totalMessages'] as num?)?.toInt() ?? 0,
-  verificationRate: (json['verificationRate'] as num?)?.toDouble() ?? 0.0,
-  premiumConversion: (json['premiumConversion'] as num?)?.toDouble() ?? 0.0,
-  averageSessionTime: (json['averageSessionTime'] as num?)?.toInt() ?? 0,
-  reportCount: (json['reportCount'] as num?)?.toInt() ?? 0,
-  metadata: json['metadata'] as Map<String, dynamic>? ?? const {},
-  createdAt: json['createdAt'] == null
-      ? null
-      : DateTime.parse(json['createdAt'] as String),
-);
+        Map<String, dynamic> json) =>
+    _$AnalyticsMetricsImpl(
+      id: json['id'] as String,
+      metricDate: DateTime.parse(json['metricDate'] as String),
+      metricType: json['metricType'] as String? ?? 'daily',
+      totalUsers: (json['totalUsers'] as num?)?.toInt() ?? 0,
+      activeUsers: (json['activeUsers'] as num?)?.toInt() ?? 0,
+      newUsers: (json['newUsers'] as num?)?.toInt() ?? 0,
+      totalMatches: (json['totalMatches'] as num?)?.toInt() ?? 0,
+      totalSwipes: (json['totalSwipes'] as num?)?.toInt() ?? 0,
+      totalMessages: (json['totalMessages'] as num?)?.toInt() ?? 0,
+      verificationRate: (json['verificationRate'] as num?)?.toDouble() ?? 0.0,
+      premiumConversion: (json['premiumConversion'] as num?)?.toDouble() ?? 0.0,
+      averageSessionTime: (json['averageSessionTime'] as num?)?.toInt() ?? 0,
+      reportCount: (json['reportCount'] as num?)?.toInt() ?? 0,
+      metadata: json['metadata'] as Map<String, dynamic>? ?? const {},
+      createdAt: json['createdAt'] == null
+          ? null
+          : DateTime.parse(json['createdAt'] as String),
+    );
 
 Map<String, dynamic> _$$AnalyticsMetricsImplToJson(
-  _$AnalyticsMetricsImpl instance,
-) => <String, dynamic>{
-  'id': instance.id,
-  'metricDate': instance.metricDate.toIso8601String(),
-  'metricType': instance.metricType,
-  'totalUsers': instance.totalUsers,
-  'activeUsers': instance.activeUsers,
-  'newUsers': instance.newUsers,
-  'totalMatches': instance.totalMatches,
-  'totalSwipes': instance.totalSwipes,
-  'totalMessages': instance.totalMessages,
-  'verificationRate': instance.verificationRate,
-  'premiumConversion': instance.premiumConversion,
-  'averageSessionTime': instance.averageSessionTime,
-  'reportCount': instance.reportCount,
-  'metadata': instance.metadata,
-  'createdAt': instance.createdAt?.toIso8601String(),
-};
+        _$AnalyticsMetricsImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'metricDate': instance.metricDate.toIso8601String(),
+      'metricType': instance.metricType,
+      'totalUsers': instance.totalUsers,
+      'activeUsers': instance.activeUsers,
+      'newUsers': instance.newUsers,
+      'totalMatches': instance.totalMatches,
+      'totalSwipes': instance.totalSwipes,
+      'totalMessages': instance.totalMessages,
+      'verificationRate': instance.verificationRate,
+      'premiumConversion': instance.premiumConversion,
+      'averageSessionTime': instance.averageSessionTime,
+      'reportCount': instance.reportCount,
+      'metadata': instance.metadata,
+      'createdAt': instance.createdAt?.toIso8601String(),
+    };

@@ -1,0 +1,567 @@
+{
+  "meta": {
+    "started_at": "2026-04-05T10:21:45.704509Z",
+    "base": "http://localhost:8080/v1",
+    "match_id": "match-rose-smoke-001",
+    "sender_user_id": "11111111-1111-1111-1111-111111111111",
+    "receiver_user_id": "mock-female-001",
+    "topup_amount": 25
+  },
+  "steps": {
+    "ready_gateway": {
+      "ok": true,
+      "status": 200,
+      "url": "http://localhost:8080/readyz",
+      "headers": {
+        "X-Correlation-Id": "b6a07b90-2e4b-4c93-86be-c015f25280b0",
+        "X-Ratelimit-Limit": "120",
+        "X-Ratelimit-Remaining": "119",
+        "X-Ratelimit-Reset": "1775384506",
+        "Date": "Sun, 05 Apr 2026 10:21:45 GMT",
+        "Content-Length": "43",
+        "Content-Type": "text/plain; charset=utf-8",
+        "Connection": "close"
+      },
+      "body": {
+        "service": "api-gateway",
+        "status": "ready"
+      }
+    },
+    "catalog_get": {
+      "ok": true,
+      "status": 200,
+      "url": "http://localhost:8080/v1/chat/gifts",
+      "headers": {
+        "Content-Type": "application/json",
+        "Date": "Sun, 05 Apr 2026 10:21:45 GMT",
+        "X-Correlation-Id": "1ea0b1b1-f096-4e1f-87c0-0a196fe6be95",
+        "X-Ratelimit-Limit": "120",
+        "X-Ratelimit-Remaining": "118",
+        "X-Ratelimit-Reset": "1775384506",
+        "Connection": "close",
+        "Transfer-Encoding": "chunked"
+      },
+      "body": {
+        "correlation_id": "1ea0b1b1-f096-4e1f-87c0-0a196fe6be95",
+        "count": 17,
+        "gifts": [
+          {
+            "id": "rose_red_single",
+            "name": "Single Red Rose",
+            "icon_key": "rose_red",
+            "tier": "free",
+            "price_coins": 0,
+            "is_limited": false,
+            "is_active": true,
+            "sort_order": 10
+          },
+          {
+            "id": "rose_pink_soft",
+            "name": "Pink Rose",
+            "icon_key": "rose_pink",
+            "tier": "free",
+            "price_coins": 0,
+            "is_limited": false,
+            "is_active": true,
+            "sort_order": 20
+          },
+          {
+            "id": "rose_white_pure",
+            "name": "White Rose",
+            "icon_key": "rose_white",
+            "tier": "free",
+            "price_coins": 0,
+            "is_limited": false,
+            "is_active": true,
+            "sort_order": 30
+          },
+          {
+            "id": "rose_yellow_friendship",
+            "name": "Yellow Rose",
+            "icon_key": "rose_yellow",
+            "tier": "free",
+            "price_coins": 0,
+            "is_limited": false,
+            "is_active": true,
+            "sort_order": 40
+          },
+          {
+            "id": "rose_lavender_crush",
+            "name": "Lavender Rose",
+            "icon_key": "rose_lavender",
+            "tier": "free",
+            "price_coins": 0,
+            "is_limited": false,
+            "is_active": true,
+            "sort_order": 50
+          },
+          {
+            "id": "rose_blue_rare",
+            "name": "Blue Rose",
+            "icon_key": "rose_blue",
+            "tier": "premium_common",
+            "price_coins": 1,
+            "is_limited": false,
+            "is_active": true,
+            "sort_order": 60
+          },
+          {
+            "id": "rose_black_mystery",
+            "name": "Black Rose",
+            "icon_key": "rose_black",
+            "tier": "premium_common",
+            "price_coins": 1,
+            "is_limited": false,
+            "is_active": true,
+            "sort_order": 70
+          },
+          {
+            "id": "rose_sparkle",
+            "name": "Sparkle Rose",
+            "icon_key": "rose_sparkle",
+            "tier": "premium_rare",
+            "price_coins": 3,
+            "is_limited": false,
+            "is_active": true,
+            "sort_order": 80
+          },
+          {
+            "id": "rose_heart_petal",
+            "name": "Heart-Petal Rose",
+            "icon_key": "rose_heart",
+            "tier": "premium_rare",
+            "price_coins": 3,
+            "is_limited": false,
+            "is_active": true,
+            "sort_order": 90
+          },
+          {
+            "id": "rose_neon_glow",
+            "name": "Neon Rose",
+            "icon_key": "rose_neon",
+            "tier": "premium_rare",
+            "price_coins": 3,
+            "is_limited": false,
+            "is_active": true,
+            "sort_order": 95
+          },
+          {
+            "id": "rose_rain",
+            "name": "Rose Rain",
+            "icon_key": "rose_rain",
+            "tier": "premium_epic",
+            "price_coins": 5,
+            "is_limited": false,
+            "is_active": true,
+            "sort_order": 100
+          },
+          {
+            "id": "rose_burning_flame",
+            "name": "Burning Rose",
+            "icon_key": "rose_burning",
+            "tier": "premium_epic",
+            "price_coins": 5,
+            "is_limited": false,
+            "is_active": true,
+            "sort_order": 105
+          },
+          {
+            "id": "rose_golden",
+            "name": "Golden Rose",
+            "icon_key": "rose_gold",
+            "tier": "premium_legendary",
+            "price_coins": 8,
+            "is_limited": true,
+            "is_active": true,
+            "sort_order": 110
+          },
+          {
+            "id": "rose_crystal",
+            "name": "Crystal Rose",
+            "icon_key": "rose_crystal",
+            "tier": "premium_legendary",
+            "price_coins": 10,
+            "is_limited": true,
+            "is_active": true,
+            "sort_order": 120
+          },
+          {
+            "id": "rose_bouquet_12",
+            "name": "Rose Bouquet (12)",
+            "icon_key": "rose_bouquet",
+            "tier": "premium_legendary",
+            "price_coins": 8,
+            "is_limited": true,
+            "is_active": true,
+            "sort_order": 125
+          },
+          {
+            "id": "rose_bouquet_24",
+            "name": "Rose Bouquet (24)",
+            "icon_key": "rose_bouquet",
+            "tier": "premium_legendary",
+            "price_coins": 10,
+            "is_limited": true,
+            "is_active": true,
+            "sort_order": 130
+          },
+          {
+            "id": "rose_seasonal_weekly",
+            "name": "Seasonal Limited Rose",
+            "icon_key": "rose_seasonal",
+            "tier": "seasonal_limited",
+            "price_coins": 6,
+            "is_limited": true,
+            "is_active": true,
+            "sort_order": 140
+          }
+        ]
+      }
+    },
+    "wallet_before": {
+      "ok": true,
+      "status": 200,
+      "url": "http://localhost:8080/v1/wallet/11111111-1111-1111-1111-111111111111/coins",
+      "headers": {
+        "Content-Length": "172",
+        "Content-Type": "application/json",
+        "Date": "Sun, 05 Apr 2026 10:21:45 GMT",
+        "X-Correlation-Id": "e836f764-b32c-4f13-9277-48902e2d3a73",
+        "X-Ratelimit-Limit": "120",
+        "X-Ratelimit-Remaining": "117",
+        "X-Ratelimit-Reset": "1775384506",
+        "Connection": "close"
+      },
+      "body": {
+        "correlation_id": "e836f764-b32c-4f13-9277-48902e2d3a73",
+        "wallet": {
+          "user_id": "11111111-1111-1111-1111-111111111111",
+          "coin_balance": 12,
+          "updated_at": "2026-04-05T10:21:45Z"
+        }
+      }
+    },
+    "wallet_topup": {
+      "ok": true,
+      "status": 200,
+      "url": "http://localhost:8080/v1/wallet/11111111-1111-1111-1111-111111111111/coins/top-up",
+      "headers": {
+        "Content-Length": "300",
+        "Content-Type": "application/json",
+        "Date": "Sun, 05 Apr 2026 10:21:46 GMT",
+        "X-Correlation-Id": "e43c51ba-7c5f-4899-bbaf-93464c5f053b",
+        "X-Ratelimit-Limit": "120",
+        "X-Ratelimit-Remaining": "116",
+        "X-Ratelimit-Reset": "1775384506",
+        "Connection": "close"
+      },
+      "body": {
+        "audit": {
+          "reason": "qa_success_path_smoke",
+          "receipt_id": "79067c7a-3861-4af7-ace0-c3d563059d58",
+          "requested_by": "qa-smoke-script"
+        },
+        "correlation_id": "e43c51ba-7c5f-4899-bbaf-93464c5f053b",
+        "wallet": {
+          "user_id": "11111111-1111-1111-1111-111111111111",
+          "coin_balance": 37,
+          "updated_at": "2026-04-05T10:21:45Z"
+        }
+      }
+    },
+    "gift_panel_event": {
+      "ok": true,
+      "status": 202,
+      "url": "http://localhost:8080/v1/chat/match-rose-smoke-001/gifts/events",
+      "headers": {
+        "Content-Length": "74",
+        "Content-Type": "application/json",
+        "Date": "Sun, 05 Apr 2026 10:21:46 GMT",
+        "X-Correlation-Id": "60a004e2-7996-4d3a-9258-00bf6227f5bc",
+        "X-Ratelimit-Limit": "120",
+        "X-Ratelimit-Remaining": "115",
+        "X-Ratelimit-Reset": "1775384507",
+        "Connection": "close"
+      },
+      "body": {
+        "accepted": true,
+        "correlation_id": "60a004e2-7996-4d3a-9258-00bf6227f5bc"
+      }
+    },
+    "gift_preview_event": {
+      "ok": true,
+      "status": 202,
+      "url": "http://localhost:8080/v1/chat/match-rose-smoke-001/gifts/events",
+      "headers": {
+        "Content-Length": "74",
+        "Content-Type": "application/json",
+        "Date": "Sun, 05 Apr 2026 10:21:46 GMT",
+        "X-Correlation-Id": "94711ba4-3cdb-434d-9a95-44833df7bcd0",
+        "X-Ratelimit-Limit": "120",
+        "X-Ratelimit-Remaining": "115",
+        "X-Ratelimit-Reset": "1775384507",
+        "Connection": "close"
+      },
+      "body": {
+        "accepted": true,
+        "correlation_id": "94711ba4-3cdb-434d-9a95-44833df7bcd0"
+      }
+    },
+    "send_free": {
+      "ok": false,
+      "status": 423,
+      "url": "http://localhost:8080/v1/chat/match-rose-smoke-001/gifts/send",
+      "headers": {
+        "Content-Length": "297",
+        "Content-Type": "application/json",
+        "Date": "Sun, 05 Apr 2026 10:21:46 GMT",
+        "X-Correlation-Id": "e965f956-97f6-4eca-a53d-8432ad86a96b",
+        "X-Ratelimit-Limit": "120",
+        "X-Ratelimit-Remaining": "114",
+        "X-Ratelimit-Reset": "1775384507",
+        "Connection": "close"
+      },
+      "body": {
+        "correlation_id": "e965f956-97f6-4eca-a53d-8432ad86a96b",
+        "error": "chat is locked until quest requirement is completed",
+        "error_code": "CHAT_LOCKED_REQUIREMENT_PENDING",
+        "match_id": "match-rose-smoke-001",
+        "success": false,
+        "unlock_policy_variant": "require_quest_template",
+        "unlock_state": "quest_pending"
+      }
+    },
+    "send_paid": {
+      "ok": false,
+      "status": 423,
+      "url": "http://localhost:8080/v1/chat/match-rose-smoke-001/gifts/send",
+      "headers": {
+        "Content-Length": "297",
+        "Content-Type": "application/json",
+        "Date": "Sun, 05 Apr 2026 10:21:47 GMT",
+        "X-Correlation-Id": "751c6335-1bb2-42a0-8784-b67c91136b49",
+        "X-Ratelimit-Limit": "120",
+        "X-Ratelimit-Remaining": "115",
+        "X-Ratelimit-Reset": "1775384507",
+        "Connection": "close"
+      },
+      "body": {
+        "correlation_id": "751c6335-1bb2-42a0-8784-b67c91136b49",
+        "error": "chat is locked until quest requirement is completed",
+        "error_code": "CHAT_LOCKED_REQUIREMENT_PENDING",
+        "match_id": "match-rose-smoke-001",
+        "success": false,
+        "unlock_policy_variant": "require_quest_template",
+        "unlock_state": "quest_pending"
+      }
+    },
+    "messages_after": {
+      "ok": false,
+      "status": 502,
+      "url": "http://localhost:8080/v1/chat/match-rose-smoke-001/messages",
+      "headers": {
+        "Content-Length": "365",
+        "Content-Type": "application/json",
+        "Date": "Sun, 05 Apr 2026 10:21:47 GMT",
+        "X-Correlation-Id": "e2027d4b-5147-4c23-b7ff-831eec852f1d",
+        "X-Ratelimit-Limit": "120",
+        "X-Ratelimit-Remaining": "116",
+        "X-Ratelimit-Reset": "1775384508",
+        "Connection": "close"
+      },
+      "body": {
+        "correlation_id": "e2027d4b-5147-4c23-b7ff-831eec852f1d",
+        "error": "list messages failed: rpc error: code = Unknown desc = supabase request failed: status=406 body={\"code\":\"PGRST106\",\"details\":null,\"hint\":\"Only the following schemas are exposed: public, graphql_public\",\"message\":\"Invalid schema: matching\"}",
+        "error_code": "BAD_GATEWAY",
+        "success": false
+      }
+    },
+    "wallet_after": {
+      "ok": true,
+      "status": 200,
+      "url": "http://localhost:8080/v1/wallet/11111111-1111-1111-1111-111111111111/coins",
+      "headers": {
+        "Content-Length": "172",
+        "Content-Type": "application/json",
+        "Date": "Sun, 05 Apr 2026 10:21:47 GMT",
+        "X-Correlation-Id": "4f32d82d-b83c-44bb-a09b-acbd1716f428",
+        "X-Ratelimit-Limit": "120",
+        "X-Ratelimit-Remaining": "116",
+        "X-Ratelimit-Reset": "1775384508",
+        "Connection": "close"
+      },
+      "body": {
+        "correlation_id": "4f32d82d-b83c-44bb-a09b-acbd1716f428",
+        "wallet": {
+          "user_id": "11111111-1111-1111-1111-111111111111",
+          "coin_balance": 37,
+          "updated_at": "2026-04-05T10:21:47Z"
+        }
+      }
+    },
+    "wallet_audit": {
+      "ok": true,
+      "status": 200,
+      "url": "http://localhost:8080/v1/wallet/11111111-1111-1111-1111-111111111111/coins/audit?limit=20",
+      "headers": {
+        "Content-Type": "application/json",
+        "Date": "Sun, 05 Apr 2026 10:21:47 GMT",
+        "X-Correlation-Id": "e674c39c-5ebc-4752-984c-b2bc942168aa",
+        "X-Ratelimit-Limit": "120",
+        "X-Ratelimit-Remaining": "116",
+        "X-Ratelimit-Reset": "1775384508",
+        "Connection": "close",
+        "Transfer-Encoding": "chunked"
+      },
+      "body": {
+        "audit": [
+          {
+            "id": "act-2342",
+            "user_id": "11111111-1111-1111-1111-111111111111",
+            "actor": "11111111-1111-1111-1111-111111111111",
+            "action": "gift_send_failed_chat_locked",
+            "status": "failed",
+            "resource": "/chat/match-rose-smoke-001/gifts/send",
+            "details": {
+              "error_code": "CHAT_LOCKED_REQUIREMENT_PENDING",
+              "gift_id": "rose_blue_rare",
+              "idempotency_key": "rose-smoke-paid-001",
+              "match_id": "match-rose-smoke-001",
+              "unlock_policy_variant": "require_quest_template",
+              "unlock_state": "quest_pending"
+            },
+            "created_at": "2026-04-05T10:21:46Z"
+          },
+          {
+            "id": "act-2341",
+            "user_id": "11111111-1111-1111-1111-111111111111",
+            "actor": "11111111-1111-1111-1111-111111111111",
+            "action": "gift_send_attempted",
+            "status": "attempt",
+            "resource": "/chat/match-rose-smoke-001/gifts/send",
+            "details": {
+              "gift_id": "rose_blue_rare",
+              "idempotency_key": "rose-smoke-paid-001",
+              "idempotency_key_provided": true,
+              "match_id": "match-rose-smoke-001",
+              "receiver_user_id": "mock-female-001"
+            },
+            "created_at": "2026-04-05T10:21:46Z"
+          },
+          {
+            "id": "act-2339",
+            "user_id": "11111111-1111-1111-1111-111111111111",
+            "actor": "11111111-1111-1111-1111-111111111111",
+            "action": "gift_send_failed_chat_locked",
+            "status": "failed",
+            "resource": "/chat/match-rose-smoke-001/gifts/send",
+            "details": {
+              "error_code": "CHAT_LOCKED_REQUIREMENT_PENDING",
+              "gift_id": "rose_red_single",
+              "idempotency_key": "rose-smoke-free-001",
+              "match_id": "match-rose-smoke-001",
+              "unlock_policy_variant": "require_quest_template",
+              "unlock_state": "quest_pending"
+            },
+            "created_at": "2026-04-05T10:21:46Z"
+          },
+          {
+            "id": "act-2338",
+            "user_id": "11111111-1111-1111-1111-111111111111",
+            "actor": "11111111-1111-1111-1111-111111111111",
+            "action": "gift_send_attempted",
+            "status": "attempt",
+            "resource": "/chat/match-rose-smoke-001/gifts/send",
+            "details": {
+              "gift_id": "rose_red_single",
+              "idempotency_key": "rose-smoke-free-001",
+              "idempotency_key_provided": true,
+              "match_id": "match-rose-smoke-001",
+              "receiver_user_id": "mock-female-001"
+            },
+            "created_at": "2026-04-05T10:21:46Z"
+          },
+          {
+            "id": "act-2332",
+            "user_id": "11111111-1111-1111-1111-111111111111",
+            "actor": "qa-smoke-script",
+            "action": "wallet.topup",
+            "status": "success",
+            "resource": "/wallet/11111111-1111-1111-1111-111111111111/coins/top-up",
+            "details": {
+              "amount": 25,
+              "audit_receipt_id": "79067c7a-3861-4af7-ace0-c3d563059d58",
+              "balance": 37,
+              "currency": "coins",
+              "environment": "development",
+              "reason": "qa_success_path_smoke",
+              "requested_by": "qa-smoke-script",
+              "wallet_topup_audit": true
+            },
+            "created_at": "2026-04-05T10:21:45Z"
+          }
+        ],
+        "correlation_id": "e674c39c-5ebc-4752-984c-b2bc942168aa",
+        "count": 5,
+        "user_id": "11111111-1111-1111-1111-111111111111"
+      }
+    }
+  },
+  "summary": {
+    "steps": {
+      "ready_gateway": {
+        "ok": true,
+        "status": 200
+      },
+      "catalog_get": {
+        "ok": true,
+        "status": 200
+      },
+      "wallet_before": {
+        "ok": true,
+        "status": 200
+      },
+      "wallet_topup": {
+        "ok": true,
+        "status": 200
+      },
+      "gift_panel_event": {
+        "ok": true,
+        "status": 202
+      },
+      "gift_preview_event": {
+        "ok": true,
+        "status": 202
+      },
+      "send_free": {
+        "ok": false,
+        "status": 423
+      },
+      "send_paid": {
+        "ok": false,
+        "status": 423
+      },
+      "messages_after": {
+        "ok": false,
+        "status": 502
+      },
+      "wallet_after": {
+        "ok": true,
+        "status": 200
+      },
+      "wallet_audit": {
+        "ok": true,
+        "status": 200
+      }
+    },
+    "expected_success_path": {
+      "send_free_status": 423,
+      "send_paid_status": 423,
+      "wallet_audit_status": 200
+    },
+    "blocker": {
+      "reason": "chat lock still active for smoke identities",
+      "next_action": "use unlock-capable test pair or run local with DEFAULT_UNLOCK_POLICY_VARIANT=allow_without_template"
+    }
+  }
+}

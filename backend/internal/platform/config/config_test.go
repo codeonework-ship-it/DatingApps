@@ -37,6 +37,44 @@ func TestLoad_UsesDefaultsAndNormalizesPrefix(t *testing.T) {
 	if cfg.MobileBFFUpstreamURL == "" {
 		t.Fatalf("expected upstream url to be populated")
 	}
+	if cfg.FileStorageBackend != "local_fs" {
+		t.Fatalf("expected local_fs storage backend, got %q", cfg.FileStorageBackend)
+	}
+}
+
+func TestLoad_NormalizesAWSStorageBackend(t *testing.T) {
+	t.Setenv("SUPABASE_URL", "https://example.supabase.co")
+	t.Setenv("SUPABASE_ANON_KEY", "anon-key")
+	t.Setenv("FILE_STORAGE_BACKEND", "s3")
+	t.Setenv("AWS_S3_BUCKET", "verified-dating-media")
+	t.Setenv("AWS_S3_PROFILE_PHOTOS_PREFIX", "/profile-photos/uploads/")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	if cfg.FileStorageBackend != "aws_s3" {
+		t.Fatalf("expected aws_s3 storage backend, got %q", cfg.FileStorageBackend)
+	}
+	if !cfg.UseAWSS3Storage {
+		t.Fatalf("expected UseAWSS3Storage to be true when aws backend is selected")
+	}
+	if cfg.AWSS3ProfilePhotosPrefix != "profile-photos/uploads" {
+		t.Fatalf("expected normalized profile photos prefix, got %q", cfg.AWSS3ProfilePhotosPrefix)
+	}
+}
+
+func TestLoad_RequiresBucketWhenAWSStorageEnabled(t *testing.T) {
+	t.Setenv("SUPABASE_URL", "https://example.supabase.co")
+	t.Setenv("SUPABASE_ANON_KEY", "anon-key")
+	t.Setenv("USE_AWS_S3_STORAGE", "true")
+	t.Setenv("AWS_S3_BUCKET", "")
+
+	_, err := Load()
+	if err == nil {
+		t.Fatalf("expected error when aws storage is enabled without bucket")
+	}
 }
 
 func TestLoad_DerivesSupabaseURLAndDatabaseURLFromDBHost(t *testing.T) {
@@ -62,6 +100,32 @@ func TestLoad_DerivesSupabaseURLAndDatabaseURLFromDBHost(t *testing.T) {
 	wantDatabaseURL := "postgresql://postgres:secret@db.ufrmtgriqpyzqaewvtgn.supabase.co:5432/postgres?sslmode=require"
 	if cfg.DatabaseURL != wantDatabaseURL {
 		t.Fatalf("unexpected DatabaseURL: got %q want %q", cfg.DatabaseURL, wantDatabaseURL)
+	}
+}
+
+func TestLoad_UsesLocalPostgrestWhenLocalDbEnabled(t *testing.T) {
+	t.Setenv("USE_LOCAL_DB", "true")
+	t.Setenv("LOCAL_DATABASE_URL", "postgresql://postgres:root%40123@localhost:55432/dating_app?sslmode=disable")
+	t.Setenv("LOCAL_POSTGREST_URL", "http://127.0.0.1:54321")
+	t.Setenv("LOCAL_POSTGREST_ANON_KEY", "local-dev-key")
+	t.Setenv("SUPABASE_URL", "")
+	t.Setenv("SUPABASE_ANON_KEY", "")
+	t.Setenv("SUPABASE_SERVICE_ROLE", "")
+	t.Setenv("DATABASE_URL", "")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	if cfg.SupabaseURL != "http://127.0.0.1:54321" {
+		t.Fatalf("unexpected local SupabaseURL: %q", cfg.SupabaseURL)
+	}
+	if cfg.SupabaseAnonKey != "local-dev-key" {
+		t.Fatalf("unexpected local anon key: %q", cfg.SupabaseAnonKey)
+	}
+	if cfg.DatabaseURL != "postgresql://postgres:root%40123@localhost:55432/dating_app?sslmode=disable" {
+		t.Fatalf("unexpected local DatabaseURL: %q", cfg.DatabaseURL)
 	}
 }
 

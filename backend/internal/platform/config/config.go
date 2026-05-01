@@ -87,6 +87,8 @@ type Config struct {
 	MatchGiftSendsTable        string
 	GiftSpendActivitiesTable   string
 	WalletCoinPurchasesTable   string
+	GiftDailyEntitlementsTable string
+	AdmirerGiftEscrowTable     string
 	CommunityGroupsTable       string
 	CommunityGroupMembersTable string
 	CommunityGroupInvitesTable string
@@ -99,8 +101,18 @@ type Config struct {
 	DefaultAvatarImageURL    string
 	MockPhotoSeedURLTemplate string
 	MockBlockedPhotoTemplate string
+	UseAWSS3Storage          bool
+	FileStorageBackend       string
 	MediaUploadsDir          string
 	MediaPublicBaseURL       string
+	AWSS3Region              string
+	AWSS3Bucket              string
+	AWSS3Endpoint            string
+	AWSS3AccessKeyID         string
+	AWSS3SecretAccessKey     string
+	AWSS3PublicBaseURL       string
+	AWSS3ProfilePhotosPrefix string
+	AWSS3ForcePathStyle      bool
 
 	MockOTPEnabled       bool
 	MockOTPCode          string
@@ -139,7 +151,8 @@ func Load() (Config, error) {
 	databaseSSLMode := getOrDefault("DATABASE_SSLMODE", getOrDefault("SUPABASE_DB_SSLMODE", "require"))
 
 	databaseURL := getOrDefault("DATABASE_URL", getOrDefault("SUPABASE_DATABASE_URL", ""))
-	if getOrDefault("USE_LOCAL_DB", "false") == "true" {
+	useLocalDB := getOrDefault("USE_LOCAL_DB", "false") == "true"
+	if useLocalDB {
 		databaseURL = getOrDefault("LOCAL_DATABASE_URL", "postgresql://postgres:root%40123@localhost:5433/dating_app?sslmode=disable")
 	} else if databaseURL == "" {
 		databaseURL = getOrDefault("PROD_DATABASE_URL", buildPostgresURL(
@@ -152,7 +165,21 @@ func Load() (Config, error) {
 		))
 	}
 
+	localPostgrestURL := strings.TrimSpace(getOrDefault("LOCAL_POSTGREST_URL", "http://127.0.0.1:54321"))
 	supabaseURL := getOrDefault("SUPABASE_URL", deriveSupabaseURLFromDBHost(databaseHost))
+	if useLocalDB && strings.TrimSpace(supabaseURL) == "" {
+		supabaseURL = localPostgrestURL
+	}
+
+	supabaseAnonKey := os.Getenv("SUPABASE_ANON_KEY")
+	if useLocalDB && strings.TrimSpace(supabaseAnonKey) == "" {
+		supabaseAnonKey = getOrDefault("LOCAL_POSTGREST_ANON_KEY", "local-dev-key")
+	}
+
+	supabaseServiceRole := os.Getenv("SUPABASE_SERVICE_ROLE")
+	if useLocalDB && strings.TrimSpace(supabaseServiceRole) == "" {
+		supabaseServiceRole = getOrDefault("LOCAL_POSTGREST_SERVICE_ROLE", "")
+	}
 
 	cfg := Config{
 		Environment:                      getOrDefault("ENVIRONMENT", "development"),
@@ -198,8 +225,8 @@ func Load() (Config, error) {
 		ChatRealtimeHeartbeatSec:         getInt("CHAT_REALTIME_HEARTBEAT_SEC", 25),
 		SupabaseURL:                      supabaseURL,
 		SupabaseReadReplicaURL:           strings.TrimSpace(getOrDefault("SUPABASE_READ_REPLICA_URL", "")),
-		SupabaseAnonKey:                  os.Getenv("SUPABASE_ANON_KEY"),
-		SupabaseServiceRole:              os.Getenv("SUPABASE_SERVICE_ROLE"),
+		SupabaseAnonKey:                  supabaseAnonKey,
+		SupabaseServiceRole:              supabaseServiceRole,
 		DatabaseURL:                      databaseURL,
 		DatabaseHost:                     databaseHost,
 		DatabasePort:                     databasePort,
@@ -225,6 +252,8 @@ func Load() (Config, error) {
 		MatchGiftSendsTable:              getOrDefault("SUPABASE_MATCH_GIFT_SENDS_TABLE", "match_gift_sends"),
 		GiftSpendActivitiesTable:         getOrDefault("SUPABASE_GIFT_SPEND_ACTIVITIES_TABLE", "gift_spend_activities"),
 		WalletCoinPurchasesTable:         getOrDefault("SUPABASE_WALLET_COIN_PURCHASES_TABLE", "wallet_coin_purchases"),
+		GiftDailyEntitlementsTable:       getOrDefault("SUPABASE_GIFT_DAILY_ENTITLEMENTS_TABLE", "gift_daily_entitlements"),
+		AdmirerGiftEscrowTable:           getOrDefault("SUPABASE_ADMIRER_GIFT_ESCROW_TABLE", "admirer_gift_escrow"),
 		CommunityGroupsTable:             getOrDefault("SUPABASE_COMMUNITY_GROUPS_TABLE", "community_groups"),
 		CommunityGroupMembersTable:       getOrDefault("SUPABASE_COMMUNITY_GROUP_MEMBERS_TABLE", "community_group_members"),
 		CommunityGroupInvitesTable:       getOrDefault("SUPABASE_COMMUNITY_GROUP_INVITES_TABLE", "community_group_invites"),
@@ -248,6 +277,14 @@ func Load() (Config, error) {
 			"MOCK_BLOCKED_PHOTO_URL_TEMPLATE",
 			"https://picsum.photos/seed/%s/200/200",
 		),
+		UseAWSS3Storage: getBool(
+			"USE_AWS_S3_STORAGE",
+			false,
+		),
+		FileStorageBackend: getOrDefault(
+			"FILE_STORAGE_BACKEND",
+			"local_fs",
+		),
 		MediaUploadsDir: getOrDefault(
 			"MEDIA_UPLOADS_DIR",
 			".run/uploads/profile_photos",
@@ -255,6 +292,38 @@ func Load() (Config, error) {
 		MediaPublicBaseURL: getOrDefault(
 			"MEDIA_PUBLIC_BASE_URL",
 			"auto",
+		),
+		AWSS3Region: getOrDefault(
+			"AWS_S3_REGION",
+			"",
+		),
+		AWSS3Bucket: getOrDefault(
+			"AWS_S3_BUCKET",
+			"",
+		),
+		AWSS3Endpoint: getOrDefault(
+			"AWS_S3_ENDPOINT",
+			"",
+		),
+		AWSS3AccessKeyID: getOrDefault(
+			"AWS_S3_ACCESS_KEY_ID",
+			"",
+		),
+		AWSS3SecretAccessKey: getOrDefault(
+			"AWS_S3_SECRET_ACCESS_KEY",
+			"",
+		),
+		AWSS3PublicBaseURL: getOrDefault(
+			"AWS_S3_PUBLIC_BASE_URL",
+			"",
+		),
+		AWSS3ProfilePhotosPrefix: getOrDefault(
+			"AWS_S3_PROFILE_PHOTOS_PREFIX",
+			"profile-photos",
+		),
+		AWSS3ForcePathStyle: getBool(
+			"AWS_S3_FORCE_PATH_STYLE",
+			false,
 		),
 		MockOTPEnabled:                  getBool("MOCK_OTP_ENABLED", true),
 		MockOTPCode:                     getOrDefault("MOCK_OTP_CODE", "123456"),
@@ -286,12 +355,18 @@ func Load() (Config, error) {
 		MasterDataCacheTTLSeconds: getInt("MASTER_DATA_CACHE_TTL_SECONDS", 300),
 	}
 	cfg.MobileBFFUpstreamURL = getOrDefault("MOBILE_BFF_UPSTREAM_URL", "http://localhost"+cfg.MobileBFFAddr)
+	cfg.FileStorageBackend = normalizeFileStorageBackend(cfg.FileStorageBackend, cfg.UseAWSS3Storage)
+	cfg.UseAWSS3Storage = cfg.FileStorageBackend == "aws_s3"
+	cfg.AWSS3ProfilePhotosPrefix = normalizeStoragePrefix(cfg.AWSS3ProfilePhotosPrefix)
 
 	if cfg.SupabaseURL == "" {
-		return Config{}, fmt.Errorf("SUPABASE_URL is required (or provide SUPABASE_DB_HOST / DATABASE_HOST)")
+		return Config{}, fmt.Errorf("SUPABASE_URL is required (or provide LOCAL_POSTGREST_URL when USE_LOCAL_DB=true, or SUPABASE_DB_HOST / DATABASE_HOST)")
 	}
 	if cfg.SupabaseAnonKey == "" && cfg.SupabaseServiceRole == "" {
 		return Config{}, fmt.Errorf("SUPABASE_ANON_KEY or SUPABASE_SERVICE_ROLE is required")
+	}
+	if cfg.UseAWSS3Storage && strings.TrimSpace(cfg.AWSS3Bucket) == "" {
+		return Config{}, fmt.Errorf("AWS_S3_BUCKET is required when aws_s3 storage backend is enabled")
 	}
 
 	return cfg, nil
@@ -355,6 +430,29 @@ func normalizePrefix(v string) string {
 		trimmed = "/" + trimmed
 	}
 	return strings.TrimRight(trimmed, "/")
+}
+
+func normalizeFileStorageBackend(value string, useAWSS3Storage bool) string {
+	if useAWSS3Storage {
+		return "aws_s3"
+	}
+
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "", "local", "local_fs", "filesystem":
+		return "local_fs"
+	case "aws", "aws_s3", "s3":
+		return "aws_s3"
+	default:
+		return "local_fs"
+	}
+}
+
+func normalizeStoragePrefix(value string) string {
+	normalized := strings.Trim(strings.ReplaceAll(strings.TrimSpace(value), "\\", "/"), "/")
+	if normalized == "." {
+		return ""
+	}
+	return normalized
 }
 
 func getCSVOrDefault(key string, fallback []string) []string {

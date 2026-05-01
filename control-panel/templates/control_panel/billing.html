@@ -1,0 +1,253 @@
+{% extends "control_panel/base.html" %}
+{% block topbar_title %}Billing & Monetisation{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1><i class="bi bi-credit-card-2-front-fill header-icon"></i> Billing & Monetisation</h1>
+    <p class="text-muted mb-0">Manage subscription plans, coin packages, and transactions</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'billing_transactions' %}" class="btn btn-glass">
+      <i class="bi bi-clock-history me-2"></i>Transactions
+    </a>
+    <a href="{% url 'billing_subscriptions' %}" class="btn btn-glass">
+      <i class="bi bi-person-badge me-2"></i>Subscriptions
+    </a>
+    <a href="{% url 'billing_payments' %}" class="btn btn-glass">
+      <i class="bi bi-receipt me-2"></i>Payments
+    </a>
+    <a href="{% url 'billing_revenue_analytics' %}" class="btn btn-glow">
+      <i class="bi bi-graph-up-arrow me-2"></i>Revenue
+    </a>
+  </div>
+</div>
+
+<!-- KPI Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-lg-3">
+    <div class="glass-card text-center py-3">
+      <div style="font-size:1.6rem;font-weight:700;color:var(--gold);">{{ plans|length }}</div>
+      <div class="text-muted small">Subscription Plans</div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-lg-3">
+    <div class="glass-card text-center py-3">
+      <div style="font-size:1.6rem;font-weight:700;color:var(--aqua);">{{ coin_packages|length }}</div>
+      <div class="text-muted small">Coin Packages</div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-lg-3">
+    <div class="glass-card text-center py-3">
+      <div style="font-size:1.6rem;font-weight:700;color:#22c55e;">{{ active_packages }}</div>
+      <div class="text-muted small">Live Packages</div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-lg-3">
+    <div class="glass-card text-center py-3">
+      <div style="font-size:1.6rem;font-weight:700;color:var(--purple-accent);">{{ transaction_count|default:"—" }}</div>
+      <div class="text-muted small">Recent Purchases</div>
+    </div>
+  </div>
+</div>
+
+<!-- Extended KPI Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-lg-4">
+    <div class="glass-card text-center py-3">
+      <div style="font-size:1.6rem;font-weight:700;color:var(--gold);">
+        <i class="bi bi-coin me-1"></i>{{ total_coins_purchased|default:"0" }}
+      </div>
+      <div class="text-muted small">Total Coins Purchased</div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-lg-4">
+    <div class="glass-card text-center py-3">
+      <div style="font-size:1.6rem;font-weight:700;color:#22c55e;">
+        <i class="bi bi-currency-dollar me-1"></i>{{ total_revenue_minor|default:"0" }}
+      </div>
+      <div class="text-muted small">Total Revenue (minor units)</div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-lg-4">
+    <div class="glass-card text-center py-3">
+      <div style="font-size:1.6rem;font-weight:700;color:var(--aqua);">
+        <i class="bi bi-people me-1"></i>{{ unique_buyers|default:"0" }}
+      </div>
+      <div class="text-muted small">Unique Buyers</div>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Coin Grant (FR-07) -->
+<div class="glass-card mb-4">
+  <h6 class="mb-3"><i class="bi bi-gift me-2" style="color:var(--gold);"></i>Quick Coin Grant</h6>
+  <form method="post" action="{% url 'billing_grant_coins' %}" class="row g-2 align-items-end">
+    {% csrf_token %}
+    <div class="col-sm-4">
+      <label class="form-label small text-muted">User ID</label>
+      <input type="text" name="user_id" class="glass-input" placeholder="UUID" required>
+    </div>
+    <div class="col-sm-3">
+      <label class="form-label small text-muted">Coins</label>
+      <input type="number" name="amount" class="glass-input" min="1" max="100000" value="100" required>
+    </div>
+    <div class="col-sm-3">
+      <label class="form-label small text-muted">Reason</label>
+      <input type="text" name="reason" class="glass-input" value="admin_grant" placeholder="admin_grant">
+    </div>
+    <div class="col-sm-2">
+      <button type="submit" class="btn btn-glow w-100">
+        <i class="bi bi-send me-1"></i>Grant
+      </button>
+    </div>
+  </form>
+</div>
+
+<!-- Subscription Plans -->
+<h5 class="text-muted mb-3 mt-1"><i class="bi bi-patch-check me-2" style="color:var(--gold);"></i>Subscription Plans</h5>
+<div class="glass-card mb-4">
+  {% if plans_error %}
+  <div class="alert-glass alert-glass-warning mb-3"><i class="bi bi-exclamation-triangle-fill me-2"></i>{{ plans_error }}</div>
+  {% endif %}
+
+  {% if plans %}
+  <div class="row g-3">
+    {% for plan in plans %}
+    <div class="col-sm-6 col-lg-4">
+      <div class="p-4 h-100" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:14px;">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <h5 class="mb-0">{{ plan.name }}</h5>
+          {% if plan.is_active %}
+          <span class="badge badge-active">Active</span>
+          {% else %}
+          <span class="badge badge-inactive">Inactive</span>
+          {% endif %}
+        </div>
+        {% if plan.description %}
+        <p class="text-muted small mb-3">{{ plan.description|truncatechars:80 }}</p>
+        {% endif %}
+
+        <div class="mb-3">
+          <div class="d-flex align-items-baseline gap-2">
+            <span style="font-size:1.4rem;font-weight:700;color:var(--gold);">${{ plan.monthly_price|default:"0" }}</span>
+            <span class="text-muted small">/mo</span>
+          </div>
+          {% if plan.yearly_price %}
+          <div class="text-muted small mt-1">${{ plan.yearly_price }}/yr</div>
+          {% endif %}
+        </div>
+
+        <div class="mb-3 small">
+          <div class="d-flex justify-content-between py-1" style="border-top:1px solid rgba(255,255,255,0.04);">
+            <span class="text-muted">Likes/day</span>
+            <span>{{ plan.likes_per_day|default:"∞" }}</span>
+          </div>
+          <div class="d-flex justify-content-between py-1" style="border-top:1px solid rgba(255,255,255,0.04);">
+            <span class="text-muted">Messages/day</span>
+            <span>{{ plan.messages_per_day|default:"∞" }}</span>
+          </div>
+        </div>
+
+        {% if plan.features %}
+        <div class="d-flex flex-wrap gap-1">
+          {% for feature in plan.features|slice:":3" %}
+          <span class="badge badge-purple">{{ feature }}</span>
+          {% endfor %}
+          {% if plan.features|length > 3 %}
+          <span class="badge badge-inactive">+{{ plan.features|length|add:"-3" }} more</span>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="text-center py-4 text-muted">
+    <i class="bi bi-patch-check" style="font-size:2.5rem;opacity:0.3;"></i>
+    <p class="mt-2">No subscription plans returned from API.</p>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Coin Packages -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h5 class="text-muted mb-0"><i class="bi bi-coin me-2" style="color:var(--gold);"></i>Coin Packages</h5>
+  <a href="{% url 'billing_package_new' %}" class="btn btn-glow btn-sm">
+    <i class="bi bi-plus-lg me-1"></i>New Package
+  </a>
+</div>
+<div class="glass-card">
+  {% if packages_error %}
+  <div class="alert-glass alert-glass-warning mb-3"><i class="bi bi-exclamation-triangle-fill me-2"></i>{{ packages_error }}</div>
+  {% endif %}
+
+  {% if coin_packages %}
+  <div class="row g-3">
+    {% for pkg in coin_packages %}
+    <div class="col-sm-6 col-lg-4">
+      <div class="p-4 h-100" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:14px;">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+          <h5 class="mb-0">{{ pkg.label }}</h5>
+          {% if pkg.is_active %}
+          <span class="badge badge-active">Live</span>
+          {% else %}
+          <span class="badge badge-inactive">Hidden</span>
+          {% endif %}
+        </div>
+
+        <div class="mb-3">
+          <span style="font-size:2rem;font-weight:700;color:var(--gold);">
+            <i class="bi bi-coin me-1"></i>{{ pkg.coin_amount }}
+          </span>
+          <span class="text-muted ms-2 small">coins</span>
+        </div>
+
+        <div class="mb-3">
+          <span style="font-size:1.4rem;font-weight:600;color:rgba(255,255,255,0.9);">
+            ${{ pkg.price_usd }}
+          </span>
+          {% if pkg.bonus_percent %}
+          <span class="badge badge-gold ms-2">+{{ pkg.bonus_percent }}% bonus</span>
+          {% endif %}
+        </div>
+
+        {% if pkg.description %}
+        <p class="text-muted small mb-3">{{ pkg.description|truncatechars:80 }}</p>
+        {% endif %}
+
+        <div class="d-flex gap-2">
+          <a href="{% url 'billing_package_edit' pkg.id %}" class="btn btn-glass btn-sm flex-fill">
+            <i class="bi bi-pencil me-1"></i>Edit
+          </a>
+          <form method="post" action="{% url 'billing_package_toggle' pkg.id %}" class="flex-fill">
+            {% csrf_token %}
+            {% if pkg.is_active %}
+            <input type="hidden" name="is_active" value="0">
+            <button type="submit" class="btn btn-danger-glass btn-sm w-100">
+              <i class="bi bi-eye-slash me-1"></i>Hide
+            </button>
+            {% else %}
+            <input type="hidden" name="is_active" value="1">
+            <button type="submit" class="btn btn-success-glass btn-sm w-100">
+              <i class="bi bi-eye me-1"></i>Show
+            </button>
+            {% endif %}
+          </form>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="text-center py-4 text-muted">
+    <i class="bi bi-coin" style="font-size:2.5rem;opacity:0.3;"></i>
+    <p class="mt-2">No coin packages returned from API.</p>
+    <a href="{% url 'billing_package_new' %}" class="btn btn-glow btn-sm mt-2">
+      <i class="bi bi-plus-lg me-1"></i>Create First Package
+    </a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

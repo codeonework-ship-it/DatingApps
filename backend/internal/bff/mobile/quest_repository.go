@@ -576,7 +576,7 @@ func (r *questRepository) validateMatchParticipant(ctx context.Context, matchID,
 	params.Set("id", "eq."+strings.TrimSpace(matchID))
 	params.Set("select", "userId1,userId2")
 	params.Set("limit", "1")
-	rows, err := r.db.SelectRead(ctx, r.cfg.MatchingSchema, r.cfg.MatchesTable, params)
+	rows, err := r.db.SelectRead(ctx, r.questMatchSchema(), r.cfg.MatchesTable, params)
 	if err != nil {
 		return err
 	}
@@ -589,6 +589,22 @@ func (r *questRepository) validateMatchParticipant(ctx context.Context, matchID,
 		return errUnauthorizedQuestAction
 	}
 	return nil
+}
+
+func (r *questRepository) questMatchSchema() string {
+	base := strings.TrimRight(strings.TrimSpace(r.cfg.SupabaseURL), "/")
+	if base == "" || strings.HasSuffix(base, "/rest/v1") {
+		return r.cfg.MatchingSchema
+	}
+	parsed, err := url.Parse(base)
+	if err != nil {
+		return r.cfg.MatchingSchema
+	}
+	host := strings.ToLower(parsed.Hostname())
+	if host == "localhost" || host == "127.0.0.1" {
+		return "public"
+	}
+	return r.cfg.MatchingSchema
 }
 
 func mapQuestTemplateRow(row map[string]any) questTemplateRequirement {

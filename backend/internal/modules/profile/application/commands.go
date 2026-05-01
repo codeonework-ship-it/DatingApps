@@ -42,8 +42,9 @@ type PatchProfileDraftCommand struct {
 }
 
 type AddProfilePhotoCommand struct {
-	UserID   string
-	PhotoURL string
+	UserID      string
+	PhotoURL    string
+	StoragePath string
 }
 
 type DeleteProfilePhotoCommand struct {

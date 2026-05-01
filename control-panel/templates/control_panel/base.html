@@ -1,35 +1,429 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-bs-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ project_name }}</title>
-    <link rel="stylesheet" href="/static/control_panel/app.css">
+    <title>{% block title %}{{ project_name }}{% endblock %}</title>
+    <!-- Bootstrap 5 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-start: #0a0a1a;
+            --bg-mid:   #0f0728;
+            --bg-end:   #1a0533;
+            --glass-bg: rgba(255,255,255,0.06);
+            --glass-border: rgba(255,255,255,0.12);
+            --glass-hover: rgba(255,255,255,0.10);
+            --gold: #f5c842;
+            --gold-light: #fde98a;
+            --purple-accent: #8a5cf6;
+            --aqua: #00d9ff;
+            --sidebar-width: 260px;
+            --text-primary: #f0f0fa;
+            --text-muted: rgba(240,240,250,0.55);
+        }
+        * { box-sizing: border-box; }
+        html, body { height: 100%; margin: 0; font-family: 'Inter', sans-serif; }
+        body {
+            background: linear-gradient(135deg, var(--bg-start) 0%, var(--bg-mid) 50%, var(--bg-end) 100%);
+            background-attachment: fixed;
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        /* ── Layout ── */
+        .layout { display: flex; min-height: 100vh; }
+        .main-content { flex: 1; margin-left: var(--sidebar-width); display: flex; flex-direction: column; transition: margin-left 0.3s; }
+
+        /* ── Sidebar ── */
+        .sidebar {
+            width: var(--sidebar-width);
+            position: fixed; top: 0; left: 0; height: 100vh;
+            background: rgba(10,10,30,0.82);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border-right: 1px solid var(--glass-border);
+            display: flex; flex-direction: column;
+            z-index: 1000; overflow-y: auto; overflow-x: hidden;
+        }
+        .sidebar-logo {
+            padding: 22px 20px 16px;
+            border-bottom: 1px solid var(--glass-border);
+        }
+        .sidebar-logo .brand-name {
+            font-size: 1.1rem; font-weight: 800; letter-spacing: -0.3px;
+            background: linear-gradient(90deg, var(--gold), var(--gold-light));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .sidebar-logo .brand-sub {
+            font-size: 0.7rem; color: var(--text-muted); letter-spacing: 0.5px; text-transform: uppercase;
+        }
+        .sidebar-section-label {
+            font-size: 0.62rem; text-transform: uppercase; letter-spacing: 1.2px;
+            color: var(--text-muted); padding: 18px 20px 6px; font-weight: 600;
+        }
+        .nav-item-link {
+            display: flex; align-items: center; gap: 10px;
+            padding: 9px 20px; color: var(--text-muted);
+            text-decoration: none; border-radius: 10px; margin: 1px 8px;
+            font-size: 0.875rem; font-weight: 500; transition: all 0.18s ease;
+            position: relative;
+        }
+        .nav-item-link:hover {
+            background: var(--glass-hover); color: var(--text-primary);
+        }
+        .nav-item-link.active {
+            background: linear-gradient(135deg, rgba(138,92,246,0.3), rgba(79,70,229,0.3));
+            border: 1px solid rgba(138,92,246,0.35);
+            color: #fff; font-weight: 600;
+        }
+        .nav-item-link.active .nav-icon { color: var(--gold); }
+        .nav-icon { font-size: 1rem; flex-shrink: 0; }
+        .nav-badge {
+            margin-left: auto; background: var(--purple-accent);
+            color: #fff; font-size: 0.62rem; padding: 1px 6px;
+            border-radius: 999px; font-weight: 700;
+        }
+        .nav-badge.danger { background: #ef4444; }
+        .nav-badge.warning { background: #f59e0b; }
+        .sidebar-footer {
+            margin-top: auto; padding: 16px 20px;
+            border-top: 1px solid var(--glass-border);
+            font-size: 0.72rem; color: var(--text-muted);
+        }
+        .health-dot {
+            display: inline-block; width: 7px; height: 7px;
+            border-radius: 50%; background: #22c55e; margin-right: 5px;
+            box-shadow: 0 0 6px #22c55e;
+        }
+        .health-dot.warn { background: #f59e0b; box-shadow: 0 0 6px #f59e0b; }
+        .health-dot.dead { background: #ef4444; box-shadow: 0 0 6px #ef4444; }
+
+        /* ── Top bar ── */
+        .topbar {
+            height: 60px; background: rgba(10,10,30,0.72);
+            backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--glass-border);
+            display: flex; align-items: center; padding: 0 24px;
+            position: sticky; top: 0; z-index: 900;
+            gap: 16px;
+        }
+        .topbar-title { font-size: 1rem; font-weight: 700; color: #fff; }
+        .topbar-spacer { flex: 1; }
+        .topbar-badge {
+            font-size: 0.72rem; padding: 4px 10px; border-radius: 999px;
+            font-weight: 600; display: flex; align-items: center; gap: 5px;
+        }
+
+        /* ── Page content ── */
+        .page-body { flex: 1; padding: 24px; }
+
+        /* ── Glass card ── */
+        .glass-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px; padding: 24px;
+            backdrop-filter: blur(12px);
+        }
+        .glass-card-sm { padding: 16px; }
+        .glass-card:hover { border-color: rgba(255,255,255,0.2); }
+
+        /* ── KPI cards ── */
+        .kpi-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 14px; padding: 20px;
+            position: relative; overflow: hidden;
+            transition: all 0.2s ease;
+        }
+        .kpi-card::before {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0; height: 2px;
+        }
+        .kpi-card.gold::before, .kpi-card.kpi-gold::before   { background: linear-gradient(90deg, var(--gold), var(--gold-light)); }
+        .kpi-card.purple::before, .kpi-card.kpi-purple::before { background: linear-gradient(90deg, var(--purple-accent), #c084fc); }
+        .kpi-card.aqua::before, .kpi-card.kpi-aqua::before   { background: linear-gradient(90deg, var(--aqua), #818cf8); }
+        .kpi-card.green::before, .kpi-card.kpi-green::before  { background: linear-gradient(90deg, #22c55e, #4ade80); }
+        .kpi-card.red::before, .kpi-card.kpi-red::before    { background: linear-gradient(90deg, #ef4444, #f97316); }
+        .kpi-card:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.22); }
+        .kpi-icon { font-size: 1.8rem; margin-bottom: 10px; }
+        .kpi-value { font-size: 2rem; font-weight: 800; color: #fff; line-height: 1; }
+        .kpi-label { font-size: 0.78rem; color: var(--text-muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        /* ── Tables ── */
+        .glass-table { border-collapse: separate; border-spacing: 0; width: 100%; }
+        .glass-table th {
+            font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.8px;
+            color: var(--text-muted); font-weight: 600;
+            padding: 10px 14px; border-bottom: 1px solid var(--glass-border);
+            white-space: nowrap;
+        }
+        .glass-table td {
+            padding: 11px 14px; font-size: 0.875rem;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            vertical-align: middle;
+        }
+        .glass-table tr:hover td { background: rgba(255,255,255,0.04); }
+        .glass-table tr:last-child td { border-bottom: none; }
+
+        /* ── Buttons ── */
+        .btn-glow {
+            background: linear-gradient(135deg, var(--gold) 0%, #f59e0b 100%);
+            color: #0a0a1a; font-weight: 700; border: none;
+            border-radius: 8px; padding: 8px 18px;
+            transition: all 0.2s;
+        }
+        .btn-glow:hover { box-shadow: 0 0 20px rgba(245,200,66,0.5); transform: translateY(-1px); color: #0a0a1a; }
+        .btn-glass {
+            background: var(--glass-bg); border: 1px solid var(--glass-border);
+            color: var(--text-primary); border-radius: 8px; padding: 7px 16px;
+            font-size: 0.8rem; transition: all 0.2s;
+        }
+        .btn-glass:hover { background: var(--glass-hover); color: #fff; }
+        .btn-danger-glass {
+            background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.35);
+            color: #fca5a5; border-radius: 8px; padding: 6px 14px; font-size: 0.78rem;
+        }
+        .btn-danger-glass:hover { background: rgba(239,68,68,0.25); color: #fca5a5; }
+        .btn-success-glass {
+            background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.3);
+            color: #86efac; border-radius: 8px; padding: 6px 14px; font-size: 0.78rem;
+        }
+        .btn-success-glass:hover { background: rgba(34,197,94,0.2); color: #86efac; }
+
+        /* ── Badges ── */
+        .badge-active { background: rgba(34,197,94,0.18); color: #86efac; border: 1px solid rgba(34,197,94,0.3); padding: 3px 9px; border-radius: 999px; font-size: 0.7rem; font-weight: 600; }
+        .badge-inactive { background: rgba(148,163,184,0.12); color: #94a3b8; border: 1px solid rgba(148,163,184,0.2); padding: 3px 9px; border-radius: 999px; font-size: 0.7rem; font-weight: 600; }
+        .badge-danger { background: rgba(239,68,68,0.15); color: #fca5a5; border: 1px solid rgba(239,68,68,0.3); padding: 3px 9px; border-radius: 999px; font-size: 0.7rem; font-weight: 600; }
+        .badge-warning { background: rgba(245,158,11,0.15); color: #fde68a; border: 1px solid rgba(245,158,11,0.3); padding: 3px 9px; border-radius: 999px; font-size: 0.7rem; font-weight: 600; }
+        .badge-purple { background: rgba(138,92,246,0.2); color: #c4b5fd; border: 1px solid rgba(138,92,246,0.35); padding: 3px 9px; border-radius: 999px; font-size: 0.7rem; font-weight: 600; }
+        .badge-gold { background: rgba(245,200,66,0.15); color: var(--gold-light); border: 1px solid rgba(245,200,66,0.3); padding: 3px 9px; border-radius: 999px; font-size: 0.7rem; font-weight: 600; }
+
+        /* ── Forms (extend Bootstrap .form-control styling) ── */
+        .glass-input, .form-control.glass-input {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid var(--glass-border);
+            color: #fff; border-radius: 8px; padding: 8px 14px; font-size: 0.875rem;
+            width: 100%; transition: border-color 0.2s;
+        }
+        .glass-input:focus, .form-control.glass-input:focus { outline: none; border-color: var(--purple-accent); background: rgba(255,255,255,0.09); color: #fff; box-shadow: 0 0 0 0.2rem rgba(138,92,246,0.25); }
+        .glass-input option { background: #1a0533; }
+        .glass-select, .form-select.glass-select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23aaa' d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; background-size: 10px; padding-right: 32px; background-color: rgba(255,255,255,0.06); border: 1px solid var(--glass-border); color: #fff; border-radius: 8px; }
+        .glass-select:focus, .form-select.glass-select:focus { border-color: var(--purple-accent); box-shadow: 0 0 0 0.2rem rgba(138,92,246,0.25); background-color: rgba(255,255,255,0.09); color: #fff; }
+        .glass-select option, .form-select.glass-select option { background: #1a0533; color: #fff; }
+        /* Bootstrap dark overrides for form controls */
+        .form-control, .form-select { background-color: rgba(255,255,255,0.06); border-color: var(--glass-border); color: #fff; }
+        .form-control:focus, .form-select:focus { background-color: rgba(255,255,255,0.09); border-color: var(--purple-accent); color: #fff; box-shadow: 0 0 0 0.2rem rgba(138,92,246,0.25); }
+        .form-label { color: var(--text-muted); font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
+        .input-group-text { background: rgba(255,255,255,0.06); border-color: var(--glass-border); color: var(--text-muted); }
+
+        /* ── Alerts ── */
+        .alert-glass {
+            border-radius: 10px; padding: 12px 18px; margin-bottom: 16px;
+            font-size: 0.875rem; display: flex; align-items: center; gap: 10px;
+        }
+        .alert-glass.success { background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.3); color: #86efac; }
+        .alert-glass.error   { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.3); color: #fca5a5; }
+        .alert-glass.warning { background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.3); color: #fde68a; }
+        .alert-glass.info    { background: rgba(96,165,250,0.12); border: 1px solid rgba(96,165,250,0.3); color: #93c5fd; }
+
+        /* ── Toggle switch ── */
+        .toggle-wrapper { display: flex; align-items: center; gap: 10px; }
+        .toggle-switch {
+            position: relative; width: 44px; height: 24px; cursor: pointer;
+        }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .toggle-slider {
+            position: absolute; cursor: pointer; inset: 0;
+            background: rgba(255,255,255,0.12); border-radius: 24px;
+            transition: 0.3s;
+        }
+        .toggle-slider:before {
+            content: ''; position: absolute;
+            width: 18px; height: 18px; left: 3px; top: 3px;
+            background: white; border-radius: 50%; transition: 0.3s;
+        }
+        input:checked + .toggle-slider { background: var(--purple-accent); }
+        input:checked + .toggle-slider:before { transform: translateX(20px); }
+
+        /* ── Section header ── */
+        .page-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 22px;
+        }
+        .page-header h1 {
+            font-size: 1.4rem; font-weight: 700; margin: 0;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .page-header h1 .header-icon { color: var(--gold); font-size: 1.3rem; }
+
+        /* ── Misc ── */
+        .divider { border-color: var(--glass-border); margin: 20px 0; }
+        .text-gold { color: var(--gold); }
+        .text-aqua { color: var(--aqua); }
+        .text-purple { color: var(--purple-accent); }
+        code { background: rgba(138,92,246,0.2); color: #c4b5fd; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; }
+
+        /* ── Category chip ── */
+        .chip {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 4px 10px; border-radius: 999px; font-size: 0.72rem; font-weight: 600;
+            background: var(--glass-bg); border: 1px solid var(--glass-border);
+            cursor: pointer; transition: all 0.18s; text-decoration: none; color: var(--text-muted);
+        }
+        .chip.active, .chip:hover { background: rgba(138,92,246,0.25); border-color: rgba(138,92,246,0.5); color: #c4b5fd; }
+
+        /* ── Spinner ── */
+        .spinner-glow {
+            width: 28px; height: 28px; border: 3px solid rgba(255,255,255,0.1);
+            border-top-color: var(--purple-accent); border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── Scrollbar ── */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 999px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
+
+        @media (max-width: 768px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.open { transform: translateX(0); }
+            .main-content { margin-left: 0; }
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
 </head>
 <body>
-<header class="top-bar">
-    <div>
-        <h1>{{ project_name }}</h1>
-        <p>eKYC / cKYC operator console powered by Go microservices</p>
-    </div>
-    <nav>
-        <a href="/">Dashboard</a>
-        <a href="/verifications/">Verification Queue</a>
-        <a href="/appeals/">Appeals Queue</a>
-        <a href="/activities/">Activity Feed</a>
-    </nav>
-</header>
+<div class="layout">
+    <!-- ── Sidebar ── -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-logo">
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <span style="font-size:1.4rem;">💎</span>
+                <div>
+                    <div class="brand-name">{{ project_name }}</div>
+                    <div class="brand-sub">Operator Console</div>
+                </div>
+            </div>
+        </div>
 
-<main>
-    {% if messages %}
-        <section class="alerts">
-            {% for message in messages %}
-                <article class="alert {{ message.tags }}">{{ message }}</article>
-            {% endfor %}
-        </section>
-    {% endif %}
-    {% block content %}{% endblock %}
-</main>
+        <div class="sidebar-section-label">Overview</div>
+        <a href="/" class="nav-item-link {% if request.path == '/' %}active{% endif %}">
+            <i class="bi bi-grid-1x2-fill nav-icon"></i> Dashboard
+        </a>
+
+        <div class="sidebar-section-label">Content</div>
+        <a href="/catalog/" class="nav-item-link {% if '/catalog' in request.path %}active{% endif %}">
+            <i class="bi bi-gift-fill nav-icon"></i> Gift Catalog
+        </a>
+        <a href="/engagement/prompts/" class="nav-item-link {% if '/engagement/prompts' in request.path %}active{% endif %}">
+            <i class="bi bi-chat-heart-fill nav-icon"></i> Daily Prompts
+        </a>
+        <a href="/engagement/nudges/" class="nav-item-link {% if '/engagement/nudges' in request.path %}active{% endif %}">
+            <i class="bi bi-bell-fill nav-icon"></i> Nudge Templates
+        </a>
+
+        <div class="sidebar-section-label">Users</div>
+        <a href="/users/" class="nav-item-link {% if '/users' in request.path %}active{% endif %}">
+            <i class="bi bi-people-fill nav-icon"></i> User Management
+        </a>
+        <a href="/verifications/" class="nav-item-link {% if '/verifications' in request.path %}active{% endif %}">
+            <i class="bi bi-shield-check nav-icon"></i> Verifications
+        </a>
+
+        <div class="sidebar-section-label">Moderation</div>
+        <a href="/moderation/reports/" class="nav-item-link {% if '/moderation/reports' in request.path %}active{% endif %}">
+            <i class="bi bi-flag-fill nav-icon"></i> Reports
+        </a>
+        <a href="/appeals/" class="nav-item-link {% if '/appeals' in request.path %}active{% endif %}">
+            <i class="bi bi-megaphone-fill nav-icon"></i> Appeals
+        </a>
+
+        <div class="sidebar-section-label">Platform</div>
+        <a href="/billing/" class="nav-item-link {% if '/billing' in request.path %}active{% endif %}">
+            <i class="bi bi-credit-card-fill nav-icon"></i> Billing & Plans
+        </a>
+        <a href="/config/flags/" class="nav-item-link {% if '/config' in request.path %}active{% endif %}">
+            <i class="bi bi-toggles nav-icon"></i> Feature Flags
+        </a>
+
+        <div class="sidebar-section-label">Safety</div>
+        <a href="/safety/sos/" class="nav-item-link {% if '/safety' in request.path %}active{% endif %}">
+            <i class="bi bi-exclamation-triangle-fill nav-icon"></i> SOS Alerts
+        </a>
+
+        <div class="sidebar-section-label">Logs</div>
+        <a href="/activities/" class="nav-item-link {% if '/activities' in request.path %}active{% endif %}">
+            <i class="bi bi-activity nav-icon"></i> Activity Feed
+        </a>
+
+        <div class="sidebar-footer">
+            <div class="mb-1">
+                {% if health and health.status == 'ok' %}
+                    <span class="health-dot"></span> BFF Online
+                {% else %}
+                    <span class="health-dot dead"></span> BFF Unreachable
+                {% endif %}
+            </div>
+            <div class="text-muted" style="font-size:0.65rem;">Version 1.0 · 2026</div>
+        </div>
+    </aside>
+
+    <!-- ── Main ── -->
+    <div class="main-content">
+        <header class="topbar">
+            <button class="btn btn-sm btn-glass d-md-none me-2" onclick="document.getElementById('sidebar').classList.toggle('open')">
+                <i class="bi bi-list"></i>
+            </button>
+            <span class="topbar-title">{% block topbar_title %}{{ project_name }}{% endblock %}</span>
+            <div class="topbar-spacer"></div>
+            {% if health and health.status == 'ok' %}
+                <span class="topbar-badge badge-active"><i class="bi bi-circle-fill" style="font-size:0.4rem;"></i> Go BFF Live</span>
+            {% else %}
+                <span class="topbar-badge badge-danger"><i class="bi bi-circle-fill" style="font-size:0.4rem;"></i> BFF Unreachable</span>
+            {% endif %}
+            <a href="/admin/" class="btn btn-glass btn-sm ms-2" title="Django Admin">
+                <i class="bi bi-gear-fill"></i>
+            </a>
+        </header>
+
+        <main class="page-body">
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert-glass {% if 'error' in message.tags %}error{% elif 'warning' in message.tags %}warning{% elif 'success' in message.tags %}success{% else %}info{% endif %} mb-3">
+                        {% if 'error' in message.tags %}<i class="bi bi-x-circle-fill"></i>
+                        {% elif 'warning' in message.tags %}<i class="bi bi-exclamation-triangle-fill"></i>
+                        {% elif 'success' in message.tags %}<i class="bi bi-check-circle-fill"></i>
+                        {% else %}<i class="bi bi-info-circle-fill"></i>{% endif %}
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+</div>
+
+<!-- Bootstrap 5 JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+<script>
+    // Auto-dismiss flash messages
+    setTimeout(() => {
+        document.querySelectorAll('.alert-glass').forEach(el => {
+            el.style.opacity = '0'; el.style.transition = 'opacity 0.5s';
+            setTimeout(() => el.remove(), 500);
+        });
+    }, 5000);
+</script>
+{% block extra_js %}{% endblock %}
 </body>
 </html>
-

@@ -53,6 +53,47 @@ paths:
       responses:
         '200':
           description: Verification result
+  /v1/auth/signup/bootstrap:
+    post:
+      summary: Bootstrap a durable app user after signup OTP verification
+      description: |
+        Creates or idempotently updates the app-domain user row after OTP
+        verification. Storage tables: `user_management.users` and
+        `user_management.profile_drafts`. Existing non-empty user/draft fields
+        are preserved, so returning users who already completed profile basics
+        are not overwritten by a repeated signup attempt. Retry behavior is
+        idempotent by `user_id`; clients may also send `Idempotency-Key`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id, phone, name, date_of_birth, gender]
+              properties:
+                user_id:
+                  type: string
+                  description: User id returned by `/v1/auth/verify-otp`.
+                phone:
+                  type: string
+                  pattern: '^\\+?[0-9]{10,15}$'
+                name:
+                  type: string
+                  minLength: 2
+                date_of_birth:
+                  type: string
+                  format: date
+                  description: User must be 18–80 years old.
+                gender:
+                  type: string
+                  enum: [M, F, Other]
+      responses:
+        '200':
+          description: App user and draft are ready for terms/profile setup.
+        '400':
+          description: Invalid signup payload.
+        '502':
+          description: Durable persistence failed.
   /v1/discovery/{userID}:
     get:
       summary: Get discovery candidates
@@ -570,6 +611,10 @@ paths:
                       $ref: '#/components/schemas/RoseGiftCatalogItem'
                   count:
                     type: integer
+                  categories:
+                    type: array
+                    items:
+                      type: string
   /v1/chat/{matchID}/gifts/send:
     post:
       summary: Send a rose gift in chat
@@ -603,6 +648,10 @@ paths:
                   type: string
                 gift_id:
                   type: string
+                message_text:
+                  type: string
+                  maxLength: 240
+                  description: Optional one-tap note shown above the gift card in chat.
       responses:
         '200':
           description: Gift sent successfully
@@ -619,6 +668,8 @@ paths:
                 properties:
                   gift_send:
                     $ref: '#/components/schemas/RoseGiftSendView'
+                  message:
+                    $ref: '#/components/schemas/ChatMessageView'
                   wallet:
                     $ref: '#/components/schemas/WalletView'
         '402':
@@ -637,6 +688,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ChatLockedErrorResponse'
+        '429':
+          description: Exclusive daily gift limit reached
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error: daily limit reached for this exclusive gift
+                error_code: GIFT_DAILY_LIMIT_REACHED
   /v1/chat/{matchID}/gifts/events:
     post:
       summary: Record rose gift telemetry event
@@ -1767,6 +1828,8 @@ components:
           type: string
         tier:
           type: string
+        category:
+          type: string
         price_coins:
           type: integer
         is_limited:
@@ -1775,6 +1838,29 @@ components:
           type: boolean
         sort_order:
           type: integer
+        max_per_match_per_day:
+          type: integer
+    ChatMessageView:
+      type: object
+      properties:
+        id:
+          type: string
+        match_id:
+          type: string
+        sender_id:
+          type: string
+        text:
+          type: string
+        created_at:
+          type: string
+        delivered_at:
+          type: string
+        read_at:
+          type: string
+        is_deleted:
+          type: boolean
+        deleted_at:
+          type: string
     WalletView:
       type: object
       properties:

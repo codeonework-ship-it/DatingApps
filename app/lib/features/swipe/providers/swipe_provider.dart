@@ -6,7 +6,6 @@ import '../../../core/config/feature_flags.dart';
 import '../../../core/providers/api_client_provider.dart';
 import '../../../core/utils/logger.dart';
 import '../../auth/providers/auth_provider.dart';
-import '../../profile/providers/profile_setup_provider.dart';
 import '../models/discovery_profile.dart';
 
 part 'swipe_provider.g.dart';
@@ -171,55 +170,6 @@ class SwipeNotifier extends _$SwipeNotifier {
         'limit': 50,
         'mode': state.discoveryMode,
       };
-      final draftValue = ref.read(profileSetupNotifierProvider);
-      final draft = draftValue.valueOrNull;
-      if (draft != null) {
-        if (draft.intentTags.isNotEmpty) {
-          queryParameters['intent_tags'] = draft.intentTags.join(',');
-        }
-        if (draft.languageTags.isNotEmpty) {
-          queryParameters['language_tags'] = draft.languageTags.join(',');
-        }
-        if ((draft.petPreference ?? '').trim().isNotEmpty) {
-          queryParameters['pet_preference'] = draft.petPreference;
-        }
-        if ((draft.dietPreference ?? '').trim().isNotEmpty) {
-          queryParameters['diet_preference'] = draft.dietPreference;
-        }
-        if ((draft.workoutFrequency ?? '').trim().isNotEmpty) {
-          queryParameters['workout_frequency'] = draft.workoutFrequency;
-        }
-        if ((draft.dietType ?? '').trim().isNotEmpty) {
-          queryParameters['diet_type'] = draft.dietType;
-        }
-        if ((draft.sleepSchedule ?? '').trim().isNotEmpty) {
-          queryParameters['sleep_schedule'] = draft.sleepSchedule;
-        }
-        if ((draft.travelStyle ?? '').trim().isNotEmpty) {
-          queryParameters['travel_style'] = draft.travelStyle;
-        }
-        if ((draft.politicalComfortRange ?? '').trim().isNotEmpty) {
-          queryParameters['political_comfort_range'] =
-              draft.politicalComfortRange;
-        }
-        if (draft.dealBreakerTags.isNotEmpty) {
-          queryParameters['deal_breaker_tags'] = draft.dealBreakerTags.join(
-            ',',
-          );
-        }
-        if ((draft.country ?? '').trim().isNotEmpty) {
-          queryParameters['country'] = draft.country;
-        }
-        if ((draft.regionState ?? '').trim().isNotEmpty) {
-          queryParameters['state'] = draft.regionState;
-        }
-        if ((draft.city ?? '').trim().isNotEmpty) {
-          queryParameters['city'] = draft.city;
-        }
-        if (draft.hookupOnly) {
-          queryParameters['hookup_only'] = 'true';
-        }
-      }
       for (final entry in _manualFilters.entries) {
         queryParameters[entry.key] = entry.value;
       }

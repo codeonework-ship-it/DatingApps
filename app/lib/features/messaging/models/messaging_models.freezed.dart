@@ -12,8 +12,7 @@ part of 'messaging_models.dart';
 T _$identity<T>(T value) => value;
 
 final _privateConstructorUsedError = UnsupportedError(
-  'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models',
-);
+    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
 
 Message _$MessageFromJson(Map<String, dynamic> json) {
   return _Message.fromJson(json);
@@ -41,17 +40,16 @@ abstract class $MessageCopyWith<$Res> {
   factory $MessageCopyWith(Message value, $Res Function(Message) then) =
       _$MessageCopyWithImpl<$Res, Message>;
   @useResult
-  $Res call({
-    String id,
-    String matchId,
-    String senderId,
-    String text,
-    DateTime createdAt,
-    DateTime? deliveredAt,
-    DateTime? readAt,
-    bool isDeleted,
-    DateTime? deletedAt,
-  });
+  $Res call(
+      {String id,
+      String matchId,
+      String senderId,
+      String text,
+      DateTime createdAt,
+      DateTime? deliveredAt,
+      DateTime? readAt,
+      bool isDeleted,
+      DateTime? deletedAt});
 }
 
 /// @nodoc
@@ -77,69 +75,64 @@ class _$MessageCopyWithImpl<$Res, $Val extends Message>
     Object? isDeleted = null,
     Object? deletedAt = freezed,
   }) {
-    return _then(
-      _value.copyWith(
-            id: null == id
-                ? _value.id
-                : id // ignore: cast_nullable_to_non_nullable
-                      as String,
-            matchId: null == matchId
-                ? _value.matchId
-                : matchId // ignore: cast_nullable_to_non_nullable
-                      as String,
-            senderId: null == senderId
-                ? _value.senderId
-                : senderId // ignore: cast_nullable_to_non_nullable
-                      as String,
-            text: null == text
-                ? _value.text
-                : text // ignore: cast_nullable_to_non_nullable
-                      as String,
-            createdAt: null == createdAt
-                ? _value.createdAt
-                : createdAt // ignore: cast_nullable_to_non_nullable
-                      as DateTime,
-            deliveredAt: freezed == deliveredAt
-                ? _value.deliveredAt
-                : deliveredAt // ignore: cast_nullable_to_non_nullable
-                      as DateTime?,
-            readAt: freezed == readAt
-                ? _value.readAt
-                : readAt // ignore: cast_nullable_to_non_nullable
-                      as DateTime?,
-            isDeleted: null == isDeleted
-                ? _value.isDeleted
-                : isDeleted // ignore: cast_nullable_to_non_nullable
-                      as bool,
-            deletedAt: freezed == deletedAt
-                ? _value.deletedAt
-                : deletedAt // ignore: cast_nullable_to_non_nullable
-                      as DateTime?,
-          )
-          as $Val,
-    );
+    return _then(_value.copyWith(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      matchId: null == matchId
+          ? _value.matchId
+          : matchId // ignore: cast_nullable_to_non_nullable
+              as String,
+      senderId: null == senderId
+          ? _value.senderId
+          : senderId // ignore: cast_nullable_to_non_nullable
+              as String,
+      text: null == text
+          ? _value.text
+          : text // ignore: cast_nullable_to_non_nullable
+              as String,
+      createdAt: null == createdAt
+          ? _value.createdAt
+          : createdAt // ignore: cast_nullable_to_non_nullable
+              as DateTime,
+      deliveredAt: freezed == deliveredAt
+          ? _value.deliveredAt
+          : deliveredAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      readAt: freezed == readAt
+          ? _value.readAt
+          : readAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      isDeleted: null == isDeleted
+          ? _value.isDeleted
+          : isDeleted // ignore: cast_nullable_to_non_nullable
+              as bool,
+      deletedAt: freezed == deletedAt
+          ? _value.deletedAt
+          : deletedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+    ) as $Val);
   }
 }
 
 /// @nodoc
 abstract class _$$MessageImplCopyWith<$Res> implements $MessageCopyWith<$Res> {
   factory _$$MessageImplCopyWith(
-    _$MessageImpl value,
-    $Res Function(_$MessageImpl) then,
-  ) = __$$MessageImplCopyWithImpl<$Res>;
+          _$MessageImpl value, $Res Function(_$MessageImpl) then) =
+      __$$MessageImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({
-    String id,
-    String matchId,
-    String senderId,
-    String text,
-    DateTime createdAt,
-    DateTime? deliveredAt,
-    DateTime? readAt,
-    bool isDeleted,
-    DateTime? deletedAt,
-  });
+  $Res call(
+      {String id,
+      String matchId,
+      String senderId,
+      String text,
+      DateTime createdAt,
+      DateTime? deliveredAt,
+      DateTime? readAt,
+      bool isDeleted,
+      DateTime? deletedAt});
 }
 
 /// @nodoc
@@ -147,9 +140,8 @@ class __$$MessageImplCopyWithImpl<$Res>
     extends _$MessageCopyWithImpl<$Res, _$MessageImpl>
     implements _$$MessageImplCopyWith<$Res> {
   __$$MessageImplCopyWithImpl(
-    _$MessageImpl _value,
-    $Res Function(_$MessageImpl) _then,
-  ) : super(_value, _then);
+      _$MessageImpl _value, $Res Function(_$MessageImpl) _then)
+      : super(_value, _then);
 
   @pragma('vm:prefer-inline')
   @override
@@ -164,63 +156,60 @@ class __$$MessageImplCopyWithImpl<$Res>
     Object? isDeleted = null,
     Object? deletedAt = freezed,
   }) {
-    return _then(
-      _$MessageImpl(
-        id: null == id
-            ? _value.id
-            : id // ignore: cast_nullable_to_non_nullable
-                  as String,
-        matchId: null == matchId
-            ? _value.matchId
-            : matchId // ignore: cast_nullable_to_non_nullable
-                  as String,
-        senderId: null == senderId
-            ? _value.senderId
-            : senderId // ignore: cast_nullable_to_non_nullable
-                  as String,
-        text: null == text
-            ? _value.text
-            : text // ignore: cast_nullable_to_non_nullable
-                  as String,
-        createdAt: null == createdAt
-            ? _value.createdAt
-            : createdAt // ignore: cast_nullable_to_non_nullable
-                  as DateTime,
-        deliveredAt: freezed == deliveredAt
-            ? _value.deliveredAt
-            : deliveredAt // ignore: cast_nullable_to_non_nullable
-                  as DateTime?,
-        readAt: freezed == readAt
-            ? _value.readAt
-            : readAt // ignore: cast_nullable_to_non_nullable
-                  as DateTime?,
-        isDeleted: null == isDeleted
-            ? _value.isDeleted
-            : isDeleted // ignore: cast_nullable_to_non_nullable
-                  as bool,
-        deletedAt: freezed == deletedAt
-            ? _value.deletedAt
-            : deletedAt // ignore: cast_nullable_to_non_nullable
-                  as DateTime?,
-      ),
-    );
+    return _then(_$MessageImpl(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      matchId: null == matchId
+          ? _value.matchId
+          : matchId // ignore: cast_nullable_to_non_nullable
+              as String,
+      senderId: null == senderId
+          ? _value.senderId
+          : senderId // ignore: cast_nullable_to_non_nullable
+              as String,
+      text: null == text
+          ? _value.text
+          : text // ignore: cast_nullable_to_non_nullable
+              as String,
+      createdAt: null == createdAt
+          ? _value.createdAt
+          : createdAt // ignore: cast_nullable_to_non_nullable
+              as DateTime,
+      deliveredAt: freezed == deliveredAt
+          ? _value.deliveredAt
+          : deliveredAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      readAt: freezed == readAt
+          ? _value.readAt
+          : readAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      isDeleted: null == isDeleted
+          ? _value.isDeleted
+          : isDeleted // ignore: cast_nullable_to_non_nullable
+              as bool,
+      deletedAt: freezed == deletedAt
+          ? _value.deletedAt
+          : deletedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+    ));
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$MessageImpl implements _Message {
-  const _$MessageImpl({
-    required this.id,
-    required this.matchId,
-    required this.senderId,
-    required this.text,
-    required this.createdAt,
-    this.deliveredAt,
-    this.readAt,
-    this.isDeleted = false,
-    this.deletedAt,
-  });
+  const _$MessageImpl(
+      {required this.id,
+      required this.matchId,
+      required this.senderId,
+      required this.text,
+      required this.createdAt,
+      this.deliveredAt,
+      this.readAt,
+      this.isDeleted = false,
+      this.deletedAt});
 
   factory _$MessageImpl.fromJson(Map<String, dynamic> json) =>
       _$$MessageImplFromJson(json);
@@ -273,18 +262,8 @@ class _$MessageImpl implements _Message {
 
   @JsonKey(ignore: true)
   @override
-  int get hashCode => Object.hash(
-    runtimeType,
-    id,
-    matchId,
-    senderId,
-    text,
-    createdAt,
-    deliveredAt,
-    readAt,
-    isDeleted,
-    deletedAt,
-  );
+  int get hashCode => Object.hash(runtimeType, id, matchId, senderId, text,
+      createdAt, deliveredAt, readAt, isDeleted, deletedAt);
 
   @JsonKey(ignore: true)
   @override
@@ -294,22 +273,23 @@ class _$MessageImpl implements _Message {
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$MessageImplToJson(this);
+    return _$$MessageImplToJson(
+      this,
+    );
   }
 }
 
 abstract class _Message implements Message {
-  const factory _Message({
-    required final String id,
-    required final String matchId,
-    required final String senderId,
-    required final String text,
-    required final DateTime createdAt,
-    final DateTime? deliveredAt,
-    final DateTime? readAt,
-    final bool isDeleted,
-    final DateTime? deletedAt,
-  }) = _$MessageImpl;
+  const factory _Message(
+      {required final String id,
+      required final String matchId,
+      required final String senderId,
+      required final String text,
+      required final DateTime createdAt,
+      final DateTime? deliveredAt,
+      final DateTime? readAt,
+      final bool isDeleted,
+      final DateTime? deletedAt}) = _$MessageImpl;
 
   factory _Message.fromJson(Map<String, dynamic> json) = _$MessageImpl.fromJson;
 

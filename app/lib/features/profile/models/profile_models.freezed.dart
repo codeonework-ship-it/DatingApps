@@ -12,8 +12,7 @@ part of 'profile_models.dart';
 T _$identity<T>(T value) => value;
 
 final _privateConstructorUsedError = UnsupportedError(
-  'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models',
-);
+    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
 
 User _$UserFromJson(Map<String, dynamic> json) {
   return _User.fromJson(json);
@@ -26,6 +25,7 @@ mixin _$User {
   String get name => throw _privateConstructorUsedError;
   DateTime get dateOfBirth => throw _privateConstructorUsedError;
   String get gender => throw _privateConstructorUsedError;
+  DateTime get createdAt => throw _privateConstructorUsedError;
   String? get bio => throw _privateConstructorUsedError;
   int? get heightCm => throw _privateConstructorUsedError;
   String? get education => throw _privateConstructorUsedError;
@@ -37,7 +37,6 @@ mixin _$User {
   int get profileCompletion => throw _privateConstructorUsedError;
   bool get isVerified => throw _privateConstructorUsedError;
   bool get verificationBadge => throw _privateConstructorUsedError;
-  DateTime get createdAt => throw _privateConstructorUsedError;
   DateTime? get lastLogin => throw _privateConstructorUsedError;
   bool get isActive => throw _privateConstructorUsedError;
   bool get isBlocked => throw _privateConstructorUsedError;
@@ -54,30 +53,29 @@ abstract class $UserCopyWith<$Res> {
   factory $UserCopyWith(User value, $Res Function(User) then) =
       _$UserCopyWithImpl<$Res, User>;
   @useResult
-  $Res call({
-    String id,
-    String phoneNumber,
-    String name,
-    DateTime dateOfBirth,
-    String gender,
-    String? bio,
-    int? heightCm,
-    String? education,
-    String? profession,
-    String? incomeRange,
-    String? drinking,
-    String? smoking,
-    String? religion,
-    int profileCompletion,
-    bool isVerified,
-    bool verificationBadge,
-    DateTime createdAt,
-    DateTime? lastLogin,
-    bool isActive,
-    bool isBlocked,
-    List<String> blockedUsers,
-    DateTime? updatedAt,
-  });
+  $Res call(
+      {String id,
+      String phoneNumber,
+      String name,
+      DateTime dateOfBirth,
+      String gender,
+      DateTime createdAt,
+      String? bio,
+      int? heightCm,
+      String? education,
+      String? profession,
+      String? incomeRange,
+      String? drinking,
+      String? smoking,
+      String? religion,
+      int profileCompletion,
+      bool isVerified,
+      bool verificationBadge,
+      DateTime? lastLogin,
+      bool isActive,
+      bool isBlocked,
+      List<String> blockedUsers,
+      DateTime? updatedAt});
 }
 
 /// @nodoc
@@ -98,6 +96,7 @@ class _$UserCopyWithImpl<$Res, $Val extends User>
     Object? name = null,
     Object? dateOfBirth = null,
     Object? gender = null,
+    Object? createdAt = null,
     Object? bio = freezed,
     Object? heightCm = freezed,
     Object? education = freezed,
@@ -109,141 +108,135 @@ class _$UserCopyWithImpl<$Res, $Val extends User>
     Object? profileCompletion = null,
     Object? isVerified = null,
     Object? verificationBadge = null,
-    Object? createdAt = null,
     Object? lastLogin = freezed,
     Object? isActive = null,
     Object? isBlocked = null,
     Object? blockedUsers = null,
     Object? updatedAt = freezed,
   }) {
-    return _then(
-      _value.copyWith(
-            id: null == id
-                ? _value.id
-                : id // ignore: cast_nullable_to_non_nullable
-                      as String,
-            phoneNumber: null == phoneNumber
-                ? _value.phoneNumber
-                : phoneNumber // ignore: cast_nullable_to_non_nullable
-                      as String,
-            name: null == name
-                ? _value.name
-                : name // ignore: cast_nullable_to_non_nullable
-                      as String,
-            dateOfBirth: null == dateOfBirth
-                ? _value.dateOfBirth
-                : dateOfBirth // ignore: cast_nullable_to_non_nullable
-                      as DateTime,
-            gender: null == gender
-                ? _value.gender
-                : gender // ignore: cast_nullable_to_non_nullable
-                      as String,
-            bio: freezed == bio
-                ? _value.bio
-                : bio // ignore: cast_nullable_to_non_nullable
-                      as String?,
-            heightCm: freezed == heightCm
-                ? _value.heightCm
-                : heightCm // ignore: cast_nullable_to_non_nullable
-                      as int?,
-            education: freezed == education
-                ? _value.education
-                : education // ignore: cast_nullable_to_non_nullable
-                      as String?,
-            profession: freezed == profession
-                ? _value.profession
-                : profession // ignore: cast_nullable_to_non_nullable
-                      as String?,
-            incomeRange: freezed == incomeRange
-                ? _value.incomeRange
-                : incomeRange // ignore: cast_nullable_to_non_nullable
-                      as String?,
-            drinking: freezed == drinking
-                ? _value.drinking
-                : drinking // ignore: cast_nullable_to_non_nullable
-                      as String?,
-            smoking: freezed == smoking
-                ? _value.smoking
-                : smoking // ignore: cast_nullable_to_non_nullable
-                      as String?,
-            religion: freezed == religion
-                ? _value.religion
-                : religion // ignore: cast_nullable_to_non_nullable
-                      as String?,
-            profileCompletion: null == profileCompletion
-                ? _value.profileCompletion
-                : profileCompletion // ignore: cast_nullable_to_non_nullable
-                      as int,
-            isVerified: null == isVerified
-                ? _value.isVerified
-                : isVerified // ignore: cast_nullable_to_non_nullable
-                      as bool,
-            verificationBadge: null == verificationBadge
-                ? _value.verificationBadge
-                : verificationBadge // ignore: cast_nullable_to_non_nullable
-                      as bool,
-            createdAt: null == createdAt
-                ? _value.createdAt
-                : createdAt // ignore: cast_nullable_to_non_nullable
-                      as DateTime,
-            lastLogin: freezed == lastLogin
-                ? _value.lastLogin
-                : lastLogin // ignore: cast_nullable_to_non_nullable
-                      as DateTime?,
-            isActive: null == isActive
-                ? _value.isActive
-                : isActive // ignore: cast_nullable_to_non_nullable
-                      as bool,
-            isBlocked: null == isBlocked
-                ? _value.isBlocked
-                : isBlocked // ignore: cast_nullable_to_non_nullable
-                      as bool,
-            blockedUsers: null == blockedUsers
-                ? _value.blockedUsers
-                : blockedUsers // ignore: cast_nullable_to_non_nullable
-                      as List<String>,
-            updatedAt: freezed == updatedAt
-                ? _value.updatedAt
-                : updatedAt // ignore: cast_nullable_to_non_nullable
-                      as DateTime?,
-          )
-          as $Val,
-    );
+    return _then(_value.copyWith(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      phoneNumber: null == phoneNumber
+          ? _value.phoneNumber
+          : phoneNumber // ignore: cast_nullable_to_non_nullable
+              as String,
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String,
+      dateOfBirth: null == dateOfBirth
+          ? _value.dateOfBirth
+          : dateOfBirth // ignore: cast_nullable_to_non_nullable
+              as DateTime,
+      gender: null == gender
+          ? _value.gender
+          : gender // ignore: cast_nullable_to_non_nullable
+              as String,
+      createdAt: null == createdAt
+          ? _value.createdAt
+          : createdAt // ignore: cast_nullable_to_non_nullable
+              as DateTime,
+      bio: freezed == bio
+          ? _value.bio
+          : bio // ignore: cast_nullable_to_non_nullable
+              as String?,
+      heightCm: freezed == heightCm
+          ? _value.heightCm
+          : heightCm // ignore: cast_nullable_to_non_nullable
+              as int?,
+      education: freezed == education
+          ? _value.education
+          : education // ignore: cast_nullable_to_non_nullable
+              as String?,
+      profession: freezed == profession
+          ? _value.profession
+          : profession // ignore: cast_nullable_to_non_nullable
+              as String?,
+      incomeRange: freezed == incomeRange
+          ? _value.incomeRange
+          : incomeRange // ignore: cast_nullable_to_non_nullable
+              as String?,
+      drinking: freezed == drinking
+          ? _value.drinking
+          : drinking // ignore: cast_nullable_to_non_nullable
+              as String?,
+      smoking: freezed == smoking
+          ? _value.smoking
+          : smoking // ignore: cast_nullable_to_non_nullable
+              as String?,
+      religion: freezed == religion
+          ? _value.religion
+          : religion // ignore: cast_nullable_to_non_nullable
+              as String?,
+      profileCompletion: null == profileCompletion
+          ? _value.profileCompletion
+          : profileCompletion // ignore: cast_nullable_to_non_nullable
+              as int,
+      isVerified: null == isVerified
+          ? _value.isVerified
+          : isVerified // ignore: cast_nullable_to_non_nullable
+              as bool,
+      verificationBadge: null == verificationBadge
+          ? _value.verificationBadge
+          : verificationBadge // ignore: cast_nullable_to_non_nullable
+              as bool,
+      lastLogin: freezed == lastLogin
+          ? _value.lastLogin
+          : lastLogin // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      isActive: null == isActive
+          ? _value.isActive
+          : isActive // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isBlocked: null == isBlocked
+          ? _value.isBlocked
+          : isBlocked // ignore: cast_nullable_to_non_nullable
+              as bool,
+      blockedUsers: null == blockedUsers
+          ? _value.blockedUsers
+          : blockedUsers // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      updatedAt: freezed == updatedAt
+          ? _value.updatedAt
+          : updatedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+    ) as $Val);
   }
 }
 
 /// @nodoc
 abstract class _$$UserImplCopyWith<$Res> implements $UserCopyWith<$Res> {
   factory _$$UserImplCopyWith(
-    _$UserImpl value,
-    $Res Function(_$UserImpl) then,
-  ) = __$$UserImplCopyWithImpl<$Res>;
+          _$UserImpl value, $Res Function(_$UserImpl) then) =
+      __$$UserImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({
-    String id,
-    String phoneNumber,
-    String name,
-    DateTime dateOfBirth,
-    String gender,
-    String? bio,
-    int? heightCm,
-    String? education,
-    String? profession,
-    String? incomeRange,
-    String? drinking,
-    String? smoking,
-    String? religion,
-    int profileCompletion,
-    bool isVerified,
-    bool verificationBadge,
-    DateTime createdAt,
-    DateTime? lastLogin,
-    bool isActive,
-    bool isBlocked,
-    List<String> blockedUsers,
-    DateTime? updatedAt,
-  });
+  $Res call(
+      {String id,
+      String phoneNumber,
+      String name,
+      DateTime dateOfBirth,
+      String gender,
+      DateTime createdAt,
+      String? bio,
+      int? heightCm,
+      String? education,
+      String? profession,
+      String? incomeRange,
+      String? drinking,
+      String? smoking,
+      String? religion,
+      int profileCompletion,
+      bool isVerified,
+      bool verificationBadge,
+      DateTime? lastLogin,
+      bool isActive,
+      bool isBlocked,
+      List<String> blockedUsers,
+      DateTime? updatedAt});
 }
 
 /// @nodoc
@@ -251,7 +244,7 @@ class __$$UserImplCopyWithImpl<$Res>
     extends _$UserCopyWithImpl<$Res, _$UserImpl>
     implements _$$UserImplCopyWith<$Res> {
   __$$UserImplCopyWithImpl(_$UserImpl _value, $Res Function(_$UserImpl) _then)
-    : super(_value, _then);
+      : super(_value, _then);
 
   @pragma('vm:prefer-inline')
   @override
@@ -261,6 +254,7 @@ class __$$UserImplCopyWithImpl<$Res>
     Object? name = null,
     Object? dateOfBirth = null,
     Object? gender = null,
+    Object? createdAt = null,
     Object? bio = freezed,
     Object? heightCm = freezed,
     Object? education = freezed,
@@ -272,135 +266,132 @@ class __$$UserImplCopyWithImpl<$Res>
     Object? profileCompletion = null,
     Object? isVerified = null,
     Object? verificationBadge = null,
-    Object? createdAt = null,
     Object? lastLogin = freezed,
     Object? isActive = null,
     Object? isBlocked = null,
     Object? blockedUsers = null,
     Object? updatedAt = freezed,
   }) {
-    return _then(
-      _$UserImpl(
-        id: null == id
-            ? _value.id
-            : id // ignore: cast_nullable_to_non_nullable
-                  as String,
-        phoneNumber: null == phoneNumber
-            ? _value.phoneNumber
-            : phoneNumber // ignore: cast_nullable_to_non_nullable
-                  as String,
-        name: null == name
-            ? _value.name
-            : name // ignore: cast_nullable_to_non_nullable
-                  as String,
-        dateOfBirth: null == dateOfBirth
-            ? _value.dateOfBirth
-            : dateOfBirth // ignore: cast_nullable_to_non_nullable
-                  as DateTime,
-        gender: null == gender
-            ? _value.gender
-            : gender // ignore: cast_nullable_to_non_nullable
-                  as String,
-        bio: freezed == bio
-            ? _value.bio
-            : bio // ignore: cast_nullable_to_non_nullable
-                  as String?,
-        heightCm: freezed == heightCm
-            ? _value.heightCm
-            : heightCm // ignore: cast_nullable_to_non_nullable
-                  as int?,
-        education: freezed == education
-            ? _value.education
-            : education // ignore: cast_nullable_to_non_nullable
-                  as String?,
-        profession: freezed == profession
-            ? _value.profession
-            : profession // ignore: cast_nullable_to_non_nullable
-                  as String?,
-        incomeRange: freezed == incomeRange
-            ? _value.incomeRange
-            : incomeRange // ignore: cast_nullable_to_non_nullable
-                  as String?,
-        drinking: freezed == drinking
-            ? _value.drinking
-            : drinking // ignore: cast_nullable_to_non_nullable
-                  as String?,
-        smoking: freezed == smoking
-            ? _value.smoking
-            : smoking // ignore: cast_nullable_to_non_nullable
-                  as String?,
-        religion: freezed == religion
-            ? _value.religion
-            : religion // ignore: cast_nullable_to_non_nullable
-                  as String?,
-        profileCompletion: null == profileCompletion
-            ? _value.profileCompletion
-            : profileCompletion // ignore: cast_nullable_to_non_nullable
-                  as int,
-        isVerified: null == isVerified
-            ? _value.isVerified
-            : isVerified // ignore: cast_nullable_to_non_nullable
-                  as bool,
-        verificationBadge: null == verificationBadge
-            ? _value.verificationBadge
-            : verificationBadge // ignore: cast_nullable_to_non_nullable
-                  as bool,
-        createdAt: null == createdAt
-            ? _value.createdAt
-            : createdAt // ignore: cast_nullable_to_non_nullable
-                  as DateTime,
-        lastLogin: freezed == lastLogin
-            ? _value.lastLogin
-            : lastLogin // ignore: cast_nullable_to_non_nullable
-                  as DateTime?,
-        isActive: null == isActive
-            ? _value.isActive
-            : isActive // ignore: cast_nullable_to_non_nullable
-                  as bool,
-        isBlocked: null == isBlocked
-            ? _value.isBlocked
-            : isBlocked // ignore: cast_nullable_to_non_nullable
-                  as bool,
-        blockedUsers: null == blockedUsers
-            ? _value._blockedUsers
-            : blockedUsers // ignore: cast_nullable_to_non_nullable
-                  as List<String>,
-        updatedAt: freezed == updatedAt
-            ? _value.updatedAt
-            : updatedAt // ignore: cast_nullable_to_non_nullable
-                  as DateTime?,
-      ),
-    );
+    return _then(_$UserImpl(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      phoneNumber: null == phoneNumber
+          ? _value.phoneNumber
+          : phoneNumber // ignore: cast_nullable_to_non_nullable
+              as String,
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String,
+      dateOfBirth: null == dateOfBirth
+          ? _value.dateOfBirth
+          : dateOfBirth // ignore: cast_nullable_to_non_nullable
+              as DateTime,
+      gender: null == gender
+          ? _value.gender
+          : gender // ignore: cast_nullable_to_non_nullable
+              as String,
+      createdAt: null == createdAt
+          ? _value.createdAt
+          : createdAt // ignore: cast_nullable_to_non_nullable
+              as DateTime,
+      bio: freezed == bio
+          ? _value.bio
+          : bio // ignore: cast_nullable_to_non_nullable
+              as String?,
+      heightCm: freezed == heightCm
+          ? _value.heightCm
+          : heightCm // ignore: cast_nullable_to_non_nullable
+              as int?,
+      education: freezed == education
+          ? _value.education
+          : education // ignore: cast_nullable_to_non_nullable
+              as String?,
+      profession: freezed == profession
+          ? _value.profession
+          : profession // ignore: cast_nullable_to_non_nullable
+              as String?,
+      incomeRange: freezed == incomeRange
+          ? _value.incomeRange
+          : incomeRange // ignore: cast_nullable_to_non_nullable
+              as String?,
+      drinking: freezed == drinking
+          ? _value.drinking
+          : drinking // ignore: cast_nullable_to_non_nullable
+              as String?,
+      smoking: freezed == smoking
+          ? _value.smoking
+          : smoking // ignore: cast_nullable_to_non_nullable
+              as String?,
+      religion: freezed == religion
+          ? _value.religion
+          : religion // ignore: cast_nullable_to_non_nullable
+              as String?,
+      profileCompletion: null == profileCompletion
+          ? _value.profileCompletion
+          : profileCompletion // ignore: cast_nullable_to_non_nullable
+              as int,
+      isVerified: null == isVerified
+          ? _value.isVerified
+          : isVerified // ignore: cast_nullable_to_non_nullable
+              as bool,
+      verificationBadge: null == verificationBadge
+          ? _value.verificationBadge
+          : verificationBadge // ignore: cast_nullable_to_non_nullable
+              as bool,
+      lastLogin: freezed == lastLogin
+          ? _value.lastLogin
+          : lastLogin // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      isActive: null == isActive
+          ? _value.isActive
+          : isActive // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isBlocked: null == isBlocked
+          ? _value.isBlocked
+          : isBlocked // ignore: cast_nullable_to_non_nullable
+              as bool,
+      blockedUsers: null == blockedUsers
+          ? _value._blockedUsers
+          : blockedUsers // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      updatedAt: freezed == updatedAt
+          ? _value.updatedAt
+          : updatedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+    ));
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$UserImpl implements _User {
-  const _$UserImpl({
-    required this.id,
-    required this.phoneNumber,
-    required this.name,
-    required this.dateOfBirth,
-    required this.gender,
-    this.bio,
-    this.heightCm,
-    this.education,
-    this.profession,
-    this.incomeRange,
-    this.drinking,
-    this.smoking,
-    this.religion,
-    this.profileCompletion = 0,
-    this.isVerified = false,
-    this.verificationBadge = false,
-    required this.createdAt,
-    this.lastLogin,
-    this.isActive = true,
-    this.isBlocked = false,
-    final List<String> blockedUsers = const [],
-    this.updatedAt,
-  }) : _blockedUsers = blockedUsers;
+  const _$UserImpl(
+      {required this.id,
+      required this.phoneNumber,
+      required this.name,
+      required this.dateOfBirth,
+      required this.gender,
+      required this.createdAt,
+      this.bio,
+      this.heightCm,
+      this.education,
+      this.profession,
+      this.incomeRange,
+      this.drinking,
+      this.smoking,
+      this.religion,
+      this.profileCompletion = 0,
+      this.isVerified = false,
+      this.verificationBadge = false,
+      this.lastLogin,
+      this.isActive = true,
+      this.isBlocked = false,
+      final List<String> blockedUsers = const [],
+      this.updatedAt})
+      : _blockedUsers = blockedUsers;
 
   factory _$UserImpl.fromJson(Map<String, dynamic> json) =>
       _$$UserImplFromJson(json);
@@ -415,6 +406,8 @@ class _$UserImpl implements _User {
   final DateTime dateOfBirth;
   @override
   final String gender;
+  @override
+  final DateTime createdAt;
   @override
   final String? bio;
   @override
@@ -441,8 +434,6 @@ class _$UserImpl implements _User {
   @JsonKey()
   final bool verificationBadge;
   @override
-  final DateTime createdAt;
-  @override
   final DateTime? lastLogin;
   @override
   @JsonKey()
@@ -464,7 +455,7 @@ class _$UserImpl implements _User {
 
   @override
   String toString() {
-    return 'User(id: $id, phoneNumber: $phoneNumber, name: $name, dateOfBirth: $dateOfBirth, gender: $gender, bio: $bio, heightCm: $heightCm, education: $education, profession: $profession, incomeRange: $incomeRange, drinking: $drinking, smoking: $smoking, religion: $religion, profileCompletion: $profileCompletion, isVerified: $isVerified, verificationBadge: $verificationBadge, createdAt: $createdAt, lastLogin: $lastLogin, isActive: $isActive, isBlocked: $isBlocked, blockedUsers: $blockedUsers, updatedAt: $updatedAt)';
+    return 'User(id: $id, phoneNumber: $phoneNumber, name: $name, dateOfBirth: $dateOfBirth, gender: $gender, createdAt: $createdAt, bio: $bio, heightCm: $heightCm, education: $education, profession: $profession, incomeRange: $incomeRange, drinking: $drinking, smoking: $smoking, religion: $religion, profileCompletion: $profileCompletion, isVerified: $isVerified, verificationBadge: $verificationBadge, lastLogin: $lastLogin, isActive: $isActive, isBlocked: $isBlocked, blockedUsers: $blockedUsers, updatedAt: $updatedAt)';
   }
 
   @override
@@ -479,6 +470,8 @@ class _$UserImpl implements _User {
             (identical(other.dateOfBirth, dateOfBirth) ||
                 other.dateOfBirth == dateOfBirth) &&
             (identical(other.gender, gender) || other.gender == gender) &&
+            (identical(other.createdAt, createdAt) ||
+                other.createdAt == createdAt) &&
             (identical(other.bio, bio) || other.bio == bio) &&
             (identical(other.heightCm, heightCm) ||
                 other.heightCm == heightCm) &&
@@ -499,18 +492,14 @@ class _$UserImpl implements _User {
                 other.isVerified == isVerified) &&
             (identical(other.verificationBadge, verificationBadge) ||
                 other.verificationBadge == verificationBadge) &&
-            (identical(other.createdAt, createdAt) ||
-                other.createdAt == createdAt) &&
             (identical(other.lastLogin, lastLogin) ||
                 other.lastLogin == lastLogin) &&
             (identical(other.isActive, isActive) ||
                 other.isActive == isActive) &&
             (identical(other.isBlocked, isBlocked) ||
                 other.isBlocked == isBlocked) &&
-            const DeepCollectionEquality().equals(
-              other._blockedUsers,
-              _blockedUsers,
-            ) &&
+            const DeepCollectionEquality()
+                .equals(other._blockedUsers, _blockedUsers) &&
             (identical(other.updatedAt, updatedAt) ||
                 other.updatedAt == updatedAt));
   }
@@ -518,30 +507,30 @@ class _$UserImpl implements _User {
   @JsonKey(ignore: true)
   @override
   int get hashCode => Object.hashAll([
-    runtimeType,
-    id,
-    phoneNumber,
-    name,
-    dateOfBirth,
-    gender,
-    bio,
-    heightCm,
-    education,
-    profession,
-    incomeRange,
-    drinking,
-    smoking,
-    religion,
-    profileCompletion,
-    isVerified,
-    verificationBadge,
-    createdAt,
-    lastLogin,
-    isActive,
-    isBlocked,
-    const DeepCollectionEquality().hash(_blockedUsers),
-    updatedAt,
-  ]);
+        runtimeType,
+        id,
+        phoneNumber,
+        name,
+        dateOfBirth,
+        gender,
+        createdAt,
+        bio,
+        heightCm,
+        education,
+        profession,
+        incomeRange,
+        drinking,
+        smoking,
+        religion,
+        profileCompletion,
+        isVerified,
+        verificationBadge,
+        lastLogin,
+        isActive,
+        isBlocked,
+        const DeepCollectionEquality().hash(_blockedUsers),
+        updatedAt
+      ]);
 
   @JsonKey(ignore: true)
   @override
@@ -551,35 +540,36 @@ class _$UserImpl implements _User {
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$UserImplToJson(this);
+    return _$$UserImplToJson(
+      this,
+    );
   }
 }
 
 abstract class _User implements User {
-  const factory _User({
-    required final String id,
-    required final String phoneNumber,
-    required final String name,
-    required final DateTime dateOfBirth,
-    required final String gender,
-    final String? bio,
-    final int? heightCm,
-    final String? education,
-    final String? profession,
-    final String? incomeRange,
-    final String? drinking,
-    final String? smoking,
-    final String? religion,
-    final int profileCompletion,
-    final bool isVerified,
-    final bool verificationBadge,
-    required final DateTime createdAt,
-    final DateTime? lastLogin,
-    final bool isActive,
-    final bool isBlocked,
-    final List<String> blockedUsers,
-    final DateTime? updatedAt,
-  }) = _$UserImpl;
+  const factory _User(
+      {required final String id,
+      required final String phoneNumber,
+      required final String name,
+      required final DateTime dateOfBirth,
+      required final String gender,
+      required final DateTime createdAt,
+      final String? bio,
+      final int? heightCm,
+      final String? education,
+      final String? profession,
+      final String? incomeRange,
+      final String? drinking,
+      final String? smoking,
+      final String? religion,
+      final int profileCompletion,
+      final bool isVerified,
+      final bool verificationBadge,
+      final DateTime? lastLogin,
+      final bool isActive,
+      final bool isBlocked,
+      final List<String> blockedUsers,
+      final DateTime? updatedAt}) = _$UserImpl;
 
   factory _User.fromJson(Map<String, dynamic> json) = _$UserImpl.fromJson;
 
@@ -593,6 +583,8 @@ abstract class _User implements User {
   DateTime get dateOfBirth;
   @override
   String get gender;
+  @override
+  DateTime get createdAt;
   @override
   String? get bio;
   @override
@@ -615,8 +607,6 @@ abstract class _User implements User {
   bool get isVerified;
   @override
   bool get verificationBadge;
-  @override
-  DateTime get createdAt;
   @override
   DateTime? get lastLogin;
   @override
@@ -661,24 +651,22 @@ mixin _$Preferences {
 /// @nodoc
 abstract class $PreferencesCopyWith<$Res> {
   factory $PreferencesCopyWith(
-    Preferences value,
-    $Res Function(Preferences) then,
-  ) = _$PreferencesCopyWithImpl<$Res, Preferences>;
+          Preferences value, $Res Function(Preferences) then) =
+      _$PreferencesCopyWithImpl<$Res, Preferences>;
   @useResult
-  $Res call({
-    String id,
-    String userId,
-    List<String> seekingGenders,
-    int minAgeYears,
-    int maxAgeYears,
-    int maxDistanceKm,
-    int? minHeightCm,
-    int? maxHeightCm,
-    List<String> educationFilter,
-    bool seriousOnly,
-    bool verifiedOnly,
-    DateTime? updatedAt,
-  });
+  $Res call(
+      {String id,
+      String userId,
+      List<String> seekingGenders,
+      int minAgeYears,
+      int maxAgeYears,
+      int maxDistanceKm,
+      int? minHeightCm,
+      int? maxHeightCm,
+      List<String> educationFilter,
+      bool seriousOnly,
+      bool verifiedOnly,
+      DateTime? updatedAt});
 }
 
 /// @nodoc
@@ -707,59 +695,56 @@ class _$PreferencesCopyWithImpl<$Res, $Val extends Preferences>
     Object? verifiedOnly = null,
     Object? updatedAt = freezed,
   }) {
-    return _then(
-      _value.copyWith(
-            id: null == id
-                ? _value.id
-                : id // ignore: cast_nullable_to_non_nullable
-                      as String,
-            userId: null == userId
-                ? _value.userId
-                : userId // ignore: cast_nullable_to_non_nullable
-                      as String,
-            seekingGenders: null == seekingGenders
-                ? _value.seekingGenders
-                : seekingGenders // ignore: cast_nullable_to_non_nullable
-                      as List<String>,
-            minAgeYears: null == minAgeYears
-                ? _value.minAgeYears
-                : minAgeYears // ignore: cast_nullable_to_non_nullable
-                      as int,
-            maxAgeYears: null == maxAgeYears
-                ? _value.maxAgeYears
-                : maxAgeYears // ignore: cast_nullable_to_non_nullable
-                      as int,
-            maxDistanceKm: null == maxDistanceKm
-                ? _value.maxDistanceKm
-                : maxDistanceKm // ignore: cast_nullable_to_non_nullable
-                      as int,
-            minHeightCm: freezed == minHeightCm
-                ? _value.minHeightCm
-                : minHeightCm // ignore: cast_nullable_to_non_nullable
-                      as int?,
-            maxHeightCm: freezed == maxHeightCm
-                ? _value.maxHeightCm
-                : maxHeightCm // ignore: cast_nullable_to_non_nullable
-                      as int?,
-            educationFilter: null == educationFilter
-                ? _value.educationFilter
-                : educationFilter // ignore: cast_nullable_to_non_nullable
-                      as List<String>,
-            seriousOnly: null == seriousOnly
-                ? _value.seriousOnly
-                : seriousOnly // ignore: cast_nullable_to_non_nullable
-                      as bool,
-            verifiedOnly: null == verifiedOnly
-                ? _value.verifiedOnly
-                : verifiedOnly // ignore: cast_nullable_to_non_nullable
-                      as bool,
-            updatedAt: freezed == updatedAt
-                ? _value.updatedAt
-                : updatedAt // ignore: cast_nullable_to_non_nullable
-                      as DateTime?,
-          )
-          as $Val,
-    );
+    return _then(_value.copyWith(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      userId: null == userId
+          ? _value.userId
+          : userId // ignore: cast_nullable_to_non_nullable
+              as String,
+      seekingGenders: null == seekingGenders
+          ? _value.seekingGenders
+          : seekingGenders // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      minAgeYears: null == minAgeYears
+          ? _value.minAgeYears
+          : minAgeYears // ignore: cast_nullable_to_non_nullable
+              as int,
+      maxAgeYears: null == maxAgeYears
+          ? _value.maxAgeYears
+          : maxAgeYears // ignore: cast_nullable_to_non_nullable
+              as int,
+      maxDistanceKm: null == maxDistanceKm
+          ? _value.maxDistanceKm
+          : maxDistanceKm // ignore: cast_nullable_to_non_nullable
+              as int,
+      minHeightCm: freezed == minHeightCm
+          ? _value.minHeightCm
+          : minHeightCm // ignore: cast_nullable_to_non_nullable
+              as int?,
+      maxHeightCm: freezed == maxHeightCm
+          ? _value.maxHeightCm
+          : maxHeightCm // ignore: cast_nullable_to_non_nullable
+              as int?,
+      educationFilter: null == educationFilter
+          ? _value.educationFilter
+          : educationFilter // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      seriousOnly: null == seriousOnly
+          ? _value.seriousOnly
+          : seriousOnly // ignore: cast_nullable_to_non_nullable
+              as bool,
+      verifiedOnly: null == verifiedOnly
+          ? _value.verifiedOnly
+          : verifiedOnly // ignore: cast_nullable_to_non_nullable
+              as bool,
+      updatedAt: freezed == updatedAt
+          ? _value.updatedAt
+          : updatedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+    ) as $Val);
   }
 }
 
@@ -767,25 +752,23 @@ class _$PreferencesCopyWithImpl<$Res, $Val extends Preferences>
 abstract class _$$PreferencesImplCopyWith<$Res>
     implements $PreferencesCopyWith<$Res> {
   factory _$$PreferencesImplCopyWith(
-    _$PreferencesImpl value,
-    $Res Function(_$PreferencesImpl) then,
-  ) = __$$PreferencesImplCopyWithImpl<$Res>;
+          _$PreferencesImpl value, $Res Function(_$PreferencesImpl) then) =
+      __$$PreferencesImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({
-    String id,
-    String userId,
-    List<String> seekingGenders,
-    int minAgeYears,
-    int maxAgeYears,
-    int maxDistanceKm,
-    int? minHeightCm,
-    int? maxHeightCm,
-    List<String> educationFilter,
-    bool seriousOnly,
-    bool verifiedOnly,
-    DateTime? updatedAt,
-  });
+  $Res call(
+      {String id,
+      String userId,
+      List<String> seekingGenders,
+      int minAgeYears,
+      int maxAgeYears,
+      int maxDistanceKm,
+      int? minHeightCm,
+      int? maxHeightCm,
+      List<String> educationFilter,
+      bool seriousOnly,
+      bool verifiedOnly,
+      DateTime? updatedAt});
 }
 
 /// @nodoc
@@ -793,9 +776,8 @@ class __$$PreferencesImplCopyWithImpl<$Res>
     extends _$PreferencesCopyWithImpl<$Res, _$PreferencesImpl>
     implements _$$PreferencesImplCopyWith<$Res> {
   __$$PreferencesImplCopyWithImpl(
-    _$PreferencesImpl _value,
-    $Res Function(_$PreferencesImpl) _then,
-  ) : super(_value, _then);
+      _$PreferencesImpl _value, $Res Function(_$PreferencesImpl) _then)
+      : super(_value, _then);
 
   @pragma('vm:prefer-inline')
   @override
@@ -813,79 +795,77 @@ class __$$PreferencesImplCopyWithImpl<$Res>
     Object? verifiedOnly = null,
     Object? updatedAt = freezed,
   }) {
-    return _then(
-      _$PreferencesImpl(
-        id: null == id
-            ? _value.id
-            : id // ignore: cast_nullable_to_non_nullable
-                  as String,
-        userId: null == userId
-            ? _value.userId
-            : userId // ignore: cast_nullable_to_non_nullable
-                  as String,
-        seekingGenders: null == seekingGenders
-            ? _value._seekingGenders
-            : seekingGenders // ignore: cast_nullable_to_non_nullable
-                  as List<String>,
-        minAgeYears: null == minAgeYears
-            ? _value.minAgeYears
-            : minAgeYears // ignore: cast_nullable_to_non_nullable
-                  as int,
-        maxAgeYears: null == maxAgeYears
-            ? _value.maxAgeYears
-            : maxAgeYears // ignore: cast_nullable_to_non_nullable
-                  as int,
-        maxDistanceKm: null == maxDistanceKm
-            ? _value.maxDistanceKm
-            : maxDistanceKm // ignore: cast_nullable_to_non_nullable
-                  as int,
-        minHeightCm: freezed == minHeightCm
-            ? _value.minHeightCm
-            : minHeightCm // ignore: cast_nullable_to_non_nullable
-                  as int?,
-        maxHeightCm: freezed == maxHeightCm
-            ? _value.maxHeightCm
-            : maxHeightCm // ignore: cast_nullable_to_non_nullable
-                  as int?,
-        educationFilter: null == educationFilter
-            ? _value._educationFilter
-            : educationFilter // ignore: cast_nullable_to_non_nullable
-                  as List<String>,
-        seriousOnly: null == seriousOnly
-            ? _value.seriousOnly
-            : seriousOnly // ignore: cast_nullable_to_non_nullable
-                  as bool,
-        verifiedOnly: null == verifiedOnly
-            ? _value.verifiedOnly
-            : verifiedOnly // ignore: cast_nullable_to_non_nullable
-                  as bool,
-        updatedAt: freezed == updatedAt
-            ? _value.updatedAt
-            : updatedAt // ignore: cast_nullable_to_non_nullable
-                  as DateTime?,
-      ),
-    );
+    return _then(_$PreferencesImpl(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      userId: null == userId
+          ? _value.userId
+          : userId // ignore: cast_nullable_to_non_nullable
+              as String,
+      seekingGenders: null == seekingGenders
+          ? _value._seekingGenders
+          : seekingGenders // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      minAgeYears: null == minAgeYears
+          ? _value.minAgeYears
+          : minAgeYears // ignore: cast_nullable_to_non_nullable
+              as int,
+      maxAgeYears: null == maxAgeYears
+          ? _value.maxAgeYears
+          : maxAgeYears // ignore: cast_nullable_to_non_nullable
+              as int,
+      maxDistanceKm: null == maxDistanceKm
+          ? _value.maxDistanceKm
+          : maxDistanceKm // ignore: cast_nullable_to_non_nullable
+              as int,
+      minHeightCm: freezed == minHeightCm
+          ? _value.minHeightCm
+          : minHeightCm // ignore: cast_nullable_to_non_nullable
+              as int?,
+      maxHeightCm: freezed == maxHeightCm
+          ? _value.maxHeightCm
+          : maxHeightCm // ignore: cast_nullable_to_non_nullable
+              as int?,
+      educationFilter: null == educationFilter
+          ? _value._educationFilter
+          : educationFilter // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      seriousOnly: null == seriousOnly
+          ? _value.seriousOnly
+          : seriousOnly // ignore: cast_nullable_to_non_nullable
+              as bool,
+      verifiedOnly: null == verifiedOnly
+          ? _value.verifiedOnly
+          : verifiedOnly // ignore: cast_nullable_to_non_nullable
+              as bool,
+      updatedAt: freezed == updatedAt
+          ? _value.updatedAt
+          : updatedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+    ));
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$PreferencesImpl implements _Preferences {
-  const _$PreferencesImpl({
-    required this.id,
-    required this.userId,
-    final List<String> seekingGenders = const ['F', 'M', 'NB'],
-    this.minAgeYears = 18,
-    this.maxAgeYears = 60,
-    this.maxDistanceKm = 50,
-    this.minHeightCm,
-    this.maxHeightCm,
-    final List<String> educationFilter = const [],
-    this.seriousOnly = false,
-    this.verifiedOnly = false,
-    this.updatedAt,
-  }) : _seekingGenders = seekingGenders,
-       _educationFilter = educationFilter;
+  const _$PreferencesImpl(
+      {required this.id,
+      required this.userId,
+      final List<String> seekingGenders = const ['F', 'M', 'NB'],
+      this.minAgeYears = 18,
+      this.maxAgeYears = 60,
+      this.maxDistanceKm = 50,
+      this.minHeightCm,
+      this.maxHeightCm,
+      final List<String> educationFilter = const [],
+      this.seriousOnly = false,
+      this.verifiedOnly = false,
+      this.updatedAt})
+      : _seekingGenders = seekingGenders,
+        _educationFilter = educationFilter;
 
   factory _$PreferencesImpl.fromJson(Map<String, dynamic> json) =>
       _$$PreferencesImplFromJson(json);
@@ -946,10 +926,8 @@ class _$PreferencesImpl implements _Preferences {
             other is _$PreferencesImpl &&
             (identical(other.id, id) || other.id == id) &&
             (identical(other.userId, userId) || other.userId == userId) &&
-            const DeepCollectionEquality().equals(
-              other._seekingGenders,
-              _seekingGenders,
-            ) &&
+            const DeepCollectionEquality()
+                .equals(other._seekingGenders, _seekingGenders) &&
             (identical(other.minAgeYears, minAgeYears) ||
                 other.minAgeYears == minAgeYears) &&
             (identical(other.maxAgeYears, maxAgeYears) ||
@@ -960,10 +938,8 @@ class _$PreferencesImpl implements _Preferences {
                 other.minHeightCm == minHeightCm) &&
             (identical(other.maxHeightCm, maxHeightCm) ||
                 other.maxHeightCm == maxHeightCm) &&
-            const DeepCollectionEquality().equals(
-              other._educationFilter,
-              _educationFilter,
-            ) &&
+            const DeepCollectionEquality()
+                .equals(other._educationFilter, _educationFilter) &&
             (identical(other.seriousOnly, seriousOnly) ||
                 other.seriousOnly == seriousOnly) &&
             (identical(other.verifiedOnly, verifiedOnly) ||
@@ -975,20 +951,19 @@ class _$PreferencesImpl implements _Preferences {
   @JsonKey(ignore: true)
   @override
   int get hashCode => Object.hash(
-    runtimeType,
-    id,
-    userId,
-    const DeepCollectionEquality().hash(_seekingGenders),
-    minAgeYears,
-    maxAgeYears,
-    maxDistanceKm,
-    minHeightCm,
-    maxHeightCm,
-    const DeepCollectionEquality().hash(_educationFilter),
-    seriousOnly,
-    verifiedOnly,
-    updatedAt,
-  );
+      runtimeType,
+      id,
+      userId,
+      const DeepCollectionEquality().hash(_seekingGenders),
+      minAgeYears,
+      maxAgeYears,
+      maxDistanceKm,
+      minHeightCm,
+      maxHeightCm,
+      const DeepCollectionEquality().hash(_educationFilter),
+      seriousOnly,
+      verifiedOnly,
+      updatedAt);
 
   @JsonKey(ignore: true)
   @override
@@ -998,25 +973,26 @@ class _$PreferencesImpl implements _Preferences {
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$PreferencesImplToJson(this);
+    return _$$PreferencesImplToJson(
+      this,
+    );
   }
 }
 
 abstract class _Preferences implements Preferences {
-  const factory _Preferences({
-    required final String id,
-    required final String userId,
-    final List<String> seekingGenders,
-    final int minAgeYears,
-    final int maxAgeYears,
-    final int maxDistanceKm,
-    final int? minHeightCm,
-    final int? maxHeightCm,
-    final List<String> educationFilter,
-    final bool seriousOnly,
-    final bool verifiedOnly,
-    final DateTime? updatedAt,
-  }) = _$PreferencesImpl;
+  const factory _Preferences(
+      {required final String id,
+      required final String userId,
+      final List<String> seekingGenders,
+      final int minAgeYears,
+      final int maxAgeYears,
+      final int maxDistanceKm,
+      final int? minHeightCm,
+      final int? maxHeightCm,
+      final List<String> educationFilter,
+      final bool seriousOnly,
+      final bool verifiedOnly,
+      final DateTime? updatedAt}) = _$PreferencesImpl;
 
   factory _Preferences.fromJson(Map<String, dynamic> json) =
       _$PreferencesImpl.fromJson;
@@ -1061,8 +1037,8 @@ mixin _$Photo {
   String get userId => throw _privateConstructorUsedError;
   String get photoUrl => throw _privateConstructorUsedError;
   String get storagePath => throw _privateConstructorUsedError;
-  int get ordering => throw _privateConstructorUsedError;
   DateTime get uploadedAt => throw _privateConstructorUsedError;
+  int get ordering => throw _privateConstructorUsedError;
   bool get isModerated => throw _privateConstructorUsedError;
   bool get isFlagged => throw _privateConstructorUsedError;
 
@@ -1076,16 +1052,15 @@ abstract class $PhotoCopyWith<$Res> {
   factory $PhotoCopyWith(Photo value, $Res Function(Photo) then) =
       _$PhotoCopyWithImpl<$Res, Photo>;
   @useResult
-  $Res call({
-    String id,
-    String userId,
-    String photoUrl,
-    String storagePath,
-    int ordering,
-    DateTime uploadedAt,
-    bool isModerated,
-    bool isFlagged,
-  });
+  $Res call(
+      {String id,
+      String userId,
+      String photoUrl,
+      String storagePath,
+      DateTime uploadedAt,
+      int ordering,
+      bool isModerated,
+      bool isFlagged});
 }
 
 /// @nodoc
@@ -1105,69 +1080,64 @@ class _$PhotoCopyWithImpl<$Res, $Val extends Photo>
     Object? userId = null,
     Object? photoUrl = null,
     Object? storagePath = null,
-    Object? ordering = null,
     Object? uploadedAt = null,
+    Object? ordering = null,
     Object? isModerated = null,
     Object? isFlagged = null,
   }) {
-    return _then(
-      _value.copyWith(
-            id: null == id
-                ? _value.id
-                : id // ignore: cast_nullable_to_non_nullable
-                      as String,
-            userId: null == userId
-                ? _value.userId
-                : userId // ignore: cast_nullable_to_non_nullable
-                      as String,
-            photoUrl: null == photoUrl
-                ? _value.photoUrl
-                : photoUrl // ignore: cast_nullable_to_non_nullable
-                      as String,
-            storagePath: null == storagePath
-                ? _value.storagePath
-                : storagePath // ignore: cast_nullable_to_non_nullable
-                      as String,
-            ordering: null == ordering
-                ? _value.ordering
-                : ordering // ignore: cast_nullable_to_non_nullable
-                      as int,
-            uploadedAt: null == uploadedAt
-                ? _value.uploadedAt
-                : uploadedAt // ignore: cast_nullable_to_non_nullable
-                      as DateTime,
-            isModerated: null == isModerated
-                ? _value.isModerated
-                : isModerated // ignore: cast_nullable_to_non_nullable
-                      as bool,
-            isFlagged: null == isFlagged
-                ? _value.isFlagged
-                : isFlagged // ignore: cast_nullable_to_non_nullable
-                      as bool,
-          )
-          as $Val,
-    );
+    return _then(_value.copyWith(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      userId: null == userId
+          ? _value.userId
+          : userId // ignore: cast_nullable_to_non_nullable
+              as String,
+      photoUrl: null == photoUrl
+          ? _value.photoUrl
+          : photoUrl // ignore: cast_nullable_to_non_nullable
+              as String,
+      storagePath: null == storagePath
+          ? _value.storagePath
+          : storagePath // ignore: cast_nullable_to_non_nullable
+              as String,
+      uploadedAt: null == uploadedAt
+          ? _value.uploadedAt
+          : uploadedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime,
+      ordering: null == ordering
+          ? _value.ordering
+          : ordering // ignore: cast_nullable_to_non_nullable
+              as int,
+      isModerated: null == isModerated
+          ? _value.isModerated
+          : isModerated // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isFlagged: null == isFlagged
+          ? _value.isFlagged
+          : isFlagged // ignore: cast_nullable_to_non_nullable
+              as bool,
+    ) as $Val);
   }
 }
 
 /// @nodoc
 abstract class _$$PhotoImplCopyWith<$Res> implements $PhotoCopyWith<$Res> {
   factory _$$PhotoImplCopyWith(
-    _$PhotoImpl value,
-    $Res Function(_$PhotoImpl) then,
-  ) = __$$PhotoImplCopyWithImpl<$Res>;
+          _$PhotoImpl value, $Res Function(_$PhotoImpl) then) =
+      __$$PhotoImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({
-    String id,
-    String userId,
-    String photoUrl,
-    String storagePath,
-    int ordering,
-    DateTime uploadedAt,
-    bool isModerated,
-    bool isFlagged,
-  });
+  $Res call(
+      {String id,
+      String userId,
+      String photoUrl,
+      String storagePath,
+      DateTime uploadedAt,
+      int ordering,
+      bool isModerated,
+      bool isFlagged});
 }
 
 /// @nodoc
@@ -1175,9 +1145,8 @@ class __$$PhotoImplCopyWithImpl<$Res>
     extends _$PhotoCopyWithImpl<$Res, _$PhotoImpl>
     implements _$$PhotoImplCopyWith<$Res> {
   __$$PhotoImplCopyWithImpl(
-    _$PhotoImpl _value,
-    $Res Function(_$PhotoImpl) _then,
-  ) : super(_value, _then);
+      _$PhotoImpl _value, $Res Function(_$PhotoImpl) _then)
+      : super(_value, _then);
 
   @pragma('vm:prefer-inline')
   @override
@@ -1186,63 +1155,60 @@ class __$$PhotoImplCopyWithImpl<$Res>
     Object? userId = null,
     Object? photoUrl = null,
     Object? storagePath = null,
-    Object? ordering = null,
     Object? uploadedAt = null,
+    Object? ordering = null,
     Object? isModerated = null,
     Object? isFlagged = null,
   }) {
-    return _then(
-      _$PhotoImpl(
-        id: null == id
-            ? _value.id
-            : id // ignore: cast_nullable_to_non_nullable
-                  as String,
-        userId: null == userId
-            ? _value.userId
-            : userId // ignore: cast_nullable_to_non_nullable
-                  as String,
-        photoUrl: null == photoUrl
-            ? _value.photoUrl
-            : photoUrl // ignore: cast_nullable_to_non_nullable
-                  as String,
-        storagePath: null == storagePath
-            ? _value.storagePath
-            : storagePath // ignore: cast_nullable_to_non_nullable
-                  as String,
-        ordering: null == ordering
-            ? _value.ordering
-            : ordering // ignore: cast_nullable_to_non_nullable
-                  as int,
-        uploadedAt: null == uploadedAt
-            ? _value.uploadedAt
-            : uploadedAt // ignore: cast_nullable_to_non_nullable
-                  as DateTime,
-        isModerated: null == isModerated
-            ? _value.isModerated
-            : isModerated // ignore: cast_nullable_to_non_nullable
-                  as bool,
-        isFlagged: null == isFlagged
-            ? _value.isFlagged
-            : isFlagged // ignore: cast_nullable_to_non_nullable
-                  as bool,
-      ),
-    );
+    return _then(_$PhotoImpl(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      userId: null == userId
+          ? _value.userId
+          : userId // ignore: cast_nullable_to_non_nullable
+              as String,
+      photoUrl: null == photoUrl
+          ? _value.photoUrl
+          : photoUrl // ignore: cast_nullable_to_non_nullable
+              as String,
+      storagePath: null == storagePath
+          ? _value.storagePath
+          : storagePath // ignore: cast_nullable_to_non_nullable
+              as String,
+      uploadedAt: null == uploadedAt
+          ? _value.uploadedAt
+          : uploadedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime,
+      ordering: null == ordering
+          ? _value.ordering
+          : ordering // ignore: cast_nullable_to_non_nullable
+              as int,
+      isModerated: null == isModerated
+          ? _value.isModerated
+          : isModerated // ignore: cast_nullable_to_non_nullable
+              as bool,
+      isFlagged: null == isFlagged
+          ? _value.isFlagged
+          : isFlagged // ignore: cast_nullable_to_non_nullable
+              as bool,
+    ));
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$PhotoImpl implements _Photo {
-  const _$PhotoImpl({
-    required this.id,
-    required this.userId,
-    required this.photoUrl,
-    required this.storagePath,
-    this.ordering = 0,
-    required this.uploadedAt,
-    this.isModerated = false,
-    this.isFlagged = false,
-  });
+  const _$PhotoImpl(
+      {required this.id,
+      required this.userId,
+      required this.photoUrl,
+      required this.storagePath,
+      required this.uploadedAt,
+      this.ordering = 0,
+      this.isModerated = false,
+      this.isFlagged = false});
 
   factory _$PhotoImpl.fromJson(Map<String, dynamic> json) =>
       _$$PhotoImplFromJson(json);
@@ -1256,10 +1222,10 @@ class _$PhotoImpl implements _Photo {
   @override
   final String storagePath;
   @override
+  final DateTime uploadedAt;
+  @override
   @JsonKey()
   final int ordering;
-  @override
-  final DateTime uploadedAt;
   @override
   @JsonKey()
   final bool isModerated;
@@ -1269,7 +1235,7 @@ class _$PhotoImpl implements _Photo {
 
   @override
   String toString() {
-    return 'Photo(id: $id, userId: $userId, photoUrl: $photoUrl, storagePath: $storagePath, ordering: $ordering, uploadedAt: $uploadedAt, isModerated: $isModerated, isFlagged: $isFlagged)';
+    return 'Photo(id: $id, userId: $userId, photoUrl: $photoUrl, storagePath: $storagePath, uploadedAt: $uploadedAt, ordering: $ordering, isModerated: $isModerated, isFlagged: $isFlagged)';
   }
 
   @override
@@ -1283,10 +1249,10 @@ class _$PhotoImpl implements _Photo {
                 other.photoUrl == photoUrl) &&
             (identical(other.storagePath, storagePath) ||
                 other.storagePath == storagePath) &&
-            (identical(other.ordering, ordering) ||
-                other.ordering == ordering) &&
             (identical(other.uploadedAt, uploadedAt) ||
                 other.uploadedAt == uploadedAt) &&
+            (identical(other.ordering, ordering) ||
+                other.ordering == ordering) &&
             (identical(other.isModerated, isModerated) ||
                 other.isModerated == isModerated) &&
             (identical(other.isFlagged, isFlagged) ||
@@ -1295,17 +1261,8 @@ class _$PhotoImpl implements _Photo {
 
   @JsonKey(ignore: true)
   @override
-  int get hashCode => Object.hash(
-    runtimeType,
-    id,
-    userId,
-    photoUrl,
-    storagePath,
-    ordering,
-    uploadedAt,
-    isModerated,
-    isFlagged,
-  );
+  int get hashCode => Object.hash(runtimeType, id, userId, photoUrl,
+      storagePath, uploadedAt, ordering, isModerated, isFlagged);
 
   @JsonKey(ignore: true)
   @override
@@ -1315,21 +1272,22 @@ class _$PhotoImpl implements _Photo {
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$PhotoImplToJson(this);
+    return _$$PhotoImplToJson(
+      this,
+    );
   }
 }
 
 abstract class _Photo implements Photo {
-  const factory _Photo({
-    required final String id,
-    required final String userId,
-    required final String photoUrl,
-    required final String storagePath,
-    final int ordering,
-    required final DateTime uploadedAt,
-    final bool isModerated,
-    final bool isFlagged,
-  }) = _$PhotoImpl;
+  const factory _Photo(
+      {required final String id,
+      required final String userId,
+      required final String photoUrl,
+      required final String storagePath,
+      required final DateTime uploadedAt,
+      final int ordering,
+      final bool isModerated,
+      final bool isFlagged}) = _$PhotoImpl;
 
   factory _Photo.fromJson(Map<String, dynamic> json) = _$PhotoImpl.fromJson;
 
@@ -1342,9 +1300,9 @@ abstract class _Photo implements Photo {
   @override
   String get storagePath;
   @override
-  int get ordering;
-  @override
   DateTime get uploadedAt;
+  @override
+  int get ordering;
   @override
   bool get isModerated;
   @override
@@ -1380,21 +1338,19 @@ mixin _$UserSettings {
 /// @nodoc
 abstract class $UserSettingsCopyWith<$Res> {
   factory $UserSettingsCopyWith(
-    UserSettings value,
-    $Res Function(UserSettings) then,
-  ) = _$UserSettingsCopyWithImpl<$Res, UserSettings>;
+          UserSettings value, $Res Function(UserSettings) then) =
+      _$UserSettingsCopyWithImpl<$Res, UserSettings>;
   @useResult
-  $Res call({
-    String userId,
-    bool showAge,
-    bool showExactDistance,
-    bool showOnlineStatus,
-    bool notifyNewMatch,
-    bool notifyNewMessage,
-    bool notifyLikes,
-    String theme,
-    DateTime? updatedAt,
-  });
+  $Res call(
+      {String userId,
+      bool showAge,
+      bool showExactDistance,
+      bool showOnlineStatus,
+      bool notifyNewMatch,
+      bool notifyNewMessage,
+      bool notifyLikes,
+      String theme,
+      DateTime? updatedAt});
 }
 
 /// @nodoc
@@ -1420,47 +1376,44 @@ class _$UserSettingsCopyWithImpl<$Res, $Val extends UserSettings>
     Object? theme = null,
     Object? updatedAt = freezed,
   }) {
-    return _then(
-      _value.copyWith(
-            userId: null == userId
-                ? _value.userId
-                : userId // ignore: cast_nullable_to_non_nullable
-                      as String,
-            showAge: null == showAge
-                ? _value.showAge
-                : showAge // ignore: cast_nullable_to_non_nullable
-                      as bool,
-            showExactDistance: null == showExactDistance
-                ? _value.showExactDistance
-                : showExactDistance // ignore: cast_nullable_to_non_nullable
-                      as bool,
-            showOnlineStatus: null == showOnlineStatus
-                ? _value.showOnlineStatus
-                : showOnlineStatus // ignore: cast_nullable_to_non_nullable
-                      as bool,
-            notifyNewMatch: null == notifyNewMatch
-                ? _value.notifyNewMatch
-                : notifyNewMatch // ignore: cast_nullable_to_non_nullable
-                      as bool,
-            notifyNewMessage: null == notifyNewMessage
-                ? _value.notifyNewMessage
-                : notifyNewMessage // ignore: cast_nullable_to_non_nullable
-                      as bool,
-            notifyLikes: null == notifyLikes
-                ? _value.notifyLikes
-                : notifyLikes // ignore: cast_nullable_to_non_nullable
-                      as bool,
-            theme: null == theme
-                ? _value.theme
-                : theme // ignore: cast_nullable_to_non_nullable
-                      as String,
-            updatedAt: freezed == updatedAt
-                ? _value.updatedAt
-                : updatedAt // ignore: cast_nullable_to_non_nullable
-                      as DateTime?,
-          )
-          as $Val,
-    );
+    return _then(_value.copyWith(
+      userId: null == userId
+          ? _value.userId
+          : userId // ignore: cast_nullable_to_non_nullable
+              as String,
+      showAge: null == showAge
+          ? _value.showAge
+          : showAge // ignore: cast_nullable_to_non_nullable
+              as bool,
+      showExactDistance: null == showExactDistance
+          ? _value.showExactDistance
+          : showExactDistance // ignore: cast_nullable_to_non_nullable
+              as bool,
+      showOnlineStatus: null == showOnlineStatus
+          ? _value.showOnlineStatus
+          : showOnlineStatus // ignore: cast_nullable_to_non_nullable
+              as bool,
+      notifyNewMatch: null == notifyNewMatch
+          ? _value.notifyNewMatch
+          : notifyNewMatch // ignore: cast_nullable_to_non_nullable
+              as bool,
+      notifyNewMessage: null == notifyNewMessage
+          ? _value.notifyNewMessage
+          : notifyNewMessage // ignore: cast_nullable_to_non_nullable
+              as bool,
+      notifyLikes: null == notifyLikes
+          ? _value.notifyLikes
+          : notifyLikes // ignore: cast_nullable_to_non_nullable
+              as bool,
+      theme: null == theme
+          ? _value.theme
+          : theme // ignore: cast_nullable_to_non_nullable
+              as String,
+      updatedAt: freezed == updatedAt
+          ? _value.updatedAt
+          : updatedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+    ) as $Val);
   }
 }
 
@@ -1468,22 +1421,20 @@ class _$UserSettingsCopyWithImpl<$Res, $Val extends UserSettings>
 abstract class _$$UserSettingsImplCopyWith<$Res>
     implements $UserSettingsCopyWith<$Res> {
   factory _$$UserSettingsImplCopyWith(
-    _$UserSettingsImpl value,
-    $Res Function(_$UserSettingsImpl) then,
-  ) = __$$UserSettingsImplCopyWithImpl<$Res>;
+          _$UserSettingsImpl value, $Res Function(_$UserSettingsImpl) then) =
+      __$$UserSettingsImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({
-    String userId,
-    bool showAge,
-    bool showExactDistance,
-    bool showOnlineStatus,
-    bool notifyNewMatch,
-    bool notifyNewMessage,
-    bool notifyLikes,
-    String theme,
-    DateTime? updatedAt,
-  });
+  $Res call(
+      {String userId,
+      bool showAge,
+      bool showExactDistance,
+      bool showOnlineStatus,
+      bool notifyNewMatch,
+      bool notifyNewMessage,
+      bool notifyLikes,
+      String theme,
+      DateTime? updatedAt});
 }
 
 /// @nodoc
@@ -1491,9 +1442,8 @@ class __$$UserSettingsImplCopyWithImpl<$Res>
     extends _$UserSettingsCopyWithImpl<$Res, _$UserSettingsImpl>
     implements _$$UserSettingsImplCopyWith<$Res> {
   __$$UserSettingsImplCopyWithImpl(
-    _$UserSettingsImpl _value,
-    $Res Function(_$UserSettingsImpl) _then,
-  ) : super(_value, _then);
+      _$UserSettingsImpl _value, $Res Function(_$UserSettingsImpl) _then)
+      : super(_value, _then);
 
   @pragma('vm:prefer-inline')
   @override
@@ -1508,63 +1458,60 @@ class __$$UserSettingsImplCopyWithImpl<$Res>
     Object? theme = null,
     Object? updatedAt = freezed,
   }) {
-    return _then(
-      _$UserSettingsImpl(
-        userId: null == userId
-            ? _value.userId
-            : userId // ignore: cast_nullable_to_non_nullable
-                  as String,
-        showAge: null == showAge
-            ? _value.showAge
-            : showAge // ignore: cast_nullable_to_non_nullable
-                  as bool,
-        showExactDistance: null == showExactDistance
-            ? _value.showExactDistance
-            : showExactDistance // ignore: cast_nullable_to_non_nullable
-                  as bool,
-        showOnlineStatus: null == showOnlineStatus
-            ? _value.showOnlineStatus
-            : showOnlineStatus // ignore: cast_nullable_to_non_nullable
-                  as bool,
-        notifyNewMatch: null == notifyNewMatch
-            ? _value.notifyNewMatch
-            : notifyNewMatch // ignore: cast_nullable_to_non_nullable
-                  as bool,
-        notifyNewMessage: null == notifyNewMessage
-            ? _value.notifyNewMessage
-            : notifyNewMessage // ignore: cast_nullable_to_non_nullable
-                  as bool,
-        notifyLikes: null == notifyLikes
-            ? _value.notifyLikes
-            : notifyLikes // ignore: cast_nullable_to_non_nullable
-                  as bool,
-        theme: null == theme
-            ? _value.theme
-            : theme // ignore: cast_nullable_to_non_nullable
-                  as String,
-        updatedAt: freezed == updatedAt
-            ? _value.updatedAt
-            : updatedAt // ignore: cast_nullable_to_non_nullable
-                  as DateTime?,
-      ),
-    );
+    return _then(_$UserSettingsImpl(
+      userId: null == userId
+          ? _value.userId
+          : userId // ignore: cast_nullable_to_non_nullable
+              as String,
+      showAge: null == showAge
+          ? _value.showAge
+          : showAge // ignore: cast_nullable_to_non_nullable
+              as bool,
+      showExactDistance: null == showExactDistance
+          ? _value.showExactDistance
+          : showExactDistance // ignore: cast_nullable_to_non_nullable
+              as bool,
+      showOnlineStatus: null == showOnlineStatus
+          ? _value.showOnlineStatus
+          : showOnlineStatus // ignore: cast_nullable_to_non_nullable
+              as bool,
+      notifyNewMatch: null == notifyNewMatch
+          ? _value.notifyNewMatch
+          : notifyNewMatch // ignore: cast_nullable_to_non_nullable
+              as bool,
+      notifyNewMessage: null == notifyNewMessage
+          ? _value.notifyNewMessage
+          : notifyNewMessage // ignore: cast_nullable_to_non_nullable
+              as bool,
+      notifyLikes: null == notifyLikes
+          ? _value.notifyLikes
+          : notifyLikes // ignore: cast_nullable_to_non_nullable
+              as bool,
+      theme: null == theme
+          ? _value.theme
+          : theme // ignore: cast_nullable_to_non_nullable
+              as String,
+      updatedAt: freezed == updatedAt
+          ? _value.updatedAt
+          : updatedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+    ));
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$UserSettingsImpl implements _UserSettings {
-  const _$UserSettingsImpl({
-    required this.userId,
-    this.showAge = true,
-    this.showExactDistance = true,
-    this.showOnlineStatus = true,
-    this.notifyNewMatch = true,
-    this.notifyNewMessage = true,
-    this.notifyLikes = true,
-    this.theme = 'light',
-    this.updatedAt,
-  });
+  const _$UserSettingsImpl(
+      {required this.userId,
+      this.showAge = true,
+      this.showExactDistance = true,
+      this.showOnlineStatus = true,
+      this.notifyNewMatch = true,
+      this.notifyNewMessage = true,
+      this.notifyLikes = true,
+      this.theme = 'light',
+      this.updatedAt});
 
   factory _$UserSettingsImpl.fromJson(Map<String, dynamic> json) =>
       _$$UserSettingsImplFromJson(json);
@@ -1625,17 +1572,16 @@ class _$UserSettingsImpl implements _UserSettings {
   @JsonKey(ignore: true)
   @override
   int get hashCode => Object.hash(
-    runtimeType,
-    userId,
-    showAge,
-    showExactDistance,
-    showOnlineStatus,
-    notifyNewMatch,
-    notifyNewMessage,
-    notifyLikes,
-    theme,
-    updatedAt,
-  );
+      runtimeType,
+      userId,
+      showAge,
+      showExactDistance,
+      showOnlineStatus,
+      notifyNewMatch,
+      notifyNewMessage,
+      notifyLikes,
+      theme,
+      updatedAt);
 
   @JsonKey(ignore: true)
   @override
@@ -1645,22 +1591,23 @@ class _$UserSettingsImpl implements _UserSettings {
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$UserSettingsImplToJson(this);
+    return _$$UserSettingsImplToJson(
+      this,
+    );
   }
 }
 
 abstract class _UserSettings implements UserSettings {
-  const factory _UserSettings({
-    required final String userId,
-    final bool showAge,
-    final bool showExactDistance,
-    final bool showOnlineStatus,
-    final bool notifyNewMatch,
-    final bool notifyNewMessage,
-    final bool notifyLikes,
-    final String theme,
-    final DateTime? updatedAt,
-  }) = _$UserSettingsImpl;
+  const factory _UserSettings(
+      {required final String userId,
+      final bool showAge,
+      final bool showExactDistance,
+      final bool showOnlineStatus,
+      final bool notifyNewMatch,
+      final bool notifyNewMessage,
+      final bool notifyLikes,
+      final String theme,
+      final DateTime? updatedAt}) = _$UserSettingsImpl;
 
   factory _UserSettings.fromJson(Map<String, dynamic> json) =
       _$UserSettingsImpl.fromJson;
@@ -1699,8 +1646,8 @@ mixin _$EmergencyContact {
   String get userId => throw _privateConstructorUsedError;
   String get name => throw _privateConstructorUsedError;
   String get phoneNumber => throw _privateConstructorUsedError;
-  int get ordering => throw _privateConstructorUsedError;
   DateTime get addedAt => throw _privateConstructorUsedError;
+  int get ordering => throw _privateConstructorUsedError;
 
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
@@ -1711,18 +1658,16 @@ mixin _$EmergencyContact {
 /// @nodoc
 abstract class $EmergencyContactCopyWith<$Res> {
   factory $EmergencyContactCopyWith(
-    EmergencyContact value,
-    $Res Function(EmergencyContact) then,
-  ) = _$EmergencyContactCopyWithImpl<$Res, EmergencyContact>;
+          EmergencyContact value, $Res Function(EmergencyContact) then) =
+      _$EmergencyContactCopyWithImpl<$Res, EmergencyContact>;
   @useResult
-  $Res call({
-    String id,
-    String userId,
-    String name,
-    String phoneNumber,
-    int ordering,
-    DateTime addedAt,
-  });
+  $Res call(
+      {String id,
+      String userId,
+      String name,
+      String phoneNumber,
+      DateTime addedAt,
+      int ordering});
 }
 
 /// @nodoc
@@ -1742,68 +1687,62 @@ class _$EmergencyContactCopyWithImpl<$Res, $Val extends EmergencyContact>
     Object? userId = null,
     Object? name = null,
     Object? phoneNumber = null,
-    Object? ordering = null,
     Object? addedAt = null,
+    Object? ordering = null,
   }) {
-    return _then(
-      _value.copyWith(
-            id: null == id
-                ? _value.id
-                : id // ignore: cast_nullable_to_non_nullable
-                      as String,
-            userId: null == userId
-                ? _value.userId
-                : userId // ignore: cast_nullable_to_non_nullable
-                      as String,
-            name: null == name
-                ? _value.name
-                : name // ignore: cast_nullable_to_non_nullable
-                      as String,
-            phoneNumber: null == phoneNumber
-                ? _value.phoneNumber
-                : phoneNumber // ignore: cast_nullable_to_non_nullable
-                      as String,
-            ordering: null == ordering
-                ? _value.ordering
-                : ordering // ignore: cast_nullable_to_non_nullable
-                      as int,
-            addedAt: null == addedAt
-                ? _value.addedAt
-                : addedAt // ignore: cast_nullable_to_non_nullable
-                      as DateTime,
-          )
-          as $Val,
-    );
+    return _then(_value.copyWith(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      userId: null == userId
+          ? _value.userId
+          : userId // ignore: cast_nullable_to_non_nullable
+              as String,
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String,
+      phoneNumber: null == phoneNumber
+          ? _value.phoneNumber
+          : phoneNumber // ignore: cast_nullable_to_non_nullable
+              as String,
+      addedAt: null == addedAt
+          ? _value.addedAt
+          : addedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime,
+      ordering: null == ordering
+          ? _value.ordering
+          : ordering // ignore: cast_nullable_to_non_nullable
+              as int,
+    ) as $Val);
   }
 }
 
 /// @nodoc
 abstract class _$$EmergencyContactImplCopyWith<$Res>
     implements $EmergencyContactCopyWith<$Res> {
-  factory _$$EmergencyContactImplCopyWith(
-    _$EmergencyContactImpl value,
-    $Res Function(_$EmergencyContactImpl) then,
-  ) = __$$EmergencyContactImplCopyWithImpl<$Res>;
+  factory _$$EmergencyContactImplCopyWith(_$EmergencyContactImpl value,
+          $Res Function(_$EmergencyContactImpl) then) =
+      __$$EmergencyContactImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({
-    String id,
-    String userId,
-    String name,
-    String phoneNumber,
-    int ordering,
-    DateTime addedAt,
-  });
+  $Res call(
+      {String id,
+      String userId,
+      String name,
+      String phoneNumber,
+      DateTime addedAt,
+      int ordering});
 }
 
 /// @nodoc
 class __$$EmergencyContactImplCopyWithImpl<$Res>
     extends _$EmergencyContactCopyWithImpl<$Res, _$EmergencyContactImpl>
     implements _$$EmergencyContactImplCopyWith<$Res> {
-  __$$EmergencyContactImplCopyWithImpl(
-    _$EmergencyContactImpl _value,
-    $Res Function(_$EmergencyContactImpl) _then,
-  ) : super(_value, _then);
+  __$$EmergencyContactImplCopyWithImpl(_$EmergencyContactImpl _value,
+      $Res Function(_$EmergencyContactImpl) _then)
+      : super(_value, _then);
 
   @pragma('vm:prefer-inline')
   @override
@@ -1812,51 +1751,48 @@ class __$$EmergencyContactImplCopyWithImpl<$Res>
     Object? userId = null,
     Object? name = null,
     Object? phoneNumber = null,
-    Object? ordering = null,
     Object? addedAt = null,
+    Object? ordering = null,
   }) {
-    return _then(
-      _$EmergencyContactImpl(
-        id: null == id
-            ? _value.id
-            : id // ignore: cast_nullable_to_non_nullable
-                  as String,
-        userId: null == userId
-            ? _value.userId
-            : userId // ignore: cast_nullable_to_non_nullable
-                  as String,
-        name: null == name
-            ? _value.name
-            : name // ignore: cast_nullable_to_non_nullable
-                  as String,
-        phoneNumber: null == phoneNumber
-            ? _value.phoneNumber
-            : phoneNumber // ignore: cast_nullable_to_non_nullable
-                  as String,
-        ordering: null == ordering
-            ? _value.ordering
-            : ordering // ignore: cast_nullable_to_non_nullable
-                  as int,
-        addedAt: null == addedAt
-            ? _value.addedAt
-            : addedAt // ignore: cast_nullable_to_non_nullable
-                  as DateTime,
-      ),
-    );
+    return _then(_$EmergencyContactImpl(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      userId: null == userId
+          ? _value.userId
+          : userId // ignore: cast_nullable_to_non_nullable
+              as String,
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String,
+      phoneNumber: null == phoneNumber
+          ? _value.phoneNumber
+          : phoneNumber // ignore: cast_nullable_to_non_nullable
+              as String,
+      addedAt: null == addedAt
+          ? _value.addedAt
+          : addedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime,
+      ordering: null == ordering
+          ? _value.ordering
+          : ordering // ignore: cast_nullable_to_non_nullable
+              as int,
+    ));
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$EmergencyContactImpl implements _EmergencyContact {
-  const _$EmergencyContactImpl({
-    required this.id,
-    required this.userId,
-    required this.name,
-    required this.phoneNumber,
-    this.ordering = 1,
-    required this.addedAt,
-  });
+  const _$EmergencyContactImpl(
+      {required this.id,
+      required this.userId,
+      required this.name,
+      required this.phoneNumber,
+      required this.addedAt,
+      this.ordering = 1});
 
   factory _$EmergencyContactImpl.fromJson(Map<String, dynamic> json) =>
       _$$EmergencyContactImplFromJson(json);
@@ -1870,14 +1806,14 @@ class _$EmergencyContactImpl implements _EmergencyContact {
   @override
   final String phoneNumber;
   @override
+  final DateTime addedAt;
+  @override
   @JsonKey()
   final int ordering;
-  @override
-  final DateTime addedAt;
 
   @override
   String toString() {
-    return 'EmergencyContact(id: $id, userId: $userId, name: $name, phoneNumber: $phoneNumber, ordering: $ordering, addedAt: $addedAt)';
+    return 'EmergencyContact(id: $id, userId: $userId, name: $name, phoneNumber: $phoneNumber, addedAt: $addedAt, ordering: $ordering)';
   }
 
   @override
@@ -1890,47 +1826,39 @@ class _$EmergencyContactImpl implements _EmergencyContact {
             (identical(other.name, name) || other.name == name) &&
             (identical(other.phoneNumber, phoneNumber) ||
                 other.phoneNumber == phoneNumber) &&
+            (identical(other.addedAt, addedAt) || other.addedAt == addedAt) &&
             (identical(other.ordering, ordering) ||
-                other.ordering == ordering) &&
-            (identical(other.addedAt, addedAt) || other.addedAt == addedAt));
+                other.ordering == ordering));
   }
 
   @JsonKey(ignore: true)
   @override
   int get hashCode => Object.hash(
-    runtimeType,
-    id,
-    userId,
-    name,
-    phoneNumber,
-    ordering,
-    addedAt,
-  );
+      runtimeType, id, userId, name, phoneNumber, addedAt, ordering);
 
   @JsonKey(ignore: true)
   @override
   @pragma('vm:prefer-inline')
   _$$EmergencyContactImplCopyWith<_$EmergencyContactImpl> get copyWith =>
       __$$EmergencyContactImplCopyWithImpl<_$EmergencyContactImpl>(
-        this,
-        _$identity,
-      );
+          this, _$identity);
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$EmergencyContactImplToJson(this);
+    return _$$EmergencyContactImplToJson(
+      this,
+    );
   }
 }
 
 abstract class _EmergencyContact implements EmergencyContact {
-  const factory _EmergencyContact({
-    required final String id,
-    required final String userId,
-    required final String name,
-    required final String phoneNumber,
-    final int ordering,
-    required final DateTime addedAt,
-  }) = _$EmergencyContactImpl;
+  const factory _EmergencyContact(
+      {required final String id,
+      required final String userId,
+      required final String name,
+      required final String phoneNumber,
+      required final DateTime addedAt,
+      final int ordering}) = _$EmergencyContactImpl;
 
   factory _EmergencyContact.fromJson(Map<String, dynamic> json) =
       _$EmergencyContactImpl.fromJson;
@@ -1944,9 +1872,9 @@ abstract class _EmergencyContact implements EmergencyContact {
   @override
   String get phoneNumber;
   @override
-  int get ordering;
-  @override
   DateTime get addedAt;
+  @override
+  int get ordering;
   @override
   @JsonKey(ignore: true)
   _$$EmergencyContactImplCopyWith<_$EmergencyContactImpl> get copyWith =>

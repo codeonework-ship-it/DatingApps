@@ -1,42 +1,61 @@
 {% extends "control_panel/base.html" %}
+{% block topbar_title %}Activity Feed{% endblock %}
 
 {% block content %}
-<section class="card">
-    <h2>Activity Feed</h2>
-    <form class="inline-form" method="get">
-        <label for="limit">Limit</label>
-        <input id="limit" type="number" name="limit" value="{{ limit }}" min="1" max="1000">
-        <button type="submit">Refresh</button>
-    </form>
+<div class="page-header">
+  <div>
+    <h1><i class="bi bi-activity header-icon"></i> Activity Feed</h1>
+    <p class="text-muted mb-0">Real-time platform event log</p>
+  </div>
+  <form method="get" class="d-flex gap-2 align-items-end">
+    <div>
+      <label class="form-label text-muted small">Limit</label>
+      <input type="number" name="limit" value="{{ limit }}" min="1" max="1000" class="glass-input" style="width:80px;">
+    </div>
+    <button type="submit" class="btn btn-glow"><i class="bi bi-arrow-clockwise me-1"></i>Refresh</button>
+  </form>
+</div>
 
-    {% if error %}<p class="error">{{ error }}</p>{% endif %}
+{% if error %}
+<div class="alert-glass alert-glass-warning mb-3"><i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}</div>
+{% endif %}
 
-    <table>
-        <thead>
-        <tr>
-            <th>Time</th>
-            <th>Action</th>
-            <th>Status</th>
-            <th>User</th>
-            <th>Actor</th>
-            <th>Resource</th>
-        </tr>
-        </thead>
-        <tbody>
+<div class="glass-card">
+  <div class="mb-3 text-muted small">{{ activities|length }} event{{ activities|length|pluralize }}</div>
+  {% if activities %}
+  <div class="table-responsive">
+    <table class="glass-table">
+      <thead>
+        <tr><th>Time</th><th>Event</th><th>Status</th><th>User</th><th>Actor</th><th>Resource</th></tr>
+      </thead>
+      <tbody>
         {% for item in activities %}
-            <tr>
-                <td>{{ item.created_at }}</td>
-                <td>{{ item.action }}</td>
-                <td>{{ item.status }}</td>
-                <td>{{ item.user_id|default:"-" }}</td>
-                <td>{{ item.actor|default:"-" }}</td>
-                <td>{{ item.resource|default:"-" }}</td>
-            </tr>
-        {% empty %}
-            <tr><td colspan="6">No activity data available.</td></tr>
+        <tr>
+          <td class="text-muted small">{{ item.created_at|default:item.occurred_at|default:"—" }}</td>
+          <td><span class="badge badge-purple">{{ item.action|default:item.event_type|default:"—" }}</span></td>
+          <td>
+            {% if item.status == "success" or item.status == "ok" %}
+              <span class="badge badge-active">{{ item.status }}</span>
+            {% elif item.status == "error" or item.status == "failed" %}
+              <span class="badge badge-danger">{{ item.status }}</span>
+            {% else %}
+              <span class="badge badge-inactive">{{ item.status|default:"—" }}</span>
+            {% endif %}
+          </td>
+          <td class="font-monospace small text-muted">{{ item.user_id|slice:":8"|default:"—" }}{% if item.user_id %}…{% endif %}</td>
+          <td class="text-muted small">{{ item.actor|default:"—" }}</td>
+          <td class="text-muted small">{{ item.resource|default:"—"|truncatechars:40 }}</td>
+        </tr>
         {% endfor %}
-        </tbody>
+      </tbody>
     </table>
-</section>
+  </div>
+  {% else %}
+  <div class="text-center py-5 text-muted">
+    <i class="bi bi-activity" style="font-size:3rem;opacity:0.3;"></i>
+    <p class="mt-3">No activity data available.</p>
+  </div>
+  {% endif %}
+</div>
 {% endblock %}
 

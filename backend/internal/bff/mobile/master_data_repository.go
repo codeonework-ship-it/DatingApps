@@ -69,10 +69,58 @@ func (r *masterDataRepository) getPreferenceMasterData(ctx context.Context) (pre
 
 	fresh, err := r.fetchPreferenceMasterData(ctx)
 	if err != nil {
+		if r.isLocalRuntime() && isMasterDataSourceUnavailable(err) {
+			fallback := defaultPreferenceMasterData()
+			r.setCached(fallback)
+			return fallback, nil
+		}
 		return preferenceMasterData{}, err
 	}
 	r.setCached(fresh)
 	return fresh, nil
+}
+
+func (r *masterDataRepository) isLocalRuntime() bool {
+	databaseURL := strings.ToLower(strings.TrimSpace(r.cfg.DatabaseURL))
+	return strings.Contains(databaseURL, "localhost") || strings.Contains(databaseURL, "127.0.0.1")
+}
+
+func isMasterDataSourceUnavailable(err error) bool {
+	if err == nil {
+		return false
+	}
+	if errors.Is(err, errMasterDataUnavailable) {
+		return true
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "pgrst106") ||
+		strings.Contains(msg, "pgrst205") ||
+		strings.Contains(msg, "invalid schema") ||
+		strings.Contains(msg, "could not find the table")
+}
+
+func defaultPreferenceMasterData() preferenceMasterData {
+	return preferenceMasterData{
+		Countries: []string{"India"},
+		StatesByCountry: map[string][]string{
+			"India": {"Karnataka", "Maharashtra", "Tamil Nadu", "Delhi"},
+		},
+		CitiesByState: map[string][]string{
+			"Karnataka":   {"Bengaluru", "Mysuru"},
+			"Maharashtra": {"Mumbai", "Pune"},
+			"Tamil Nadu":  {"Chennai", "Coimbatore"},
+			"Delhi":       {"New Delhi"},
+		},
+		Religions:              []string{"Hindu", "Muslim", "Christian", "Sikh", "Jain", "Buddhist", "Other"},
+		MotherTongues:          []string{"Hindi", "Tamil", "Telugu", "Kannada", "Malayalam", "Marathi", "Bengali", "Punjabi"},
+		Languages:              []string{"English", "Hindi", "Tamil", "Telugu", "Kannada"},
+		DietPreferences:        []string{"Vegetarian", "Eggetarian", "Non-Vegetarian", "Vegan"},
+		WorkoutFrequencies:     []string{"Never", "Sometimes", "Weekly", "Daily"},
+		DietTypes:              []string{"Balanced", "High Protein", "Keto", "Mediterranean"},
+		SleepSchedules:         []string{"Early Bird", "Night Owl", "Flexible"},
+		TravelStyles:           []string{"Road Trips", "Backpacking", "Luxury", "Staycations"},
+		PoliticalComfortRanges: []string{"Similar", "Moderate", "Any"},
+	}
 }
 
 func (r *masterDataRepository) fetchPreferenceMasterData(ctx context.Context) (preferenceMasterData, error) {

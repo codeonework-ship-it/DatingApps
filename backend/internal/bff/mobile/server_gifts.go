@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -27,9 +28,23 @@ const (
 
 func (s *Server) listRoseGifts(w http.ResponseWriter, _ *http.Request) {
 	items := s.store.listRoseGiftCatalog()
+
+	catSet := make(map[string]struct{}, 8)
+	for _, item := range items {
+		if item.Category != "" {
+			catSet[item.Category] = struct{}{}
+		}
+	}
+	catList := make([]string, 0, len(catSet))
+	for k := range catSet {
+		catList = append(catList, k)
+	}
+	sort.Strings(catList)
+
 	writeJSON(w, http.StatusOK, map[string]any{
-		"gifts": items,
-		"count": len(items),
+		"gifts":      items,
+		"count":      len(items),
+		"categories": catList,
 	})
 }
 
@@ -347,6 +362,7 @@ func (s *Server) sendRoseGift(w http.ResponseWriter, r *http.Request) {
 	giftID := strings.TrimSpace(toString(payload["gift_id"]))
 	senderUserID := strings.TrimSpace(toString(payload["sender_user_id"]))
 	receiverUserID := strings.TrimSpace(toString(payload["receiver_user_id"]))
+	messageText := strings.TrimSpace(toString(payload["message_text"]))
 	idempotencyKey := strings.TrimSpace(r.Header.Get("Idempotency-Key"))
 
 	s.store.recordActivity(activityEvent{
@@ -430,6 +446,7 @@ func (s *Server) sendRoseGift(w http.ResponseWriter, r *http.Request) {
 		receiverUserID,
 		giftID,
 		idempotencyKey,
+		messageText,
 		time.Now().UTC(),
 	)
 	if err != nil {
@@ -463,6 +480,27 @@ func (s *Server) sendRoseGift(w http.ResponseWriter, r *http.Request) {
 				"success":    false,
 				"error":      err.Error(),
 				"error_code": "INSUFFICIENT_COINS",
+			})
+			return
+		}
+		if strings.Contains(strings.ToLower(err.Error()), "daily limit") {
+			s.store.recordActivity(activityEvent{
+				UserID:   senderUserID,
+				Actor:    senderUserID,
+				Action:   "gift_send_failed",
+				Status:   "failed",
+				Resource: "/chat/" + matchID + "/gifts/send",
+				Details: map[string]any{
+					"match_id":        matchID,
+					"gift_id":         giftID,
+					"error_code":      "GIFT_DAILY_LIMIT_REACHED",
+					"idempotency_key": idempotencyKey,
+				},
+			})
+			writeJSON(w, http.StatusTooManyRequests, map[string]any{
+				"success":    false,
+				"error":      err.Error(),
+				"error_code": "GIFT_DAILY_LIMIT_REACHED",
 			})
 			return
 		}
@@ -543,11 +581,34 @@ func (s *Server) sendRoseGift(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusOK, map[string]any{
 		"gift_send": giftSend,
+		"message":   roseGiftChatMessageResponse(giftSend, matchID, senderUserID),
 		"wallet": map[string]any{
 			"user_id":      senderUserID,
 			"coin_balance": giftSend.RemainingCoins,
 		},
 	})
+}
+
+func roseGiftChatMessageResponse(giftSend roseGiftSendView, matchID, senderUserID string) map[string]any {
+	messageText := strings.TrimSpace(giftSend.MessageText)
+	if messageText == "" {
+		messageText = encodeRoseGiftChatMessage(giftSend)
+	}
+	messageID := strings.TrimSpace(giftSend.MessageID)
+	if messageID == "" {
+		messageID = strings.TrimSpace(giftSend.ID)
+	}
+	createdAt := strings.TrimSpace(giftSend.CreatedAt)
+	if createdAt == "" {
+		createdAt = time.Now().UTC().Format(time.RFC3339)
+	}
+	return map[string]any{
+		"id":         messageID,
+		"match_id":   strings.TrimSpace(matchID),
+		"sender_id":  strings.TrimSpace(senderUserID),
+		"text":       messageText,
+		"created_at": createdAt,
+	}
 }
 
 func giftTierForEvent(catalog []roseGiftCatalogItem, giftID string) string {

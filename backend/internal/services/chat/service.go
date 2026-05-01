@@ -16,6 +16,18 @@ import (
 	"github.com/verified-dating/backend/internal/platform/supabase"
 )
 
+type messageSchemaProfile struct {
+	schema         string
+	matchIDField   string
+	senderIDField  string
+	createdAtField string
+	readAtField    string
+	deletedField   string
+	deletedAtField string
+	selectClause   string
+	orderClause    string
+}
+
 type Repository interface {
 	ListMessages(context.Context, string, int) ([]map[string]any, error)
 	SendMessage(context.Context, string, string, string) (string, error)
@@ -176,27 +188,79 @@ func (s *Service) DeleteMessage(ctx context.Context, req *structpb.Struct) (*str
 	)
 
 	return structpb.NewStruct(map[string]any{
-		"deleted":    deleted,
-		"message_id": messageID,
+		"deleted":     deleted,
+		"message_id":  messageID,
 		"reason_code": reasonCode,
 	})
 }
 
 func (r *SupabaseRepository) ListMessages(ctx context.Context, matchID string, limit int) ([]map[string]any, error) {
-	params := url.Values{}
-	params.Set("matchId", "eq."+matchID)
-	params.Set("or", "(isDeleted.is.null,isDeleted.eq.false)")
-	params.Set("select", "id,matchId,senderId,text,createdAt,deliveredAt,readAt,isDeleted,deletedAt")
-	params.Set("order", "createdAt.desc")
-	params.Set("limit", strconv.Itoa(limit))
-	return r.db.Select(ctx, r.cfg.MatchingSchema, r.cfg.MessagesTable, params)
+	profile := r.primaryMessageSchemaProfile()
+	rows, err := r.listMessagesWithProfile(ctx, profile, matchID, limit)
+	if err == nil || !isSchemaUnavailable(err) {
+		return rows, err
+	}
+	if fallback, ok := r.fallbackMessageSchemaProfile(profile); ok {
+		return r.listMessagesWithProfile(ctx, fallback, matchID, limit)
+	}
+	return nil, err
 }
 
 func (r *SupabaseRepository) SendMessage(ctx context.Context, matchID, senderID, text string) (string, error) {
-	rows, err := r.db.Insert(ctx, r.cfg.MatchingSchema, r.cfg.MessagesTable, []map[string]any{{
-		"matchId":  matchID,
-		"senderId": senderID,
-		"text":     strings.TrimSpace(text),
+	profile := r.primaryMessageSchemaProfile()
+	id, err := r.sendMessageWithProfile(ctx, profile, matchID, senderID, text)
+	if err == nil || !isSchemaUnavailable(err) {
+		return id, err
+	}
+	if fallback, ok := r.fallbackMessageSchemaProfile(profile); ok {
+		return r.sendMessageWithProfile(ctx, fallback, matchID, senderID, text)
+	}
+	return "", err
+}
+
+func (r *SupabaseRepository) DeleteMessage(
+	ctx context.Context,
+	matchID,
+	messageID,
+	requesterUserID string,
+) (bool, string, error) {
+	profile := r.primaryMessageSchemaProfile()
+	deleted, reasonCode, err := r.deleteMessageWithProfile(ctx, profile, matchID, messageID, requesterUserID)
+	if err == nil || !isSchemaUnavailable(err) {
+		return deleted, reasonCode, err
+	}
+	if fallback, ok := r.fallbackMessageSchemaProfile(profile); ok {
+		return r.deleteMessageWithProfile(ctx, fallback, matchID, messageID, requesterUserID)
+	}
+	return false, "", err
+}
+
+func (r *SupabaseRepository) listMessagesWithProfile(
+	ctx context.Context,
+	profile messageSchemaProfile,
+	matchID string,
+	limit int,
+) ([]map[string]any, error) {
+	params := url.Values{}
+	params.Set(profile.matchIDField, "eq."+matchID)
+	params.Set("or", "("+profile.deletedField+".is.null,"+profile.deletedField+".eq.false)")
+	params.Set("select", profile.selectClause)
+	params.Set("order", profile.orderClause)
+	params.Set("limit", strconv.Itoa(limit))
+	return r.db.Select(ctx, profile.schema, r.cfg.MessagesTable, params)
+}
+
+func (r *SupabaseRepository) sendMessageWithProfile(
+	ctx context.Context,
+	profile messageSchemaProfile,
+	matchID,
+	senderID,
+	text string,
+) (string, error) {
+	rows, err := r.db.Insert(ctx, profile.schema, r.cfg.MessagesTable, []map[string]any{{
+		profile.matchIDField:  matchID,
+		profile.senderIDField: senderID,
+		"text":                strings.TrimSpace(text),
 	}})
 	if err != nil {
 		return "", err
@@ -208,21 +272,22 @@ func (r *SupabaseRepository) SendMessage(ctx context.Context, matchID, senderID,
 	return id, nil
 }
 
-func (r *SupabaseRepository) DeleteMessage(
+func (r *SupabaseRepository) deleteMessageWithProfile(
 	ctx context.Context,
+	profile messageSchemaProfile,
 	matchID,
 	messageID,
 	requesterUserID string,
 ) (bool, string, error) {
 	lookup := url.Values{}
 	lookup.Set("id", "eq."+messageID)
-	lookup.Set("matchId", "eq."+matchID)
-	lookup.Set("senderId", "eq."+requesterUserID)
-	lookup.Set("or", "(isDeleted.is.null,isDeleted.eq.false)")
-	lookup.Set("select", "id,createdAt")
+	lookup.Set(profile.matchIDField, "eq."+matchID)
+	lookup.Set(profile.senderIDField, "eq."+requesterUserID)
+	lookup.Set("or", "("+profile.deletedField+".is.null,"+profile.deletedField+".eq.false)")
+	lookup.Set("select", "id,"+profile.createdAtField)
 	lookup.Set("limit", "1")
 
-	rows, err := r.db.Select(ctx, r.cfg.MatchingSchema, r.cfg.MessagesTable, lookup)
+	rows, err := r.db.Select(ctx, profile.schema, r.cfg.MessagesTable, lookup)
 	if err != nil {
 		return false, "", err
 	}
@@ -230,7 +295,7 @@ func (r *SupabaseRepository) DeleteMessage(
 		return false, "NOT_FOUND_OR_NOT_OWNER", nil
 	}
 
-	createdAtRaw, _ := rows[0]["createdAt"].(string)
+	createdAtRaw, _ := rows[0][profile.createdAtField].(string)
 	createdAt, parseErr := time.Parse(time.RFC3339, strings.TrimSpace(createdAtRaw))
 	if parseErr == nil && time.Since(createdAt.UTC()) > 24*time.Hour {
 		return false, "DELETE_WINDOW_EXPIRED", nil
@@ -238,17 +303,17 @@ func (r *SupabaseRepository) DeleteMessage(
 
 	filters := url.Values{}
 	filters.Set("id", "eq."+messageID)
-	filters.Set("matchId", "eq."+matchID)
-	filters.Set("senderId", "eq."+requesterUserID)
-	filters.Set("or", "(isDeleted.is.null,isDeleted.eq.false)")
+	filters.Set(profile.matchIDField, "eq."+matchID)
+	filters.Set(profile.senderIDField, "eq."+requesterUserID)
+	filters.Set("or", "("+profile.deletedField+".is.null,"+profile.deletedField+".eq.false)")
 
 	updatedRows, err := r.db.Update(
 		ctx,
-		r.cfg.MatchingSchema,
+		profile.schema,
 		r.cfg.MessagesTable,
 		map[string]any{
-			"isDeleted": true,
-			"deletedAt": time.Now().UTC().Format(time.RFC3339),
+			profile.deletedField:   true,
+			profile.deletedAtField: time.Now().UTC().Format(time.RFC3339),
 		},
 		filters,
 	)
@@ -259,6 +324,74 @@ func (r *SupabaseRepository) DeleteMessage(
 		return false, "NOT_FOUND_OR_NOT_OWNER", nil
 	}
 	return true, "DELETED", nil
+}
+
+func (r *SupabaseRepository) primaryMessageSchemaProfile() messageSchemaProfile {
+	if strings.EqualFold(strings.TrimSpace(r.cfg.MatchingSchema), "public") || r.prefersPublicCoreMessages() {
+		return publicMessageSchemaProfile()
+	}
+	return matchingMessageSchemaProfile(strings.TrimSpace(r.cfg.MatchingSchema))
+}
+
+func (r *SupabaseRepository) fallbackMessageSchemaProfile(profile messageSchemaProfile) (messageSchemaProfile, bool) {
+	if strings.EqualFold(strings.TrimSpace(profile.schema), "public") {
+		return messageSchemaProfile{}, false
+	}
+	return publicMessageSchemaProfile(), true
+}
+
+func matchingMessageSchemaProfile(schema string) messageSchemaProfile {
+	if strings.TrimSpace(schema) == "" {
+		schema = "matching"
+	}
+	return messageSchemaProfile{
+		schema:         schema,
+		matchIDField:   "match_id",
+		senderIDField:  "sender_id",
+		createdAtField: "created_at",
+		readAtField:    "read_at",
+		deletedField:   "is_deleted",
+		deletedAtField: "deleted_at",
+		selectClause:   "id,match_id,sender_id,text,created_at,delivered_at,read_at,is_deleted,deleted_at",
+		orderClause:    "created_at.desc",
+	}
+}
+
+func publicMessageSchemaProfile() messageSchemaProfile {
+	return messageSchemaProfile{
+		schema:         "public",
+		matchIDField:   "matchId",
+		senderIDField:  "senderId",
+		createdAtField: "createdAt",
+		readAtField:    "readAt",
+		deletedField:   "isDeleted",
+		deletedAtField: "deletedAt",
+		selectClause:   "id,matchId,senderId,text,createdAt,deliveredAt,readAt,isDeleted,deletedAt",
+		orderClause:    "createdAt.desc",
+	}
+}
+
+func isSchemaUnavailable(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "pgrst106") ||
+		strings.Contains(msg, "invalid schema") ||
+		strings.Contains(msg, "could not find the table")
+}
+
+func (r *SupabaseRepository) prefersPublicCoreMessages() bool {
+	base := strings.TrimRight(strings.TrimSpace(r.cfg.SupabaseURL), "/")
+	if base == "" || strings.HasSuffix(base, "/rest/v1") {
+		return false
+	}
+	parsed, err := url.Parse(base)
+	if err != nil {
+		return false
+	}
+	host := strings.ToLower(parsed.Hostname())
+	return host == "localhost" || host == "127.0.0.1"
 }
 
 func mapsToAnySlice(input []map[string]any) []any {

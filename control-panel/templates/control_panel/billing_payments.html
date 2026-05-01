@@ -1,0 +1,112 @@
+{% extends "control_panel/base.html" %}
+{% block topbar_title %}Payments{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1><i class="bi bi-receipt-cutoff header-icon"></i> Payments</h1>
+    <p class="text-muted mb-0">Payment records from billing providers</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'billing_dashboard' %}" class="btn btn-glass">
+      <i class="bi bi-arrow-left me-2"></i>Billing
+    </a>
+  </div>
+</div>
+
+{% if error %}
+<div class="alert-glass alert-glass-warning mb-3"><i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}</div>
+{% endif %}
+
+<!-- Filters -->
+<div class="glass-card mb-4">
+  <form method="get" class="row g-2 align-items-end">
+    <div class="col-sm-6">
+      <label class="form-label small text-muted">Status</label>
+      <select name="status" class="glass-input">
+        <option value="">All</option>
+        <option value="created" {% if status_filter == "created" %}selected{% endif %}>Created</option>
+        <option value="success" {% if status_filter == "success" %}selected{% endif %}>Success</option>
+        <option value="failed" {% if status_filter == "failed" %}selected{% endif %}>Failed</option>
+        <option value="refunded" {% if status_filter == "refunded" %}selected{% endif %}>Refunded</option>
+      </select>
+    </div>
+    <div class="col-sm-6">
+      <button type="submit" class="btn btn-glass w-100"><i class="bi bi-funnel me-1"></i>Filter</button>
+    </div>
+  </form>
+</div>
+
+<div class="glass-card">
+  <div class="mb-3 text-muted small">Showing {{ payments|length }} of {{ total }} payments (offset {{ offset }})</div>
+
+  {% if payments %}
+  <div class="table-responsive">
+    <table class="glass-table w-100">
+      <thead>
+        <tr>
+          <th>User ID</th>
+          <th>Amount</th>
+          <th>Currency</th>
+          <th>Status</th>
+          <th>Provider Pay ID</th>
+          <th>Provider Order ID</th>
+          <th>Paid At</th>
+          <th>Created</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for pay in payments %}
+        <tr>
+          <td class="text-truncate" style="max-width:180px;" title="{{ pay.user_id }}">
+            <a href="{% url 'user_detail' pay.user_id %}" class="text-decoration-none" style="color:var(--aqua);">
+              {{ pay.user_id|truncatechars:12 }}
+            </a>
+          </td>
+          <td style="font-weight:600;color:var(--gold);">{{ pay.amount_paise }}</td>
+          <td>{{ pay.currency }}</td>
+          <td>
+            {% if pay.status == "success" %}
+            <span class="badge badge-active">{{ pay.status }}</span>
+            {% elif pay.status == "failed" %}
+            <span class="badge badge-danger">{{ pay.status }}</span>
+            {% elif pay.status == "refunded" %}
+            <span class="badge badge-warning">{{ pay.status }}</span>
+            {% else %}
+            <span class="badge badge-inactive">{{ pay.status }}</span>
+            {% endif %}
+          </td>
+          <td class="text-truncate small" style="max-width:120px;" title="{{ pay.provider_payment_id }}">{{ pay.provider_payment_id|default:"—"|truncatechars:12 }}</td>
+          <td class="text-truncate small" style="max-width:120px;" title="{{ pay.provider_order_id }}">{{ pay.provider_order_id|default:"—"|truncatechars:12 }}</td>
+          <td class="small">{{ pay.paid_at|default:"—"|truncatechars:10 }}</td>
+          <td class="small">{{ pay.created_at|truncatechars:10 }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <div class="d-flex justify-content-between align-items-center mt-3">
+    {% if offset > 0 %}
+    <a href="?offset={{ prev_offset }}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="btn btn-glass btn-sm">
+      <i class="bi bi-chevron-left me-1"></i>Prev
+    </a>
+    {% else %}
+    <span></span>
+    {% endif %}
+
+    {% if payments|length >= limit %}
+    <a href="?offset={{ next_offset }}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="btn btn-glass btn-sm">
+      Next<i class="bi bi-chevron-right ms-1"></i>
+    </a>
+    {% endif %}
+  </div>
+  {% else %}
+  <div class="text-center py-4 text-muted">
+    <i class="bi bi-receipt" style="font-size:2.5rem;opacity:0.3;"></i>
+    <p class="mt-2">No payments found.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

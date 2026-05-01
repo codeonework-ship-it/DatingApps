@@ -86,9 +86,10 @@ type friendActivity struct {
 }
 
 type profilePhoto struct {
-	ID       string `json:"id"`
-	PhotoURL string `json:"photo_url"`
-	Ordering int    `json:"ordering"`
+	ID          string `json:"id"`
+	PhotoURL    string `json:"photo_url"`
+	Ordering    int    `json:"ordering"`
+	StoragePath string `json:"storage_path,omitempty"`
 }
 
 type userSettings struct {
@@ -609,6 +610,7 @@ type memoryStore struct {
 	communityGroupInvites       map[string]map[string]communityGroupInvite
 	giftCatalog                 map[string]roseGiftCatalogItem
 	walletCoinsByUser           map[string]int
+	walletCoinPurchaseByIdem    map[string]walletCoinPurchaseView
 	giftSendEventsByMatch       map[string][]roseGiftSendView
 	giftSendByIdempotency       map[string]roseGiftSendView
 	messageDeleteAttemptsByUser map[string][]time.Time
@@ -636,6 +638,7 @@ type memoryStore struct {
 	activityRepo                *activityRepository
 	communityGroupRepo          *communityGroupRepository
 	giftsRepo                   *roseGiftRepository
+	adminRepo                   *adminRepository
 }
 
 func newMemoryStore(cfg config.Config) *memoryStore {
@@ -675,6 +678,7 @@ func newMemoryStore(cfg config.Config) *memoryStore {
 		communityGroupInvites:       make(map[string]map[string]communityGroupInvite),
 		giftCatalog:                 defaultRoseGiftCatalogMap(),
 		walletCoinsByUser:           make(map[string]int),
+		walletCoinPurchaseByIdem:    make(map[string]walletCoinPurchaseView),
 		giftSendEventsByMatch:       make(map[string][]roseGiftSendView),
 		giftSendByIdempotency:       make(map[string]roseGiftSendView),
 		messageDeleteAttemptsByUser: make(map[string][]time.Time),
@@ -701,6 +705,7 @@ func newMemoryStore(cfg config.Config) *memoryStore {
 		activityRepo:                newActivityRepository(cfg),
 		communityGroupRepo:          newCommunityGroupRepository(cfg),
 		giftsRepo:                   newRoseGiftRepository(cfg),
+		adminRepo:                   newAdminRepository(cfg),
 	}
 }
 
@@ -734,7 +739,13 @@ func isGiftRepoPersistenceUnavailable(err error) bool {
 	return strings.Contains(msg, "pgrst106") ||
 		strings.Contains(msg, "pgrst205") ||
 		strings.Contains(msg, "invalid schema") ||
-		strings.Contains(msg, "could not find the table")
+		strings.Contains(msg, "could not find the table") ||
+		strings.Contains(msg, "connection refused") ||
+		strings.Contains(msg, "connection reset") ||
+		strings.Contains(msg, "no such host") ||
+		strings.Contains(msg, "i/o timeout") ||
+		strings.Contains(msg, "context deadline exceeded") ||
+		strings.Contains(msg, "dial tcp")
 }
 
 func (m *memoryStore) durableEngagementRequired() bool {
@@ -1429,7 +1440,9 @@ func (m *memoryStore) getDraft(userID string) profileDraft {
 			m.mu.Unlock()
 			return copyDraft(draft)
 		}
-		if m.durableEngagementRequired() || !isProfileRepoPersistenceUnavailable(err) {
+		// Hard-fail only in durable mode; otherwise fall through to best-effort
+		// in-memory rather than returning an empty defaultDraft and wiping state.
+		if m.durableEngagementRequired() {
 			return defaultDraft(userID)
 		}
 	}
@@ -1580,6 +1593,59 @@ func applyDraftPatch(draft profileDraft, payload map[string]any) profileDraft {
 	return draft
 }
 
+func mergeSignupIntoDraft(draft profileDraft, input signupBootstrapInput) profileDraft {
+	missingBasics := strings.TrimSpace(draft.Name) == "" && strings.TrimSpace(draft.DateOfBirth) == ""
+	if strings.TrimSpace(draft.UserID) == "" {
+		draft.UserID = strings.TrimSpace(input.UserID)
+	}
+	if strings.TrimSpace(draft.PhoneNumber) == "" {
+		draft.PhoneNumber = strings.TrimSpace(input.PhoneNumber)
+	}
+	if strings.TrimSpace(draft.Name) == "" {
+		draft.Name = strings.TrimSpace(input.Name)
+	}
+	if strings.TrimSpace(draft.DateOfBirth) == "" {
+		draft.DateOfBirth = strings.TrimSpace(input.DateOfBirth)
+	}
+	if strings.TrimSpace(draft.Gender) == "" || missingBasics {
+		draft.Gender = strings.TrimSpace(input.Gender)
+	}
+	if draft.ProfileCompletion < 25 {
+		draft.ProfileCompletion = 25
+	}
+	return draft
+}
+
+func (m *memoryStore) bootstrapSignup(input signupBootstrapInput) (profileDraft, bool, error) {
+	trimmedUserID := strings.TrimSpace(input.UserID)
+	if trimmedUserID == "" {
+		return profileDraft{}, false, errors.New("user_id is required")
+	}
+
+	if m.profileRepo != nil {
+		draft, created, err := m.profileRepo.bootstrapSignup(context.Background(), input)
+		if err == nil {
+			m.mu.Lock()
+			m.profiles[trimmedUserID] = copyDraft(draft)
+			m.mu.Unlock()
+			return copyDraft(draft), created, nil
+		}
+		if m.durableEngagementRequired() && !isProfileRepoPersistenceUnavailable(err) {
+			return profileDraft{}, false, err
+		}
+	}
+
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	draft, exists := m.profiles[trimmedUserID]
+	if !exists {
+		draft = defaultDraft(trimmedUserID)
+	}
+	draft = mergeSignupIntoDraft(draft, input)
+	m.profiles[trimmedUserID] = draft
+	return copyDraft(draft), !exists, nil
+}
+
 func (m *memoryStore) patchDraft(userID string, payload map[string]any) profileDraft {
 	if m.profileRepo != nil {
 		draft, err := m.profileRepo.getDraft(context.Background(), userID)
@@ -1592,7 +1658,9 @@ func (m *memoryStore) patchDraft(userID string, payload map[string]any) profileD
 				return copyDraft(updated)
 			}
 		}
-		if err != nil && (m.durableEngagementRequired() || !isProfileRepoPersistenceUnavailable(err)) {
+		// Hard-fail only in durable mode; otherwise fall through to best-effort
+		// in-memory to avoid wiping the user's session state.
+		if err != nil && m.durableEngagementRequired() {
 			return defaultDraft(userID)
 		}
 	}
@@ -1611,9 +1679,8 @@ func (m *memoryStore) patchDraft(userID string, payload map[string]any) profileD
 	return copyDraft(draft)
 }
 
-func (m *memoryStore) addPhoto(userID string, photoURL string) profileDraft {
+func (m *memoryStore) addPhoto(userID string, photoURL string, storagePath string) profileDraft {
 	m.mu.Lock()
-	defer m.mu.Unlock()
 
 	draft, ok := m.profiles[userID]
 	if !ok {
@@ -1626,17 +1693,26 @@ func (m *memoryStore) addPhoto(userID string, photoURL string) profileDraft {
 	}
 
 	draft.Photos = append(draft.Photos, profilePhoto{
-		ID:       nextID,
-		PhotoURL: photoURL,
-		Ordering: len(draft.Photos),
+		ID:          nextID,
+		PhotoURL:    photoURL,
+		Ordering:    len(draft.Photos),
+		StoragePath: storagePath,
 	})
 	m.profiles[userID] = draft
-	return copyDraft(draft)
+	snapshot := copyDraft(draft)
+	m.mu.Unlock()
+
+	// Persist to durable repo so that subsequent patchDraft calls read back the
+	// full draft including photos rather than returning an outdated repo record.
+	if m.profileRepo != nil {
+		_ = m.profileRepo.upsertDraft(context.Background(), snapshot)
+	}
+
+	return snapshot
 }
 
 func (m *memoryStore) deletePhoto(userID, photoID string) profileDraft {
 	m.mu.Lock()
-	defer m.mu.Unlock()
 
 	draft, ok := m.profiles[userID]
 	if !ok {
@@ -1655,12 +1731,18 @@ func (m *memoryStore) deletePhoto(userID, photoID string) profileDraft {
 	}
 	draft.Photos = filtered
 	m.profiles[userID] = draft
-	return copyDraft(draft)
+	snapshot := copyDraft(draft)
+	m.mu.Unlock()
+
+	if m.profileRepo != nil {
+		_ = m.profileRepo.upsertDraft(context.Background(), snapshot)
+	}
+
+	return snapshot
 }
 
 func (m *memoryStore) reorderPhotos(userID string, photoIDs []string) profileDraft {
 	m.mu.Lock()
-	defer m.mu.Unlock()
 
 	draft, ok := m.profiles[userID]
 	if !ok {
@@ -1691,12 +1773,18 @@ func (m *memoryStore) reorderPhotos(userID string, photoIDs []string) profileDra
 	}
 	draft.Photos = reordered
 	m.profiles[userID] = draft
-	return copyDraft(draft)
+	snapshot := copyDraft(draft)
+	m.mu.Unlock()
+
+	if m.profileRepo != nil {
+		_ = m.profileRepo.upsertDraft(context.Background(), snapshot)
+	}
+
+	return snapshot
 }
 
 func (m *memoryStore) completeProfile(userID string) (profileDraft, error) {
 	m.mu.Lock()
-	defer m.mu.Unlock()
 
 	draft, ok := m.profiles[userID]
 	if !ok {
@@ -1707,12 +1795,24 @@ func (m *memoryStore) completeProfile(userID string) (profileDraft, error) {
 		strings.TrimSpace(draft.DateOfBirth) == "" ||
 		len(draft.Photos) < 2 ||
 		len(strings.TrimSpace(draft.Bio)) < 10 {
+		m.mu.Unlock()
 		return profileDraft{}, errors.New("profile is incomplete")
 	}
 
 	draft.ProfileCompletion = 100
 	m.profiles[userID] = draft
-	return copyDraft(draft), nil
+	snapshot := copyDraft(draft)
+	m.mu.Unlock()
+
+	if m.profileRepo != nil {
+		if err := m.profileRepo.upsertDraft(context.Background(), snapshot); err != nil {
+			if m.durableEngagementRequired() {
+				return profileDraft{}, err
+			}
+		}
+	}
+
+	return snapshot, nil
 }
 
 func (m *memoryStore) getSettings(userID string) userSettings {

@@ -91,6 +91,14 @@ func (r *roseGiftRepository) recordGiftSpendActivity(ctx context.Context, record
 	if strings.TrimSpace(r.cfg.GiftSpendActivitiesTable) == "" {
 		return errors.New("gift spend activities table is not configured")
 	}
+	if r.shouldBootstrapGiftRelations() {
+		if err := r.ensureGiftUsersExist(ctx, []string{record.SenderUserID, record.ReceiverUserID}); err != nil {
+			return err
+		}
+		if err := r.ensureGiftMatchShadowExists(ctx, record.MatchID, record.SenderUserID, record.ReceiverUserID, record.CreatedAt); err != nil {
+			return err
+		}
+	}
 
 	createdAt := record.CreatedAt.UTC()
 	if createdAt.IsZero() {
@@ -123,7 +131,45 @@ func (r *roseGiftRepository) recordGiftSpendActivity(ctx context.Context, record
 
 	rows, err := r.db.Insert(ctx, r.cfg.MatchingSchema, r.cfg.GiftSpendActivitiesTable, []map[string]any{payload})
 	if err != nil {
-		return err
+		if !isMissingColumnErr(err, "price_coins") &&
+			!isMissingColumnErr(err, "wallet_balance_after") &&
+			!isMissingColumnErr(err, "details") {
+			return err
+		}
+
+		legacyMetadata := map[string]any{}
+		for key, value := range details {
+			legacyMetadata[key] = value
+		}
+		if record.WalletBalanceAfter != nil {
+			legacyMetadata["wallet_balance_after"] = clampMinInt(*record.WalletBalanceAfter, 0)
+		}
+		if trimmed := strings.TrimSpace(record.IdempotencyKey); trimmed != "" {
+			legacyMetadata["idempotency_key"] = trimmed
+		}
+		if trimmed := strings.TrimSpace(record.ErrorCode); trimmed != "" {
+			legacyMetadata["error_code"] = trimmed
+		}
+		if trimmed := strings.TrimSpace(record.ErrorMessage); trimmed != "" {
+			legacyMetadata["error_message"] = trimmed
+		}
+
+		legacyPayload := map[string]any{
+			"id":               payload["id"],
+			"match_id":         payload["match_id"],
+			"sender_user_id":   payload["sender_user_id"],
+			"receiver_user_id": payload["receiver_user_id"],
+			"gift_id":          payload["gift_id"],
+			"action":           payload["action"],
+			"status":           payload["status"],
+			"amount_coins":     payload["price_coins"],
+			"metadata":         legacyMetadata,
+			"created_at":       payload["created_at"],
+		}
+		rows, err = r.db.Insert(ctx, r.cfg.MatchingSchema, r.cfg.GiftSpendActivitiesTable, []map[string]any{legacyPayload})
+		if err != nil {
+			return err
+		}
 	}
 	if len(rows) == 0 {
 		return errors.New("gift spend activity persistence returned empty result")
@@ -185,6 +231,11 @@ func (r *roseGiftRepository) getWallet(ctx context.Context, userID string) (user
 	trimmedUserID := strings.TrimSpace(userID)
 	if trimmedUserID == "" {
 		return userWalletView{}, errors.New("user_id is required")
+	}
+	if r.shouldBootstrapGiftRelations() {
+		if err := r.ensureGiftUsersExist(ctx, []string{trimmedUserID}); err != nil {
+			return userWalletView{}, err
+		}
 	}
 
 	params := url.Values{}
@@ -416,6 +467,7 @@ func (r *roseGiftRepository) sendGift(
 	receiverUserID,
 	giftID string,
 	idempotencyKey string,
+	messageText string,
 	now time.Time,
 ) (roseGiftSendView, error) {
 	gift, found, err := r.getCatalogByID(ctx, giftID)
@@ -424,6 +476,19 @@ func (r *roseGiftRepository) sendGift(
 	}
 	if !found {
 		return roseGiftSendView{}, errors.New("gift not found")
+	}
+	if gift.MaxPerMatchPerDay > 0 {
+		if limitErr := r.checkExclusiveDailyLimit(ctx, matchID, senderUserID, giftID, gift.MaxPerMatchPerDay, now); limitErr != nil {
+			return roseGiftSendView{}, limitErr
+		}
+	}
+	if r.shouldBootstrapGiftRelations() {
+		if err := r.ensureGiftUsersExist(ctx, []string{senderUserID, receiverUserID}); err != nil {
+			return roseGiftSendView{}, err
+		}
+		if err := r.ensureGiftMatchShadowExists(ctx, matchID, senderUserID, receiverUserID, now); err != nil {
+			return roseGiftSendView{}, err
+		}
 	}
 	wallet, err := r.getWallet(ctx, senderUserID)
 	if err != nil {
@@ -441,7 +506,23 @@ func (r *roseGiftRepository) sendGift(
 			return roseGiftSendView{}, findErr
 		}
 		if foundExisting {
+			if strings.TrimSpace(existing.GiftID) == "" {
+				existing.GiftID = gift.ID
+			}
+			if strings.TrimSpace(existing.GiftName) == "" {
+				existing.GiftName = gift.Name
+			}
+			if strings.TrimSpace(existing.GifURL) == "" {
+				existing.GifURL = gift.GifURL
+			}
+			if strings.TrimSpace(existing.IconKey) == "" {
+				existing.IconKey = gift.IconKey
+			}
+			if existing.PriceCoins == 0 {
+				existing.PriceCoins = gift.PriceCoins
+			}
 			existing.RemainingCoins = wallet.CoinBalance
+			existing.MessageText = encodeRoseGiftChatMessageWithNote(existing, messageText)
 			return existing, nil
 		}
 	}
@@ -493,17 +574,19 @@ func (r *roseGiftRepository) sendGift(
 		return roseGiftSendView{}, errors.New("gift send persistence returned empty result")
 	}
 
-	chatRows, err := r.db.Insert(ctx, r.cfg.MatchingSchema, r.cfg.MessagesTable, []map[string]any{{
-		"matchId":  strings.TrimSpace(matchID),
-		"senderId": strings.TrimSpace(senderUserID),
-		"text": encodeRoseGiftChatMessage(roseGiftSendView{
+	chatSchema := r.giftMessageSchema()
+	chatRows, err := r.db.Insert(ctx, chatSchema, r.cfg.MessagesTable, []map[string]any{r.giftChatMessagePayload(
+		chatSchema,
+		strings.TrimSpace(matchID),
+		strings.TrimSpace(senderUserID),
+		encodeRoseGiftChatMessageWithNote(roseGiftSendView{
 			GiftID:     gift.ID,
 			GiftName:   gift.Name,
 			GifURL:     gift.GifURL,
 			IconKey:    gift.IconKey,
 			PriceCoins: gift.PriceCoins,
-		}),
-	}})
+		}, messageText),
+	)})
 	if err != nil {
 		rollbackErr := r.rollbackGiftSendMutation(ctx, sendID, wallet.UserID, newBalance, wallet.CoinBalance, now)
 		if rollbackErr != nil {
@@ -532,6 +615,7 @@ func (r *roseGiftRepository) sendGift(
 	if len(chatRows) > 0 {
 		view.MessageID = strings.TrimSpace(toString(chatRows[0]["id"]))
 	}
+	view.MessageText = encodeRoseGiftChatMessageWithNote(view, messageText)
 	return view, nil
 }
 
@@ -573,13 +657,27 @@ func (r *roseGiftRepository) selectGiftSendRows(ctx context.Context, base url.Va
 	if err == nil {
 		return rows, nil
 	}
-	if !isMissingColumnErr(err, "icon_key") && !isMissingColumnErr(err, "idempotency_key") {
+	if !isMissingColumnErr(err, "icon_key") &&
+		!isMissingColumnErr(err, "idempotency_key") &&
+		!isMissingColumnErr(err, "gift_name") &&
+		!isMissingColumnErr(err, "gif_url") &&
+		!isMissingColumnErr(err, "price_coins") {
 		return nil, err
 	}
 
-	withoutOptional := cloneValues(base)
-	withoutOptional.Set("select", "id,match_id,sender_user_id,receiver_user_id,gift_id,gift_name,gif_url,price_coins,created_at")
-	return r.db.SelectRead(ctx, r.cfg.MatchingSchema, r.cfg.MatchGiftSendsTable, withoutOptional)
+	legacy := cloneValues(base)
+	legacy.Set("select", "id,match_id,sender_user_id,receiver_user_id,gift_id,quantity,total_cost_coins,status,created_at,idempotency_key")
+	rows, err = r.db.SelectRead(ctx, r.cfg.MatchingSchema, r.cfg.MatchGiftSendsTable, legacy)
+	if err == nil {
+		return rows, nil
+	}
+	if !isMissingColumnErr(err, "idempotency_key") {
+		return nil, err
+	}
+
+	minimal := cloneValues(base)
+	minimal.Set("select", "id,match_id,sender_user_id,receiver_user_id,gift_id,quantity,total_cost_coins,status,created_at")
+	return r.db.SelectRead(ctx, r.cfg.MatchingSchema, r.cfg.MatchGiftSendsTable, minimal)
 }
 
 func (r *roseGiftRepository) insertGiftSendRows(ctx context.Context, payload map[string]any) ([]map[string]any, error) {
@@ -587,17 +685,36 @@ func (r *roseGiftRepository) insertGiftSendRows(ctx context.Context, payload map
 	if err == nil {
 		return rows, nil
 	}
-	if !isMissingColumnErr(err, "icon_key") && !isMissingColumnErr(err, "idempotency_key") {
+	if !isMissingColumnErr(err, "icon_key") &&
+		!isMissingColumnErr(err, "idempotency_key") &&
+		!isMissingColumnErr(err, "gift_name") &&
+		!isMissingColumnErr(err, "gif_url") &&
+		!isMissingColumnErr(err, "price_coins") {
 		return nil, err
 	}
 
-	legacyPayload := map[string]any{}
-	for key, value := range payload {
-		if key == "icon_key" || key == "idempotency_key" {
-			continue
-		}
-		legacyPayload[key] = value
+	legacyPayload := map[string]any{
+		"id":               payload["id"],
+		"match_id":         payload["match_id"],
+		"sender_user_id":   payload["sender_user_id"],
+		"receiver_user_id": payload["receiver_user_id"],
+		"gift_id":          payload["gift_id"],
+		"quantity":         1,
+		"total_cost_coins": payload["price_coins"],
+		"idempotency_key":  payload["idempotency_key"],
+		"status":           "sent",
+		"created_at":       payload["created_at"],
 	}
+	rows, err = r.db.Insert(ctx, r.cfg.MatchingSchema, r.cfg.MatchGiftSendsTable, []map[string]any{legacyPayload})
+	if err == nil {
+		return rows, nil
+	}
+	if !isMissingColumnErr(err, "idempotency_key") {
+		return nil, err
+	}
+
+	delete(legacyPayload, "idempotency_key")
+	delete(legacyPayload, "status")
 	return r.db.Insert(ctx, r.cfg.MatchingSchema, r.cfg.MatchGiftSendsTable, []map[string]any{legacyPayload})
 }
 
@@ -640,7 +757,7 @@ func (r *roseGiftRepository) rollbackGiftSendMutation(
 
 func (r *roseGiftRepository) selectGiftCatalogRows(ctx context.Context, base url.Values) ([]map[string]any, error) {
 	withIcon := cloneValues(base)
-	withIcon.Set("select", "id,name,gif_url,icon_key,tier,price_coins,is_limited,is_active,sort_order")
+	withIcon.Set("select", "id,name,gif_url,icon_key,tier,category,price_coins,is_limited,is_active,sort_order,max_per_match_per_day")
 	rows, err := r.db.SelectRead(ctx, r.cfg.MatchingSchema, r.cfg.GiftCatalogTable, withIcon)
 	if err == nil {
 		return rows, nil
@@ -650,7 +767,7 @@ func (r *roseGiftRepository) selectGiftCatalogRows(ctx context.Context, base url
 	}
 
 	withoutIcon := cloneValues(base)
-	withoutIcon.Set("select", "id,name,gif_url,tier,price_coins,is_limited,is_active,sort_order")
+	withoutIcon.Set("select", "id,name,gif_url,tier,category,price_coins,is_limited,is_active,sort_order,max_per_match_per_day")
 	return r.db.SelectRead(ctx, r.cfg.MatchingSchema, r.cfg.GiftCatalogTable, withoutIcon)
 }
 
@@ -671,9 +788,12 @@ func isMissingColumnErr(err error, column string) bool {
 	msg := strings.ToLower(err.Error())
 	return strings.Contains(msg, strings.ToLower(column)) &&
 		(strings.Contains(msg, "does not exist") ||
+			strings.Contains(msg, "could not find") ||
+			strings.Contains(msg, "schema cache") ||
 			strings.Contains(msg, "unknown column") ||
 			strings.Contains(msg, "undefined column") ||
-			strings.Contains(msg, "42703"))
+			strings.Contains(msg, "42703") ||
+			strings.Contains(msg, "pgrst204"))
 }
 
 func mapRoseGiftCatalogRow(row map[string]any) roseGiftCatalogItem {
@@ -683,18 +803,53 @@ func mapRoseGiftCatalogRow(row map[string]any) roseGiftCatalogItem {
 	if iconKey == "" {
 		iconKey = defaultRoseGiftIconKey(giftID, giftName)
 	}
+	category := strings.TrimSpace(toString(row["category"]))
+	if category == "" {
+		category = "roses"
+	}
 
 	return roseGiftCatalogItem{
-		ID:         giftID,
-		Name:       giftName,
-		GifURL:     strings.TrimSpace(toString(row["gif_url"])),
-		IconKey:    iconKey,
-		Tier:       strings.TrimSpace(toString(row["tier"])),
-		PriceCoins: toIntOrZero(row["price_coins"]),
-		IsLimited:  row["is_limited"] == true,
-		IsActive:   row["is_active"] == true,
-		SortOrder:  toIntOrZero(row["sort_order"]),
+		ID:                giftID,
+		Name:              giftName,
+		GifURL:            strings.TrimSpace(toString(row["gif_url"])),
+		IconKey:           iconKey,
+		Tier:              strings.TrimSpace(toString(row["tier"])),
+		Category:          category,
+		PriceCoins:        toIntOrZero(row["price_coins"]),
+		IsLimited:         row["is_limited"] == true,
+		IsActive:          row["is_active"] == true,
+		SortOrder:         toIntOrZero(row["sort_order"]),
+		MaxPerMatchPerDay: toIntOrZero(row["max_per_match_per_day"]),
 	}
+}
+
+// checkExclusiveDailyLimit returns an error if the sender has already sent
+// maxPerDay of this gift to this match today.
+func (r *roseGiftRepository) checkExclusiveDailyLimit(
+	ctx context.Context,
+	matchID, senderUserID, giftID string,
+	maxPerDay int,
+	now time.Time,
+) error {
+	if maxPerDay <= 0 {
+		return nil
+	}
+	dayStart := now.UTC().Format("2006-01-02")
+	filters := url.Values{}
+	filters.Set("match_id", "eq."+strings.TrimSpace(matchID))
+	filters.Set("sender_user_id", "eq."+strings.TrimSpace(senderUserID))
+	filters.Set("gift_id", "eq."+strings.TrimSpace(giftID))
+	filters.Set("created_at", "gte."+dayStart+"T00:00:00Z")
+	filters.Set("select", "id")
+	rows, err := r.db.SelectRead(ctx, r.cfg.MatchingSchema, r.cfg.MatchGiftSendsTable, filters)
+	if err != nil {
+		// Non-fatal: if we can't check, allow the send (fail-open)
+		return nil
+	}
+	if len(rows) >= maxPerDay {
+		return errors.New("daily limit reached for this exclusive gift")
+	}
+	return nil
 }
 
 func mapWalletRow(row map[string]any) userWalletView {
@@ -722,9 +877,16 @@ func mapRoseGiftSendRow(row map[string]any) roseGiftSendView {
 		GiftName:       giftName,
 		GifURL:         strings.TrimSpace(toString(row["gif_url"])),
 		IconKey:        iconKey,
-		PriceCoins:     toIntOrZero(row["price_coins"]),
+		PriceCoins:     giftSendPriceCoins(row),
 		CreatedAt:      strings.TrimSpace(toString(row["created_at"])),
 	}
+}
+
+func giftSendPriceCoins(row map[string]any) int {
+	if value := toIntOrZero(row["price_coins"]); value > 0 {
+		return value
+	}
+	return toIntOrZero(row["total_cost_coins"])
 }
 
 func mapWalletCoinPurchaseRow(row map[string]any) walletCoinPurchaseView {
@@ -755,4 +917,231 @@ func toIntOrZero(value any) int {
 		return parsed
 	}
 	return 0
+}
+
+func (r *roseGiftRepository) ensureGiftUsersExist(ctx context.Context, userIDs []string) error {
+	ids := uniqueNonEmptyStrings(userIDs)
+	if len(ids) == 0 {
+		return nil
+	}
+
+	schemas := []string{r.giftUserSchema()}
+	if r.prefersPublicCoreTables() && !containsStringFold(schemas, "public") {
+		schemas = append(schemas, "public")
+	}
+
+	for _, schema := range schemas {
+		if err := r.ensureUsersExistInSchema(ctx, schema, ids); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *roseGiftRepository) ensureUsersExistInSchema(ctx context.Context, schema string, userIDs []string) error {
+	trimmedSchema := strings.TrimSpace(schema)
+	if trimmedSchema == "" {
+		return nil
+	}
+
+	params := url.Values{}
+	params.Set("id", "in.("+strings.Join(userIDs, ",")+")")
+	params.Set("select", "id")
+	rows, err := r.db.SelectRead(ctx, trimmedSchema, r.giftUsersTable(), params)
+	if err != nil {
+		return err
+	}
+
+	existing := make(map[string]struct{}, len(rows))
+	for _, row := range rows {
+		id := strings.TrimSpace(toString(row["id"]))
+		if id != "" {
+			existing[id] = struct{}{}
+		}
+	}
+
+	missing := make([]map[string]any, 0, len(userIDs))
+	for _, id := range userIDs {
+		if _, ok := existing[id]; ok {
+			continue
+		}
+		missing = append(missing, r.bootstrapGiftUserPayload(trimmedSchema, id))
+	}
+	if len(missing) == 0 {
+		return nil
+	}
+
+	_, err = r.db.Insert(ctx, trimmedSchema, r.giftUsersTable(), missing)
+	return err
+}
+
+func (r *roseGiftRepository) ensureGiftMatchShadowExists(
+	ctx context.Context,
+	matchID,
+	senderUserID,
+	receiverUserID string,
+	now time.Time,
+) error {
+	if !r.prefersPublicCoreTables() || !r.usesSnakeCaseSchema(r.cfg.MatchingSchema) {
+		return nil
+	}
+	trimmedMatchID := strings.TrimSpace(matchID)
+	trimmedSenderID := strings.TrimSpace(senderUserID)
+	trimmedReceiverID := strings.TrimSpace(receiverUserID)
+	if trimmedMatchID == "" || trimmedSenderID == "" || trimmedReceiverID == "" {
+		return nil
+	}
+
+	params := url.Values{}
+	params.Set("id", "eq."+trimmedMatchID)
+	params.Set("limit", "1")
+	params.Set("select", "id")
+	rows, err := r.db.SelectRead(ctx, r.cfg.MatchingSchema, r.giftMatchesTable(), params)
+	if err != nil {
+		return err
+	}
+	if len(rows) > 0 {
+		return nil
+	}
+
+	userID1, userID2 := trimmedSenderID, trimmedReceiverID
+	if userID1 > userID2 {
+		userID1, userID2 = userID2, userID1
+	}
+	createdAt := now.UTC()
+	if createdAt.IsZero() {
+		createdAt = time.Now().UTC()
+	}
+
+	_, err = r.db.Insert(ctx, r.cfg.MatchingSchema, r.giftMatchesTable(), []map[string]any{{
+		"id":            trimmedMatchID,
+		"user_id_1":     userID1,
+		"user_id_2":     userID2,
+		"user_1_status": "active",
+		"user_2_status": "active",
+		"created_at":    createdAt.Format(time.RFC3339),
+	}})
+	return err
+}
+
+func (r *roseGiftRepository) bootstrapGiftUserPayload(schema, userID string) map[string]any {
+	suffix := strings.ReplaceAll(strings.TrimSpace(userID), "-", "")
+	if len(suffix) > 10 {
+		suffix = suffix[len(suffix)-10:]
+	}
+	phone := "bootstrap-" + suffix
+	if r.usesSnakeCaseSchema(schema) {
+		return map[string]any{
+			"id":            strings.TrimSpace(userID),
+			"phone_number":  phone,
+			"name":          "Member",
+			"date_of_birth": "1998-01-01",
+			"gender":        "other",
+			"is_verified":   false,
+			"is_active":     true,
+		}
+	}
+	return map[string]any{
+		"id":          strings.TrimSpace(userID),
+		"phoneNumber": phone,
+		"name":        "Member",
+		"dateOfBirth": "1998-01-01",
+		"gender":      "other",
+		"isVerified":  false,
+		"isActive":    true,
+	}
+}
+
+func (r *roseGiftRepository) giftChatMessagePayload(schema, matchID, senderUserID, text string) map[string]any {
+	if r.usesSnakeCaseSchema(schema) {
+		return map[string]any{
+			"match_id":  matchID,
+			"sender_id": senderUserID,
+			"text":      text,
+		}
+	}
+	return map[string]any{
+		"matchId":  matchID,
+		"senderId": senderUserID,
+		"text":     text,
+	}
+}
+
+func (r *roseGiftRepository) giftUserSchema() string {
+	trimmed := strings.TrimSpace(r.cfg.UserSchema)
+	if trimmed == "" {
+		return "user_management"
+	}
+	return trimmed
+}
+
+func (r *roseGiftRepository) giftUsersTable() string {
+	trimmed := strings.TrimSpace(r.cfg.UsersTable)
+	if trimmed == "" {
+		return "users"
+	}
+	return trimmed
+}
+
+func (r *roseGiftRepository) giftMatchesTable() string {
+	trimmed := strings.TrimSpace(r.cfg.MatchesTable)
+	if trimmed == "" {
+		return "matches"
+	}
+	return trimmed
+}
+
+func (r *roseGiftRepository) giftMessageSchema() string {
+	if r.prefersPublicCoreTables() && r.usesSnakeCaseSchema(r.cfg.MatchingSchema) {
+		return "public"
+	}
+	return r.cfg.MatchingSchema
+}
+
+func (r *roseGiftRepository) shouldBootstrapGiftRelations() bool {
+	return r.prefersPublicCoreTables() && r.usesSnakeCaseSchema(r.cfg.MatchingSchema)
+}
+
+func (r *roseGiftRepository) prefersPublicCoreTables() bool {
+	base := strings.TrimRight(strings.TrimSpace(r.cfg.SupabaseURL), "/")
+	if base == "" || strings.HasSuffix(base, "/rest/v1") {
+		return false
+	}
+	parsed, err := url.Parse(base)
+	if err != nil {
+		return false
+	}
+	host := strings.ToLower(parsed.Hostname())
+	return host == "localhost" || host == "127.0.0.1"
+}
+
+func (r *roseGiftRepository) usesSnakeCaseSchema(schema string) bool {
+	trimmed := strings.TrimSpace(schema)
+	return trimmed != "" && !strings.EqualFold(trimmed, "public")
+}
+
+func uniqueNonEmptyStrings(values []string) []string {
+	seen := make(map[string]struct{}, len(values))
+	out := make([]string, 0, len(values))
+	for _, value := range values {
+		trimmed := strings.TrimSpace(value)
+		if trimmed == "" {
+			continue
+		}
+		if _, ok := seen[trimmed]; ok {
+			continue
+		}
+		seen[trimmed] = struct{}{}
+		out = append(out, trimmed)
+	}
+	return out
+}
+
+func containsStringFold(values []string, target string) bool {
+	for _, value := range values {
+		if strings.EqualFold(strings.TrimSpace(value), strings.TrimSpace(target)) {
+			return true
+		}
+	}
+	return false
 }

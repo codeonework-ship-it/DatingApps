@@ -102,8 +102,62 @@ class ValidationConstants {
 
   /// Profile photos
   static const int minPhotos = 2;
-  static const int maxPhotos = 6;
+  static const int maxPhotos = 5;
   static const int maxPhotoSizeMB = 10;
+
+  /// Height range (centimetres)
+  static const int minHeightCm = 100;
+  static const int maxHeightCm = 250;
+}
+
+/// Selectable profile options shown in dropdown menus.
+/// Centralised here so screens never hardcode display values.
+class ProfileOptionsConstants {
+  const ProfileOptionsConstants._();
+
+  static const List<String> educationLevels = [
+    'High School',
+    "Bachelor's",
+    "Master's",
+    'PhD',
+    'Other',
+  ];
+
+  static const List<String> incomeRanges = [
+    'Prefer not to say',
+    'Below ₹5L',
+    '₹5L – ₹10L',
+    '₹10L – ₹20L',
+    '₹20L – ₹50L',
+    '₹50L+',
+  ];
+
+  static const List<String> drinkingOptions = [
+    'Never',
+    'Socially',
+    'Regularly',
+  ];
+
+  static const List<String> smokingOptions = [
+    'Never',
+    'Occasionally',
+    'Regularly',
+  ];
+
+  static const List<String> religionOptions = [
+    'Hindu',
+    'Muslim',
+    'Christian',
+    'Sikh',
+    'Buddhist',
+    'Jain',
+    'Jewish',
+    'Spiritual',
+    'Agnostic',
+    'Atheist',
+    'Other',
+    'Prefer not to say',
+  ];
 }
 
 /// Feature Flags

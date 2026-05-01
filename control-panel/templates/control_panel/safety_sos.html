@@ -1,0 +1,93 @@
+{% extends "control_panel/base.html" %}
+{% block topbar_title %}Safety — SOS Alerts{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1><i class="bi bi-shield-exclamation header-icon" style="color:#ef4444;"></i> SOS Alerts</h1>
+    <p class="text-muted mb-0">Real-time safety alerts requiring immediate review</p>
+  </div>
+</div>
+
+{% if error %}
+<div class="alert-glass alert-glass-warning mb-3"><i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}</div>
+{% endif %}
+
+{% with pending_count=alerts|length %}
+{% if pending_count > 0 %}
+<div class="alert-glass alert-glass-error mb-4">
+  <i class="bi bi-exclamation-octagon-fill me-2"></i>
+  <strong>{{ pending_count }} active SOS alert{{ pending_count|pluralize }}</strong> require your attention.
+</div>
+{% endif %}
+{% endwith %}
+
+<div class="glass-card">
+  {% if alerts %}
+  <div class="table-responsive">
+    <table class="glass-table">
+      <thead>
+        <tr>
+          <th>Alert ID</th>
+          <th>User</th>
+          <th>Type</th>
+          <th>Location</th>
+          <th>Triggered At</th>
+          <th>Status</th>
+          <th class="text-end">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for alert in alerts %}
+        <tr>
+          <td class="font-monospace small">{{ alert.id|slice:":8" }}…</td>
+          <td class="font-monospace small text-muted">{{ alert.user_id|slice:":8" }}…</td>
+          <td>
+            <span class="badge badge-danger">
+              <i class="bi bi-exclamation-triangle-fill me-1"></i>
+              {{ alert.alert_type|default:"SOS"|upper }}
+            </span>
+          </td>
+          <td class="text-muted small">
+            {% if alert.latitude and alert.longitude %}
+              {{ alert.latitude|floatformat:4 }}, {{ alert.longitude|floatformat:4 }}
+            {% else %}
+              <span class="text-muted">Not shared</span>
+            {% endif %}
+          </td>
+          <td class="text-muted small">{{ alert.triggered_at|date:"M d, Y H:i"|default:"—" }}</td>
+          <td>
+            {% if alert.resolved_at %}
+              <span class="badge badge-active">Resolved</span>
+            {% else %}
+              <span class="badge badge-danger">
+                <i class="bi bi-broadcast-pin me-1"></i>Active
+              </span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            {% if not alert.resolved_at %}
+            <form method="post" action="{% url 'safety_sos_resolve' alert.id %}" class="d-inline">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-success-glass btn-sm"
+                onclick="return confirm('Mark this SOS alert as resolved?')">
+                <i class="bi bi-check2-circle me-1"></i>Resolve
+              </button>
+            </form>
+            {% else %}
+            <span class="text-muted small">Done</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="text-center py-5 text-muted">
+    <i class="bi bi-shield-check" style="font-size:3rem;color:#22c55e;opacity:0.5;"></i>
+    <p class="mt-3 text-success">No active SOS alerts. All clear! ✅</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

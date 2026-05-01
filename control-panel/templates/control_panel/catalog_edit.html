@@ -1,0 +1,184 @@
+{% extends "control_panel/base.html" %}
+{% block topbar_title %}{% if gift %}Edit Gift{% else %}New Gift{% endif %}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>
+      <i class="bi bi-gift-fill header-icon"></i>
+      {% if gift %}Edit Gift{% else %}Add New Gift{% endif %}
+    </h1>
+    <p class="text-muted mb-0">{% if gift %}Update gift details in the catalog{% else %}Create a new gift for the app{% endif %}</p>
+  </div>
+  <a href="{% url 'catalog_list' %}" class="btn btn-glass">
+    <i class="bi bi-arrow-left me-2"></i>Back to Catalog
+  </a>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="glass-card">
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <!-- Preview -->
+        <div class="text-center mb-4 p-3" style="background:rgba(245,200,66,0.05);border-radius:12px;border:1px solid rgba(245,200,66,0.15);">
+          {% if gift.gif_url %}
+          <img id="preview-img" src="{{ gift.gif_url }}" alt="Gift preview"
+            style="max-height:120px;border-radius:8px;object-fit:contain;" class="mb-2">
+          {% else %}
+          <img id="preview-img" src="" alt="Gift preview"
+            style="max-height:120px;border-radius:8px;object-fit:contain;display:none;" class="mb-2">
+          {% endif %}
+          <div id="preview-emoji" style="font-size:3.5rem;">{{ gift.icon_emoji|default:"🎁" }}</div>
+          <div id="preview-name" class="fw-semibold mt-2" style="color:var(--gold);">{{ gift.name|default:"Gift Name" }}</div>
+        </div>
+
+        <div class="row g-3">
+          <!-- Row 1: Gift Name + Emoji -->
+          <div class="col-md-8">
+            <label class="form-label text-muted small">Gift Name *</label>
+            <input type="text" name="name" class="form-control glass-input" required
+              placeholder="e.g. Midnight Rose"
+              value="{{ gift.name|default:'' }}"
+              oninput="document.getElementById('preview-name').innerText = this.value || 'Gift Name'">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label text-muted small">Emoji *</label>
+            <input type="text" name="icon_emoji" class="form-control glass-input" required
+              placeholder="🌹"
+              maxlength="4"
+              value="{{ gift.icon_emoji|default:'🎁' }}"
+              oninput="document.getElementById('preview-emoji').innerText = this.value || '🎁'">
+          </div>
+
+          {% if not gift %}
+          <!-- Row 1.5: Gift ID (only for new gifts) -->
+          <div class="col-12">
+            <label class="form-label text-muted small">Gift ID * <span class="text-muted">(unique slug, e.g. rose_midnight_special)</span></label>
+            <input type="text" name="gift_id" class="form-control glass-input" required
+              placeholder="e.g. rose_midnight_special"
+              pattern="[a-z0-9_]+"
+              title="Lowercase letters, numbers, underscores only">
+          </div>
+          {% endif %}
+
+          <!-- Row 2: Category + Tier -->
+          <div class="col-md-6">
+            <label class="form-label text-muted small">Category *</label>
+            <select name="category" class="form-select glass-select" required>
+              <option value="">Select category…</option>
+              {% for cat in categories %}
+              <option value="{{ cat }}" {% if gift.category == cat %}selected{% endif %}>
+                {{ cat|capfirst }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label text-muted small">Rarity Tier *</label>
+            <select name="tier" class="form-select glass-select" required>
+              {% for t in rarity_tiers %}
+              <option value="{{ t }}" {% if gift.tier == t %}selected{% endif %}>
+                {{ t|capfirst }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Row 3: Coin Cost (inline label + input) -->
+          <div class="col-md-6">
+            <label class="form-label text-muted small">Coin Cost *</label>
+            <div class="d-flex align-items-center gap-2">
+              <span style="background:rgba(245,200,66,0.1);border:1px solid rgba(245,200,66,0.2);color:var(--gold);border-radius:8px;padding:8px 12px;display:flex;align-items:center;">
+                <i class="bi bi-coin"></i>
+              </span>
+              <input type="number" name="price_coins" class="form-control glass-input" required min="0"
+                placeholder="50"
+                value="{{ gift.price_coins|default:'0' }}"
+                style="flex:1;">
+            </div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label text-muted small">Sort Order</label>
+            <input type="number" name="sort_order" class="form-control glass-input" min="0"
+              value="{{ gift.sort_order|default:'100' }}" placeholder="100">
+          </div>
+
+          <!-- Row 4: Image Upload -->
+          <div class="col-12">
+            <label class="form-label text-muted small">
+              <i class="bi bi-image me-1"></i>Gift Image (GIF / PNG)
+            </label>
+            <div class="row g-2">
+              <div class="col-md-6">
+                <div class="p-3" style="background:rgba(255,255,255,0.03);border:1px dashed rgba(255,255,255,0.15);border-radius:10px;">
+                  <label class="form-label text-muted small mb-1">Upload File</label>
+                  <input type="file" name="image_file" class="form-control glass-input"
+                    accept=".gif,.png,.jpg,.jpeg,.webp,image/gif,image/png,image/jpeg,image/webp"
+                    onchange="previewUpload(this)">
+                  <div class="text-muted mt-1" style="font-size:0.7rem;">Accepts: GIF, PNG, JPG, WebP — max 5 MB</div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="p-3" style="background:rgba(255,255,255,0.03);border:1px dashed rgba(255,255,255,0.15);border-radius:10px;">
+                  <label class="form-label text-muted small mb-1">Or paste Image URL</label>
+                  <input type="url" name="gif_url" class="form-control glass-input"
+                    placeholder="https://media.giphy.com/…/giphy.gif"
+                    value="{{ gift.gif_url|default:'' }}"
+                    oninput="previewUrl(this.value)">
+                  <div class="text-muted mt-1" style="font-size:0.7rem;">Direct link to GIF or PNG</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Row 5: Description -->
+          <div class="col-12">
+            <label class="form-label text-muted small">Description</label>
+            <textarea name="description" class="form-control glass-input" rows="3"
+              placeholder="A brief description shown in the app…">{{ gift.description|default:'' }}</textarea>
+          </div>
+        </div>
+
+        <div class="d-flex gap-3 mt-4 pt-3" style="border-top:1px solid rgba(255,255,255,0.06);">
+          <button type="submit" class="btn btn-glow flex-fill">
+            <i class="bi bi-check-lg me-2"></i>
+            {% if gift %}Save Changes{% else %}Create Gift{% endif %}
+          </button>
+          <a href="{% url 'catalog_list' %}" class="btn btn-glass">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+function previewUpload(input) {
+  const img = document.getElementById('preview-img');
+  if (input.files && input.files[0]) {
+    if (input.files[0].size > 5 * 1024 * 1024) {
+      alert('File too large — max 5 MB');
+      input.value = '';
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      img.src = e.target.result;
+      img.style.display = 'block';
+    };
+    reader.readAsDataURL(input.files[0]);
+    // Clear URL input when file is uploaded
+    const urlInput = document.querySelector('input[name="gif_url"]');
+    if (urlInput) urlInput.value = '';
+  }
+}
+function previewUrl(url) {
+  const img = document.getElementById('preview-img');
+  if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+    img.src = url;
+    img.style.display = 'block';
+  }
+}
+</script>
+{% endblock %}

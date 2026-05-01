@@ -19,6 +19,11 @@ type dailyPromptRepository struct {
 }
 
 func newDailyPromptRepository(cfg config.Config) *dailyPromptRepository {
+	databaseURL := strings.ToLower(strings.TrimSpace(cfg.DatabaseURL))
+	if strings.Contains(databaseURL, "localhost") || strings.Contains(databaseURL, "127.0.0.1") {
+		return nil
+	}
+
 	apiKey := strings.TrimSpace(cfg.SupabaseServiceRole)
 	if apiKey == "" {
 		apiKey = strings.TrimSpace(cfg.SupabaseAnonKey)

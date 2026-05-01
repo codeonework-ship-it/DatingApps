@@ -73,7 +73,7 @@ class _SetupBasicInfoScreenState extends ConsumerState<SetupBasicInfoScreen> {
       _snack('Please select your date of birth.');
       return;
     }
-    _isSaving = true;
+    setState(() => _isSaving = true);
     try {
       final notifier = ref.read(profileSetupNotifierProvider.notifier);
       await notifier.saveBasicInfo(
@@ -94,15 +94,14 @@ class _SetupBasicInfoScreenState extends ConsumerState<SetupBasicInfoScreen> {
       if (!mounted) return;
       SchedulerBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        _isSaving = false;
+        setState(() => _isSaving = false);
         Navigator.of(context).push<void>(
           MaterialPageRoute<void>(builder: (_) => const SetupPhotosScreen()),
         );
       });
     } on Exception catch (_) {
       if (!mounted) return;
-      _isSaving = false;
-      setState(() {});
+      setState(() => _isSaving = false);
       _snack('Failed to save — please try again.');
     }
   }
@@ -391,7 +390,7 @@ class _BasicInfoForm extends StatelessWidget {
       const SizedBox(height: 8),
       TextField(
         controller: bioController,
-        maxLength: 300,
+        maxLength: ValidationConstants.maxBioLength,
         maxLines: 4,
         minLines: 3,
         textCapitalization: TextCapitalization.sentences,

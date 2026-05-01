@@ -1,15 +1,9 @@
-import 'dart:io';
-
 import 'package:dio/dio.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:supabase_flutter/supabase_flutter.dart' hide MultipartFile;
 
-import '../../../core/config/app_runtime_config.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/providers/api_client_provider.dart';
-import '../../../core/providers/supabase_client_provider.dart';
 import '../../../core/utils/logger.dart';
 import '../../auth/providers/auth_provider.dart';
 
@@ -222,7 +216,7 @@ class ProfileDraft {
     if (dateOfBirth != null) score++;
     if (photos.length >= ValidationConstants.minPhotos) score++;
     if (bio.trim().length >= ValidationConstants.minBioLength) score++;
-    score++;
+    if (seekingGenders.isNotEmpty) score++;
     if (drinking.isNotEmpty && smoking.isNotEmpty) score++;
 
     return ((score / total) * 100).round();
@@ -240,6 +234,10 @@ class ProfileSetupNotifier extends _$ProfileSetupNotifier {
     if (userId == null) {
       throw StateError('Not authenticated');
     }
+
+    // Keep the provider alive across all setup screens so that navigating
+    // forward/back never triggers a re-fetch that could wipe in-progress data.
+    ref.keepAlive();
 
     final fallbackPhone = auth.email ?? '';
 
@@ -426,7 +424,9 @@ class ProfileSetupNotifier extends _$ProfileSetupNotifier {
       source: ImageSource.gallery,
       imageQuality: 85,
     );
-    if (file == null) return;
+    if (file == null) {
+      return;
+    }
     await _uploadAndInsertPhoto(file);
   }
 
@@ -442,17 +442,19 @@ class ProfileSetupNotifier extends _$ProfileSetupNotifier {
   Future<void> _uploadAndInsertPhoto(XFile file) async {
     final current = await future;
     if (current.photos.length >= ValidationConstants.maxPhotos) {
-      return;
+      throw StateError(
+        'Maximum ${ValidationConstants.maxPhotos} photos are allowed.',
+      );
     }
 
     final ts = DateTime.now().millisecondsSinceEpoch;
     final photoId = '${current.userId}-$ts';
     final ext = _imageExtension(file.name);
 
-    // ── 1. Optimistic local entry ──────────────────────────────────────────
+    // ── 1. Optimistic local entry (show a file:// thumbnail) ───────────────
     final optimisticPhoto = ProfilePhotoItem(
       id: 'local-$photoId',
-      photoUrl: AppRuntimeConfig.placeholderProfileImageUrl,
+      photoUrl: file.path, // local path used as placeholder
       storagePath: file.path,
       ordering: current.photos.length,
     );
@@ -461,68 +463,18 @@ class ProfileSetupNotifier extends _$ProfileSetupNotifier {
     );
 
     try {
-      // ── 2. Save a local copy under AppDocDir/profile_photos/{userId}/ ──────
-      final appDocDir = await getApplicationDocumentsDirectory();
-      final localDir = Directory(
-        '${appDocDir.path}/profile_photos/${current.userId}',
-      );
-      await localDir.create(recursive: true);
-      final localFile = File('${localDir.path}/$photoId$ext');
-      await File(file.path).copy(localFile.path);
-
-      // ── 3. Upload to Supabase Storage ─────────────────────────────────────
-      final supabase = ref.read(supabaseClientProvider);
-      final storagePath = 'user-photos/${current.userId}/$photoId$ext';
-      final bytes = await localFile.readAsBytes();
-
-      String photoUrl;
-      try {
-        await supabase.storage
-            .from(SupabaseConstants.profilePhotosBucket)
-            .uploadBinary(
-              storagePath,
-              bytes,
-              fileOptions: const FileOptions(
-                contentType: 'image/jpeg',
-                upsert: true,
-              ),
-            );
-        photoUrl = supabase.storage
-            .from(SupabaseConstants.profilePhotosBucket)
-            .getPublicUrl(storagePath);
-      } on StorageException catch (storageErr, st) {
-        log.warning(
-          'Supabase storage upload failed, falling back to backend upload: ${storageErr.message}',
-        );
-        log.error('Supabase storage error', storageErr, st);
-        // Fall back to backend multipart upload
-        final dio = ref.read(apiClientProvider);
-        final multipart = FormData.fromMap({
-          'image': await MultipartFile.fromFile(
-            localFile.path,
-            filename: '$photoId$ext',
-          ),
-        });
-        final fallbackResp = await dio.post<Map<String, dynamic>>(
-          '/profile/${current.userId}/photos',
-          data: multipart,
-          options: Options(contentType: 'multipart/form-data'),
-        );
-        state = AsyncData(
-          _draftFromApi(
-            current.userId,
-            fallbackResp.data,
-            fallbackPhone: current.phoneNumber,
-          ),
-        );
-        return;
-      }
-
-      // ── 4. Register URL + storage path in the backend DB ─────────────────
+      // ── 2. Upload to Go BFF via multipart/form-data ──────────────────────
       final dio = ref.read(apiClientProvider);
+      final multipart = FormData.fromMap({
+        'image': await MultipartFile.fromFile(
+          file.path,
+          filename: '$photoId$ext',
+        ),
+      });
       final response = await dio.post<Map<String, dynamic>>(
         '/profile/${current.userId}/photos',
-        data: {'photo_url': photoUrl, 'storage_path': storagePath},
+        data: multipart,
+        options: Options(contentType: 'multipart/form-data'),
       );
       state = AsyncData(
         _draftFromApi(
@@ -532,18 +484,20 @@ class ProfileSetupNotifier extends _$ProfileSetupNotifier {
         ),
       );
     } on DioException catch (e, stackTrace) {
-      log.error('Failed to register photo', e, stackTrace);
-      // Keep optimistic so user sees the photo
-      final optimistic = current.copyWith(
-        photos: [...current.photos, optimisticPhoto],
-      );
-      state = AsyncData(optimistic);
+      log.error('Failed to upload photo', e, stackTrace);
+      // Remove the optimistic entry on failure so user can retry
+      final rolled = current.photos
+          .where((p) => p.id != optimisticPhoto.id)
+          .toList();
+      state = AsyncData(current.copyWith(photos: rolled));
+      rethrow; // let the screen show an error snackbar
     } catch (e, stackTrace) {
       log.error('Unexpected error during photo upload', e, stackTrace);
-      final optimistic = current.copyWith(
-        photos: [...current.photos, optimisticPhoto],
-      );
-      state = AsyncData(optimistic);
+      final rolled = current.photos
+          .where((p) => p.id != optimisticPhoto.id)
+          .toList();
+      state = AsyncData(current.copyWith(photos: rolled));
+      rethrow;
     }
   }
 

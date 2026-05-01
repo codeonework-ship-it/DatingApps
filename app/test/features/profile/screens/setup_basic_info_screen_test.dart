@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:verified_dating_app/core/widgets/glass_widgets.dart';
 import 'package:verified_dating_app/features/profile/providers/profile_setup_provider.dart';
 import 'package:verified_dating_app/features/profile/screens/setup/setup_basic_info_screen.dart';
+import 'package:verified_dating_app/features/profile/screens/setup/setup_photos_screen.dart';
 
 class _FakeProfileSetupNotifier extends ProfileSetupNotifier {
   _FakeProfileSetupNotifier(this.initialDraft);
@@ -114,10 +115,7 @@ void main() {
     await tester.pumpWidget(_appWithOverride(notifier));
     await _pumpUi(tester);
 
-    expect(
-      find.text('This helps us find your best matches.'),
-      findsOneWidget,
-    );
+    expect(find.text('This helps us find your best matches.'), findsOneWidget);
     expect(find.text('Continue'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -170,11 +168,13 @@ void main() {
     await _pumpUi(tester);
 
     await tester.enterText(find.byType(TextField).first, 'Ananya Singh');
-    await tester.tap(find.byType(GlassButton));
-    await tester.pump(); // triggers addPostFrameCallback
-    await tester.pump(const Duration(milliseconds: 600)); // render new screen
+    await tester.tap(find.text('Continue'));
+    await tester.pump();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 700));
 
     expect(notifier.saveCalls, 1);
     expect(find.text('Add your photos'), findsOneWidget);
+    expect(find.byType(SetupPhotosScreen), findsOneWidget);
   });
 }

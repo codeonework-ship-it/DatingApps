@@ -37,7 +37,7 @@ func (g *GRPCGateway) PatchDraft(context.Context, string, map[string]any) (map[s
 	return nil, errors.New("profile draft methods not supported by grpc gateway")
 }
 
-func (g *GRPCGateway) AddPhoto(context.Context, string, string) (map[string]any, error) {
+func (g *GRPCGateway) AddPhoto(context.Context, string, string, string) (map[string]any, error) {
 	return nil, errors.New("profile photo methods not supported by grpc gateway")
 }
 

@@ -7,23 +7,20 @@ part of 'profile_setup_provider.dart';
 // **************************************************************************
 
 String _$profileSetupNotifierHash() =>
-    r'01ebdcc6ece904cf2184f9aba4e02bca4acc532f';
+    r'fba9ac3992650c76e981d5505a7ef110d9a3b0b5';
 
 /// See also [ProfileSetupNotifier].
 @ProviderFor(ProfileSetupNotifier)
-final profileSetupNotifierProvider =
-    AutoDisposeAsyncNotifierProvider<
-      ProfileSetupNotifier,
-      ProfileDraft
-    >.internal(
-      ProfileSetupNotifier.new,
-      name: r'profileSetupNotifierProvider',
-      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-          ? null
-          : _$profileSetupNotifierHash,
-      dependencies: null,
-      allTransitiveDependencies: null,
-    );
+final profileSetupNotifierProvider = AutoDisposeAsyncNotifierProvider<
+    ProfileSetupNotifier, ProfileDraft>.internal(
+  ProfileSetupNotifier.new,
+  name: r'profileSetupNotifierProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$profileSetupNotifierHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
 
 typedef _$ProfileSetupNotifier = AutoDisposeAsyncNotifier<ProfileDraft>;
 // ignore_for_file: type=lint

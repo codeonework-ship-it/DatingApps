@@ -134,7 +134,7 @@ class AppRuntimeConfig {
   static String get matchedProfileIdsCsv => _pick(<String>[
     _fromEnv('MOCK_MATCHED_PROFILE_IDS'),
     const String.fromEnvironment('MOCK_MATCHED_PROFILE_IDS'),
-  ], 'mock-female-001,mock-male-001');
+  ], '');
 
   static Set<String> get matchedProfileIds => matchedProfileIdsCsv
       .split(',')

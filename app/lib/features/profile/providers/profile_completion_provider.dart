@@ -27,10 +27,11 @@ class ProfileCompletion {
 @riverpod
 Future<ProfileCompletion> profileCompletion(ProfileCompletionRef ref) async {
   if (kUseMockAuth) {
+    // Return an incomplete profile so the setup wizard is shown for testing.
     return const ProfileCompletion(
       hasUserRow: true,
-      profileCompletion: 100,
-      photoCount: 2,
+      profileCompletion: 0,
+      photoCount: 0,
     );
   }
 

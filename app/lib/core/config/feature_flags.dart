@@ -60,5 +60,5 @@ const bool kShowDeletedPlaceholderForSender = bool.fromEnvironment(
 /// Enable with: `--dart-define=USE_DUMMY_MATCHES=true`.
 const bool kUseDummyMatches = bool.fromEnvironment(
   'USE_DUMMY_MATCHES',
-  defaultValue: true,
+  defaultValue: false,
 );

@@ -1,6 +1,7 @@
 package mobile
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -16,6 +17,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -71,6 +76,7 @@ type Server struct {
 	bulkheads       map[string]chan struct{}
 	idempotency     *idempotencyStore
 	fanout          *asyncFanout
+	s3Client        *s3.Client
 }
 
 const aliasRouteSunset = "Wed, 31 Dec 2026 23:59:59 GMT"
@@ -119,6 +125,16 @@ func NewServer(cfg config.Config, log *zap.Logger, httpMetrics *observability.HT
 		idempotency:     newIdempotencyStore(cfg.IdempotencyTTL()),
 	}
 	s.fanout = newAsyncFanout(cfg, log, s.store)
+	if s.usesAWSS3Storage() {
+		s.s3Client, err = newS3Client(cfg)
+		if err != nil {
+			_ = authConn.Close()
+			_ = profileConn.Close()
+			_ = matchingConn.Close()
+			_ = chatConn.Close()
+			return nil, fmt.Errorf("configure aws s3 storage: %w", err)
+		}
+	}
 	if err := s.validateDurableEngagementReadiness(); err != nil {
 		_ = authConn.Close()
 		_ = profileConn.Close()
@@ -137,7 +153,7 @@ func NewServer(cfg config.Config, log *zap.Logger, httpMetrics *observability.HT
 	profileStoreGateway := profileinfra.NewStoreGateway(
 		func(userID string) any { return s.store.getDraft(userID) },
 		func(userID string, payload map[string]any) any { return s.store.patchDraft(userID, payload) },
-		func(userID, photoURL string) any { return s.store.addPhoto(userID, photoURL) },
+		func(userID, photoURL, storagePath string) any { return s.store.addPhoto(userID, photoURL, storagePath) },
 		func(userID, photoID string) any { return s.store.deletePhoto(userID, photoID) },
 		func(userID string, photoIDs []string) any { return s.store.reorderPhotos(userID, photoIDs) },
 		func(userID string) (any, error) { return s.store.completeProfile(userID) },
@@ -369,6 +385,7 @@ func NewServer(cfg config.Config, log *zap.Logger, httpMetrics *observability.HT
 	r.Route(cfg.APIPrefix, func(v1 chi.Router) {
 		v1.Post("/auth/send-otp", s.sendOTP)
 		v1.Post("/auth/verify-otp", s.verifyOTP)
+		v1.Post("/auth/signup/bootstrap", s.bootstrapSignup)
 		v1.Get("/users/{userID}/agreements/terms", s.getTermsAgreement)
 		v1.Patch("/users/{userID}/agreements/terms", s.patchTermsAgreement)
 		v1.Get("/discovery/{userID}", s.getDiscoveryCandidates)
@@ -492,6 +509,48 @@ func NewServer(cfg config.Config, log *zap.Logger, httpMetrics *observability.HT
 		v1.Get("/admin/moderation/appeals", s.listAdminModerationAppeals)
 		v1.Post("/admin/moderation/appeals/{appealID}/action", s.actionAdminModerationAppeal)
 		v1.Get("/admin/analytics/overview", s.adminAnalyticsOverview)
+		// Gift catalog CRUD
+		v1.Get("/admin/catalog/gifts", s.adminListCatalogGifts)
+		v1.Post("/admin/catalog/gifts", s.adminCreateCatalogGift)
+		v1.Put("/admin/catalog/gifts/{giftID}", s.adminUpdateCatalogGift)
+		v1.Post("/admin/catalog/gifts/{giftID}/toggle", s.adminToggleCatalogGift)
+		v1.Delete("/admin/catalog/gifts/{giftID}", s.adminDeleteCatalogGift)
+		// User management
+		v1.Get("/admin/users", s.adminListUsers)
+		v1.Post("/admin/users", s.adminCreateUser)
+		v1.Get("/admin/users/{userID}", s.adminGetUser)
+		v1.Put("/admin/users/{userID}", s.adminUpdateUser)
+		v1.Delete("/admin/users/{userID}", s.adminDeleteUser)
+		v1.Post("/admin/users/{userID}/suspend", s.adminSuspendUser)
+		v1.Post("/admin/users/{userID}/unsuspend", s.adminUnsuspendUser)
+		v1.Post("/admin/users/{userID}/ban", s.adminBanUser)
+		v1.Post("/admin/users/{userID}/unban", s.adminUnbanUser)
+		v1.Post("/admin/users/{userID}/verify", s.adminForceVerifyUser)
+		// Feature flags
+		v1.Get("/admin/config/flags", s.adminListConfigFlags)
+		v1.Put("/admin/config/flags/{key}", s.adminUpdateConfigFlag)
+		// Engagement prompts
+		v1.Get("/admin/engagement/prompts", s.adminListEngagementPrompts)
+		v1.Post("/admin/engagement/prompts", s.adminCreateEngagementPrompt)
+		v1.Put("/admin/engagement/prompts/{promptID}", s.adminUpdateEngagementPrompt)
+		v1.Post("/admin/engagement/prompts/{promptID}/activate", s.adminActivateEngagementPrompt)
+		// Billing admin
+		v1.Get("/admin/billing/plans", s.adminListBillingPlans)
+		v1.Get("/admin/billing/coin-packages", s.adminListCoinPackages)
+		v1.Post("/admin/billing/coin-packages", s.adminCreateCoinPackage)
+		v1.Put("/admin/billing/coin-packages/{packageID}", s.adminUpdateCoinPackage)
+		v1.Post("/admin/billing/coin-packages/{packageID}/toggle", s.adminToggleCoinPackage)
+		v1.Get("/admin/billing/transactions", s.adminListBillingTransactions)
+		v1.Get("/admin/billing/stats", s.adminBillingStats)
+		v1.Post("/admin/billing/grant-coins", s.adminGrantCoins)
+		v1.Get("/admin/billing/subscriptions", s.adminListSubscriptions)
+		v1.Get("/admin/billing/payments", s.adminListPayments)
+		v1.Get("/admin/billing/revenue-analytics", s.adminRevenueAnalytics)
+		// Wallet admin
+		v1.Get("/admin/users/{userID}/wallet", s.adminGetWalletBalance)
+		// Safety / SOS
+		v1.Get("/admin/safety/sos-alerts", s.adminListSOSAlerts)
+		v1.Post("/admin/safety/sos-alerts/{alertID}/resolve", s.adminResolveSOSAlert)
 	})
 
 	s.router = r
@@ -718,6 +777,97 @@ func (s *Server) verifyOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, resp)
+}
+
+func (s *Server) bootstrapSignup(w http.ResponseWriter, r *http.Request) {
+	payload, ok := readJSON(w, r)
+	if !ok {
+		return
+	}
+
+	input := signupBootstrapInput{
+		UserID:      strings.TrimSpace(toString(payload["user_id"])),
+		PhoneNumber: normalizeSignupPhone(toString(payload["phone"])),
+		Name:        strings.TrimSpace(toString(payload["name"])),
+		DateOfBirth: strings.TrimSpace(toString(payload["date_of_birth"])),
+		Gender:      normalizeSignupGender(toString(payload["gender"])),
+	}
+	if err := validateSignupBootstrapInput(input); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	draft, created, err := s.store.bootstrapSignup(input)
+	if err != nil {
+		writeError(w, http.StatusBadGateway, err)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"success":        true,
+		"user_id":        input.UserID,
+		"created":        created,
+		"terms_required": true,
+		"profile_status": map[string]any{
+			"profile_completion":  draft.ProfileCompletion,
+			"has_required_basics": strings.TrimSpace(draft.Name) != "" && strings.TrimSpace(draft.DateOfBirth) != "" && strings.TrimSpace(draft.Gender) != "",
+		},
+		"draft": draft,
+	})
+}
+
+func normalizeSignupPhone(input string) string {
+	compact := strings.TrimSpace(input)
+	compact = strings.ReplaceAll(compact, " ", "")
+	compact = strings.ReplaceAll(compact, "-", "")
+	if strings.HasPrefix(compact, "+") {
+		return "+" + regexp.MustCompile(`[^0-9]`).ReplaceAllString(compact[1:], "")
+	}
+	return regexp.MustCompile(`[^0-9]`).ReplaceAllString(compact, "")
+}
+
+func normalizeSignupGender(input string) string {
+	switch strings.ToLower(strings.TrimSpace(input)) {
+	case "m", "male", "man":
+		return "M"
+	case "f", "female", "woman":
+		return "F"
+	case "other", "nonbinary", "non-binary":
+		return "Other"
+	default:
+		return strings.TrimSpace(input)
+	}
+}
+
+func validateSignupBootstrapInput(input signupBootstrapInput) error {
+	if strings.TrimSpace(input.UserID) == "" {
+		return errors.New("user_id is required")
+	}
+	if !regexp.MustCompile(`^\+?[0-9]{10,15}$`).MatchString(input.PhoneNumber) {
+		return errors.New("valid phone is required")
+	}
+	if len([]rune(strings.TrimSpace(input.Name))) < 2 {
+		return errors.New("name must be at least 2 characters")
+	}
+	if input.Gender != "M" && input.Gender != "F" && input.Gender != "Other" {
+		return errors.New("gender must be M, F, or Other")
+	}
+	dob, err := time.Parse("2006-01-02", strings.TrimSpace(input.DateOfBirth))
+	if err != nil {
+		return errors.New("date_of_birth must use YYYY-MM-DD")
+	}
+	now := time.Now().UTC()
+	age := now.Year() - dob.Year()
+	if now.YearDay() < dob.YearDay() {
+		age--
+	}
+	if age < 18 {
+		return errors.New("user must be at least 18 years old")
+	}
+	if age > 80 {
+		return errors.New("date_of_birth is outside supported age range")
+	}
+	return nil
 }
 
 func (s *Server) getProfile(w http.ResponseWriter, r *http.Request) {
@@ -3561,21 +3711,23 @@ func (s *Server) addProfilePhoto(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var photoURL string
+	var photoURL, storagePath string
 	contentType := strings.ToLower(strings.TrimSpace(r.Header.Get("Content-Type")))
 	if strings.HasPrefix(contentType, "multipart/form-data") {
-		uploadedURL, err := s.persistUploadedPhoto(r, userID)
+		uploadedURL, uploadedPath, err := s.persistUploadedPhoto(r, userID)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err)
 			return
 		}
 		photoURL = uploadedURL
+		storagePath = uploadedPath
 	} else {
 		payload, ok := readJSON(w, r)
 		if !ok {
 			return
 		}
 		photoURL = strings.TrimSpace(toString(payload["photo_url"]))
+		storagePath = strings.TrimSpace(toString(payload["storage_path"]))
 	}
 
 	if photoURL == "" {
@@ -3589,7 +3741,7 @@ func (s *Server) addProfilePhoto(w http.ResponseWriter, r *http.Request) {
 	respAny, err := s.mediator.Send(
 		ctx,
 		profileapp.AddProfilePhotoCommandName,
-		profileapp.AddProfilePhotoCommand{UserID: userID, PhotoURL: photoURL},
+		profileapp.AddProfilePhotoCommand{UserID: userID, PhotoURL: photoURL, StoragePath: storagePath},
 	)
 	if err != nil {
 		if errors.Is(err, profileapp.ErrValidation) {
@@ -3612,6 +3764,10 @@ func (s *Server) serveUploadedMedia(w http.ResponseWriter, r *http.Request) {
 	relativePath := strings.TrimPrefix(path.Clean("/"+chi.URLParam(r, "*")), "/")
 	if relativePath == "" || strings.Contains(relativePath, "..") {
 		writeError(w, http.StatusBadRequest, errors.New("invalid media path"))
+		return
+	}
+	if s.usesAWSS3Storage() {
+		http.Redirect(w, r, s.resolveAWSS3ObjectURL(s.buildAWSS3ObjectKey(relativePath)), http.StatusTemporaryRedirect)
 		return
 	}
 
@@ -3639,16 +3795,16 @@ func (s *Server) serveUploadedMedia(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, targetPath)
 }
 
-func (s *Server) persistUploadedPhoto(r *http.Request, userID string) (string, error) {
+func (s *Server) persistUploadedPhoto(r *http.Request, userID string) (string, string, error) {
 	if err := r.ParseMultipartForm(12 << 20); err != nil {
-		return "", fmt.Errorf("invalid multipart payload: %w", err)
+		return "", "", fmt.Errorf("invalid multipart payload: %w", err)
 	}
 
 	file, header, err := r.FormFile("image")
 	if err != nil {
 		file, header, err = r.FormFile("file")
 		if err != nil {
-			return "", errors.New("image file is required")
+			return "", "", errors.New("image file is required")
 		}
 	}
 	defer file.Close()
@@ -3656,6 +3812,25 @@ func (s *Server) persistUploadedPhoto(r *http.Request, userID string) (string, e
 	ext := normalizeImageExtension(header.Filename)
 	filename := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext)
 	safeUserID := sanitizePathSegment(userID)
+	content, err := io.ReadAll(io.LimitReader(file, 10<<20+1))
+	if err != nil {
+		return "", "", fmt.Errorf("failed to read image payload: %w", err)
+	}
+	if len(content) == 0 {
+		return "", "", errors.New("image file is empty")
+	}
+	if len(content) > 10<<20 {
+		return "", "", errors.New("image file exceeds 10MB limit")
+	}
+	contentType := detectUploadContentType(header.Header.Get("Content-Type"), header.Filename, content)
+
+	if s.usesAWSS3Storage() {
+		return s.persistUploadedPhotoToS3(r.Context(), safeUserID, filename, contentType, content)
+	}
+	return s.persistUploadedPhotoToLocalFS(r, safeUserID, filename, content)
+}
+
+func (s *Server) persistUploadedPhotoToLocalFS(r *http.Request, safeUserID, filename string, content []byte) (string, string, error) {
 
 	rootDir := filepath.Clean(strings.TrimSpace(s.cfg.MediaUploadsDir))
 	if rootDir == "" {
@@ -3663,29 +3838,53 @@ func (s *Server) persistUploadedPhoto(r *http.Request, userID string) (string, e
 	}
 	userDir := filepath.Join(rootDir, safeUserID)
 	if err := os.MkdirAll(userDir, 0o755); err != nil {
-		return "", fmt.Errorf("failed to create upload directory: %w", err)
+		return "", "", fmt.Errorf("failed to create upload directory: %w", err)
 	}
 
 	targetPath := filepath.Clean(filepath.Join(userDir, filename))
 	userPrefix := filepath.Clean(userDir) + string(os.PathSeparator)
 	if !strings.HasPrefix(targetPath, userPrefix) {
-		return "", errors.New("invalid upload target")
+		return "", "", errors.New("invalid upload target")
 	}
 
 	output, err := os.Create(targetPath)
 	if err != nil {
-		return "", fmt.Errorf("failed to create upload file: %w", err)
+		return "", "", fmt.Errorf("failed to create upload file: %w", err)
 	}
 	defer output.Close()
 
-	if _, err := io.Copy(output, io.LimitReader(file, 10<<20)); err != nil {
-		return "", fmt.Errorf("failed to persist image: %w", err)
+	if _, err := output.Write(content); err != nil {
+		return "", "", fmt.Errorf("failed to persist image: %w", err)
 	}
 
 	baseURL := s.resolveMediaPublicBaseURL(r)
-
+	storagePath := safeUserID + "/" + filename
 	relativeURL := fmt.Sprintf("%s/media/%s/%s", s.cfg.APIPrefix, url.PathEscape(safeUserID), url.PathEscape(filename))
-	return baseURL + relativeURL, nil
+	return baseURL + relativeURL, storagePath, nil
+}
+
+func (s *Server) persistUploadedPhotoToS3(ctx context.Context, safeUserID, filename, contentType string, content []byte) (string, string, error) {
+	if s.s3Client == nil {
+		return "", "", errors.New("aws s3 storage is not configured")
+	}
+
+	bucket := strings.TrimSpace(s.cfg.AWSS3Bucket)
+	key := s.buildAWSS3ObjectKey(path.Join(safeUserID, filename))
+	cacheControl := "public, max-age=31536000, immutable"
+
+	_, err := s.s3Client.PutObject(ctx, &s3.PutObjectInput{
+		Bucket:        aws.String(bucket),
+		Key:           aws.String(key),
+		Body:          bytes.NewReader(content),
+		ContentLength: aws.Int64(int64(len(content))),
+		ContentType:   aws.String(contentType),
+		CacheControl:  aws.String(cacheControl),
+	})
+	if err != nil {
+		return "", "", fmt.Errorf("failed to upload image to aws s3: %w", err)
+	}
+
+	return s.resolveAWSS3ObjectURL(key), key, nil
 }
 
 func (s *Server) resolveMediaPublicBaseURL(r *http.Request) string {
@@ -3696,6 +3895,65 @@ func (s *Server) resolveMediaPublicBaseURL(r *http.Request) string {
 	}
 
 	return requestBaseURL(r, defaultGatewayHost(s.cfg.APIGatewayAddr))
+}
+
+func (s *Server) usesAWSS3Storage() bool {
+	return strings.EqualFold(strings.TrimSpace(s.cfg.FileStorageBackend), "aws_s3") || s.cfg.UseAWSS3Storage
+}
+
+func (s *Server) buildAWSS3ObjectKey(relativePath string) string {
+	trimmedPath := strings.Trim(strings.ReplaceAll(strings.TrimSpace(relativePath), "\\", "/"), "/")
+	prefix := strings.Trim(strings.ReplaceAll(strings.TrimSpace(s.cfg.AWSS3ProfilePhotosPrefix), "\\", "/"), "/")
+	if prefix == "" {
+		return trimmedPath
+	}
+	if trimmedPath == "" {
+		return prefix
+	}
+	return prefix + "/" + trimmedPath
+}
+
+func (s *Server) resolveAWSS3ObjectURL(key string) string {
+	escapedKey := escapeURLPath(key)
+	if publicBaseURL := strings.TrimRight(strings.TrimSpace(s.cfg.AWSS3PublicBaseURL), "/"); publicBaseURL != "" {
+		return publicBaseURL + "/" + escapedKey
+	}
+
+	if endpoint := strings.TrimRight(strings.TrimSpace(s.cfg.AWSS3Endpoint), "/"); endpoint != "" {
+		return endpoint + "/" + escapeURLPath(strings.Trim(strings.TrimSpace(s.cfg.AWSS3Bucket), "/")) + "/" + escapedKey
+	}
+
+	bucket := strings.TrimSpace(s.cfg.AWSS3Bucket)
+	region := strings.TrimSpace(s.cfg.AWSS3Region)
+	if region == "" || strings.EqualFold(region, "us-east-1") {
+		return fmt.Sprintf("https://%s.s3.amazonaws.com/%s", bucket, escapedKey)
+	}
+	return fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", bucket, region, escapedKey)
+}
+
+func detectUploadContentType(headerContentType, filename string, content []byte) string {
+	if normalized := strings.TrimSpace(headerContentType); normalized != "" {
+		return normalized
+	}
+	if detected := strings.TrimSpace(http.DetectContentType(content)); detected != "" {
+		return detected
+	}
+	switch normalizeImageExtension(filename) {
+	case ".png":
+		return "image/png"
+	case ".webp":
+		return "image/webp"
+	default:
+		return "image/jpeg"
+	}
+}
+
+func escapeURLPath(value string) string {
+	segments := strings.Split(strings.Trim(strings.ReplaceAll(value, "\\", "/"), "/"), "/")
+	for index, segment := range segments {
+		segments[index] = url.PathEscape(segment)
+	}
+	return strings.Join(segments, "/")
 }
 
 func requestBaseURL(r *http.Request, fallbackHost string) string {
@@ -3737,6 +3995,43 @@ func defaultGatewayHost(addr string) string {
 		}
 	}
 	return normalized
+}
+
+func newS3Client(cfg config.Config) (*s3.Client, error) {
+	region := strings.TrimSpace(cfg.AWSS3Region)
+	if region == "" {
+		region = "us-east-1"
+	}
+
+	options := []func(*awsconfig.LoadOptions) error{
+		awsconfig.WithRegion(region),
+	}
+	if accessKeyID := strings.TrimSpace(cfg.AWSS3AccessKeyID); accessKeyID != "" {
+		options = append(options, awsconfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(
+			accessKeyID,
+			strings.TrimSpace(cfg.AWSS3SecretAccessKey),
+			"",
+		)))
+	}
+	if endpoint := strings.TrimRight(strings.TrimSpace(cfg.AWSS3Endpoint), "/"); endpoint != "" {
+		options = append(options, awsconfig.WithEndpointResolverWithOptions(aws.EndpointResolverWithOptionsFunc(
+			func(service, region string, _ ...interface{}) (aws.Endpoint, error) {
+				if service != s3.ServiceID {
+					return aws.Endpoint{}, &aws.EndpointNotFoundError{}
+				}
+				return aws.Endpoint{URL: endpoint, HostnameImmutable: true}, nil
+			},
+		)))
+	}
+
+	awsCfg, err := awsconfig.LoadDefaultConfig(context.Background(), options...)
+	if err != nil {
+		return nil, err
+	}
+
+	return s3.NewFromConfig(awsCfg, func(options *s3.Options) {
+		options.UsePathStyle = cfg.AWSS3ForcePathStyle
+	}), nil
 }
 
 var disallowedSegmentChars = regexp.MustCompile(`[^a-zA-Z0-9_-]`)
