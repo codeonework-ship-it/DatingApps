@@ -187,12 +187,18 @@ class _HomeDiscoveryScreenState extends ConsumerState<HomeDiscoveryScreen>
             children: [
               Column(
                 children: [
-                  _DiscoverHeader(
-                    onOpenFilters: widget.onOpenFilters,
-                    onOpenMessages: widget.onOpenMessages,
-                    activeFilterChips: widget.activeFilterChips,
-                    passedCount: swipeState.passedProfiles.length,
-                    unreadNotifications: unreadNotifications,
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
+                    child: _DiscoverHeader(
+                      onOpenFilters: widget.onOpenFilters,
+                      onOpenMessages: widget.onOpenMessages,
+                      activeFilterChips: widget.activeFilterChips,
+                      passedCount: swipeState.passedProfiles.length,
+                      unreadNotifications: unreadNotifications,
+                      visibleProfiles: swipeState.profiles.length,
+                      likeCount: swipeState.likeCount,
+                      passCount: swipeState.passCount,
+                    ),
                   ),
                   if (!isSpotlightMode && spotlightProfiles.isNotEmpty)
                     Padding(
@@ -354,30 +360,47 @@ class _DiscoverHeader extends StatelessWidget {
     required this.activeFilterChips,
     required this.passedCount,
     required this.unreadNotifications,
+    required this.visibleProfiles,
+    required this.likeCount,
+    required this.passCount,
   });
   final VoidCallback? onOpenFilters;
   final VoidCallback? onOpenMessages;
   final List<String> activeFilterChips;
   final int passedCount;
   final List<DiscoveryNotificationItem> unreadNotifications;
+  final int visibleProfiles;
+  final int likeCount;
+  final int passCount;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
+    final compact = MediaQuery.sizeOf(context).width < 390;
+    return GlassContainer(
+      padding: EdgeInsets.zero,
+      borderRadius: BorderRadius.circular(24),
+      backgroundColor: const Color(0xFF211402).withValues(alpha: 0.82),
+      blur: 18,
+      shadows: [
+        BoxShadow(
+          color: AppTheme.crystalGoldDeep.withValues(alpha: 0.22),
+          blurRadius: 28,
+          offset: const Offset(0, 14),
+        ),
+      ],
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        padding: EdgeInsets.fromLTRB(14, compact ? 12 : 14, 14, 12),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.88),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: AppTheme.trustBlue.withValues(alpha: 0.14)),
-          boxShadow: [
-            BoxShadow(
-              color: AppTheme.trustBlue.withValues(alpha: 0.1),
-              blurRadius: 14,
-              offset: const Offset(0, 7),
-            ),
-          ],
+          borderRadius: BorderRadius.circular(24),
+          gradient: LinearGradient(
+            colors: [
+              const Color(0xFF2A1902).withValues(alpha: 0.94),
+              const Color(0xFF6D4A08).withValues(alpha: 0.88),
+              AppTheme.pureGoldCore.withValues(alpha: 0.72),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -389,31 +412,53 @@ class _DiscoverHeader extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppTheme.pureGoldHighlight.withValues(
+                                alpha: 0.18,
+                              ),
+                              borderRadius: BorderRadius.circular(999),
+                              border: Border.all(
+                                color: AppTheme.pureGoldHighlight.withValues(
+                                  alpha: 0.28,
+                                ),
+                              ),
+                            ),
+                            child: Text(
+                              'VERIFIED DECK',
+                              style: Theme.of(context).textTheme.labelSmall
+                                  ?.copyWith(
+                                    color: AppTheme.pureGoldHighlight,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0.7,
+                                  ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
                       Text(
                         'Discover Matches',
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(
-                              color: AppTheme.textDark,
-                              fontWeight: FontWeight.w700,
-                            ),
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          height: 1.05,
+                        ),
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 3),
                       Text(
                         'Find meaningful verified matches',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppTheme.textGrey,
+                          color: Colors.white.withValues(alpha: 0.82),
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                      if (activeFilterChips.isNotEmpty) ...[
-                        const SizedBox(height: 6),
-                        Wrap(
-                          spacing: 6,
-                          runSpacing: 6,
-                          children: activeFilterChips
-                              .map((c) => _FilterChip(label: c))
-                              .toList(),
-                        ),
-                      ],
                     ],
                   ),
                 ),
@@ -433,6 +478,44 @@ class _DiscoverHeader extends StatelessWidget {
                 ),
               ],
             ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _MetricPill(
+                    label: 'Ready',
+                    value: '$visibleProfiles',
+                    icon: Icons.auto_awesome_rounded,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _MetricPill(
+                    label: 'Liked',
+                    value: '$likeCount',
+                    icon: Icons.favorite_rounded,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _MetricPill(
+                    label: 'Passed',
+                    value: '$passCount',
+                    icon: Icons.history_rounded,
+                  ),
+                ),
+              ],
+            ),
+            if (activeFilterChips.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: activeFilterChips
+                    .map((c) => _FilterChip(label: c))
+                    .toList(),
+              ),
+            ],
             const SizedBox(height: 10),
             Row(
               children: [
@@ -518,6 +601,7 @@ class _SwipeArea extends StatelessWidget {
                     constraints: const BoxConstraints(maxWidth: 680),
                     child: SwipeCard(
                       profile: profile,
+                      maxHeight: math.max(280, constraints.maxHeight - 112),
                       isActionLocked: isActionBusy,
                       onPassTap: () async => onPass(),
                       onLikeTap: () async => onLike(),
@@ -558,53 +642,157 @@ class _DiscoveryErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.cloud_off_rounded,
-              color: AppTheme.textHint.withValues(alpha: 0.7),
-              size: 56,
+    return _ResponsiveStateCenter(
+      child: _PremiumStateCard(
+        icon: Icons.cloud_off_rounded,
+        eyebrow: 'Connection paused',
+        title: 'Unable to load profiles',
+        message: error,
+        actionLabel: 'Try Again',
+        onAction: onRetry,
+      ),
+    );
+  }
+}
+
+class _ResponsiveStateCenter extends StatelessWidget {
+  const _ResponsiveStateCenter({required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          physics: const ClampingScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight - 28),
+            child: Center(child: child),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _PremiumStateCard extends StatelessWidget {
+  const _PremiumStateCard({
+    required this.icon,
+    required this.eyebrow,
+    required this.title,
+    required this.message,
+    required this.actionLabel,
+    required this.onAction,
+    this.footer,
+  });
+  final IconData icon;
+  final String eyebrow;
+  final String title;
+  final String message;
+  final String actionLabel;
+  final VoidCallback onAction;
+  final Widget? footer;
+
+  @override
+  Widget build(BuildContext context) {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 430),
+      child: GlassContainer(
+        padding: EdgeInsets.zero,
+        borderRadius: BorderRadius.circular(28),
+        backgroundColor: Colors.white.withValues(alpha: 0.76),
+        blur: 20,
+        shadows: [
+          BoxShadow(
+            color: AppTheme.crystalGoldDeep.withValues(alpha: 0.16),
+            blurRadius: 30,
+            offset: const Offset(0, 16),
+          ),
+        ],
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(22, 24, 22, 22),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(28),
+            gradient: LinearGradient(
+              colors: [
+                Colors.white.withValues(alpha: 0.94),
+                AppTheme.crystalGoldFog.withValues(alpha: 0.72),
+                Colors.white.withValues(alpha: 0.82),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-            const SizedBox(height: 16),
-            Text(
-              'Unable to load profiles',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: AppTheme.textDark,
-                fontWeight: FontWeight.w700,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 76,
+                height: 76,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: AppTheme.primaryGradient,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.pureGoldCore.withValues(alpha: 0.26),
+                      blurRadius: 24,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: Icon(icon, color: AppTheme.pureGoldHighlight, size: 34),
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              error,
-              textAlign: TextAlign.center,
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: AppTheme.textGrey),
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              height: 48,
-              width: 180,
-              child: ElevatedButton.icon(
-                onPressed: onRetry,
-                icon: const Icon(Icons.refresh, size: 18),
-                label: const Text('Try Again'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.pureGoldCore,
-                  foregroundColor: AppTheme.pureGoldInk,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+              const SizedBox(height: 18),
+              Text(
+                eyebrow.toUpperCase(),
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: AppTheme.trustBlue,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.8,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: AppTheme.textDark,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppTheme.textGrey,
+                  fontWeight: FontWeight.w600,
+                  height: 1.45,
+                ),
+              ),
+              if (footer != null) ...[const SizedBox(height: 14), footer!],
+              const SizedBox(height: 20),
+              SizedBox(
+                height: 50,
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: onAction,
+                  icon: const Icon(Icons.refresh_rounded, size: 18),
+                  label: Text(actionLabel),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.pureGoldCore,
+                    foregroundColor: AppTheme.pureGoldInk,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -625,63 +813,108 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+    final trustMessage = trustFilterActive && filteredOutCount > 0
+        ? 'Trust filters hid $filteredOutCount profile(s). Try relaxing '
+              'trust filters or refresh to rebuild your deck.'
+        : 'Your curated deck is being prepared. Refresh to check for new '
+              'verified profiles near you.';
+    return _ResponsiveStateCenter(
+      child: _PremiumStateCard(
+        icon: Icons.diamond_outlined,
+        eyebrow: isSpotlightMode ? 'Spotlight' : 'Curated for you',
+        title: isSpotlightMode ? 'No spotlight profiles' : 'No profiles',
+        message: trustMessage,
+        actionLabel: 'Refresh',
+        onAction: onRefresh,
+        footer: const Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            _TinyPromiseChip(icon: Icons.verified_rounded, label: 'Verified'),
+            _TinyPromiseChip(icon: Icons.lock_rounded, label: 'Private'),
+            _TinyPromiseChip(icon: Icons.auto_awesome, label: 'Premium'),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MetricPill extends StatelessWidget {
+  const _MetricPill({
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
+  final String label;
+  final String value;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 9),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        color: Colors.white.withValues(alpha: 0.16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.24)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(
-            Icons.sentiment_dissatisfied,
-            color: AppTheme.textHint,
-            size: 64,
-          ),
-          const SizedBox(height: 16),
+          Icon(icon, color: AppTheme.pureGoldHighlight, size: 15),
+          const SizedBox(width: 5),
           Text(
-            isSpotlightMode ? 'No spotlight profiles' : 'No profiles',
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(color: AppTheme.textDark),
+            value,
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w900,
+              fontSize: 13,
+            ),
           ),
-          if (trustFilterActive && filteredOutCount > 0) ...[
-            const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32),
-              child: Text(
-                'Trust filters hid $filteredOutCount profile(s). '
-                'Try relaxing trust filters.',
-                textAlign: TextAlign.center,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: AppTheme.textGrey),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: Colors.white.withValues(alpha: 0.8),
+                fontWeight: FontWeight.w700,
               ),
             ),
-          ],
-          const SizedBox(height: 20),
-          Material(
-            color: AppTheme.pureGoldCore,
-            borderRadius: BorderRadius.circular(12),
-            child: InkWell(
-              onTap: onRefresh,
-              borderRadius: BorderRadius.circular(12),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 12,
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.refresh, color: AppTheme.pureGoldInk, size: 18),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Refresh',
-                      style: TextStyle(
-                        color: AppTheme.pureGoldInk,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TinyPromiseChip extends StatelessWidget {
+  const _TinyPromiseChip({required this.icon, required this.label});
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.72),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: AppTheme.trustBlue.withValues(alpha: 0.16)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: AppTheme.trustBlue),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: AppTheme.textDark,
+              fontWeight: FontWeight.w800,
             ),
           ),
         ],

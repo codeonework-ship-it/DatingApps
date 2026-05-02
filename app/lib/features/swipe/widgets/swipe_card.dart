@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
@@ -5,13 +7,14 @@ import '../models/discovery_profile.dart';
 
 class SwipeCard extends StatelessWidget {
   const SwipeCard({
-    super.key,
     required this.profile,
+    super.key,
     this.onTap,
     this.onPassTap,
     this.onLikeTap,
     this.onMessageTap,
     this.isActionLocked = false,
+    this.maxHeight,
   });
   final DiscoveryProfile profile;
   final VoidCallback? onTap;
@@ -19,6 +22,7 @@ class SwipeCard extends StatelessWidget {
   final VoidCallback? onLikeTap;
   final VoidCallback? onMessageTap;
   final bool isActionLocked;
+  final double? maxHeight;
 
   double _cardWidth(BuildContext context) {
     final screenSize = MediaQuery.sizeOf(context);
@@ -29,10 +33,13 @@ class SwipeCard extends StatelessWidget {
     final screenSize = MediaQuery.sizeOf(context);
     final cardWidth = _cardWidth(context);
     final targetHeight = cardWidth * 1.54;
-    final maxHeightByScreen = (screenSize.height * 0.66)
-        .clamp(364.0, 680.0)
+    final compactScreen = screenSize.height < 720;
+    final desiredMinimum = compactScreen ? 300.0 : 364.0;
+    final maxHeightByScreen = (maxHeight ?? screenSize.height * 0.66)
+        .clamp(280.0, 680.0)
         .toDouble();
-    return targetHeight > maxHeightByScreen ? maxHeightByScreen : targetHeight;
+    final minimum = math.min(desiredMinimum, maxHeightByScreen);
+    return targetHeight.clamp(minimum, maxHeightByScreen).toDouble();
   }
 
   String _formattedTierLabel(String raw) {
