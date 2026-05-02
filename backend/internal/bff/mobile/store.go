@@ -1637,6 +1637,11 @@ func (m *memoryStore) bootstrapSignup(input signupBootstrapInput) (profileDraft,
 
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	for existingUserID, existingDraft := range m.profiles {
+		if existingUserID != trimmedUserID && strings.TrimSpace(existingDraft.PhoneNumber) == strings.TrimSpace(input.PhoneNumber) {
+			return profileDraft{}, false, errSignupPhoneAlreadyExists
+		}
+	}
 	draft, exists := m.profiles[trimmedUserID]
 	if !exists {
 		draft = defaultDraft(trimmedUserID)
@@ -1687,7 +1692,7 @@ func (m *memoryStore) addPhoto(userID string, photoURL string, storagePath strin
 		draft = defaultDraft(userID)
 	}
 
-	nextID := fmt.Sprintf("photo-%d", time.Now().UnixNano())
+	nextID := fmt.Sprintf("photo-%d-%d", len(draft.Photos)+1, time.Now().UnixNano())
 	if strings.TrimSpace(photoURL) == "" {
 		photoURL = seedURL(m.cfg.MockPhotoSeedURLTemplate, nextID)
 	}
@@ -1784,6 +1789,29 @@ func (m *memoryStore) reorderPhotos(userID string, photoIDs []string) profileDra
 }
 
 func (m *memoryStore) completeProfile(userID string) (profileDraft, error) {
+	if m.profileRepo != nil {
+		draft, err := m.profileRepo.getDraft(context.Background(), userID)
+		if err == nil {
+			if err := validateDraftReadyForCompletion(draft); err != nil {
+				return profileDraft{}, err
+			}
+			draft.ProfileCompletion = 100
+			if err := m.profileRepo.completeProfile(context.Background(), draft); err != nil {
+				if m.durableEngagementRequired() {
+					return profileDraft{}, err
+				}
+			} else {
+				m.mu.Lock()
+				m.profiles[userID] = copyDraft(draft)
+				m.mu.Unlock()
+				return copyDraft(draft), nil
+			}
+		}
+		if err != nil && m.durableEngagementRequired() && !isProfileRepoPersistenceUnavailable(err) {
+			return profileDraft{}, err
+		}
+	}
+
 	m.mu.Lock()
 
 	draft, ok := m.profiles[userID]
@@ -1791,12 +1819,9 @@ func (m *memoryStore) completeProfile(userID string) (profileDraft, error) {
 		draft = defaultDraft(userID)
 	}
 
-	if len(strings.TrimSpace(draft.Name)) < 2 ||
-		strings.TrimSpace(draft.DateOfBirth) == "" ||
-		len(draft.Photos) < 2 ||
-		len(strings.TrimSpace(draft.Bio)) < 10 {
+	if err := validateDraftReadyForCompletion(draft); err != nil {
 		m.mu.Unlock()
-		return profileDraft{}, errors.New("profile is incomplete")
+		return profileDraft{}, err
 	}
 
 	draft.ProfileCompletion = 100
@@ -1805,7 +1830,7 @@ func (m *memoryStore) completeProfile(userID string) (profileDraft, error) {
 	m.mu.Unlock()
 
 	if m.profileRepo != nil {
-		if err := m.profileRepo.upsertDraft(context.Background(), snapshot); err != nil {
+		if err := m.profileRepo.completeProfile(context.Background(), snapshot); err != nil {
 			if m.durableEngagementRequired() {
 				return profileDraft{}, err
 			}
@@ -1813,6 +1838,17 @@ func (m *memoryStore) completeProfile(userID string) (profileDraft, error) {
 	}
 
 	return snapshot, nil
+}
+
+func validateDraftReadyForCompletion(draft profileDraft) error {
+	if len(strings.TrimSpace(draft.Name)) < 2 ||
+		strings.TrimSpace(draft.DateOfBirth) == "" ||
+		strings.TrimSpace(draft.Gender) == "" ||
+		len(draft.Photos) < 2 ||
+		len(draft.SeekingGenders) == 0 {
+		return errors.New("profile is incomplete")
+	}
+	return nil
 }
 
 func (m *memoryStore) getSettings(userID string) userSettings {

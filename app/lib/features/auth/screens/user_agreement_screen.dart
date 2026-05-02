@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
-import '../../profile/screens/setup/profile_setup_entry_screen.dart';
 import '../providers/terms_provider.dart';
 
 class UserAgreementScreen extends ConsumerStatefulWidget {
@@ -194,12 +193,11 @@ class _UserAgreementScreenState extends ConsumerState<UserAgreementScreen> {
                                       );
                                       return;
                                     }
-                                    await Navigator.of(context).pushReplacement(
-                                      MaterialPageRoute<void>(
-                                        builder: (_) =>
-                                            const ProfileSetupEntryScreen(),
-                                      ),
-                                    );
+                                    // Do not force a profile-setup route here.
+                                    // The root app gate decides the next screen:
+                                    // existing sign-in users go to Discover,
+                                    // while new sign-up users continue setup if
+                                    // their profile is incomplete.
                                   },
                           ),
                         ],

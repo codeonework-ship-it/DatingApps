@@ -4,13 +4,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../auth/providers/terms_provider.dart';
+import '../../auth/screens/welcome_screen.dart';
 import '../../engagement/screens/conversation_rooms_screen.dart';
 import '../../engagement/screens/trust_badges_screen.dart';
 import '../../engagement/screens/trust_filter_screen.dart';
 import '../../friends/screens/friends_screen.dart';
+import '../../profile/providers/profile_completion_provider.dart';
+import '../../profile/providers/profile_setup_provider.dart';
 import '../../profile/screens/setup/setup_basic_info_screen.dart';
 import '../../profile/screens/setup/setup_photos_screen.dart';
 import '../../profile/screens/setup/setup_preferences_screen.dart';
+import '../../swipe/providers/swipe_provider.dart';
+import 'main_navigation_screen.dart';
 import '../screens/about_app_screen.dart';
 import '../screens/help_support_screen.dart';
 import '../screens/notification_settings_screen.dart';
@@ -211,32 +217,7 @@ class SettingsScreen extends ConsumerWidget {
                     GlassButton(
                       label: 'Logout',
                       backgroundColor: AppTheme.errorRed,
-                      onPressed: () {
-                        showDialog<void>(
-                          context: context,
-                          builder: (context) => AlertDialog(
-                            title: const Text('Logout'),
-                            content: const Text(
-                              'Are you sure you want to logout?',
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(context),
-                                child: const Text('Cancel'),
-                              ),
-                              TextButton(
-                                onPressed: () {
-                                  Navigator.pop(context);
-                                  ref
-                                      .read(authNotifierProvider.notifier)
-                                      .logout();
-                                },
-                                child: const Text('Logout'),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
+                      onPressed: () => _logout(context, ref),
                     ),
                     SizedBox(height: bottomClearance),
                   ]),
@@ -246,6 +227,21 @@ class SettingsScreen extends ConsumerWidget {
           ),
         ),
       ),
+    );
+  }
+
+  Future<void> _logout(BuildContext context, WidgetRef ref) async {
+    ref.read(mainNavigationIndexProvider.notifier).state = 0;
+    await ref.read(authNotifierProvider.notifier).logout();
+    ref.invalidate(profileCompletionProvider);
+    ref.invalidate(profileSetupNotifierProvider);
+    ref.invalidate(swipeNotifierProvider);
+    ref.invalidate(termsAcceptanceProvider);
+
+    if (!context.mounted) return;
+    Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+      MaterialPageRoute<void>(builder: (_) => const WelcomeScreen()),
+      (_) => false,
     );
   }
 

@@ -47,28 +47,42 @@ class AuthState {
   final bool isSignupFlow;
   final SignupDraft? pendingSignup;
 
+  static const Object _unset = Object();
+
   AuthState copyWith({
-    String? phoneNumber,
-    String? email,
-    String? otp,
-    bool? isLoading,
-    String? error,
-    bool? isOtpSent,
-    bool? isAuthenticated,
-    String? userId,
-    bool? isSignupFlow,
-    SignupDraft? pendingSignup,
+    Object? phoneNumber = _unset,
+    Object? email = _unset,
+    Object? otp = _unset,
+    Object? isLoading = _unset,
+    Object? error = _unset,
+    Object? isOtpSent = _unset,
+    Object? isAuthenticated = _unset,
+    Object? userId = _unset,
+    Object? isSignupFlow = _unset,
+    Object? pendingSignup = _unset,
   }) => AuthState(
-    phoneNumber: phoneNumber ?? this.phoneNumber,
-    email: email ?? this.email,
-    otp: otp ?? this.otp,
-    isLoading: isLoading ?? this.isLoading,
-    error: error ?? this.error,
-    isOtpSent: isOtpSent ?? this.isOtpSent,
-    isAuthenticated: isAuthenticated ?? this.isAuthenticated,
-    userId: userId ?? this.userId,
-    isSignupFlow: isSignupFlow ?? this.isSignupFlow,
-    pendingSignup: pendingSignup ?? this.pendingSignup,
+    phoneNumber: identical(phoneNumber, _unset)
+        ? this.phoneNumber
+        : phoneNumber as String?,
+    email: identical(email, _unset) ? this.email : email as String?,
+    otp: identical(otp, _unset) ? this.otp : otp as String?,
+    isLoading: identical(isLoading, _unset)
+        ? this.isLoading
+        : isLoading! as bool,
+    error: identical(error, _unset) ? this.error : error as String?,
+    isOtpSent: identical(isOtpSent, _unset)
+        ? this.isOtpSent
+        : isOtpSent! as bool,
+    isAuthenticated: identical(isAuthenticated, _unset)
+        ? this.isAuthenticated
+        : isAuthenticated! as bool,
+    userId: identical(userId, _unset) ? this.userId : userId as String?,
+    isSignupFlow: identical(isSignupFlow, _unset)
+        ? this.isSignupFlow
+        : isSignupFlow! as bool,
+    pendingSignup: identical(pendingSignup, _unset)
+        ? this.pendingSignup
+        : pendingSignup as SignupDraft?,
   );
 }
 
@@ -80,7 +94,12 @@ class AuthNotifier extends _$AuthNotifier {
 
   /// Send OTP to mobile number
   Future<void> sendOtp(String mobileNumber) async {
-    state = state.copyWith(isLoading: true, error: null, isSignupFlow: false);
+    state = state.copyWith(
+      isLoading: true,
+      error: null,
+      isSignupFlow: false,
+      pendingSignup: null,
+    );
 
     try {
       final normalized = _normalizePhoneNumber(mobileNumber);
@@ -177,6 +196,15 @@ class AuthNotifier extends _$AuthNotifier {
       }
 
       if (kBypassOtpValidation) {
+        final existing = await _signupPhoneAlreadyRegistered(transportEmail);
+        if (existing) {
+          state = state.copyWith(
+            error:
+                'An account already exists for this mobile number. Please sign in instead.',
+            isLoading: false,
+          );
+          return;
+        }
         await Future<void>.delayed(const Duration(milliseconds: 150));
       } else if (kUseMockAuth) {
         await Future<void>.delayed(const Duration(milliseconds: 300));
@@ -260,6 +288,13 @@ class AuthNotifier extends _$AuthNotifier {
       }
 
       if (shouldBypassOtp) {
+        if (otpToken != kOtpBypassCode) {
+          state = state.copyWith(
+            error: 'Use 123456 as the temporary OTP.',
+            isLoading: false,
+          );
+          return;
+        }
         await Future<void>.delayed(const Duration(milliseconds: 150));
         final mockUserId = AppRuntimeConfig.mockUserIdForIdentifier(authEmail);
         state = state.copyWith(
@@ -268,6 +303,8 @@ class AuthNotifier extends _$AuthNotifier {
           isLoading: false,
           otp: otpToken,
           error: null,
+          isSignupFlow: false,
+          pendingSignup: null,
         );
         return;
       }
@@ -281,6 +318,8 @@ class AuthNotifier extends _$AuthNotifier {
           isLoading: false,
           otp: otpToken,
           error: null,
+          isSignupFlow: false,
+          pendingSignup: null,
         );
         return;
       }
@@ -308,6 +347,8 @@ class AuthNotifier extends _$AuthNotifier {
         isLoading: false,
         otp: otpToken,
         error: null,
+        isSignupFlow: false,
+        pendingSignup: null,
       );
       if ((state.userId ?? '').trim().isEmpty) {
         state = state.copyWith(
@@ -357,7 +398,28 @@ class AuthNotifier extends _$AuthNotifier {
         return;
       }
 
-      if (kBypassOtpValidation || kUseMockAuth) {
+      if (kBypassOtpValidation) {
+        if (otpToken != kOtpBypassCode) {
+          state = state.copyWith(
+            error: 'Use 123456 as the temporary OTP.',
+            isLoading: false,
+          );
+          return;
+        }
+        await Future<void>.delayed(const Duration(milliseconds: 150));
+        final mockUserId = AppRuntimeConfig.mockUserIdForIdentifier(authEmail);
+        await _tryBootstrapSignupProfile(userId: mockUserId, signup: signup);
+        state = state.copyWith(
+          isAuthenticated: true,
+          userId: mockUserId,
+          isLoading: false,
+          otp: otpToken,
+          error: null,
+        );
+        return;
+      }
+
+      if (kUseMockAuth) {
         await Future<void>.delayed(const Duration(milliseconds: 150));
         final mockUserId = AppRuntimeConfig.mockUserIdForIdentifier(authEmail);
         state = state.copyWith(
@@ -397,16 +459,7 @@ class AuthNotifier extends _$AuthNotifier {
         return;
       }
 
-      await dio.post<dynamic>(
-        '/auth/signup/bootstrap',
-        data: {
-          'user_id': userId,
-          'phone': signup.phoneNumber,
-          'name': signup.name,
-          'date_of_birth': signup.dateOfBirth,
-          'gender': signup.gender,
-        },
-      );
+      await _bootstrapSignupProfile(userId: userId, signup: signup);
 
       state = state.copyWith(
         isAuthenticated: true,
@@ -453,6 +506,69 @@ class AuthNotifier extends _$AuthNotifier {
   void resetAuthFlow() {
     if (!state.isAuthenticated) {
       state = const AuthState();
+    }
+  }
+
+  Future<void> _bootstrapSignupProfile({
+    required String userId,
+    required SignupDraft signup,
+  }) async {
+    if (kUseMockAuth) return;
+
+    final dio = ref.read(apiClientProvider);
+    await dio.post<dynamic>(
+      '/auth/signup/bootstrap',
+      data: {
+        'user_id': userId,
+        'phone': _normalizePhoneNumber(signup.phoneNumber),
+        'name': signup.name.trim(),
+        'date_of_birth': signup.dateOfBirth.trim(),
+        'gender': signup.gender.trim(),
+      },
+    );
+  }
+
+  Future<void> _tryBootstrapSignupProfile({
+    required String userId,
+    required SignupDraft signup,
+  }) async {
+    try {
+      await _bootstrapSignupProfile(userId: userId, signup: signup);
+    } on DioException catch (e, stackTrace) {
+      final status = e.response?.statusCode ?? 0;
+      if (status == 404 ||
+          status >= 500 ||
+          e.type == DioExceptionType.connectionError) {
+        log.warning(
+          'Signup bootstrap unavailable during OTP bypass; continuing with local draft fallback: ${e.message}',
+        );
+        return;
+      }
+      log.error('Signup bootstrap failed during OTP bypass', e, stackTrace);
+      rethrow;
+    }
+  }
+
+  Future<bool> _signupPhoneAlreadyRegistered(String authEmail) async {
+    if (kUseMockAuth) return false;
+    try {
+      final userId = AppRuntimeConfig.mockUserIdForIdentifier(authEmail);
+      final dio = ref.read(apiClientProvider);
+      final response = await dio.get<dynamic>('/profile/$userId/summary');
+      final body =
+          (response.data as Map?)?.cast<String, dynamic>() ??
+          <String, dynamic>{};
+      return body['found'] == true;
+    } on DioException catch (e) {
+      final status = e.response?.statusCode ?? 0;
+      if (status == 404 ||
+          status >= 500 ||
+          e.type == DioExceptionType.connectionError) {
+        return false;
+      }
+      return false;
+    } on Object {
+      return false;
     }
   }
 }

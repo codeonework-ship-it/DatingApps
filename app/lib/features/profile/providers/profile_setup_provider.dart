@@ -212,12 +212,24 @@ class ProfileDraft {
     var score = 0;
     const total = 6;
 
-    if (name.trim().length >= ValidationConstants.minNameLength) score++;
-    if (dateOfBirth != null) score++;
-    if (photos.length >= ValidationConstants.minPhotos) score++;
-    if (bio.trim().length >= ValidationConstants.minBioLength) score++;
-    if (seekingGenders.isNotEmpty) score++;
-    if (drinking.isNotEmpty && smoking.isNotEmpty) score++;
+    if (name.trim().length >= ValidationConstants.minNameLength) {
+      score++;
+    }
+    if (dateOfBirth != null) {
+      score++;
+    }
+    if (photos.length >= ValidationConstants.minPhotos) {
+      score++;
+    }
+    if (bio.trim().length >= ValidationConstants.minBioLength) {
+      score++;
+    }
+    if (seekingGenders.isNotEmpty) {
+      score++;
+    }
+    if (drinking.isNotEmpty && smoking.isNotEmpty) {
+      score++;
+    }
 
     return ((score / total) * 100).round();
   }
@@ -242,16 +254,24 @@ class ProfileSetupNotifier extends _$ProfileSetupNotifier {
     final fallbackPhone = auth.email ?? '';
 
     try {
-      return await _fetchDraft(userId, fallbackPhone: fallbackPhone);
+      final draft = await _fetchDraft(userId, fallbackPhone: fallbackPhone);
+      return _applySignupFallback(draft, auth.pendingSignup);
     } on DioException catch (e, stackTrace) {
-      log.warning(
-        'Profile draft API unavailable, using local fallback: ${e.message}',
+      log
+        ..warning(
+          'Profile draft API unavailable, using local fallback: ${e.message}',
+        )
+        ..error('Profile draft API unavailable', e, stackTrace);
+      return _applySignupFallback(
+        _defaultDraft(userId, fallbackPhone),
+        auth.pendingSignup,
       );
-      log.error('Profile draft API unavailable', e, stackTrace);
-      return _defaultDraft(userId, fallbackPhone);
-    } catch (e, stackTrace) {
+    } on Object catch (e, stackTrace) {
       log.error('Failed to load profile draft', e, stackTrace);
-      return _defaultDraft(userId, fallbackPhone);
+      return _applySignupFallback(
+        _defaultDraft(userId, fallbackPhone),
+        auth.pendingSignup,
+      );
     }
   }
 
@@ -435,7 +455,9 @@ class ProfileSetupNotifier extends _$ProfileSetupNotifier {
       source: ImageSource.camera,
       imageQuality: 85,
     );
-    if (file == null) return;
+    if (file == null) {
+      return;
+    }
     await _uploadAndInsertPhoto(file);
   }
 
@@ -504,7 +526,9 @@ class ProfileSetupNotifier extends _$ProfileSetupNotifier {
   /// Returns the lower-cased extension including the dot, defaulting to .jpg.
   static String _imageExtension(String filename) {
     final dot = filename.lastIndexOf('.');
-    if (dot < 0) return '.jpg';
+    if (dot < 0) {
+      return '.jpg';
+    }
     final ext = filename.substring(dot).toLowerCase();
     return const {'.jpg', '.jpeg', '.png', '.webp', '.heic'}.contains(ext)
         ? ext
@@ -550,9 +574,9 @@ class ProfileSetupNotifier extends _$ProfileSetupNotifier {
   Future<void> reorderPhotos(int oldIndex, int newIndex) async {
     final current = await future;
     final photos = [...current.photos];
-    if (newIndex > oldIndex) newIndex -= 1;
+    final targetIndex = newIndex > oldIndex ? newIndex - 1 : newIndex;
     final item = photos.removeAt(oldIndex);
-    photos.insert(newIndex, item);
+    photos.insert(targetIndex, item);
 
     final normalized = <ProfilePhotoItem>[];
     for (var i = 0; i < photos.length; i++) {
@@ -593,8 +617,9 @@ class ProfileSetupNotifier extends _$ProfileSetupNotifier {
     final isValid =
         current.name.trim().length >= ValidationConstants.minNameLength &&
         current.dateOfBirth != null &&
+        current.gender.trim().isNotEmpty &&
         current.photos.length >= ValidationConstants.minPhotos &&
-        current.bio.trim().length >= ValidationConstants.minBioLength;
+        current.seekingGenders.isNotEmpty;
 
     if (!isValid) {
       throw StateError('Profile is incomplete');
@@ -771,6 +796,21 @@ class ProfileSetupNotifier extends _$ProfileSetupNotifier {
         motherTongue: null,
         hookupOnly: false,
       );
+
+  ProfileDraft _applySignupFallback(ProfileDraft draft, SignupDraft? signup) {
+    if (signup == null) {
+      return draft;
+    }
+    final parsedDob = _parseDate(signup.dateOfBirth.trim());
+    return draft.copyWith(
+      phoneNumber: draft.phoneNumber.trim().isEmpty
+          ? signup.phoneNumber.trim()
+          : draft.phoneNumber,
+      name: draft.name.trim().isEmpty ? signup.name.trim() : draft.name,
+      dateOfBirth: draft.dateOfBirth ?? parsedDob,
+      gender: draft.gender.trim().isEmpty ? signup.gender.trim() : draft.gender,
+    );
+  }
 }
 
 String _toIsoDate(DateTime? value) {

@@ -10,6 +10,7 @@ import '../../../core/config/feature_flags.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
 import '../providers/auth_provider.dart';
+import 'welcome_screen.dart';
 
 /// Auth screen — phone number entry + OTP verification.
 ///
@@ -94,13 +95,18 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
 
   Future<void> _verifyOtp(AuthNotifier notifier) async {
     final otp = _otpController.text.trim();
-    if (!kBypassOtpValidation && otp.length != 6) {
+    if (otp.length != 6) {
       _snack('Please enter the 6-digit OTP.');
       return;
     }
-    await notifier.verifyOtp(
-      otp.isEmpty && kBypassOtpValidation ? '000000' : otp,
-    );
+    await notifier.verifyOtp(otp);
+    if (!mounted) {
+      return;
+    }
+    if (ref.read(authNotifierProvider).isAuthenticated) {
+      FocusManager.instance.primaryFocus?.unfocus();
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    }
   }
 
   Future<void> _pasteOtp() async {
@@ -145,94 +151,135 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
         child: SafeArea(
           child: FadeTransition(
             opacity: _fadeAnim,
-            child: Column(
-              children: [
-                // ── scrollable content area ──────────────────────────────────
-                Expanded(
-                  child: SingleChildScrollView(
-                    keyboardDismissBehavior:
-                        ScrollViewKeyboardDismissBehavior.onDrag,
-                    padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(
-                          maxWidth: AppTheme.contentMaxWidth,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isCompactHeight = constraints.maxHeight < 720;
+                final isTabletWidth = constraints.maxWidth >= 700;
+                final horizontalPadding = isTabletWidth ? 32.0 : 24.0;
+                final topPadding = isCompactHeight ? 12.0 : 24.0;
+                final headerGap = isCompactHeight ? 18.0 : 32.0;
+
+                return Column(
+                  children: [
+                    // ── scrollable content area ──────────────────────────────
+                    Expanded(
+                      child: SingleChildScrollView(
+                        keyboardDismissBehavior:
+                            ScrollViewKeyboardDismissBehavior.onDrag,
+                        padding: EdgeInsets.fromLTRB(
+                          horizontalPadding,
+                          topPadding,
+                          horizontalPadding,
+                          16,
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            _AuthHeader(isOtp: isOtp),
-                            const SizedBox(height: 32),
-                            _AuthPane(
-                              child: isOtp
-                                  ? _OtpStep(
-                                      key: const ValueKey('otp-step'),
-                                      authState: authState,
-                                      authNotifier: authNotifier,
-                                      phoneController: _phoneController,
-                                      otpController: _otpController,
-                                      otpFocusNode: _otpFocusNode,
-                                      onVerify: () => _verifyOtp(authNotifier),
-                                      onResend: () => _sendOtp(authNotifier),
-                                      onPaste: _pasteOtp,
-                                      onClear: () {
-                                        _otpController.clear();
-                                        authNotifier.clearError();
-                                      },
-                                    )
-                                  : _PhoneStep(
-                                      key: const ValueKey('phone-step'),
-                                      authState: authState,
-                                      authNotifier: authNotifier,
-                                      phoneController: _phoneController,
-                                      phoneFocusNode: _phoneFocusNode,
-                                      onSend: () => _sendOtp(authNotifier),
-                                    ),
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(
+                              maxWidth: AppTheme.contentMaxWidth,
                             ),
-                            if (!isOtp) ...[
-                              const SizedBox(height: 20),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.lock_outline_rounded,
-                                    size: 13,
-                                    color: Colors.white.withValues(alpha: 0.5),
-                                  ),
-                                  const SizedBox(width: 5),
-                                  Flexible(
-                                    child: Text(
-                                      'By continuing, you agree to our Terms & Privacy Policy.',
-                                      textAlign: TextAlign.center,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodySmall
-                                          ?.copyWith(
-                                            color: Colors.white.withValues(
-                                              alpha: 0.55,
-                                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: GoldBackButton(
+                                    tooltip: 'Back to welcome',
+                                    onTap: () {
+                                      authNotifier.resetAuthFlow();
+                                      final navigator = Navigator.of(context);
+                                      if (navigator.canPop()) {
+                                        navigator.pop();
+                                      } else {
+                                        navigator.pushReplacement(
+                                          MaterialPageRoute<void>(
+                                            builder: (_) =>
+                                                const WelcomeScreen(),
                                           ),
-                                    ),
+                                        );
+                                      }
+                                    },
+                                  ),
+                                ),
+                                SizedBox(height: isCompactHeight ? 0 : 4),
+                                _AuthHeader(isOtp: isOtp),
+                                SizedBox(height: headerGap),
+                                _AuthPane(
+                                  child: isOtp
+                                      ? _OtpStep(
+                                          key: const ValueKey('otp-step'),
+                                          authState: authState,
+                                          authNotifier: authNotifier,
+                                          phoneController: _phoneController,
+                                          otpController: _otpController,
+                                          otpFocusNode: _otpFocusNode,
+                                          onVerify: () =>
+                                              _verifyOtp(authNotifier),
+                                          onResend: () =>
+                                              _sendOtp(authNotifier),
+                                          onPaste: _pasteOtp,
+                                          onClear: () {
+                                            _otpController.clear();
+                                            authNotifier.clearError();
+                                          },
+                                        )
+                                      : _PhoneStep(
+                                          key: const ValueKey('phone-step'),
+                                          authState: authState,
+                                          authNotifier: authNotifier,
+                                          phoneController: _phoneController,
+                                          phoneFocusNode: _phoneFocusNode,
+                                          onSend: () => _sendOtp(authNotifier),
+                                        ),
+                                ),
+                                if (!isOtp) ...[
+                                  const SizedBox(height: 20),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.lock_outline_rounded,
+                                        size: 13,
+                                        color: Colors.white.withValues(
+                                          alpha: 0.5,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 5),
+                                      Flexible(
+                                        child: Text(
+                                          'By continuing, you agree to our '
+                                          'Terms & Privacy Policy.',
+                                          textAlign: TextAlign.center,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall
+                                              ?.copyWith(
+                                                color: Colors.white.withValues(
+                                                  alpha: 0.55,
+                                                ),
+                                              ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
-                              ),
-                            ],
-                          ],
+                              ],
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ),
 
-                // ── pinned bottom CTA ────────────────────────────────────────
-                _AuthBottomAction(
-                  isOtp: isOtp,
-                  canVerify: kBypassOtpValidation || _otpLength == 6,
-                  isLoading: authState.isLoading,
-                  onSend: () => _sendOtp(authNotifier),
-                  onVerify: () => _verifyOtp(authNotifier),
-                ),
-              ],
+                    // ── pinned bottom CTA ────────────────────────────────────
+                    _AuthBottomAction(
+                      isOtp: isOtp,
+                      canVerify: _otpLength == 6,
+                      isLoading: authState.isLoading,
+                      onSend: () => _sendOtp(authNotifier),
+                      onVerify: () => _verifyOtp(authNotifier),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
         ),
@@ -641,7 +688,7 @@ class _OtpStep extends StatelessWidget {
           _tintBanner(
             context,
             icon: Icons.bug_report_rounded,
-            msg: 'OTP bypass enabled \u2014 submit any code.',
+            msg: 'Pre-live shortcut: use 123456 as the OTP.',
             color: AppTheme.crystalGoldSoft,
           ),
         ],

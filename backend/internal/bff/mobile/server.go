@@ -799,6 +799,10 @@ func (s *Server) bootstrapSignup(w http.ResponseWriter, r *http.Request) {
 
 	draft, created, err := s.store.bootstrapSignup(input)
 	if err != nil {
+		if errors.Is(err, errSignupPhoneAlreadyExists) {
+			writeError(w, http.StatusConflict, err)
+			return
+		}
 		writeError(w, http.StatusBadGateway, err)
 		return
 	}

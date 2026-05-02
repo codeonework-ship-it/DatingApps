@@ -26,6 +26,8 @@ type signupBootstrapInput struct {
 	Gender      string
 }
 
+var errSignupPhoneAlreadyExists = errors.New("mobile number already has an account")
+
 func newProfileRepository(cfg config.Config) *profileRepository {
 	apiKey := strings.TrimSpace(cfg.SupabaseServiceRole)
 	if apiKey == "" {
@@ -110,6 +112,155 @@ func (r *profileRepository) upsertDraft(ctx context.Context, draft profileDraft)
 	return err
 }
 
+func (r *profileRepository) completeProfile(ctx context.Context, draft profileDraft) error {
+	trimmedUserID := strings.TrimSpace(draft.UserID)
+	if trimmedUserID == "" {
+		return errors.New("user_id is required")
+	}
+	usersTable := strings.TrimSpace(r.cfg.UsersTable)
+	if usersTable == "" {
+		usersTable = "users"
+	}
+	now := time.Now().UTC().Format(time.RFC3339)
+
+	filters := url.Values{}
+	filters.Set("id", "eq."+trimmedUserID)
+	if _, err := r.db.Update(ctx, r.cfg.UserSchema, usersTable, map[string]any{
+		"name":                strings.TrimSpace(draft.Name),
+		"date_of_birth":       strings.TrimSpace(draft.DateOfBirth),
+		"gender":              storedGenderValue(draft.Gender),
+		"bio":                 nullableStringValue(draft.Bio),
+		"height_cm":           draft.HeightCm,
+		"education":           draft.Education,
+		"profession":          draft.Profession,
+		"income_range":        draft.IncomeRange,
+		"drinking":            nullableStringValue(draft.Drinking),
+		"smoking":             nullableStringValue(draft.Smoking),
+		"religion":            draft.Religion,
+		"mother_tongue":       draft.MotherTongue,
+		"relationship_status": draft.RelationshipStatus,
+		"personality_type":    draft.PersonalityType,
+		"country":             draft.Country,
+		"state":               draft.RegionState,
+		"city":                draft.City,
+		"profile_completion":  100,
+		"is_active":           true,
+		"updated_at":          now,
+	}, filters); err != nil {
+		return err
+	}
+
+	if _, err := r.db.Upsert(ctx, r.cfg.UserSchema, "preferences", []map[string]any{{
+		"user_id":           trimmedUserID,
+		"seeking_genders":   storedGenderListValue(draft.SeekingGenders),
+		"min_age_years":     draft.MinAgeYears,
+		"max_age_years":     draft.MaxAgeYears,
+		"max_distance_km":   draft.MaxDistanceKm,
+		"education_filter":  draft.EducationFilter,
+		"serious_only":      draft.SeriousOnly,
+		"verified_only":     draft.VerifiedOnly,
+		"intent_tags":       draft.IntentTags,
+		"language_tags":     draft.LanguageTags,
+		"deal_breaker_tags": draft.DealBreakerTags,
+		"updated_at":        now,
+	}}, "user_id"); err != nil {
+		return err
+	}
+
+	photoFilters := url.Values{}
+	photoFilters.Set("user_id", "eq."+trimmedUserID)
+	if _, err := r.db.Delete(ctx, r.cfg.UserSchema, "photos", photoFilters); err != nil {
+		return err
+	}
+	photos := make([]map[string]any, 0, len(draft.Photos))
+	for i, photo := range draft.Photos {
+		photoURL := strings.TrimSpace(photo.PhotoURL)
+		if photoURL == "" {
+			continue
+		}
+		photos = append(photos, map[string]any{
+			"user_id":      trimmedUserID,
+			"photo_url":    photoURL,
+			"storage_path": nullableStringValue(photo.StoragePath),
+			"ordering":     i,
+			"uploaded_at":  now,
+		})
+	}
+	if len(photos) > 0 {
+		if _, err := r.db.Insert(ctx, r.cfg.UserSchema, "photos", photos); err != nil {
+			return err
+		}
+	}
+
+	if err := r.upsertDraft(ctx, draft); err != nil {
+		return err
+	}
+	draftFilters := url.Values{}
+	draftFilters.Set("user_id", "eq."+trimmedUserID)
+	if _, err := r.db.Update(ctx, r.cfg.UserSchema, "profile_drafts", map[string]any{
+		"completed_at":      now,
+		"completion_source": "mobile_setup_wizard",
+		"updated_at":        now,
+	}, draftFilters); err != nil {
+		return err
+	}
+
+	_, _ = r.db.Upsert(ctx, r.cfg.UserSchema, "profile_setup_completions", []map[string]any{{
+		"user_id":                trimmedUserID,
+		"completed_at":           now,
+		"completion_source":      "mobile_setup_wizard",
+		"photos_count":           len(draft.Photos),
+		"bio_length":             len([]rune(strings.TrimSpace(draft.Bio))),
+		"has_height":             draft.HeightCm != nil,
+		"has_education":          draft.Education != nil && strings.TrimSpace(*draft.Education) != "",
+		"has_profession":         draft.Profession != nil && strings.TrimSpace(*draft.Profession) != "",
+		"has_lifestyle":          strings.TrimSpace(draft.Drinking) != "" || strings.TrimSpace(draft.Smoking) != "" || draft.Religion != nil,
+		"profile_completion_pct": 100,
+		"idempotency_key":        "mobile_setup_wizard:" + trimmedUserID,
+		"created_at":             now,
+	}}, "idempotency_key")
+
+	return nil
+}
+
+func nullableStringValue(value string) any {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return nil
+	}
+	return trimmed
+}
+
+func storedGenderValue(value string) string {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "m", "male", "man":
+		return "male"
+	case "f", "female", "woman":
+		return "female"
+	case "other", "non-binary", "nonbinary":
+		return "other"
+	default:
+		return strings.ToLower(strings.TrimSpace(value))
+	}
+}
+
+func storedGenderListValue(values []string) []string {
+	normalized := make([]string, 0, len(values))
+	seen := map[string]struct{}{}
+	for _, value := range values {
+		gender := storedGenderValue(value)
+		if gender == "" {
+			continue
+		}
+		if _, ok := seen[gender]; ok {
+			continue
+		}
+		seen[gender] = struct{}{}
+		normalized = append(normalized, gender)
+	}
+	return normalized
+}
+
 func (r *profileRepository) bootstrapSignup(ctx context.Context, input signupBootstrapInput) (profileDraft, bool, error) {
 	trimmedUserID := strings.TrimSpace(input.UserID)
 	if trimmedUserID == "" {
@@ -118,6 +269,18 @@ func (r *profileRepository) bootstrapSignup(ctx context.Context, input signupBoo
 	usersTable := strings.TrimSpace(r.cfg.UsersTable)
 	if usersTable == "" {
 		usersTable = "users"
+	}
+
+	phoneParams := url.Values{}
+	phoneParams.Set("phone_number", "eq."+strings.TrimSpace(input.PhoneNumber))
+	phoneParams.Set("limit", "1")
+	phoneParams.Set("select", "id,phone_number")
+	phoneRows, err := r.db.SelectRead(ctx, r.cfg.UserSchema, usersTable, phoneParams)
+	if err != nil {
+		return profileDraft{}, false, err
+	}
+	if len(phoneRows) > 0 && strings.TrimSpace(toString(phoneRows[0]["id"])) != trimmedUserID {
+		return profileDraft{}, false, errSignupPhoneAlreadyExists
 	}
 
 	params := url.Values{}
@@ -137,7 +300,7 @@ func (r *profileRepository) bootstrapSignup(ctx context.Context, input signupBoo
 			"phone_number":       strings.TrimSpace(input.PhoneNumber),
 			"name":               strings.TrimSpace(input.Name),
 			"date_of_birth":      strings.TrimSpace(input.DateOfBirth),
-			"gender":             strings.TrimSpace(input.Gender),
+			"gender":             storedGenderValue(input.Gender),
 			"profile_completion": 25,
 			"is_active":          true,
 			"created_at":         now,
@@ -159,7 +322,7 @@ func (r *profileRepository) bootstrapSignup(ctx context.Context, input signupBoo
 			patch["date_of_birth"] = strings.TrimSpace(input.DateOfBirth)
 		}
 		if strings.TrimSpace(toString(row["gender"])) == "" {
-			patch["gender"] = strings.TrimSpace(input.Gender)
+			patch["gender"] = storedGenderValue(input.Gender)
 		}
 		if _, ok := toInt(row["profile_completion"]); !ok {
 			patch["profile_completion"] = 25

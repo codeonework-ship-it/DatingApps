@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/providers/api_client_provider.dart';
+import '../data/india_master_data.dart';
 
 class PreferenceMasterData {
   const PreferenceMasterData({
@@ -36,6 +37,21 @@ class PreferenceMasterData {
     sleepSchedules: <String>[],
     travelStyles: <String>[],
     politicalComfortRanges: <String>[],
+  );
+
+  factory PreferenceMasterData.localFallback() => const PreferenceMasterData(
+    countries: <String>[indiaCountry],
+    statesByCountry: <String, List<String>>{indiaCountry: indiaStatesAndUTs},
+    citiesByState: indiaCitiesByState,
+    religions: indiaReligions,
+    motherTongues: indiaMotherTongues,
+    languages: supportedLanguages,
+    dietPreferences: dietPreferenceOptions,
+    workoutFrequencies: workoutFrequencyOptions,
+    dietTypes: dietTypeOptions,
+    sleepSchedules: sleepScheduleOptions,
+    travelStyles: travelStyleOptions,
+    politicalComfortRanges: politicalComfortRangeOptions,
   );
 
   factory PreferenceMasterData.fromJson(Map<String, dynamic> json) {
@@ -216,6 +232,12 @@ final preferenceMasterDataProvider = FutureProvider<PreferenceMasterData>((
     if (cachedAfterError != null) {
       return cachedAfterError;
     }
-    rethrow;
+    return PreferenceMasterData.localFallback();
+  } on FormatException {
+    final cachedAfterError = await _readCachedMasterData();
+    if (cachedAfterError != null) {
+      return cachedAfterError;
+    }
+    return PreferenceMasterData.localFallback();
   }
 });

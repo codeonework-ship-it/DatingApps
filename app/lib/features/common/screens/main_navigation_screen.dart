@@ -134,44 +134,53 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
         top: false,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
-          child: GlassContainer(
-            blur: 12,
-            opacity: 0.72,
-            padding: EdgeInsets.zero,
-            borderRadius: const BorderRadius.all(Radius.circular(22)),
-            backgroundColor: Colors.white.withValues(alpha: 0.74),
-            child: Theme(
-              data: Theme.of(context).copyWith(canvasColor: Colors.transparent),
-              child: BottomNavigationBar(
-                currentIndex: selectedIndex,
-                onTap: _setSelectedIndex,
-                type: BottomNavigationBarType.fixed,
-                elevation: 0,
-                backgroundColor: Colors.transparent,
-                selectedItemColor: AppTheme.primaryRed,
-                unselectedItemColor: AppTheme.textHint,
-                items: const [
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.home_rounded),
-                    label: 'Discover',
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxWidth: AppTheme.contentMaxWidth,
+              ),
+              child: GlassContainer(
+                blur: 12,
+                opacity: 0.72,
+                padding: EdgeInsets.zero,
+                borderRadius: const BorderRadius.all(Radius.circular(22)),
+                backgroundColor: Colors.white.withValues(alpha: 0.74),
+                child: Theme(
+                  data: Theme.of(
+                    context,
+                  ).copyWith(canvasColor: Colors.transparent),
+                  child: BottomNavigationBar(
+                    currentIndex: selectedIndex,
+                    onTap: _setSelectedIndex,
+                    type: BottomNavigationBarType.fixed,
+                    elevation: 0,
+                    backgroundColor: Colors.transparent,
+                    selectedItemColor: AppTheme.primaryRed,
+                    unselectedItemColor: AppTheme.textHint,
+                    items: const [
+                      BottomNavigationBarItem(
+                        icon: Icon(Icons.home_rounded),
+                        label: 'Discover',
+                      ),
+                      BottomNavigationBarItem(
+                        icon: Icon(Icons.favorite_rounded),
+                        label: 'Matches',
+                      ),
+                      BottomNavigationBarItem(
+                        icon: Icon(Icons.bolt_rounded),
+                        label: 'Engagement',
+                      ),
+                      BottomNavigationBarItem(
+                        icon: Icon(Icons.person_rounded),
+                        label: 'Profile',
+                      ),
+                      BottomNavigationBarItem(
+                        icon: Icon(Icons.settings_rounded),
+                        label: 'Settings',
+                      ),
+                    ],
                   ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.favorite_rounded),
-                    label: 'Matches',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.bolt_rounded),
-                    label: 'Engagement',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.person_rounded),
-                    label: 'Profile',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.settings_rounded),
-                    label: 'Settings',
-                  ),
-                ],
+                ),
               ),
             ),
           ),

@@ -98,9 +98,11 @@ class _SetupPreferencesScreenState extends ConsumerState<SetupPreferencesScreen>
     final offlineFlag = ref.watch(preferenceMasterDataOfflineProvider);
     final isOffline = offlineFlag == true;
     final draftAsync = ref.watch(profileSetupNotifierProvider);
-    final masterData = ref
-        .watch(preferenceMasterDataProvider)
-        .maybeWhen(data: (data) => data, orElse: PreferenceMasterData.empty);
+    final masterDataAsync = ref.watch(preferenceMasterDataProvider);
+    final masterData = masterDataAsync.maybeWhen(
+      data: (data) => data,
+      orElse: PreferenceMasterData.localFallback,
+    );
 
     return draftAsync.when(
       loading: () => Scaffold(
@@ -111,14 +113,14 @@ class _SetupPreferencesScreenState extends ConsumerState<SetupPreferencesScreen>
           ),
         ),
       ),
-      error: (_, __) => Scaffold(
+      error: (_, _) => Scaffold(
         body: Container(
           decoration: const BoxDecoration(gradient: AppTheme.bgGradient),
           child: Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
+                const Icon(
                   Icons.error_outline,
                   color: AppTheme.crystalGoldSoft,
                   size: 48,
@@ -150,7 +152,9 @@ class _SetupPreferencesScreenState extends ConsumerState<SetupPreferencesScreen>
   // ─────────────────────────────────────────────────────────────────────────
 
   void _initializeState(ProfileDraft draft, PreferenceMasterData masterData) {
-    if (_didInitialize) return;
+    if (_didInitialize) {
+      return;
+    }
     _age = RangeValues(
       draft.minAgeYears.toDouble(),
       draft.maxAgeYears.toDouble(),
@@ -212,174 +216,171 @@ class _SetupPreferencesScreenState extends ConsumerState<SetupPreferencesScreen>
     ProfileDraft draft,
     PreferenceMasterData masterData,
     bool isOffline,
-  ) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(gradient: AppTheme.bgGradient),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // ── offline banner ─────────────────────────────────────────
-              if (isOffline)
-                Container(
-                  width: double.infinity,
-                  color: AppTheme.primaryRed,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
+  ) => Scaffold(
+    body: Container(
+      decoration: const BoxDecoration(gradient: AppTheme.bgGradient),
+      child: SafeArea(
+        child: Column(
+          children: [
+            // ── offline banner ─────────────────────────────────────────
+            if (isOffline)
+              Container(
+                width: double.infinity,
+                color: AppTheme.primaryRed,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                child: const Text(
+                  'Offline mode — some data may be outdated.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
                   ),
-                  child: const Text(
-                    'Offline mode — some data may be outdated.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
+                ),
+              ),
+
+            // ── header ─────────────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(
+                      Icons.arrow_back_ios_new,
                       color: Colors.white,
-                      fontWeight: FontWeight.w600,
+                    ),
+                    onPressed: _isSaving
+                        ? null
+                        : () => _handleBackFromPreferences(draft),
+                  ),
+                  Expanded(
+                    child: Text(
+                      _isSetupFlow ? 'Your Preferences' : 'Edit Preferences',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.3,
+                      ),
                     ),
                   ),
-                ),
-
-              // ── header ─────────────────────────────────────────────────
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-                child: Row(
-                  children: [
-                    if (!_isSetupFlow)
-                      IconButton(
-                        icon: const Icon(
-                          Icons.arrow_back_ios_new,
-                          color: Colors.white,
-                        ),
-                        onPressed: () => Navigator.of(context).pop(),
-                      ),
-                    Expanded(
-                      child: Text(
-                        _isSetupFlow ? 'Your Preferences' : 'Edit Preferences',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.3,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                ],
               ),
+            ),
 
-              const SizedBox(height: 12),
+            const SizedBox(height: 12),
 
-              // ── glass tab bar ──────────────────────────────────────────
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: _GlassTabBar(controller: _tabController),
+            // ── glass tab bar ──────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: _GlassTabBar(controller: _tabController),
+            ),
+
+            const SizedBox(height: 12),
+
+            // ── tab content ────────────────────────────────────────────
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _BasicTab(
+                    age: _age,
+                    distance: _distance,
+                    seeking: _seeking,
+                    seriousOnly: _seriousOnly,
+                    verifiedOnly: _verifiedOnly,
+                    hookupOnly: _hookupOnly,
+                    onAgeChanged: (v) => setState(() => _age = v),
+                    onDistanceChanged: (v) => setState(() => _distance = v),
+                    onSeekingToggled: (code, {required selected}) =>
+                        setState(() {
+                          if (selected) {
+                            _seeking.add(code);
+                          } else {
+                            _seeking.remove(code);
+                          }
+                        }),
+                    onSeriousChanged: (v) => setState(() => _seriousOnly = v),
+                    onVerifiedChanged: (v) => setState(() => _verifiedOnly = v),
+                    onHookupChanged: (v) => setState(() => _hookupOnly = v),
+                  ),
+                  _AdvancedTab(
+                    masterData: masterData,
+                    selectedCountry: _selectedCountry,
+                    selectedState: _selectedState,
+                    selectedCity: _selectedCity,
+                    selectedReligion: _selectedReligion,
+                    selectedMotherTongue: _selectedMotherTongue,
+                    selectedLanguage: _selectedLanguage,
+                    selectedDietPreference: _selectedDietPreference,
+                    selectedWorkoutFrequency: _selectedWorkoutFrequency,
+                    selectedDietType: _selectedDietType,
+                    selectedSleepSchedule: _selectedSleepSchedule,
+                    selectedTravelStyle: _selectedTravelStyle,
+                    selectedPoliticalComfortRange:
+                        _selectedPoliticalComfortRange,
+                    instagramController: _instagramController,
+                    booksController: _booksController,
+                    novelsController: _novelsController,
+                    songsController: _songsController,
+                    hobbiesController: _hobbiesController,
+                    extraCurricularController: _extraCurricularController,
+                    additionalInfoController: _additionalInfoController,
+                    intentTagsController: _intentTagsController,
+                    petPreferenceController: _petPreferenceController,
+                    dealBreakerTagsController: _dealBreakerTagsController,
+                    onCountryChanged: (v) => setState(() {
+                      _selectedCountry = v;
+                      _selectedState = null;
+                      _selectedCity = null;
+                    }),
+                    onStateChanged: (v) => setState(() {
+                      _selectedState = v;
+                      _selectedCity = null;
+                    }),
+                    onCityChanged: (v) => setState(() => _selectedCity = v),
+                    onReligionChanged: (v) =>
+                        setState(() => _selectedReligion = v),
+                    onMotherTongueChanged: (v) =>
+                        setState(() => _selectedMotherTongue = v),
+                    onLanguageChanged: (v) =>
+                        setState(() => _selectedLanguage = v),
+                    onDietPreferenceChanged: (v) =>
+                        setState(() => _selectedDietPreference = v),
+                    onWorkoutFrequencyChanged: (v) =>
+                        setState(() => _selectedWorkoutFrequency = v),
+                    onDietTypeChanged: (v) =>
+                        setState(() => _selectedDietType = v),
+                    onSleepScheduleChanged: (v) =>
+                        setState(() => _selectedSleepSchedule = v),
+                    onTravelStyleChanged: (v) =>
+                        setState(() => _selectedTravelStyle = v),
+                    onPoliticalComfortRangeChanged: (v) =>
+                        setState(() => _selectedPoliticalComfortRange = v),
+                  ),
+                ],
               ),
+            ),
 
-              const SizedBox(height: 12),
-
-              // ── tab content ────────────────────────────────────────────
-              Expanded(
-                child: TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _BasicTab(
-                      age: _age,
-                      distance: _distance,
-                      seeking: _seeking,
-                      seriousOnly: _seriousOnly,
-                      verifiedOnly: _verifiedOnly,
-                      hookupOnly: _hookupOnly,
-                      onAgeChanged: (v) => setState(() => _age = v),
-                      onDistanceChanged: (v) => setState(() => _distance = v),
-                      onSeekingToggled: (code, selected) => setState(() {
-                        if (selected) {
-                          _seeking.add(code);
-                        } else {
-                          _seeking.remove(code);
-                        }
-                      }),
-                      onSeriousChanged: (v) => setState(() => _seriousOnly = v),
-                      onVerifiedChanged: (v) =>
-                          setState(() => _verifiedOnly = v),
-                      onHookupChanged: (v) => setState(() => _hookupOnly = v),
-                    ),
-                    _AdvancedTab(
-                      masterData: masterData,
-                      selectedCountry: _selectedCountry,
-                      selectedState: _selectedState,
-                      selectedCity: _selectedCity,
-                      selectedReligion: _selectedReligion,
-                      selectedMotherTongue: _selectedMotherTongue,
-                      selectedLanguage: _selectedLanguage,
-                      selectedDietPreference: _selectedDietPreference,
-                      selectedWorkoutFrequency: _selectedWorkoutFrequency,
-                      selectedDietType: _selectedDietType,
-                      selectedSleepSchedule: _selectedSleepSchedule,
-                      selectedTravelStyle: _selectedTravelStyle,
-                      selectedPoliticalComfortRange:
-                          _selectedPoliticalComfortRange,
-                      instagramController: _instagramController,
-                      booksController: _booksController,
-                      novelsController: _novelsController,
-                      songsController: _songsController,
-                      hobbiesController: _hobbiesController,
-                      extraCurricularController: _extraCurricularController,
-                      additionalInfoController: _additionalInfoController,
-                      intentTagsController: _intentTagsController,
-                      petPreferenceController: _petPreferenceController,
-                      dealBreakerTagsController: _dealBreakerTagsController,
-                      onCountryChanged: (v) => setState(() {
-                        _selectedCountry = v;
-                        _selectedState = null;
-                        _selectedCity = null;
-                      }),
-                      onStateChanged: (v) => setState(() {
-                        _selectedState = v;
-                        _selectedCity = null;
-                      }),
-                      onCityChanged: (v) => setState(() => _selectedCity = v),
-                      onReligionChanged: (v) =>
-                          setState(() => _selectedReligion = v),
-                      onMotherTongueChanged: (v) =>
-                          setState(() => _selectedMotherTongue = v),
-                      onLanguageChanged: (v) =>
-                          setState(() => _selectedLanguage = v),
-                      onDietPreferenceChanged: (v) =>
-                          setState(() => _selectedDietPreference = v),
-                      onWorkoutFrequencyChanged: (v) =>
-                          setState(() => _selectedWorkoutFrequency = v),
-                      onDietTypeChanged: (v) =>
-                          setState(() => _selectedDietType = v),
-                      onSleepScheduleChanged: (v) =>
-                          setState(() => _selectedSleepSchedule = v),
-                      onTravelStyleChanged: (v) =>
-                          setState(() => _selectedTravelStyle = v),
-                      onPoliticalComfortRangeChanged: (v) =>
-                          setState(() => _selectedPoliticalComfortRange = v),
-                    ),
-                  ],
-                ),
+            // ── save button ────────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+              child: GlassButton(
+                label: _isSetupFlow
+                    ? 'Finish & Find Matches'
+                    : 'Save Preferences',
+                shinyEffect: _isSetupFlow,
+                isLoading: _isSaving,
+                onPressed: _isSaving ? null : () => _handlePrimaryAction(draft),
               ),
-
-              // ── save button ────────────────────────────────────────────
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-                child: GlassButton(
-                  label: _isSetupFlow
-                      ? 'Finish & Find Matches'
-                      : 'Save Preferences',
-                  shinyEffect: _isSetupFlow,
-                  isLoading: _isSaving,
-                  onPressed: _isSaving
-                      ? null
-                      : () => _handlePrimaryAction(draft),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
-    );
-  }
+    ),
+  );
 
   // ─────────────────────────────────────────────────────────────────────────
   // Save + navigate
@@ -398,27 +399,47 @@ class _SetupPreferencesScreenState extends ConsumerState<SetupPreferencesScreen>
       await _savePreferencesAndLifestyle(draft);
 
       if (_isSetupFlow) {
-        try {
-          await ref
-              .read(profileSetupNotifierProvider.notifier)
-              .completeProfile();
-          ref.invalidate(profileCompletionProvider);
-        } catch (_) {
-          if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Please complete all required fields (minimum photos, bio, and basic info).',
-              ),
-            ),
-          );
-          return;
-        }
+        await ref.read(profileSetupNotifierProvider.notifier).completeProfile();
+        ref.invalidate(profileCompletionProvider);
       }
 
       _navigateAfterSave();
+    } on Exception {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              _isSetupFlow
+                  ? 'Could not finish setup. Please check your photos and '
+                        'preferences, then try again.'
+                  : 'Some preferences could not be saved right now.',
+            ),
+          ),
+        );
+      }
     } finally {
-      if (mounted) setState(() => _isSaving = false);
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
+  }
+
+  Future<void> _handleBackFromPreferences(ProfileDraft draft) async {
+    if (_isSetupFlow) {
+      setState(() => _isSaving = true);
+      try {
+        await _savePreferencesAndLifestyle(draft);
+      } on Exception {
+        // Draft save is best effort when navigating backward; the user can
+        // correct and finish later without losing already persisted setup data.
+      } finally {
+        if (mounted) {
+          setState(() => _isSaving = false);
+        }
+      }
+    }
+    if (mounted) {
+      Navigator.of(context).pop();
     }
   }
 
@@ -469,7 +490,9 @@ class _SetupPreferencesScreenState extends ConsumerState<SetupPreferencesScreen>
   }
 
   void _navigateAfterSave() {
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
     if (_isSetupFlow) {
       ref.read(mainNavigationIndexProvider.notifier).state = 0;
       Navigator.of(context).pushAndRemoveUntil(
@@ -504,38 +527,36 @@ class _GlassTabBar extends StatelessWidget {
   final TabController controller;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.12),
-        border: Border.all(
-          color: AppTheme.crystalGoldSoft.withValues(alpha: 0.35),
-        ),
-        borderRadius: BorderRadius.circular(14),
+  Widget build(BuildContext context) => Container(
+    decoration: BoxDecoration(
+      color: Colors.white.withValues(alpha: 0.12),
+      border: Border.all(
+        color: AppTheme.crystalGoldSoft.withValues(alpha: 0.35),
       ),
-      child: TabBar(
-        controller: controller,
-        dividerHeight: 0,
-        indicatorSize: TabBarIndicatorSize.tab,
-        indicator: BoxDecoration(
-          color: AppTheme.crystalGoldSoft.withValues(alpha: 0.25),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppTheme.crystalGoldDeep),
-        ),
-        labelColor: AppTheme.crystalGoldDeep,
-        unselectedLabelColor: Colors.white70,
-        labelStyle: const TextStyle(
-          fontWeight: FontWeight.w700,
-          fontSize: 14,
-          letterSpacing: 0.4,
-        ),
-        tabs: const [
-          Tab(text: 'Basic'),
-          Tab(text: 'Advanced'),
-        ],
+      borderRadius: BorderRadius.circular(14),
+    ),
+    child: TabBar(
+      controller: controller,
+      dividerHeight: 0,
+      indicatorSize: TabBarIndicatorSize.tab,
+      indicator: BoxDecoration(
+        color: AppTheme.crystalGoldSoft.withValues(alpha: 0.25),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.crystalGoldDeep),
       ),
-    );
-  }
+      labelColor: Colors.white,
+      unselectedLabelColor: Colors.white70,
+      labelStyle: const TextStyle(
+        fontWeight: FontWeight.w700,
+        fontSize: 14,
+        letterSpacing: 0.4,
+      ),
+      tabs: const [
+        Tab(text: 'Basic'),
+        Tab(text: 'Advanced'),
+      ],
+    ),
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -566,149 +587,147 @@ class _BasicTab extends StatelessWidget {
   final bool hookupOnly;
   final ValueChanged<RangeValues> onAgeChanged;
   final ValueChanged<double> onDistanceChanged;
-  final void Function(String code, bool selected) onSeekingToggled;
+  final void Function(String code, {required bool selected}) onSeekingToggled;
   final ValueChanged<bool> onSeriousChanged;
   final ValueChanged<bool> onVerifiedChanged;
   final ValueChanged<bool> onHookupChanged;
 
   @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ── I'm looking for ───────────────────────────────────────────
-          _PrefCard(
-            icon: Icons.favorite_outline,
-            title: "I'm looking for",
-            child: Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: [
-                _GenderChip(
-                  label: 'Men',
-                  code: 'M',
-                  icon: Icons.male,
-                  selected: seeking.contains('M'),
-                  onToggled: onSeekingToggled,
-                ),
-                _GenderChip(
-                  label: 'Women',
-                  code: 'F',
-                  icon: Icons.female,
-                  selected: seeking.contains('F'),
-                  onToggled: onSeekingToggled,
-                ),
-                _GenderChip(
-                  label: 'Other',
-                  code: 'Other',
-                  icon: Icons.transgender,
-                  selected: seeking.contains('Other'),
-                  onToggled: onSeekingToggled,
-                ),
-              ],
+  Widget build(BuildContext context) => SingleChildScrollView(
+    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ── I'm looking for ───────────────────────────────────────────
+        _PrefCard(
+          icon: Icons.favorite_outline,
+          title: "I'm looking for",
+          child: Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _GenderChip(
+                label: 'Men',
+                code: 'M',
+                icon: Icons.male,
+                selected: seeking.contains('M'),
+                onToggled: onSeekingToggled,
+              ),
+              _GenderChip(
+                label: 'Women',
+                code: 'F',
+                icon: Icons.female,
+                selected: seeking.contains('F'),
+                onToggled: onSeekingToggled,
+              ),
+              _GenderChip(
+                label: 'Other',
+                code: 'Other',
+                icon: Icons.transgender,
+                selected: seeking.contains('Other'),
+                onToggled: onSeekingToggled,
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        // ── Age range ─────────────────────────────────────────────────
+        _PrefCard(
+          icon: Icons.cake_outlined,
+          title: 'Age range: ${age.start.round()} – ${age.end.round()}',
+          child: SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              activeTrackColor: AppTheme.crystalGoldDeep,
+              thumbColor: AppTheme.crystalGoldDeep,
+              overlayColor: AppTheme.crystalGoldSoft.withValues(alpha: 0.2),
+              inactiveTrackColor: Colors.white.withValues(alpha: 0.2),
+            ),
+            child: RangeSlider(
+              values: age,
+              min: 18,
+              max: 60,
+              divisions: 42,
+              labels: RangeLabels(
+                age.start.round().toString(),
+                age.end.round().toString(),
+              ),
+              onChanged: onAgeChanged,
             ),
           ),
+        ),
 
-          const SizedBox(height: 16),
+        const SizedBox(height: 16),
 
-          // ── Age range ─────────────────────────────────────────────────
-          _PrefCard(
-            icon: Icons.cake_outlined,
-            title: 'Age range: ${age.start.round()} – ${age.end.round()}',
-            child: SliderTheme(
-              data: SliderTheme.of(context).copyWith(
-                activeTrackColor: AppTheme.crystalGoldDeep,
-                thumbColor: AppTheme.crystalGoldDeep,
-                overlayColor: AppTheme.crystalGoldSoft.withValues(alpha: 0.2),
-                inactiveTrackColor: Colors.white.withValues(alpha: 0.2),
-              ),
-              child: RangeSlider(
-                values: age,
-                min: 18,
-                max: 60,
-                divisions: 42,
-                labels: RangeLabels(
-                  age.start.round().toString(),
-                  age.end.round().toString(),
-                ),
-                onChanged: onAgeChanged,
-              ),
+        // ── Max distance ──────────────────────────────────────────────
+        _PrefCard(
+          icon: Icons.location_on_outlined,
+          title: 'Max distance: ${distance.round()} km',
+          child: SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              activeTrackColor: AppTheme.crystalGoldDeep,
+              thumbColor: AppTheme.crystalGoldDeep,
+              overlayColor: AppTheme.crystalGoldSoft.withValues(alpha: 0.2),
+              inactiveTrackColor: Colors.white.withValues(alpha: 0.2),
+            ),
+            child: Slider(
+              value: distance,
+              min: 1,
+              max: 200,
+              divisions: 199,
+              label: '${distance.round()} km',
+              onChanged: onDistanceChanged,
             ),
           ),
+        ),
 
-          const SizedBox(height: 16),
+        const SizedBox(height: 16),
 
-          // ── Max distance ──────────────────────────────────────────────
-          _PrefCard(
-            icon: Icons.location_on_outlined,
-            title: 'Max distance: ${distance.round()} km',
-            child: SliderTheme(
-              data: SliderTheme.of(context).copyWith(
-                activeTrackColor: AppTheme.crystalGoldDeep,
-                thumbColor: AppTheme.crystalGoldDeep,
-                overlayColor: AppTheme.crystalGoldSoft.withValues(alpha: 0.2),
-                inactiveTrackColor: Colors.white.withValues(alpha: 0.2),
+        // ── Intent toggles ────────────────────────────────────────────
+        _PrefCard(
+          icon: Icons.tune_outlined,
+          title: 'Relationship intent',
+          child: Column(
+            children: [
+              _ToggleTile(
+                label: 'Serious relationship only',
+                subtitle: 'Show only users seeking commitment',
+                value: seriousOnly,
+                onChanged: onSeriousChanged,
               ),
-              child: Slider(
-                value: distance,
-                min: 1,
-                max: 200,
-                divisions: 199,
-                label: '${distance.round()} km',
-                onChanged: onDistanceChanged,
+              const Divider(
+                height: 1,
+                color: Colors.white24,
+                indent: 4,
+                endIndent: 4,
               ),
-            ),
+              _ToggleTile(
+                label: 'Verified profiles only',
+                subtitle: 'Filter to ID-verified accounts',
+                value: verifiedOnly,
+                onChanged: onVerifiedChanged,
+              ),
+              const Divider(
+                height: 1,
+                color: Colors.white24,
+                indent: 4,
+                endIndent: 4,
+              ),
+              _ToggleTile(
+                label: 'Hookups only',
+                subtitle: 'Show casual-only profiles',
+                value: hookupOnly,
+                onChanged: onHookupChanged,
+              ),
+            ],
           ),
+        ),
 
-          const SizedBox(height: 16),
-
-          // ── Intent toggles ────────────────────────────────────────────
-          _PrefCard(
-            icon: Icons.tune_outlined,
-            title: 'Relationship intent',
-            child: Column(
-              children: [
-                _ToggleTile(
-                  label: 'Serious relationship only',
-                  subtitle: 'Show only users seeking commitment',
-                  value: seriousOnly,
-                  onChanged: onSeriousChanged,
-                ),
-                const Divider(
-                  height: 1,
-                  color: Colors.white24,
-                  indent: 4,
-                  endIndent: 4,
-                ),
-                _ToggleTile(
-                  label: 'Verified profiles only',
-                  subtitle: 'Filter to ID-verified accounts',
-                  value: verifiedOnly,
-                  onChanged: onVerifiedChanged,
-                ),
-                const Divider(
-                  height: 1,
-                  color: Colors.white24,
-                  indent: 4,
-                  endIndent: 4,
-                ),
-                _ToggleTile(
-                  label: 'Hookups only',
-                  subtitle: 'Show casual-only profiles',
-                  value: hookupOnly,
-                  onChanged: onHookupChanged,
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 24),
-        ],
-      ),
-    );
-  }
+        const SizedBox(height: 24),
+      ],
+    ),
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -801,7 +820,7 @@ class _AdvancedTab extends StatelessWidget {
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(10),
-      borderSide: BorderSide(color: AppTheme.crystalGoldSoft),
+      borderSide: const BorderSide(color: AppTheme.crystalGoldSoft),
     ),
     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
   );
@@ -814,7 +833,7 @@ class _AdvancedTab extends StatelessWidget {
   }) {
     final resolvedValue = options.contains(value) ? value : null;
     return DropdownButtonFormField<String>(
-      value: resolvedValue,
+      initialValue: resolvedValue,
       isExpanded: true,
       dropdownColor: const Color(0xFF3A2800),
       iconEnabledColor: AppTheme.crystalGoldSoft,
@@ -1046,43 +1065,41 @@ class _PrefCard extends StatelessWidget {
   final Widget child;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.10),
-        border: Border.all(
-          color: AppTheme.crystalGoldSoft.withValues(alpha: 0.25),
-        ),
-        borderRadius: BorderRadius.circular(16),
+  Widget build(BuildContext context) => Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Colors.white.withValues(alpha: 0.10),
+      border: Border.all(
+        color: AppTheme.crystalGoldSoft.withValues(alpha: 0.25),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, color: AppTheme.crystalGoldSoft, size: 18),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  title,
-                  style: TextStyle(
-                    color: AppTheme.crystalGoldSoft,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                    letterSpacing: 0.2,
-                  ),
+      borderRadius: BorderRadius.circular(16),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, color: AppTheme.crystalGoldSoft, size: 18),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                  letterSpacing: 0.2,
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          child,
-        ],
-      ),
-    );
-  }
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        child,
+      ],
+    ),
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1102,57 +1119,47 @@ class _GenderChip extends StatelessWidget {
   final String code;
   final IconData icon;
   final bool selected;
-  final void Function(String code, bool selected) onToggled;
+  final void Function(String code, {required bool selected}) onToggled;
 
   @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => onToggled(code, !selected),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
+  Widget build(BuildContext context) => GestureDetector(
+    onTap: () => onToggled(code, selected: !selected),
+    child: AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: selected
+            ? AppTheme.crystalGoldSoft.withValues(alpha: 0.22)
+            : Colors.white.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
           color: selected
-              ? AppTheme.crystalGoldSoft.withValues(alpha: 0.22)
-              : Colors.white.withValues(alpha: 0.07),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: selected
-                ? AppTheme.crystalGoldDeep
-                : Colors.white.withValues(alpha: 0.2),
-            width: selected ? 1.5 : 1,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 18,
-              color: selected ? AppTheme.crystalGoldDeep : Colors.white60,
-            ),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                color: selected ? AppTheme.crystalGoldDeep : Colors.white70,
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
-                fontSize: 14,
-              ),
-            ),
-            if (selected) ...[
-              const SizedBox(width: 6),
-              Icon(
-                Icons.check_circle,
-                size: 14,
-                color: AppTheme.crystalGoldDeep,
-              ),
-            ],
-          ],
+              ? AppTheme.crystalGoldDeep
+              : Colors.white.withValues(alpha: 0.2),
+          width: selected ? 1.5 : 1,
         ),
       ),
-    );
-  }
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 18, color: Colors.white),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
+              fontSize: 14,
+            ),
+          ),
+          if (selected) ...[
+            const SizedBox(width: 6),
+            const Icon(Icons.check_circle, size: 14, color: Colors.white),
+          ],
+        ],
+      ),
+    ),
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1173,40 +1180,38 @@ class _ToggleTile extends StatelessWidget {
   final ValueChanged<bool> onChanged;
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w500,
-                    fontSize: 14,
-                  ),
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 6),
+    child: Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 14,
                 ),
-                Text(
-                  subtitle,
-                  style: const TextStyle(color: Colors.white54, fontSize: 12),
-                ),
-              ],
-            ),
+              ),
+              Text(
+                subtitle,
+                style: const TextStyle(color: Colors.white54, fontSize: 12),
+              ),
+            ],
           ),
-          Switch(
-            value: value,
-            onChanged: onChanged,
-            activeColor: AppTheme.crystalGoldDeep,
-            activeTrackColor: AppTheme.crystalGoldSoft.withValues(alpha: 0.45),
-            inactiveThumbColor: Colors.white54,
-            inactiveTrackColor: Colors.white.withValues(alpha: 0.15),
-          ),
-        ],
-      ),
-    );
-  }
+        ),
+        Switch(
+          value: value,
+          onChanged: onChanged,
+          activeThumbColor: AppTheme.crystalGoldDeep,
+          activeTrackColor: AppTheme.crystalGoldSoft.withValues(alpha: 0.45),
+          inactiveThumbColor: Colors.white54,
+          inactiveTrackColor: Colors.white.withValues(alpha: 0.15),
+        ),
+      ],
+    ),
+  );
 }

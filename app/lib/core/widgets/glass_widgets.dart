@@ -515,6 +515,66 @@ class _GlassButtonState extends State<GlassButton>
   }
 }
 
+/// Compact gold navigation control used by auth/onboarding screens.
+class GoldBackButton extends StatelessWidget {
+  const GoldBackButton({required this.onTap, super.key, this.tooltip});
+
+  final VoidCallback onTap;
+  final String? tooltip;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    label: tooltip ?? 'Back',
+    child: GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        width: 48,
+        height: 48,
+        padding: const EdgeInsets.all(1.1),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          gradient: LinearGradient(
+            colors: [
+              AppTheme.pureGoldHighlight.withValues(alpha: 0.96),
+              AppTheme.pureGoldBright.withValues(alpha: 0.78),
+              Colors.white.withValues(alpha: 0.44),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.pureGoldBright.withValues(alpha: 0.22),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(17),
+            gradient: LinearGradient(
+              colors: [
+                const Color(0xFF6F4B05).withValues(alpha: 0.98),
+                const Color(0xFF2B1A03).withValues(alpha: 0.96),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          child: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: AppTheme.pureGoldHighlight,
+            size: 20,
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
 /// Soft crystal highlight blob to layer over gradient backgrounds.
 class CrystalBloom extends StatelessWidget {
   const CrystalBloom({
@@ -564,28 +624,54 @@ class CrystalScaffold extends StatelessWidget {
     final paddedContent = padding == null
         ? child
         : Padding(padding: padding!, child: child);
-    final content = maxContentWidth == null
-        ? paddedContent
-        : Align(
-            alignment: Alignment.topCenter,
-            child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: maxContentWidth!),
-              child: paddedContent,
-            ),
-          );
 
     return Container(
       decoration: const BoxDecoration(gradient: AppTheme.bgGradient),
-      child: Stack(
-        children: [
-          const CrystalBloom(alignment: Alignment.topRight, size: 260),
-          const CrystalBloom(
-            alignment: Alignment.bottomLeft,
-            size: 240,
-            colors: [Color(0x4DFFFFFF), Color(0x2693C5FF), Color(0x00FFFFFF)],
-          ),
-          Positioned.fill(child: content),
-        ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final viewport = MediaQuery.sizeOf(context);
+          final maxWidth =
+              constraints.hasBoundedWidth &&
+                  constraints.maxWidth.isFinite &&
+                  constraints.maxWidth > 0
+              ? constraints.maxWidth
+              : viewport.width;
+          final maxHeight =
+              constraints.hasBoundedHeight &&
+                  constraints.maxHeight.isFinite &&
+                  constraints.maxHeight > 0
+              ? constraints.maxHeight
+              : viewport.height;
+
+          final contentWidth = maxContentWidth == null
+              ? maxWidth
+              : maxContentWidth!.clamp(0, maxWidth).toDouble();
+
+          return Stack(
+            children: [
+              const CrystalBloom(alignment: Alignment.topRight, size: 260),
+              const CrystalBloom(
+                alignment: Alignment.bottomLeft,
+                size: 240,
+                colors: [
+                  Color(0x4DFFFFFF),
+                  Color(0x2693C5FF),
+                  Color(0x00FFFFFF),
+                ],
+              ),
+              Positioned.fill(
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: SizedBox(
+                    width: contentWidth,
+                    height: maxHeight,
+                    child: paddedContent,
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -608,37 +694,71 @@ class PostLoginBackdrop extends StatelessWidget {
     final paddedContent = padding == null
         ? child
         : Padding(padding: padding!, child: child);
-    final content = maxContentWidth == null
-        ? paddedContent
-        : Align(
-            alignment: Alignment.topCenter,
-            child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: maxContentWidth!),
-              child: paddedContent,
-            ),
-          );
 
     return Container(
       decoration: const BoxDecoration(gradient: AppTheme.postLoginGradient),
-      child: Stack(
-        children: [
-          const CrystalBloom(
-            alignment: Alignment.topRight,
-            size: 300,
-            colors: [Color(0x42FFFFFF), Color(0x2D9ED6FF), Color(0x00FFFFFF)],
-          ),
-          const CrystalBloom(
-            alignment: Alignment.bottomLeft,
-            size: 270,
-            colors: [Color(0x38FFFFFF), Color(0x2667E8F9), Color(0x00FFFFFF)],
-          ),
-          const CrystalBloom(
-            alignment: Alignment.center,
-            size: 220,
-            colors: [Color(0x1FFFFFFF), Color(0x1486EFAC), Color(0x00FFFFFF)],
-          ),
-          Positioned.fill(child: content),
-        ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final viewport = MediaQuery.sizeOf(context);
+          final maxWidth =
+              constraints.hasBoundedWidth &&
+                  constraints.maxWidth.isFinite &&
+                  constraints.maxWidth > 0
+              ? constraints.maxWidth
+              : viewport.width;
+          final maxHeight =
+              constraints.hasBoundedHeight &&
+                  constraints.maxHeight.isFinite &&
+                  constraints.maxHeight > 0
+              ? constraints.maxHeight
+              : viewport.height;
+
+          final contentWidth = maxContentWidth == null
+              ? maxWidth
+              : maxContentWidth!.clamp(0, maxWidth).toDouble();
+
+          return Stack(
+            children: [
+              const CrystalBloom(
+                alignment: Alignment.topRight,
+                size: 300,
+                colors: [
+                  Color(0x42FFFFFF),
+                  Color(0x2D9ED6FF),
+                  Color(0x00FFFFFF),
+                ],
+              ),
+              const CrystalBloom(
+                alignment: Alignment.bottomLeft,
+                size: 270,
+                colors: [
+                  Color(0x38FFFFFF),
+                  Color(0x2667E8F9),
+                  Color(0x00FFFFFF),
+                ],
+              ),
+              const CrystalBloom(
+                alignment: Alignment.center,
+                size: 220,
+                colors: [
+                  Color(0x1FFFFFFF),
+                  Color(0x1486EFAC),
+                  Color(0x00FFFFFF),
+                ],
+              ),
+              Positioned.fill(
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: SizedBox(
+                    width: contentWidth,
+                    height: maxHeight,
+                    child: paddedContent,
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

@@ -69,3 +69,23 @@
 - Flutter state/network patterns are Riverpod providers plus Dio clients under `app/lib/features/**/providers` and `app/lib/core/providers`.
 - `control-panel/control_panel/services/go_client.py` is an API consumer only; it sets `X-Admin-User` and calls `/v1/admin/*` (plus selected wallet endpoints), so do not duplicate Go business logic in Django.
 - Control-panel Kibana embedding reads `KIBANA_BASE_URL`, `KIBANA_DISCOVER_INDEX`, and `KIBANA_DASHBOARD_PATH`; backend ELK indexes logs as `dating-app-logs-*`.
+
+## Golden rules of UI/UX for this product
+- Preserve the existing premium glass/gold visual identity, typography scale, navigation patterns, and hierarchy unless a task explicitly asks for a redesign.
+- Add new features inside the existing information architecture; do not hide hero copy, reorder established content, or move primary CTAs without a product reason.
+- Keep one clear primary action per screen, one secondary path when needed, readable headings, progressive disclosure, and no competing visual weights.
+- Design mobile-first and safe-area-first: every full-screen Flutter surface must respect notches, status bars, bottom gestures, keyboards, and small-height devices.
+- Keep layouts responsive and bounded: avoid Spacer/Expanded in unbounded scroll contexts; constrain width without removing full-height constraints; test phone and tablet breakpoints.
+- Use accessible touch and text defaults: minimum 44 px touch targets, adequate spacing, readable contrast, stable button labels, and labels for meaningful controls.
+- Protect user progress: never reset, overwrite, or ask again for already-completed profile/signup information unless the user explicitly edits it.
+- Prefer graceful states: every network flow needs loading, success, retry, empty, validation, and error states that fit the same visual system.
+- Validate visually after UI changes: run focused analyzer/tests and reinstall or hot restart the app when emulator UI is part of the request.
+
+## Clean architecture and software architecture rules
+- Keep presentation, state orchestration, domain/application logic, infrastructure, and persistence separate; UI widgets should not contain durable business rules or direct storage details.
+- Flutter screens compose UI only; Riverpod notifiers/providers coordinate state and API calls; models stay serializable and generated files are not hand-edited.
+- Backend gateway stays thin; Mobile BFF handles mobile orchestration; module application services own use-case logic; infrastructure repositories own Supabase/Postgres details.
+- New write paths must be durable-first, idempotent where retry is possible, observable through structured logs/events, and documented in OpenAPI.
+- Preserve backwards compatibility for client-visible routes and payloads; route aliases must use the existing deprecation helper instead of silent removal.
+- Prefer small, reversible changes with focused tests over broad rewrites; avoid unrelated formatting or churn.
+- Before implementing, read these instructions and relevant existing code, identify the current pattern, and extend that pattern rather than inventing a parallel architecture.

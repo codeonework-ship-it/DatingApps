@@ -18,6 +18,7 @@ import 'features/auth/screens/welcome_screen.dart';
 import 'features/common/screens/main_navigation_screen.dart';
 import 'features/profile/providers/profile_completion_provider.dart';
 import 'features/profile/screens/setup/profile_setup_entry_screen.dart';
+
 Future<void> _bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -124,6 +125,10 @@ class _AppGate extends ConsumerWidget {
       data: (accepted) {
         if (!accepted) {
           return const UserAgreementScreen();
+        }
+
+        if (!authState.isSignupFlow) {
+          return const MainNavigationScreen();
         }
 
         final completion = ref.watch(profileCompletionProvider);

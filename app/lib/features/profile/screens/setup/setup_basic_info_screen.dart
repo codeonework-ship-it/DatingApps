@@ -9,7 +9,7 @@ import '../../providers/profile_setup_provider.dart';
 import 'setup_photos_screen.dart';
 import 'setup_shared_widgets.dart';
 
-/// Step 1 of 4 — name, date of birth, gender, optional bio.
+/// Step 1 of 4 — name, date of birth, gender.
 ///
 /// Layout: Scaffold → bgGradient → SafeArea → Column(header, scrollable form).
 /// All data is persisted to the Go BFF via [ProfileSetupNotifier.saveBasicInfo].
@@ -23,7 +23,6 @@ class SetupBasicInfoScreen extends ConsumerStatefulWidget {
 
 class _SetupBasicInfoScreenState extends ConsumerState<SetupBasicInfoScreen> {
   final _nameController = TextEditingController();
-  final _bioController = TextEditingController();
 
   int? _dobDay;
   int? _dobMonth;
@@ -47,7 +46,6 @@ class _SetupBasicInfoScreenState extends ConsumerState<SetupBasicInfoScreen> {
   @override
   void dispose() {
     _nameController.dispose();
-    _bioController.dispose();
     super.dispose();
   }
 
@@ -81,16 +79,6 @@ class _SetupBasicInfoScreenState extends ConsumerState<SetupBasicInfoScreen> {
         dateOfBirth: _dob!,
         gender: _gender,
       );
-      final bio = _bioController.text.trim();
-      if (bio.isNotEmpty) {
-        await notifier.saveAbout(
-          bio: bio,
-          heightCm: null,
-          education: null,
-          profession: null,
-          incomeRange: null,
-        );
-      }
       if (!mounted) return;
       SchedulerBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
@@ -122,7 +110,6 @@ class _SetupBasicInfoScreenState extends ConsumerState<SetupBasicInfoScreen> {
       if (_didInitialize) return;
       _didInitialize = true;
       _nameController.text = draft.name;
-      _bioController.text = draft.bio;
       if (draft.dateOfBirth != null) {
         _dobDay = draft.dateOfBirth!.day;
         _dobMonth = draft.dateOfBirth!.month;
@@ -190,7 +177,6 @@ class _SetupBasicInfoScreenState extends ConsumerState<SetupBasicInfoScreen> {
                               ),
                               data: (_) => _BasicInfoForm(
                                 nameController: _nameController,
-                                bioController: _bioController,
                                 dobDay: _dobDay,
                                 dobMonth: _dobMonth,
                                 dobYear: _dobYear,
@@ -242,7 +228,6 @@ class _SetupBasicInfoScreenState extends ConsumerState<SetupBasicInfoScreen> {
 class _BasicInfoForm extends StatelessWidget {
   const _BasicInfoForm({
     required this.nameController,
-    required this.bioController,
     required this.dobDay,
     required this.dobMonth,
     required this.dobYear,
@@ -257,7 +242,6 @@ class _BasicInfoForm extends StatelessWidget {
   });
 
   final TextEditingController nameController;
-  final TextEditingController bioController;
   final int? dobDay;
   final int? dobMonth;
   final int? dobYear;
@@ -377,38 +361,6 @@ class _BasicInfoForm extends StatelessWidget {
             ),
           ),
         ],
-      ),
-
-      const SizedBox(height: 32),
-      setupSectionDivider(),
-      const SizedBox(height: 20),
-      setupFormLabel(
-        context,
-        'About you (optional)',
-        Icons.auto_stories_rounded,
-      ),
-      const SizedBox(height: 8),
-      TextField(
-        controller: bioController,
-        maxLength: ValidationConstants.maxBioLength,
-        maxLines: 4,
-        minLines: 3,
-        textCapitalization: TextCapitalization.sentences,
-        enabled: !isSaving,
-        onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
-        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-          color: Colors.white,
-          fontWeight: FontWeight.w400,
-        ),
-        decoration:
-            glassInputDecoration(
-              hint: 'Tell people a little about yourself…',
-            ).copyWith(
-              counterStyle: TextStyle(
-                color: Colors.white.withValues(alpha: 0.45),
-                fontSize: 11,
-              ),
-            ),
       ),
 
       const SizedBox(height: 32),

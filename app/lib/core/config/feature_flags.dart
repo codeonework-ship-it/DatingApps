@@ -14,12 +14,14 @@ const bool kUseMockDiscoveryData = bool.fromEnvironment(
   defaultValue: false,
 );
 
-/// Temporary auth shortcut: bypass OTP verification step.
+/// Temporary auth shortcut: accept the local demo OTP code while pre-live.
 /// Disable with: `--dart-define=BYPASS_OTP_VALIDATION=false`.
 const bool kBypassOtpValidation = bool.fromEnvironment(
   'BYPASS_OTP_VALIDATION',
-  defaultValue: false,
+  defaultValue: true,
 );
+
+const String kOtpBypassCode = '123456';
 
 const bool kFeatureEngagementUnlockMvp = bool.fromEnvironment(
   'FEATURE_ENGAGEMENT_UNLOCK_MVP',
