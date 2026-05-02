@@ -132,54 +132,78 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
       ),
       bottomNavigationBar: SafeArea(
         top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(
-                maxWidth: AppTheme.contentMaxWidth,
-              ),
-              child: GlassContainer(
-                blur: 12,
-                opacity: 0.72,
-                padding: EdgeInsets.zero,
-                borderRadius: const BorderRadius.all(Radius.circular(22)),
-                backgroundColor: Colors.white.withValues(alpha: 0.74),
-                child: Theme(
-                  data: Theme.of(
-                    context,
-                  ).copyWith(canvasColor: Colors.transparent),
-                  child: BottomNavigationBar(
-                    currentIndex: selectedIndex,
-                    onTap: _setSelectedIndex,
-                    type: BottomNavigationBarType.fixed,
-                    elevation: 0,
-                    backgroundColor: Colors.transparent,
-                    selectedItemColor: AppTheme.primaryRed,
-                    unselectedItemColor: AppTheme.textHint,
-                    items: const [
-                      BottomNavigationBarItem(
-                        icon: Icon(Icons.home_rounded),
-                        label: 'Discover',
-                      ),
-                      BottomNavigationBarItem(
-                        icon: Icon(Icons.favorite_rounded),
-                        label: 'Matches',
-                      ),
-                      BottomNavigationBarItem(
-                        icon: Icon(Icons.bolt_rounded),
-                        label: 'Engagement',
-                      ),
-                      BottomNavigationBarItem(
-                        icon: Icon(Icons.person_rounded),
-                        label: 'Profile',
-                      ),
-                      BottomNavigationBarItem(
-                        icon: Icon(Icons.settings_rounded),
-                        label: 'Settings',
-                      ),
-                    ],
+        minimum: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+        child: Align(
+          alignment: Alignment.bottomCenter,
+          heightFactor: 1,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              maxWidth: AppTheme.contentMaxWidth,
+            ),
+            child: GlassContainer(
+              blur: 14,
+              opacity: 0.76,
+              padding: EdgeInsets.zero,
+              borderRadius: const BorderRadius.all(Radius.circular(24)),
+              backgroundColor: Colors.white.withValues(alpha: 0.78),
+              shadows: [
+                BoxShadow(
+                  color: AppTheme.crystalGoldDeep.withValues(alpha: 0.16),
+                  blurRadius: 28,
+                  offset: const Offset(0, 12),
+                ),
+                BoxShadow(
+                  color: Colors.white.withValues(alpha: 0.32),
+                  blurRadius: 14,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+              child: Theme(
+                data: Theme.of(context).copyWith(
+                  canvasColor: Colors.transparent,
+                  splashColor: Colors.transparent,
+                  highlightColor: Colors.transparent,
+                ),
+                child: BottomNavigationBar(
+                  currentIndex: selectedIndex,
+                  onTap: _setSelectedIndex,
+                  type: BottomNavigationBarType.fixed,
+                  elevation: 0,
+                  backgroundColor: Colors.transparent,
+                  selectedItemColor: AppTheme.primaryRed,
+                  unselectedItemColor: AppTheme.textHint,
+                  selectedFontSize: 11,
+                  unselectedFontSize: 11,
+                  selectedLabelStyle: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.1,
                   ),
+                  unselectedLabelStyle: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.1,
+                  ),
+                  items: const [
+                    BottomNavigationBarItem(
+                      icon: Icon(Icons.home_rounded),
+                      label: 'Discover',
+                    ),
+                    BottomNavigationBarItem(
+                      icon: Icon(Icons.favorite_rounded),
+                      label: 'Matches',
+                    ),
+                    BottomNavigationBarItem(
+                      icon: Icon(Icons.bolt_rounded),
+                      label: 'Engage',
+                    ),
+                    BottomNavigationBarItem(
+                      icon: Icon(Icons.person_rounded),
+                      label: 'Profile',
+                    ),
+                    BottomNavigationBarItem(
+                      icon: Icon(Icons.settings_rounded),
+                      label: 'Settings',
+                    ),
+                  ],
                 ),
               ),
             ),
