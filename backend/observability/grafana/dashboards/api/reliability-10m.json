@@ -1,0 +1,290 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "id": 1,
+      "title": "BFF request rate by status class",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum by (status_class) (rate(verified_dating_http_requests_total{service=\"mobile_bff\"}[5m]))",
+          "legendFormat": "{{status_class}}",
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "id": 2,
+      "title": "BFF HTTP latency percentiles",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum by (le) (rate(verified_dating_http_request_duration_seconds_bucket{service=\"mobile_bff\",route!~\"/metrics|/healthz|/readyz|/debug/.*\"}[5m])))",
+          "legendFormat": "p50",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(verified_dating_http_request_duration_seconds_bucket{service=\"mobile_bff\",route!~\"/metrics|/healthz|/readyz|/debug/.*\"}[5m])))",
+          "legendFormat": "p95",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(verified_dating_http_request_duration_seconds_bucket{service=\"mobile_bff\",route!~\"/metrics|/healthz|/readyz|/debug/.*\"}[5m])))",
+          "legendFormat": "p99",
+          "refId": "C"
+        }
+      ],
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      }
+    },
+    {
+      "id": 3,
+      "title": "Timeouts by tier and domain",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum by (tier, domain) (rate(verified_dating_reliability_request_timeouts_total[5m]))",
+          "legendFormat": "{{tier}} / {{domain}}",
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 8
+      }
+    },
+    {
+      "id": 4,
+      "title": "Bulkhead shedding by domain",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum by (domain) (rate(verified_dating_reliability_requests_shed_total[5m]))",
+          "legendFormat": "{{domain}}",
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 8
+      }
+    },
+    {
+      "id": 5,
+      "title": "Idempotency replays by domain",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum by (domain) (rate(verified_dating_reliability_idempotency_replays_total[5m]))",
+          "legendFormat": "{{domain}}",
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 8
+      }
+    },
+    {
+      "id": 6,
+      "title": "Notification queue",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "verified_dating_notification_queue_depth",
+          "legendFormat": "pending",
+          "refId": "A"
+        },
+        {
+          "expr": "verified_dating_notification_processing",
+          "legendFormat": "processing",
+          "refId": "B"
+        },
+        {
+          "expr": "verified_dating_notification_dead_letters",
+          "legendFormat": "dead letters",
+          "refId": "C"
+        }
+      ],
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 16
+      }
+    },
+    {
+      "id": 7,
+      "title": "Oldest notification age",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "verified_dating_notification_oldest_pending_age_seconds",
+          "legendFormat": "seconds",
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 16
+      }
+    },
+    {
+      "id": 8,
+      "title": "Push provider success (15m)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "verified_dating_notification_push_success_percent_15m",
+          "legendFormat": "success %",
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 24
+      }
+    },
+    {
+      "id": 9,
+      "title": "Push delivery p95 (15m)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "verified_dating_notification_push_p95_latency_ms_15m",
+          "legendFormat": "p95 ms",
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 24
+      }
+    },
+    {
+      "id": 10,
+      "title": "Shared idempotency health",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "verified_dating_reliability_idempotency_processing",
+          "legendFormat": "processing",
+          "refId": "A"
+        },
+        {
+          "expr": "verified_dating_reliability_idempotency_expired_leases",
+          "legendFormat": "expired leases",
+          "refId": "B"
+        },
+        {
+          "expr": "verified_dating_reliability_idempotency_retention_backlog",
+          "legendFormat": "retention backlog",
+          "refId": "C"
+        }
+      ],
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 32
+      }
+    },
+    {
+      "id": 11,
+      "title": "Idempotency payload conflicts",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum by (domain) (rate(verified_dating_reliability_idempotency_conflicts_total[5m]))",
+          "legendFormat": "{{domain}}",
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 32
+      }
+    },
+    {
+      "id": 12,
+      "title": "BFF PostgreSQL pools",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "verified_dating_reliability_postgres_open_connections",
+          "legendFormat": "open",
+          "refId": "A"
+        },
+        {
+          "expr": "verified_dating_reliability_postgres_in_use_connections",
+          "legendFormat": "in use",
+          "refId": "B"
+        },
+        {
+          "expr": "verified_dating_db_pool_in_use_connections{job=\"connect-mobile-bff\"}",
+          "legendFormat": "{{pool}} in use (all pools)",
+          "refId": "C"
+        },
+        {
+          "expr": "verified_dating_db_pool_max_connections{job=\"connect-mobile-bff\"}",
+          "legendFormat": "{{pool}} max",
+          "refId": "D"
+        }
+      ],
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 40
+      }
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": [
+    "connect",
+    "native-postgres",
+    "reliability",
+    "verified-dating"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timezone": "browser",
+  "title": "Connect \u00b7 Reliability guardrails",
+  "uid": "verified-dating-reliability",
+  "version": 1
+}

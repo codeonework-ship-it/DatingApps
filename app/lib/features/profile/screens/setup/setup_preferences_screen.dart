@@ -1,12 +1,17 @@
+import '../../../swipe/providers/curated_daily_set_provider.dart';
+import 'package:flutter/foundation.dart';
+import '../../../../core/platform/browser_context.dart';
 import 'package:flutter/material.dart';
+
+import '../../../../core/constants/preference_limits.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/glass_widgets.dart';
 import '../../../common/screens/main_navigation_screen.dart';
 import '../../providers/preference_master_data_provider.dart';
 import '../../providers/profile_completion_provider.dart';
 import '../../providers/profile_setup_provider.dart';
+import '../../../swipe/providers/swipe_provider.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SetupPreferencesScreen — two-tab Crystal Gold glass UI (Basic | Advanced)
@@ -107,28 +112,33 @@ class _SetupPreferencesScreenState extends ConsumerState<SetupPreferencesScreen>
     return draftAsync.when(
       loading: () => Scaffold(
         body: Container(
-          decoration: const BoxDecoration(gradient: AppTheme.bgGradient),
-          child: const Center(
-            child: CircularProgressIndicator(color: AppTheme.crystalGoldSoft),
+          color: Theme.of(context).scaffoldBackgroundColor,
+          child: Center(
+            child: CircularProgressIndicator(
+              color: Theme.of(context).colorScheme.primary,
+            ),
           ),
         ),
       ),
       error: (_, _) => Scaffold(
         body: Container(
-          decoration: const BoxDecoration(gradient: AppTheme.bgGradient),
+          color: Theme.of(context).scaffoldBackgroundColor,
           child: Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(
+                Icon(
                   Icons.error_outline,
-                  color: AppTheme.crystalGoldSoft,
+                  color: Theme.of(context).colorScheme.error,
                   size: 48,
                 ),
                 const SizedBox(height: 16),
-                const Text(
+                Text(
                   'Failed to load preferences',
-                  style: TextStyle(color: Colors.white70, fontSize: 16),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontSize: 16,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 GlassButton(
@@ -155,11 +165,19 @@ class _SetupPreferencesScreenState extends ConsumerState<SetupPreferencesScreen>
     if (_didInitialize) {
       return;
     }
+    final lowerAge = draft.minAgeYears
+        .clamp(PreferenceLimits.minAge, PreferenceLimits.maxAge)
+        .toDouble();
+    final upperAge = draft.maxAgeYears
+        .clamp(PreferenceLimits.minAge, PreferenceLimits.maxAge)
+        .toDouble();
     _age = RangeValues(
-      draft.minAgeYears.toDouble(),
-      draft.maxAgeYears.toDouble(),
+      lowerAge <= upperAge ? lowerAge : upperAge,
+      upperAge >= lowerAge ? upperAge : lowerAge,
     );
-    _distance = draft.maxDistanceKm.toDouble();
+    _distance = draft.maxDistanceKm
+        .clamp(PreferenceLimits.minDistanceKm, PreferenceLimits.maxDistanceKm)
+        .toDouble();
     _seriousOnly = draft.seriousOnly;
     _verifiedOnly = draft.verifiedOnly;
     _hookupOnly = draft.hookupOnly;
@@ -218,7 +236,7 @@ class _SetupPreferencesScreenState extends ConsumerState<SetupPreferencesScreen>
     bool isOffline,
   ) => Scaffold(
     body: Container(
-      decoration: const BoxDecoration(gradient: AppTheme.bgGradient),
+      color: Theme.of(context).scaffoldBackgroundColor,
       child: SafeArea(
         child: Column(
           children: [
@@ -226,16 +244,16 @@ class _SetupPreferencesScreenState extends ConsumerState<SetupPreferencesScreen>
             if (isOffline)
               Container(
                 width: double.infinity,
-                color: AppTheme.primaryRed,
+                color: Theme.of(context).colorScheme.primary,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 12,
                   vertical: 8,
                 ),
-                child: const Text(
+                child: Text(
                   'Offline mode — some data may be outdated.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onPrimary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -247,9 +265,9 @@ class _SetupPreferencesScreenState extends ConsumerState<SetupPreferencesScreen>
               child: Row(
                 children: [
                   IconButton(
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.arrow_back_ios_new,
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                     onPressed: _isSaving
                         ? null
@@ -258,8 +276,8 @@ class _SetupPreferencesScreenState extends ConsumerState<SetupPreferencesScreen>
                   Expanded(
                     child: Text(
                       _isSetupFlow ? 'Your Preferences' : 'Edit Preferences',
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
                         fontSize: 24,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 0.3,
@@ -367,13 +385,26 @@ class _SetupPreferencesScreenState extends ConsumerState<SetupPreferencesScreen>
             // ── save button ────────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-              child: GlassButton(
+              child: Semantics(
                 label: _isSetupFlow
-                    ? 'Finish & Find Matches'
-                    : 'Save Preferences',
-                shinyEffect: _isSetupFlow,
-                isLoading: _isSaving,
-                onPressed: _isSaving ? null : () => _handlePrimaryAction(draft),
+                    ? 'qa.setup.preferences.finish_button'
+                    : 'qa.setup.preferences.save_button',
+                button: true,
+                child: GlassButton(
+                  key: ValueKey<String>(
+                    _isSetupFlow
+                        ? 'qa.setup.preferences.finish_button'
+                        : 'qa.setup.preferences.save_button',
+                  ),
+                  label: _isSetupFlow
+                      ? 'Finish & Find Matches'
+                      : 'Save Preferences',
+                  shinyEffect: _isSetupFlow,
+                  isLoading: _isSaving,
+                  onPressed: _isSaving
+                      ? null
+                      : () => _handlePrimaryAction(draft),
+                ),
               ),
             ),
           ],
@@ -430,8 +461,14 @@ class _SetupPreferencesScreenState extends ConsumerState<SetupPreferencesScreen>
       try {
         await _savePreferencesAndLifestyle(draft);
       } on Exception {
-        // Draft save is best effort when navigating backward; the user can
-        // correct and finish later without losing already persisted setup data.
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Could not save your changes. Please try again.'),
+            ),
+          );
+        }
+        return;
       } finally {
         if (mounted) {
           setState(() => _isSaving = false);
@@ -439,7 +476,11 @@ class _SetupPreferencesScreenState extends ConsumerState<SetupPreferencesScreen>
       }
     }
     if (mounted) {
-      Navigator.of(context).pop();
+      if (kIsWeb && !Navigator.of(context).canPop()) {
+        setWebRoute('/discover');
+      } else {
+        Navigator.of(context).pop();
+      }
     }
   }
 
@@ -451,7 +492,7 @@ class _SetupPreferencesScreenState extends ConsumerState<SetupPreferencesScreen>
           minAgeYears: _age.start.round(),
           maxAgeYears: _age.end.round(),
           maxDistanceKm: _distance.round(),
-          educationFilter: const [],
+          educationFilter: draft.educationFilter,
           seriousOnly: _seriousOnly,
           verifiedOnly: _verifiedOnly,
           country: _selectedCountry,
@@ -467,6 +508,9 @@ class _SetupPreferencesScreenState extends ConsumerState<SetupPreferencesScreen>
           intentTags: _parseTags(_intentTagsController.text),
           languageTags: _selectedLanguage == null
               ? const <String>[]
+              : draft.languageTags.isNotEmpty &&
+                    _selectedLanguage == draft.languageTags.first
+              ? draft.languageTags
               : <String>[_selectedLanguage!],
           petPreference: _nullableTrim(_petPreferenceController.text),
           workoutFrequency: _selectedWorkoutFrequency,
@@ -490,16 +534,30 @@ class _SetupPreferencesScreenState extends ConsumerState<SetupPreferencesScreen>
   }
 
   void _navigateAfterSave() {
+    ref.invalidate(swipeNotifierProvider);
+    ref.invalidate(curatedDailySetProvider);
     if (!mounted) {
+      return;
+    }
+    if (kIsWeb && !_isSetupFlow && !Navigator.of(context).canPop()) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Preferences saved.')));
       return;
     }
     if (_isSetupFlow) {
       ref.read(mainNavigationIndexProvider.notifier).state = 0;
+      if (kIsWeb) {
+        setWebRoute('/discover');
+        Navigator.of(context).popUntil((route) => route.isFirst);
+        return;
+      }
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute<void>(builder: (_) => const MainNavigationScreen()),
         (route) => false,
       );
     } else {
+      ref.read(mainNavigationIndexProvider.notifier).state = 0;
       Navigator.of(context).pop();
     }
   }
@@ -527,36 +585,37 @@ class _GlassTabBar extends StatelessWidget {
   final TabController controller;
 
   @override
-  Widget build(BuildContext context) => Container(
-    decoration: BoxDecoration(
-      color: Colors.white.withValues(alpha: 0.12),
-      border: Border.all(
-        color: AppTheme.crystalGoldSoft.withValues(alpha: 0.35),
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        border: Border.all(color: scheme.outlineVariant),
+        borderRadius: BorderRadius.circular(14),
       ),
-      borderRadius: BorderRadius.circular(14),
-    ),
-    child: TabBar(
-      controller: controller,
-      dividerHeight: 0,
-      indicatorSize: TabBarIndicatorSize.tab,
-      indicator: BoxDecoration(
-        color: AppTheme.crystalGoldSoft.withValues(alpha: 0.25),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.crystalGoldDeep),
+      child: TabBar(
+        controller: controller,
+        dividerHeight: 0,
+        indicatorSize: TabBarIndicatorSize.tab,
+        indicator: BoxDecoration(
+          color: scheme.primaryContainer,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: scheme.primary),
+        ),
+        labelColor: scheme.onPrimaryContainer,
+        unselectedLabelColor: scheme.onSurfaceVariant,
+        labelStyle: const TextStyle(
+          fontWeight: FontWeight.w700,
+          fontSize: 14,
+          letterSpacing: 0.4,
+        ),
+        tabs: const [
+          Tab(text: 'Basic'),
+          Tab(text: 'Advanced'),
+        ],
       ),
-      labelColor: Colors.white,
-      unselectedLabelColor: Colors.white70,
-      labelStyle: const TextStyle(
-        fontWeight: FontWeight.w700,
-        fontSize: 14,
-        letterSpacing: 0.4,
-      ),
-      tabs: const [
-        Tab(text: 'Basic'),
-        Tab(text: 'Advanced'),
-      ],
-    ),
-  );
+    );
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -639,16 +698,18 @@ class _BasicTab extends StatelessWidget {
           title: 'Age range: ${age.start.round()} – ${age.end.round()}',
           child: SliderTheme(
             data: SliderTheme.of(context).copyWith(
-              activeTrackColor: AppTheme.crystalGoldDeep,
-              thumbColor: AppTheme.crystalGoldDeep,
-              overlayColor: AppTheme.crystalGoldSoft.withValues(alpha: 0.2),
-              inactiveTrackColor: Colors.white.withValues(alpha: 0.2),
+              activeTrackColor: Theme.of(context).colorScheme.primary,
+              thumbColor: Theme.of(context).colorScheme.primary,
+              overlayColor: Theme.of(
+                context,
+              ).colorScheme.primary.withValues(alpha: 0.2),
+              inactiveTrackColor: Theme.of(context).colorScheme.outlineVariant,
             ),
             child: RangeSlider(
               values: age,
-              min: 18,
-              max: 60,
-              divisions: 42,
+              min: PreferenceLimits.minAge,
+              max: PreferenceLimits.maxAge,
+              divisions: PreferenceLimits.ageDivisions,
               labels: RangeLabels(
                 age.start.round().toString(),
                 age.end.round().toString(),
@@ -666,16 +727,18 @@ class _BasicTab extends StatelessWidget {
           title: 'Max distance: ${distance.round()} km',
           child: SliderTheme(
             data: SliderTheme.of(context).copyWith(
-              activeTrackColor: AppTheme.crystalGoldDeep,
-              thumbColor: AppTheme.crystalGoldDeep,
-              overlayColor: AppTheme.crystalGoldSoft.withValues(alpha: 0.2),
-              inactiveTrackColor: Colors.white.withValues(alpha: 0.2),
+              activeTrackColor: Theme.of(context).colorScheme.primary,
+              thumbColor: Theme.of(context).colorScheme.primary,
+              overlayColor: Theme.of(
+                context,
+              ).colorScheme.primary.withValues(alpha: 0.2),
+              inactiveTrackColor: Theme.of(context).colorScheme.outlineVariant,
             ),
             child: Slider(
               value: distance,
-              min: 1,
-              max: 200,
-              divisions: 199,
+              min: PreferenceLimits.minDistanceKm,
+              max: PreferenceLimits.maxDistanceKm,
+              divisions: PreferenceLimits.distanceDivisions,
               label: '${distance.round()} km',
               onChanged: onDistanceChanged,
             ),
@@ -692,30 +755,33 @@ class _BasicTab extends StatelessWidget {
             children: [
               _ToggleTile(
                 label: 'Serious relationship only',
+                semanticLabel: 'qa.setup.preferences.serious_only_toggle',
                 subtitle: 'Show only users seeking commitment',
                 value: seriousOnly,
                 onChanged: onSeriousChanged,
               ),
-              const Divider(
+              Divider(
                 height: 1,
-                color: Colors.white24,
+                color: Theme.of(context).colorScheme.outlineVariant,
                 indent: 4,
                 endIndent: 4,
               ),
               _ToggleTile(
                 label: 'Verified profiles only',
+                semanticLabel: 'qa.setup.preferences.verified_only_toggle',
                 subtitle: 'Filter to ID-verified accounts',
                 value: verifiedOnly,
                 onChanged: onVerifiedChanged,
               ),
-              const Divider(
+              Divider(
                 height: 1,
-                color: Colors.white24,
+                color: Theme.of(context).colorScheme.outlineVariant,
                 indent: 4,
                 endIndent: 4,
               ),
               _ToggleTile(
                 label: 'Hookups only',
+                semanticLabel: 'qa.setup.preferences.hookup_only_toggle',
                 subtitle: 'Show casual-only profiles',
                 value: hookupOnly,
                 onChanged: onHookupChanged,
@@ -809,23 +875,28 @@ class _AdvancedTab extends StatelessWidget {
   final ValueChanged<String?> onTravelStyleChanged;
   final ValueChanged<String?> onPoliticalComfortRangeChanged;
 
-  static InputDecoration _fieldDecor(String label) => InputDecoration(
-    labelText: label,
-    labelStyle: const TextStyle(color: Colors.white70, fontSize: 13),
-    filled: true,
-    fillColor: Colors.white.withValues(alpha: 0.07),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(10),
-      borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(10),
-      borderSide: const BorderSide(color: AppTheme.crystalGoldSoft),
-    ),
-    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-  );
+  static InputDecoration _fieldDecor(ColorScheme scheme, String label) =>
+      InputDecoration(
+        labelText: label,
+        labelStyle: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
+        filled: true,
+        fillColor: scheme.surface,
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: scheme.outlineVariant),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: scheme.primary),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
+      );
 
   Widget _dropdown({
+    required ColorScheme scheme,
     required String label,
     required String? value,
     required List<String> options,
@@ -835,10 +906,10 @@ class _AdvancedTab extends StatelessWidget {
     return DropdownButtonFormField<String>(
       initialValue: resolvedValue,
       isExpanded: true,
-      dropdownColor: const Color(0xFF3A2800),
-      iconEnabledColor: AppTheme.crystalGoldSoft,
-      decoration: _fieldDecor(label),
-      style: const TextStyle(color: Colors.white, fontSize: 14),
+      dropdownColor: scheme.surface,
+      iconEnabledColor: scheme.primary,
+      decoration: _fieldDecor(scheme, label),
+      style: TextStyle(color: scheme.onSurface, fontSize: 14),
       items: options
           .map(
             (item) => DropdownMenuItem<String>(
@@ -857,6 +928,7 @@ class _AdvancedTab extends StatelessWidget {
         masterData.statesByCountry[selectedCountry] ?? const <String>[];
     final cities = masterData.citiesByState[selectedState] ?? const <String>[];
     final resolvedCity = cities.contains(selectedCity) ? selectedCity : null;
+    final scheme = Theme.of(context).colorScheme;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -870,6 +942,7 @@ class _AdvancedTab extends StatelessWidget {
             child: Column(
               children: [
                 _dropdown(
+                  scheme: scheme,
                   label: 'Country',
                   value: selectedCountry,
                   options: masterData.countries,
@@ -877,6 +950,7 @@ class _AdvancedTab extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 _dropdown(
+                  scheme: scheme,
                   label: 'State / Region',
                   value: states.contains(selectedState) ? selectedState : null,
                   options: states,
@@ -884,6 +958,7 @@ class _AdvancedTab extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 _dropdown(
+                  scheme: scheme,
                   label: 'City',
                   value: resolvedCity,
                   options: cities,
@@ -902,6 +977,7 @@ class _AdvancedTab extends StatelessWidget {
             child: Column(
               children: [
                 _dropdown(
+                  scheme: scheme,
                   label: 'Religion preference',
                   value: selectedReligion,
                   options: masterData.religions,
@@ -909,6 +985,7 @@ class _AdvancedTab extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 _dropdown(
+                  scheme: scheme,
                   label: 'Mother tongue',
                   value: selectedMotherTongue,
                   options: masterData.motherTongues,
@@ -916,6 +993,7 @@ class _AdvancedTab extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 _dropdown(
+                  scheme: scheme,
                   label: 'Language',
                   value: selectedLanguage,
                   options: masterData.languages,
@@ -934,6 +1012,7 @@ class _AdvancedTab extends StatelessWidget {
             child: Column(
               children: [
                 _dropdown(
+                  scheme: scheme,
                   label: 'Diet preference',
                   value: selectedDietPreference,
                   options: masterData.dietPreferences,
@@ -941,6 +1020,7 @@ class _AdvancedTab extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 _dropdown(
+                  scheme: scheme,
                   label: 'Workout frequency',
                   value: selectedWorkoutFrequency,
                   options: masterData.workoutFrequencies,
@@ -948,6 +1028,7 @@ class _AdvancedTab extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 _dropdown(
+                  scheme: scheme,
                   label: 'Diet type',
                   value: selectedDietType,
                   options: masterData.dietTypes,
@@ -955,6 +1036,7 @@ class _AdvancedTab extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 _dropdown(
+                  scheme: scheme,
                   label: 'Sleep schedule',
                   value: selectedSleepSchedule,
                   options: masterData.sleepSchedules,
@@ -962,6 +1044,7 @@ class _AdvancedTab extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 _dropdown(
+                  scheme: scheme,
                   label: 'Travel style',
                   value: selectedTravelStyle,
                   options: masterData.travelStyles,
@@ -969,6 +1052,7 @@ class _AdvancedTab extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 _dropdown(
+                  scheme: scheme,
                   label: 'Political comfort range',
                   value: selectedPoliticalComfortRange,
                   options: masterData.politicalComfortRanges,
@@ -988,40 +1072,76 @@ class _AdvancedTab extends StatelessWidget {
               children: [
                 TextField(
                   controller: instagramController,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: _fieldDecor('Instagram handle (without @)'),
+                  style: TextStyle(color: scheme.onSurface),
+                  decoration: _fieldDecor(
+                    scheme,
+                    'Instagram handle (without @)',
+                  ),
                 ),
                 const SizedBox(height: 10),
                 TextField(
                   controller: intentTagsController,
-                  style: const TextStyle(color: Colors.white),
+                  style: TextStyle(color: scheme.onSurface),
                   decoration: _fieldDecor(
+                    scheme,
                     'Intent tags (long-term, marriage, casual…)',
                   ),
                 ),
                 const SizedBox(height: 10),
                 TextField(
                   controller: hobbiesController,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: _fieldDecor('Hobbies (comma-separated)'),
+                  style: TextStyle(color: scheme.onSurface),
+                  decoration: _fieldDecor(scheme, 'Hobbies (comma-separated)'),
                 ),
                 const SizedBox(height: 10),
                 TextField(
                   controller: booksController,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: _fieldDecor('Favourite books (comma-separated)'),
+                  style: TextStyle(color: scheme.onSurface),
+                  decoration: _fieldDecor(
+                    scheme,
+                    'Favourite books (comma-separated)',
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: novelsController,
+                  style: TextStyle(color: scheme.onSurface),
+                  decoration: _fieldDecor(
+                    scheme,
+                    'Favourite novels (comma-separated)',
+                  ),
                 ),
                 const SizedBox(height: 10),
                 TextField(
                   controller: songsController,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: _fieldDecor('Favourite songs (comma-separated)'),
+                  style: TextStyle(color: scheme.onSurface),
+                  decoration: _fieldDecor(
+                    scheme,
+                    'Favourite songs (comma-separated)',
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: extraCurricularController,
+                  style: TextStyle(color: scheme.onSurface),
+                  decoration: _fieldDecor(
+                    scheme,
+                    'Extra-curricular activities (comma-separated)',
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: additionalInfoController,
+                  style: TextStyle(color: scheme.onSurface),
+                  minLines: 2,
+                  maxLines: 4,
+                  decoration: _fieldDecor(scheme, 'Additional information'),
                 ),
                 const SizedBox(height: 10),
                 TextField(
                   controller: petPreferenceController,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: _fieldDecor('Pet preference'),
+                  style: TextStyle(color: scheme.onSurface),
+                  decoration: _fieldDecor(scheme, 'Pet preference'),
                 ),
               ],
             ),
@@ -1035,10 +1155,10 @@ class _AdvancedTab extends StatelessWidget {
             title: 'Deal-breakers',
             child: TextField(
               controller: dealBreakerTagsController,
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: scheme.onSurface),
               minLines: 2,
               maxLines: 4,
-              decoration: _fieldDecor('Tags (comma-separated)'),
+              decoration: _fieldDecor(scheme, 'Tags (comma-separated)'),
             ),
           ),
 
@@ -1065,41 +1185,42 @@ class _PrefCard extends StatelessWidget {
   final Widget child;
 
   @override
-  Widget build(BuildContext context) => Container(
-    width: double.infinity,
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      color: Colors.white.withValues(alpha: 0.10),
-      border: Border.all(
-        color: AppTheme.crystalGoldSoft.withValues(alpha: 0.25),
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        border: Border.all(color: scheme.outlineVariant),
+        borderRadius: BorderRadius.circular(16),
       ),
-      borderRadius: BorderRadius.circular(16),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(icon, color: AppTheme.crystalGoldSoft, size: 18),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                title,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                  letterSpacing: 0.2,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: scheme.primary, size: 18),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    color: scheme.onSurface,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    letterSpacing: 0.2,
+                  ),
                 ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 14),
-        child,
-      ],
-    ),
-  );
+            ],
+          ),
+          const SizedBox(height: 14),
+          child,
+        ],
+      ),
+    );
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1122,44 +1243,44 @@ class _GenderChip extends StatelessWidget {
   final void Function(String code, {required bool selected}) onToggled;
 
   @override
-  Widget build(BuildContext context) => GestureDetector(
-    onTap: () => onToggled(code, selected: !selected),
-    child: AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: BoxDecoration(
-        color: selected
-            ? AppTheme.crystalGoldSoft.withValues(alpha: 0.22)
-            : Colors.white.withValues(alpha: 0.07),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: selected
-              ? AppTheme.crystalGoldDeep
-              : Colors.white.withValues(alpha: 0.2),
-          width: selected ? 1.5 : 1,
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final foreground = selected ? scheme.onPrimaryContainer : scheme.onSurface;
+    return GestureDetector(
+      onTap: () => onToggled(code, selected: !selected),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: selected ? scheme.primaryContainer : scheme.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected ? scheme.primary : scheme.outlineVariant,
+            width: selected ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 18, color: foreground),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: foreground,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
+                fontSize: 14,
+              ),
+            ),
+            if (selected) ...[
+              const SizedBox(width: 6),
+              Icon(Icons.check_circle, size: 14, color: foreground),
+            ],
+          ],
         ),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 18, color: Colors.white),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
-              fontSize: 14,
-            ),
-          ),
-          if (selected) ...[
-            const SizedBox(width: 6),
-            const Icon(Icons.check_circle, size: 14, color: Colors.white),
-          ],
-        ],
-      ),
-    ),
-  );
+    );
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1172,46 +1293,58 @@ class _ToggleTile extends StatelessWidget {
     required this.subtitle,
     required this.value,
     required this.onChanged,
+    this.semanticLabel,
   });
 
   final String label;
   final String subtitle;
   final bool value;
   final ValueChanged<bool> onChanged;
+  final String? semanticLabel;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 6),
-    child: Row(
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w500,
-                  fontSize: 14,
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: scheme.onSurface,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 14,
+                  ),
                 ),
-              ),
-              Text(
-                subtitle,
-                style: const TextStyle(color: Colors.white54, fontSize: 12),
-              ),
-            ],
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    color: scheme.onSurfaceVariant,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-        Switch(
-          value: value,
-          onChanged: onChanged,
-          activeThumbColor: AppTheme.crystalGoldDeep,
-          activeTrackColor: AppTheme.crystalGoldSoft.withValues(alpha: 0.45),
-          inactiveThumbColor: Colors.white54,
-          inactiveTrackColor: Colors.white.withValues(alpha: 0.15),
-        ),
-      ],
-    ),
-  );
+          Semantics(
+            label: semanticLabel ?? label,
+            toggled: value,
+            child: Switch(
+              value: value,
+              onChanged: onChanged,
+              activeThumbColor: scheme.onPrimary,
+              activeTrackColor: scheme.primary,
+              inactiveThumbColor: scheme.outline,
+              inactiveTrackColor: scheme.surfaceContainerHighest,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

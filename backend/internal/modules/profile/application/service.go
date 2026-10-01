@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"go.uber.org/zap"
@@ -16,7 +17,7 @@ type Gateway interface {
 	UpsertProfile(context.Context, map[string]any) (map[string]any, error)
 	GetDraft(context.Context, string) (map[string]any, error)
 	PatchDraft(context.Context, string, map[string]any) (map[string]any, error)
-	AddPhoto(context.Context, string, string, string) (map[string]any, error)
+	AddPhoto(context.Context, string, ProfilePhotoUploadInput) (map[string]any, error)
 	DeletePhoto(context.Context, string, string) (map[string]any, error)
 	ReorderPhotos(context.Context, string, []string) (map[string]any, error)
 	CompleteProfile(context.Context, string) (map[string]any, error)
@@ -202,6 +203,9 @@ func (s *Service) HandleUpsertProfile(ctx context.Context, command UpsertProfile
 		profile = map[string]any{}
 	}
 	profile["id"] = userID
+	if err := ValidateMemberProfileUpdate(profile); err != nil {
+		return nil, err
+	}
 
 	s.log.Info("profile_upsert_command")
 	response, err := s.gateway.UpsertProfile(ctx, map[string]any{"profile": profile})
@@ -244,7 +248,7 @@ func (s *Service) HandleAddProfilePhoto(ctx context.Context, command AddProfileP
 	if userID == "" {
 		return nil, fmt.Errorf("%w: user id is required", ErrValidation)
 	}
-	draft, err := s.gateway.AddPhoto(ctx, userID, strings.TrimSpace(command.PhotoURL), strings.TrimSpace(command.StoragePath))
+	draft, err := s.gateway.AddPhoto(ctx, userID, command.Photo)
 	if err != nil {
 		return nil, fmt.Errorf("add profile photo failed: %w", err)
 	}
@@ -311,6 +315,9 @@ func (s *Service) HandlePatchSettings(ctx context.Context, command PatchSettings
 	payload := command.Payload
 	if payload == nil {
 		payload = map[string]any{}
+	}
+	if err := validateSettingsLocale(payload); err != nil {
+		return nil, err
 	}
 	settings, err := s.gateway.PatchSettings(ctx, userID, payload)
 	if err != nil {
@@ -389,4 +396,27 @@ func (s *Service) HandleListBlockedUsers(ctx context.Context, command ListBlocke
 		return nil, fmt.Errorf("list blocked users failed: %w", err)
 	}
 	return map[string]any{"blocked_users": blocked}, nil
+}
+
+// settingsLocalePattern is the wire shape of settings.locale: a BCP 47 tag
+// limited to language[-REGION] ("de", "en-GB"). It mirrors the
+// user_settings_locale_check column constraint.
+var settingsLocalePattern = regexp.MustCompile(`^[a-z]{2}(-[A-Z]{2})?$`)
+
+// validateSettingsLocale refuses a malformed locale before it reaches the
+// store. Absent, null or empty means "follow the device" and is accepted.
+func validateSettingsLocale(payload map[string]any) error {
+	raw, present := payload["locale"]
+	if !present || raw == nil {
+		return nil
+	}
+	value, ok := raw.(string)
+	if !ok {
+		return fmt.Errorf("%w: locale must be a string language tag such as \"de\" or \"en-GB\"", ErrValidation)
+	}
+	value = strings.TrimSpace(value)
+	if value == "" || settingsLocalePattern.MatchString(value) {
+		return nil
+	}
+	return fmt.Errorf("%w: locale %q is not a supported language tag (expected language[-REGION], such as \"de\" or \"en-GB\")", ErrValidation, value)
 }

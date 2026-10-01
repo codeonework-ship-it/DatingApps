@@ -4,28 +4,20 @@ package auth.v1;
 
 option go_package = "github.com/verified-dating/backend/gen/auth/v1;authv1";
 
-message SendOtpRequest {
-  string phone = 1;
+message CredentialRequest {
+  string username = 1;
+  string password = 2;
 }
 
-message SendOtpResponse {
-  bool accepted = 1;
-  string correlation_id = 2;
-}
-
-message VerifyOtpRequest {
-  string phone = 1;
-  string otp = 2;
-}
-
-message VerifyOtpResponse {
+message AuthResponse {
   bool success = 1;
   string access_token = 2;
   string refresh_token = 3;
   string user_id = 4;
+  string error = 5;
 }
 
 service AuthService {
-  rpc SendOtp(SendOtpRequest) returns (SendOtpResponse);
-  rpc VerifyOtp(VerifyOtpRequest) returns (VerifyOtpResponse);
+  rpc Login(CredentialRequest) returns (AuthResponse);
+  rpc Signup(CredentialRequest) returns (AuthResponse);
 }

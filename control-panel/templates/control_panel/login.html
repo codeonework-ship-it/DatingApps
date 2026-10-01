@@ -1,0 +1,23 @@
+{% extends "control_panel/base.html" %}
+{% block title %}Operator sign in{% endblock %}
+{% block content %}
+<div class="d-flex align-items-center justify-content-center" style="min-height:70vh">
+  <div class="glass-card" style="width:min(460px,100%);padding:2rem">
+    <div class="text-center mb-4">
+      <div class="display-5 mb-2">🛡️</div>
+      <h2>Operator sign in</h2>
+      <p class="text-muted mb-0">Use your approved username and password.</p>
+    </div>
+    {% if error %}<div class="alert-glass alert-glass-warning mb-3">{{ error }}</div>{% endif %}
+    <form method="post" autocomplete="off">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ next }}">
+      <label class="form-label" for="username">Username</label>
+      <input id="username" name="username" class="glass-input w-100 mb-3" required autofocus autocomplete="username">
+      <label class="form-label" for="password">Password</label>
+      <input id="password" name="password" type="password" class="glass-input w-100 mb-4" required autocomplete="current-password">
+      <button class="btn btn-glow w-100" type="submit">Sign in securely</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

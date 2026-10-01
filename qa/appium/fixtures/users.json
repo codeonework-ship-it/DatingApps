@@ -1,0 +1,54 @@
+{
+  "viewer": {
+    "name": "Returning seeded viewer",
+    "username_env": "QA_EXISTING_USERNAME",
+    "password_env": "QA_EXISTING_PASSWORD",
+    "user_id_env": "QA_EXISTING_USER_ID",
+    "default_username": "workflow_qa_20260803_final",
+    "purpose": [
+      "discovery filters",
+      "matches list",
+      "chat smoke",
+      "gift catalog/wallet smoke",
+      "unlock/engagement API matrix"
+    ]
+  },
+  "cohorts": [
+    {
+      "name": "rich_discovery_profiles",
+      "seed_script": "044_seed_100_users_rich_matches_spotlight.sql",
+      "minimum_count": 1,
+      "validated_by": "GET /v1/discovery/{userID}?mode=all"
+    },
+    {
+      "name": "filter_specific_profiles",
+      "seed_script": "048_seed_filter_test_female_users.sql",
+      "minimum_count": 0,
+      "validated_by": "discovery_matrix.json"
+    },
+    {
+      "name": "india_locations",
+      "seed_script": "049_seed_india_states_cities.sql",
+      "minimum_count": 0,
+      "validated_by": "discovery_matrix.json location filters"
+    },
+    {
+      "name": "rose_gift_wallet",
+      "seed_script": "032_rose_gifts_wallet_tables.sql",
+      "minimum_count": 1,
+      "validated_by": "GET /v1/chat/gifts and GET /v1/wallet/{userID}/coins"
+    },
+    {
+      "name": "gift_catalog_expansion",
+      "seed_script": "045_gift_catalog_expansion.sql",
+      "minimum_count": 1,
+      "validated_by": "GET /v1/chat/gifts"
+    },
+    {
+      "name": "engagement_surfaces",
+      "seed_script": "020_engagement_surfaces_tables.sql",
+      "minimum_count": 0,
+      "validated_by": "unlock_matrix.json"
+    }
+  ]
+}

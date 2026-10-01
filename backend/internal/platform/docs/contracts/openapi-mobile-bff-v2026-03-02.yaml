@@ -19,40 +19,49 @@ paths:
       responses:
         '200':
           description: Metrics payload
-  /v1/auth/send-otp:
+  /v1/auth/login:
     post:
-      summary: Send OTP
+      summary: Sign in with username and password
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [email]
+              required: [username, password]
               properties:
-                email:
+                username:
                   type: string
+                  pattern: '^[a-z0-9]([a-z0-9._]{1,28}[a-z0-9])?$'
+                password:
+                  type: string
+                  format: password
       responses:
         '200':
-          description: OTP accepted
-  /v1/auth/verify-otp:
+          description: Credential verification result and session tokens
+        '400':
+          description: Invalid request
+  /v1/auth/signup:
     post:
-      summary: Verify OTP
+      summary: Create an account with a unique username and password
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [email, otp]
+              required: [username, password]
               properties:
-                email:
+                username:
                   type: string
-                otp:
+                  pattern: '^[a-z0-9]([a-z0-9._]{1,28}[a-z0-9])?$'
+                password:
                   type: string
+                  format: password
+                  minLength: 8
       responses:
         '200':
-          description: Verification result
+          description: Account creation result and session tokens
   /v1/discovery/{userID}:
     get:
       summary: Get discovery candidates
@@ -224,7 +233,7 @@ paths:
           description: Updated profile draft
   /v1/profile/{userID}/photos:
     post:
-      summary: Add profile photo metadata
+      summary: Validate, persist, and attach a profile photo
       parameters:
         - in: path
           name: userID
@@ -232,20 +241,35 @@ paths:
           schema:
             type: string
       requestBody:
-        required: false
+        required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
               type: object
+              required: [image]
               properties:
-                photo_url:
+                image:
                   type: string
+                  format: binary
+                  description: JPEG, PNG, WebP, or HEIC; 300-4096 px per side; maximum 10 MB.
       responses:
         '200':
           description: Updated profile draft
+        '409':
+          description: Five-photo count or 50 MB user quota reached
+        '413':
+          description: Photo exceeds 10 MB
+        '415':
+          description: Unsupported or invalid image content
+        '422':
+          description: Image dimensions are outside the accepted range or provider policy rejected the content
+        '503':
+          description: Media moderation provider is unavailable; production uploads fail closed
+        '507':
+          description: Local media filesystem has less than 500 MB available
   /v1/profile/{userID}/photos/{photoID}:
     delete:
-      summary: Delete profile photo metadata
+      summary: Remove a profile photo and schedule object cleanup
       parameters:
         - in: path
           name: userID
@@ -260,6 +284,8 @@ paths:
       responses:
         '200':
           description: Updated profile draft
+        '404':
+          description: Active profile photo not found
   /v1/profile/{userID}/photos/reorder:
     post:
       summary: Reorder profile photos
@@ -284,6 +310,8 @@ paths:
       responses:
         '200':
           description: Updated profile draft
+        '400':
+          description: Photo ids are incomplete, duplicated, or unknown
   /v1/profile/{userID}/complete:
     post:
       summary: Complete profile setup validation
@@ -503,6 +531,31 @@ paths:
                     unlock_state: quest_pending
                     unlock_policy_variant: require_quest_template
                     correlation_id: req-abc-123
+  /v1/realtime/chat:
+    get:
+      summary: Open the resumable local chat event stream
+      description: >
+        Upgrades to WebSocket and replays durable PostgreSQL outbox events with
+        sequence greater than `after`. Authenticate with the normal bearer
+        access token. Clients reconnect using the last received sequence.
+      parameters:
+        - in: query
+          name: after
+          required: false
+          schema:
+            type: integer
+            format: int64
+            minimum: 0
+            default: 0
+      responses:
+        '101':
+          description: WebSocket protocol switched; chat event stream opened
+        '400':
+          description: Invalid resume cursor
+        '401':
+          description: Valid bearer session required
+        '503':
+          description: Realtime persistence unavailable
   /v1/chat/{matchID}/messages/{messageID}:
     delete:
       summary: Delete a chat message for everyone
@@ -1587,6 +1640,51 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/ModerationAppeal'
+  /v1/admin/moderation/media:
+    get:
+      summary: List media awaiting authenticated operator review
+      parameters:
+        - in: query
+          name: status
+          schema: {type: string, enum: [review_required, provider_error]}
+        - in: query
+          name: limit
+          schema: {type: integer, minimum: 1, maximum: 200}
+      responses:
+        '200': {description: Oldest-first media review queue}
+  /v1/admin/moderation/media/{photoID}/decision:
+    post:
+      summary: Approve or reject a queued profile photo transactionally
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          schema: {type: string}
+        - in: path
+          name: photoID
+          required: true
+          schema: {type: string, format: uuid}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decision]
+              properties:
+                decision: {type: string, enum: [approved, rejected]}
+                reason: {type: string}
+      responses:
+        '200': {description: Decision and immutable moderation event committed}
+  /v1/admin/moderation/media/{photoID}/content:
+    get:
+      summary: Stream quarantined media to an authenticated reviewer
+      parameters:
+        - in: path
+          name: photoID
+          required: true
+          schema: {type: string, format: uuid}
+      responses:
+        '200': {description: Original image bytes}
   /v1/admin/moderation/appeals/{appealID}/action:
     post:
       summary: Review or resolve moderation appeal
@@ -1678,6 +1776,23 @@ paths:
         '200':
           description: Unblock accepted
 
+  /v1/media/voice/{icebreakerID}:
+    get:
+      operationId: getVoiceIcebreakerAudio
+      summary: Stream approved voice audio using a short-lived signed grant
+      parameters:
+        - in: path
+          name: icebreakerID
+          required: true
+          schema: { type: string }
+        - in: query
+          name: token
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Private audio bytes }
+        '401': { description: Invalid or expired playback grant }
+        '403': { description: Recording unavailable to this member }
 components:
   schemas:
     ErrorResponse:

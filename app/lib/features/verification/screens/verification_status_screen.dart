@@ -25,7 +25,6 @@ class VerificationStatusScreen extends ConsumerWidget {
                 padding: const EdgeInsets.all(16),
                 child: GlassContainer(
                   padding: const EdgeInsets.all(20),
-                  backgroundColor: Colors.white.withValues(alpha: 0.9),
                   blur: 12,
                   borderRadius: const BorderRadius.all(Radius.circular(24)),
                   child: verification.when(
@@ -89,9 +88,12 @@ class VerificationStatusScreen extends ConsumerWidget {
   }) => Column(
     mainAxisAlignment: MainAxisAlignment.center,
     children: [
-      Icon(icon, size: 72, color: AppTheme.primaryRed),
+      Icon(icon, size: 72, color: Theme.of(context).colorScheme.primary),
       const SizedBox(height: 12),
-      Text(title, style: Theme.of(context).textTheme.headlineSmall),
+      Semantics(
+        label: 'qa.verification.status.$title',
+        child: Text(title, style: Theme.of(context).textTheme.headlineSmall),
+      ),
       const SizedBox(height: 8),
       Text(message, textAlign: TextAlign.center),
     ],

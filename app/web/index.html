@@ -1,46 +1,22 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
   <base href="$FLUTTER_BASE_HREF">
-
   <meta charset="UTF-8">
-  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
-
-  <!-- iOS meta tags & icons -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Your Connect space: profiles, discovery, conversations, community and preferences.">
+  <meta name="theme-color" content="#fff7f3">
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="verified_dating_app">
-  <link rel="apple-touch-icon" href="icons/Icon-192.png">
-
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
-
-  <title>verified_dating_app</title>
+  <meta name="apple-mobile-web-app-title" content="Connect">
+  <link rel="icon" type="image/svg+xml" href="/assets/mark.svg">
+  <title>Connect — Your space</title>
   <link rel="manifest" href="manifest.json">
+  <style>body{margin:0;background:#fff7f3;font-family:Arial,sans-serif;color:#1f1024}#loading{min-height:100vh;display:grid;place-content:center;text-align:center}#loading img{width:56px;margin:auto}#loading h1{font-size:28px;letter-spacing:-1px}#loading p{font-size:14px;color:#6a5570}#loading a{color:#8f0f32}#slow{display:none}</style>
 </head>
 <body>
-  <!--
-    You can customize the "flutter_bootstrap.js" script.
-    This is useful to provide a custom configuration to the Flutter loader
-    or to give the user feedback during the initialization process.
-
-    For more details:
-    * https://docs.flutter.dev/platform-integration/web/initialization
-  -->
+  <div id="loading" role="status"><img src="/assets/mark.svg" alt=""><h1>connect</h1><p>Making room for your next hello…</p><p id="slow">Taking longer than expected. <a href="">Try again</a> or <a href="/">return to the website</a>.</p></div>
+  <noscript>Connect needs JavaScript for account features. <a href="/">Explore the website</a>.</noscript>
+  <script src="loading.js"></script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

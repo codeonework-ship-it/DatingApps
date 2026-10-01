@@ -1,15 +1,19 @@
 package application
 
 const (
-	SendOTPCommandName   = "auth.send_otp"
-	VerifyOTPCommandName = "auth.verify_otp"
+	LoginCommandName  = "auth.login"
+	SignupCommandName = "auth.signup"
 )
 
-type SendOTPCommand struct {
-	Email string
+type LoginCommand struct {
+	Username string
+	Password string
 }
 
-type VerifyOTPCommand struct {
-	Email string
-	OTP   string
+type SignupCommand struct {
+	Username    string
+	Password    string
+	AccountKind string
+	Name        string
+	DateOfBirth string
 }

@@ -22,6 +22,7 @@ var (
 	errRoomBlockedActiveSession = errors.New("user is blocked from this active room session")
 	errRoomModerationAction     = errors.New("invalid moderation action")
 	errRoomModerationNotActive  = errors.New("room moderation removal requires active room")
+	errRoomModerationForbidden  = errors.New("only this room's hosts and moderators can moderate")
 )
 
 const (
@@ -36,6 +37,8 @@ type conversationRoomRecord struct {
 	StartsAt    time.Time
 	EndsAt      time.Time
 	Capacity    int
+	// Hosts may warn and remove participants (in-memory mode).
+	Hosts []string
 }
 
 type conversationRoomParticipant struct {
@@ -59,6 +62,8 @@ type conversationRoomModerationAction struct {
 	Action          string `json:"action"`
 	Reason          string `json:"reason,omitempty"`
 	CreatedAt       string `json:"created_at"`
+	// MutedUntil is when a mute_user action ends (live rooms).
+	MutedUntil *time.Time `json:"muted_until,omitempty"`
 }
 
 type conversationRoomView struct {
@@ -114,7 +119,7 @@ func roomLifecycleState(startsAt, endsAt, now time.Time) string {
 	return roomLifecycleClosed
 }
 
-func (m *memoryStore) listConversationRooms(userID, state string, friendOnly bool, limit int, now time.Time) []conversationRoomView {
+func (m *runtimeStore) listConversationRooms(userID, state string, friendOnly bool, limit int, now time.Time) []conversationRoomView {
 	normalizedUserID := strings.TrimSpace(userID)
 	normalizedState := strings.ToLower(strings.TrimSpace(state))
 	if limit <= 0 || limit > 200 {
@@ -158,7 +163,7 @@ func (m *memoryStore) listConversationRooms(userID, state string, friendOnly boo
 	return out
 }
 
-func (m *memoryStore) roomHasFriendParticipantLocked(roomID, userID string) bool {
+func (m *runtimeStore) roomHasFriendParticipantLocked(roomID, userID string) bool {
 	participants := m.roomParticipants[roomID]
 	if len(participants) == 0 {
 		return false
@@ -178,7 +183,7 @@ func (m *memoryStore) roomHasFriendParticipantLocked(roomID, userID string) bool
 	return false
 }
 
-func (m *memoryStore) joinConversationRoom(roomID, userID string, now time.Time) (conversationRoomView, error) {
+func (m *runtimeStore) joinConversationRoom(roomID, userID string, now time.Time) (conversationRoomView, error) {
 	normalizedRoomID := strings.TrimSpace(roomID)
 	normalizedUserID := strings.TrimSpace(userID)
 	if normalizedRoomID == "" || normalizedUserID == "" {
@@ -219,7 +224,7 @@ func (m *memoryStore) joinConversationRoom(roomID, userID string, now time.Time)
 	return m.buildConversationRoomViewLocked(room, normalizedUserID, now), nil
 }
 
-func (m *memoryStore) moderateConversationRoom(
+func (m *runtimeStore) moderateConversationRoom(
 	roomID,
 	moderatorUserID,
 	targetUserID,
@@ -246,6 +251,9 @@ func (m *memoryStore) moderateConversationRoom(
 	room, ok := m.rooms[normalizedRoomID]
 	if !ok {
 		return conversationRoomView{}, conversationRoomModerationAction{}, errRoomNotFound
+	}
+	if !containsString(room.Hosts, normalizedModerator) {
+		return conversationRoomView{}, conversationRoomModerationAction{}, errRoomModerationForbidden
 	}
 
 	lifecycle := roomLifecycleState(room.StartsAt, room.EndsAt, now)
@@ -287,7 +295,7 @@ func (m *memoryStore) moderateConversationRoom(
 	return view, actionEntry, nil
 }
 
-func (m *memoryStore) leaveConversationRoom(roomID, userID string, now time.Time) (conversationRoomView, error) {
+func (m *runtimeStore) leaveConversationRoom(roomID, userID string, now time.Time) (conversationRoomView, error) {
 	normalizedRoomID := strings.TrimSpace(roomID)
 	normalizedUserID := strings.TrimSpace(userID)
 	if normalizedRoomID == "" || normalizedUserID == "" {
@@ -314,7 +322,7 @@ func (m *memoryStore) leaveConversationRoom(roomID, userID string, now time.Time
 	return m.buildConversationRoomViewLocked(room, normalizedUserID, now), nil
 }
 
-func (m *memoryStore) buildConversationRoomViewLocked(
+func (m *runtimeStore) buildConversationRoomViewLocked(
 	room conversationRoomRecord,
 	userID string,
 	now time.Time,

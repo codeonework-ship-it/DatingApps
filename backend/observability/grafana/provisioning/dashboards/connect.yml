@@ -1,0 +1,83 @@
+# Grafana dashboard provisioning for Connect.
+#
+# One provider (and Grafana folder) per dashboard directory. The install script
+# (deploy/monitoring/install_monitoring.sh) copies
+#   backend/observability/grafana/dashboards/<dir>/*.json
+# to ${GRAFANA_DASHBOARDS_DIR}/<dir>/ (default /var/lib/grafana/dashboards/connect),
+# so only reviewed dashboards are loaded - never a whole checkout.
+# UI edits are allowed for exploration but are overwritten on the next deploy:
+# export the JSON and commit it instead.
+apiVersion: 1
+
+providers:
+  - name: connect-api
+    orgId: 1
+    folder: "Connect · API"
+    folderUid: connect-api
+    type: file
+    disableDeletion: true
+    updateIntervalSeconds: 60
+    allowUiUpdates: false
+    options:
+      path: ${GRAFANA_DASHBOARDS_DIR}/api
+      foldersFromFilesStructure: false
+
+  - name: connect-workers
+    orgId: 1
+    folder: "Connect · Workers & queues"
+    folderUid: connect-workers
+    type: file
+    disableDeletion: true
+    updateIntervalSeconds: 60
+    allowUiUpdates: false
+    options:
+      path: ${GRAFANA_DASHBOARDS_DIR}/workers
+      foldersFromFilesStructure: false
+
+  - name: connect-realtime
+    orgId: 1
+    folder: "Connect · Realtime & chat"
+    folderUid: connect-realtime
+    type: file
+    disableDeletion: true
+    updateIntervalSeconds: 60
+    allowUiUpdates: false
+    options:
+      path: ${GRAFANA_DASHBOARDS_DIR}/realtime
+      foldersFromFilesStructure: false
+
+  - name: connect-database
+    orgId: 1
+    folder: "Connect · Database"
+    folderUid: connect-database
+    type: file
+    disableDeletion: true
+    updateIntervalSeconds: 60
+    allowUiUpdates: false
+    options:
+      path: ${GRAFANA_DASHBOARDS_DIR}/database
+      foldersFromFilesStructure: false
+
+  - name: connect-host
+    orgId: 1
+    folder: "Connect · Host & uptime"
+    folderUid: connect-host
+    type: file
+    disableDeletion: true
+    updateIntervalSeconds: 60
+    allowUiUpdates: false
+    options:
+      path: ${GRAFANA_DASHBOARDS_DIR}/host
+      foldersFromFilesStructure: false
+
+  - name: connect-product
+    orgId: 1
+    folder: "Connect · Product health"
+    folderUid: connect-product
+    type: file
+    disableDeletion: true
+    updateIntervalSeconds: 60
+    allowUiUpdates: false
+    options:
+      path: ${GRAFANA_DASHBOARDS_DIR}/product
+      foldersFromFilesStructure: false

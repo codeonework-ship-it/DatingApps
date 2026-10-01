@@ -1,0 +1,79 @@
+{
+  "contract_id": "connect.trust-operations",
+  "contract_version": "1.0.0",
+  "effective_date": "2026-09-27",
+  "policy_owner_role": "trust_and_safety_lead",
+  "privacy_owner_role": "privacy_lead",
+  "member_controls": {
+    "deactivation": {"effective": "immediate", "reversible": true, "discovery_hidden": true, "realtime_revoked": true},
+    "deletion": {"grace_days": 14, "reversible_during_grace": true, "sessions_revoked_at_erasure": true, "private_media_object_deletion_required": true},
+    "export": {"payload_retention_days": 7, "partial_exports_may_report_success": false, "credential_material_excluded": true}
+  },
+  "retention_policy": [
+    {"class": "active_member_profile_and_preferences", "retention": "account_lifetime", "deletion_action": "erase_or_anonymize_after_14_day_grace", "legal_hold_override": true},
+    {"class": "identity_documents_and_selfies", "retention": "until_account_erasure_or_30_days_after_final_verification_decision_whichever_is_earlier", "deletion_action": "delete_private_object_and_clear_database_reference", "legal_hold_override": true},
+    {"class": "voice_and_profile_media", "retention": "until_member_deletion_or_feature_lifecycle_expiry", "deletion_action": "delete_private_object_and_clear_metadata", "legal_hold_override": true},
+    {"class": "account_export_payload", "retention": "7_days", "deletion_action": "purge_payload_keep_request_audit", "legal_hold_override": false},
+    {"class": "sos_contact_delivery_snapshot", "retention": "30_days", "deletion_action": "redact_contact_location_and_message_keep_delivery_status", "legal_hold_override": true},
+    {"class": "moderation_safety_and_security_audit", "retention": "24_months_after_case_closure", "deletion_action": "retain_minimized_case_evidence_then_purge_or_anonymize", "legal_hold_override": true},
+    {"class": "revoked_authentication_sessions", "retention": "90_days_after_revocation", "deletion_action": "purge_session_tokens_and_metadata", "legal_hold_override": false},
+    {"class": "production_backups", "retention": "30_day_rolling_window", "deletion_action": "age_out_without_restoring_erased_data_to_live_service", "legal_hold_override": true}
+  ],
+  "runtime_controls": {
+    "active_socket_revocation": {"status": "implemented", "evidence": "backend/internal/bff/mobile/server_chat_realtime_test.go"},
+    "sos_contact_outbox": {"status": "implemented", "evidence": "backend/scripts/076_privacy_safety_trust_operations.sql"},
+    "safety_status_notifications": {"status": "implemented", "channels": ["in_app", "configured_push"], "email_promised": false},
+    "media_moderation_code": {"status": "implemented", "production_provider": "aws_rekognition", "fail_closed_when_required": true},
+    "account_erasure": {"status": "implemented", "evidence": "backend/internal/bff/mobile/account_erasure_test.go"}
+  },
+  "service_levels": {
+    "moderation_report_first_decision_hours": 24,
+    "identity_review_hours": 24,
+    "appeal_resolution_hours": 48,
+    "sos_response_minutes": {"critical": 2, "high": 5, "medium": 15, "low": 30},
+    "page_acknowledgement_minutes": 15,
+    "containment_decision_minutes": 30
+  },
+  "staffing": {
+    "launch_coverage_hours": 48,
+    "shift_hours": 8,
+    "minimum_active_moderators_per_shift": 1,
+    "minimum_backup_moderators_per_shift": 1,
+    "named_primary_by_shift": [],
+    "named_backup_by_shift": [],
+    "named_appeals_owner_by_shift": [],
+    "named_sos_on_call_by_shift": [],
+    "trust_and_safety_manager": null,
+    "incident_commander": null,
+    "paging_rehearsal_evidence": null
+  },
+  "escalation": [
+    "shift_moderator",
+    "appeals_or_sos_queue_owner",
+    "trust_and_safety_manager",
+    "incident_commander",
+    "product_and_engineering_release_leads"
+  ],
+  "production_acceptance": {
+    "decision": "NO_GO",
+    "blocking_evidence": [
+      "named_48_hour_staffing_roster",
+      "tested_paging_and_escalation",
+      "sos_webhook_provider_acceptance",
+      "private_s3_and_rekognition_preflight",
+      "operator_sso_mfa_and_offboarding_evidence",
+      "backup_restore_and_erasure_propagation_evidence",
+      "retention_jobs_for_sessions_identity_evidence_audits_and_backups"
+    ]
+  },
+  "backlog_disposition": {
+    "PEN-05": "policy_approved_runtime_erasure_and_export_hardened_production_retention_jobs_pending",
+    "PEN-06": "account_reactivation_and_recovery_exist_support_runbook_and_device_acceptance_pending",
+    "PEN-07": "durable_contact_delivery_implemented_provider_acceptance_and_missed_ack_escalation_pending",
+    "PEN-08": "in_app_and_configured_push_status_notifications_implemented",
+    "PEN-20": "active_socket_revocation_and_match_event_reauthorization_implemented",
+    "PEN-37": "provider_code_and_preflight_exist_target_environment_acceptance_pending",
+    "PEN-38": "local_rbac_and_audit_exist_deployed_sso_mfa_and_offboarding_pending",
+    "PEN-39": "sla_and_escalation_contract_approved_named_staffing_and_rehearsal_pending"
+  }
+}

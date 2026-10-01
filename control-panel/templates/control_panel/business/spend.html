@@ -1,0 +1,40 @@
+{% extends "control_panel/business/_layout.html" %}
+{% block business_title %}Marketing spend{% endblock %}
+{% block business_heading %}Marketing spend &amp; CAC{% endblock %}
+{% block business_lede %}Record spend per month, channel, market and currency. CAC = spend / members who joined that month; payback uses net revenue per active member.{% endblock %}
+{% block business_body %}
+{% if spend_status == "needs spend data" %}<div class="glass-card mb-3"><i class="bi bi-exclamation-circle me-2"></i>{{ spend_note }}</div>{% endif %}
+<div class="glass-card mb-4 biz-noprint">
+  <h6>Record spend</h6>
+  <form method="post" action="{% url 'business_spend_save' %}" class="row g-2 align-items-end">
+    {% csrf_token %}
+    <div class="col-6 col-md-2"><label class="form-label small text-muted" for="s-month">Month</label><input id="s-month" type="month" name="month" class="glass-input" required></div>
+    <div class="col-6 col-md-2"><label class="form-label small text-muted" for="s-channel">Channel</label><select id="s-channel" name="channel" class="glass-input">{% for c in channels %}<option>{{ c }}</option>{% endfor %}</select></div>
+    <div class="col-6 col-md-2"><label class="form-label small text-muted" for="s-market">Market</label><select id="s-market" name="market" class="glass-input">{% for m in markets %}<option>{{ m }}</option>{% endfor %}</select></div>
+    <div class="col-6 col-md-1"><label class="form-label small text-muted" for="s-currency">Currency</label><input id="s-currency" name="currency" class="glass-input" required maxlength="3" placeholder="INR"></div>
+    <div class="col-6 col-md-2"><label class="form-label small text-muted" for="s-amount">Amount (major units)</label><input id="s-amount" name="amount" class="glass-input" required inputmode="decimal" placeholder="25000.00"></div>
+    <div class="col-6 col-md-1"><label class="form-label small text-muted" for="s-attr">Attributed</label><input id="s-attr" name="attributed_members" type="number" min="0" class="glass-input"></div>
+    <div class="col-12 col-md-2"><label class="form-label small text-muted" for="s-note">Note</label><input id="s-note" name="note" maxlength="500" class="glass-input"></div>
+    <div class="col-6 col-md-2"><button class="btn btn-glow w-100">Save</button></div>
+  </form>
+  <div class="biz-note mt-2">Saving the same month, channel, market and currency again replaces that entry. Only finance and admin can record spend; amounts are stored in minor units and never converted between currencies.</div>
+</div>
+<div class="glass-card mb-4">
+  <h6>Entries</h6>
+  {% if entries %}
+  <div class="table-responsive"><table class="glass-table w-100">
+    <thead><tr><th>Month</th><th>Channel</th><th>Market</th><th>Amount</th><th>Attributed</th><th>Note</th><th>Updated</th><th></th></tr></thead>
+    <tbody>{% for e in entries %}<tr><td>{{ e.month|slice:":7" }}</td><td>{{ e.channel }}</td><td>{{ e.market }}</td><td>{{ e.amount }} {{ e.currency }}</td><td>{{ e.attributed_members|default:"—" }}</td><td>{{ e.note }}</td><td>{{ e.updated_at }}</td>
+      <td><form method="post" action="{% url 'business_spend_delete' e.id %}" class="biz-noprint" onsubmit="return confirm('Delete this spend entry?')">{% csrf_token %}<button class="btn btn-sm btn-glass"><i class="bi bi-trash"></i></button></form></td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% else %}<div class="empty-command-state">No spend recorded in this window.</div>{% endif %}
+</div>
+{% with table=cac_table %}
+<div class="glass-card mb-4">
+  <div class="d-flex justify-content-between"><h6>{{ table.title }}</h6><a class="btn btn-sm btn-glass biz-noprint" href="{{ csv_url }}?table=cac{% if query %}&{{ query }}{% endif %}"><i class="bi bi-download"></i> CSV</a></div>
+  {% if table.rows %}<div class="table-responsive"><table class="glass-table w-100"><thead><tr>{% for c in table.columns %}<th>{{ c }}</th>{% endfor %}</tr></thead>
+  <tbody>{% for row in table.rows %}<tr>{% for v in row %}<td>{{ v }}</td>{% endfor %}</tr>{% endfor %}</tbody></table></div>
+  {% else %}<div class="empty-command-state">CAC needs spend data.</div>{% endif %}
+</div>
+{% endwith %}
+{% endblock %}

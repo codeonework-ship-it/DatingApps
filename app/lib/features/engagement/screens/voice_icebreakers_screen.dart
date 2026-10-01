@@ -1,13 +1,23 @@
+import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:record/record.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/widgets/glass_widgets.dart';
+import '../../auth/providers/auth_provider.dart';
+import '../../matching/providers/match_provider.dart';
 import '../providers/voice_icebreaker_provider.dart';
 
 class VoiceIcebreakersScreen extends ConsumerStatefulWidget {
-  const VoiceIcebreakersScreen({super.key});
-
+  const VoiceIcebreakersScreen({
+    super.key,
+    this.matchId,
+    this.receiverUserId,
+    this.partnerName,
+  });
+  final String? matchId, receiverUserId, partnerName;
   @override
   ConsumerState<VoiceIcebreakersScreen> createState() =>
       _VoiceIcebreakersScreenState();
@@ -15,20 +25,27 @@ class VoiceIcebreakersScreen extends ConsumerStatefulWidget {
 
 class _VoiceIcebreakersScreenState
     extends ConsumerState<VoiceIcebreakersScreen> {
-  final TextEditingController _matchController = TextEditingController();
-  final TextEditingController _receiverController = TextEditingController();
-  final TextEditingController _transcriptController = TextEditingController();
-  final TextEditingController _playUserController = TextEditingController();
-
-  int _durationSeconds = 30;
-  String? _selectedPromptId;
+  final _transcriptController = TextEditingController();
+  final AudioRecorder _recorder = AudioRecorder();
+  String? _matchId, _receiverId, _partnerName, _selectedPromptId;
+  int _durationSeconds = 0;
+  XFile? _recording;
+  Timer? _recordingTimer;
+  bool _isRecording = false;
+  String? _recordingError;
+  @override
+  void initState() {
+    super.initState();
+    _matchId = widget.matchId;
+    _receiverId = widget.receiverUserId;
+    _partnerName = widget.partnerName;
+  }
 
   @override
   void dispose() {
-    _matchController.dispose();
-    _receiverController.dispose();
+    _recordingTimer?.cancel();
+    unawaited(_recorder.dispose());
     _transcriptController.dispose();
-    _playUserController.dispose();
     super.dispose();
   }
 
@@ -36,188 +53,371 @@ class _VoiceIcebreakersScreenState
   Widget build(BuildContext context) {
     final state = ref.watch(voiceIcebreakerProvider);
     final notifier = ref.read(voiceIcebreakerProvider.notifier);
-
+    final matches = widget.matchId == null
+        ? ref.watch(matchNotifierProvider)
+        : null;
     final prompts = state.prompts;
-    final effectivePromptId =
+    final promptId =
         _selectedPromptId ?? (prompts.isNotEmpty ? prompts.first.id : null);
-
+    final locked = state.isSubmitting || _isRecording || _recording != null;
     return Scaffold(
-      appBar: AppBar(title: const Text('Guided Voice Icebreakers')),
-      body: PostLoginBackdrop(
-        child: SafeArea(
-          child: RefreshIndicator(
-            onRefresh: notifier.loadPrompts,
+      appBar: AppBar(title: const Text('A voice, a little closer')),
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 760),
             child: ListView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(24),
               children: [
-                _card(
-                  context,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Send one guided voice icebreaker',
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w700),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Use a match id, receiver user id, pick a prompt, and submit transcript with duration (20–45 sec).',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppTheme.textGrey,
-                        ),
-                      ),
-                    ],
+                Text(
+                  'Let your hello\nsound like you.',
+                  style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                    fontFamily: AppTheme.displayFamily,
                   ),
                 ),
                 const SizedBox(height: 12),
-                _card(
-                  context,
-                  child: Column(
+                const Text(
+                  'An optional 20–45 second introduction, shared only in this conversation. Text is always welcome, too.',
+                ),
+                const SizedBox(height: 24),
+                if (widget.matchId != null)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.lock_outline_rounded),
+                    title: Text('You and ${_partnerName ?? 'your match'}'),
+                    subtitle: const Text('Private to this conversation'),
+                  )
+                else if (matches!.isLoading)
+                  const LinearProgressIndicator()
+                else if (matches.error != null)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      TextField(
-                        controller: _matchController,
-                        decoration: const InputDecoration(
-                          labelText: 'Match ID',
-                          border: OutlineInputBorder(),
-                        ),
+                      const Text('Your conversations couldn’t load.'),
+                      TextButton(
+                        onPressed: () => ref.invalidate(matchNotifierProvider),
+                        child: const Text('Try again'),
                       ),
-                      const SizedBox(height: 10),
-                      TextField(
-                        controller: _receiverController,
-                        decoration: const InputDecoration(
-                          labelText: 'Receiver User ID',
-                          border: OutlineInputBorder(),
-                        ),
+                    ],
+                  )
+                else if (matches.matches.isEmpty)
+                  const Card(
+                    child: Padding(
+                      padding: EdgeInsets.all(20),
+                      child: Text(
+                        'When you have a match, you can share a voice introduction here. No rush.',
                       ),
-                      const SizedBox(height: 10),
-                      if (state.isLoading && prompts.isEmpty)
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 8),
-                          child: CircularProgressIndicator(),
-                        )
-                      else
-                        DropdownButtonFormField<String>(
-                          initialValue: effectivePromptId,
-                          items: prompts
-                              .map(
-                                (prompt) => DropdownMenuItem<String>(
-                                  value: prompt.id,
-                                  child: Text(prompt.promptText),
-                                ),
-                              )
-                              .toList(growable: false),
-                          onChanged: prompts.isEmpty
-                              ? null
-                              : (value) {
-                                  setState(() {
-                                    _selectedPromptId = value;
-                                  });
-                                },
-                          decoration: const InputDecoration(
-                            labelText: 'Guided prompt',
-                            border: OutlineInputBorder(),
+                    ),
+                  )
+                else
+                  DropdownButtonFormField<String>(
+                    key: const ValueKey('qa.voice.conversation'),
+                    isExpanded: true,
+                    initialValue: matches.matches.any((m) => m.id == _matchId)
+                        ? _matchId
+                        : null,
+                    decoration: const InputDecoration(
+                      labelText: 'Who would you like to say hello to?',
+                    ),
+                    items: matches.matches
+                        .map(
+                          (m) => DropdownMenuItem(
+                            value: m.id,
+                            child: Text(m.userName),
                           ),
-                        ),
-                      const SizedBox(height: 10),
-                      TextField(
-                        controller: _transcriptController,
-                        minLines: 3,
-                        maxLines: 4,
-                        decoration: const InputDecoration(
-                          labelText: 'Transcript',
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
+                        )
+                        .toList(),
+                    onChanged: locked
+                        ? null
+                        : (id) {
+                            final m = matches.matches.firstWhere(
+                              (m) => m.id == id,
+                            );
+                            setState(() {
+                              _matchId = m.id;
+                              _receiverId = m.userId;
+                              _partnerName = m.userName;
+                              _transcriptController.clear();
+                            });
+                          },
+                  ),
+                if (_matchId != null) ...[
+                  const SizedBox(height: 20),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Text(
-                            'Duration: ${_durationSeconds}s',
-                            style: Theme.of(context).textTheme.bodyMedium,
+                            'A small starting point',
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
+                          const SizedBox(height: 12),
+                          if (state.isLoading && prompts.isEmpty)
+                            const LinearProgressIndicator()
+                          else
+                            DropdownButtonFormField<String>(
+                              isExpanded: true,
+                              initialValue: promptId,
+                              decoration: const InputDecoration(
+                                labelText: 'Choose a prompt',
+                              ),
+                              items: prompts
+                                  .map(
+                                    (p) => DropdownMenuItem(
+                                      value: p.id,
+                                      child: Text(
+                                        p.promptText,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: locked || prompts.isEmpty
+                                  ? null
+                                  : (v) =>
+                                        setState(() => _selectedPromptId = v),
+                            ),
+                          const SizedBox(height: 16),
+                          TextField(
+                            key: const ValueKey('qa.voice.transcript'),
+                            controller: _transcriptController,
+                            minLines: 3,
+                            maxLines: 6,
+                            maxLength: 2000,
+                            enabled: !state.isSubmitting && !_isRecording,
+                            onChanged: (_) => setState(() {}),
+                            decoration: const InputDecoration(
+                              labelText: 'Your words, in writing',
+                              helperText:
+                                  'Write what you say so they can read it, too. This is not automatic transcription.',
+                              helperMaxLines: 3,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          FilledButton.tonalIcon(
+                            key: const ValueKey('qa.voice.recording_button'),
+                            onPressed: state.isSubmitting || state.isPlaying
+                                ? null
+                                : _isRecording
+                                ? _stopRecording
+                                : _startRecording,
+                            icon: Icon(
+                              _isRecording
+                                  ? Icons.stop_rounded
+                                  : Icons.mic_none_rounded,
+                            ),
+                            label: Text(
+                              _isRecording
+                                  ? 'Stop · ${_durationSeconds}s'
+                                  : _recording == null
+                                  ? 'Record your hello'
+                                  : 'Record again · ${_durationSeconds}s',
+                            ),
+                          ),
+                          if (_recording != null && !_isRecording) ...[
+                            const SizedBox(height: 8),
+                            Text(
+                              _durationSeconds >= 20
+                                  ? 'Recording ready. Check your transcript before sending.'
+                                  : 'That was a little short. Record 20–45 seconds.',
+                            ),
+                            TextButton(
+                              onPressed: state.isSubmitting
+                                  ? null
+                                  : () => setState(() {
+                                      _recording = null;
+                                      _durationSeconds = 0;
+                                    }),
+                              child: const Text('Discard recording'),
+                            ),
+                          ],
+                          if (_recordingError != null)
+                            Text(
+                              _recordingError!,
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.error,
+                              ),
+                            ),
+                          const SizedBox(height: 16),
+                          FilledButton(
+                            onPressed:
+                                state.isSubmitting ||
+                                    _isRecording ||
+                                    _receiverId == null ||
+                                    promptId == null ||
+                                    _recording == null ||
+                                    _durationSeconds < 20 ||
+                                    _durationSeconds > 45 ||
+                                    _transcriptController.text.trim().isEmpty
+                                ? null
+                                : () async {
+                                    await notifier.startAndSend(
+                                      matchId: _matchId!,
+                                      receiverUserId: _receiverId!,
+                                      promptId: promptId,
+                                      transcript: _transcriptController.text,
+                                      durationSeconds: _durationSeconds,
+                                      audioFile: _recording!,
+                                    );
+                                    if (!mounted) return;
+                                    final result = ref.read(
+                                      voiceIcebreakerProvider,
+                                    );
+                                    if (result.error == null &&
+                                        result.lastItem != null) {
+                                      setState(() {
+                                        _recording = null;
+                                        _durationSeconds = 0;
+                                        _transcriptController.clear();
+                                      });
+                                      ref.invalidate(
+                                        voiceIntroductionsProvider(_matchId!),
+                                      );
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Introduction submitted. Approved recordings appear below.',
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  },
+                            child: Text(
+                              state.isSubmitting
+                                  ? 'Sending…'
+                                  : 'Share your hello',
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          const Text(
+                            'Recordings are checked before they are shared. There is no autoplay.',
                           ),
                         ],
                       ),
-                      Slider(
-                        value: _durationSeconds.toDouble(),
-                        min: 20,
-                        max: 45,
-                        divisions: 25,
-                        label: '$_durationSeconds',
-                        onChanged: (value) {
-                          setState(() {
-                            _durationSeconds = value.round();
-                          });
-                        },
-                      ),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed:
-                              state.isSubmitting || effectivePromptId == null
-                              ? null
-                              : () => notifier.startAndSend(
-                                  matchId: _matchController.text,
-                                  receiverUserId: _receiverController.text,
-                                  promptId: effectivePromptId,
-                                  transcript: _transcriptController.text,
-                                  durationSeconds: _durationSeconds,
-                                ),
-                          child: const Text('Send Voice Icebreaker'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (state.lastItem != null) ...[
-                  const SizedBox(height: 12),
-                  _card(
-                    context,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Latest icebreaker',
-                          style: Theme.of(context).textTheme.titleSmall
-                              ?.copyWith(fontWeight: FontWeight.w700),
-                        ),
-                        const SizedBox(height: 6),
-                        Text('ID: ${state.lastItem!.id}'),
-                        Text('Status: ${state.lastItem!.status}'),
-                        Text('Play count: ${state.lastItem!.playCount}'),
-                        const SizedBox(height: 8),
-                        TextField(
-                          controller: _playUserController,
-                          decoration: const InputDecoration(
-                            labelText:
-                                'User ID to mark playback (optional override)',
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton(
-                            onPressed: state.isSubmitting
-                                ? null
-                                : () => notifier.markPlayed(
-                                    _playUserController.text,
-                                  ),
-                            child: const Text('Mark Played'),
-                          ),
-                        ),
-                      ],
                     ),
                   ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Your voice introductions',
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'The latest 20 approved recordings in this conversation. Transcripts are always available to read.',
+                  ),
+                  const SizedBox(height: 12),
+                  ref
+                      .watch(voiceIntroductionsProvider(_matchId!))
+                      .when(
+                        loading: () => const LinearProgressIndicator(),
+                        error: (_, __) => Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Introductions couldn’t load. The conversation may no longer be available.',
+                            ),
+                            TextButton(
+                              onPressed: () => ref.invalidate(
+                                voiceIntroductionsProvider(_matchId!),
+                              ),
+                              child: const Text('Try again'),
+                            ),
+                          ],
+                        ),
+                        data: (items) => items.isEmpty
+                            ? const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 20),
+                                child: Text(
+                                  'Nothing shared yet. A simple hello is a good beginning.',
+                                ),
+                              )
+                            : Column(
+                                children: [
+                                  for (final item in items)
+                                    Card(
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(20),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              item.senderUserId ==
+                                                      ref
+                                                          .watch(
+                                                            authNotifierProvider,
+                                                          )
+                                                          .userId
+                                                  ? 'Your hello'
+                                                  : 'A hello from ${_partnerName ?? 'your match'}',
+                                              style: Theme.of(
+                                                context,
+                                              ).textTheme.titleMedium,
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Text(
+                                              item.promptText,
+                                              style: Theme.of(
+                                                context,
+                                              ).textTheme.labelLarge,
+                                            ),
+                                            const SizedBox(height: 12),
+                                            const Text('TRANSCRIPT'),
+                                            const SizedBox(height: 6),
+                                            SelectableText(item.transcript),
+                                            const SizedBox(height: 12),
+                                            OutlinedButton.icon(
+                                              onPressed:
+                                                  state.isPlaying &&
+                                                      state.lastItem?.id ==
+                                                          item.id
+                                                  ? notifier.stopPlaying
+                                                  : state.isPlaying ||
+                                                        _isRecording ||
+                                                        state.isSubmitting
+                                                  ? null
+                                                  : () => notifier.play(item),
+                                              icon: Icon(
+                                                state.isPlaying &&
+                                                        state.lastItem?.id ==
+                                                            item.id
+                                                    ? Icons.stop_rounded
+                                                    : Icons.play_arrow_rounded,
+                                              ),
+                                              label: Text(
+                                                state.isPlaying &&
+                                                        state.lastItem?.id ==
+                                                            item.id
+                                                    ? 'Stop playback'
+                                                    : 'Listen · ${item.durationSeconds}s',
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                      ),
                 ],
                 if (state.error != null) ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                   Text(
                     state.error!,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodySmall?.copyWith(color: AppTheme.errorRed),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
                   ),
+                  if (prompts.isEmpty)
+                    TextButton(
+                      onPressed: notifier.loadPrompts,
+                      child: const Text('Reload prompts'),
+                    ),
                 ],
               ],
             ),
@@ -227,19 +427,70 @@ class _VoiceIcebreakersScreenState
     );
   }
 
-  Widget _card(BuildContext context, {required Widget child}) => GlassContainer(
-    padding: const EdgeInsets.all(14),
-    backgroundColor: Colors.white.withValues(alpha: 0.82),
-    blur: 12,
-    crystalEffect: true,
-    borderRadius: BorderRadius.circular(18),
-    shadows: [
-      BoxShadow(
-        color: AppTheme.trustBlue.withValues(alpha: 0.11),
-        blurRadius: 16,
-        offset: const Offset(0, 8),
-      ),
-    ],
-    child: child,
-  );
+  Future<void> _startRecording() async {
+    setState(() {
+      _recording = null;
+      _durationSeconds = 0;
+      _recordingError = null;
+    });
+    try {
+      if (!await _recorder.hasPermission()) {
+        if (mounted)
+          setState(
+            () => _recordingError =
+                'Allow microphone access to record. You can still read transcripts without it.',
+          );
+        return;
+      }
+      if (!mounted) return;
+      final filename =
+          'connect-voice-${DateTime.now().millisecondsSinceEpoch}.${kIsWeb ? 'webm' : 'm4a'}';
+      final outputPath = kIsWeb
+          ? filename
+          : '${(await getTemporaryDirectory()).path}/$filename';
+      await _recorder.start(
+        RecordConfig(
+          encoder: kIsWeb ? AudioEncoder.opus : AudioEncoder.aacLc,
+          numChannels: 1,
+          sampleRate: 48000,
+          bitRate: 96000,
+        ),
+        path: outputPath,
+      );
+      if (!mounted) return;
+      setState(() => _isRecording = true);
+      _recordingTimer?.cancel();
+      _recordingTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (!mounted) return;
+        final next = _durationSeconds + 1;
+        setState(() => _durationSeconds = next);
+        if (next >= 45) unawaited(_stopRecording());
+      });
+    } on Object catch (_) {
+      if (mounted) {
+        setState(
+          () => _recordingError =
+              'Unable to start recording. Check microphone access and try again.',
+        );
+      }
+    }
+  }
+
+  Future<void> _stopRecording() async {
+    _recordingTimer?.cancel();
+    String? outputPath;
+    try {
+      outputPath = await _recorder.stop();
+    } catch (_) {
+      outputPath = null;
+    }
+    if (!mounted) return;
+    setState(() {
+      _isRecording = false;
+      _recording = outputPath == null ? null : XFile(outputPath);
+      if (outputPath == null) {
+        _recordingError = 'The recording could not be saved. Please try again.';
+      }
+    });
+  }
 }

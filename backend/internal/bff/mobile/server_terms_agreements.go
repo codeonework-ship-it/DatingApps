@@ -14,6 +14,9 @@ func (s *Server) getTermsAgreement(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, errors.New("user id is required"))
 		return
 	}
+	if !s.requireLocalSignupUser(w, r, userID) {
+		return
+	}
 
 	ctx, cancel := s.withRequestTimeout(r.Context())
 	defer cancel()
@@ -33,6 +36,9 @@ func (s *Server) patchTermsAgreement(w http.ResponseWriter, r *http.Request) {
 	userID := strings.TrimSpace(chi.URLParam(r, "userID"))
 	if userID == "" {
 		writeError(w, http.StatusBadRequest, errors.New("user id is required"))
+		return
+	}
+	if !s.requireLocalSignupUser(w, r, userID) {
 		return
 	}
 

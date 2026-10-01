@@ -1,0 +1,1207 @@
+{
+  "id": null,
+  "uid": "connect-workers-queues",
+  "title": "Connect \u00b7 Workers & queues",
+  "description": "Heartbeats of every BFF background worker, backlogs, outboxes and delivery SLOs.",
+  "tags": [
+    "connect",
+    "workers",
+    "queues"
+  ],
+  "timezone": "browser",
+  "editable": true,
+  "graphTooltip": 1,
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "verified-dating-prometheus"
+        },
+        "enable": true,
+        "iconColor": "orange",
+        "name": "Restarts",
+        "expr": "changes(process_start_time_seconds{job=~\"connect-.*\"}[2m]) > 0",
+        "titleFormat": "{{component}} restarted",
+        "step": "1m"
+      }
+    ]
+  },
+  "links": [
+    {
+      "title": "Connect dashboards",
+      "type": "dashboards",
+      "tags": [
+        "connect"
+      ],
+      "asDropdown": true
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "worker",
+        "label": "Worker",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "verified-dating-prometheus"
+        },
+        "query": {
+          "query": "label_values(verified_dating_worker_runs_total, worker)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "definition": "label_values(verified_dating_worker_runs_total, worker)",
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {},
+        "sort": 1,
+        "regex": ""
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "Heartbeats",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "panels": []
+    },
+    {
+      "id": 2,
+      "type": "bargauge",
+      "title": "Heartbeat age \u00f7 stale threshold (1 = alert)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 0,
+        "y": 1
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "verified_dating:worker_heartbeat_age_seconds{worker=~\"$worker\"} / verified_dating:worker_stale_threshold_seconds{worker=~\"$worker\"}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "{{worker}}",
+          "instant": true
+        }
+      ],
+      "description": "Age of the last successful run divided by max(3x interval, 5m).",
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "max": 1.5,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.66
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
+      }
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Seconds since last success",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 12,
+        "y": 1
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "verified_dating:worker_heartbeat_age_seconds{worker=~\"$worker\"}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "{{worker}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Runs / s by result",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 11
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (worker, result) (rate(verified_dating_worker_runs_total{worker=~\"$worker\"}[5m]))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "{{worker}} {{result}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Run duration p95",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 11
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum by (worker, le) (rate(verified_dating_worker_run_duration_seconds_bucket{worker=~\"$worker\"}[15m])))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "{{worker}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Items / s by outcome",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 11
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (worker, outcome) (rate(verified_dating_worker_items_total{worker=~\"$worker\"}[15m]))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "{{worker}} {{outcome}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Backlog by worker",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 19
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "verified_dating_worker_backlog{worker=~\"$worker\"}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "{{worker}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 8,
+      "type": "row",
+      "title": "Notifications & push",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 27
+      },
+      "panels": []
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Notification outbox",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 28
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "verified_dating_notification_queue_depth",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "pending"
+        },
+        {
+          "refId": "B",
+          "expr": "verified_dating_notification_processing",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "processing"
+        },
+        {
+          "refId": "C",
+          "expr": "verified_dating_notification_dead_letters",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "dead letters"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Oldest pending notification",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 28
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "verified_dating_notification_oldest_pending_age_seconds",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "age"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 30
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Push success % (15m) and attempts",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 28
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "verified_dating_notification_push_success_percent_15m",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "success %"
+        },
+        {
+          "refId": "B",
+          "expr": "verified_dating_notification_push_attempts_15m",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "attempts (15m)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "Push p95 latency (15m)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 36
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "verified_dating_notification_push_p95_latency_ms_15m",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "p95"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "Notification batch failures / s",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 36
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "rate(verified_dating_notification_batch_failures_total[5m])",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "failures"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 14,
+      "type": "timeseries",
+      "title": "SOS deliveries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 36
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "verified_dating_sos_delivery_queue_depth",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "queue"
+        },
+        {
+          "refId": "B",
+          "expr": "verified_dating_sos_delivery_overdue",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "overdue"
+        },
+        {
+          "refId": "C",
+          "expr": "verified_dating_sos_delivery_dead_letters",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "dead letters"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 15,
+      "type": "row",
+      "title": "XP projection, retention, idempotency",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 44
+      },
+      "panels": []
+    },
+    {
+      "id": 16,
+      "type": "timeseries",
+      "title": "XP projection queue",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 45
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "verified_dating_progression_projection_queue_depth",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "queue"
+        },
+        {
+          "refId": "B",
+          "expr": "verified_dating_progression_projection_dead_letters",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "dead letters"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 17,
+      "type": "timeseries",
+      "title": "XP projection oldest pending",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 45
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "verified_dating_progression_projection_oldest_pending_age_seconds",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "age"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 18,
+      "type": "timeseries",
+      "title": "Trust retention rows / h by class",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 45
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (class) (increase(verified_dating_trust_retention_rows_total[1h]))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "{{class}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 19,
+      "type": "timeseries",
+      "title": "Idempotency health",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 53
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "verified_dating_reliability_idempotency_processing",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "processing"
+        },
+        {
+          "refId": "B",
+          "expr": "verified_dating_reliability_idempotency_expired_leases",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "expired leases"
+        },
+        {
+          "refId": "C",
+          "expr": "verified_dating_reliability_idempotency_retention_backlog",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "retention backlog"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 20,
+      "type": "timeseries",
+      "title": "Account erasure items / h",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 53
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (outcome) (increase(verified_dating_worker_items_total{worker=\"account_erasure\"}[1h]))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "{{outcome}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 21,
+      "type": "row",
+      "title": "In-process queues (activity fan-out)",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 61
+      },
+      "panels": []
+    },
+    {
+      "id": 22,
+      "type": "timeseries",
+      "title": "Queue fill ratio",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 62
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "verified_dating_queue_depth / clamp_min(verified_dating_queue_capacity, 1)",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "{{queue}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "max": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 23,
+      "type": "timeseries",
+      "title": "Enqueued / processed / dropped per s",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 62
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "rate(verified_dating_queue_enqueued_total[5m])",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "{{queue}} enqueued"
+        },
+        {
+          "refId": "B",
+          "expr": "rate(verified_dating_queue_processed_total[5m])",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "{{queue}} processed"
+        },
+        {
+          "refId": "C",
+          "expr": "rate(verified_dating_queue_dropped_total[5m])",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "{{queue}} dropped"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 24,
+      "type": "timeseries",
+      "title": "Max observed lag since start",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 62
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "verified_dating_queue_max_lag_seconds",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "{{queue}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 25,
+      "type": "row",
+      "title": "Logs",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 70
+      },
+      "panels": []
+    },
+    {
+      "id": 26,
+      "type": "logs",
+      "title": "Worker warnings (Loki)",
+      "datasource": {
+        "type": "loki",
+        "uid": "verified-dating-loki"
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 71
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "{unit=\"connect-mobile-bff.service\"} | json | level=~\"warn|error\" | msg=~\".*(sweep|worker|retention|erasure|cleanup|spool|batch|delivery).*\"",
+          "datasource": {
+            "type": "loki",
+            "uid": "verified-dating-loki"
+          }
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "sortOrder": "Descending",
+        "enableLogDetails": true
+      }
+    }
+  ]
+}

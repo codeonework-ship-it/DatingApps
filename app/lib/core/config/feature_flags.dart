@@ -14,14 +14,16 @@ const bool kUseMockDiscoveryData = bool.fromEnvironment(
   defaultValue: false,
 );
 
-/// Temporary auth shortcut: accept the local demo OTP code while pre-live.
-/// Disable with: `--dart-define=BYPASS_OTP_VALIDATION=false`.
-const bool kBypassOtpValidation = bool.fromEnvironment(
-  'BYPASS_OTP_VALIDATION',
-  defaultValue: true,
+/// Enables debug-only QA navigation and automation affordances.
+///
+/// Off by default: this gate exposes automation-only surfaces (such as the
+/// QA verification upload entry in Settings) that must never reach a shipped
+/// build. The Appium runner opts in explicitly with
+/// `--dart-define=ENABLE_QA_AUTOMATION=true`.
+const bool kEnableQaAutomation = bool.fromEnvironment(
+  'ENABLE_QA_AUTOMATION',
+  defaultValue: false,
 );
-
-const String kOtpBypassCode = '123456';
 
 const bool kFeatureEngagementUnlockMvp = bool.fromEnvironment(
   'FEATURE_ENGAGEMENT_UNLOCK_MVP',

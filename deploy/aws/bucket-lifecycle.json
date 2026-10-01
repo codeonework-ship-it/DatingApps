@@ -1,0 +1,43 @@
+{
+  "Rules": [
+    {
+      "ID": "abort-incomplete-multipart-uploads",
+      "Status": "Enabled",
+      "Filter": {},
+      "AbortIncompleteMultipartUpload": {
+        "DaysAfterInitiation": 1
+      }
+    },
+    {
+      "ID": "expire-deleted-versions-30d",
+      "Status": "Enabled",
+      "Filter": {},
+      "NoncurrentVersionExpiration": {
+        "NoncurrentDays": 30
+      },
+      "Expiration": {
+        "ExpiredObjectDeleteMarker": true
+      }
+    },
+    {
+      "ID": "verification-evidence-deleted-versions-7d",
+      "Status": "Enabled",
+      "Filter": {
+        "Prefix": "private/verification/"
+      },
+      "NoncurrentVersionExpiration": {
+        "NoncurrentDays": 7
+      }
+    },
+    {
+      "ID": "healthcheck-probes",
+      "Status": "Enabled",
+      "Filter": {
+        "Prefix": "quarantine/profile_photos/_healthcheck/"
+      },
+      "Expiration": {
+        "Days": 1
+      }
+    }
+  ]
+}

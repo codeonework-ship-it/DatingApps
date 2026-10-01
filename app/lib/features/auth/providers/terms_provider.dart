@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../core/config/app_runtime_config.dart';
 import '../../../core/config/feature_flags.dart';
 import '../../../core/providers/api_client_provider.dart';
 import '../../../core/utils/logger.dart';
@@ -20,6 +21,13 @@ class TermsAcceptance extends _$TermsAcceptance {
     final authState = ref.watch(authNotifierProvider);
     final userId = authState.userId?.trim() ?? '';
     final localValue = await _readLocalValue(prefs, userId);
+
+    if (kEnableQaAutomation && AppRuntimeConfig.qaForcedUserId == userId) {
+      if (!localValue) {
+        await _persistLocalValue(prefs, userId: userId, accepted: true);
+      }
+      return true;
+    }
 
     if (kUseMockAuth) {
       return localValue;
@@ -46,7 +54,7 @@ class TermsAcceptance extends _$TermsAcceptance {
       }
       return accepted;
     } on DioException {
-      return localValue;
+      rethrow;
     }
   }
 

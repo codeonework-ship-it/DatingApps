@@ -7,7 +7,7 @@ part of 'verification_provider.dart';
 // **************************************************************************
 
 String _$verificationNotifierHash() =>
-    r'e2bb26a35dc012d52bce97604ac79e6cb7032c4f';
+    r'4e2973c0130a22069432a3350574ccf13f193b18';
 
 /// See also [VerificationNotifier].
 @ProviderFor(VerificationNotifier)

@@ -96,7 +96,7 @@ flutter pub run build_runner build
 
 This enables:
 - ✅ Real-time messaging (WebSocket)
-- ✅ Phone OTP authentication
+- ✅ Username/password authentication
 - ✅ Photo storage (cloud)
 - ✅ Row Level Security (RLS)
 

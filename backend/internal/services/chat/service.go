@@ -13,6 +13,7 @@ import (
 
 	"github.com/verified-dating/backend/internal/platform/concurrency"
 	"github.com/verified-dating/backend/internal/platform/config"
+	"github.com/verified-dating/backend/internal/platform/dataaccess"
 	"github.com/verified-dating/backend/internal/platform/supabase"
 )
 
@@ -34,13 +35,13 @@ type Repository interface {
 	DeleteMessage(context.Context, string, string, string) (bool, string, error)
 }
 
-type SupabaseRepository struct {
-	db  *supabase.Client
+type DataRepository struct {
+	db  dataaccess.Client
 	cfg config.Config
 }
 
-func NewRepository(db *supabase.Client, cfg config.Config) Repository {
-	return &SupabaseRepository{db: db, cfg: cfg}
+func NewRepository(db dataaccess.Client, cfg config.Config) Repository {
+	return &DataRepository{db: db, cfg: cfg}
 }
 
 type Service struct {
@@ -71,6 +72,9 @@ func NewService(
 }
 
 func (s *Service) StartRealtime(ctx context.Context) error {
+	if s.realtime == nil {
+		return nil
+	}
 	if err := s.realtime.Connect(ctx); err != nil {
 		s.log.Error("chat_realtime_connect_failed", zap.Error(err))
 		return err
@@ -194,7 +198,7 @@ func (s *Service) DeleteMessage(ctx context.Context, req *structpb.Struct) (*str
 	})
 }
 
-func (r *SupabaseRepository) ListMessages(ctx context.Context, matchID string, limit int) ([]map[string]any, error) {
+func (r *DataRepository) ListMessages(ctx context.Context, matchID string, limit int) ([]map[string]any, error) {
 	profile := r.primaryMessageSchemaProfile()
 	rows, err := r.listMessagesWithProfile(ctx, profile, matchID, limit)
 	if err == nil || !isSchemaUnavailable(err) {
@@ -206,7 +210,7 @@ func (r *SupabaseRepository) ListMessages(ctx context.Context, matchID string, l
 	return nil, err
 }
 
-func (r *SupabaseRepository) SendMessage(ctx context.Context, matchID, senderID, text string) (string, error) {
+func (r *DataRepository) SendMessage(ctx context.Context, matchID, senderID, text string) (string, error) {
 	profile := r.primaryMessageSchemaProfile()
 	id, err := r.sendMessageWithProfile(ctx, profile, matchID, senderID, text)
 	if err == nil || !isSchemaUnavailable(err) {
@@ -218,7 +222,7 @@ func (r *SupabaseRepository) SendMessage(ctx context.Context, matchID, senderID,
 	return "", err
 }
 
-func (r *SupabaseRepository) DeleteMessage(
+func (r *DataRepository) DeleteMessage(
 	ctx context.Context,
 	matchID,
 	messageID,
@@ -235,7 +239,7 @@ func (r *SupabaseRepository) DeleteMessage(
 	return false, "", err
 }
 
-func (r *SupabaseRepository) listMessagesWithProfile(
+func (r *DataRepository) listMessagesWithProfile(
 	ctx context.Context,
 	profile messageSchemaProfile,
 	matchID string,
@@ -250,7 +254,7 @@ func (r *SupabaseRepository) listMessagesWithProfile(
 	return r.db.Select(ctx, profile.schema, r.cfg.MessagesTable, params)
 }
 
-func (r *SupabaseRepository) sendMessageWithProfile(
+func (r *DataRepository) sendMessageWithProfile(
 	ctx context.Context,
 	profile messageSchemaProfile,
 	matchID,
@@ -272,7 +276,7 @@ func (r *SupabaseRepository) sendMessageWithProfile(
 	return id, nil
 }
 
-func (r *SupabaseRepository) deleteMessageWithProfile(
+func (r *DataRepository) deleteMessageWithProfile(
 	ctx context.Context,
 	profile messageSchemaProfile,
 	matchID,
@@ -326,14 +330,14 @@ func (r *SupabaseRepository) deleteMessageWithProfile(
 	return true, "DELETED", nil
 }
 
-func (r *SupabaseRepository) primaryMessageSchemaProfile() messageSchemaProfile {
+func (r *DataRepository) primaryMessageSchemaProfile() messageSchemaProfile {
 	if strings.EqualFold(strings.TrimSpace(r.cfg.MatchingSchema), "public") || r.prefersPublicCoreMessages() {
 		return publicMessageSchemaProfile()
 	}
 	return matchingMessageSchemaProfile(strings.TrimSpace(r.cfg.MatchingSchema))
 }
 
-func (r *SupabaseRepository) fallbackMessageSchemaProfile(profile messageSchemaProfile) (messageSchemaProfile, bool) {
+func (r *DataRepository) fallbackMessageSchemaProfile(profile messageSchemaProfile) (messageSchemaProfile, bool) {
 	if strings.EqualFold(strings.TrimSpace(profile.schema), "public") {
 		return messageSchemaProfile{}, false
 	}
@@ -381,7 +385,7 @@ func isSchemaUnavailable(err error) bool {
 		strings.Contains(msg, "could not find the table")
 }
 
-func (r *SupabaseRepository) prefersPublicCoreMessages() bool {
+func (r *DataRepository) prefersPublicCoreMessages() bool {
 	base := strings.TrimRight(strings.TrimSpace(r.cfg.SupabaseURL), "/")
 	if base == "" || strings.HasSuffix(base, "/rest/v1") {
 		return false

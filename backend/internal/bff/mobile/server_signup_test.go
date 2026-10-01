@@ -14,7 +14,7 @@ func TestServer_BootstrapSignupCreatesDraftWithBasics(t *testing.T) {
 	req := httptest.NewRequest(
 		http.MethodPost,
 		"/v1/auth/signup/bootstrap",
-		strings.NewReader(`{"user_id":"signup-user-1","phone":"+91 98765 43210","name":"Priya","date_of_birth":"1998-03-10","gender":"F"}`),
+		strings.NewReader(`{"user_id":"signup-user-1","username":"priya_98","name":"Priya","date_of_birth":"1998-03-10","gender":"F"}`),
 	)
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
@@ -34,8 +34,8 @@ func TestServer_BootstrapSignupCreatesDraftWithBasics(t *testing.T) {
 	if got := stringValue(draft["name"]); got != "Priya" {
 		t.Fatalf("expected draft name Priya, got %q", got)
 	}
-	if got := stringValue(draft["phone_number"]); got != "+919876543210" {
-		t.Fatalf("expected normalized phone, got %q", got)
+	if got := stringValue(draft["username"]); got != "priya_98" {
+		t.Fatalf("expected normalized username, got %q", got)
 	}
 	if got := int(draft["profile_completion"].(float64)); got != 25 {
 		t.Fatalf("expected profile_completion=25, got %d", got)
@@ -53,7 +53,7 @@ func TestServer_BootstrapSignupDoesNotOverwriteExistingCompletedDraft(t *testing
 
 	server.store.profiles["signup-user-2"] = profileDraft{
 		UserID:            "signup-user-2",
-		PhoneNumber:       "+919111111111",
+		Username:          "existing_user",
 		Name:              "Existing Name",
 		DateOfBirth:       "1992-01-01",
 		Gender:            "M",
@@ -63,7 +63,7 @@ func TestServer_BootstrapSignupDoesNotOverwriteExistingCompletedDraft(t *testing
 	req := httptest.NewRequest(
 		http.MethodPost,
 		"/v1/auth/signup/bootstrap",
-		strings.NewReader(`{"user_id":"signup-user-2","phone":"+91 92222 22222","name":"New Name","date_of_birth":"1999-02-02","gender":"F"}`),
+		strings.NewReader(`{"user_id":"signup-user-2","username":"existing_user","name":"New Name","date_of_birth":"1999-02-02","gender":"F"}`),
 	)
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
@@ -92,7 +92,7 @@ func TestServer_BootstrapSignupRejectsUnderage(t *testing.T) {
 	req := httptest.NewRequest(
 		http.MethodPost,
 		"/v1/auth/signup/bootstrap",
-		strings.NewReader(`{"user_id":"signup-user-3","phone":"+919876543210","name":"Teen","date_of_birth":"2012-01-01","gender":"F"}`),
+		strings.NewReader(`{"user_id":"signup-user-3","username":"teen_user","name":"Teen","date_of_birth":"2012-01-01","gender":"F"}`),
 	)
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()

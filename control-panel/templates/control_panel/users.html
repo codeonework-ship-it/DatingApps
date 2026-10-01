@@ -123,6 +123,7 @@
       <thead>
         <tr>
           <th>User</th>
+          <th>Username</th>
           <th>Phone</th>
           <th>Gender</th>
           <th>Joined</th>
@@ -138,7 +139,7 @@
             <div class="d-flex align-items-center gap-3">
               <div class="rounded-circle d-flex align-items-center justify-content-center"
                 style="width:36px;height:36px;background:linear-gradient(135deg,var(--purple-accent),#6d28d9);font-size:0.85rem;font-weight:600;">
-                {{ u.name|default:u.phone_number|slice:":1"|upper }}
+                {{ u.name|default:u.username|slice:":1"|upper }}
               </div>
               <div>
                 <div class="fw-semibold">{{ u.name|default:"—" }}</div>
@@ -146,6 +147,7 @@
               </div>
             </div>
           </td>
+          <td class="font-monospace">@{{ u.username|default:"—" }}</td>
           <td class="font-monospace text-muted">{{ u.phone_number|default:"—" }}</td>
           <td class="text-muted small text-capitalize">{{ u.gender|default:"—" }}</td>
           <td class="text-muted small">{{ u.created_at|date:"M d, Y"|default:"—" }}</td>

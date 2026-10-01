@@ -16,7 +16,9 @@ CREATE SCHEMA IF NOT EXISTS audit;
 
 CREATE TABLE IF NOT EXISTS user_management.users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  phone_number TEXT NOT NULL UNIQUE,
+  username TEXT NOT NULL UNIQUE DEFAULT ('user_' || SUBSTRING(REPLACE(gen_random_uuid()::TEXT, '-', '') FROM 1 FOR 20))
+    CHECK (username ~ '^[a-z0-9]([a-z0-9._]{1,28}[a-z0-9])?$'),
+  phone_number TEXT UNIQUE,
   email TEXT UNIQUE,
   name TEXT NOT NULL,
   date_of_birth DATE NOT NULL,
@@ -46,6 +48,24 @@ CREATE TABLE IF NOT EXISTS user_management.users (
 CREATE INDEX IF NOT EXISTS idx_users_gender_dob ON user_management.users(gender, date_of_birth);
 CREATE INDEX IF NOT EXISTS idx_users_country_state_city ON user_management.users(country, state, city);
 CREATE INDEX IF NOT EXISTS idx_users_created_at ON user_management.users(created_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_users_username_normalized ON user_management.users(LOWER(username));
+
+CREATE OR REPLACE FUNCTION user_management.prevent_username_change()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  IF OLD.username IS DISTINCT FROM NEW.username THEN
+    RAISE EXCEPTION 'username is immutable';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_users_username_immutable ON user_management.users;
+CREATE TRIGGER trg_users_username_immutable
+BEFORE UPDATE OF username ON user_management.users
+FOR EACH ROW EXECUTE FUNCTION user_management.prevent_username_change();
 
 CREATE TABLE IF NOT EXISTS user_management.preferences (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

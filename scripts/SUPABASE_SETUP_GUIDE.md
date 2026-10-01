@@ -126,28 +126,21 @@ Instant notifications
 
 ## STEP 5: SETUP AUTHENTICATION
 
-### 5.1 Enable Email/Password Auth
+### 5.1 Enable the credential provider
 ```
 Dashboard → Authentication → Providers
 Click: Email/Password toggle ON
 Configure:
-  ✅ Email confirmation (optional)
-  ✅ Double confirm change (optional)
+  ✅ Use the service-role-backed signup flow (recommended)
+  ✅ Disable email confirmation only when no service role is configured
 ```
 
-### 5.2 Enable Phone OTP (for login)
-```
-Dashboard → Authentication → Providers
-Click: Phone toggle ON
-Configure:
-  Option 1: Use Twilio (recommended for production)
-    - Add Twilio Account SID
-    - Add Twilio Auth Token
-    - Add Twilio Phone Number
-  
-  Option 2: Use Supabase test credentials (for development)
-    - Default test mode
-```
+### 5.2 Username mapping
+
+The mobile and BFF contracts accept only `username` and `password`. The auth
+service maps the normalized username to an internal, non-user-facing Supabase
+credential address. Phone and user-provided email are not login identifiers.
+Apply migration `050_username_password_identity.sql` before enabling signup.
 
 ### 5.3 Configure Auth Settings
 ```
@@ -324,7 +317,7 @@ print('Users: ${response.data}');
 ```
 ✅ All tables 1-11 created (user_management, matching, safety)
 ✅ Realtime enabled on: messages, matches
-✅ Auth: Phone OTP configured
+✅ Auth: Username/password configured
 ✅ Storage: photos bucket created
 ✅ Flutter connected and tested
 
@@ -520,4 +513,3 @@ Your database is now fully set up with:
 **Document Version**: 1.0  
 **Last Updated**: February 21, 2026  
 **Status**: Ready for Production
-

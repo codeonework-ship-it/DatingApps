@@ -1,0 +1,27 @@
+[
+  {
+    "name": "unlock-state-visible",
+    "kind": "unlock_state"
+  },
+  {
+    "name": "quest-workflow-visible",
+    "kind": "quest_workflow"
+  },
+  {
+    "name": "gesture-timeline-visible",
+    "kind": "gestures_list"
+  },
+  {
+    "name": "trust-badges-visible",
+    "kind": "trust_badges"
+  },
+  {
+    "name": "rooms-visible",
+    "kind": "rooms"
+  },
+  {
+    "name": "activity-session-mutating-sample",
+    "kind": "activity_session",
+    "mutating": true
+  }
+]

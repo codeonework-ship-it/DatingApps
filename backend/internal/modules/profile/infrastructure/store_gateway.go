@@ -4,14 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+
+	"github.com/verified-dating/backend/internal/modules/profile/application"
 )
 
 type StoreGateway struct {
 	getDraft               func(string) any
 	patchDraft             func(string, map[string]any) any
-	addPhoto               func(string, string, string) any
-	deletePhoto            func(string, string) any
-	reorderPhotos          func(string, []string) any
+	addPhoto               func(string, application.ProfilePhotoUploadInput) (any, error)
+	deletePhoto            func(string, string) (any, error)
+	reorderPhotos          func(string, []string) (any, error)
 	completeProfile        func(string) (any, error)
 	getSettings            func(string) any
 	patchSettings          func(string, map[string]any) any
@@ -25,9 +27,9 @@ type StoreGateway struct {
 func NewStoreGateway(
 	getDraft func(string) any,
 	patchDraft func(string, map[string]any) any,
-	addPhoto func(string, string, string) any,
-	deletePhoto func(string, string) any,
-	reorderPhotos func(string, []string) any,
+	addPhoto func(string, application.ProfilePhotoUploadInput) (any, error),
+	deletePhoto func(string, string) (any, error),
+	reorderPhotos func(string, []string) (any, error),
 	completeProfile func(string) (any, error),
 	getSettings func(string) any,
 	patchSettings func(string, map[string]any) any,
@@ -74,16 +76,28 @@ func (g *StoreGateway) PatchDraft(_ context.Context, userID string, payload map[
 	return toMap(g.patchDraft(userID, payload))
 }
 
-func (g *StoreGateway) AddPhoto(_ context.Context, userID, photoURL, storagePath string) (map[string]any, error) {
-	return toMap(g.addPhoto(userID, photoURL, storagePath))
+func (g *StoreGateway) AddPhoto(_ context.Context, userID string, photo application.ProfilePhotoUploadInput) (map[string]any, error) {
+	value, err := g.addPhoto(userID, photo)
+	if err != nil {
+		return nil, err
+	}
+	return toMap(value)
 }
 
 func (g *StoreGateway) DeletePhoto(_ context.Context, userID, photoID string) (map[string]any, error) {
-	return toMap(g.deletePhoto(userID, photoID))
+	value, err := g.deletePhoto(userID, photoID)
+	if err != nil {
+		return nil, err
+	}
+	return toMap(value)
 }
 
 func (g *StoreGateway) ReorderPhotos(_ context.Context, userID string, photoIDs []string) (map[string]any, error) {
-	return toMap(g.reorderPhotos(userID, photoIDs))
+	value, err := g.reorderPhotos(userID, photoIDs)
+	if err != nil {
+		return nil, err
+	}
+	return toMap(value)
 }
 
 func (g *StoreGateway) CompleteProfile(_ context.Context, userID string) (map[string]any, error) {

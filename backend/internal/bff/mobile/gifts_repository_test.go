@@ -46,6 +46,32 @@ func (f *fakeRoseGiftDB) Delete(ctx context.Context, schema, table string, filte
 	return f.deleteFn(ctx, schema, table, filters)
 }
 
+func TestRoseGiftRepository_GetWalletCreatesZeroWithoutSyntheticCredit(t *testing.T) {
+	cfg := config.Config{MatchingSchema: "matching", UserWalletsTable: "user_wallets", WalletCoinPurchasesTable: "wallet_coin_purchases"}
+	creditInsertCalled := false
+	db := &fakeRoseGiftDB{
+		selectReadFn: func(_ context.Context, _, _ string, _ url.Values) ([]map[string]any, error) { return nil, nil },
+		insertFn: func(_ context.Context, _ string, table string, payload any) ([]map[string]any, error) {
+			if table == cfg.WalletCoinPurchasesTable {
+				creditInsertCalled = true
+				return nil, errors.New("synthetic credit must not be written")
+			}
+			rows := payload.([]map[string]any)
+			if got := rows[0]["coin_balance"]; got != 0 {
+				t.Fatalf("new wallet balance=%v, want 0", got)
+			}
+			return rows, nil
+		},
+	}
+	wallet, err := (&roseGiftRepository{cfg: cfg, db: db}).getWallet(context.Background(), "member-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if wallet.CoinBalance != 0 || creditInsertCalled {
+		t.Fatalf("wallet=%+v synthetic_credit=%v", wallet, creditInsertCalled)
+	}
+}
+
 func TestRoseGiftRepository_SendGiftRollsBackWhenChatInsertFails(t *testing.T) {
 	cfg := config.Config{
 		MatchingSchema:      "matching",

@@ -1,0 +1,126 @@
+{% extends "control_panel/base.html" %}
+{% block topbar_title %}Client Error · Monitoring{% endblock %}
+{% block content %}
+<p class="mb-3"><a href="{% url 'client_errors' %}"><i class="bi bi-arrow-left"></i> All client errors</a></p>
+
+{% if error %}<div class="alert-glass warning" role="alert"><i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}</div>{% endif %}
+
+{% if issue %}
+<div class="page-header">
+  <div>
+    <h1 class="text-break"><i class="bi bi-bug-fill header-icon"></i> {{ issue.title|default:"Untitled error" }}</h1>
+    <p class="text-muted mb-1 font-monospace text-break">{{ issue.error_type|default:"—" }}{% if issue.culprit %} · {{ issue.culprit }}{% endif %}</p>
+    <p class="mb-0">
+      {% if issue.status == 'resolved' %}<span class="badge badge-active">Resolved</span>{% elif issue.status == 'ignored' %}<span class="badge badge-inactive">Ignored</span>{% else %}<span class="badge badge-warning">Open</span>{% endif %}
+      {% if issue.regressed %}<span class="badge badge-purple">Regressed</span>{% endif %}
+      {% if issue.fatal %}<span class="badge badge-danger">Fatal</span>{% endif %}
+    </p>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-lg-7">
+    <div class="glass-card h-100">
+      <h2 class="h5">Issue</h2>
+      <dl class="row small mb-0">
+        <dt class="col-sm-4">Occurrences</dt><dd class="col-sm-8">{{ issue.occurrence_count|default:"0" }}</dd>
+        <dt class="col-sm-4">Affected installs</dt><dd class="col-sm-8">{{ issue.affected_users|default:"0" }}</dd>
+        <dt class="col-sm-4">Platforms</dt><dd class="col-sm-8">{{ issue.platforms|join:", "|default:"—" }}</dd>
+        <dt class="col-sm-4">Latest versions</dt><dd class="col-sm-8 font-monospace">{{ issue.versions|join:", "|default:"—" }}</dd>
+        <dt class="col-sm-4">First seen</dt><dd class="col-sm-8">{{ issue.first_seen_at|default:"—" }}</dd>
+        <dt class="col-sm-4">Last seen</dt><dd class="col-sm-8">{{ issue.last_seen_at|default:"—" }}</dd>
+        {% if issue.resolved_at %}<dt class="col-sm-4">Resolved</dt><dd class="col-sm-8">{{ issue.resolved_at }}{% if issue.resolved_in_version %} · in <span class="font-monospace">{{ issue.resolved_in_version }}</span>{% endif %}</dd>{% endif %}
+        {% if issue.status_changed_by %}<dt class="col-sm-4">Status changed by</dt><dd class="col-sm-8"><code>{{ issue.status_changed_by }}</code></dd>{% endif %}
+        {% if issue.status_note %}<dt class="col-sm-4">Status note</dt><dd class="col-sm-8 text-break">{{ issue.status_note }}</dd>{% endif %}
+        <dt class="col-sm-4">Fingerprint</dt><dd class="col-sm-8"><code class="text-break">{{ issue.fingerprint|default:"—" }}</code></dd>
+        <dt class="col-sm-4">Issue id</dt><dd class="col-sm-8"><code>{{ issue.id|default:issue_id }}</code></dd>
+      </dl>
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="glass-card h-100">
+      <h2 class="h5">Change status</h2>
+      <p class="small text-muted">Admin and ops_admin operators can change status; analysts can only read.</p>
+      {% if issue.status != 'resolved' %}
+      <form method="post" action="{% url 'client_error_status' issue_id %}" class="mb-3">{% csrf_token %}
+        <input type="hidden" name="status" value="resolved">
+        <label for="resolved-version" class="form-label small">Resolved in version (optional)</label>
+        <input id="resolved-version" name="resolved_in_version" maxlength="{{ version_max }}" class="form-control glass-input mb-2" placeholder="e.g. 1.4.3">
+        <label for="resolve-note" class="form-label small">Note (optional)</label>
+        <textarea id="resolve-note" name="note" maxlength="{{ note_max }}" rows="2" class="form-control glass-input mb-2" placeholder="Fixed by the image cache patch"></textarea>
+        <button class="btn btn-glow" type="submit"><i class="bi bi-check2-circle me-1"></i>Resolve</button>
+      </form>
+      {% endif %}
+      {% if issue.status != 'ignored' %}
+      <form method="post" action="{% url 'client_error_status' issue_id %}" class="mb-3">{% csrf_token %}
+        <input type="hidden" name="status" value="ignored">
+        <label for="ignore-note" class="form-label small">Note (optional)</label>
+        <textarea id="ignore-note" name="note" maxlength="{{ note_max }}" rows="2" class="form-control glass-input mb-2" placeholder="Known OS bug, nothing to fix in the app"></textarea>
+        <button class="btn btn-glass" type="submit"><i class="bi bi-eye-slash me-1"></i>Ignore</button>
+      </form>
+      {% endif %}
+      {% if issue.status == 'resolved' or issue.status == 'ignored' %}
+      <form method="post" action="{% url 'client_error_status' issue_id %}">{% csrf_token %}
+        <input type="hidden" name="status" value="open">
+        <label for="reopen-note" class="form-label small">Note (optional)</label>
+        <textarea id="reopen-note" name="note" maxlength="{{ note_max }}" rows="2" class="form-control glass-input mb-2"></textarea>
+        <button class="btn btn-glass" type="submit"><i class="bi bi-arrow-counterclockwise me-1"></i>Reopen</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="glass-card mb-4">
+  <h2 class="h5">Versions</h2>
+  {% if versions %}
+  <div class="table-responsive">
+    <table class="glass-table">
+      <thead><tr><th>App version</th><th>Platform</th><th class="text-end">Occurrences</th><th>First seen</th><th>Last seen</th></tr></thead>
+      <tbody>
+        {% for v in versions %}
+        <tr><td class="font-monospace">{{ v.app_version|default:"—" }}</td><td>{{ v.platform|default:"—" }}</td><td class="text-end">{{ v.occurrences|default:"0" }}</td><td class="small text-muted">{{ v.first_seen_at|default:"—" }}</td><td class="small text-muted">{{ v.last_seen_at|default:"—" }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}<p class="text-muted mb-0">No version breakdown yet.</p>{% endif %}
+</div>
+
+<h2 class="h5">Recent occurrences</h2>
+{% for o in occurrences %}
+<article class="glass-card mb-3">
+  <div class="d-flex flex-wrap justify-content-between gap-2 mb-2">
+    <strong>{{ o.occurred_at|default:"—" }}</strong>
+    <span>
+      {% if o.fatal %}<span class="badge badge-danger">Fatal</span>{% endif %}
+      {% if o.handled %}<span class="badge badge-inactive">Handled</span>{% else %}<span class="badge badge-warning">Unhandled</span>{% endif %}
+      {% if o.signed_in %}<span class="badge badge-gold">Signed in</span>{% else %}<span class="badge badge-inactive">Signed out</span>{% endif %}
+    </span>
+  </div>
+  <p class="small mb-2">
+    App <span class="font-monospace">{{ o.app_version|default:"—" }}{% if o.build_number %} ({{ o.build_number }}){% endif %}</span>
+    · {{ o.platform|default:"—" }} {{ o.os_version }}
+    · {{ o.device_class|default:"unknown" }}
+    · Locale {{ o.locale|default:"—" }}
+    · Screen <span class="font-monospace">{{ o.screen|default:"—" }}</span>
+    {% if o.source %}· Source {{ o.source }}{% endif %}
+    · Received {{ o.received_at|default:"—" }}
+  </p>
+  {% if o.message %}<p class="mb-2 text-break">{{ o.message }}</p>{% endif %}
+  {% if o.stack %}<pre class="p-3 rounded small" style="background:rgba(0,0,0,0.3);overflow-x:auto;max-height:360px;white-space:pre;">{{ o.stack }}</pre>{% endif %}
+  {% if o.breadcrumbs %}
+  <details>
+    <summary class="small">Breadcrumbs ({{ o.breadcrumbs|length }})</summary>
+    <ol class="small mt-2 mb-0">
+      {% for b in o.breadcrumbs %}<li><span class="text-muted">{{ b.at|default:"—" }}</span> <span class="badge badge-purple">{{ b.category|default:"other" }}</span> <span class="text-break">{{ b.message }}</span></li>{% endfor %}
+    </ol>
+  </details>
+  {% endif %}
+  <div class="small text-muted mt-2">Occurrence <code>{{ o.id|default:"—" }}</code></div>
+</article>
+{% empty %}
+<div class="glass-card"><p class="text-muted mb-0">No occurrences kept for this issue. Reports are kept for 90 days.</p></div>
+{% endfor %}
+{% endif %}
+{% endblock %}

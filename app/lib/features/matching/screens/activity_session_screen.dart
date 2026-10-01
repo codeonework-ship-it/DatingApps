@@ -3,13 +3,15 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
 import '../providers/activity_session_provider.dart';
 
 class ActivitySessionScreen extends ConsumerStatefulWidget {
   const ActivitySessionScreen({
-    required this.matchId, required this.otherUserId, required this.otherUserName, super.key,
+    required this.matchId,
+    required this.otherUserId,
+    required this.otherUserName,
+    super.key,
     this.enableShareToChat = false,
   });
   final String matchId;
@@ -100,6 +102,7 @@ class _ActivitySessionScreenState extends ConsumerState<ActivitySessionScreen> {
         title: const Text('2-Minute This-or-That'),
         actions: [
           IconButton(
+            tooltip: 'Start a new session',
             icon: const Icon(Icons.refresh),
             onPressed: state.isLoading || state.isSubmitting
                 ? null
@@ -110,10 +113,10 @@ class _ActivitySessionScreenState extends ConsumerState<ActivitySessionScreen> {
       body: PostLoginBackdrop(
         child: SafeArea(
           child: state.isLoading
-              ? const Center(
+              ? Center(
                   child: CircularProgressIndicator(
                     valueColor: AlwaysStoppedAnimation<Color>(
-                      AppTheme.trustBlue,
+                      Theme.of(context).colorScheme.primary,
                     ),
                   ),
                 )
@@ -124,7 +127,7 @@ class _ActivitySessionScreenState extends ConsumerState<ActivitySessionScreen> {
                     children: [
                       GlassContainer(
                         padding: const EdgeInsets.all(16),
-                        backgroundColor: Colors.white,
+                        backgroundColor: Theme.of(context).colorScheme.surface,
                         blur: 0,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -133,7 +136,9 @@ class _ActivitySessionScreenState extends ConsumerState<ActivitySessionScreen> {
                               'Complete this with ${widget.otherUserName}',
                               style: Theme.of(context).textTheme.titleMedium
                                   ?.copyWith(
-                                    color: AppTheme.textDark,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurface,
                                     fontWeight: FontWeight.w700,
                                   ),
                             ),
@@ -149,7 +154,11 @@ class _ActivitySessionScreenState extends ConsumerState<ActivitySessionScreen> {
                               Text(
                                 'Status: ${state.status.replaceAll('_', ' ')}',
                                 style: Theme.of(context).textTheme.bodySmall
-                                    ?.copyWith(color: AppTheme.textHint),
+                                    ?.copyWith(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
+                                    ),
                               ),
                             ],
                           ],
@@ -172,7 +181,9 @@ class _ActivitySessionScreenState extends ConsumerState<ActivitySessionScreen> {
                         Text(
                           state.error!,
                           style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: AppTheme.errorRed),
+                              ?.copyWith(
+                                color: Theme.of(context).colorScheme.error,
+                              ),
                         ),
                         const SizedBox(height: 8),
                       ],
@@ -186,13 +197,13 @@ class _ActivitySessionScreenState extends ConsumerState<ActivitySessionScreen> {
                               ? null
                               : notifier.submitCurrentUserResponses,
                           child: state.isSubmitting
-                              ? const SizedBox(
+                              ? SizedBox(
                                   width: 18,
                                   height: 18,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
                                     valueColor: AlwaysStoppedAnimation<Color>(
-                                      Colors.white,
+                                      Theme.of(context).colorScheme.onPrimary,
                                     ),
                                   ),
                                 )
@@ -275,14 +286,16 @@ class _CountdownPill extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: isUrgent
-            ? AppTheme.errorRed.withValues(alpha: 0.1)
-            : AppTheme.trustBlue.withValues(alpha: 0.08),
+            ? Theme.of(context).colorScheme.errorContainer
+            : Theme.of(context).colorScheme.primaryContainer,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
         'Time left $minutes:$seconds',
         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-          color: isUrgent ? AppTheme.errorRed : AppTheme.trustBlue,
+          color: isUrgent
+              ? Theme.of(context).colorScheme.onErrorContainer
+              : Theme.of(context).colorScheme.onPrimaryContainer,
           fontWeight: FontWeight.w700,
         ),
       ),
@@ -305,7 +318,7 @@ class _QuestionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => GlassContainer(
     padding: const EdgeInsets.all(16),
-    backgroundColor: Colors.white,
+    backgroundColor: Theme.of(context).colorScheme.surface,
     blur: 0,
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -313,7 +326,7 @@ class _QuestionCard extends StatelessWidget {
         Text(
           question.title,
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            color: AppTheme.textDark,
+            color: Theme.of(context).colorScheme.onSurface,
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -329,11 +342,13 @@ class _QuestionCard extends StatelessWidget {
                   label: Text(option),
                   selected: selectedAnswer == option,
                   onSelected: enabled ? (_) => onSelected(option) : null,
-                  selectedColor: AppTheme.trustBlue.withValues(alpha: 0.16),
+                  selectedColor: Theme.of(
+                    context,
+                  ).colorScheme.primaryContainer,
                   labelStyle: TextStyle(
                     color: selectedAnswer == option
-                        ? AppTheme.trustBlue
-                        : AppTheme.textDark,
+                        ? Theme.of(context).colorScheme.onPrimaryContainer
+                        : Theme.of(context).colorScheme.onSurface,
                     fontWeight: selectedAnswer == option
                         ? FontWeight.w700
                         : FontWeight.w500,
@@ -365,7 +380,7 @@ class _SummaryCard extends StatelessWidget {
 
     return GlassContainer(
       padding: const EdgeInsets.all(16),
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       blur: 0,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -373,7 +388,7 @@ class _SummaryCard extends StatelessWidget {
           Text(
             'Activity Summary',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: AppTheme.textDark,
+              color: Theme.of(context).colorScheme.onSurface,
               fontWeight: FontWeight.w700,
             ),
           ),

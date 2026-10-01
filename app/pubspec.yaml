@@ -8,70 +8,111 @@ environment:
   sdk: ^3.11.0
 
 dependencies:
+  cached_network_image: ^3.3.1
+  cupertino_icons: ^1.0.8
+  dio: ^5.3.0
+  firebase_core: ^4.13.0
+  firebase_messaging: ^16.5.0
   flutter:
     sdk: flutter
-  cupertino_icons: ^1.0.8
-
-  # Backend
-  supabase_flutter: ^2.9.0
   flutter_dotenv: ^5.2.1
-
-  # Local persistence (terms acceptance)
-  shared_preferences: ^2.2.3
-
-  # Media picking (photo upload / verification)
-  image_picker: ^1.1.2
-
-  # Local filesystem paths (photo local cache folder)
-  path_provider: ^2.1.4
-
-  # State Management & Architecture
-  riverpod: ^2.4.0
-  riverpod_generator: ^2.3.0
-  riverpod_annotation: ^2.3.0
+  flutter_localizations:
+    sdk: flutter
   flutter_riverpod: ^2.4.0
-  
-  # Networking & API
-  dio: ^5.3.0
-
-  # Local Database
+  flutter_secure_storage: ^9.2.4
+  flutter_svg: ^2.0.7
+  freezed_annotation: ^2.4.1
+  geolocator: ^14.0.2
+  get_it: ^7.6.0
+  google_fonts: ^6.1.0
   hive: ^2.2.3
   hive_flutter: ^1.1.0
-
-  # UI & UX
-  flutter_svg: ^2.0.7
-  cached_network_image: ^3.3.1
-  google_fonts: ^6.1.0
-  lottie: ^2.4.0
-
-  # Navigation
-  go_router: ^14.0.0
-
-  # Utilities
-  logger: ^2.1.0
-  get_it: ^7.6.0
-  freezed_annotation: ^2.4.1
+  image_picker: ^1.1.2
+  intl: ^0.20.2
   json_annotation: ^4.8.1
+  just_audio: ^0.10.5
+  logger: ^2.1.0
+  lottie: ^2.4.0
+  path_provider: ^2.1.4
+  permission_handler: ^12.0.1
   pinput: ^6.0.2
+  riverpod: ^2.4.0
+  riverpod_annotation: ^2.3.0
+  record: ^6.1.2
+  riverpod_generator: ^2.3.0
+  shared_preferences: ^2.2.3
+  web: ^1.1.1
+  web_socket_channel: ^3.0.3
+  webview_flutter: ^4.14.1
+  uuid: ^4.5.3
+  url_launcher: ^6.3.2
 
 dev_dependencies:
-  flutter_test:
-    sdk: flutter
+  webview_flutter_platform_interface: ^2.15.1
+  build_runner: ^2.4.6
   flutter_driver:
     sdk: flutter
   flutter_lints: ^6.0.0
-  
-  # Code Generation
-  build_runner: ^2.4.6
+  flutter_test:
+    sdk: flutter
   freezed: ^2.4.1
-  json_serializable: ^6.7.1
   hive_generator: ^2.0.0
+  json_serializable: ^6.7.1
 
 flutter:
   uses-material-design: true
+  # Generates lib/l10n/app_localizations*.dart from lib/l10n/*.arb (l10n.yaml).
+  generate: true
 
   assets:
     - .env.local
     - assets/images/
     - assets/icons/
     - assets/animations/
+
+  # Bundled so first launch works offline and golden tests are deterministic.
+  # Both families are SIL Open Font License 1.1.
+  fonts:
+    - family: Bodoni Moda
+      fonts:
+        - asset: assets/fonts/BodoniModa-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/BodoniModa-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/BodoniModa-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/BodoniModa-Italic.ttf
+          weight: 400
+          style: italic
+        - asset: assets/fonts/BodoniModa-SemiBoldItalic.ttf
+          weight: 600
+          style: italic
+    - family: Orbitron
+      fonts:
+        # Variable font: one file carries the whole weight axis. Declared at
+        # the two weights actually used so the engine picks the right
+        # instance without a FontVariation at every call site.
+        - asset: assets/fonts/Orbitron[wght].ttf
+          weight: 500
+        - asset: assets/fonts/Orbitron[wght].ttf
+          weight: 800
+    - family: Chakra Petch
+      fonts:
+        - asset: assets/fonts/ChakraPetch-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/ChakraPetch-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/ChakraPetch-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/ChakraPetch-Bold.ttf
+          weight: 700
+    - family: Figtree
+      fonts:
+        - asset: assets/fonts/Figtree-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Figtree-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Figtree-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Figtree-Bold.ttf
+          weight: 700

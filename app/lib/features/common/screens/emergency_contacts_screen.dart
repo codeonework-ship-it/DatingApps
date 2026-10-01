@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
 import '../../profile/models/profile_models.dart';
 import '../../profile/providers/emergency_contacts_provider.dart';
@@ -36,28 +35,22 @@ class _EmergencyContactsScreenState
               ),
               data: (contacts) => Column(
                 children: [
-                  GlassContainer(
-                    padding: const EdgeInsets.all(16),
-                    backgroundColor: Colors.white.withValues(alpha: 0.9),
+                  const GlassContainer(
+                    padding: EdgeInsets.all(16),
                     blur: 12,
-                    borderRadius: const BorderRadius.all(Radius.circular(24)),
-                    child: const Text(
+                    borderRadius: BorderRadius.all(Radius.circular(24)),
+                    child: Text(
                       'Add up to 3 trusted contacts. These contacts are used for safety workflows and SOS features in later phases.',
                     ),
                   ),
                   const SizedBox(height: 12),
                   Expanded(
                     child: contacts.isEmpty
-                        ? GlassContainer(
-                            padding: const EdgeInsets.all(16),
-                            backgroundColor: Colors.white.withValues(
-                              alpha: 0.9,
-                            ),
+                        ? const GlassContainer(
+                            padding: EdgeInsets.all(16),
                             blur: 12,
-                            borderRadius: const BorderRadius.all(
-                              Radius.circular(24),
-                            ),
-                            child: const Center(
+                            borderRadius: BorderRadius.all(Radius.circular(24)),
+                            child: Center(
                               child: Text('No emergency contacts added yet.'),
                             ),
                           )
@@ -91,19 +84,18 @@ class _EmergencyContactsScreenState
 
   Widget _contactTile(EmergencyContact contact, int displayOrder) =>
       GlassContainer(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        backgroundColor: Colors.white.withValues(alpha: 0.9),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         blur: 12,
         borderRadius: const BorderRadius.all(Radius.circular(16)),
         child: Row(
           children: [
             CircleAvatar(
               radius: 16,
-              backgroundColor: AppTheme.primaryRed.withValues(alpha: 0.15),
+              backgroundColor: Theme.of(context).colorScheme.primaryContainer,
               child: Text(
                 '$displayOrder',
-                style: const TextStyle(
-                  color: AppTheme.primaryRed,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onPrimaryContainer,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -119,9 +111,9 @@ class _EmergencyContactsScreenState
                   ),
                   Text(
                     contact.phoneNumber,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodyMedium?.copyWith(color: AppTheme.textGrey),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
@@ -131,7 +123,10 @@ class _EmergencyContactsScreenState
               onPressed: () => _onEditContact(context, contact),
             ),
             IconButton(
-              icon: const Icon(Icons.delete_outline, color: AppTheme.errorRed),
+              icon: Icon(
+                Icons.delete_outline,
+                color: Theme.of(context).colorScheme.error,
+              ),
               onPressed: () => _onDeleteContact(context, contact),
             ),
           ],

@@ -1,0 +1,46 @@
+# blackbox_exporter modules for Connect (installed to
+# /etc/connect-monitoring/blackbox/blackbox.yml; listens on 127.0.0.1:9115).
+modules:
+  # Public HTTPS: must answer 2xx over TLS 1.2+; probe_ssl_earliest_cert_expiry
+  # feeds the certificate-expiry alerts.
+  https_2xx:
+    prober: http
+    timeout: 10s
+    http:
+      method: GET
+      valid_status_codes: [200]
+      fail_if_not_ssl: true
+      tls_config:
+        min_version: TLS12
+      follow_redirects: false
+      preferred_ip_protocol: ip4
+      headers:
+        User-Agent: connect-blackbox-probe
+
+  # WebSocket upgrade without credentials. 401 (or 403) proves nginx forwarded
+  # the upgrade to the gateway and the BFF realtime handler answered. 502/504
+  # (gateway or BFF down) or 404 (route lost) fail the probe.
+  websocket_unauthenticated:
+    prober: http
+    timeout: 10s
+    http:
+      method: GET
+      valid_status_codes: [401, 403]
+      fail_if_not_ssl: true
+      preferred_ip_protocol: ip4
+      headers:
+        Connection: Upgrade
+        Upgrade: websocket
+        Sec-WebSocket-Version: "13"
+        Sec-WebSocket-Key: Y29ubmVjdC1wcm9iZS1rZXk=
+        Sec-WebSocket-Protocol: connect.v1
+        User-Agent: connect-blackbox-probe
+
+  # Loopback readiness endpoints (JSON {"status":"ready"}).
+  http_ready:
+    prober: http
+    timeout: 5s
+    http:
+      method: GET
+      valid_status_codes: [200]
+      preferred_ip_protocol: ip4

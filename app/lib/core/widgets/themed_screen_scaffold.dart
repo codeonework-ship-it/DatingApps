@@ -36,8 +36,8 @@ class ThemedScreenScaffold extends StatelessWidget {
   /// Optional app bar.
   final PreferredSizeWidget? appBar;
 
-  /// When true, uses [AppTheme.bgGradient] (pre-login gold). Otherwise uses
-  /// [PostLoginBackdrop] (soft warm post-login).
+  /// When true, paints the theme's flat ground without the post-login
+  /// layout constraints. Otherwise uses [PostLoginBackdrop].
   final bool isPreLogin;
 
   /// When true, shows a centered loading indicator.
@@ -92,7 +92,7 @@ class ThemedScreenScaffold extends StatelessWidget {
     final Widget backdrop;
     if (isPreLogin) {
       backdrop = Container(
-        decoration: const BoxDecoration(gradient: AppTheme.bgGradient),
+        decoration: BoxDecoration(gradient: AppTheme.groundGradientOf(context)),
         child: content,
       );
     } else {
@@ -125,13 +125,13 @@ class _LoadingState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const SizedBox(
+          SizedBox(
             width: 40,
             height: 40,
             child: CircularProgressIndicator(
               strokeWidth: 3,
               valueColor: AlwaysStoppedAnimation<Color>(
-                AppTheme.crystalGoldSoft,
+                Theme.of(context).colorScheme.primary,
               ),
             ),
           ),
@@ -140,9 +140,9 @@ class _LoadingState extends StatelessWidget {
             Text(
               message!,
               textAlign: TextAlign.center,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: AppTheme.textGrey),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
           ],
         ],
@@ -162,22 +162,22 @@ class _ErrorState extends StatelessWidget {
       padding: const EdgeInsets.all(32),
       child: GlassContainer(
         padding: const EdgeInsets.all(24),
-        backgroundColor: Colors.white.withValues(alpha: 0.84),
+        backgroundColor: Theme.of(context).colorScheme.surface,
         blur: 14,
         crystalEffect: true,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
+            Icon(
               Icons.error_outline_rounded,
-              color: AppTheme.errorRed,
+              color: Theme.of(context).colorScheme.error,
               size: 48,
             ),
             const SizedBox(height: 16),
             Text(
               'Something went wrong',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: AppTheme.textDark,
+                color: Theme.of(context).colorScheme.onSurface,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -187,9 +187,9 @@ class _ErrorState extends StatelessWidget {
               textAlign: TextAlign.center,
               maxLines: 4,
               overflow: TextOverflow.ellipsis,
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: AppTheme.textGrey),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
             if (onRetry != null) ...[
               const SizedBox(height: 20),
@@ -215,13 +215,17 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: AppTheme.textHint, size: 64),
+          Icon(
+            icon,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            size: 64,
+          ),
           const SizedBox(height: 16),
           Text(
             title,
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: AppTheme.textDark,
+              color: Theme.of(context).colorScheme.onSurface,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -230,9 +234,9 @@ class _EmptyState extends StatelessWidget {
             Text(
               subtitle!,
               textAlign: TextAlign.center,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: AppTheme.textGrey),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
           ],
         ],

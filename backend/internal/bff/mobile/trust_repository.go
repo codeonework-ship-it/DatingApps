@@ -10,12 +10,11 @@ import (
 	"time"
 
 	"github.com/verified-dating/backend/internal/platform/config"
-	"github.com/verified-dating/backend/internal/platform/supabase"
 )
 
 type trustRepository struct {
 	cfg config.Config
-	db  *supabase.Client
+	db  repositoryDB
 }
 
 type trustSignalBreakdownDurable struct {
@@ -29,24 +28,16 @@ type trustSignalBreakdownDurable struct {
 	verificationApproved  bool
 	promptCompletions     int
 	promptTotal           int
+	confirmedDates        int
+	disputedDates         int
 }
 
-func newTrustRepository(cfg config.Config) *trustRepository {
-	apiKey := strings.TrimSpace(cfg.SupabaseServiceRole)
-	if apiKey == "" {
-		apiKey = strings.TrimSpace(cfg.SupabaseAnonKey)
-	}
-	if strings.TrimSpace(cfg.SupabaseURL) == "" || apiKey == "" {
+func newTrustRepository(cfg config.Config, supplied ...repositoryDB) *trustRepository {
+	db := repositoryDBFor(cfg, supplied)
+	if db == nil {
 		return nil
 	}
-	client := supabase.NewClient(
-		cfg.SupabaseURL,
-		cfg.SupabaseAnonKey,
-		cfg.SupabaseServiceRole,
-		time.Duration(cfg.SupabaseHTTPTimeoutSec)*time.Second,
-	)
-	client.SetReadBaseURL(cfg.SupabaseReadReplicaURL)
-	return &trustRepository{cfg: cfg, db: client}
+	return &trustRepository{cfg: cfg, db: db}
 }
 
 func isTrustRepoPersistenceUnavailable(err error) bool {
@@ -220,7 +211,9 @@ func (r *trustRepository) recomputeUserTrustBadges(ctx context.Context, userID s
 		rule := rules[badgeDef.BadgeCode]
 		item, ok := existing[badgeDef.BadgeCode]
 		if !ok {
-			item = trustBadge{BadgeCode: badgeDef.BadgeCode, BadgeLabel: badgeDef.BadgeLabel, Status: "not_earned"}
+			// The durable schema represents an unearned badge as inactive.
+			// Persisting the in-memory label "not_earned" violates its CHECK.
+			item = trustBadge{BadgeCode: badgeDef.BadgeCode, BadgeLabel: badgeDef.BadgeLabel, Status: "inactive"}
 		}
 
 		if rule.active {
@@ -261,10 +254,17 @@ func (r *trustRepository) recomputeUserTrustBadges(ctx context.Context, userID s
 		if badgeDef.BadgeCode == trustBadgePromptCompleter {
 			score = milestone.PromptCompletionScore
 		}
+		if badgeDef.BadgeCode == trustBadgeShowsUp {
+			score = clampInt(breakdown.confirmedDates*50, 0, 100)
+		}
+		status := item.Status
+		if status == "not_earned" {
+			status = "inactive"
+		}
 		upserts = append(upserts, map[string]any{
 			"user_id":    trimmedUserID,
 			"badge_code": badgeDef.BadgeCode,
-			"status":     item.Status,
+			"status":     status,
 			"score":      score,
 			"awarded_at": nullableTimestamp(item.AwardedAt),
 			"updated_at": nowISO,
@@ -516,6 +516,18 @@ func (r *trustRepository) computeTrustSignalBreakdown(ctx context.Context, userI
 		breakdown.consistencyScore = clampInt(breakdown.consistencyScore+10, 0, 100)
 	}
 
+	// Mutually confirmed dates from the post-date debrief (migration 092).
+	// The view is absent until that migration runs; treat it as no signal.
+	signalParams := url.Values{}
+	signalParams.Set("user_id", "eq."+userID)
+	signalParams.Set("limit", "1")
+	signalParams.Set("select", "confirmed_dates,disputed_dates")
+	signals, err := r.db.SelectRead(ctx, r.cfg.MatchingSchema, "member_date_plan_signals", signalParams)
+	if err == nil && len(signals) > 0 {
+		breakdown.confirmedDates, _ = toInt(signals[0]["confirmed_dates"])
+		breakdown.disputedDates, _ = toInt(signals[0]["disputed_dates"])
+	}
+
 	return breakdown, nil
 }
 
@@ -545,6 +557,7 @@ func evaluateBadgeRulesDurable(b trustSignalBreakdownDurable) map[string]trustBa
 			active: b.verificationApproved && b.activitySignalCount >= 3,
 			reason: fmt.Sprintf("verified with %d activity signals", b.activitySignalCount),
 		},
+		trustBadgeShowsUp: showsUpRule(b.confirmedDates, b.disputedDates),
 	}
 
 	if !unsafeDetected {

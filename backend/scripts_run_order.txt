@@ -57,3 +57,153 @@ scripts/046_feature_flags_and_admin.sql
 
 # Admin billing: coin package bonus/description columns + durable billing_plans table
 scripts/047_coin_package_extras_and_billing_plans.sql
+
+# Appium QA filter cohort: deterministic female users for discovery filter samples
+scripts/048_seed_filter_test_female_users.sql
+
+# India location master data: all states/UTs plus expanded city catalog
+scripts/049_seed_india_states_cities.sql
+
+# Canonical username/password identity; phone/email are no longer auth identifiers
+scripts/050_username_password_identity.sql
+
+# Native PostgreSQL signup workflow (no Docker/Supabase/PostgREST)
+# Starts an isolated PostgreSQL 17 instance on 127.0.0.1:55432 and applies the
+# consolidated baseline plus compatible deltas through migration 051.
+scripts/local_postgres.sh up
+scripts/migrate_local_postgres.sh
+
+# Durable native credential/session/workflow tables
+scripts/051_signup_workflow_engine.sql
+scripts/052_auth_security_foundation.sql
+
+# Native PostgreSQL runtime and core dating realtime/outbox
+scripts/053_native_postgres_runtime.sql
+scripts/054_core_dating_realtime_outbox.sql
+
+# Durable safety/moderation enforcement and operator audit boundary
+scripts/055_safety_moderation_enforcement.sql
+
+# Durable profile-media lifecycle, quotas, soft delete, and draft retention
+scripts/056_profile_media_lifecycle.sql
+
+# Durable notifications, reliability guardrails, and authenticated admin console
+scripts/057_notification_delivery_engine.sql
+scripts/058_reliability_scale_guardrails.sql
+scripts/059_admin_control_plane.sql
+scripts/060_admin_engagement_controls.sql
+scripts/061_notification_production_slos.sql
+scripts/062_media_moderation_production.sql
+scripts/063_shared_idempotency_and_retention.sql
+scripts/064_level_xp_progression.sql
+scripts/073_private_identity_and_voice_media.sql
+
+# Gift send integrity: gift-linked chat messages and gift-aware notifications
+scripts/074_gift_send_integrity.sql
+scripts/075_domain_event_backbone.sql
+scripts/076_privacy_safety_trust_operations.sql
+scripts/077_calls_identity_voice_providers.sql
+scripts/078_correctness_recovery_contracts.sql
+scripts/079_progression_production_rollout.sql
+scripts/080_deferred_growth_portfolio.sql
+
+# Trust retention jobs, legal holds and erasure audit-history minimisation
+scripts/081_trust_retention_and_legal_holds.sql
+
+# Lost recovery code: operator-assisted account recovery (PEN-06)
+scripts/082_account_recovery_assistance.sql
+
+# Receiver-side gift visibility and moderation controls
+scripts/083_gift_receiver_controls.sql
+
+# Coin clawback, frozen wallets, gift refunds and ledger opening balances
+scripts/084_billing_wallet_integrity.sql
+
+# Billing, wallet and gift aggregates in the ownership registry
+scripts/085_money_aggregate_ownership.sql
+
+# Progression rollout enforcement: exposed-cohort promotion gate, draft-only insert, append-only stage history (PEN-45)
+scripts/086_progression_rollout_enforcement.sql
+
+# Durable DAU/MAU member activity source
+scripts/087_member_activity_kpis.sql
+
+# Hold support ticketing at foundation until its workflow is accepted
+scripts/088_support_ticketing_foundation_gate.sql
+
+# Coin-economy fraud cases, tunable velocity rules and response controls (PEN-13)
+scripts/089_coin_economy_fraud_controls.sql
+
+# Zero-default wallets and idempotent historical opening-balance repair
+scripts/090_zero_default_wallets_and_ledger_repair.sql
+
+# Date plans on a match with friend and friend-group fan-out, check-ins and sweep
+scripts/091_date_plans_friend_fan_out.sql
+
+# Post-date debrief, plan resolution and the Shows up badge signals
+scripts/092_date_plan_debriefs_shows_up_badge.sql
+
+# Member locale preference (language[-REGION] tag, NULL follows the device)
+scripts/093_member_locale.sql
+
+# Graduation: a matched pair leaves Connect together, discovery pauses, friends celebrate
+scripts/094_match_graduation.sql
+
+# Curated daily set, fair-exposure counters and reply signals (DISC-003)
+scripts/095_curated_daily_set.sql
+
+# Friend vouches on profiles and friend-made intros
+scripts/096_friend_vouches_and_intros.sql
+
+# Verified-human conversations, copilot drafts and assisted-message marks
+scripts/097_conversation_trust_and_copilot.sql
+
+# Photo Themes and Book & Film Clubs (themes, entries, clubs, picks, posts, reviews, lists)
+scripts/107_photo_themes_and_book_film_clubs.sql
+
+# Blog likes, author-approved comments and Featured Stories
+scripts/108_blog_likes_comments_featuring.sql
+
+# Tiered wall reach for Featured Stories (Today walls)
+scripts/109_blog_wall_reach_tiers.sql
+
+# Photo Theme photos: likes, author-approved comments and tiered wall reach
+scripts/110_photo_wall_reach.sql
+
+# Rose rain: one celebration per new wall tier
+scripts/111_wall_celebrations.sql
+
+# Today wall carousel, unique views and Cover of the Week
+scripts/112_today_wall_and_cover.sql
+
+# Blog topics, writer subscriptions and creative XP rewards
+scripts/113_blog_topics_subscriptions_rewards.sql
+scripts/114_empathetic_reactions.sql
+scripts/115_social_channels.sql
+
+# Friends: request source, decline cooldown, daily request ledger, member search indexes
+scripts/116_friend_requests.sql
+
+# Conversation Rooms as live chat rooms: roles, presence, always-on topic rooms
+scripts/117_conversation_rooms_live_chat.sql
+
+# Lifestyle community groups, private friend groups and group chat
+scripts/118_lifestyle_groups.sql
+
+# Chat mutes: room moderation mutes and per-conversation notification mutes
+scripts/119_chat_mutes.sql
+
+# Report whole groups (case kind group) and the friend-search opt-out
+scripts/120_group_reports_friend_search_optout.sql
+
+# Group cover photos (moderated, stored under group_covers/)
+scripts/121_group_cover_photos.sql
+
+# Self-hosted client crash/error reporting; request telemetry minimisation and 90-day retention
+scripts/122_client_error_reporting_and_telemetry_privacy.sql
+
+# Product analytics: durable daily activity history, metric rollups by segment, activation milestones
+scripts/123_product_analytics_snapshots.sql
+
+# Business reports: finance role, marketing spend, launch market gates, reporting indexes
+scripts/124_business_reports.sql

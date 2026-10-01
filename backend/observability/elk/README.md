@@ -1,5 +1,8 @@
 # Local ELK for Dating App
 
+> **Local development only.** Production on the VPS ships logs with Grafana Alloy to Loki (14-day retention) and browses them in Grafana; see `documents/MONITORING_AND_OBSERVABILITY_2026-10-01.md`. The operator console link follows `LOGS_BACKEND` (`kibana` here, `loki` in production).
+
+
 This stack ingests backend logs from `backend/.run/logs/*.log` into Elasticsearch and exposes Kibana.
 
 ## Services

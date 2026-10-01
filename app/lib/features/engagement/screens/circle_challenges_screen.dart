@@ -41,12 +41,12 @@ class _CircleChallengesScreenState
               padding: const EdgeInsets.all(16),
               children: [
                 if (state.isLoading && state.items.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 80),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 80),
                     child: Center(
                       child: CircularProgressIndicator(
                         valueColor: AlwaysStoppedAnimation<Color>(
-                          AppTheme.trustBlue,
+                          Theme.of(context).colorScheme.primary,
                         ),
                       ),
                     ),
@@ -66,18 +66,11 @@ class _CircleChallengesScreenState
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: GlassContainer(
-                        padding: const EdgeInsets.all(14),
-                        backgroundColor: Colors.white.withValues(alpha: 0.82),
+                        padding: const EdgeInsets.all(16),
+                        backgroundColor: Theme.of(context).colorScheme.surface,
                         blur: 12,
                         crystalEffect: true,
                         borderRadius: BorderRadius.circular(18),
-                        shadows: [
-                          BoxShadow(
-                            color: AppTheme.trustBlue.withValues(alpha: 0.11),
-                            blurRadius: 16,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -90,7 +83,9 @@ class _CircleChallengesScreenState
                                         .textTheme
                                         .titleMedium
                                         ?.copyWith(
-                                          color: AppTheme.textDark,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onSurface,
                                           fontWeight: FontWeight.w700,
                                         ),
                                   ),
@@ -113,7 +108,11 @@ class _CircleChallengesScreenState
                             Text(
                               '${item.participationCount} participants this week',
                               style: Theme.of(context).textTheme.bodySmall
-                                  ?.copyWith(color: AppTheme.textGrey),
+                                  ?.copyWith(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                                  ),
                             ),
                             const SizedBox(height: 10),
                             if (!item.isJoined)
@@ -158,12 +157,12 @@ class _CircleChallengesScreenState
                 ],
                 if (state.error != null)
                   Padding(
-                    padding: const EdgeInsets.only(top: 6),
+                    padding: const EdgeInsets.only(top: 8),
                     child: Text(
                       state.error!,
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodySmall?.copyWith(color: AppTheme.errorRed),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
                     ),
                   ),
               ],
@@ -194,34 +193,27 @@ class _CircleChallengesScreenState
     required String title,
     required String subtitle,
   }) => GlassContainer(
-    padding: const EdgeInsets.all(14),
-    backgroundColor: Colors.white.withValues(alpha: 0.82),
+    padding: const EdgeInsets.all(16),
+    backgroundColor: Theme.of(context).colorScheme.surface,
     blur: 12,
     crystalEffect: true,
     borderRadius: BorderRadius.circular(18),
-    shadows: [
-      BoxShadow(
-        color: AppTheme.trustBlue.withValues(alpha: 0.11),
-        blurRadius: 16,
-        offset: const Offset(0, 8),
-      ),
-    ],
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           title,
           style: Theme.of(context).textTheme.titleSmall?.copyWith(
-            color: AppTheme.textDark,
+            color: Theme.of(context).colorScheme.onSurface,
             fontWeight: FontWeight.w700,
           ),
         ),
         const SizedBox(height: 4),
         Text(
           subtitle,
-          style: Theme.of(
-            context,
-          ).textTheme.bodySmall?.copyWith(color: AppTheme.textGrey),
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
         ),
       ],
     ),

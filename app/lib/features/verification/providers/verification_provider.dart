@@ -60,13 +60,13 @@ class VerificationNotifier extends _$VerificationNotifier {
     imageQuality: 85,
   );
 
-  Future<void> submit({
+  Future<bool> submit({
     required XFile idPhoto,
     required XFile selfiePhoto,
   }) async {
     final auth = ref.read(authNotifierProvider);
     final userId = auth.userId;
-    if (userId == null) return;
+    if (userId == null) return false;
 
     state = const AsyncLoading();
 
@@ -74,17 +74,25 @@ class VerificationNotifier extends _$VerificationNotifier {
       state = const AsyncData(
         VerificationState(status: 'pending', rejectionReason: null),
       );
-      return;
+      return true;
     }
 
     final dio = ref.read(apiClientProvider);
     try {
+      final idBytes = await idPhoto.readAsBytes();
+      final selfieBytes = await selfiePhoto.readAsBytes();
       final response = await dio.post<Map<String, dynamic>>(
         '/verification/$userId/submit',
-        data: {
-          'id_photo_ref': idPhoto.path,
-          'selfie_photo_ref': selfiePhoto.path,
-        },
+        data: FormData.fromMap({
+          'id_document': MultipartFile.fromBytes(
+            idBytes,
+            filename: _uploadFilename(idPhoto, 'identity-document.jpg'),
+          ),
+          'selfie': MultipartFile.fromBytes(
+            selfieBytes,
+            filename: _uploadFilename(selfiePhoto, 'selfie.jpg'),
+          ),
+        }),
       );
       final data = (response.data as Map?)?.cast<String, dynamic>() ?? const {};
       state = AsyncData(
@@ -93,9 +101,20 @@ class VerificationNotifier extends _$VerificationNotifier {
           rejectionReason: data['rejection_reason']?.toString(),
         ),
       );
+      return true;
     } on DioException catch (e, stackTrace) {
       log.error('Verification submit failed', e, stackTrace);
       state = AsyncError(e, stackTrace);
+      return false;
+    } on Object catch (e, stackTrace) {
+      log.error('Unable to read verification evidence', e, stackTrace);
+      state = AsyncError(e, stackTrace);
+      return false;
     }
   }
+}
+
+String _uploadFilename(XFile file, String fallback) {
+  final normalized = file.name.trim();
+  return normalized.isEmpty ? fallback : normalized;
 }

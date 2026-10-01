@@ -42,6 +42,7 @@ type roseGiftSendView struct {
 	CreatedAt      string `json:"created_at"`
 	RemainingCoins int    `json:"remaining_coins"`
 	MessageID      string `json:"message_id,omitempty"`
+	RiskWarning    string `json:"risk_warning,omitempty"`
 	MessageText    string `json:"-"`
 }
 
@@ -301,7 +302,7 @@ func defaultRoseGiftCatalogMap() map[string]roseGiftCatalogItem {
 	return out
 }
 
-func (m *memoryStore) listRoseGiftCatalog() []roseGiftCatalogItem {
+func (m *runtimeStore) listRoseGiftCatalog() []roseGiftCatalogItem {
 	if m.giftsRepo != nil {
 		items, err := m.giftsRepo.listCatalog(context.Background())
 		if err == nil {
@@ -331,7 +332,7 @@ func (m *memoryStore) listRoseGiftCatalog() []roseGiftCatalogItem {
 	return out
 }
 
-func (m *memoryStore) getWalletCoins(userID string) userWalletView {
+func (m *runtimeStore) getWalletCoins(userID string) userWalletView {
 	trimmedUserID := strings.TrimSpace(userID)
 	if trimmedUserID == "" {
 		return userWalletView{}
@@ -350,7 +351,7 @@ func (m *memoryStore) getWalletCoins(userID string) userWalletView {
 	defer m.mu.Unlock()
 	balance, ok := m.walletCoinsByUser[trimmedUserID]
 	if !ok {
-		balance = 12
+		balance = 0
 		m.walletCoinsByUser[trimmedUserID] = balance
 	}
 	return userWalletView{
@@ -360,7 +361,7 @@ func (m *memoryStore) getWalletCoins(userID string) userWalletView {
 	}
 }
 
-func (m *memoryStore) topUpWalletCoins(userID string, amount int, _ string) (userWalletView, error) {
+func (m *runtimeStore) topUpWalletCoins(userID string, amount int, _ string) (userWalletView, error) {
 	trimmedUserID := strings.TrimSpace(userID)
 	if trimmedUserID == "" {
 		return userWalletView{}, errors.New("user_id is required")
@@ -403,7 +404,23 @@ func (m *memoryStore) topUpWalletCoins(userID string, amount int, _ string) (use
 	}, nil
 }
 
-func (m *memoryStore) buyWalletCoins(
+// creditPurchasedCoins credits coins settled by the payment provider. It is
+// the only wallet credit path a provider event reaches; the amount and coin
+// count come from the checkout row, never from a client.
+func (m *runtimeStore) creditPurchasedCoins(ctx context.Context, req walletCoinCreditRequest) (userWalletView, walletCoinPurchaseView, error) {
+	if m.giftsRepo != nil {
+		wallet, purchase, err := m.giftsRepo.creditWalletCoins(ctx, req)
+		if err == nil {
+			return wallet, purchase, nil
+		}
+		if m.durableEngagementRequired() || !isGiftRepoPersistenceUnavailable(err) {
+			return userWalletView{}, walletCoinPurchaseView{}, err
+		}
+	}
+	return m.buyWalletCoins(req.UserID, req.PackageID, req.Provider, req.Currency, req.PurchaseRef, req.IdempotencyKey, req.Coins, req.AmountMinor, req.Now)
+}
+
+func (m *runtimeStore) buyWalletCoins(
 	userID,
 	packageID,
 	provider,
@@ -482,7 +499,7 @@ func (m *memoryStore) buyWalletCoins(
 
 	balance, ok := m.walletCoinsByUser[trimmedUserID]
 	if !ok {
-		balance = 12
+		balance = 0
 	}
 	balance += coins
 	m.walletCoinsByUser[trimmedUserID] = balance
@@ -513,7 +530,7 @@ func (m *memoryStore) buyWalletCoins(
 	}, purchase, nil
 }
 
-func (m *memoryStore) sendRoseGift(
+func (m *runtimeStore) sendRoseGift(
 	matchID,
 	senderUserID,
 	receiverUserID,
@@ -527,11 +544,30 @@ func (m *memoryStore) sendRoseGift(
 	trimmedReceiverID := strings.TrimSpace(receiverUserID)
 	trimmedGiftID := strings.TrimSpace(giftID)
 	trimmedIdempotencyKey := strings.TrimSpace(idempotencyKey)
-	if trimmedMatchID == "" || trimmedSenderID == "" || trimmedReceiverID == "" || trimmedGiftID == "" {
-		return roseGiftSendView{}, errors.New("match_id, sender_user_id, receiver_user_id, and gift_id are required")
+	if trimmedMatchID == "" || trimmedSenderID == "" || trimmedGiftID == "" {
+		return roseGiftSendView{}, errors.New("match_id, sender_user_id, and gift_id are required")
+	}
+	// The transactional ledger derives the receiver from the match.
+	if trimmedReceiverID == "" && m.giftLedger == nil {
+		return roseGiftSendView{}, errors.New("receiver_user_id is required")
 	}
 	if trimmedSenderID == trimmedReceiverID {
 		return roseGiftSendView{}, errors.New("sender and receiver cannot be the same")
+	}
+
+	// Native PostgreSQL: one transaction for match check, limits, debit, send
+	// and chat message. No fallback — a failed send must not be retried
+	// against a non-transactional path.
+	if m.giftLedger != nil {
+		return m.giftLedger.send(context.Background(), giftSendRequest{
+			MatchID:        trimmedMatchID,
+			SenderUserID:   trimmedSenderID,
+			ReceiverUserID: trimmedReceiverID,
+			GiftID:         trimmedGiftID,
+			IdempotencyKey: trimmedIdempotencyKey,
+			Note:           messageText,
+			Now:            now,
+		})
 	}
 
 	if m.giftsRepo != nil {
@@ -568,9 +604,6 @@ func (m *memoryStore) sendRoseGift(
 	}
 
 	balance := m.walletCoinsByUser[trimmedSenderID]
-	if balance == 0 {
-		balance = 12
-	}
 	if gift.PriceCoins > 0 && balance < gift.PriceCoins {
 		return roseGiftSendView{}, errors.New("insufficient wallet coins")
 	}
@@ -677,11 +710,15 @@ func sanitizeRoseGiftNote(note string) string {
 		return ""
 	}
 	safe := strings.Join(cleaned, " ")
-	if len(safe) > 240 {
-		safe = safe[:240]
+	// GIFT-006: an optional note of 1–500 characters. Count runes so an emoji
+	// is never cut in half.
+	if runes := []rune(safe); len(runes) > roseGiftNoteMaxRunes {
+		safe = strings.TrimSpace(string(runes[:roseGiftNoteMaxRunes]))
 	}
 	return safe
 }
+
+const roseGiftNoteMaxRunes = 500
 
 func defaultRoseGiftIconKey(giftID, giftName string) string {
 	key := strings.ToLower(strings.TrimSpace(giftID) + "|" + strings.TrimSpace(giftName))

@@ -1,0 +1,19 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ConnectMediaSSEKMS",
+      "Effect": "Allow",
+      "Action": [
+        "kms:GenerateDataKey",
+        "kms:Decrypt"
+      ],
+      "Resource": "arn:aws:kms:ap-south-1:111122223333:key/00000000-0000-0000-0000-000000000000",
+      "Condition": {
+        "StringEquals": {
+          "kms:ViaService": "s3.ap-south-1.amazonaws.com"
+        }
+      }
+    }
+  ]
+}

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
 import '../providers/group_coffee_poll_provider.dart';
 
@@ -82,7 +81,7 @@ class _GroupCoffeePollsScreenState
                       Text(
                         'Add up to 3 participant user IDs (comma-separated) and at least one option.',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppTheme.textGrey,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -189,7 +188,7 @@ class _GroupCoffeePollsScreenState
                 else
                   ...state.polls.map(
                     (poll) => Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.only(bottom: 12),
                       child: _card(
                         context,
                         child: Column(
@@ -208,7 +207,7 @@ class _GroupCoffeePollsScreenState
                             const SizedBox(height: 8),
                             ...poll.options.map(
                               (option) => Padding(
-                                padding: const EdgeInsets.only(bottom: 6),
+                                padding: const EdgeInsets.only(bottom: 8),
                                 child: Row(
                                   children: [
                                     Expanded(
@@ -217,6 +216,9 @@ class _GroupCoffeePollsScreenState
                                       ),
                                     ),
                                     OutlinedButton(
+                                      style: OutlinedButton.styleFrom(
+                                        minimumSize: const Size(0, 40),
+                                      ),
                                       onPressed: state.isSubmitting
                                           ? null
                                           : () => notifier.vote(
@@ -252,9 +254,9 @@ class _GroupCoffeePollsScreenState
                   const SizedBox(height: 8),
                   Text(
                     state.error!,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodySmall?.copyWith(color: AppTheme.errorRed),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
                   ),
                 ],
               ],
@@ -308,18 +310,11 @@ class _GroupCoffeePollsScreenState
   );
 
   Widget _card(BuildContext context, {required Widget child}) => GlassContainer(
-    padding: const EdgeInsets.all(14),
-    backgroundColor: Colors.white.withValues(alpha: 0.82),
+    padding: const EdgeInsets.all(16),
+    backgroundColor: Theme.of(context).colorScheme.surface,
     blur: 12,
     crystalEffect: true,
     borderRadius: BorderRadius.circular(18),
-    shadows: [
-      BoxShadow(
-        color: AppTheme.trustBlue.withValues(alpha: 0.11),
-        blurRadius: 16,
-        offset: const Offset(0, 8),
-      ),
-    ],
     child: child,
   );
 }

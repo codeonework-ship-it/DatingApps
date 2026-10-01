@@ -1,0 +1,31 @@
+{% extends "control_panel/business/_layout.html" %}
+{% block business_title %}Revenue{% endblock %}
+{% block business_heading %}Revenue{% endblock %}
+{% block business_lede %}Gross, refunds, chargebacks and net per currency, with reconciliation semantics. Admin grants, promotions and local activations are never revenue.{% endblock %}
+{% block business_actions %}<a href="{{ reconciliation_url }}" class="btn btn-glass"><i class="bi bi-clipboard-check me-2"></i>Reconciliation</a>{% endblock %}
+{% block business_body %}
+{% if totals %}
+<div class="biz-kpis">
+  {% for t in totals %}
+  <div class="biz-kpi"><small>Net · {{ t.currency }}</small><strong>{{ t.net }} {{ t.currency }}</strong><span>gross {{ t.gross }} · refunded {{ t.refunded }} · chargebacks {{ t.chargeback }}</span></div>
+  <div class="biz-kpi"><small>Paying members · {{ t.currency }}</small><strong>{{ t.paying_members }}</strong><span>ARPPU {{ t.arppu|default:"—" }} · ARPU {{ t.arpu|default:"—" }}</span></div>
+  {% endfor %}
+</div>
+{% endif %}
+<div class="row g-3 mb-4">
+  <div class="col-lg-7"><div class="glass-card"><h6>Net revenue by bucket (major units, one line per currency)</h6><div class="biz-chart"><canvas id="chart-net" aria-label="Net revenue trend"></canvas></div></div></div>
+  <div class="col-lg-5"><div class="glass-card"><h6>Refunds by bucket</h6><div class="biz-chart"><canvas id="chart-refunds" aria-label="Refund trend"></canvas></div></div></div>
+</div>
+{% if data.gifts %}<div class="biz-note mb-3"><i class="bi bi-gift me-1"></i>{{ data.gifts.note }} Paid gift sends in window: {{ data.gifts.paid_gift_sends }} ({{ data.gifts.coins_spent }} coins).</div>{% endif %}
+{% if data.active_members %}<div class="biz-note mb-3">Active members for ARPU: {{ data.active_members.count }} — {{ data.active_members.source }}</div>{% endif %}
+{% endblock %}
+{% block business_js %}
+{{ charts|json_script:"biz-charts" }}
+<script>
+  (function () {
+    const charts = JSON.parse(document.getElementById('biz-charts').textContent);
+    bizChart('chart-net', {type: 'line', data: charts.net});
+    bizChart('chart-refunds', {type: 'bar', data: charts.refunds});
+  })();
+</script>
+{% endblock %}

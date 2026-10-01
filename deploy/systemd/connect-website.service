@@ -1,0 +1,41 @@
+# Connect website + web app (node website/server.mjs). nginx proxies / here.
+# Build first: (cd /opt/connect/src/website && npm ci --omit=dev && npm run build)
+[Unit]
+Description=Connect website
+Wants=network-online.target
+After=network-online.target connect-backend@api-gateway.service
+PartOf=connect.target
+
+[Service]
+Type=simple
+User=connect
+Group=connect
+WorkingDirectory=/opt/connect/src/website
+Environment=NODE_ENV=production
+Environment=HOST=127.0.0.1
+Environment=PORT=4190
+Environment=CONNECT_API_UPSTREAM=http://127.0.0.1:8080
+# Public host names nginx forwards (Host header must match one of these).
+Environment=WEB_ALLOWED_HOSTS=connect.example.com,www.connect.example.com
+ExecStart=/usr/bin/node server.mjs
+Restart=on-failure
+RestartSec=5
+UMask=0027
+
+NoNewPrivileges=yes
+ProtectSystem=strict
+InaccessiblePaths=-/var/lib/connect/media -/etc/connect
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictNamespaces=yes
+LockPersonality=yes
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+[Install]
+WantedBy=connect.target

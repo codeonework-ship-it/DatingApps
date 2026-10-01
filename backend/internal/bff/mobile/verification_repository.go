@@ -2,6 +2,7 @@ package mobile
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"net/url"
 	"sort"
@@ -10,30 +11,20 @@ import (
 	"time"
 
 	"github.com/verified-dating/backend/internal/platform/config"
-	"github.com/verified-dating/backend/internal/platform/supabase"
 )
 
 type verificationRepository struct {
 	cfg config.Config
-	db  *supabase.Client
+	db  repositoryDB
+	pg  *sql.DB
 }
 
-func newVerificationRepository(cfg config.Config) *verificationRepository {
-	apiKey := strings.TrimSpace(cfg.SupabaseServiceRole)
-	if apiKey == "" {
-		apiKey = strings.TrimSpace(cfg.SupabaseAnonKey)
-	}
-	if strings.TrimSpace(cfg.SupabaseURL) == "" || apiKey == "" {
+func newVerificationRepository(cfg config.Config, supplied ...repositoryDB) *verificationRepository {
+	db := repositoryDBFor(cfg, supplied)
+	if db == nil {
 		return nil
 	}
-	client := supabase.NewClient(
-		cfg.SupabaseURL,
-		cfg.SupabaseAnonKey,
-		cfg.SupabaseServiceRole,
-		time.Duration(cfg.SupabaseHTTPTimeoutSec)*time.Second,
-	)
-	client.SetReadBaseURL(cfg.SupabaseReadReplicaURL)
-	return &verificationRepository{cfg: cfg, db: client}
+	return &verificationRepository{cfg: cfg, db: db}
 }
 
 func isVerificationRepoPersistenceUnavailable(err error) bool {
@@ -48,6 +39,9 @@ func isVerificationRepoPersistenceUnavailable(err error) bool {
 }
 
 func (r *verificationRepository) getVerification(ctx context.Context, userID string) (verificationState, error) {
+	if r.pg != nil {
+		return r.getVerificationPostgres(ctx, userID)
+	}
 	trimmedUserID := strings.TrimSpace(userID)
 	if trimmedUserID == "" {
 		return verificationState{}, errors.New("user_id is required")
@@ -68,6 +62,9 @@ func (r *verificationRepository) getVerification(ctx context.Context, userID str
 }
 
 func (r *verificationRepository) submitVerification(ctx context.Context, userID string) (verificationState, error) {
+	if r.pg != nil {
+		return r.submitVerificationPostgres(ctx, userID)
+	}
 	trimmedUserID := strings.TrimSpace(userID)
 	if trimmedUserID == "" {
 		return verificationState{}, errors.New("user_id is required")
@@ -91,6 +88,31 @@ func (r *verificationRepository) submitVerification(ctx context.Context, userID 
 	return mapVerificationStateRow(rows[0]), nil
 }
 
+func (r *verificationRepository) attachVerificationEvidence(ctx context.Context, userID string, details map[string]any) (verificationState, error) {
+	if r.pg != nil {
+		return r.attachVerificationEvidencePostgres(ctx, userID, details)
+	}
+	trimmedUserID := strings.TrimSpace(userID)
+	if trimmedUserID == "" {
+		return verificationState{}, errors.New("user_id is required")
+	}
+	filters := url.Values{}
+	filters.Set("user_id", "eq."+trimmedUserID)
+	rows, err := r.db.Update(ctx, r.cfg.MatchingSchema, "verification_states", map[string]any{
+		"details":    details,
+		"updated_at": time.Now().UTC().Format(time.RFC3339),
+	}, filters)
+	if err != nil {
+		return verificationState{}, err
+	}
+	if len(rows) == 0 {
+		return verificationState{}, errors.New("verification not found")
+	}
+	state := mapVerificationStateRow(rows[0])
+	state.EvidenceReceived = true
+	return state, nil
+}
+
 func (r *verificationRepository) reviewVerification(
 	ctx context.Context,
 	userID,
@@ -98,6 +120,9 @@ func (r *verificationRepository) reviewVerification(
 	rejectionReason,
 	reviewedBy string,
 ) (verificationState, error) {
+	if r.pg != nil {
+		return r.reviewVerificationPostgres(ctx, userID, status, rejectionReason, reviewedBy)
+	}
 	trimmedUserID := strings.TrimSpace(userID)
 	if trimmedUserID == "" {
 		return verificationState{}, errors.New("user_id is required")
@@ -135,6 +160,9 @@ func (r *verificationRepository) reviewVerification(
 }
 
 func (r *verificationRepository) listVerifications(ctx context.Context, status string, limit int) ([]verificationState, error) {
+	if r.pg != nil {
+		return r.listVerificationsPostgres(ctx, status, limit)
+	}
 	if limit <= 0 || limit > 500 {
 		limit = 100
 	}
@@ -162,7 +190,7 @@ func (r *verificationRepository) listVerifications(ctx context.Context, status s
 }
 
 func mapVerificationStateRow(row map[string]any) verificationState {
-	return verificationState{
+	state := verificationState{
 		UserID:          strings.TrimSpace(toString(row["user_id"])),
 		Status:          strings.TrimSpace(toString(row["status"])),
 		RejectionReason: strings.TrimSpace(toString(row["rejection_reason"])),
@@ -170,6 +198,12 @@ func mapVerificationStateRow(row map[string]any) verificationState {
 		ReviewedAt:      normalizeTimestampString(row["reviewed_at"]),
 		ReviewedBy:      strings.TrimSpace(toString(row["reviewed_by"])),
 	}
+	if details, ok := row["details"].(map[string]any); ok {
+		_, hasID := details["id_document"]
+		_, hasSelfie := details["selfie"]
+		state.EvidenceReceived = hasID && hasSelfie
+	}
+	return state
 }
 
 func nullableString(value string) any {

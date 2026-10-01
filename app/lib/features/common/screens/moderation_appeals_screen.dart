@@ -55,7 +55,9 @@ class _ModerationAppealsScreenState
               children: [
                 GlassContainer(
                   padding: const EdgeInsets.all(16),
-                  backgroundColor: Colors.white.withValues(alpha: 0.9),
+                  backgroundColor: Theme.of(
+                    context,
+                  ).colorScheme.surface.withValues(alpha: 0.9),
                   blur: 12,
                   borderRadius: const BorderRadius.all(Radius.circular(24)),
                   child: Column(
@@ -127,7 +129,9 @@ class _ModerationAppealsScreenState
                       if (appeals.isEmpty) {
                         return GlassContainer(
                           padding: const EdgeInsets.all(16),
-                          backgroundColor: Colors.white.withValues(alpha: 0.9),
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.surface.withValues(alpha: 0.9),
                           blur: 12,
                           borderRadius: const BorderRadius.all(
                             Radius.circular(24),
@@ -152,9 +156,9 @@ class _ModerationAppealsScreenState
                             final item = appeals[index];
                             return GlassContainer(
                               padding: const EdgeInsets.all(12),
-                              backgroundColor: Colors.white.withValues(
-                                alpha: 0.9,
-                              ),
+                              backgroundColor: Theme.of(
+                                context,
+                              ).colorScheme.surface.withValues(alpha: 0.9),
                               blur: 12,
                               borderRadius: const BorderRadius.all(
                                 Radius.circular(16),

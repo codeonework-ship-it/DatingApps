@@ -30,7 +30,7 @@ class UserSettingsNotifier extends AsyncNotifier<UserSettings> {
       return _fromApi(userId, response.data);
     } on DioException catch (e, stackTrace) {
       log.error('Failed to fetch user settings', e, stackTrace);
-      return _defaultSettings(userId);
+      rethrow;
     }
   }
 
@@ -42,6 +42,7 @@ class UserSettingsNotifier extends AsyncNotifier<UserSettings> {
     bool? notifyNewMessage,
     bool? notifyLikes,
     String? theme,
+    String? locale,
   }) async {
     final current = await future;
     final next = current.copyWith(
@@ -52,6 +53,7 @@ class UserSettingsNotifier extends AsyncNotifier<UserSettings> {
       notifyNewMessage: notifyNewMessage ?? current.notifyNewMessage,
       notifyLikes: notifyLikes ?? current.notifyLikes,
       theme: theme ?? current.theme,
+      locale: locale ?? current.locale,
       updatedAt: DateTime.now(),
     );
     state = AsyncData(next);
@@ -72,12 +74,14 @@ class UserSettingsNotifier extends AsyncNotifier<UserSettings> {
           'notify_new_message': next.notifyNewMessage,
           'notify_likes': next.notifyLikes,
           'theme': next.theme,
+          // Empty returns the member to the device language (stored NULL).
+          'locale': next.locale,
         },
       );
       state = AsyncData(_fromApi(current.userId, response.data));
     } on DioException catch (e, stackTrace) {
       log.error('Failed to patch user settings', e, stackTrace);
-      state = AsyncData(next);
+      state = AsyncError(e, stackTrace);
     }
   }
 
@@ -95,6 +99,7 @@ class UserSettingsNotifier extends AsyncNotifier<UserSettings> {
       notifyNewMessage: payload['notify_new_message'] as bool? ?? true,
       notifyLikes: payload['notify_likes'] as bool? ?? true,
       theme: payload['theme']?.toString() ?? 'auto',
+      locale: payload['locale']?.toString().trim() ?? '',
       updatedAt: DateTime.tryParse(payload['updated_at']?.toString() ?? ''),
     );
   }
@@ -108,5 +113,6 @@ class UserSettingsNotifier extends AsyncNotifier<UserSettings> {
     notifyNewMessage: true,
     notifyLikes: true,
     theme: 'auto',
+    locale: '',
   );
 }

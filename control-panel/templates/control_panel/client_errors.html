@@ -1,0 +1,95 @@
+{% extends "control_panel/base.html" %}
+{% block topbar_title %}Client Errors · Monitoring{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1><i class="bi bi-bug-fill header-icon"></i> Client errors</h1>
+    <p class="text-muted mb-0">App crashes and errors reported by the mobile, desktop and web apps, grouped into issues. Resolve an issue once a fix ships, ignore noise, and reopen anything that comes back.</p>
+  </div>
+</div>
+
+<div class="alert-glass info mb-4" role="note"><i class="bi bi-shield-lock-fill me-2"></i>Privacy: reports are anonymous. They carry no account id, only a random per-install id. Personal data is scrubbed on the device and again on the server, reports are kept for 90 days, and members can opt out in Privacy &amp; Safety.</div>
+
+{% if error %}<div class="alert-glass warning" role="alert"><i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}</div>{% endif %}
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3"><a class="glass-card d-block text-center py-3 text-decoration-none" href="?status=open"><div style="font-size:1.6rem;font-weight:700;color:var(--aqua);">{{ summary.open|default:"0" }}</div><div class="text-muted small">Open</div></a></div>
+  <div class="col-6 col-md-3"><a class="glass-card d-block text-center py-3 text-decoration-none" href="?status=open&amp;fatal=true"><div style="font-size:1.6rem;font-weight:700;color:#ef4444;">{{ summary.fatal_open|default:"0" }}</div><div class="text-muted small">Open fatal</div></a></div>
+  <div class="col-6 col-md-3"><a class="glass-card d-block text-center py-3 text-decoration-none" href="?status=resolved"><div style="font-size:1.6rem;font-weight:700;color:#22c55e;">{{ summary.resolved|default:"0" }}</div><div class="text-muted small">Resolved</div></a></div>
+  <div class="col-6 col-md-3"><a class="glass-card d-block text-center py-3 text-decoration-none" href="?status=ignored"><div style="font-size:1.6rem;font-weight:700;color:#94a3b8;">{{ summary.ignored|default:"0" }}</div><div class="text-muted small">Ignored</div></a></div>
+</div>
+
+<div class="glass-card mb-4">
+  <form method="get" class="row g-3 align-items-end" aria-label="Filter client errors">
+    <div class="col-lg-2 col-md-4 col-6">
+      <label for="ce-status" class="form-label text-muted small">Status</label>
+      <select id="ce-status" name="status" class="form-select glass-select">{% for key, label in statuses %}<option value="{{ key }}"{% if key == filters.status %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+    </div>
+    <div class="col-lg-2 col-md-4 col-6">
+      <label for="ce-platform" class="form-label text-muted small">Platform</label>
+      <select id="ce-platform" name="platform" class="form-select glass-select"><option value="">All platforms</option>{% for key, label in platforms %}<option value="{{ key }}"{% if key == filters.platform %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+    </div>
+    <div class="col-lg-2 col-md-4 col-6">
+      <label for="ce-version" class="form-label text-muted small">App version</label>
+      <input id="ce-version" name="version" value="{{ filters.version }}" maxlength="64" class="form-control glass-input" placeholder="e.g. 1.4.2">
+    </div>
+    <div class="col-lg-2 col-md-4 col-6">
+      <label for="ce-fatal" class="form-label text-muted small">Severity</label>
+      <select id="ce-fatal" name="fatal" class="form-select glass-select">{% for key, label in fatal_options %}<option value="{{ key }}"{% if key == filters.fatal %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+    </div>
+    <div class="col-lg-2 col-md-4 col-6">
+      <label for="ce-sort" class="form-label text-muted small">Sort by</label>
+      <select id="ce-sort" name="sort" class="form-select glass-select">{% for key, label in sorts %}<option value="{{ key }}"{% if key == filters.sort %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+    </div>
+    <div class="col-lg-2 col-md-4 col-6 d-flex gap-2">
+      <button type="submit" class="btn btn-glow"><i class="bi bi-funnel-fill me-1"></i>Filter</button>
+      <a href="{% url 'client_errors' %}" class="btn btn-glass">Clear</a>
+    </div>
+  </form>
+</div>
+
+<div class="glass-card">
+  <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <span class="text-muted small">Showing {{ issues|length }} of {{ total }} issue{{ total|pluralize }}{% if offset > 0 %} (offset {{ offset }}){% endif %}</span>
+    <nav class="d-flex gap-2" aria-label="Issue pages">
+      {% if offset > 0 %}<a href="?{{ filter_query }}&amp;offset={{ prev_offset }}" class="btn btn-glass btn-sm"><i class="bi bi-chevron-left"></i> Previous</a>{% endif %}
+      {% if has_more %}<a href="?{{ filter_query }}&amp;offset={{ next_offset }}" class="btn btn-glass btn-sm">Next <i class="bi bi-chevron-right"></i></a>{% endif %}
+    </nav>
+  </div>
+  {% if issues %}
+  <div class="table-responsive">
+    <table class="glass-table">
+      <thead>
+        <tr><th>Issue</th><th>Status</th><th class="text-end">Occurrences</th><th class="text-end">Installs</th><th>Platforms</th><th>Latest versions</th><th>First seen</th><th>Last seen</th></tr>
+      </thead>
+      <tbody>
+        {% for issue in issues %}
+        <tr>
+          <td style="max-width:420px;">
+            <a href="{% url 'client_error_detail' issue.id %}" class="fw-semibold">{{ issue.title|default:"Untitled error" }}</a>
+            <div class="small font-monospace text-muted text-break">{{ issue.error_type|default:"—" }}{% if issue.culprit %} · {{ issue.culprit }}{% endif %}</div>
+          </td>
+          <td>
+            {% if issue.status == 'resolved' %}<span class="badge badge-active">Resolved</span>{% elif issue.status == 'ignored' %}<span class="badge badge-inactive">Ignored</span>{% else %}<span class="badge badge-warning">Open</span>{% endif %}
+            {% if issue.regressed %}<span class="badge badge-purple">Regressed</span>{% endif %}
+            {% if issue.fatal %}<span class="badge badge-danger">Fatal</span>{% endif %}
+          </td>
+          <td class="text-end">{{ issue.occurrence_count|default:"0" }}</td>
+          <td class="text-end">{{ issue.affected_users|default:"0" }}</td>
+          <td class="small">{{ issue.platforms|join:", "|default:"—" }}</td>
+          <td class="small font-monospace">{% for v in issue.versions|slice:":3" %}{{ v }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}{% if issue.versions|length > 3 %} +{{ issue.versions|length|add:"-3" }}{% endif %}</td>
+          <td class="small text-muted">{{ issue.first_seen_at|default:"—" }}</td>
+          <td class="small text-muted">{{ issue.last_seen_at|default:"—" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="text-center py-5 text-muted">
+    <i class="bi bi-bug" style="font-size:3rem;opacity:0.3;"></i>
+    <p class="mt-2 mb-0">{% if error %}Issues could not be loaded.{% else %}No issues match these filters.{% endif %}</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,18 @@
+# Grafana datasources for Connect. Values come from the grafana-server
+# environment (deploy/monitoring/grafana/grafana-server.env):
+#   PROMETHEUS_URL=http://127.0.0.1:9090
+#   LOKI_URL=http://127.0.0.1:3100   (only when Loki is installed)
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    uid: verified-dating-prometheus
+    type: prometheus
+    access: proxy
+    url: ${PROMETHEUS_URL}
+    isDefault: true
+    editable: false
+    jsonData:
+      httpMethod: POST
+      timeInterval: 30s
+      manageAlerts: false

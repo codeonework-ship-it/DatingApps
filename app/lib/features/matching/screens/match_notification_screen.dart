@@ -5,7 +5,11 @@ import '../../messaging/screens/chat_screen.dart';
 
 class MatchNotificationScreen extends StatelessWidget {
   const MatchNotificationScreen({
-    required this.matchId, required this.otherUserId, required this.otherUserName, required this.otherUserPhotoUrl, super.key,
+    required this.matchId,
+    required this.otherUserId,
+    required this.otherUserName,
+    required this.otherUserPhotoUrl,
+    super.key,
     this.currentUserPhotoUrl,
   });
   final String matchId;
@@ -24,7 +28,7 @@ class MatchNotificationScreen extends StatelessWidget {
           child: Center(
             child: GlassContainer(
               padding: const EdgeInsets.all(20),
-              backgroundColor: Colors.white.withValues(alpha: 0.9),
+              backgroundColor: Theme.of(context).colorScheme.surface.withValues(alpha: 0.9),
               blur: 12,
               borderRadius: const BorderRadius.all(Radius.circular(28)),
               child: Column(

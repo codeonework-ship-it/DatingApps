@@ -2,6 +2,7 @@ package mobile
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"net/url"
 	"sort"
@@ -10,30 +11,20 @@ import (
 	"time"
 
 	"github.com/verified-dating/backend/internal/platform/config"
-	"github.com/verified-dating/backend/internal/platform/supabase"
 )
 
 type safetyRepository struct {
 	cfg config.Config
-	db  *supabase.Client
+	db  repositoryDB
+	pg  *sql.DB
 }
 
-func newSafetyRepository(cfg config.Config) *safetyRepository {
-	apiKey := strings.TrimSpace(cfg.SupabaseServiceRole)
-	if apiKey == "" {
-		apiKey = strings.TrimSpace(cfg.SupabaseAnonKey)
-	}
-	if strings.TrimSpace(cfg.SupabaseURL) == "" || apiKey == "" {
+func newSafetyRepository(cfg config.Config, supplied ...repositoryDB) *safetyRepository {
+	db := repositoryDBFor(cfg, supplied)
+	if db == nil {
 		return nil
 	}
-	client := supabase.NewClient(
-		cfg.SupabaseURL,
-		cfg.SupabaseAnonKey,
-		cfg.SupabaseServiceRole,
-		time.Duration(cfg.SupabaseHTTPTimeoutSec)*time.Second,
-	)
-	client.SetReadBaseURL(cfg.SupabaseReadReplicaURL)
-	return &safetyRepository{cfg: cfg, db: client}
+	return &safetyRepository{cfg: cfg, db: db}
 }
 
 func isSafetyRepoPersistenceUnavailable(err error) bool {
@@ -48,6 +39,9 @@ func isSafetyRepoPersistenceUnavailable(err error) bool {
 }
 
 func (r *safetyRepository) createReport(ctx context.Context, reporterUserID, reportedUserID, reason, description string) (moderationReport, error) {
+	if r.pg != nil {
+		return r.createReportPostgres(ctx, reporterUserID, reportedUserID, reason, description)
+	}
 	reporter := strings.TrimSpace(reporterUserID)
 	reported := strings.TrimSpace(reportedUserID)
 	trimmedReason := strings.TrimSpace(reason)
@@ -76,6 +70,9 @@ func (r *safetyRepository) createReport(ctx context.Context, reporterUserID, rep
 }
 
 func (r *safetyRepository) listReports(ctx context.Context, status string, limit int) ([]moderationReport, error) {
+	if r.pg != nil {
+		return r.listReportsPostgres(ctx, status, limit)
+	}
 	if limit <= 0 || limit > 500 {
 		limit = 100
 	}
@@ -100,6 +97,9 @@ func (r *safetyRepository) listReports(ctx context.Context, status string, limit
 }
 
 func (r *safetyRepository) actionReport(ctx context.Context, reportID, status, action, reviewedBy string) (moderationReport, error) {
+	if r.pg != nil {
+		return r.actionReportPostgres(ctx, reportID, status, action, reviewedBy)
+	}
 	trimmedReportID := strings.TrimSpace(reportID)
 	normalizedStatus := strings.ToLower(strings.TrimSpace(status))
 	if trimmedReportID == "" || normalizedStatus == "" {
@@ -124,6 +124,9 @@ func (r *safetyRepository) actionReport(ctx context.Context, reportID, status, a
 }
 
 func (r *safetyRepository) submitModerationAppeal(ctx context.Context, userID, reportID, reason, description string) (moderationAppeal, error) {
+	if r.pg != nil {
+		return r.submitModerationAppealPostgres(ctx, userID, reportID, reason, description)
+	}
 	trimmedUserID := strings.TrimSpace(userID)
 	trimmedReason := strings.TrimSpace(reason)
 	if trimmedUserID == "" || trimmedReason == "" {
@@ -152,6 +155,9 @@ func (r *safetyRepository) submitModerationAppeal(ctx context.Context, userID, r
 }
 
 func (r *safetyRepository) getModerationAppeal(ctx context.Context, appealID, requesterUserID string, admin bool) (moderationAppeal, error) {
+	if r.pg != nil {
+		return r.getModerationAppealPostgres(ctx, appealID, requesterUserID, admin)
+	}
 	trimmedAppealID := strings.TrimSpace(appealID)
 	if trimmedAppealID == "" {
 		return moderationAppeal{}, errors.New("appeal_id is required")
@@ -178,6 +184,9 @@ func (r *safetyRepository) getModerationAppeal(ctx context.Context, appealID, re
 }
 
 func (r *safetyRepository) listModerationAppeals(ctx context.Context, status string, limit int) ([]moderationAppeal, error) {
+	if r.pg != nil {
+		return r.listModerationAppealsPostgres(ctx, "", status, limit)
+	}
 	if limit <= 0 || limit > 500 {
 		limit = 100
 	}
@@ -202,6 +211,9 @@ func (r *safetyRepository) listModerationAppeals(ctx context.Context, status str
 }
 
 func (r *safetyRepository) listModerationAppealsForUser(ctx context.Context, userID, status string, limit int) ([]moderationAppeal, error) {
+	if r.pg != nil {
+		return r.listModerationAppealsPostgres(ctx, userID, status, limit)
+	}
 	trimmedUserID := strings.TrimSpace(userID)
 	if trimmedUserID == "" {
 		return []moderationAppeal{}, nil
@@ -231,6 +243,9 @@ func (r *safetyRepository) listModerationAppealsForUser(ctx context.Context, use
 }
 
 func (r *safetyRepository) actionModerationAppeal(ctx context.Context, appealID, status, resolutionReason, reviewedBy string) (moderationAppeal, error) {
+	if r.pg != nil {
+		return r.actionModerationAppealPostgres(ctx, appealID, status, resolutionReason, reviewedBy)
+	}
 	trimmedAppealID := strings.TrimSpace(appealID)
 	normalizedStatus := strings.ToLower(strings.TrimSpace(status))
 	if trimmedAppealID == "" || normalizedStatus == "" {
@@ -260,6 +275,9 @@ func (r *safetyRepository) createSOSAlert(
 	userID, matchID, level, message string,
 	latitude, longitude float64,
 ) (sosAlert, error) {
+	if r.pg != nil {
+		return r.createSOSAlertPostgres(ctx, userID, matchID, level, message, latitude, longitude)
+	}
 	trimmedUserID := strings.TrimSpace(userID)
 	if trimmedUserID == "" {
 		return sosAlert{}, errors.New("user_id is required")
@@ -292,6 +310,9 @@ func (r *safetyRepository) createSOSAlert(
 }
 
 func (r *safetyRepository) resolveSOSAlert(ctx context.Context, alertID, resolvedBy, note string) (sosAlert, error) {
+	if r.pg != nil {
+		return r.resolveSOSAlertPostgres(ctx, alertID, resolvedBy, note)
+	}
 	trimmedAlertID := strings.TrimSpace(alertID)
 	if trimmedAlertID == "" {
 		return sosAlert{}, errors.New("alert_id is required")
@@ -314,6 +335,9 @@ func (r *safetyRepository) resolveSOSAlert(ctx context.Context, alertID, resolve
 }
 
 func (r *safetyRepository) listSOSAlerts(ctx context.Context, userID string, limit int) ([]sosAlert, error) {
+	if r.pg != nil {
+		return r.listSOSAlertsPostgres(ctx, userID, limit)
+	}
 	if limit <= 0 || limit > 500 {
 		limit = 100
 	}

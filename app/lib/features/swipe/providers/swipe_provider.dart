@@ -1,3 +1,4 @@
+import 'curated_daily_set_provider.dart';
 import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -11,6 +12,8 @@ import '../models/discovery_profile.dart';
 part 'swipe_provider.g.dart';
 
 /// Swipe State
+const _keep = Object();
+
 class SwipeState {
   const SwipeState({
     this.profiles = const [],
@@ -25,6 +28,7 @@ class SwipeState {
     this.discoveryMode = 'all',
     this.trustFilterActive = false,
     this.trustFilteredOutCount = 0,
+    this.dailyLimit,
   });
   final List<DiscoveryProfile> profiles;
   final List<DiscoveryProfile> spotlightProfiles;
@@ -39,6 +43,11 @@ class SwipeState {
   final bool trustFilterActive;
   final int trustFilteredOutCount;
 
+  /// Structured 429 payload when today's like allowance is used up.
+  final Map<String, dynamic>? dailyLimit;
+
+  static const Object _unchanged = Object();
+
   SwipeState copyWith({
     List<DiscoveryProfile>? profiles,
     List<DiscoveryProfile>? spotlightProfiles,
@@ -46,12 +55,13 @@ class SwipeState {
     List<DiscoveryProfile>? likedProfiles,
     int? currentIndex,
     bool? isLoading,
-    String? error,
+    Object? error = _unchanged,
     int? likeCount,
     int? passCount,
     String? discoveryMode,
     bool? trustFilterActive,
     int? trustFilteredOutCount,
+    Object? dailyLimit = _keep,
   }) => SwipeState(
     profiles: profiles ?? this.profiles,
     spotlightProfiles: spotlightProfiles ?? this.spotlightProfiles,
@@ -59,22 +69,34 @@ class SwipeState {
     likedProfiles: likedProfiles ?? this.likedProfiles,
     currentIndex: currentIndex ?? this.currentIndex,
     isLoading: isLoading ?? this.isLoading,
-    error: error ?? this.error,
+    error: identical(error, _unchanged) ? this.error : error as String?,
     likeCount: likeCount ?? this.likeCount,
     passCount: passCount ?? this.passCount,
     discoveryMode: discoveryMode ?? this.discoveryMode,
     trustFilterActive: trustFilterActive ?? this.trustFilterActive,
     trustFilteredOutCount: trustFilteredOutCount ?? this.trustFilteredOutCount,
+    dailyLimit: identical(dailyLimit, _keep)
+        ? this.dailyLimit
+        : dailyLimit as Map<String, dynamic>?,
   );
 }
 
 /// Swipe Provider
 @riverpod
 class SwipeNotifier extends _$SwipeNotifier {
+  /// Dismisses the daily-limit prompt until the next refusal.
+  void clearDailyLimit() {
+    if (state.dailyLimit != null) {
+      state = state.copyWith(dailyLimit: null);
+    }
+  }
+
   static const String discoveryModeAll = 'all';
   static const String discoveryModeSpotlight = 'spotlight';
 
   Set<String> get _mockMatchedProfileIds => AppRuntimeConfig.matchedProfileIds;
+  int _loadGeneration = 0;
+  bool _disposed = false;
   Map<String, String> _manualFilters = const <String, String>{};
 
   bool _isRetriableSwipeError(DioException error) {
@@ -126,17 +148,28 @@ class SwipeNotifier extends _$SwipeNotifier {
 
   @override
   SwipeState build() {
+    ref.watch(authNotifierProvider.select((auth) => auth.userId));
+    _manualFilters = const {};
+    _disposed = false;
+    ref.onDispose(() {
+      _disposed = true;
+      ++_loadGeneration;
+    });
     Future<void>.microtask(_loadProfiles);
     return const SwipeState(isLoading: true);
   }
 
   /// Load profiles from gateway API
   Future<void> _loadProfiles() async {
+    if (_disposed) return;
+    final generation = ++_loadGeneration;
+    bool isCurrent() => !_disposed && generation == _loadGeneration;
     state = state.copyWith(isLoading: true, error: null);
 
     try {
       if (kUseMockAuth || kUseMockDiscoveryData) {
         await Future<void>.delayed(const Duration(milliseconds: 220));
+        if (!isCurrent()) return;
         final mode = state.discoveryMode;
         final fallbackSpotlight = _mockProfiles.take(4).toList(growable: false);
         final visibleProfiles = mode == discoveryModeSpotlight
@@ -177,6 +210,7 @@ class SwipeNotifier extends _$SwipeNotifier {
         '/discovery/$currentUserId',
         queryParameters: queryParameters,
       );
+      if (!isCurrent()) return;
       final body =
           (response.data as Map?)?.cast<String, dynamic>() ??
           <String, dynamic>{};
@@ -215,6 +249,7 @@ class SwipeNotifier extends _$SwipeNotifier {
             (trustFilter['filtered_out_count'] as num?)?.toInt() ?? 0,
       );
     } on DioException catch (e, stackTrace) {
+      if (!isCurrent()) return;
       log.error('Failed to load profiles', e, stackTrace);
       final data = e.response?.data;
       final message = data is Map && data['error'] != null
@@ -222,6 +257,7 @@ class SwipeNotifier extends _$SwipeNotifier {
           : 'Failed to load profiles. Please try again.';
       state = state.copyWith(error: message, isLoading: false);
     } catch (e, stackTrace) {
+      if (!isCurrent()) return;
       log.error('Failed to load profiles', e, stackTrace);
       state = state.copyWith(
         error: 'Failed to load profiles. Please try again.',
@@ -283,6 +319,18 @@ class SwipeNotifier extends _$SwipeNotifier {
       return (matchID == null || matchID.isEmpty) ? null : matchID;
     } on DioException catch (e, stackTrace) {
       log.error('Failed to like profile', e, stackTrace);
+      final refusal = (e.response?.data as Map?)?.cast<String, dynamic>();
+      if (e.response?.statusCode == 429 &&
+          refusal?['error_code'] == 'DAILY_LIKE_LIMIT_REACHED') {
+        state = state.copyWith(
+          currentIndex: previousIndex,
+          likeCount: previousLikeCount,
+          likedProfiles: previousLikedProfiles,
+          error: null,
+          dailyLimit: refusal,
+        );
+        return null;
+      }
       if (state.currentIndex == previousIndex + 1 &&
           state.profiles.length > previousIndex &&
           state.profiles[previousIndex].id == targetProfile.id) {
@@ -388,6 +436,31 @@ class SwipeNotifier extends _$SwipeNotifier {
     }
   }
 
+  /// Brings [profileId] to the front of the deck when it is still in it, so
+  /// a pick from the curated rail can be acted on with the deck's own
+  /// like/pass controls. Returns false when the member is no longer dealt.
+  bool selectProfile(String profileId) {
+    final index = state.profiles.indexWhere((p) => p.id == profileId);
+    if (index < 0) {
+      return false;
+    }
+    if (index != state.currentIndex) {
+      state = state.copyWith(currentIndex: index);
+    }
+    return true;
+  }
+
+  /// Curated candidates may sit outside the first page of the browsing deck.
+  /// Use that exact server-supplied candidate; the swipe API rechecks eligibility.
+  void selectIntroduction(DiscoveryProfile profile) {
+    if (!selectProfile(profile.id)) {
+      state = state.copyWith(
+        profiles: [...state.profiles, profile],
+        currentIndex: state.profiles.length,
+      );
+    }
+  }
+
   /// Refresh profiles
   Future<void> refreshProfiles() async {
     state = state.copyWith(currentIndex: 0);
@@ -429,9 +502,15 @@ class SwipeNotifier extends _$SwipeNotifier {
 
   void setManualFilters(Map<String, String> filters) {
     _manualFilters = Map<String, String>.from(filters);
+    ref.read(curatedDiscoveryFiltersProvider.notifier).state = Map.of(filters);
   }
 
-  List<String> _extractAndNormalizePhotoUrls(Map<String, dynamic> map) {
+  /// Maps a `/discovery` candidate row (also used by `/discovery/{id}/today`)
+  /// to the shared profile model, so every surface reads the same shape.
+  static DiscoveryProfile discoveryProfileFromApi(Map<String, dynamic> map) =>
+      _toDiscoveryProfile(map);
+
+  static List<String> _extractAndNormalizePhotoUrls(Map<String, dynamic> map) {
     final urls = <String>[];
 
     void addRaw(dynamic value) {
@@ -466,11 +545,11 @@ class SwipeNotifier extends _$SwipeNotifier {
     return urls;
   }
 
-  DiscoveryProfile _toDiscoveryProfile(Map<String, dynamic> map) {
+  static DiscoveryProfile _toDiscoveryProfile(Map<String, dynamic> map) {
     final photoList = _extractAndNormalizePhotoUrls(map);
-    final dob =
-        DateTime.tryParse(map['dateOfBirth']?.toString() ?? '') ??
-        DateTime(1998, 1, 1);
+    final dob = DateTime.tryParse(
+      (map['dateOfBirth'] ?? map['date_of_birth'])?.toString() ?? '',
+    );
     final spotlightTierRaw =
         (map['spotlight_tier'] ?? map['spotlightTier'])?.toString().trim() ??
         '';
@@ -479,11 +558,13 @@ class SwipeNotifier extends _$SwipeNotifier {
             ?.toString()
             .trim() ??
         '';
+    final whyRaw = map['why']?.toString().trim() ?? '';
 
     return DiscoveryProfile(
       id: map['id']?.toString() ?? map['user_id']?.toString() ?? '',
       name: map['name']?.toString() ?? 'Unknown',
       dateOfBirth: dob,
+      publicAge: (map['age'] as num?)?.toInt(),
       bio: map['bio']?.toString(),
       additionalInfo: map['additional_info']?.toString(),
       profession: map['profession']?.toString(),
@@ -517,10 +598,19 @@ class SwipeNotifier extends _$SwipeNotifier {
         map['spotlight_score'] ?? map['spotlightScore'],
       ),
       spotlightReason: spotlightReasonRaw.isEmpty ? null : spotlightReasonRaw,
+      reasons: ((map['reasons'] as List?) ?? const [])
+          .map((e) => e.toString().trim())
+          .where((e) => e.isNotEmpty)
+          .toList(growable: false),
+      why: whyRaw.isEmpty ? null : whyRaw,
+      sharedActivities: ((map['shared_activities'] as List?) ?? const [])
+          .whereType<String>()
+          .toList(growable: false),
+      availabilityOverlaps: map['availability_overlaps'] == true,
     );
   }
 
-  double? _toDouble(dynamic value) {
+  static double? _toDouble(dynamic value) {
     if (value == null) {
       return null;
     }
@@ -530,7 +620,7 @@ class SwipeNotifier extends _$SwipeNotifier {
     return double.tryParse(value.toString().trim());
   }
 
-  String _normalizePhotoUrl(String raw) {
+  static String _normalizePhotoUrl(String raw) {
     final trimmed = raw.trim();
     if (trimmed.isEmpty) {
       return '';
@@ -578,6 +668,10 @@ class SwipeNotifier extends _$SwipeNotifier {
 }
 
 final _mockProfiles = _generateMockProfiles();
+
+/// The mock deck, shared with surfaces that derive from it (the curated
+/// daily set) so mock builds show consistent members.
+List<DiscoveryProfile> get mockDiscoveryProfiles => _mockProfiles;
 
 List<DiscoveryProfile> _generateMockProfiles() {
   final femaleCount = AppRuntimeConfig.mockFemaleUsersCount;

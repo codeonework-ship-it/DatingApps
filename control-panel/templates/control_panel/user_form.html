@@ -30,6 +30,29 @@
         {% csrf_token %}
 
         <div class="row g-3">
+          <!-- Username -->
+          <div class="col-md-6">
+            <label class="form-label text-muted small">Username {% if not editing %}*{% endif %}</label>
+            {% if editing %}
+            <input type="text" class="form-control glass-input" readonly
+              value="{{ form_data.username|default:'' }}">
+            <div class="form-text text-muted">Usernames are permanent.</div>
+            {% else %}
+            <input type="text" name="username" class="form-control glass-input" required
+              minlength="3" maxlength="30" pattern="[A-Za-z0-9](?:[A-Za-z0-9._]{1,28}[A-Za-z0-9])?"
+              autocomplete="username" placeholder="e.g. john_doe"
+              value="{{ form_data.username|default:'' }}">
+            {% endif %}
+          </div>
+          {% if not editing %}
+          <!-- Password -->
+          <div class="col-md-6">
+            <label class="form-label text-muted small">Temporary Password *</label>
+            <input type="password" name="password" class="form-control glass-input" required
+              minlength="8" autocomplete="new-password" placeholder="At least 8 characters">
+          </div>
+          {% endif %}
+
           <!-- Name -->
           <div class="col-md-6">
             <label class="form-label text-muted small">Full Name *</label>
@@ -37,10 +60,10 @@
               placeholder="e.g. John Doe"
               value="{{ form_data.name|default:'' }}">
           </div>
-          <!-- Phone -->
+          <!-- Optional contact phone -->
           <div class="col-md-6">
-            <label class="form-label text-muted small">Phone *</label>
-            <input type="text" name="phone_number" class="form-control glass-input" required
+            <label class="form-label text-muted small">Contact Phone (optional)</label>
+            <input type="text" name="phone_number" class="form-control glass-input"
               placeholder="+91XXXXXXXXXX"
               value="{{ form_data.phone_number|default:'' }}">
           </div>

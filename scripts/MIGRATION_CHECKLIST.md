@@ -11,7 +11,7 @@
 
 1. ✅ Deploy complete SQL schema (35+ tables, 8 schemas)
 2. ✅ Configure Supabase for real-time features
-3. ✅ Set up authentication (Phone OTP)
+3. ✅ Set up authentication (Username/password)
 4. ✅ Prepare Flutter app for integration
 5. ✅ Verify all systems operational
 
@@ -38,7 +38,7 @@
 - [ ] PostgreSQL database accessible
 - [ ] Credentials saved:
   - Project URL: https://ufrmtgriqpyzqaewvtgn.supabase.co
-  - Publishable Key: sb_publishable_fdrhcB-7-G9yh6RJmqe4mw_acCVKC9_
+  - Publishable Key: YOUR_SUPABASE_PUBLISHABLE_KEY
 
 ### ✅ Environment Setup
 
@@ -172,16 +172,18 @@ Navigate to: **Dashboard → Database → Replication**
 
 ## 📋 PHASE 4: AUTHENTICATION SETUP (10 minutes)
 
-### Step 6: Configure Phone OTP
+### Step 6: Configure username/password
 
 Navigate to: **Dashboard → Authentication → Providers**
 
-**Click "Phone"**:
-- [ ] Toggle "Enable Phone Auth" → ON
-- [ ] Keep "Auto-confirm" → OFF (for security)
+**Open "Email/Password" (internal provider backing)**:
+- [ ] Keep the provider enabled
+- [ ] Set `SUPABASE_SERVICE_ROLE` for confirmed backend account creation
+- [ ] Apply `050_username_password_identity.sql`
+- [ ] Confirm duplicate usernames are rejected case-insensitively
 - [ ] Save changes
 
-✅ **Checkpoint**: Phone OTP authentication enabled
+✅ **Checkpoint**: Username/password authentication enabled; no phone/email input is exposed
 
 ---
 
@@ -207,7 +209,7 @@ Navigate to: **Dashboard → Settings → API**
 
 ```env
 SUPABASE_URL=https://ufrmtgriqpyzqaewvtgn.supabase.co
-SUPABASE_ANON_KEY=sb_publishable_fdrhcB-7-G9yh6RJmqe4mw_acCVKC9_
+SUPABASE_ANON_KEY=YOUR_SUPABASE_PUBLISHABLE_KEY
 SUPABASE_SERVICE_ROLE=<YOUR_SERVICE_ROLE_KEY>
 ```
 
@@ -280,7 +282,7 @@ Future<void> testConnection() async {
 void main() async {
   await Supabase.initialize(
     url: 'https://ufrmtgriqpyzqaewvtgn.supabase.co',
-    anonKey: 'sb_publishable_fdrhcB-7-G9yh6RJmqe4mw_acCVKC9_',
+    anonKey: 'YOUR_SUPABASE_PUBLISHABLE_KEY',
   );
   
   await testConnection();
@@ -312,7 +314,7 @@ dart test_supabase_connection.dart
 - [ ] Subscriptions working in tests
 
 ### Authentication
-- [ ] Phone OTP enabled
+- [ ] Username/password enabled
 - [ ] Service role key obtained
 - [ ] Anon key in .env.local
 - [ ] JWT tokens working
@@ -374,7 +376,7 @@ dart test_supabase_connection.dart
 **After Completion**:
 - ✅ Live PostgreSQL database (35+ tables ready)
 - ✅ Real-time messaging infrastructure
-- ✅ Phone OTP authentication ready
+- ✅ Username/password authentication ready
 - ✅ Flutter app can query data
 - ✅ All models type-safe and generated
 - ✅ <300ms query performance on indexed columns

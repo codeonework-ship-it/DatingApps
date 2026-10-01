@@ -1,0 +1,43 @@
+# SOS delivery health. Gauges are published by the BFF trust retention worker
+# every 30s whether or not an SOS delivery provider is configured, and (since
+# the 2026-10-01 metric split) by the BFF only, so absent() can fire.
+# Runbooks: documents/MONITORING_RUNBOOKS_2026-10-01.md
+groups:
+  - name: verified-dating-safety-trust
+    interval: 30s
+    rules:
+      - alert: VerifiedDatingSOSDeliveryOverdue
+        expr: verified_dating_sos_delivery_overdue > 0
+        for: 1m
+        labels: {severity: page, owner: trust-safety-oncall}
+        annotations:
+          summary: An SOS contact delivery is past its response deadline and has not been delivered
+          description: "{{ $value | humanize }} SOS contact deliveries are overdue. A member in danger may not have reached their emergency contact."
+          runbook_url: /documents/MONITORING_RUNBOOKS_2026-10-01.md#verifieddatingsosdeliveryoverdue
+
+      - alert: VerifiedDatingSOSDeliveryDeadLetters
+        expr: verified_dating_sos_delivery_dead_letters > 0
+        for: 1m
+        labels: {severity: page, owner: trust-safety-oncall}
+        annotations:
+          summary: An SOS contact delivery exhausted its attempts
+          description: "{{ $value | humanize }} SOS deliveries stopped retrying. Manual outreach is required."
+          runbook_url: /documents/MONITORING_RUNBOOKS_2026-10-01.md#verifieddatingsosdeliverydeadletters
+
+      - alert: VerifiedDatingSOSDeliveryStalled
+        expr: verified_dating_sos_delivery_oldest_pending_age_seconds > 120
+        for: 2m
+        labels: {severity: page, owner: trust-safety-oncall}
+        annotations:
+          summary: The oldest undelivered SOS contact delivery is more than two minutes old
+          description: "The oldest undelivered SOS delivery is {{ $value | humanizeDuration }} old."
+          runbook_url: /documents/MONITORING_RUNBOOKS_2026-10-01.md#verifieddatingsosdeliverystalled
+
+      - alert: VerifiedDatingSOSGaugesMissing
+        expr: absent(verified_dating_sos_delivery_queue_depth{job="connect-mobile-bff"})
+        for: 10m
+        labels: {severity: ticket, owner: trust-safety-oncall}
+        annotations:
+          summary: SOS delivery health is not being published; the trust retention worker may be down
+          description: "No BFF instance has exported verified_dating_sos_delivery_queue_depth for ten minutes, so the SOS alerts above cannot fire."
+          runbook_url: /documents/MONITORING_RUNBOOKS_2026-10-01.md#verifieddatingsosgaugesmissing

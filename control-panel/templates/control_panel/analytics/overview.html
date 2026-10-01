@@ -1,0 +1,29 @@
+{% extends "control_panel/base.html" %}
+{% block topbar_title %}Analytics · Overview{% endblock %}
+{% block content %}
+{% include "control_panel/analytics/_nav.html" with page_title="Overview" page_intro="Headline KPIs as of the last day in range, with the same window one week earlier." show_filters=True %}
+<section class="mb-4" aria-labelledby="kpi-heading">
+  <div class="d-flex justify-content-between align-items-center mb-2"><h2 id="kpi-heading" class="h5 mb-0">KPIs{% if range.to %} as of {{ range.to }}{% endif %}</h2>
+  <a class="btn btn-glass btn-sm" href="{% url 'analytics_export' 'kpis' %}?{{ kpi_export_query }}"><i class="bi bi-download me-1"></i>CSV</a></div>
+  <div class="metric-grid">
+    {% for t in tiles %}
+    <article class="metric-tile" aria-label="{{ t.label }}">
+      <div class="metric-top"><span>{{ t.label }}</span></div>
+      <div class="metric-number">{{ t.value }}</div>
+      <div class="metric-unit">{{ t.unit }}</div>
+      <div class="metric-meta"><strong>Week before: {{ t.previous }}</strong><span>{{ t.definition }}</span></div>
+    </article>
+    {% empty %}<p class="text-muted">No KPI data yet. Snapshots build nightly after 00:00 UTC; see Data &amp; exclusions.</p>{% endfor %}
+  </div>
+</section>
+<section class="glass-card mb-4" aria-labelledby="trend-heading">
+  <div class="d-flex justify-content-between align-items-center mb-2"><h2 id="trend-heading" class="h5 mb-0">Active members</h2>
+  <a class="btn btn-glass btn-sm" href="{% url 'analytics_export' 'trends' %}?{{ export_query }}"><i class="bi bi-download me-1"></i>DAU CSV</a></div>
+  {% include "control_panel/analytics/_chart.html" with chart_id="chart-active" chart_label="DAU, WAU and MAU by period" %}
+  <div class="table-responsive"><table class="glass-table w-100"><caption class="small text-muted">DAU is the average per built day in the period; WAU and MAU are the values on the period's last day.</caption>
+    <thead><tr><th scope="col">Period</th><th scope="col" class="text-end">DAU</th><th scope="col" class="text-end">WAU</th><th scope="col" class="text-end">MAU</th></tr></thead>
+    <tbody>{% for r in trend_rows %}<tr><td>{{ r.period }}</td><td class="text-end">{{ r.dau|default:"—" }}</td><td class="text-end">{{ r.wau|default:"—" }}</td><td class="text-end">{{ r.mau|default:"—" }}</td></tr>{% empty %}<tr><td colspan="4" class="text-muted">No built days in this range.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+{% endblock %}
+{% block extra_js %}{% include "control_panel/analytics/_chart_js.html" %}{% endblock %}

@@ -1,0 +1,59 @@
+# Prometheus for Connect (loopback only, 30 days / 20 GB retention).
+# Installed by deploy/monitoring/install_monitoring.sh.
+[Unit]
+Description=Connect monitoring - Prometheus
+Documentation=file:///opt/connect/src/documents/MONITORING_AND_OBSERVABILITY_2026-10-01.md
+Wants=network-online.target
+After=network-online.target
+PartOf=connect-monitoring.target
+
+[Service]
+Type=simple
+User=prometheus
+Group=prometheus
+EnvironmentFile=-/etc/connect-monitoring/prometheus.env
+ExecStartPre=/opt/connect-monitoring/prometheus/promtool check config /etc/connect-monitoring/prometheus/prometheus.yml
+ExecStart=/opt/connect-monitoring/prometheus/prometheus \
+  --config.file=/etc/connect-monitoring/prometheus/prometheus.yml \
+  --storage.tsdb.path=/var/lib/connect-monitoring/prometheus \
+  --storage.tsdb.retention.time=${PROMETHEUS_RETENTION_TIME} \
+  --storage.tsdb.retention.size=${PROMETHEUS_RETENTION_SIZE} \
+  --web.listen-address=127.0.0.1:9090 \
+  --web.external-url=${PROMETHEUS_EXTERNAL_URL}
+ExecReload=/bin/kill -HUP $MAINPID
+Environment=PROMETHEUS_RETENTION_TIME=30d
+Environment=PROMETHEUS_RETENTION_SIZE=20GB
+Environment=PROMETHEUS_EXTERNAL_URL=http://127.0.0.1:9090/
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=60
+LimitNOFILE=65536
+UMask=0027
+ReadWritePaths=/var/lib/connect-monitoring/prometheus
+ReadOnlyPaths=/etc/connect-monitoring
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+RestrictNamespaces=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RemoveIPC=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+
+[Install]
+WantedBy=connect-monitoring.target

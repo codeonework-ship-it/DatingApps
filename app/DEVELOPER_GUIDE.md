@@ -187,7 +187,9 @@ lcov --remove coverage/lcov.info '**/generated/*' -o coverage/lcov.info
 - **SQLite**: Structured data
 
 ### Authentication
-- **Supabase Auth**: Phone OTP authentication
+- **App contract**: Unique normalized username + password
+- **Supabase Auth**: Internal credential/session provider; phone and user email
+  are not accepted by the app login APIs
 
 ### UI
 - **Flutter SVG**: Vector graphics
@@ -260,7 +262,7 @@ flutter test
 dart format --line-length=80 lib/
 
 # Commit with clear message
-git commit -m "feat(auth): implement login with OTP verification"
+git commit -m "feat(auth): implement username/password login"
 
 # Push and create PR
 git push -u origin feature/auth-login

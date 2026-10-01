@@ -1,0 +1,56 @@
+{% extends "control_panel/base.html" %}
+{% block topbar_title %}Domain Events{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="eyebrow">Transactional event backbone</div>
+    <h1><i class="bi bi-diagram-3-fill header-icon"></i> Domain Event Stream</h1>
+    <p class="text-muted mb-0">Append-only event facts, aggregate causality and at-least-once consumer health.</p>
+  </div>
+  <div class="text-end"><span class="badge badge-active">Append-only</span><div class="text-muted small mt-2">{{ source }}</div></div>
+</div>
+
+<div class="metric-grid mb-4">
+  <article class="metric-tile"><div class="metric-top"><span>Total events</span><i class="bi bi-broadcast"></i></div><div class="metric-number">{{ metrics.total_events|default_if_none:"—" }}</div><div class="metric-meta"><strong>Durable sequence</strong><span>All retained event facts</span></div></article>
+  <article class="metric-tile"><div class="metric-top"><span>Events · 15m</span><i class="bi bi-lightning"></i></div><div class="metric-number">{{ metrics.events_15m|default_if_none:"—" }}</div><div class="metric-meta"><strong>Current activity</strong><span>Rolling 15 minutes</span></div></article>
+  <article class="metric-tile {% if metrics.unregistered_sources %}unavailable{% endif %}"><div class="metric-top"><span>Source coverage</span><i class="bi bi-check2-all"></i></div><div class="metric-number">{{ metrics.registered_sources|default_if_none:"—" }}</div><div class="metric-meta"><strong>{{ metrics.unregistered_sources|default_if_none:"—" }} uncovered</strong><span>Mutable product tables</span></div></article>
+  <article class="metric-tile {% if metrics.dead_letters %}unavailable{% endif %}"><div class="metric-top"><span>Dead letters</span><i class="bi bi-exclamation-diamond"></i></div><div class="metric-number">{{ metrics.dead_letters|default_if_none:"—" }}</div><div class="metric-meta"><strong>{{ metrics.pending_deliveries|default_if_none:"—" }} pending</strong><span>At-least-once delivery</span></div></article>
+</div>
+
+<div class="glass-card mb-4">
+  <form method="get" class="row g-3 align-items-end">
+    <div class="col-md-3"><label class="form-label">Event name</label><input name="event_name" value="{{ filters.event_name }}" class="glass-input" placeholder="matching.messages.created"></div>
+    <div class="col-md-2"><label class="form-label">Aggregate type</label><input name="aggregate_type" value="{{ filters.aggregate_type }}" class="glass-input" placeholder="matching.messages"></div>
+    <div class="col-md-2"><label class="form-label">Aggregate ID</label><input name="aggregate_id" value="{{ filters.aggregate_id }}" class="glass-input" placeholder="ID or key"></div>
+    <div class="col-md-2"><label class="form-label">Producer</label><input name="producer" value="{{ filters.producer }}" class="glass-input" placeholder="matching"></div>
+    <div class="col-md-1"><label class="form-label">Limit</label><input type="number" name="limit" value="{{ limit }}" min="1" max="500" class="glass-input"></div>
+    <div class="col-md-2 d-flex gap-2"><button class="btn btn-glow" type="submit"><i class="bi bi-funnel me-1"></i>Apply</button><a href="{% url 'domain_events' %}" class="btn btn-glass">Clear</a></div>
+  </form>
+</div>
+
+{% if error %}<div class="alert-glass warning"><i class="bi bi-exclamation-triangle"></i>{{ error }}</div>{% endif %}
+
+<div class="glass-card">
+  <div class="d-flex justify-content-between mb-3"><span class="text-muted small">{{ events|length }} event{{ events|length|pluralize }}</span><span class="text-muted small">Snapshot {{ snapshot_at|date:"M d, H:i:s" }} UTC</span></div>
+  {% if events %}
+  <div class="table-responsive">
+    <table class="glass-table">
+      <thead><tr><th>Sequence</th><th>Event</th><th>Aggregate</th><th>Producer</th><th>Context</th><th>Occurred</th></tr></thead>
+      <tbody>
+      {% for item in events %}
+        <tr>
+          <td class="font-monospace">#{{ item.sequence_id }}</td>
+          <td><span class="badge badge-purple">{{ item.event_name }}</span><div class="font-monospace text-muted small mt-1">v{{ item.event_version }} · {{ item.event_id|truncatechars:18 }}</div></td>
+          <td><div>{{ item.aggregate_type }}</div><div class="font-monospace text-muted small">{{ item.aggregate_id|truncatechars:30 }}</div></td>
+          <td>{{ item.producer }}</td>
+          <td><div class="font-monospace text-muted small">actor {{ item.actor_user_id|default:"system"|truncatechars:18 }}</div><div class="font-monospace text-muted small">corr {{ item.correlation_id|default:"—"|truncatechars:20 }}</div></td>
+          <td class="text-muted small text-nowrap">{{ item.occurred_at|default:"—" }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}<div class="empty-command-state">No domain events matched these filters.</div>{% endif %}
+</div>
+{% endblock %}

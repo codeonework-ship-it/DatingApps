@@ -6,7 +6,7 @@ part of 'message_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$messageNotifierHash() => r'5cc480f7a4f36909de979e4e892711f59abd1d02';
+String _$messageNotifierHash() => r'e0b91cc7f1cd7d4a0029178b63208ae9b1feea5c';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -33,9 +33,7 @@ abstract class _$MessageNotifier
     extends BuildlessAutoDisposeNotifier<MessageState> {
   late final String matchId;
 
-  MessageState build(
-    String matchId,
-  );
+  MessageState build(String matchId);
 }
 
 /// Message Provider for specific match
@@ -56,21 +54,15 @@ class MessageNotifierFamily extends Family<MessageState> {
   /// Message Provider for specific match
   ///
   /// Copied from [MessageNotifier].
-  MessageNotifierProvider call(
-    String matchId,
-  ) {
-    return MessageNotifierProvider(
-      matchId,
-    );
+  MessageNotifierProvider call(String matchId) {
+    return MessageNotifierProvider(matchId);
   }
 
   @override
   MessageNotifierProvider getProviderOverride(
     covariant MessageNotifierProvider provider,
   ) {
-    return call(
-      provider.matchId,
-    );
+    return call(provider.matchId);
   }
 
   static const Iterable<ProviderOrFamily>? _dependencies = null;
@@ -96,21 +88,19 @@ class MessageNotifierProvider
   /// Message Provider for specific match
   ///
   /// Copied from [MessageNotifier].
-  MessageNotifierProvider(
-    String matchId,
-  ) : this._internal(
-          () => MessageNotifier()..matchId = matchId,
-          from: messageNotifierProvider,
-          name: r'messageNotifierProvider',
-          debugGetCreateSourceHash:
-              const bool.fromEnvironment('dart.vm.product')
-                  ? null
-                  : _$messageNotifierHash,
-          dependencies: MessageNotifierFamily._dependencies,
-          allTransitiveDependencies:
-              MessageNotifierFamily._allTransitiveDependencies,
-          matchId: matchId,
-        );
+  MessageNotifierProvider(String matchId)
+    : this._internal(
+        () => MessageNotifier()..matchId = matchId,
+        from: messageNotifierProvider,
+        name: r'messageNotifierProvider',
+        debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+            ? null
+            : _$messageNotifierHash,
+        dependencies: MessageNotifierFamily._dependencies,
+        allTransitiveDependencies:
+            MessageNotifierFamily._allTransitiveDependencies,
+        matchId: matchId,
+      );
 
   MessageNotifierProvider._internal(
     super._createNotifier, {
@@ -125,12 +115,8 @@ class MessageNotifierProvider
   final String matchId;
 
   @override
-  MessageState runNotifierBuild(
-    covariant MessageNotifier notifier,
-  ) {
-    return notifier.build(
-      matchId,
-    );
+  MessageState runNotifierBuild(covariant MessageNotifier notifier) {
+    return notifier.build(matchId);
   }
 
   @override
@@ -151,7 +137,7 @@ class MessageNotifierProvider
 
   @override
   AutoDisposeNotifierProviderElement<MessageNotifier, MessageState>
-      createElement() {
+  createElement() {
     return _MessageNotifierProviderElement(this);
   }
 
@@ -182,5 +168,6 @@ class _MessageNotifierProviderElement
   @override
   String get matchId => (origin as MessageNotifierProvider).matchId;
 }
+
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member

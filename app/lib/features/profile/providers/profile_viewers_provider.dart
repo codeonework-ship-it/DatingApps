@@ -4,7 +4,6 @@ import '../../../core/providers/api_client_provider.dart';
 import '../../auth/providers/auth_provider.dart';
 
 class ProfileViewer {
-
   factory ProfileViewer.fromJson(Map<String, dynamic> json) => ProfileViewer(
     userId: json['user_id']?.toString() ?? '',
     name: (json['name']?.toString() ?? '').trim(),

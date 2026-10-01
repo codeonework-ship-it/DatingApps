@@ -2,10 +2,14 @@ import 'dart:async';
 
 import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
 
+import '../../../core/auth/auth_session_store.dart';
 import '../../../core/config/app_runtime_config.dart';
 import '../../../core/config/feature_flags.dart';
 import '../../../core/providers/api_client_provider.dart';
+import '../../../core/realtime/chat_realtime_client.dart';
+import '../../../core/realtime/replay_cursor_recovery.dart';
 import '../../../core/utils/logger.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../models/messaging_models.dart' as models;
@@ -33,6 +37,7 @@ class MessageState {
     this.error,
     this.isTyping = false,
     this.isChatLocked = false,
+    this.dailyLimit,
     this.unlockState,
     this.unlockPolicyVariant,
     this.giftCatalog = const [],
@@ -40,12 +45,19 @@ class MessageState {
     this.walletCoins = 0,
     this.isSendingGift = false,
     this.pendingDeleteIds = const <String>{},
+    this.realtimeConnected = false,
+    this.lastEventSequence = 0,
+    this.isMatchActive = true,
+    this.assistedMessageIds = const <String>{},
   });
   final List<models.Message> messages;
   final bool isLoading;
   final String? error;
   final bool isTyping;
   final bool isChatLocked;
+
+  /// Structured 429 payload when today's message allowance is used up.
+  final Map<String, dynamic>? dailyLimit;
   final String? unlockState;
   final String? unlockPolicyVariant;
   final List<RoseGift> giftCatalog;
@@ -53,6 +65,12 @@ class MessageState {
   final int walletCoins;
   final bool isSendingGift;
   final Set<String> pendingDeleteIds;
+  final bool realtimeConnected;
+  final int lastEventSequence;
+  final bool isMatchActive;
+
+  /// Messages that started as copilot drafts; shown as "drafted with help".
+  final Set<String> assistedMessageIds;
 
   MessageState copyWith({
     List<models.Message>? messages,
@@ -60,6 +78,7 @@ class MessageState {
     Object? error = _noValue,
     bool? isTyping,
     bool? isChatLocked,
+    Object? dailyLimit = _noValue,
     String? unlockState,
     String? unlockPolicyVariant,
     List<RoseGift>? giftCatalog,
@@ -67,12 +86,19 @@ class MessageState {
     int? walletCoins,
     bool? isSendingGift,
     Set<String>? pendingDeleteIds,
+    bool? realtimeConnected,
+    int? lastEventSequence,
+    bool? isMatchActive,
+    Set<String>? assistedMessageIds,
   }) => MessageState(
     messages: messages ?? this.messages,
     isLoading: isLoading ?? this.isLoading,
     error: identical(error, _noValue) ? this.error : error as String?,
     isTyping: isTyping ?? this.isTyping,
     isChatLocked: isChatLocked ?? this.isChatLocked,
+    dailyLimit: identical(dailyLimit, _noValue)
+        ? this.dailyLimit
+        : dailyLimit as Map<String, dynamic>?,
     unlockState: unlockState ?? this.unlockState,
     unlockPolicyVariant: unlockPolicyVariant ?? this.unlockPolicyVariant,
     giftCatalog: giftCatalog ?? this.giftCatalog,
@@ -80,6 +106,10 @@ class MessageState {
     walletCoins: walletCoins ?? this.walletCoins,
     isSendingGift: isSendingGift ?? this.isSendingGift,
     pendingDeleteIds: pendingDeleteIds ?? this.pendingDeleteIds,
+    realtimeConnected: realtimeConnected ?? this.realtimeConnected,
+    lastEventSequence: lastEventSequence ?? this.lastEventSequence,
+    isMatchActive: isMatchActive ?? this.isMatchActive,
+    assistedMessageIds: assistedMessageIds ?? this.assistedMessageIds,
   );
 }
 
@@ -102,6 +132,13 @@ class GestureGiftBundleResult {
 class MessageNotifier extends _$MessageNotifier {
   String? _currentMatchId;
   Timer? _pollTimer;
+  Timer? _reconnectTimer;
+  Timer? _realtimeRefreshTimer;
+  WebSocketChannel? _realtimeChannel;
+  StreamSubscription<dynamic>? _realtimeSubscription;
+  var _reconnectAttempt = 0;
+  var _cursorRecoveryAttempted = false;
+  var _disposed = false;
   final Map<String, Timer> _pendingDeleteTimers = <String, Timer>{};
   final Map<String, _PendingDeleteSnapshot> _pendingDeleteSnapshots =
       <String, _PendingDeleteSnapshot>{};
@@ -124,12 +161,24 @@ class MessageNotifier extends _$MessageNotifier {
     }
     Future<void>.microtask(() => _loadMessages(matchId));
     if (!kUseMockAuth) {
-      _pollTimer = Timer.periodic(const Duration(seconds: 4), (_) {
+      Future<void>.microtask(() => _connectRealtime(matchId));
+      _pollTimer = Timer.periodic(const Duration(seconds: 30), (_) {
         _loadMessages(matchId, showLoader: false);
       });
     }
     ref.onDispose(() {
+      _disposed = true;
       _pollTimer?.cancel();
+      _reconnectTimer?.cancel();
+      _realtimeRefreshTimer?.cancel();
+      final cancelFuture = _realtimeSubscription?.cancel();
+      if (cancelFuture != null) {
+        unawaited(cancelFuture);
+      }
+      final closeFuture = _realtimeChannel?.sink.close();
+      if (closeFuture != null) {
+        unawaited(closeFuture);
+      }
       for (final timer in _pendingDeleteTimers.values) {
         timer.cancel();
       }
@@ -142,6 +191,128 @@ class MessageNotifier extends _$MessageNotifier {
       walletCoins: 0,
     );
   }
+
+  Future<void> _connectRealtime(String matchId) async {
+    if (_disposed || kUseMockAuth || _usesLocalConversationSandbox) {
+      return;
+    }
+    final accessToken = AuthSessionStore.instance.accessToken?.trim() ?? '';
+    if (accessToken.isEmpty) {
+      _scheduleRealtimeReconnect(matchId);
+      return;
+    }
+
+    _reconnectTimer?.cancel();
+    await _realtimeSubscription?.cancel();
+    await _realtimeChannel?.sink.close();
+    if (_disposed) {
+      return;
+    }
+
+    final channel = ChatRealtimeClient(
+      apiBaseUrl: AppRuntimeConfig.apiBaseUrl,
+    ).connect(accessToken: accessToken, after: state.lastEventSequence);
+    _realtimeChannel = channel;
+    _realtimeSubscription = channel.stream.listen(
+      (dynamic raw) => _handleRealtimeEvent(matchId, raw),
+      onError: (Object error, StackTrace stackTrace) {
+        log.error('Chat realtime connection failed', error, stackTrace);
+        _handleRealtimeDisconnected(matchId);
+      },
+      onDone: () => _handleRealtimeDisconnected(matchId),
+      cancelOnError: true,
+    );
+    try {
+      await channel.ready;
+      if (_disposed || !identical(_realtimeChannel, channel)) {
+        return;
+      }
+      _reconnectAttempt = 0;
+      _cursorRecoveryAttempted = false;
+      state = state.copyWith(realtimeConnected: true);
+    } on Object catch (error, stackTrace) {
+      log.error('Chat realtime handshake failed', error, stackTrace);
+      if (shouldAttemptCursorSnapshot(
+        lastSequence: state.lastEventSequence,
+        alreadyAttempted: _cursorRecoveryAttempted,
+      )) {
+        _cursorRecoveryAttempted = true;
+        _reconnectTimer?.cancel();
+        final snapshotRecovered = await _loadMessages(
+          matchId,
+          showLoader: false,
+        );
+        if (snapshotRecovered && !_disposed) {
+          state = state.copyWith(
+            realtimeConnected: false,
+            lastEventSequence: 0,
+          );
+          _reconnectAttempt = 0;
+          _scheduleRealtimeReconnect(matchId, immediate: true);
+          return;
+        }
+      }
+      _handleRealtimeDisconnected(matchId);
+    }
+  }
+
+  void _handleRealtimeEvent(String matchId, Object? raw) {
+    final event = ChatRealtimeEvent.tryParse(raw);
+    if (event == null || _disposed) {
+      return;
+    }
+    final nextSequence = event.sequence > state.lastEventSequence
+        ? event.sequence
+        : state.lastEventSequence;
+    state = state.copyWith(
+      realtimeConnected: true,
+      lastEventSequence: nextSequence,
+    );
+    if (event.type == 'stream.connected') {
+      return;
+    }
+    if ((event.matchId ?? '') != matchId) {
+      return;
+    }
+
+    if (event.type == 'match.unmatched') {
+      state = state.copyWith(
+        isMatchActive: false,
+        error: 'This match has ended.',
+      );
+      return;
+    }
+    if (event.type.startsWith('message.')) {
+      _realtimeRefreshTimer?.cancel();
+      _realtimeRefreshTimer = Timer(const Duration(milliseconds: 80), () {
+        unawaited(_loadMessages(matchId, showLoader: false));
+      });
+    }
+  }
+
+  void _handleRealtimeDisconnected(String matchId) {
+    if (_disposed) {
+      return;
+    }
+    state = state.copyWith(realtimeConnected: false);
+    _scheduleRealtimeReconnect(matchId);
+  }
+
+  void _scheduleRealtimeReconnect(String matchId, {bool immediate = false}) {
+    if (_disposed || _reconnectTimer?.isActive == true) {
+      return;
+    }
+    final exponent = _reconnectAttempt.clamp(0, 5).toInt();
+    final delaySeconds = immediate ? 0 : 1 << exponent;
+    _reconnectAttempt++;
+    _reconnectTimer = Timer(Duration(seconds: delaySeconds), () {
+      unawaited(_connectRealtime(matchId));
+    });
+  }
+
+  /// Re-reads the wallet balance (and gift catalog) after a purchase made
+  /// elsewhere, so the chat header chip reflects settled coins.
+  Future<void> refreshWallet() => _loadRoseEconomy();
 
   Future<void> _loadRoseEconomy() async {
     try {
@@ -216,10 +387,10 @@ class MessageNotifier extends _$MessageNotifier {
   Future<void> refreshRoseEconomy() => _loadRoseEconomy();
 
   /// Load messages from gateway API
-  Future<void> _loadMessages(String matchId, {bool showLoader = true}) async {
+  Future<bool> _loadMessages(String matchId, {bool showLoader = true}) async {
     if (_usesLocalConversationSandbox) {
       state = state.copyWith(isLoading: false, error: null);
-      return;
+      return true;
     }
 
     if (showLoader) {
@@ -237,7 +408,7 @@ class MessageNotifier extends _$MessageNotifier {
           isLoading: false,
           error: null,
         );
-        return;
+        return true;
       }
 
       final dio = ref.read(apiClientProvider);
@@ -252,6 +423,12 @@ class MessageNotifier extends _$MessageNotifier {
           (response.data as Map?)?.cast<String, dynamic>() ??
           <String, dynamic>{};
       final raw = (body['messages'] as List?) ?? const [];
+      final assistedIds = raw
+          .whereType<Map<String, dynamic>>()
+          .where((map) => map['composed_with_assist'] == true)
+          .map((map) => map['id']?.toString() ?? '')
+          .where((id) => id.isNotEmpty)
+          .toSet();
 
       final messages = raw
           .whereType<Map<String, dynamic>>()
@@ -299,9 +476,24 @@ class MessageNotifier extends _$MessageNotifier {
 
       state = state.copyWith(
         messages: mergedMessages,
+        assistedMessageIds: assistedIds,
         isLoading: false,
         error: null,
       );
+      await _refreshUnlockState(matchId);
+      final currentUserId = ref.read(authNotifierProvider).userId;
+      final hasUnreadIncoming =
+          currentUserId != null &&
+          messages.any(
+            (message) =>
+                message.senderId != currentUserId &&
+                message.readAt == null &&
+                !message.isDeleted,
+          );
+      if (hasUnreadIncoming) {
+        await _markConversationRead(matchId);
+      }
+      return true;
     } on DioException catch (e, stackTrace) {
       log.error('Failed to load messages', e, stackTrace);
       state = state.copyWith(
@@ -309,6 +501,7 @@ class MessageNotifier extends _$MessageNotifier {
         isLoading: false,
         isChatLocked: false,
       );
+      return false;
     } on Object catch (e, stackTrace) {
       log.error('Failed to load messages', e, stackTrace);
       state = state.copyWith(
@@ -316,19 +509,75 @@ class MessageNotifier extends _$MessageNotifier {
         isLoading: false,
         isChatLocked: false,
       );
+      return false;
+    }
+  }
+
+  /// Reflect the conversation's unlock gate as soon as the chat opens.
+  ///
+  /// The lock used to be discovered only reactively, from the 423 returned by
+  /// a send attempt, so a gated conversation presented a working composer: the
+  /// member typed a whole message and tapped send before anything explained
+  /// that chat was not open yet. `/matches/{id}/unlock-state` answers the same
+  /// gate the send endpoint applies, so ask it up front.
+  ///
+  /// A failure here is deliberately silent — it must never block rendering
+  /// messages, and a send attempt still surfaces the lock on its own.
+  Future<void> _refreshUnlockState(String matchId) async {
+    if (kUseMockAuth || _usesLocalConversationSandbox) {
+      return;
+    }
+    try {
+      final dio = ref.read(apiClientProvider);
+      final response = await dio.get<Map<String, dynamic>>(
+        '/matches/$matchId/unlock-state',
+      );
+      final body = response.data;
+      if (body == null) {
+        return;
+      }
+      final unlocked = body['chat_unlocked'] == true;
+      state = state.copyWith(
+        isChatLocked: !unlocked,
+        unlockState: (body['unlock_state'] ?? '').toString(),
+        unlockPolicyVariant: (body['unlock_policy_variant'] ?? '').toString(),
+      );
+    } on Object catch (e, stackTrace) {
+      log.error('Failed to read chat unlock state', e, stackTrace);
+    }
+  }
+
+  Future<void> _markConversationRead(String matchId) async {
+    final currentUserId = ref.read(authNotifierProvider).userId;
+    if (currentUserId == null || currentUserId.isEmpty || kUseMockAuth) {
+      return;
+    }
+    try {
+      await ref
+          .read(apiClientProvider)
+          .post<void>(
+            '/matches/$matchId/read',
+            data: <String, dynamic>{'user_id': currentUserId},
+          );
+    } on Object catch (error, stackTrace) {
+      log.error('Failed to persist chat read cursor', error, stackTrace);
     }
   }
 
   /// Send message
-  Future<void> sendMessage(String text) async {
+  Future<bool> sendMessage(String text, {String? assistDraftId}) async {
     if (text.isEmpty || _currentMatchId == null) {
-      return;
+      return false;
+    }
+    if (!state.isMatchActive) {
+      state = state.copyWith(error: 'This match has ended.');
+      return false;
     }
 
     try {
       final currentUserId = ref.read(authNotifierProvider).userId;
       if (currentUserId == null) {
-        return;
+        return false;
       }
 
       if (_usesLocalConversationSandbox) {
@@ -348,7 +597,7 @@ class MessageNotifier extends _$MessageNotifier {
           error: null,
           isChatLocked: false,
         );
-        return;
+        return true;
       }
 
       if (kUseMockAuth) {
@@ -363,23 +612,34 @@ class MessageNotifier extends _$MessageNotifier {
           isDeleted: false,
           deletedAt: null,
         );
-        state = state.copyWith(messages: [message, ...state.messages]);
-        return;
+        state = state.copyWith(
+          messages: [message, ...state.messages],
+          error: null,
+          dailyLimit: null,
+        );
+        return true;
       }
 
       final dio = ref.read(apiClientProvider);
       await dio.post<Map<String, dynamic>>(
         '/chat/${_currentMatchId!}/messages',
         options: Options(headers: {'X-User-ID': currentUserId}),
-        data: {'sender_id': currentUserId, 'text': text},
+        data: {
+          'sender_id': currentUserId,
+          'text': text,
+          if (assistDraftId != null && assistDraftId.isNotEmpty)
+            'assist_draft_id': assistDraftId,
+        },
       );
       state = state.copyWith(
         error: null,
+        dailyLimit: null,
         isChatLocked: false,
         unlockState: null,
         unlockPolicyVariant: null,
       );
       await _loadMessages(_currentMatchId!, showLoader: false);
+      return true;
     } on DioException catch (e, stackTrace) {
       log.error('Failed to send message', e, stackTrace);
       final body = (e.response?.data as Map?)?.cast<String, dynamic>();
@@ -392,7 +652,15 @@ class MessageNotifier extends _$MessageNotifier {
           unlockPolicyVariant: (body?['unlock_policy_variant'] ?? '')
               .toString(),
         );
-        return;
+        return false;
+      }
+      if (errorCode == 'DAILY_MESSAGE_LIMIT_REACHED') {
+        state = state.copyWith(
+          error: null,
+          isChatLocked: false,
+          dailyLimit: body,
+        );
+        return false;
       }
       state = state.copyWith(
         error: 'Failed to send message.',
@@ -407,6 +675,7 @@ class MessageNotifier extends _$MessageNotifier {
         unlockPolicyVariant: null,
       );
     }
+    return false;
   }
 
   Future<void> deleteMessageForEveryone(models.Message message) async {
@@ -566,10 +835,104 @@ class MessageNotifier extends _$MessageNotifier {
     );
   }
 
+  /// Hides an incoming gift from this member's chat without changing the
+  /// sender's ledger or deleting the message for the other participant.
+  Future<bool> hideReceivedGift(models.Message message) =>
+      _applyReceivedGiftAction(message, action: 'hide');
+
+  /// Sends an incoming gift to moderation and hides it immediately.
+  Future<bool> reportReceivedGift(
+    models.Message message, {
+    required String reason,
+    String details = '',
+  }) => _applyReceivedGiftAction(
+    message,
+    action: 'report',
+    reason: reason,
+    details: details,
+  );
+
+  Future<bool> _applyReceivedGiftAction(
+    models.Message message, {
+    required String action,
+    String? reason,
+    String details = '',
+  }) async {
+    final matchId = _currentMatchId;
+    final currentUserId = ref.read(authNotifierProvider).userId?.trim() ?? '';
+    if (matchId == null ||
+        currentUserId.isEmpty ||
+        message.senderId == currentUserId ||
+        !containsGiftPayload(message.text)) {
+      state = state.copyWith(error: 'Only received gifts can be managed.');
+      return false;
+    }
+
+    if (_usesLocalConversationSandbox || kUseMockAuth) {
+      state = state.copyWith(
+        messages: state.messages
+            .where((item) => item.id != message.id)
+            .toList(),
+        error: null,
+      );
+      return true;
+    }
+
+    try {
+      final data = action == 'report'
+          ? <String, dynamic>{
+              'reason': reason,
+              if (details.trim().isNotEmpty) 'details': details.trim(),
+            }
+          : null;
+      await ref
+          .read(apiClientProvider)
+          .post<Map<String, dynamic>>(
+            '/chat/$matchId/messages/${message.id}/gift/$action',
+            data: data,
+            options: Options(
+              headers: {
+                'X-User-ID': currentUserId,
+                'Idempotency-Key': 'gift-$action-$currentUserId-${message.id}',
+              },
+            ),
+          );
+      state = state.copyWith(
+        messages: state.messages
+            .where((item) => item.id != message.id)
+            .toList(),
+        error: null,
+      );
+      return true;
+    } on DioException catch (error, stackTrace) {
+      log.error('Failed to $action received gift', error, stackTrace);
+      state = state.copyWith(
+        error: error.response?.statusCode == 404
+            ? 'This gift is no longer available.'
+            : action == 'report'
+            ? 'Could not report this gift. Please try again.'
+            : 'Could not hide this gift. Please try again.',
+      );
+      return false;
+    } on Object catch (error, stackTrace) {
+      log.error('Failed to $action received gift', error, stackTrace);
+      state = state.copyWith(
+        error: action == 'report'
+            ? 'Could not report this gift. Please try again.'
+            : 'Could not hide this gift. Please try again.',
+      );
+      return false;
+    }
+  }
+
+  /// Sends [gift] in this chat. Pass the same [idempotencyKey] when retrying a
+  /// send the member already confirmed, so a retry after a dropped connection
+  /// can never charge twice; the server replays the committed send instead.
   Future<bool> sendRoseGift({
     required RoseGift gift,
     required String receiverUserId,
     String messageText = '',
+    String? idempotencyKey,
   }) async {
     if (!kFeatureRoseGiftTray) {
       state = state.copyWith(error: 'Rose gifts are currently unavailable.');
@@ -616,11 +979,14 @@ class MessageNotifier extends _$MessageNotifier {
       gift,
       messageText: trimmedMessageText,
     );
-    final idempotencyKey = _buildGiftSendIdempotencyKey(
-      senderUserId: trimmedCurrentUserId,
-      matchId: _currentMatchId!,
-      giftId: gift.id,
-    );
+    final suppliedKey = idempotencyKey?.trim() ?? '';
+    final sendKey = suppliedKey.isNotEmpty
+        ? suppliedKey
+        : buildGiftSendIdempotencyKey(
+            senderUserId: trimmedCurrentUserId,
+            matchId: _currentMatchId!,
+            giftId: gift.id,
+          );
     _emitRoseGiftTelemetryStub(
       eventName: 'gift_send_attempted',
       attributes: {
@@ -628,7 +994,7 @@ class MessageNotifier extends _$MessageNotifier {
         'gift_id': gift.id,
         'tier': gift.tier,
         'price_coins': gift.priceCoins,
-        'idempotency_key': idempotencyKey,
+        'idempotency_key': sendKey,
       },
     );
     state = state.copyWith(isSendingGift: true);
@@ -675,7 +1041,7 @@ class MessageNotifier extends _$MessageNotifier {
         '/chat/${_currentMatchId!}/gifts/send',
         options: Options(
           headers: {
-            'Idempotency-Key': idempotencyKey,
+            'Idempotency-Key': sendKey,
             'X-User-ID': trimmedCurrentUserId,
           },
         ),
@@ -729,7 +1095,7 @@ class MessageNotifier extends _$MessageNotifier {
           'delivery': 'gift_endpoint',
           'price_coins': gift.priceCoins,
           'remaining_coins': finalWalletCoins,
-          'idempotency_key': idempotencyKey,
+          'idempotency_key': sendKey,
         },
       );
       await _loadMessages(_currentMatchId!, showLoader: false);
@@ -747,7 +1113,7 @@ class MessageNotifier extends _$MessageNotifier {
             'price_coins': gift.priceCoins,
             'wallet_coins': state.walletCoins,
             'error_code': 'INSUFFICIENT_COINS',
-            'idempotency_key': idempotencyKey,
+            'idempotency_key': sendKey,
           },
         );
         state = state.copyWith(
@@ -768,7 +1134,7 @@ class MessageNotifier extends _$MessageNotifier {
             'unlock_state': (body?['unlock_state'] ?? '').toString(),
             'unlock_policy_variant': (body?['unlock_policy_variant'] ?? '')
                 .toString(),
-            'idempotency_key': idempotencyKey,
+            'idempotency_key': sendKey,
           },
         );
         state = state.copyWith(
@@ -778,6 +1144,54 @@ class MessageNotifier extends _$MessageNotifier {
           unlockState: (body?['unlock_state'] ?? '').toString(),
           unlockPolicyVariant: (body?['unlock_policy_variant'] ?? '')
               .toString(),
+        );
+        return false;
+      }
+      if (errorCode == 'WALLET_FROZEN') {
+        state = state.copyWith(
+          error:
+              'Your coins are on hold while we review a refunded purchase. '
+              'Free gifts are still available.',
+          isSendingGift: false,
+          isChatLocked: false,
+        );
+        return false;
+      }
+      if (errorCode == 'GIFT_VELOCITY_LIMIT') {
+        state = state.copyWith(
+          error:
+              "You've sent a lot of gifts in a short time. Please try again "
+              'later.',
+          isSendingGift: false,
+          isChatLocked: false,
+        );
+        return false;
+      }
+      if (errorCode == 'FREE_GIFT_DAILY_LIMIT_REACHED') {
+        state = state.copyWith(
+          error:
+              "You've sent today's free gift. A new one is available "
+              'after midnight UTC.',
+          isSendingGift: false,
+          isChatLocked: false,
+        );
+        return false;
+      }
+      if (errorCode == 'GIFT_UNAVAILABLE' || e.response?.statusCode == 422) {
+        state = state.copyWith(
+          error: '${gift.name} is not available right now.',
+          isSendingGift: false,
+          isChatLocked: false,
+        );
+        await _loadRoseEconomy();
+        return false;
+      }
+      if (errorCode == 'MATCH_NOT_ACTIVE' ||
+          errorCode == 'GIFT_RECEIVER_MISMATCH') {
+        state = state.copyWith(
+          error: 'Gifts can only be sent in an active match.',
+          isSendingGift: false,
+          isChatLocked: false,
         );
         return false;
       }
@@ -796,7 +1210,7 @@ class MessageNotifier extends _$MessageNotifier {
           'match_id': _currentMatchId,
           'gift_id': gift.id,
           'status_code': e.response?.statusCode,
-          'idempotency_key': idempotencyKey,
+          'idempotency_key': sendKey,
         },
       );
       state = state.copyWith(
@@ -812,7 +1226,7 @@ class MessageNotifier extends _$MessageNotifier {
           'match_id': _currentMatchId,
           'gift_id': gift.id,
           'status_code': null,
-          'idempotency_key': idempotencyKey,
+          'idempotency_key': sendKey,
         },
       );
       state = state.copyWith(
@@ -1151,7 +1565,8 @@ String _encodeGestureGiftMessage({
       'gift_price=${gift.priceCoins}]';
 }
 
-String _buildGiftSendIdempotencyKey({
+/// A fresh key for one confirmed gift send. Reuse it for retries of that send.
+String buildGiftSendIdempotencyKey({
   required String senderUserId,
   required String matchId,
   required String giftId,

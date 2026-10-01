@@ -1,0 +1,84 @@
+{
+  "contract_id": "connect.billing-coin-economy",
+  "contract_version": "1.3.0",
+  "effective_date": "2026-09-27",
+  "owner": "separate_billing_owner",
+  "current_scope": "disabled",
+  "currency": "INR",
+  "minor_unit": "paise",
+  "implementation": {
+    "stripe_checkout_and_webhooks": "implemented_locally",
+    "subscription_lifecycle": "implemented_locally",
+    "coin_checkout_and_once_only_credit": "implemented_locally",
+    "refund_and_dispute_lifecycle": "implemented_locally",
+    "coin_refund_and_chargeback_clawback": "implemented_locally_with_frozen_debt_recovery",
+    "gift_send_reversal": "implemented_locally_with_once_only_refund_and_message_retraction",
+    "refund_operations_command_center": "implemented_locally",
+    "coin_economy_fraud_controls": "implemented_locally_with_durable_cases_and_feature_controlled_responses",
+    "fraud_operator_review_and_false_positive_recovery": "implemented_locally",
+    "atomic_coin_checkout_velocity_enforcement": "implemented_locally",
+    "zero_default_wallets_and_historical_ledger_repair": "implemented_locally",
+    "plan_change_and_card_replacement": "implemented_locally",
+    "daily_entitlements": "implemented_locally",
+    "ledger_reconciliation": "implemented_locally",
+    "provider_balance_transaction_reconciliation": "pending",
+    "payout_and_bank_reconciliation": "pending"
+  },
+  "pricing_approval": {
+    "status": "pending",
+    "catalog_currency": "INR",
+    "catalog_version": null,
+    "approved_by": null,
+    "approved_at": null,
+    "evidence": null
+  },
+  "stripe_test_mode_acceptance": [
+    {"id":"STRIPE-CHECKOUT-SUCCESS","status":"pending","evidence":null},
+    {"id":"STRIPE-CHECKOUT-3DS","status":"pending","evidence":null},
+    {"id":"STRIPE-WEBHOOK-REPLAY","status":"pending","evidence":null},
+    {"id":"STRIPE-WEBHOOK-REORDER","status":"pending","evidence":null},
+    {"id":"STRIPE-RENEWAL-FAIL-RECOVER","status":"pending","evidence":null},
+    {"id":"STRIPE-CANCEL-RESUME","status":"pending","evidence":null},
+    {"id":"STRIPE-UPGRADE-DOWNGRADE","status":"pending","evidence":null},
+    {"id":"STRIPE-CARD-REPLACEMENT","status":"pending","evidence":null},
+    {"id":"STRIPE-COIN-PURCHASE","status":"pending","evidence":null},
+    {"id":"STRIPE-REFUND-PARTIAL-FULL","status":"pending","evidence":null},
+    {"id":"STRIPE-DISPUTE-WON-LOST","status":"pending","evidence":null}
+  ],
+  "financial_reconciliation_acceptance": [
+    {"id":"FIN-BALANCE-TRANSACTIONS","status":"pending","evidence":null},
+    {"id":"FIN-PROVIDER-FEES","status":"pending","evidence":null},
+    {"id":"FIN-PAYOUT-BATCH","status":"pending","evidence":null},
+    {"id":"FIN-BANK-DEPOSIT","status":"pending","evidence":null},
+    {"id":"FIN-REFUND-CHARGEBACK","status":"pending","evidence":null},
+    {"id":"FIN-COIN-LIABILITY","status":"pending","evidence":null}
+  ],
+  "optional_reward_mechanics": {
+    "status": "deferred",
+    "launch_blocking_while_disabled": false,
+    "features": [
+      "daily_streak_coin_rewards",
+      "active_session_coin_rewards",
+      "weekly_limited_gift_drops"
+    ],
+    "activation_requires": [
+      "approved_coin_economics",
+      "once_only_award_contract",
+      "anti_idle_and_abuse_rules",
+      "production_threshold_and_false_positive_acceptance",
+      "ledger_and_liability_reconciliation"
+    ]
+  },
+  "production_acceptance": {
+    "decision": "NO_GO",
+    "rationale": "Real money is disabled until pricing is approved and Stripe, settlement, payout, bank-deposit, dispute and coin-liability evidence is complete."
+  },
+  "backlog_disposition": {
+    "PEN-01": "implementation_complete_stripe_test_mode_acceptance_pending",
+    "PEN-02": "local_reconciliation_complete_provider_payout_matching_pending",
+    "PEN-10": "deferred_while_rewards_disabled",
+    "PEN-11": "deferred_while_rewards_disabled",
+    "PEN-12": "deferred_while_gifts_disabled",
+    "PEN-13": "local_controls_complete_production_threshold_acceptance_pending"
+  }
+}

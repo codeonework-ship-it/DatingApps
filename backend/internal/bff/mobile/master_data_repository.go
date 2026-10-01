@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/verified-dating/backend/internal/platform/config"
-	"github.com/verified-dating/backend/internal/platform/supabase"
 )
 
 type preferenceMasterData struct {
@@ -31,7 +30,7 @@ type preferenceMasterData struct {
 
 type masterDataRepository struct {
 	cfg        config.Config
-	db         *supabase.Client
+	db         repositoryDB
 	cacheTTL   time.Duration
 	mu         sync.RWMutex
 	cached     preferenceMasterData
@@ -41,22 +40,12 @@ type masterDataRepository struct {
 
 var errMasterDataUnavailable = errors.New("preference master data unavailable from supabase")
 
-func newMasterDataRepository(cfg config.Config) *masterDataRepository {
-	apiKey := strings.TrimSpace(cfg.SupabaseServiceRole)
-	if apiKey == "" {
-		apiKey = strings.TrimSpace(cfg.SupabaseAnonKey)
-	}
-	if strings.TrimSpace(cfg.SupabaseURL) == "" || apiKey == "" {
+func newMasterDataRepository(cfg config.Config, supplied ...repositoryDB) *masterDataRepository {
+	db := repositoryDBFor(cfg, supplied)
+	if db == nil {
 		return &masterDataRepository{cfg: cfg}
 	}
-	client := supabase.NewClient(
-		cfg.SupabaseURL,
-		cfg.SupabaseAnonKey,
-		cfg.SupabaseServiceRole,
-		cfg.SupabaseHTTPTimeout(),
-	)
-	client.SetReadBaseURL(cfg.SupabaseReadReplicaURL)
-	return &masterDataRepository{cfg: cfg, db: client, cacheTTL: cfg.MasterDataCacheTTL()}
+	return &masterDataRepository{cfg: cfg, db: db, cacheTTL: cfg.MasterDataCacheTTL()}
 }
 
 func (r *masterDataRepository) getPreferenceMasterData(ctx context.Context) (preferenceMasterData, error) {

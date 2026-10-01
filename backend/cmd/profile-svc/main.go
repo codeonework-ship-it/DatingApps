@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"os"
 	"os/signal"
 	"syscall"
@@ -11,9 +12,9 @@ import (
 
 	"github.com/verified-dating/backend/internal/contracts/rpc"
 	"github.com/verified-dating/backend/internal/platform/config"
+	"github.com/verified-dating/backend/internal/platform/dataaccess"
 	"github.com/verified-dating/backend/internal/platform/grpcx"
 	"github.com/verified-dating/backend/internal/platform/observability"
-	"github.com/verified-dating/backend/internal/platform/supabase"
 	"github.com/verified-dating/backend/internal/services/profile"
 )
 
@@ -31,6 +32,7 @@ func main() {
 
 	reg := prometheus.DefaultRegisterer
 	grpcMetrics := observability.NewGRPCMetrics(reg)
+	observability.RegisterProcessMetrics(reg, "profile-svc")
 	interceptor := observability.UnaryServerInterceptor(log, grpcMetrics)
 
 	server, err := grpcx.New(cfg.ProfileGRPCAddr, log, grpc.UnaryInterceptor(interceptor))
@@ -40,13 +42,12 @@ func main() {
 
 	adminServer := observability.StartAdminServer(cfg.ProfileAdminAddr, "profile-svc", log)
 
-	db := supabase.NewClient(
-		cfg.SupabaseURL,
-		cfg.SupabaseAnonKey,
-		cfg.SupabaseServiceRole,
-		cfg.SupabaseHTTPTimeout(),
-	)
-	profileRepo := profile.NewRepository(db, cfg)
+	store, err := dataaccess.Open(context.Background(), cfg)
+	if err != nil {
+		log.Fatal("open_profile_data_store_failed", zap.Error(err))
+	}
+	defer store.Close()
+	profileRepo := profile.NewRepository(store.Client, cfg)
 	profileService := profile.NewService(profileRepo, log)
 	rpc.RegisterProfileServer(server.GRPC(), profileService)
 

@@ -29,6 +29,8 @@
         <option value="active" {% if status_filter == "active" %}selected{% endif %}>Active</option>
         <option value="cancelled" {% if status_filter == "cancelled" %}selected{% endif %}>Cancelled</option>
         <option value="expired" {% if status_filter == "expired" %}selected{% endif %}>Expired</option>
+        <option value="past_due" {% if status_filter == "past_due" %}selected{% endif %}>Past due</option>
+        <option value="incomplete" {% if status_filter == "incomplete" %}selected{% endif %}>Incomplete</option>
         <option value="paused" {% if status_filter == "paused" %}selected{% endif %}>Paused</option>
       </select>
     </div>
@@ -56,8 +58,10 @@
           <th>Cycle</th>
           <th>Start</th>
           <th>End</th>
+          <th>Period end</th>
           <th>Auto-Renew</th>
-          <th>Provider ID</th>
+          <th>Card</th>
+          <th>Provider</th>
         </tr>
       </thead>
       <tbody>
@@ -76,6 +80,8 @@
             <span class="badge badge-danger">{{ sub.status }}</span>
             {% elif sub.status == "expired" %}
             <span class="badge badge-inactive">{{ sub.status }}</span>
+            {% elif sub.status == "past_due" %}
+            <span class="badge badge-warning">past due</span>
             {% else %}
             <span class="badge badge-warning">{{ sub.status }}</span>
             {% endif %}
@@ -83,8 +89,10 @@
           <td>{{ sub.billing_cycle }}</td>
           <td class="small">{{ sub.start_date|truncatechars:10 }}</td>
           <td class="small">{{ sub.end_date|default:"—"|truncatechars:10 }}</td>
-          <td>{% if sub.auto_renew %}<i class="bi bi-check-circle text-success"></i>{% else %}<i class="bi bi-x-circle text-muted"></i>{% endif %}</td>
-          <td class="text-truncate small" style="max-width:120px;" title="{{ sub.provider_subscription_id }}">{{ sub.provider_subscription_id|default:"—"|truncatechars:12 }}</td>
+          <td class="small">{{ sub.current_period_end|default:"—"|truncatechars:10 }}</td>
+          <td>{% if sub.auto_renew %}<i class="bi bi-arrow-repeat text-success" title="Renews automatically"></i>{% elif sub.cancel_at_period_end %}<span class="badge badge-warning" title="Ends at period end">ending</span>{% else %}<i class="bi bi-x-circle text-muted"></i>{% endif %}</td>
+          <td class="small">{% if sub.payment_method_last4 %}{{ sub.payment_method_brand|default:"card" }} •••• {{ sub.payment_method_last4 }}{% else %}—{% endif %}</td>
+          <td class="text-truncate small" style="max-width:140px;" title="{{ sub.provider_subscription_id }}"><span class="badge badge-purple">{{ sub.provider|default:"local" }}</span> {{ sub.provider_subscription_id|default:""|truncatechars:12 }}</td>
         </tr>
         {% endfor %}
       </tbody>

@@ -1,0 +1,60 @@
+# Level/XP projection health. Gauges are exported by the mobile BFF only.
+# Rollout background: documents/PROGRESSION_PRODUCTION_ROLLOUT_2026-09-27.md
+# Runbooks: documents/MONITORING_RUNBOOKS_2026-10-01.md
+groups:
+  - name: verified-dating-progression-production
+    interval: 30s
+    rules:
+      - alert: VerifiedDatingProgressionProjectionLagHigh
+        expr: verified_dating_progression_projection_oldest_pending_age_seconds > 30
+        for: 5m
+        labels: {severity: page, owner: progression-oncall}
+        annotations:
+          summary: Level/XP projection lag exceeds 30 seconds
+          description: "The oldest pending projection job is {{ $value | humanizeDuration }} old; members see stale levels and XP."
+          runbook_url: /documents/MONITORING_RUNBOOKS_2026-10-01.md#verifieddatingprogressionprojectionlaghigh
+
+      - alert: VerifiedDatingProgressionQueueDepthHigh
+        expr: verified_dating_progression_projection_queue_depth > 500
+        for: 10m
+        labels: {severity: ticket, owner: progression-oncall}
+        annotations:
+          summary: Level/XP projection queue contains more than 500 jobs
+          description: "{{ $value | humanize }} projection jobs are pending or retrying."
+          runbook_url: /documents/MONITORING_RUNBOOKS_2026-10-01.md#verifieddatingprogressionqueuedepthhigh
+
+      - alert: VerifiedDatingProgressionCompletionP95High
+        expr: verified_dating_progression_projection_completion_p95_seconds > 2
+        for: 10m
+        labels: {severity: ticket, owner: progression-oncall}
+        annotations:
+          summary: Level/XP projection completion p95 exceeds two seconds
+          description: "Queue-to-completion p95 over 15 minutes is {{ $value | humanizeDuration }}."
+          runbook_url: /documents/MONITORING_RUNBOOKS_2026-10-01.md#verifieddatingprogressioncompletionp95high
+
+      - alert: VerifiedDatingProgressionDeadLetters
+        expr: verified_dating_progression_projection_dead_letters > 0
+        for: 2m
+        labels: {severity: page, owner: progression-oncall}
+        annotations:
+          summary: A Level/XP projection is dead-lettered
+          description: "{{ $value | humanize }} projection jobs failed eight times and stopped retrying."
+          runbook_url: /documents/MONITORING_RUNBOOKS_2026-10-01.md#verifieddatingprogressiondeadletters
+
+      - alert: VerifiedDatingProgressionCriticalFraudQueue
+        expr: verified_dating_progression_open_fraud_cases > 100
+        for: 15m
+        labels: {severity: page, owner: trust-safety-oncall}
+        annotations:
+          summary: Level/XP fraud review queue exceeds staffed capacity
+          description: "{{ $value | humanize }} fraud cases are open or under review."
+          runbook_url: /documents/MONITORING_RUNBOOKS_2026-10-01.md#verifieddatingprogressioncriticalfraudqueue
+
+      - alert: VerifiedDatingProgressionCapDenialSpike
+        expr: verified_dating_progression_cap_denials_15m > 1000
+        for: 5m
+        labels: {severity: ticket, owner: trust-safety-oncall}
+        annotations:
+          summary: Level/XP cap denials spiked in the last fifteen minutes
+          description: "{{ $value | humanize }} XP cap or cooldown denials in 15 minutes; possible farming or a client retry loop."
+          runbook_url: /documents/MONITORING_RUNBOOKS_2026-10-01.md#verifieddatingprogressioncapdenialspike

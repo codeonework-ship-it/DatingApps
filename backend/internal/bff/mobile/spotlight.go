@@ -140,7 +140,7 @@ func (s *Server) attachSpotlightDiscoveryWithContext(ctx context.Context, resp m
 	resp["spotlight_summary"] = summary
 }
 
-func (m *memoryStore) annotateDiscoverySpotlight(rows []any, viewerUserID string) ([]any, []any, map[string]any) {
+func (m *runtimeStore) annotateDiscoverySpotlight(rows []any, viewerUserID string) ([]any, []any, map[string]any) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -317,7 +317,7 @@ func (m *memoryStore) annotateDiscoverySpotlight(rows []any, viewerUserID string
 	return selectedRows, annotated, summary
 }
 
-func (m *memoryStore) recordSpotlightSwipeOutcome(targetUserID string, isLike bool, isMutualMatch bool) {
+func (m *runtimeStore) recordSpotlightSwipeOutcome(targetUserID string, isLike bool, isMutualMatch bool) {
 	trimmedTarget := strings.TrimSpace(targetUserID)
 	if trimmedTarget == "" {
 		return
@@ -339,7 +339,7 @@ func (m *memoryStore) recordSpotlightSwipeOutcome(targetUserID string, isLike bo
 	}
 }
 
-func (m *memoryStore) resetSpotlightCountersIfNeededLocked() {
+func (m *runtimeStore) resetSpotlightCountersIfNeededLocked() {
 	today := time.Now().UTC().Format("2006-01-02")
 	if m.spotlightLastResetDate == today {
 		return
@@ -352,7 +352,7 @@ func (m *memoryStore) resetSpotlightCountersIfNeededLocked() {
 	m.spotlightEligibleUsers = make(map[string]string)
 }
 
-func (m *memoryStore) computeSpotlightMetaLocked(userID string) spotlightCandidateMeta {
+func (m *runtimeStore) computeSpotlightMetaLocked(userID string) spotlightCandidateMeta {
 	planID := "free"
 	planName := "free"
 	if subscription, ok := m.subscriptions[userID]; ok {
@@ -437,7 +437,7 @@ func (m *memoryStore) computeSpotlightMetaLocked(userID string) spotlightCandida
 	}
 }
 
-func (m *memoryStore) computeSpotlightActivityScoreLocked(userID string) int {
+func (m *runtimeStore) computeSpotlightActivityScoreLocked(userID string) int {
 	profileCompletion := m.profileCompletionScoreLocked(userID)
 	activeBadges := m.activeTrustBadgeCountLocked(userID)
 	promptAnswers := len(m.dailyPromptAnswers[userID])
@@ -462,7 +462,7 @@ func (m *memoryStore) computeSpotlightActivityScoreLocked(userID string) int {
 	return maxInt(0, minInt(100, score))
 }
 
-func (m *memoryStore) activeTrustBadgeCountLocked(userID string) int {
+func (m *runtimeStore) activeTrustBadgeCountLocked(userID string) int {
 	badges := m.userBadges[userID]
 	count := 0
 	for _, badge := range badges {
@@ -473,7 +473,7 @@ func (m *memoryStore) activeTrustBadgeCountLocked(userID string) int {
 	return count
 }
 
-func (m *memoryStore) profileCompletionScoreLocked(userID string) int {
+func (m *runtimeStore) profileCompletionScoreLocked(userID string) int {
 	draft := m.profiles[userID]
 	return maxInt(0, minInt(100, draft.ProfileCompletion))
 }

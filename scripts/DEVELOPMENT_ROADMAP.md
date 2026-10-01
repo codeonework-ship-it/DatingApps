@@ -161,7 +161,7 @@ app/lib/features/
 
 - [ ] **STEP 3**: Configure Supabase (Follow SUPABASE_SETUP_GUIDE.md)
   - Enable real-time on messaging/matching tables
-  - Configure Phone OTP authentication
+  - Configure Username/password authentication
   - Setup Storage bucket (for photos)
   - Enable Row Level Security (RLS)
   - Expected time: 15 minutes
@@ -233,7 +233,7 @@ SUPABASE_SERVICE_ROLE=<your-service-role-key>
 | **Models** | Freezed | Immutable data classes |
 | **API** | PostgREST | Auto-generated REST API |
 | **Real-time** | WebSocket | Live messaging |
-| **Auth** | Supabase Auth | Phone OTP + JWT |
+| **Auth** | Supabase Auth | Username/password + JWT |
 | **Storage** | Supabase Storage | Photo/video uploads |
 | **Payment** | Razorpay | Subscription payment |
 | **Video** | Jitsi Meet | Video calling (Phase 2) |
@@ -280,7 +280,7 @@ SUPABASE_SERVICE_ROLE=<your-service-role-key>
 - [ ] Encrypted at rest
 
 ### Authentication
-- [x] Phone OTP (Supabase Auth)
+- [x] Username/password (Supabase Auth)
 - [x] JWT tokens
 - [x] Session management
 - [x] Password hashing (bcrypt)
@@ -374,7 +374,7 @@ testWidgets('Fetch user from Supabase', (tester) async {
 - [ ] All models compile without errors
 - [ ] Can CRUD any entity via repositories
 - [ ] Real-time messaging functional
-- [ ] Authentication working (OTP)
+- [ ] Authentication working (username/password)
 - [ ] All Phase 1 UI screens built
 - [ ] 95%+ test coverage
 - [ ] <500ms load time for discovery

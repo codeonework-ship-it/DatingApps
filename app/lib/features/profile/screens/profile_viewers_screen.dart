@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
 import '../providers/profile_viewers_provider.dart';
 
@@ -17,7 +16,7 @@ class ProfileViewersScreen extends ConsumerWidget {
         title: const Text('Viewed My Profile'),
         elevation: 0,
         backgroundColor: Colors.transparent,
-        foregroundColor: AppTheme.textDark,
+        foregroundColor: Theme.of(context).colorScheme.onSurface,
       ),
       body: PostLoginBackdrop(
         child: viewersAsync.when(
@@ -60,23 +59,25 @@ class ProfileViewersScreen extends ConsumerWidget {
 
                 return GlassContainer(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
+                    horizontal: 16,
                     vertical: 12,
                   ),
                   child: Row(
                     children: [
                       CircleAvatar(
                         radius: 24,
-                        backgroundColor: AppTheme.primaryRed.withValues(
-                          alpha: 0.15,
-                        ),
+                        backgroundColor: Theme.of(
+                          context,
+                        ).colorScheme.primaryContainer,
                         backgroundImage: item.photoUrl.isNotEmpty
                             ? NetworkImage(item.photoUrl)
                             : null,
                         child: item.photoUrl.isEmpty
-                            ? const Icon(
+                            ? Icon(
                                 Icons.person,
-                                color: AppTheme.primaryRed,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onPrimaryContainer,
                               )
                             : null,
                       ),
@@ -93,7 +94,7 @@ class ProfileViewersScreen extends ConsumerWidget {
                             Text(
                               subtitle,
                               style: Theme.of(context).textTheme.bodySmall
-                                  ?.copyWith(color: AppTheme.textGrey),
+                                  ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
                             ),
                           ],
                         ),

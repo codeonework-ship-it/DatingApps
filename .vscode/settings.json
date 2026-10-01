@@ -63,6 +63,14 @@
         "/^cd \"/Users/anandsadasivan/Documents/Workspaces/Development/GitHub/Dating apps/app\" && flutter devices 2>&1$/": {
             "approve": true,
             "matchCommandLine": true
+        },
+        "/^cd \"/Users/anandsadasivan/Documents/Workspaces/Development/GitHub/Dating apps/qa/appium\" && \"/Users/anandsadasivan/Documents/Workspaces/Development/GitHub/Dating apps/\\.venv/bin/python\" -m pytest --collect-only -q$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^cd qa/appium && \\.\\./\\.\\./\\.venv/bin/python -m pytest tests/test_02_edit_profile\\.py --collect-only -q$/": {
+            "approve": true,
+            "matchCommandLine": true
         }
     },
     "java.import.gradle.java.home": "/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home",

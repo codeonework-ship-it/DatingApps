@@ -21,7 +21,9 @@ class AboutAppScreen extends StatelessWidget {
               children: [
                 GlassContainer(
                   padding: const EdgeInsets.all(20),
-                  backgroundColor: Colors.white.withValues(alpha: 0.9),
+                  backgroundColor: Theme.of(
+                    context,
+                  ).colorScheme.surface.withValues(alpha: 0.9),
                   blur: 12,
                   borderRadius: const BorderRadius.all(Radius.circular(20)),
                   child: Column(
@@ -44,7 +46,9 @@ class AboutAppScreen extends StatelessWidget {
                 const SizedBox(height: 12),
                 GlassContainer(
                   padding: const EdgeInsets.all(16),
-                  backgroundColor: Colors.white.withValues(alpha: 0.9),
+                  backgroundColor: Theme.of(
+                    context,
+                  ).colorScheme.surface.withValues(alpha: 0.9),
                   blur: 12,
                   borderRadius: const BorderRadius.all(Radius.circular(16)),
                   child: const Column(
@@ -53,7 +57,7 @@ class AboutAppScreen extends StatelessWidget {
                       Text('Stack'),
                       SizedBox(height: 8),
                       Text('Flutter (Android-first)'),
-                      Text('Supabase Auth + Postgres + Storage'),
+                      Text('Go services + native PostgreSQL'),
                       Text('Riverpod state management'),
                     ],
                   ),

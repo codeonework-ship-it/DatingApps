@@ -1,0 +1,14 @@
+{% extends "control_panel/business/_layout.html" %}
+{% block business_title %}Referrals & introducers{% endblock %}
+{% block business_heading %}Referrals, K-factor &amp; introducers{% endblock %}
+{% block business_lede %}Friend K-factor: invites accepted per new member in their first 30 days. 0.5 is healthy; below 0.2 the loops need redesign before ads.{% endblock %}
+{% block business_body %}
+{% if not referrals_enabled %}<div class="glass-card mb-3"><i class="bi bi-toggle-off me-2"></i>{{ referrals_note }}</div>{% endif %}
+<div class="biz-kpis">
+  <div class="biz-kpi"><small>K total (window)</small><strong>{{ k.overall.k_total|default:"—" }}</strong><span>referral {{ k.overall.k_referral|default:"—" }} · introducer {{ k.overall.k_introducer|default:"—" }}</span></div>
+  <div class="biz-kpi"><small>Referral codes</small><strong>{{ referrals.codes_issued }}</strong><span>active {{ referrals.active_codes }} · accepted {{ referrals.redemptions.accepted }}</span></div>
+  <div class="biz-kpi"><small>Activated referred</small><strong>{{ referrals.activated_referred_members }}</strong><span>paid {{ referrals.referred_members_who_paid }}</span></div>
+  <div class="biz-kpi"><small>Introducer invites</small><strong>{{ introducers.invites_created }}</strong><span>accepted {{ introducers.invites_accepted }} · active consents {{ introducers.consents_active }}</span></div>
+</div>
+<div class="biz-note mb-3">Invites sent: {{ referrals.invites_sent }}</div>
+{% endblock %}

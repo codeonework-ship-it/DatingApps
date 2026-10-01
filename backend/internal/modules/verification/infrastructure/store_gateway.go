@@ -6,16 +6,16 @@ import (
 )
 
 type StoreGateway struct {
-	getVerification    func(string) any
-	submitVerification func(string) any
-	listVerifications  func(string, int) any
+	getVerification    func(string) (any, error)
+	submitVerification func(string) (any, error)
+	listVerifications  func(string, int) (any, error)
 	reviewVerification func(string, string, string, string) (any, error)
 }
 
 func NewStoreGateway(
-	getVerification func(string) any,
-	submitVerification func(string) any,
-	listVerifications func(string, int) any,
+	getVerification func(string) (any, error),
+	submitVerification func(string) (any, error),
+	listVerifications func(string, int) (any, error),
 	reviewVerification func(string, string, string, string) (any, error),
 ) *StoreGateway {
 	return &StoreGateway{
@@ -27,15 +27,27 @@ func NewStoreGateway(
 }
 
 func (g *StoreGateway) GetVerification(_ context.Context, userID string) (map[string]any, error) {
-	return toMap(g.getVerification(userID))
+	state, err := g.getVerification(userID)
+	if err != nil {
+		return nil, err
+	}
+	return toMap(state)
 }
 
 func (g *StoreGateway) SubmitVerification(_ context.Context, userID string) (map[string]any, error) {
-	return toMap(g.submitVerification(userID))
+	state, err := g.submitVerification(userID)
+	if err != nil {
+		return nil, err
+	}
+	return toMap(state)
 }
 
 func (g *StoreGateway) ListVerifications(_ context.Context, status string, limit int) ([]map[string]any, error) {
-	return toMapSlice(g.listVerifications(status, limit))
+	states, err := g.listVerifications(status, limit)
+	if err != nil {
+		return nil, err
+	}
+	return toMapSlice(states)
 }
 
 func (g *StoreGateway) ReviewVerification(

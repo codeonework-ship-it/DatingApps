@@ -1,0 +1,120 @@
+# Prometheus configuration for the Connect single-VPS deployment.
+#
+# Installed by deploy/monitoring/install_monitoring.sh to
+# /etc/connect-monitoring/prometheus/prometheus.yml with ${CONNECT_DOMAIN}
+# substituted and "#@IF VAR ... #@END" blocks kept only when VAR=true.
+# Every scraped endpoint is on loopback; nothing here is reachable publicly.
+#
+# Port map (keep in sync with /etc/connect/connect.env and the systemd units):
+#   8080  api-gateway (public API via nginx; /metrics denied by nginx)
+#   8081  mobile-bff  (MOBILE_BFF_ADDR=127.0.0.1:8081)
+#   10091-10094 gRPC admin servers (auth, profile, matching, chat) - *_ADMIN_ADDR=127.0.0.1:1009x
+#   9090  prometheus   9193 alertmanager (9093/9094 are taken by matching/chat gRPC!)
+#   9100  node_exporter   9187 postgres_exporter   9115 blackbox_exporter
+#   3000  grafana   3100 loki   12345 alloy
+global:
+  scrape_interval: 15s
+  scrape_timeout: 10s
+  evaluation_interval: 30s
+  external_labels:
+    environment: production
+    cluster: connect-vps
+
+rule_files:
+  - /etc/connect-monitoring/prometheus/rules/*.yml
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["127.0.0.1:9193"]
+
+scrape_configs:
+  # ── Connect application ────────────────────────────────────────────────
+  - job_name: connect-mobile-bff
+    static_configs:
+      - targets: ["127.0.0.1:8081"]
+        labels: {component: mobile-bff}
+
+  - job_name: connect-api-gateway
+    static_configs:
+      - targets: ["127.0.0.1:8080"]
+        labels: {component: api-gateway}
+
+  - job_name: connect-grpc
+    static_configs:
+      - targets: ["127.0.0.1:10091"]
+        labels: {component: auth-svc}
+      - targets: ["127.0.0.1:10092"]
+        labels: {component: profile-svc}
+      - targets: ["127.0.0.1:10093"]
+        labels: {component: matching-svc}
+      - targets: ["127.0.0.1:10094"]
+        labels: {component: chat-svc}
+
+  # ── Host and database ──────────────────────────────────────────────────
+  - job_name: connect-node
+    static_configs:
+      - targets: ["127.0.0.1:9100"]
+        labels: {component: node}
+
+  - job_name: connect-postgres
+    static_configs:
+      - targets: ["127.0.0.1:9187"]
+        labels: {component: postgres}
+
+  # ── Black-box probes (blackbox_exporter on 127.0.0.1:9115) ─────────────
+  # Public edge: DNS + TLS (certificate expiry) + nginx + gateway + website.
+  - job_name: connect-blackbox-http
+    metrics_path: /probe
+    params: {module: [https_2xx]}
+    static_configs:
+      - targets:
+          - https://${CONNECT_DOMAIN}/healthz
+          - https://${CONNECT_DOMAIN}/
+        labels: {component: blackbox}
+    relabel_configs: &blackbox_relabel
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: 127.0.0.1:9115
+
+  # The WebSocket route through nginx's upgrade map: an unauthenticated
+  # upgrade must reach the BFF and be refused with 401.
+  - job_name: connect-blackbox-websocket
+    metrics_path: /probe
+    params: {module: [websocket_unauthenticated]}
+    static_configs:
+      - targets: ["https://${CONNECT_DOMAIN}/v1/realtime/chat"]
+        labels: {component: blackbox}
+    relabel_configs: *blackbox_relabel
+
+  # Readiness (gRPC dependencies + PostgreSQL) on loopback; nginx denies /readyz.
+  - job_name: connect-blackbox-readiness
+    metrics_path: /probe
+    params: {module: [http_ready]}
+    static_configs:
+      - targets: ["http://127.0.0.1:8081/readyz", "http://127.0.0.1:8080/readyz"]
+        labels: {component: blackbox}
+    relabel_configs: *blackbox_relabel
+
+  # ── Monitoring stack itself (not part of the connect-* paging set) ─────
+  - job_name: monitoring
+    static_configs:
+      - targets: ["127.0.0.1:9090"]
+        labels: {component: prometheus}
+      - targets: ["127.0.0.1:9193"]
+        labels: {component: alertmanager}
+      - targets: ["127.0.0.1:9115"]
+        labels: {component: blackbox-exporter}
+#@IF WITH_GRAFANA
+      - targets: ["127.0.0.1:3000"]
+        labels: {component: grafana}
+#@END
+#@IF WITH_LOKI
+      - targets: ["127.0.0.1:3100"]
+        labels: {component: loki}
+      - targets: ["127.0.0.1:12345"]
+        labels: {component: alloy}
+#@END

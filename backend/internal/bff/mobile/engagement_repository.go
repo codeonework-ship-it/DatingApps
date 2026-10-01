@@ -9,30 +9,19 @@ import (
 	"time"
 
 	"github.com/verified-dating/backend/internal/platform/config"
-	"github.com/verified-dating/backend/internal/platform/supabase"
 )
 
 type engagementRepository struct {
 	cfg config.Config
-	db  *supabase.Client
+	db  repositoryDB
 }
 
-func newEngagementRepository(cfg config.Config) *engagementRepository {
-	apiKey := strings.TrimSpace(cfg.SupabaseServiceRole)
-	if apiKey == "" {
-		apiKey = strings.TrimSpace(cfg.SupabaseAnonKey)
-	}
-	if strings.TrimSpace(cfg.SupabaseURL) == "" || apiKey == "" {
+func newEngagementRepository(cfg config.Config, supplied ...repositoryDB) *engagementRepository {
+	db := repositoryDBFor(cfg, supplied)
+	if db == nil {
 		return nil
 	}
-	client := supabase.NewClient(
-		cfg.SupabaseURL,
-		cfg.SupabaseAnonKey,
-		cfg.SupabaseServiceRole,
-		time.Duration(cfg.SupabaseHTTPTimeoutSec)*time.Second,
-	)
-	client.SetReadBaseURL(cfg.SupabaseReadReplicaURL)
-	return &engagementRepository{cfg: cfg, db: client}
+	return &engagementRepository{cfg: cfg, db: db}
 }
 
 func isEngagementRepoPersistenceUnavailable(err error) bool {
@@ -191,7 +180,7 @@ func (r *engagementRepository) findVoiceIcebreakerByID(ctx context.Context, iceb
 	params := url.Values{}
 	params.Set("id", "eq."+trimmedID)
 	params.Set("limit", "1")
-	params.Set("select", "id,match_id,sender_user_id,receiver_user_id,prompt_id,prompt_text,transcript,duration_seconds,status,moderation_status,created_at,sent_at,last_played_at,play_count")
+	params.Set("select", "id,match_id,sender_user_id,receiver_user_id,prompt_id,prompt_text,transcript,duration_seconds,status,moderation_status,created_at,sent_at,last_played_at,play_count,audio_storage_path,audio_mime_type,audio_size_bytes,audio_content_sha256")
 	rows, err := r.db.SelectRead(ctx, r.cfg.MatchingSchema, "voice_icebreakers", params)
 	if err != nil {
 		return voiceIcebreaker{}, err
@@ -272,6 +261,40 @@ func (r *engagementRepository) sendVoiceIcebreaker(
 		return voiceIcebreaker{}, errors.New("voice icebreaker not found")
 	}
 	return mapVoiceIcebreakerRow(rows[0]), nil
+}
+
+func (r *engagementRepository) attachVoiceRecording(ctx context.Context, icebreakerID, senderUserID string, recording voiceRecordingMetadata) error {
+	filters := url.Values{}
+	filters.Set("id", "eq."+strings.TrimSpace(icebreakerID))
+	filters.Set("sender_user_id", "eq."+strings.TrimSpace(senderUserID))
+	filters.Set("status", "eq.started")
+	rows, err := r.db.Update(ctx, r.cfg.MatchingSchema, "voice_icebreakers", map[string]any{
+		"audio_storage_path":   recording.StoragePath,
+		"audio_mime_type":      recording.MimeType,
+		"audio_size_bytes":     recording.SizeBytes,
+		"audio_content_sha256": recording.SHA256,
+		"updated_at":           time.Now().UTC().Format(time.RFC3339),
+	}, filters)
+	if err != nil {
+		return err
+	}
+	if len(rows) == 0 {
+		return errors.New("voice icebreaker cannot accept this recording")
+	}
+	return nil
+}
+
+func (r *engagementRepository) detachVoiceRecording(ctx context.Context, icebreakerID string) error {
+	filters := url.Values{}
+	filters.Set("id", "eq."+strings.TrimSpace(icebreakerID))
+	_, err := r.db.Update(ctx, r.cfg.MatchingSchema, "voice_icebreakers", map[string]any{
+		"audio_storage_path":   nil,
+		"audio_mime_type":      nil,
+		"audio_size_bytes":     nil,
+		"audio_content_sha256": nil,
+		"updated_at":           time.Now().UTC().Format(time.RFC3339),
+	}, filters)
+	return err
 }
 
 func (r *engagementRepository) markVoiceIcebreakerPlayed(
@@ -566,6 +589,29 @@ func (r *engagementRepository) startVideoCall(ctx context.Context, matchID, init
 	if trimmedInitiator == trimmedRecipient {
 		return videoCallSession{}, errors.New("initiator and recipient cannot be the same")
 	}
+	matchParams := url.Values{}
+	matchParams.Set("id", "eq."+trimmedMatchID)
+	matchParams.Set("limit", "1")
+	matchParams.Set("select", "user_id_1,user_id_2,user_1_status,user_2_status,user_1_blocked,user_2_blocked")
+	matches, err := r.db.SelectRead(ctx, r.cfg.MatchingSchema, "matches", matchParams)
+	if err != nil {
+		return videoCallSession{}, err
+	}
+	if len(matches) == 0 {
+		return videoCallSession{}, errors.New("call requires an active match")
+	}
+	match := matches[0]
+	user1 := strings.TrimSpace(toString(match["user_id_1"]))
+	user2 := strings.TrimSpace(toString(match["user_id_2"]))
+	participantsMatch := (trimmedInitiator == user1 && trimmedRecipient == user2) ||
+		(trimmedInitiator == user2 && trimmedRecipient == user1)
+	active := strings.EqualFold(strings.TrimSpace(toString(match["user_1_status"])), "active") &&
+		strings.EqualFold(strings.TrimSpace(toString(match["user_2_status"])), "active")
+	blocked1, _ := match["user_1_blocked"].(bool)
+	blocked2, _ := match["user_2_blocked"].(bool)
+	if !participantsMatch || !active || blocked1 || blocked2 {
+		return videoCallSession{}, errors.New("call is unavailable for this match")
+	}
 	rows, err := r.db.Insert(ctx, r.cfg.MatchingSchema, "video_call_sessions", []map[string]any{{
 		"match_id":     trimmedMatchID,
 		"initiator_id": trimmedInitiator,
@@ -600,6 +646,10 @@ func (r *engagementRepository) endVideoCall(ctx context.Context, callID, endedBy
 	if strings.TrimSpace(session.ID) == "" {
 		return videoCallSession{}, errors.New("call not found")
 	}
+	trimmedEndedBy := strings.TrimSpace(endedBy)
+	if trimmedEndedBy == "" || (trimmedEndedBy != session.InitiatorID && trimmedEndedBy != session.RecipientID) {
+		return videoCallSession{}, errors.New("only a call participant can end this call")
+	}
 	if session.Status == "ended" {
 		return session, nil
 	}
@@ -614,7 +664,7 @@ func (r *engagementRepository) endVideoCall(ctx context.Context, callID, endedBy
 	rows, updateErr := r.db.Update(ctx, r.cfg.MatchingSchema, "video_call_sessions", map[string]any{
 		"status":   "ended",
 		"ended_at": now.UTC().Format(time.RFC3339),
-		"ended_by": strings.TrimSpace(endedBy),
+		"ended_by": trimmedEndedBy,
 		"metadata": metadata,
 	}, filters)
 	if updateErr != nil {
@@ -749,6 +799,11 @@ func mapVoiceIcebreakerRow(row map[string]any) voiceIcebreaker {
 		SentAt:           normalizeTimestampString(row["sent_at"]),
 		LastPlayedAt:     normalizeTimestampString(row["last_played_at"]),
 		PlayCount:        playCount,
+		HasAudio:         strings.TrimSpace(toString(row["audio_storage_path"])) != "",
+		AudioStoragePath: strings.TrimSpace(toString(row["audio_storage_path"])),
+		AudioMimeType:    strings.TrimSpace(toString(row["audio_mime_type"])),
+		AudioSizeBytes:   func() int64 { value, _ := toInt(row["audio_size_bytes"]); return int64(value) }(),
+		AudioSHA256:      strings.TrimSpace(toString(row["audio_content_sha256"])),
 	}
 }
 

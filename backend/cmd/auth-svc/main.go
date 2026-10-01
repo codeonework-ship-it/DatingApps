@@ -30,6 +30,7 @@ func main() {
 
 	reg := prometheus.DefaultRegisterer
 	grpcMetrics := observability.NewGRPCMetrics(reg)
+	observability.RegisterProcessMetrics(reg, "auth-svc")
 	interceptor := observability.UnaryServerInterceptor(log, grpcMetrics)
 
 	server, err := grpcx.New(cfg.AuthGRPCAddr, log, grpc.UnaryInterceptor(interceptor))

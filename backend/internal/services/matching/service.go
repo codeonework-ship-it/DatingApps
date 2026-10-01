@@ -15,7 +15,7 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 
 	"github.com/verified-dating/backend/internal/platform/config"
-	"github.com/verified-dating/backend/internal/platform/supabase"
+	"github.com/verified-dating/backend/internal/platform/dataaccess"
 )
 
 type Repository interface {
@@ -40,16 +40,16 @@ type Repository interface {
 	MarkMessagesRead(context.Context, string, string, string) error
 }
 
-type SupabaseRepository struct {
-	db          *supabase.Client
+type DataRepository struct {
+	db          dataaccess.Client
 	cfg         config.Config
 	mu          sync.Mutex
 	mockSwipes  map[string]map[string]bool
 	mockMatches map[string]map[string]any
 }
 
-func NewRepository(db *supabase.Client, cfg config.Config) Repository {
-	return &SupabaseRepository{
+func NewRepository(db dataaccess.Client, cfg config.Config) Repository {
+	return &DataRepository{
 		db:          db,
 		cfg:         cfg,
 		mockSwipes:  map[string]map[string]bool{},
@@ -79,7 +79,7 @@ func (s *Service) GetCandidates(ctx context.Context, req *structpb.Struct) (*str
 	if rawLimit, ok := payload["limit"].(float64); ok {
 		limit = int(rawLimit)
 	}
-	if limit <= 0 || limit > 100 {
+	if limit <= 0 || limit > 300 {
 		limit = 25
 	}
 
@@ -408,6 +408,9 @@ func (s *Service) Unmatch(ctx context.Context, req *structpb.Struct) (*structpb.
 	} else {
 		fields["user2Status"] = "unmatched"
 	}
+	fields["unmatchedAt"] = time.Now().UTC().Format(time.RFC3339Nano)
+	fields["unmatchedByUserId"] = userID
+	fields["endedReason"] = "user_unmatched"
 
 	if err := s.repo.UpdateMatchStatus(ctx, matchID, fields); err != nil {
 		return nil, err
@@ -416,14 +419,14 @@ func (s *Service) Unmatch(ctx context.Context, req *structpb.Struct) (*structpb.
 	return structpb.NewStruct(map[string]any{"success": true})
 }
 
-func (r *SupabaseRepository) GetSwipedTargetIDs(ctx context.Context, userID string) ([]string, error) {
+func (r *DataRepository) GetSwipedTargetIDs(ctx context.Context, userID string) ([]string, error) {
 	params := url.Values{}
 	params.Set("userId", "eq."+userID)
 	params.Set("isLike", "eq.true")
 	params.Set("select", "targetUserId")
 	rows, err := r.selectRows(ctx, r.cfg.MatchingSchema, r.cfg.SwipesTable, params)
 	if err != nil {
-		if r.cfg.MockOTPEnabled {
+		if r.cfg.MockDataEnabled {
 			r.mu.Lock()
 			defer r.mu.Unlock()
 			liked := r.mockSwipes[userID]
@@ -447,13 +450,13 @@ func (r *SupabaseRepository) GetSwipedTargetIDs(ctx context.Context, userID stri
 	return out, nil
 }
 
-func (r *SupabaseRepository) GetMatchedUserPairs(ctx context.Context, userID string) ([]map[string]any, error) {
+func (r *DataRepository) GetMatchedUserPairs(ctx context.Context, userID string) ([]map[string]any, error) {
 	params := url.Values{}
 	params.Set("or", "(userId1.eq."+userID+",userId2.eq."+userID+")")
 	params.Set("select", "userId1,userId2")
 	rows, err := r.selectRows(ctx, r.cfg.MatchingSchema, r.cfg.MatchesTable, params)
 	if err != nil {
-		if r.cfg.MockOTPEnabled {
+		if r.cfg.MockDataEnabled {
 			r.mu.Lock()
 			defer r.mu.Unlock()
 			out := make([]map[string]any, 0)
@@ -471,26 +474,100 @@ func (r *SupabaseRepository) GetMatchedUserPairs(ctx context.Context, userID str
 	return rows, nil
 }
 
-func (r *SupabaseRepository) ListActiveUsers(ctx context.Context, limit int) ([]map[string]any, error) {
+func (r *DataRepository) ListActiveUsers(ctx context.Context, limit int) ([]map[string]any, error) {
 	userSchema := r.matchingUserSchema()
 	params := url.Values{}
-	params.Set("select", "id,name,dateOfBirth,bio,profession,education,isVerified,gender")
+	params.Set(
+		"select",
+		"id,name,dateOfBirth,bio,profession,education,isVerified,gender,"+
+			"suspendedAt,suspendedUntil",
+	)
 	params.Set("isActive", "eq.true")
+	// Enforcement state is not carried by is_active: suspending or banning a
+	// member writes suspended_at/suspended_until or is_banned and revokes their
+	// sessions, but leaves is_active true. Filtering on is_active alone put
+	// banned and suspended members back into everyone else's deck — the single
+	// profile read already excluded all of them, so the two public surfaces
+	// disagreed about who is visible.
+	params.Set("isBanned", "eq.false")
+	// Self-deactivation withdraws visibility without disabling the account, so
+	// it is carried by deactivated_at rather than is_active — a paused member
+	// must still be able to sign in and unpause.
+	params.Set("deactivatedAt", "is.null")
+	params.Set("order", "createdAt.desc")
 	params.Set("limit", strconv.Itoa(limit))
 	rows, err := r.selectRows(ctx, userSchema, r.cfg.UsersTable, params)
 	if err != nil {
-		if r.cfg.MockOTPEnabled {
+		if r.cfg.MockDataEnabled {
 			return r.mockUsers(limit), nil
 		}
 		return nil, err
 	}
-	if len(rows) == 0 && r.cfg.MockOTPEnabled {
+	rows = dropSuspendedUsers(rows)
+	if len(rows) == 0 && r.cfg.MockDataEnabled {
 		return r.mockUsers(limit), nil
 	}
 	return rows, nil
 }
 
-func (r *SupabaseRepository) GetUserPhotos(ctx context.Context, userIDs []string) (map[string][]string, error) {
+// dropSuspendedUsers removes members whose suspension is still in force.
+//
+// Applied in Go rather than as a query filter because the predicate is a
+// disjunction — never suspended, or suspended with an elapsed expiry — which
+// the key/value filter API cannot express. Filtering `suspendedAt is.null`
+// instead would permanently hide anyone who had ever served a suspension.
+func dropSuspendedUsers(rows []map[string]any) []map[string]any {
+	kept := rows[:0]
+	for _, row := range rows {
+		if isCurrentlySuspended(row) {
+			continue
+		}
+		kept = append(kept, row)
+	}
+	return kept
+}
+
+// presentField reads a row value under either spelling and normalises the
+// absent cases to "".
+//
+// `toString` renders a missing key through `fmt.Sprintf("%v", nil)`, which
+// yields the literal string "<nil>" rather than an empty string. Comparing the
+// raw result against "" therefore treats every member who has never been
+// suspended as though they carried a suspension timestamp.
+func presentField(row map[string]any, camel, snake string) string {
+	for _, key := range []string{camel, snake} {
+		value, ok := row[key]
+		if !ok || value == nil {
+			continue
+		}
+		trimmed := strings.TrimSpace(toString(value))
+		if trimmed == "" || trimmed == "<nil>" || trimmed == "null" {
+			continue
+		}
+		return trimmed
+	}
+	return ""
+}
+
+func isCurrentlySuspended(row map[string]any) bool {
+	if presentField(row, "suspendedAt", "suspended_at") == "" {
+		return false
+	}
+	raw := presentField(row, "suspendedUntil", "suspended_until")
+	if raw == "" {
+		// Suspended with no expiry is indefinite.
+		return true
+	}
+	until, err := time.Parse(time.RFC3339, raw)
+	if err != nil {
+		// An unparseable expiry must not be read as "already served"; fail
+		// closed and keep the member out of discovery.
+		return true
+	}
+	return until.After(time.Now())
+}
+
+func (r *DataRepository) GetUserPhotos(ctx context.Context, userIDs []string) (map[string][]string, error) {
 	if len(userIDs) == 0 {
 		return map[string][]string{}, nil
 	}
@@ -498,10 +575,19 @@ func (r *SupabaseRepository) GetUserPhotos(ctx context.Context, userIDs []string
 	params := url.Values{}
 	params.Set("select", "userId,photoUrl,ordering")
 	params.Set("userId", "in."+buildIn(unique(userIDs)))
+	params.Set("moderationStatus", "eq.approved")
+	// Moderation status and lifecycle status are independent. A photo that was
+	// approved and later quarantined — by a rescan, a report, or an operator —
+	// keeps `moderation_status='approved'` while its lifecycle moves to
+	// 'quarantined', so filtering on the moderation decision alone let
+	// quarantined media straight back into public discovery. The public profile
+	// read already requires both; discovery required only one.
+	params.Set("lifecycleStatus", "eq.active")
+	params.Set("deletedAt", "is.null")
 	params.Set("order", "ordering.asc")
 	rows, err := r.selectRows(ctx, photoSchema, r.cfg.PhotosTable, params)
 	if err != nil {
-		if r.cfg.MockOTPEnabled {
+		if r.cfg.MockDataEnabled {
 			photosByUser := map[string][]string{}
 			for _, userID := range unique(userIDs) {
 				photosByUser[userID] = []string{
@@ -522,7 +608,7 @@ func (r *SupabaseRepository) GetUserPhotos(ctx context.Context, userIDs []string
 		}
 		photosByUser[userID] = append(photosByUser[userID], url)
 	}
-	if r.cfg.MockOTPEnabled {
+	if r.cfg.MockDataEnabled {
 		for _, userID := range userIDs {
 			if len(photosByUser[userID]) > 0 || !strings.HasPrefix(userID, "mock-") {
 				continue
@@ -536,13 +622,13 @@ func (r *SupabaseRepository) GetUserPhotos(ctx context.Context, userIDs []string
 	return photosByUser, nil
 }
 
-func (r *SupabaseRepository) UpsertSwipe(ctx context.Context, userID, targetUserID string, isLike bool) error {
+func (r *DataRepository) UpsertSwipe(ctx context.Context, userID, targetUserID string, isLike bool) error {
 	_, err := r.upsertRows(ctx, r.cfg.MatchingSchema, r.cfg.SwipesTable, []map[string]any{{
 		"userId":       userID,
 		"targetUserId": targetUserID,
 		"isLike":       isLike,
 	}}, "userId,targetUserId")
-	if err != nil && r.cfg.MockOTPEnabled {
+	if err != nil && r.cfg.MockDataEnabled {
 		r.mu.Lock()
 		defer r.mu.Unlock()
 		if r.mockSwipes[userID] == nil {
@@ -554,7 +640,7 @@ func (r *SupabaseRepository) UpsertSwipe(ctx context.Context, userID, targetUser
 	return err
 }
 
-func (r *SupabaseRepository) EnsureUsersExist(ctx context.Context, userIDs []string) error {
+func (r *DataRepository) EnsureUsersExist(ctx context.Context, userIDs []string) error {
 	ids := unique(userIDs)
 	if len(ids) == 0 {
 		return nil
@@ -566,7 +652,7 @@ func (r *SupabaseRepository) EnsureUsersExist(ctx context.Context, userIDs []str
 	params.Set("select", "id")
 	rows, err := r.selectRows(ctx, userSchema, r.cfg.UsersTable, params)
 	if err != nil {
-		if r.cfg.MockOTPEnabled {
+		if r.cfg.MockDataEnabled {
 			return nil
 		}
 		return err
@@ -605,7 +691,7 @@ func (r *SupabaseRepository) EnsureUsersExist(ctx context.Context, userIDs []str
 	}
 
 	_, err = r.upsertRows(ctx, userSchema, r.cfg.UsersTable, missing, "id")
-	if err != nil && r.cfg.MockOTPEnabled {
+	if err != nil && r.cfg.MockDataEnabled {
 		return nil
 	}
 	if err != nil {
@@ -615,7 +701,7 @@ func (r *SupabaseRepository) EnsureUsersExist(ctx context.Context, userIDs []str
 	auxSchema := strings.TrimSpace(r.cfg.UserSchema)
 	if auxSchema != "" && !strings.EqualFold(auxSchema, userSchema) {
 		if _, auxErr := r.upsertRows(ctx, auxSchema, r.cfg.UsersTable, missing, "id"); auxErr != nil {
-			if r.cfg.MockOTPEnabled {
+			if r.cfg.MockDataEnabled {
 				return nil
 			}
 			return auxErr
@@ -624,7 +710,7 @@ func (r *SupabaseRepository) EnsureUsersExist(ctx context.Context, userIDs []str
 	return nil
 }
 
-func (r *SupabaseRepository) HasMutualLike(ctx context.Context, userID, targetUserID string) (bool, error) {
+func (r *DataRepository) HasMutualLike(ctx context.Context, userID, targetUserID string) (bool, error) {
 	params := url.Values{}
 	params.Set("userId", "eq."+targetUserID)
 	params.Set("targetUserId", "eq."+userID)
@@ -633,7 +719,7 @@ func (r *SupabaseRepository) HasMutualLike(ctx context.Context, userID, targetUs
 	params.Set("limit", "1")
 	rows, err := r.selectRows(ctx, r.cfg.MatchingSchema, r.cfg.SwipesTable, params)
 	if err != nil {
-		if r.cfg.MockOTPEnabled {
+		if r.cfg.MockDataEnabled {
 			r.mu.Lock()
 			defer r.mu.Unlock()
 			return r.mockSwipes[targetUserID][userID], nil
@@ -643,7 +729,7 @@ func (r *SupabaseRepository) HasMutualLike(ctx context.Context, userID, targetUs
 	return len(rows) > 0, nil
 }
 
-func (r *SupabaseRepository) UpsertMatch(ctx context.Context, userID, targetUserID string) (string, error) {
+func (r *DataRepository) UpsertMatch(ctx context.Context, userID, targetUserID string) (string, error) {
 	userID1, userID2 := userID, targetUserID
 	if userID1 > userID2 {
 		userID1, userID2 = userID2, userID1
@@ -653,7 +739,7 @@ func (r *SupabaseRepository) UpsertMatch(ctx context.Context, userID, targetUser
 		"userId2": userID2,
 	}}, "userId1,userId2")
 	if err != nil {
-		if r.cfg.MockOTPEnabled {
+		if r.cfg.MockDataEnabled {
 			matchID := "mock-match-" + strings.ReplaceAll(userID1+"-"+userID2, "-", "")
 			r.mu.Lock()
 			defer r.mu.Unlock()
@@ -677,7 +763,7 @@ func (r *SupabaseRepository) UpsertMatch(ctx context.Context, userID, targetUser
 	params.Set("limit", "1")
 	rows, err := r.selectRows(ctx, r.cfg.MatchingSchema, r.cfg.MatchesTable, params)
 	if err != nil {
-		if r.cfg.MockOTPEnabled {
+		if r.cfg.MockDataEnabled {
 			matchID := "mock-match-" + strings.ReplaceAll(userID1+"-"+userID2, "-", "")
 			r.mu.Lock()
 			defer r.mu.Unlock()
@@ -702,7 +788,7 @@ func (r *SupabaseRepository) UpsertMatch(ctx context.Context, userID, targetUser
 	return toString(rows[0]["id"]), nil
 }
 
-func (r *SupabaseRepository) ListMatches(ctx context.Context, userID string) ([]map[string]any, error) {
+func (r *DataRepository) ListMatches(ctx context.Context, userID string) ([]map[string]any, error) {
 	params := url.Values{}
 	params.Set("select", "id,userId1,userId2,lastMessageAt,createdAt,user1Status,user2Status")
 	params.Set("or", "(userId1.eq."+userID+",userId2.eq."+userID+")")
@@ -711,7 +797,7 @@ func (r *SupabaseRepository) ListMatches(ctx context.Context, userID string) ([]
 	params.Set("order", "lastMessageAt.desc")
 	rows, err := r.selectRows(ctx, r.cfg.MatchingSchema, r.cfg.MatchesTable, params)
 	if err != nil {
-		if r.cfg.MockOTPEnabled {
+		if r.cfg.MockDataEnabled {
 			r.mu.Lock()
 			defer r.mu.Unlock()
 			out := make([]map[string]any, 0)
@@ -729,17 +815,17 @@ func (r *SupabaseRepository) ListMatches(ctx context.Context, userID string) ([]
 	return rows, nil
 }
 
-func (r *SupabaseRepository) GetUsersByIDs(ctx context.Context, userIDs []string) (map[string]map[string]any, error) {
+func (r *DataRepository) GetUsersByIDs(ctx context.Context, userIDs []string) (map[string]map[string]any, error) {
 	if len(userIDs) == 0 {
 		return map[string]map[string]any{}, nil
 	}
 	userSchema := r.matchingUserSchema()
 	params := url.Values{}
 	params.Set("id", "in."+buildIn(unique(userIDs)))
-	params.Set("select", "id,name,lastLogin")
+	params.Set("select", "id,name")
 	rows, err := r.selectRows(ctx, userSchema, r.cfg.UsersTable, params)
 	if err != nil {
-		if r.cfg.MockOTPEnabled {
+		if r.cfg.MockDataEnabled {
 			out := map[string]map[string]any{}
 			for _, userID := range unique(userIDs) {
 				out[userID] = map[string]any{
@@ -763,7 +849,7 @@ func (r *SupabaseRepository) GetUsersByIDs(ctx context.Context, userIDs []string
 	return out, nil
 }
 
-func (r *SupabaseRepository) GetPrimaryPhotosByUserIDs(ctx context.Context, userIDs []string) (map[string]string, error) {
+func (r *DataRepository) GetPrimaryPhotosByUserIDs(ctx context.Context, userIDs []string) (map[string]string, error) {
 	if len(userIDs) == 0 {
 		return map[string]string{}, nil
 	}
@@ -771,10 +857,12 @@ func (r *SupabaseRepository) GetPrimaryPhotosByUserIDs(ctx context.Context, user
 	params := url.Values{}
 	params.Set("userId", "in."+buildIn(unique(userIDs)))
 	params.Set("select", "userId,photoUrl,ordering")
+	params.Set("moderationStatus", "eq.approved")
+	params.Set("deletedAt", "is.null")
 	params.Set("order", "ordering.asc")
 	rows, err := r.selectRows(ctx, photoSchema, r.cfg.PhotosTable, params)
 	if err != nil {
-		if r.cfg.MockOTPEnabled {
+		if r.cfg.MockDataEnabled {
 			out := map[string]string{}
 			for _, userID := range unique(userIDs) {
 				out[userID] = mockPhotoURL(r.cfg.MockPhotoSeedURLTemplate, userID+"-primary")
@@ -798,7 +886,7 @@ func (r *SupabaseRepository) GetPrimaryPhotosByUserIDs(ctx context.Context, user
 	return out, nil
 }
 
-func (r *SupabaseRepository) GetLatestMessagesByMatchIDs(ctx context.Context, matchIDs []string) (map[string]map[string]any, error) {
+func (r *DataRepository) GetLatestMessagesByMatchIDs(ctx context.Context, matchIDs []string) (map[string]map[string]any, error) {
 	if len(matchIDs) == 0 {
 		return map[string]map[string]any{}, nil
 	}
@@ -808,7 +896,7 @@ func (r *SupabaseRepository) GetLatestMessagesByMatchIDs(ctx context.Context, ma
 	params.Set("order", "createdAt.desc")
 	rows, err := r.selectRows(ctx, r.cfg.MatchingSchema, r.cfg.MessagesTable, params)
 	if err != nil {
-		if r.cfg.MockOTPEnabled {
+		if r.cfg.MockDataEnabled {
 			return map[string]map[string]any{}, nil
 		}
 		return nil, err
@@ -827,7 +915,7 @@ func (r *SupabaseRepository) GetLatestMessagesByMatchIDs(ctx context.Context, ma
 	return out, nil
 }
 
-func (r *SupabaseRepository) GetUnreadCounts(ctx context.Context, matchIDs []string, currentUserID string) (map[string]int, error) {
+func (r *DataRepository) GetUnreadCounts(ctx context.Context, matchIDs []string, currentUserID string) (map[string]int, error) {
 	if len(matchIDs) == 0 {
 		return map[string]int{}, nil
 	}
@@ -838,7 +926,7 @@ func (r *SupabaseRepository) GetUnreadCounts(ctx context.Context, matchIDs []str
 	params.Set("select", "matchId")
 	rows, err := r.selectRows(ctx, r.cfg.MatchingSchema, r.cfg.MessagesTable, params)
 	if err != nil {
-		if r.cfg.MockOTPEnabled {
+		if r.cfg.MockDataEnabled {
 			return map[string]int{}, nil
 		}
 		return nil, err
@@ -854,7 +942,7 @@ func (r *SupabaseRepository) GetUnreadCounts(ctx context.Context, matchIDs []str
 	return out, nil
 }
 
-func (r *SupabaseRepository) GetMatchByID(ctx context.Context, matchID string) (map[string]any, error) {
+func (r *DataRepository) GetMatchByID(ctx context.Context, matchID string) (map[string]any, error) {
 	params := url.Values{}
 	params.Set("id", "eq."+matchID)
 	params.Set("select", "id,userId1,userId2")
@@ -869,14 +957,14 @@ func (r *SupabaseRepository) GetMatchByID(ctx context.Context, matchID string) (
 	return rows[0], nil
 }
 
-func (r *SupabaseRepository) UpdateMatchStatus(ctx context.Context, matchID string, fields map[string]any) error {
+func (r *DataRepository) UpdateMatchStatus(ctx context.Context, matchID string, fields map[string]any) error {
 	filters := url.Values{}
 	filters.Set("id", "eq."+matchID)
 	_, err := r.updateRows(ctx, r.cfg.MatchingSchema, r.cfg.MatchesTable, fields, filters)
 	return err
 }
 
-func (r *SupabaseRepository) MarkMessagesRead(
+func (r *DataRepository) MarkMessagesRead(
 	ctx context.Context,
 	matchID,
 	currentUserID,
@@ -892,7 +980,7 @@ func (r *SupabaseRepository) MarkMessagesRead(
 	return err
 }
 
-func (r *SupabaseRepository) selectRows(ctx context.Context, schema, table string, params url.Values) ([]map[string]any, error) {
+func (r *DataRepository) selectRows(ctx context.Context, schema, table string, params url.Values) ([]map[string]any, error) {
 	effectiveSchema := r.effectiveSchemaForTable(schema, table)
 	normalizedParams := normalizeParamsForSchema(effectiveSchema, params)
 	rows, err := r.db.Select(ctx, effectiveSchema, table, normalizedParams)
@@ -903,7 +991,7 @@ func (r *SupabaseRepository) selectRows(ctx context.Context, schema, table strin
 	return normalizeRowsForSchema("public", rows), err
 }
 
-func (r *SupabaseRepository) upsertRows(ctx context.Context, schema, table string, payload any, onConflict string) ([]map[string]any, error) {
+func (r *DataRepository) upsertRows(ctx context.Context, schema, table string, payload any, onConflict string) ([]map[string]any, error) {
 	effectiveSchema := r.effectiveSchemaForTable(schema, table)
 	normalizedPayload := normalizePayloadForSchema(effectiveSchema, payload)
 	normalizedOnConflict := normalizeOnConflictForSchema(effectiveSchema, onConflict)
@@ -915,7 +1003,7 @@ func (r *SupabaseRepository) upsertRows(ctx context.Context, schema, table strin
 	return normalizeRowsForSchema("public", rows), err
 }
 
-func (r *SupabaseRepository) updateRows(ctx context.Context, schema, table string, payload any, filters url.Values) ([]map[string]any, error) {
+func (r *DataRepository) updateRows(ctx context.Context, schema, table string, payload any, filters url.Values) ([]map[string]any, error) {
 	effectiveSchema := r.effectiveSchemaForTable(schema, table)
 	normalizedPayload := normalizePayloadForSchema(effectiveSchema, payload)
 	normalizedFilters := normalizeParamsForSchema(effectiveSchema, filters)
@@ -938,31 +1026,19 @@ func isSchemaFallbackEligible(err error) bool {
 		strings.Contains(msg, "could not find the table")
 }
 
-func (r *SupabaseRepository) matchingUserSchema() string {
-	if usesSnakeCaseSchema(r.cfg.MatchingSchema) {
-		return "public"
-	}
+func (r *DataRepository) matchingUserSchema() string {
 	return r.cfg.UserSchema
 }
 
-func (r *SupabaseRepository) matchingPhotoSchema() string {
-	if usesSnakeCaseSchema(r.cfg.MatchingSchema) {
-		return "public"
-	}
+func (r *DataRepository) matchingPhotoSchema() string {
 	return r.cfg.UserSchema
 }
 
-func (r *SupabaseRepository) effectiveSchemaForTable(schema, table string) string {
-	if usesSnakeCaseSchema(schema) && r.prefersPublicCoreTables() {
-		switch strings.TrimSpace(table) {
-		case r.cfg.SwipesTable, r.cfg.MatchesTable, r.cfg.MessagesTable:
-			return "public"
-		}
-	}
+func (r *DataRepository) effectiveSchemaForTable(schema, table string) string {
 	return schema
 }
 
-func (r *SupabaseRepository) prefersPublicCoreTables() bool {
+func (r *DataRepository) prefersPublicCoreTables() bool {
 	base := strings.TrimRight(strings.TrimSpace(r.cfg.SupabaseURL), "/")
 	if base == "" || strings.HasSuffix(base, "/rest/v1") {
 		return false
@@ -1241,7 +1317,7 @@ func mockPhotoURL(template, seed string) string {
 	return trimmed
 }
 
-func (r *SupabaseRepository) mockUsers(limit int) []map[string]any {
+func (r *DataRepository) mockUsers(limit int) []map[string]any {
 	if limit <= 0 {
 		limit = 25
 	}

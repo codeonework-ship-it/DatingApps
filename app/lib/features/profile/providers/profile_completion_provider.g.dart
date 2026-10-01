@@ -6,7 +6,7 @@ part of 'profile_completion_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$profileCompletionHash() => r'0d04caba266c1c2bf66ba3c099b5d97278957ecc';
+String _$profileCompletionHash() => r'f0304403d5bd4c15b2ed1ea2b8f19dc10f6326bf';
 
 /// See also [profileCompletion].
 @ProviderFor(profileCompletion)

@@ -4,17 +4,17 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 
 	"go.uber.org/zap"
 
 	"github.com/verified-dating/backend/internal/modules/auth/domain"
 	"github.com/verified-dating/backend/internal/platform/mediatr"
+	"github.com/verified-dating/backend/internal/platform/observability"
 )
 
 type Gateway interface {
-	SendOTP(context.Context, string) (map[string]any, error)
-	VerifyOTP(context.Context, string, string) (map[string]any, error)
+	Login(context.Context, string, string) (map[string]any, error)
+	Signup(context.Context, string, string) (map[string]any, error)
 }
 
 type Service struct {
@@ -27,58 +27,68 @@ func NewService(gateway Gateway, log *zap.Logger) *Service {
 }
 
 func RegisterHandlers(bus *mediatr.Mediator, service *Service) {
-	bus.Register(SendOTPCommandName, func(ctx context.Context, request any) (any, error) {
-		command, ok := request.(SendOTPCommand)
+	bus.Register(LoginCommandName, func(ctx context.Context, request any) (any, error) {
+		command, ok := request.(LoginCommand)
 		if !ok {
-			return nil, fmt.Errorf("%w: invalid send otp command", ErrValidation)
+			return nil, fmt.Errorf("%w: invalid login command", ErrValidation)
 		}
-		return service.HandleSendOTP(ctx, command)
+		return service.HandleLogin(ctx, command)
 	})
-
-	bus.Register(VerifyOTPCommandName, func(ctx context.Context, request any) (any, error) {
-		command, ok := request.(VerifyOTPCommand)
+	bus.Register(SignupCommandName, func(ctx context.Context, request any) (any, error) {
+		command, ok := request.(SignupCommand)
 		if !ok {
-			return nil, fmt.Errorf("%w: invalid verify otp command", ErrValidation)
+			return nil, fmt.Errorf("%w: invalid signup command", ErrValidation)
 		}
-		return service.HandleVerifyOTP(ctx, command)
+		return service.HandleSignup(ctx, command)
 	})
 }
 
-func (s *Service) HandleSendOTP(ctx context.Context, command SendOTPCommand) (map[string]any, error) {
-	email, err := domain.NewEmail(command.Email)
+func (s *Service) HandleLogin(ctx context.Context, command LoginCommand) (map[string]any, error) {
+	username, err := domain.NewUsername(command.Username)
 	if err != nil {
-		if errors.Is(err, domain.ErrInvalidEmail) {
-			return nil, fmt.Errorf("%w: valid email is required", ErrValidation)
-		}
-		return nil, err
+		return nil, usernameValidationError(err)
 	}
-
-	s.log.Info("auth_send_otp_command")
-	response, err := s.gateway.SendOTP(ctx, email.Value())
+	if command.Password == "" {
+		return nil, fmt.Errorf("%w: password is required", ErrValidation)
+	}
+	s.log.Info("auth_login_command", zap.String("username_ref", observability.PseudonymizeIdentifier(username.Value())))
+	response, err := s.gateway.Login(ctx, username.Value(), command.Password)
 	if err != nil {
-		return nil, fmt.Errorf("send otp failed: %w", err)
+		return nil, fmt.Errorf("login failed: %w", err)
 	}
 	return response, nil
 }
 
-func (s *Service) HandleVerifyOTP(ctx context.Context, command VerifyOTPCommand) (map[string]any, error) {
-	email, err := domain.NewEmail(command.Email)
+func (s *Service) HandleSignup(ctx context.Context, command SignupCommand) (map[string]any, error) {
+	username, err := domain.NewUsername(command.Username)
 	if err != nil {
-		if errors.Is(err, domain.ErrInvalidEmail) {
-			return nil, fmt.Errorf("%w: valid email is required", ErrValidation)
+		return nil, usernameValidationError(err)
+	}
+	if err := domain.ValidatePassword(command.Password); err != nil {
+		return nil, fmt.Errorf("%w: password must be 8-72 UTF-8 bytes and contain letters and numbers", ErrValidation)
+	}
+	s.log.Info("auth_signup_command", zap.String("username_ref", observability.PseudonymizeIdentifier(username.Value())))
+	var response map[string]any
+	if command.AccountKind != "" && command.AccountKind != "dating" {
+		gateway, ok := s.gateway.(interface {
+			SignupIntroducer(context.Context, string, string, string, string) (map[string]any, error)
+		})
+		if command.AccountKind != "introducer" || !ok {
+			return nil, fmt.Errorf("%w: account type is unavailable", ErrValidation)
 		}
-		return nil, err
+		response, err = gateway.SignupIntroducer(ctx, username.Value(), command.Password, command.Name, command.DateOfBirth)
+	} else {
+		response, err = s.gateway.Signup(ctx, username.Value(), command.Password)
 	}
-
-	otp := strings.TrimSpace(command.OTP)
-	if len(otp) != 6 {
-		return nil, fmt.Errorf("%w: otp must be 6 digits", ErrValidation)
-	}
-
-	s.log.Info("auth_verify_otp_command")
-	response, err := s.gateway.VerifyOTP(ctx, email.Value(), otp)
 	if err != nil {
-		return nil, fmt.Errorf("verify otp failed: %w", err)
+		return nil, fmt.Errorf("signup failed: %w", err)
 	}
 	return response, nil
+}
+
+func usernameValidationError(err error) error {
+	if errors.Is(err, domain.ErrInvalidUsername) {
+		return fmt.Errorf("%w: username must be 3-30 characters using letters, numbers, underscore, or dot", ErrValidation)
+	}
+	return err
 }

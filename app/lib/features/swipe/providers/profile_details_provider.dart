@@ -36,6 +36,7 @@ class ProfileDetails {
     required this.languageTags,
     required this.isVerified,
     required this.photoUrls,
+    this.publicAge,
     this.petPreference,
     this.dietPreference,
     this.workoutFrequency,
@@ -48,7 +49,8 @@ class ProfileDetails {
   });
   final String userId;
   final String name;
-  final DateTime dateOfBirth;
+  final DateTime? dateOfBirth;
+  final int? publicAge;
   final String gender;
   final String? bio;
   final String? additionalInfo;
@@ -85,7 +87,12 @@ class ProfileDetails {
   final bool? hookupOnly;
   final List<String> dealBreakerTags;
 
-  int get age {
+  String get displayName => age == null ? name : '$name, $age';
+
+  int? get age {
+    if (publicAge != null) return publicAge;
+    final dateOfBirth = this.dateOfBirth;
+    if (dateOfBirth == null) return null;
     final now = DateTime.now();
     var a = now.year - dateOfBirth.year;
     if (now.month < dateOfBirth.month ||
@@ -114,32 +121,21 @@ final profileDetailsProvider = FutureProvider.family<ProfileDetails, String>((
         (body['profile'] as Map?)?.cast<String, dynamic>() ??
         <String, dynamic>{};
 
-    var draft = <String, dynamic>{};
-    try {
-      final draftResponse = await dio.get<Map<String, dynamic>>(
-        '/profile/$userId/draft',
-      );
-      final draftBody =
-          (draftResponse.data as Map?)?.cast<String, dynamic>() ??
-          <String, dynamic>{};
-      draft =
-          (draftBody['draft'] as Map?)?.cast<String, dynamic>() ??
-          <String, dynamic>{};
-    } on DioException {
-      draft = <String, dynamic>{};
+    if (body['found'] == false || profile.isEmpty) {
+      throw StateError('Profile is unavailable.');
     }
+    // Public details come exclusively from the published API projection.
+    const draft = <String, dynamic>{};
 
     final photoUrls = _resolvePhotoUrls(profile, draft);
 
     return ProfileDetails(
       userId: profile['id']?.toString() ?? userId,
       name: profile['name']?.toString() ?? 'User',
-      dateOfBirth:
-          DateTime.tryParse(
-            (profile['dateOfBirth'] ?? profile['date_of_birth'])?.toString() ??
-                '',
-          ) ??
-          DateTime(1998, 1, 1),
+      dateOfBirth: DateTime.tryParse(
+        (profile['dateOfBirth'] ?? profile['date_of_birth'])?.toString() ?? '',
+      ),
+      publicAge: (profile['age'] as num?)?.toInt(),
       gender: profile['gender']?.toString() ?? 'Other',
       bio: _firstString(profile, draft, const ['bio']),
       additionalInfo: _firstString(profile, draft, const [
@@ -240,7 +236,7 @@ final profileDetailsProvider = FutureProvider.family<ProfileDetails, String>((
       ]),
     );
   } on DioException {
-    return _mockProfileDetailsFor(userId);
+    rethrow;
   }
 });
 

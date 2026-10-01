@@ -1,0 +1,118 @@
+{% extends "control_panel/base.html" %}
+{% block topbar_title %}Business · {% block business_title %}{% endblock %}{% endblock %}
+
+{% block content %}
+<style>
+  .biz-tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
+  .biz-tabs a{padding:6px 12px;border-radius:999px;border:1px solid var(--glass-border);color:var(--text-muted);text-decoration:none;font-size:.78rem}
+  .biz-tabs a.active{color:#111;background:var(--gold);border-color:var(--gold);font-weight:700}
+  .biz-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:16px}
+  .biz-kpi{padding:14px;border-radius:14px;border:1px solid var(--glass-border);background:rgba(255,255,255,.04)}
+  .biz-kpi small{display:block;color:var(--text-muted);font-size:.7rem;text-transform:uppercase;letter-spacing:.05em}
+  .biz-kpi strong{display:block;font-size:1.35rem;margin-top:6px}
+  .biz-kpi span{display:block;color:var(--text-muted);font-size:.68rem;margin-top:4px}
+  .biz-status{display:inline-block;padding:2px 8px;border-radius:999px;font-size:.68rem;font-weight:700;text-transform:uppercase}
+  .biz-status.ready{background:rgba(34,197,94,.18);color:#86efac}
+  .biz-status.approaching{background:rgba(245,158,11,.18);color:#fde68a}
+  .biz-status.not_ready,.biz-status.not_assessed{background:rgba(239,68,68,.14);color:#fca5a5}
+  .biz-chart{position:relative;height:280px}
+  .biz-note{color:var(--text-muted);font-size:.74rem}
+  @media print{
+    .sidebar,.topbar,.biz-tabs,.biz-filters,.biz-noprint{display:none!important}
+    .main-content{margin-left:0!important}
+    body{background:#fff!important;color:#000!important}
+    .glass-card,.glass-table td,.glass-table th{background:#fff!important;color:#000!important;border-color:#ccc!important}
+  }
+</style>
+<div class="page-header">
+  <div>
+    <h1><i class="bi bi-briefcase-fill header-icon"></i> {% block business_heading %}{% endblock %}</h1>
+    <p class="text-muted mb-0">{% block business_lede %}{% endblock %}</p>
+  </div>
+  <div class="d-flex gap-2 biz-noprint">{% block business_actions %}{% endblock %}</div>
+</div>
+
+<nav class="biz-tabs" aria-label="Business reports">
+  {% for name, label, icon in pages %}
+  <a href="{% url name %}" class="{% if name == page %}active{% endif %}"><i class="bi {{ icon }} me-1"></i>{{ label }}</a>
+  {% endfor %}
+</nav>
+
+<div class="glass-card mb-3 biz-filters">
+  <form method="get" class="row g-2 align-items-end">
+    {% if "since" in fields %}<div class="col-6 col-md-2"><label class="form-label small text-muted" for="f-since">Since</label><input id="f-since" type="date" name="since" class="glass-input" value="{{ filters.since|default:'' }}"></div>{% endif %}
+    {% if "until" in fields %}<div class="col-6 col-md-2"><label class="form-label small text-muted" for="f-until">Until (inclusive)</label><input id="f-until" type="date" name="until" class="glass-input" value="{{ filters.until|default:'' }}"></div>{% endif %}
+    {% if "tz" in fields %}<div class="col-6 col-md-2"><label class="form-label small text-muted" for="f-tz">Time zone</label>
+      <select id="f-tz" name="tz" class="glass-input">{% for tz in timezones %}<option value="{{ tz }}" {% if filters.tz == tz %}selected{% endif %}>{{ tz }}</option>{% endfor %}</select></div>{% endif %}
+    {% if "mode" in fields %}<div class="col-6 col-md-2"><label class="form-label small text-muted" for="f-mode">Data</label>
+      <select id="f-mode" name="mode" class="glass-input">{% for m in modes %}<option value="{{ m }}" {% if filters.mode == m %}selected{% endif %}>{% if m == "live" %}Live only{% elif m == "sandbox" %}Sandbox only{% else %}Live + sandbox{% endif %}</option>{% endfor %}</select></div>{% endif %}
+    {% if "bucket" in fields %}<div class="col-6 col-md-2"><label class="form-label small text-muted" for="f-bucket">Bucket</label>
+      <select id="f-bucket" name="bucket" class="glass-input">{% for b in buckets %}<option value="{{ b }}" {% if filters.bucket == b %}selected{% endif %}>{{ b|title }}</option>{% endfor %}</select></div>{% endif %}
+    {% if "months" in fields %}<div class="col-6 col-md-2"><label class="form-label small text-muted" for="f-months">Months</label><input id="f-months" type="number" min="1" max="36" name="months" class="glass-input" value="{{ filters.months|default:'12' }}"></div>{% endif %}
+    <div class="col-6 col-md-2"><button type="submit" class="btn btn-glass w-100"><i class="bi bi-funnel me-1"></i>Apply</button></div>
+  </form>
+  {% if data.window %}<div class="biz-note mt-2">Window {{ data.window.since }} → {{ data.window.until }} ({{ data.window.timezone }}) · mode <strong>{{ data.mode }}</strong>{% if data.suppression %} · counts 1–4 shown as &lt;5{% endif %}</div>{% endif %}
+  {% if csv_tables %}
+  <div class="d-flex flex-wrap gap-2 mt-2 biz-noprint">
+    {% for t in csv_tables %}<a class="btn btn-sm btn-glass" href="{{ csv_url }}?table={{ t }}{% if query %}&{{ query }}{% endif %}"><i class="bi bi-download me-1"></i>{{ t }}.csv</a>{% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+{% if error %}
+<div class="alert-glass alert-glass-warning mb-3"><i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}</div>
+{% endif %}
+
+{% if show_empty %}
+<div class="glass-card mb-3" role="status">
+  <strong><i class="bi bi-info-circle me-2"></i>No {{ data.mode|default:"live" }} payments in this window.</strong>
+  <div class="biz-note mt-1">{{ release_note }}</div>
+  {% if data_status.sandbox_hint %}<div class="biz-note mt-1">{{ data_status.sandbox_hint }}</div>{% endif %}
+  <div class="biz-note mt-1">Billing flag: {{ data_status.billing_flag_enabled|yesno:"on,off" }} · provider {{ data_status.payments_provider|default:"none" }} · payment mode {{ data_status.payment_mode|default:"disabled" }}</div>
+</div>
+{% elif data_status.sandbox_hint %}
+<div class="biz-note mb-3"><i class="bi bi-info-circle me-1"></i>{{ data_status.sandbox_hint }}</div>
+{% endif %}
+
+{% block business_body %}{% endblock %}
+
+{% for table in tables %}
+<div class="glass-card mb-4">
+  <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+    <h6 class="mb-0">{{ table.title }}</h6>
+    {% if table.csv %}<a class="btn btn-sm btn-glass biz-noprint" href="{{ csv_url }}?table={{ table.csv }}{% if query %}&{{ query }}{% endif %}"><i class="bi bi-download"></i> CSV</a>{% endif %}
+  </div>
+  {% if table.note %}<div class="biz-note mb-2">{{ table.note }}</div>{% endif %}
+  {% if table.rows %}
+  <div class="table-responsive"><table class="glass-table w-100">
+    <thead><tr>{% for c in table.columns %}<th>{{ c }}</th>{% endfor %}</tr></thead>
+    <tbody>{% for row in table.rows %}<tr>{% for v in row %}<td>{{ v }}</td>{% endfor %}</tr>{% endfor %}</tbody>
+  </table></div>
+  {% else %}
+  <div class="empty-command-state">No rows for this window.</div>
+  {% endif %}
+</div>
+{% endfor %}
+
+{% block business_after %}{% endblock %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  window.bizChart = function (id, config) {
+    const el = document.getElementById(id);
+    if (!el || typeof Chart === 'undefined') return null;
+    const palette = ['#f5c842', '#00d9ff', '#a78bfa', '#22c55e', '#ef4444', '#f97316'];
+    (config.data.datasets || []).forEach(function (d, i) {
+      if (!d.backgroundColor) d.backgroundColor = palette[i % palette.length] + (config.type === 'line' ? '33' : 'cc');
+      if (!d.borderColor) d.borderColor = palette[i % palette.length];
+    });
+    config.options = Object.assign({responsive: true, maintainAspectRatio: false,
+      plugins: {legend: {labels: {color: 'rgba(240,240,250,.75)'}}},
+      scales: {x: {ticks: {color: 'rgba(240,240,250,.6)'}, grid: {color: 'rgba(255,255,255,.05)'}},
+               y: {ticks: {color: 'rgba(240,240,250,.6)'}, grid: {color: 'rgba(255,255,255,.05)'}}}}, config.options || {});
+    return new Chart(el, config);
+  };
+</script>
+{% block business_js %}{% endblock %}
+{% endblock %}

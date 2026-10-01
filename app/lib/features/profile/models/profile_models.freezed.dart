@@ -1327,6 +1327,10 @@ mixin _$UserSettings {
   bool get notifyNewMessage => throw _privateConstructorUsedError;
   bool get notifyLikes => throw _privateConstructorUsedError;
   String get theme => throw _privateConstructorUsedError;
+
+  /// Member-chosen UI language as a BCP 47 tag limited to
+  /// `language[-REGION]` (`de`, `en-GB`). Empty means "follow the device".
+  String get locale => throw _privateConstructorUsedError;
   DateTime? get updatedAt => throw _privateConstructorUsedError;
 
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -1350,6 +1354,7 @@ abstract class $UserSettingsCopyWith<$Res> {
       bool notifyNewMessage,
       bool notifyLikes,
       String theme,
+      String locale,
       DateTime? updatedAt});
 }
 
@@ -1374,6 +1379,7 @@ class _$UserSettingsCopyWithImpl<$Res, $Val extends UserSettings>
     Object? notifyNewMessage = null,
     Object? notifyLikes = null,
     Object? theme = null,
+    Object? locale = null,
     Object? updatedAt = freezed,
   }) {
     return _then(_value.copyWith(
@@ -1409,6 +1415,10 @@ class _$UserSettingsCopyWithImpl<$Res, $Val extends UserSettings>
           ? _value.theme
           : theme // ignore: cast_nullable_to_non_nullable
               as String,
+      locale: null == locale
+          ? _value.locale
+          : locale // ignore: cast_nullable_to_non_nullable
+              as String,
       updatedAt: freezed == updatedAt
           ? _value.updatedAt
           : updatedAt // ignore: cast_nullable_to_non_nullable
@@ -1434,6 +1444,7 @@ abstract class _$$UserSettingsImplCopyWith<$Res>
       bool notifyNewMessage,
       bool notifyLikes,
       String theme,
+      String locale,
       DateTime? updatedAt});
 }
 
@@ -1456,6 +1467,7 @@ class __$$UserSettingsImplCopyWithImpl<$Res>
     Object? notifyNewMessage = null,
     Object? notifyLikes = null,
     Object? theme = null,
+    Object? locale = null,
     Object? updatedAt = freezed,
   }) {
     return _then(_$UserSettingsImpl(
@@ -1491,6 +1503,10 @@ class __$$UserSettingsImplCopyWithImpl<$Res>
           ? _value.theme
           : theme // ignore: cast_nullable_to_non_nullable
               as String,
+      locale: null == locale
+          ? _value.locale
+          : locale // ignore: cast_nullable_to_non_nullable
+              as String,
       updatedAt: freezed == updatedAt
           ? _value.updatedAt
           : updatedAt // ignore: cast_nullable_to_non_nullable
@@ -1511,6 +1527,7 @@ class _$UserSettingsImpl implements _UserSettings {
       this.notifyNewMessage = true,
       this.notifyLikes = true,
       this.theme = 'light',
+      this.locale = '',
       this.updatedAt});
 
   factory _$UserSettingsImpl.fromJson(Map<String, dynamic> json) =>
@@ -1539,12 +1556,18 @@ class _$UserSettingsImpl implements _UserSettings {
   @override
   @JsonKey()
   final String theme;
+
+  /// Member-chosen UI language as a BCP 47 tag limited to
+  /// `language[-REGION]` (`de`, `en-GB`). Empty means "follow the device".
+  @override
+  @JsonKey()
+  final String locale;
   @override
   final DateTime? updatedAt;
 
   @override
   String toString() {
-    return 'UserSettings(userId: $userId, showAge: $showAge, showExactDistance: $showExactDistance, showOnlineStatus: $showOnlineStatus, notifyNewMatch: $notifyNewMatch, notifyNewMessage: $notifyNewMessage, notifyLikes: $notifyLikes, theme: $theme, updatedAt: $updatedAt)';
+    return 'UserSettings(userId: $userId, showAge: $showAge, showExactDistance: $showExactDistance, showOnlineStatus: $showOnlineStatus, notifyNewMatch: $notifyNewMatch, notifyNewMessage: $notifyNewMessage, notifyLikes: $notifyLikes, theme: $theme, locale: $locale, updatedAt: $updatedAt)';
   }
 
   @override
@@ -1565,6 +1588,7 @@ class _$UserSettingsImpl implements _UserSettings {
             (identical(other.notifyLikes, notifyLikes) ||
                 other.notifyLikes == notifyLikes) &&
             (identical(other.theme, theme) || other.theme == theme) &&
+            (identical(other.locale, locale) || other.locale == locale) &&
             (identical(other.updatedAt, updatedAt) ||
                 other.updatedAt == updatedAt));
   }
@@ -1581,6 +1605,7 @@ class _$UserSettingsImpl implements _UserSettings {
       notifyNewMessage,
       notifyLikes,
       theme,
+      locale,
       updatedAt);
 
   @JsonKey(ignore: true)
@@ -1607,6 +1632,7 @@ abstract class _UserSettings implements UserSettings {
       final bool notifyNewMessage,
       final bool notifyLikes,
       final String theme,
+      final String locale,
       final DateTime? updatedAt}) = _$UserSettingsImpl;
 
   factory _UserSettings.fromJson(Map<String, dynamic> json) =
@@ -1628,6 +1654,11 @@ abstract class _UserSettings implements UserSettings {
   bool get notifyLikes;
   @override
   String get theme;
+  @override
+
+  /// Member-chosen UI language as a BCP 47 tag limited to
+  /// `language[-REGION]` (`de`, `en-GB`). Empty means "follow the device".
+  String get locale;
   @override
   DateTime? get updatedAt;
   @override

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"go.uber.org/zap"
 )
@@ -19,6 +20,10 @@ func InflightSheddingMiddleware(log *zap.Logger, scope string, maxInFlight int, 
 	limiter := make(chan struct{}, maxInFlight)
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if strings.EqualFold(strings.TrimSpace(r.Header.Get("Upgrade")), "websocket") {
+				next.ServeHTTP(w, r)
+				return
+			}
 			select {
 			case limiter <- struct{}{}:
 				defer func() { <-limiter }()
@@ -43,7 +48,7 @@ func InflightSheddingMiddleware(log *zap.Logger, scope string, maxInFlight int, 
 					"request_shedded",
 					zap.String("scope", scope),
 					zap.String("method", r.Method),
-					zap.String("path", r.URL.Path),
+					zap.String("path", RedactedRequestPath(r)),
 					zap.Int("max_in_flight", maxInFlight),
 					zap.String("correlation_id", correlationID),
 				)

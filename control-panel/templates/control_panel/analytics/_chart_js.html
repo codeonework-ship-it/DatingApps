@@ -1,0 +1,40 @@
+<script>
+(function () {
+  if (typeof Chart === 'undefined') { return; }
+  // Validated dark categorical slots 1-3 (blue, orange, aqua); fixed order.
+  var palette = ['#3987e5', '#d95926', '#199e70'];
+  var ink = 'rgba(240,240,250,0.72)', grid = 'rgba(255,255,255,0.07)';
+  document.querySelectorAll('canvas[data-analytics-chart]').forEach(function (canvas) {
+    var node = document.getElementById(canvas.dataset.analyticsChart);
+    if (!node) { return; }
+    var spec = JSON.parse(node.textContent);
+    var line = spec.type === 'line';
+    var datasets = (spec.datasets || []).map(function (d, i) {
+      var color = palette[i % palette.length];
+      return {
+        label: d.label, data: d.data, borderColor: color, backgroundColor: color,
+        borderWidth: 2, pointRadius: line ? 3 : 0, pointHoverRadius: 5, spanGaps: false,
+        borderRadius: line ? 0 : 4, borderSkipped: false, maxBarThickness: 28, tension: 0
+      };
+    });
+    new Chart(canvas, {
+      type: line ? 'line' : 'bar',
+      data: { labels: spec.labels || [], datasets: datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false, indexAxis: spec.horizontal ? 'y' : 'x',
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: datasets.length > 1, labels: { color: ink, boxWidth: 12 } },
+          tooltip: { callbacks: { label: function (ctx) {
+            var v = ctx.raw; return ctx.dataset.label + ': ' + (v === null || v === undefined ? '<5 / n/a' : v);
+          } } }
+        },
+        scales: {
+          x: { ticks: { color: ink, maxRotation: 0, autoSkip: true }, grid: { color: grid } },
+          y: { beginAtZero: true, ticks: { color: ink }, grid: { color: grid } }
+        }
+      }
+    });
+  });
+})();
+</script>

@@ -1,0 +1,25 @@
+name: Release Governance Gate
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  governance-contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      # Contract mode: every versioned release, trust, provider, billing,
+      # correctness, screen and progression contract must be well formed and
+      # keep production at NO_GO until its evidence exists. Launch mode is run
+      # by the release owner, not on every change.
+      - name: Validate release contracts
+        env:
+          QA_RELEASE_REPORT_DIR: ${{ runner.temp }}/release-governance
+        run: bash qa/governance/run_release_governance_gate.sh contract

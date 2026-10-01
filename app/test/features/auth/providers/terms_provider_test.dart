@@ -115,21 +115,21 @@ ProviderContainer _containerFor({required String userId, required Dio dio}) =>
 
 void main() {
   group('TermsAcceptance', () {
-    test('migrates legacy local key once and isolates cache by user', () async {
+    test('database authority overrides legacy local acceptance', () async {
       SharedPreferences.setMockInitialValues(<String, Object>{
         'termsAccepted_v1': true,
       });
-      final dio = _buildTermsApiClient(failGet: true);
+      final dio = _buildTermsApiClient();
 
       final firstUserContainer = _containerFor(userId: 'userA', dio: dio);
       addTearDown(firstUserContainer.dispose);
       final firstUserAccepted = await firstUserContainer.read(
         termsAcceptanceProvider.future,
       );
-      expect(firstUserAccepted, isTrue);
+      expect(firstUserAccepted, isFalse);
 
       final prefs = await SharedPreferences.getInstance();
-      expect(prefs.getBool('termsAccepted_v1_userA'), isTrue);
+      expect(prefs.getBool('termsAccepted_v1_userA'), isFalse);
       expect(prefs.getBool('termsAccepted_v1'), isNull);
 
       final secondUserContainer = _containerFor(userId: 'userB', dio: dio);
@@ -143,7 +143,7 @@ void main() {
 
     test('does not mark accepted when remote persistence fails', () async {
       SharedPreferences.setMockInitialValues(<String, Object>{});
-      final dio = _buildTermsApiClient(failGet: true, failPatch: true);
+      final dio = _buildTermsApiClient(failPatch: true);
       final container = _containerFor(userId: 'userC', dio: dio);
       addTearDown(container.dispose);
 

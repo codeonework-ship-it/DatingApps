@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:verified_dating_app/core/widgets/glass_widgets.dart';
+import 'package:verified_dating_app/l10n/app_localizations.dart';
 import 'package:verified_dating_app/features/common/screens/main_navigation_screen.dart';
 import 'package:verified_dating_app/features/profile/providers/preference_master_data_provider.dart';
 import 'package:verified_dating_app/features/profile/providers/profile_setup_provider.dart';
@@ -11,6 +12,9 @@ class _FakeProfileSetupNotifier extends ProfileSetupNotifier {
   _FakeProfileSetupNotifier(this.initialDraft);
 
   final ProfileDraft initialDraft;
+  Map<String, dynamic> savedPreferences = {};
+  Map<String, dynamic> savedLifestyle = {};
+  bool failSave = false;
   int savePreferencesCalls = 0;
   int saveLifestyleCalls = 0;
   int completeProfileCalls = 0;
@@ -51,6 +55,40 @@ class _FakeProfileSetupNotifier extends ProfileSetupNotifier {
     required bool hookupOnly,
   }) async {
     savePreferencesCalls += 1;
+    if (failSave) {
+      throw Exception('QA save failure');
+    }
+    savedPreferences = {
+      'seekingGenders': seekingGenders,
+      'minAgeYears': minAgeYears,
+      'maxAgeYears': maxAgeYears,
+      'maxDistanceKm': maxDistanceKm,
+      'educationFilter': educationFilter,
+      'seriousOnly': seriousOnly,
+      'verifiedOnly': verifiedOnly,
+      'country': country,
+      'regionState': regionState,
+      'city': city,
+      'instagramHandle': instagramHandle,
+      'hobbies': hobbies,
+      'favoriteBooks': favoriteBooks,
+      'favoriteNovels': favoriteNovels,
+      'favoriteSongs': favoriteSongs,
+      'extraCurriculars': extraCurriculars,
+      'additionalInfo': additionalInfo,
+      'intentTags': intentTags,
+      'languageTags': languageTags,
+      'petPreference': petPreference,
+      'dietPreference': dietPreference,
+      'workoutFrequency': workoutFrequency,
+      'dietType': dietType,
+      'sleepSchedule': sleepSchedule,
+      'travelStyle': travelStyle,
+      'politicalComfortRange': politicalComfortRange,
+      'dealBreakerTags': dealBreakerTags,
+      'motherTongue': motherTongue,
+      'hookupOnly': hookupOnly,
+    };
   }
 
   @override
@@ -60,6 +98,11 @@ class _FakeProfileSetupNotifier extends ProfileSetupNotifier {
     required String? religion,
   }) async {
     saveLifestyleCalls += 1;
+    savedLifestyle = {
+      'drinking': drinking,
+      'smoking': smoking,
+      'religion': religion,
+    };
   }
 
   @override
@@ -128,12 +171,14 @@ ProfileDraft _draft() => ProfileDraft(
 );
 
 PreferenceMasterData _masterData() => const PreferenceMasterData(
-  countries: <String>['India'],
+  countries: <String>['India', 'Canada'],
   statesByCountry: <String, List<String>>{
     'India': <String>['Karnataka'],
+    'Canada': <String>['Ontario'],
   },
   citiesByState: <String, List<String>>{
     'Karnataka': <String>['Bengaluru'],
+    'Ontario': <String>['Toronto'],
   },
   religions: <String>['Hindu'],
   motherTongues: <String>['Kannada'],
@@ -156,6 +201,8 @@ Widget _hostApp({
     preferenceMasterDataOfflineProvider.overrideWith((ref) => false),
   ],
   child: MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
     home: Builder(
       builder: (context) => Scaffold(
         body: Center(
@@ -182,6 +229,7 @@ Future<void> _pumpUi(WidgetTester tester) async {
 }
 
 void main() {
+  preferencesQAMatrix();
   testWidgets('shows Save when opened from non-setup flows', (tester) async {
     final notifier = _FakeProfileSetupNotifier(_draft());
     await tester.pumpWidget(_hostApp(isSetupFlow: false, notifier: notifier));
@@ -267,4 +315,249 @@ void main() {
     expect(notifier.completeProfileCalls, 0);
     expect(container.read(mainNavigationIndexProvider), 0);
   });
+}
+
+void preferencesQAMatrix() {
+  Future<void> open(
+    WidgetTester tester,
+    _FakeProfileSetupNotifier notifier, {
+    bool advanced = false,
+  }) async {
+    await tester.pumpWidget(_hostApp(isSetupFlow: false, notifier: notifier));
+    await tester.tap(find.text('Open Preferences'));
+    await _pumpUi(tester);
+    if (advanced) {
+      await tester.tap(find.text('Advanced'));
+      await _pumpUi(tester);
+    }
+  }
+
+  Future<void> save(WidgetTester tester) async {
+    await tester.tap(find.text('Save Preferences'));
+    await _pumpUi(tester);
+  }
+
+  testWidgets(
+    'QA saving preferences preserves existing education and languages',
+    (tester) async {
+      final notifier = _FakeProfileSetupNotifier(
+        _draft().copyWith(
+          educationFilter: ['Masters'],
+          languageTags: ['English', 'Kannada'],
+        ),
+      );
+      await open(tester, notifier);
+      await save(tester);
+      expect(notifier.savedPreferences['educationFilter'], ['Masters']);
+      expect(notifier.savedPreferences['languageTags'], ['English', 'Kannada']);
+    },
+  );
+
+  testWidgets(
+    'QA basic preferences serialize age distance genders and all toggles',
+    (tester) async {
+      final notifier = _FakeProfileSetupNotifier(_draft());
+      await open(tester, notifier);
+      tester.widget<RangeSlider>(find.byType(RangeSlider)).onChanged!(
+        const RangeValues(27, 39),
+      );
+      await tester.pump();
+      tester.widget<Slider>(find.byType(Slider)).onChanged!(123);
+      await tester.pump();
+      for (final toggle in ['serious_only', 'verified_only', 'hookup_only']) {
+        final semantics = find.byWidgetPredicate(
+          (w) =>
+              w is Semantics &&
+              w.properties.label == 'qa.setup.preferences.${toggle}_toggle',
+        );
+        final control = find.descendant(
+          of: semantics,
+          matching: find.byType(Switch),
+        );
+        await tester.ensureVisible(control);
+        await tester.tap(control);
+        await tester.pump();
+      }
+      final other = find.text('Other');
+      await tester.ensureVisible(other);
+      await tester.tap(other);
+      await tester.pump();
+      await save(tester);
+      expect(notifier.savedPreferences['minAgeYears'], 27);
+      expect(notifier.savedPreferences['maxAgeYears'], 39);
+      expect(notifier.savedPreferences['maxDistanceKm'], 123);
+      expect(
+        notifier.savedPreferences['seekingGenders'],
+        containsAll(['M', 'F', 'Other']),
+      );
+      expect(notifier.savedPreferences['seriousOnly'], false);
+      expect(notifier.savedPreferences['verifiedOnly'], true);
+      expect(notifier.savedPreferences['hookupOnly'], true);
+    },
+  );
+
+  testWidgets('QA empty seeking selection prevents save', (tester) async {
+    final notifier = _FakeProfileSetupNotifier(_draft());
+    await open(tester, notifier);
+    await tester.tap(find.text('Men'));
+    await tester.tap(find.text('Women'));
+    await save(tester);
+    expect(notifier.savePreferencesCalls, 0);
+    expect(find.text('Select at least one gender preference.'), findsOneWidget);
+  });
+
+  testWidgets(
+    'QA failed preferences save stays on the form and supports retry',
+    (tester) async {
+      final notifier = _FakeProfileSetupNotifier(_draft())..failSave = true;
+      await open(tester, notifier);
+      await save(tester);
+      expect(find.text('Edit Preferences'), findsOneWidget);
+      expect(
+        find.text('Some preferences could not be saved right now.'),
+        findsOneWidget,
+      );
+      notifier.failSave = false;
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pump(const Duration(milliseconds: 300));
+      await save(tester);
+      expect(notifier.savePreferencesCalls, 2);
+      expect(notifier.saveLifestyleCalls, 1);
+    },
+  );
+
+  testWidgets('QA out-of-range saved sliders are bounded safely', (
+    tester,
+  ) async {
+    final notifier = _FakeProfileSetupNotifier(
+      _draft().copyWith(minAgeYears: 10, maxAgeYears: 90, maxDistanceKm: 900),
+    );
+    await open(tester, notifier);
+    expect(tester.takeException(), isNull);
+    expect(
+      tester.widget<RangeSlider>(find.byType(RangeSlider)).values,
+      const RangeValues(18, 80),
+    );
+    expect(tester.widget<Slider>(find.byType(Slider)).value, 500);
+  });
+  testWidgets('QA changing country visibly clears saved state and city', (
+    tester,
+  ) async {
+    final notifier = _FakeProfileSetupNotifier(
+      _draft().copyWith(
+        country: 'India',
+        regionState: 'Karnataka',
+        city: 'Bengaluru',
+      ),
+    );
+    await open(tester, notifier, advanced: true);
+    Finder field(String name) => find.byWidgetPredicate(
+      (w) =>
+          w is DropdownButtonFormField<String> &&
+          w.decoration.labelText == name,
+    );
+    await tester.ensureVisible(field('Country'));
+    await tester.tap(field('Country'));
+    await _pumpUi(tester);
+    await tester.tap(find.text('Canada').last);
+    await _pumpUi(tester);
+    expect(
+      tester.state<FormFieldState<String>>(field('State / Region')).value,
+      isNull,
+    );
+    expect(tester.state<FormFieldState<String>>(field('City')).value, isNull);
+    await save(tester);
+    expect(notifier.savedPreferences['country'], 'Canada');
+    expect(notifier.savedPreferences['regionState'], isNull);
+    expect(notifier.savedPreferences['city'], isNull);
+  });
+
+  testWidgets('QA setup Back keeps edits on screen when save fails', (
+    tester,
+  ) async {
+    final notifier = _FakeProfileSetupNotifier(_draft())..failSave = true;
+    await tester.pumpWidget(_hostApp(isSetupFlow: true, notifier: notifier));
+    await _pumpUi(tester);
+    await tester.tap(find.text('Open Preferences'));
+    await _pumpUi(tester);
+    await tester.tap(find.byIcon(Icons.arrow_back_ios_new));
+    await _pumpUi(tester);
+    expect(find.text('Your Preferences'), findsOneWidget);
+    expect(
+      find.text('Could not save your changes. Please try again.'),
+      findsOneWidget,
+    );
+    expect(notifier.savePreferencesCalls, 1);
+  });
+
+  final dropdowns = <(String, String, String)>[
+    ('Country', 'country', 'India'),
+    ('State / Region', 'regionState', 'Karnataka'),
+    ('City', 'city', 'Bengaluru'),
+    ('Religion preference', 'religion', 'Hindu'),
+    ('Mother tongue', 'motherTongue', 'Kannada'),
+    ('Language', 'languageTags', 'English'),
+    ('Diet preference', 'dietPreference', 'Veg'),
+    ('Workout frequency', 'workoutFrequency', 'Often'),
+    ('Diet type', 'dietType', 'Balanced'),
+    ('Sleep schedule', 'sleepSchedule', 'Early bird'),
+    ('Travel style', 'travelStyle', 'Adventurous'),
+    ('Political comfort range', 'politicalComfortRange', 'Moderate'),
+  ];
+  for (final (label, field, value) in dropdowns) {
+    testWidgets('QA preference dropdown $field reaches the save payload', (
+      tester,
+    ) async {
+      final notifier = _FakeProfileSetupNotifier(
+        _draft().copyWith(country: 'India', regionState: 'Karnataka'),
+      );
+      await open(tester, notifier, advanced: true);
+      final control = find.widgetWithText(
+        DropdownButtonFormField<String>,
+        label,
+      );
+      await tester.ensureVisible(control);
+      await tester.tap(control);
+      await _pumpUi(tester);
+      await tester.tap(find.text(value).last);
+      await _pumpUi(tester);
+      await save(tester);
+      final actual = field == 'religion'
+          ? notifier.savedLifestyle[field]
+          : notifier.savedPreferences[field];
+      expect(actual, field == 'languageTags' ? [value] : value);
+    });
+  }
+
+  final textFields = <(String, String, bool)>[
+    ('Instagram handle (without @)', 'instagramHandle', false),
+    ('Intent tags (long-term, marriage, casual…)', 'intentTags', true),
+    ('Hobbies (comma-separated)', 'hobbies', true),
+    ('Favourite books (comma-separated)', 'favoriteBooks', true),
+    ('Favourite novels (comma-separated)', 'favoriteNovels', true),
+    ('Favourite songs (comma-separated)', 'favoriteSongs', true),
+    ('Extra-curricular activities (comma-separated)', 'extraCurriculars', true),
+    ('Additional information', 'additionalInfo', false),
+    ('Pet preference', 'petPreference', false),
+    ('Tags (comma-separated)', 'dealBreakerTags', true),
+  ];
+  for (final (label, field, isList) in textFields) {
+    testWidgets('QA preference text $field is editable and saved', (
+      tester,
+    ) async {
+      final notifier = _FakeProfileSetupNotifier(_draft());
+      await open(tester, notifier, advanced: true);
+      final input = find.byWidgetPredicate(
+        (w) => w is TextField && w.decoration?.labelText == label,
+      );
+      expect(input, findsOneWidget);
+      await tester.ensureVisible(input);
+      await tester.enterText(input, isList ? ' alpha, beta, ' : '  sample  ');
+      await save(tester);
+      expect(
+        notifier.savedPreferences[field],
+        isList ? ['alpha', 'beta'] : 'sample',
+      );
+    });
+  }
 }

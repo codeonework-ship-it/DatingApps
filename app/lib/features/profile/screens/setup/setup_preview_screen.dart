@@ -1,4 +1,6 @@
-import 'dart:io';
+import '../../../../core/platform/browser_context.dart';
+import 'package:flutter/foundation.dart';
+import '../../../../core/platform/platform_photo.dart';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -76,6 +78,11 @@ class _SetupPreviewScreenState extends ConsumerState<SetupPreviewScreen> {
         return;
       }
       ref.read(mainNavigationIndexProvider.notifier).state = 0;
+      if (kIsWeb) {
+        setWebRoute('/discover');
+        Navigator.of(context).popUntil((route) => route.isFirst);
+        return;
+      }
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute<void>(builder: (_) => const MainNavigationScreen()),
         (route) => false,
@@ -110,24 +117,7 @@ class _SetupPreviewScreenState extends ConsumerState<SetupPreviewScreen> {
   // ---------------------------------------------------------------------------
 
   Widget _buildPhotoImage(String url) {
-    // Local file: raw Unix path (/data/...) or file:// URI
-    if (url.startsWith('/')) {
-      final file = File(url);
-      return Image.file(
-        file,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _photoPlaceholder(),
-      );
-    }
-    if (url.startsWith('file://')) {
-      final path = Uri.parse(url).toFilePath();
-      return Image.file(
-        File(path),
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _photoPlaceholder(),
-      );
-    }
-    return Image.network(
+    return platformPhoto(
       url,
       fit: BoxFit.cover,
       errorBuilder: (_, __, ___) => _photoPlaceholder(),
@@ -135,11 +125,11 @@ class _SetupPreviewScreenState extends ConsumerState<SetupPreviewScreen> {
   }
 
   Widget _photoPlaceholder() => Container(
-    color: Colors.white.withValues(alpha: 0.06),
+    color: Theme.of(context).colorScheme.surfaceContainerHighest,
     child: Center(
       child: Icon(
         Icons.image_not_supported_rounded,
-        color: Colors.white.withValues(alpha: 0.25),
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
         size: 48,
       ),
     ),
@@ -155,7 +145,9 @@ class _SetupPreviewScreenState extends ConsumerState<SetupPreviewScreen> {
 
     return Scaffold(
       body: DecoratedBox(
-        decoration: const BoxDecoration(gradient: AppTheme.bgGradient),
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+        ),
         child: SafeArea(
           child: Column(
             children: [
@@ -166,10 +158,10 @@ class _SetupPreviewScreenState extends ConsumerState<SetupPreviewScreen> {
               ),
               Expanded(
                 child: draftAsync.when(
-                  loading: () => const Center(
+                  loading: () => Center(
                     child: CircularProgressIndicator(
                       valueColor: AlwaysStoppedAnimation<Color>(
-                        AppTheme.crystalGoldSoft,
+                        Theme.of(context).colorScheme.primary,
                       ),
                     ),
                   ),
@@ -236,6 +228,7 @@ class _PreviewBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bottomPad = MediaQuery.viewPaddingOf(context).bottom + 24;
+    final scheme = Theme.of(context).colorScheme;
 
     return SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(20, 8, 20, bottomPad),
@@ -249,16 +242,16 @@ class _PreviewBody extends StatelessWidget {
                 'Preview your profile',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w800,
-                  color: Colors.white,
+                  color: scheme.onSurface,
                   letterSpacing: -0.3,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 'This is how others will see you.',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.white.withValues(alpha: 0.60),
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
               ),
               const SizedBox(height: 20),
 
@@ -303,7 +296,7 @@ class _PreviewBody extends StatelessWidget {
                       style: Theme.of(context).textTheme.headlineSmall
                           ?.copyWith(
                             fontWeight: FontWeight.w800,
-                            color: Colors.white,
+                            color: scheme.onSurface,
                           ),
                     ),
                     if (draft.bio.isNotEmpty) ...[
@@ -311,7 +304,7 @@ class _PreviewBody extends StatelessWidget {
                       Text(
                         draft.bio,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.white.withValues(alpha: 0.80),
+                          color: scheme.onSurfaceVariant,
                           height: 1.45,
                         ),
                       ),
@@ -371,15 +364,20 @@ class _PreviewBody extends StatelessWidget {
               const SizedBox(height: 24),
 
               // -- Complete button
-              SizedBox(
-                width: double.infinity,
-                height: 54,
-                child: GlassButton(
-                  label: 'Complete Profile',
-                  icon: Icons.check_circle_rounded,
-                  shinyEffect: true,
-                  isLoading: isCompleting,
-                  onPressed: isCompleting ? null : onComplete,
+              Semantics(
+                label: 'qa.setup.preview.complete_button',
+                button: true,
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 54,
+                  child: GlassButton(
+                    key: const ValueKey('qa.setup.preview.complete_button'),
+                    label: 'Complete Profile',
+                    icon: Icons.check_circle_rounded,
+                    shinyEffect: true,
+                    isLoading: isCompleting,
+                    onPressed: isCompleting ? null : onComplete,
+                  ),
                 ),
               ),
             ],
@@ -407,14 +405,14 @@ class _PhotoDots extends StatelessWidget {
       final isActive = i == current;
       return AnimatedContainer(
         duration: const Duration(milliseconds: 250),
-        margin: const EdgeInsets.symmetric(horizontal: 3),
+        margin: const EdgeInsets.symmetric(horizontal: 4),
         width: isActive ? 20 : 8,
         height: 8,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(4),
           color: isActive
-              ? AppTheme.crystalGoldSoft
-              : Colors.white.withValues(alpha: 0.25),
+              ? Theme.of(context).colorScheme.primary
+              : Theme.of(context).colorScheme.outlineVariant,
         ),
       );
     }),
@@ -433,22 +431,21 @@ class _CompletionBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final pct = (percent * 100).round();
+    final scheme = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            const Icon(
-              Icons.pie_chart_rounded,
-              size: 16,
-              color: AppTheme.crystalGoldSoft,
-            ),
+            Icon(Icons.pie_chart_rounded, size: 16, color: scheme.primary),
             const SizedBox(width: 6),
-            Text(
-              'Profile completion: $pct%',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.white.withValues(alpha: 0.70),
-                fontWeight: FontWeight.w600,
+            Expanded(
+              child: Text(
+                'Profile completion: $pct%',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ],
@@ -459,9 +456,9 @@ class _CompletionBar extends StatelessWidget {
           child: LinearProgressIndicator(
             value: percent.clamp(0.0, 1.0),
             minHeight: 8,
-            backgroundColor: Colors.white.withValues(alpha: 0.08),
+            backgroundColor: scheme.outlineVariant,
             valueColor: AlwaysStoppedAnimation<Color>(
-              pct >= 100 ? const Color(0xFF4CAF50) : AppTheme.crystalGoldSoft,
+              pct >= 100 ? const Color(0xFF4CAF50) : scheme.primary,
             ),
           ),
         ),

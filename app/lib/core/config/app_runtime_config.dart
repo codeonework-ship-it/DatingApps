@@ -1,4 +1,6 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 /// Centralized runtime configuration for Flutter app behavior.
@@ -10,7 +12,12 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 class AppRuntimeConfig {
   AppRuntimeConfig._();
 
-  static String _fromEnv(String key) => (dotenv.env[key] ?? '').trim();
+  static String _fromEnv(String key) {
+    if (!dotenv.isInitialized) {
+      return '';
+    }
+    return (dotenv.env[key] ?? '').trim();
+  }
 
   static String _pick(List<String> values, String fallback) {
     for (final value in values) {
@@ -54,7 +61,7 @@ class AppRuntimeConfig {
   static String get apiLocalBaseUrl => _pick(<String>[
     _fromEnv('API_LOCAL_BASE_URL'),
     const String.fromEnvironment('API_LOCAL_BASE_URL'),
-  ], 'http://10.0.2.2:8080/v1');
+  ], 'http://10.0.2.2:18080/v1');
 
   static String get apiProdBaseUrl => _pick(<String>[
     _fromEnv('API_PROD_BASE_URL'),
@@ -62,6 +69,12 @@ class AppRuntimeConfig {
   ], 'http://72.61.242.87/v1');
 
   static String get apiBaseUrl {
+    // Browser requests use the website's same-origin API proxy. Never inherit
+    // the Android emulator address from the bundled development environment.
+    if (kIsWeb) {
+      const override = String.fromEnvironment('WEB_API_BASE_URL');
+      return override.isNotEmpty ? override : '${Uri.base.origin}/v1';
+    }
     final explicitApiBaseUrl = _pick(<String>[
       _fromEnv('API_BASE_URL'),
       const String.fromEnvironment('API_BASE_URL'),
@@ -90,20 +103,49 @@ class AppRuntimeConfig {
     return _toInt(raw, 30000);
   }
 
-  static String get supabaseUrl => _pick(<String>[
-    _fromEnv('SUPABASE_URL'),
-    const String.fromEnvironment('SUPABASE_URL'),
+  static String get pushTokenProvider => _pick(<String>[
+    _fromEnv('PUSH_TOKEN_PROVIDER'),
+    const String.fromEnvironment('PUSH_TOKEN_PROVIDER'),
+  ], 'fcm').toLowerCase();
+
+  static String get firebaseApiKey => _pick(<String>[
+    _fromEnv('FIREBASE_API_KEY'),
+    const String.fromEnvironment('FIREBASE_API_KEY'),
   ], '');
 
-  static String get supabaseAnonKey => _pick(<String>[
-    _fromEnv('SUPABASE_ANON_KEY'),
-    const String.fromEnvironment('SUPABASE_ANON_KEY'),
+  static String get firebaseAppId => _pick(<String>[
+    _fromEnv('FIREBASE_APP_ID'),
+    const String.fromEnvironment('FIREBASE_APP_ID'),
   ], '');
 
-  static String get mockOtpCode => _pick(<String>[
-    _fromEnv('MOCK_OTP_CODE'),
-    const String.fromEnvironment('MOCK_OTP_CODE'),
-  ], '123456');
+  static String get firebaseProjectId => _pick(<String>[
+    _fromEnv('FIREBASE_PROJECT_ID'),
+    const String.fromEnvironment('FIREBASE_PROJECT_ID'),
+  ], '');
+
+  static String get firebaseMessagingSenderId => _pick(<String>[
+    _fromEnv('FIREBASE_MESSAGING_SENDER_ID'),
+    const String.fromEnvironment('FIREBASE_MESSAGING_SENDER_ID'),
+  ], '');
+
+  static String get firebaseIosBundleId => _pick(<String>[
+    _fromEnv('FIREBASE_IOS_BUNDLE_ID'),
+    const String.fromEnvironment('FIREBASE_IOS_BUNDLE_ID'),
+  ], 'com.verified_dating.verifiedDatingApp');
+
+  static bool get pushNotificationsConfigured =>
+      firebaseApiKey.isNotEmpty &&
+      firebaseAppId.isNotEmpty &&
+      firebaseProjectId.isNotEmpty &&
+      firebaseMessagingSenderId.isNotEmpty;
+
+  static FirebaseOptions get firebaseOptions => FirebaseOptions(
+    apiKey: firebaseApiKey,
+    appId: firebaseAppId,
+    messagingSenderId: firebaseMessagingSenderId,
+    projectId: firebaseProjectId,
+    iosBundleId: firebaseIosBundleId,
+  );
 
   static String get mockUserPrefix => _pick(<String>[
     _fromEnv('MOCK_USER_PREFIX'),
@@ -114,6 +156,11 @@ class AppRuntimeConfig {
     _fromEnv('MOCK_USER_ID'),
     const String.fromEnvironment('MOCK_USER_ID'),
   ], '00000000-0000-4000-8000-000000000001');
+
+  static String get qaForcedUserId => _pick(<String>[
+    _fromEnv('QA_FORCED_USER_ID'),
+    const String.fromEnvironment('QA_FORCED_USER_ID'),
+  ], '');
 
   static String get placeholderProfileImageUrl => _pick(
     <String>[
@@ -174,27 +221,6 @@ class AppRuntimeConfig {
     return _toInt(raw, 45);
   }
 
-  static String get supabaseUsersTableFq => _pick(<String>[
-    _fromEnv('SUPABASE_USERS_TABLE'),
-    const String.fromEnvironment('SUPABASE_USERS_TABLE'),
-  ], 'user_management.users');
-
-  static String get supabaseUsersSchema {
-    final parts = supabaseUsersTableFq.split('.');
-    if (parts.length == 2) {
-      return parts.first;
-    }
-    return 'public';
-  }
-
-  static String get supabaseUsersTable {
-    final parts = supabaseUsersTableFq.split('.');
-    if (parts.length == 2) {
-      return parts.last;
-    }
-    return supabaseUsersTableFq;
-  }
-
   static String mockUserIdForIdentifier(String? identifier) {
     final raw = (identifier ?? '').trim().toLowerCase();
     if (raw.isEmpty) {
@@ -213,27 +239,29 @@ class AppRuntimeConfig {
 
     final bytes = <int>[];
     for (var shift = 56; shift >= 0; shift -= 8) {
-      bytes.add((first >> shift) & 0xff);
+      bytes.add(((first >> shift) & BigInt.from(255)).toInt());
     }
     for (var shift = 56; shift >= 0; shift -= 8) {
-      bytes.add((second >> shift) & 0xff);
+      bytes.add(((second >> shift) & BigInt.from(255)).toInt());
     }
 
     bytes[6] = (bytes[6] & 0x0f) | 0x40;
     bytes[8] = (bytes[8] & 0x3f) | 0x80;
 
     final b = bytes.map((v) => v.toRadixString(16).padLeft(2, '0')).join();
-    return '${b.substring(0, 8)}-${b.substring(8, 12)}-${b.substring(12, 16)}-${b.substring(16, 20)}-${b.substring(20, 32)}';
+    return '${b.substring(0, 8)}-${b.substring(8, 12)}-'
+        '${b.substring(12, 16)}-${b.substring(16, 20)}-'
+        '${b.substring(20, 32)}';
   }
 
-  static int _fnv1a64(String input) {
-    const fnvOffsetBasis = 0xcbf29ce484222325;
-    const fnvPrime = 0x100000001b3;
-    const mask64 = 0xFFFFFFFFFFFFFFFF;
+  static BigInt _fnv1a64(String input) {
+    final fnvOffsetBasis = BigInt.parse('cbf29ce484222325', radix: 16);
+    final fnvPrime = BigInt.parse('100000001b3', radix: 16);
+    final mask64 = BigInt.parse('ffffffffffffffff', radix: 16);
 
     var hash = fnvOffsetBasis;
     for (final codeUnit in input.codeUnits) {
-      hash ^= codeUnit;
+      hash ^= BigInt.from(codeUnit);
       hash = (hash * fnvPrime) & mask64;
     }
     return hash;

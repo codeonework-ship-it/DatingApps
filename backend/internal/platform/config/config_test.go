@@ -1,6 +1,10 @@
 package config
 
-import "testing"
+import (
+	"os"
+	"path/filepath"
+	"testing"
+)
 
 func TestLoad_RequiresSupabaseConfig(t *testing.T) {
 	t.Setenv("SUPABASE_URL", "")
@@ -17,7 +21,7 @@ func TestLoad_UsesDefaultsAndNormalizesPrefix(t *testing.T) {
 	t.Setenv("SUPABASE_URL", "https://example.supabase.co")
 	t.Setenv("SUPABASE_ANON_KEY", "anon-key")
 	t.Setenv("API_PREFIX", "v1/")
-	t.Setenv("MOCK_OTP_ENABLED", "false")
+	t.Setenv("MOCK_DATA_ENABLED", "false")
 	t.Setenv("API_GATEWAY_READ_HEADER_TIMEOUT_SEC", "-1")
 
 	cfg, err := Load()
@@ -28,7 +32,7 @@ func TestLoad_UsesDefaultsAndNormalizesPrefix(t *testing.T) {
 	if cfg.APIPrefix != "/v1" {
 		t.Fatalf("expected /v1 prefix, got %q", cfg.APIPrefix)
 	}
-	if cfg.MockOTPEnabled {
+	if cfg.MockDataEnabled {
 		t.Fatalf("expected mock otp disabled")
 	}
 	if cfg.APIGatewayReadHeaderTimeoutSec != 10 {
@@ -77,6 +81,136 @@ func TestLoad_RequiresBucketWhenAWSStorageEnabled(t *testing.T) {
 	}
 }
 
+func TestLoad_RequiresModerationProviderWhenProductionModerationIsRequired(t *testing.T) {
+	t.Setenv("SUPABASE_URL", "https://example.supabase.co")
+	t.Setenv("SUPABASE_ANON_KEY", "anon-key")
+	t.Setenv("ENVIRONMENT", "production")
+	t.Setenv("MEDIA_MODERATION_PROVIDER", "disabled")
+
+	_, err := Load()
+	if err == nil {
+		t.Fatalf("expected production configuration to fail without a moderation provider")
+	}
+}
+
+func TestLoad_ConfiguresRekognitionModerationPolicy(t *testing.T) {
+	t.Setenv("SUPABASE_URL", "https://example.supabase.co")
+	t.Setenv("SUPABASE_ANON_KEY", "anon-key")
+	t.Setenv("ENVIRONMENT", "production")
+	t.Setenv("MEDIA_MODERATION_PROVIDER", "aws_rekognition")
+	t.Setenv("MEDIA_MODERATION_REVIEW_CONFIDENCE", "65")
+	t.Setenv("MEDIA_MODERATION_REJECT_CONFIDENCE", "92")
+	t.Setenv("MEDIA_MODERATION_REJECT_LABELS", "Explicit Nudity,Hate Symbols")
+	t.Setenv("IDENTITY_VERIFICATION_REQUIRED", "false")
+	t.Setenv("VOICE_MODERATION_REQUIRED", "false")
+	t.Setenv("SOS_DELIVERY_REQUIRED", "false")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if cfg.MediaModerationProvider != "aws_rekognition" || !cfg.MediaModerationRequired {
+		t.Fatalf("unexpected moderation configuration: provider=%q required=%t", cfg.MediaModerationProvider, cfg.MediaModerationRequired)
+	}
+	if cfg.MediaModerationReviewConfidence != 65 || cfg.MediaModerationRejectConfidence != 92 {
+		t.Fatalf("unexpected moderation thresholds: review=%d reject=%d", cfg.MediaModerationReviewConfidence, cfg.MediaModerationRejectConfidence)
+	}
+	if len(cfg.MediaModerationRejectLabels) != 2 || cfg.MediaModerationRejectLabels[1] != "hate symbols" {
+		t.Fatalf("unexpected rejection labels: %#v", cfg.MediaModerationRejectLabels)
+	}
+}
+
+func TestLoad_RejectsIncompleteSignedCallTransport(t *testing.T) {
+	t.Setenv("SUPABASE_URL", "https://example.supabase.co")
+	t.Setenv("SUPABASE_ANON_KEY", "anon-key")
+	t.Setenv("CALL_TRANSPORT_PROVIDER", "jitsi_jwt")
+	t.Setenv("CALL_ROOM_BASE_URL", "https://meet.example.com")
+	t.Setenv("CALL_JWT_ISSUER", "connect")
+	t.Setenv("CALL_JWT_AUDIENCE", "meet")
+	t.Setenv("CALL_JWT_SECRET", "short")
+
+	if _, err := Load(); err == nil {
+		t.Fatal("expected incomplete signed call transport to fail closed")
+	}
+}
+
+func TestLoad_ForbidsPublicCallRoomsInProduction(t *testing.T) {
+	t.Setenv("SUPABASE_URL", "https://example.supabase.co")
+	t.Setenv("SUPABASE_ANON_KEY", "anon-key")
+	t.Setenv("ENVIRONMENT", "production")
+	t.Setenv("MEDIA_MODERATION_PROVIDER", "aws_rekognition")
+	t.Setenv("CALL_TRANSPORT_PROVIDER", "public_jitsi")
+
+	if _, err := Load(); err == nil {
+		t.Fatal("expected public call rooms to be forbidden in production")
+	}
+}
+
+func TestLoad_RequiresIdentityWebhookAndActor(t *testing.T) {
+	t.Setenv("SUPABASE_URL", "https://example.supabase.co")
+	t.Setenv("SUPABASE_ANON_KEY", "anon-key")
+	t.Setenv("IDENTITY_VERIFICATION_PROVIDER", "webhook")
+	t.Setenv("IDENTITY_VERIFICATION_WEBHOOK_URL", "https://identity.example.test/assess")
+	t.Setenv("IDENTITY_VERIFICATION_ACTOR_ID", "")
+
+	if _, err := Load(); err == nil {
+		t.Fatal("expected identity webhook without a durable actor to fail closed")
+	}
+}
+
+func TestLoad_RejectsNonUUIDIdentityProviderActor(t *testing.T) {
+	t.Setenv("SUPABASE_URL", "https://example.supabase.co")
+	t.Setenv("SUPABASE_ANON_KEY", "anon-key")
+	t.Setenv("IDENTITY_VERIFICATION_PROVIDER", "webhook")
+	t.Setenv("IDENTITY_VERIFICATION_WEBHOOK_URL", "https://identity.example.test/assess")
+	t.Setenv("IDENTITY_VERIFICATION_ACTOR_ID", "identity-provider")
+
+	if _, err := Load(); err == nil {
+		t.Fatal("expected a non-UUID provider actor to fail closed")
+	}
+}
+
+func TestLoad_RequiresVoiceProviderAndPrivatePlaybackKey(t *testing.T) {
+	t.Setenv("SUPABASE_URL", "https://example.supabase.co")
+	t.Setenv("SUPABASE_ANON_KEY", "anon-key")
+	t.Setenv("VOICE_MODERATION_REQUIRED", "true")
+	t.Setenv("VOICE_MODERATION_PROVIDER", "webhook")
+	t.Setenv("VOICE_MODERATION_WEBHOOK_URL", "https://voice.example.test/moderate")
+	t.Setenv("PRIVATE_MEDIA_SIGNING_KEY", "too-short")
+
+	if _, err := Load(); err == nil {
+		t.Fatal("expected required voice moderation without a strong playback key to fail closed")
+	}
+}
+
+func TestLoad_ProductionRequiresIdentityProviderByDefault(t *testing.T) {
+	t.Setenv("SUPABASE_URL", "https://example.supabase.co")
+	t.Setenv("SUPABASE_ANON_KEY", "anon-key")
+	t.Setenv("ENVIRONMENT", "production")
+	t.Setenv("MEDIA_MODERATION_PROVIDER", "aws_rekognition")
+	t.Setenv("VOICE_MODERATION_REQUIRED", "false")
+	t.Setenv("IDENTITY_VERIFICATION_PROVIDER", "disabled")
+	t.Setenv("IDENTITY_VERIFICATION_REQUIRED", "")
+
+	if _, err := Load(); err == nil {
+		t.Fatal("expected production to require identity verification by default")
+	}
+}
+
+func TestLoad_ProductionRequiresVoiceModerationByDefault(t *testing.T) {
+	t.Setenv("SUPABASE_URL", "https://example.supabase.co")
+	t.Setenv("SUPABASE_ANON_KEY", "anon-key")
+	t.Setenv("ENVIRONMENT", "production")
+	t.Setenv("MEDIA_MODERATION_PROVIDER", "aws_rekognition")
+	t.Setenv("IDENTITY_VERIFICATION_REQUIRED", "false")
+	t.Setenv("VOICE_MODERATION_PROVIDER", "disabled")
+	t.Setenv("VOICE_MODERATION_REQUIRED", "")
+
+	if _, err := Load(); err == nil {
+		t.Fatal("expected production to require voice moderation by default")
+	}
+}
+
 func TestLoad_DerivesSupabaseURLAndDatabaseURLFromDBHost(t *testing.T) {
 	t.Setenv("SUPABASE_URL", "")
 	t.Setenv("SUPABASE_ANON_KEY", "anon-key")
@@ -103,7 +237,7 @@ func TestLoad_DerivesSupabaseURLAndDatabaseURLFromDBHost(t *testing.T) {
 	}
 }
 
-func TestLoad_UsesLocalPostgrestWhenLocalDbEnabled(t *testing.T) {
+func TestLoad_UsesNativePostgresWithoutSupabaseWhenLocalDbEnabled(t *testing.T) {
 	t.Setenv("USE_LOCAL_DB", "true")
 	t.Setenv("LOCAL_DATABASE_URL", "postgresql://postgres:root%40123@localhost:55432/dating_app?sslmode=disable")
 	t.Setenv("LOCAL_POSTGREST_URL", "http://127.0.0.1:54321")
@@ -118,14 +252,29 @@ func TestLoad_UsesLocalPostgrestWhenLocalDbEnabled(t *testing.T) {
 		t.Fatalf("Load() error = %v", err)
 	}
 
-	if cfg.SupabaseURL != "http://127.0.0.1:54321" {
-		t.Fatalf("unexpected local SupabaseURL: %q", cfg.SupabaseURL)
+	if cfg.SupabaseURL != "" {
+		t.Fatalf("local mode must not configure SupabaseURL: %q", cfg.SupabaseURL)
 	}
-	if cfg.SupabaseAnonKey != "local-dev-key" {
-		t.Fatalf("unexpected local anon key: %q", cfg.SupabaseAnonKey)
+	if cfg.SupabaseAnonKey != "" {
+		t.Fatalf("local mode must not configure SupabaseAnonKey: %q", cfg.SupabaseAnonKey)
 	}
 	if cfg.DatabaseURL != "postgresql://postgres:root%40123@localhost:55432/dating_app?sslmode=disable" {
 		t.Fatalf("unexpected local DatabaseURL: %q", cfg.DatabaseURL)
+	}
+	if !cfg.UseLocalDB {
+		t.Fatal("expected UseLocalDB=true")
+	}
+	if cfg.BFFFastReadTimeoutMS != 750 || cfg.BFFNormalReadTimeoutMS != 3000 || cfg.BFFWriteTimeoutMS != 8000 {
+		t.Fatalf("unexpected timeout tiers: fast=%d normal=%d write=%d", cfg.BFFFastReadTimeoutMS, cfg.BFFNormalReadTimeoutMS, cfg.BFFWriteTimeoutMS)
+	}
+	if cfg.PostgresStatementTimeoutMS != 5000 || cfg.PostgresLockTimeoutMS != 1000 {
+		t.Fatalf("unexpected postgres timeouts: statement=%d lock=%d", cfg.PostgresStatementTimeoutMS, cfg.PostgresLockTimeoutMS)
+	}
+	if cfg.IdempotencyTTLSeconds != 600 || cfg.IdempotencyLeaseSeconds != 15 ||
+		cfg.IdempotencyPollMilliseconds != 25 || cfg.IdempotencyMaxResponseBytes != 1048576 {
+		t.Fatalf("unexpected idempotency defaults: ttl=%d lease=%d poll=%d max=%d",
+			cfg.IdempotencyTTLSeconds, cfg.IdempotencyLeaseSeconds,
+			cfg.IdempotencyPollMilliseconds, cfg.IdempotencyMaxResponseBytes)
 	}
 }
 
@@ -222,6 +371,10 @@ func TestLoad_DurableEngagementStoreDefaultsByEnvironment(t *testing.T) {
 	t.Setenv("SUPABASE_URL", "https://example.supabase.co")
 	t.Setenv("SUPABASE_ANON_KEY", "anon-key")
 	t.Setenv("REQUIRE_DURABLE_ENGAGEMENT_STORE", "")
+	t.Setenv("MEDIA_MODERATION_PROVIDER", "aws_rekognition")
+	t.Setenv("IDENTITY_VERIFICATION_REQUIRED", "false")
+	t.Setenv("VOICE_MODERATION_REQUIRED", "false")
+	t.Setenv("SOS_DELIVERY_REQUIRED", "false")
 
 	t.Setenv("ENVIRONMENT", "production")
 	prodCfg, err := Load()
@@ -239,6 +392,40 @@ func TestLoad_DurableEngagementStoreDefaultsByEnvironment(t *testing.T) {
 	}
 	if devCfg.RequireDurableEngagementStore {
 		t.Fatalf("expected durable engagement store disabled by default in development")
+	}
+}
+
+func TestLoad_RejectsIncompleteDirectPushProvider(t *testing.T) {
+	t.Setenv("USE_LOCAL_DB", "true")
+	t.Setenv("LOCAL_DATABASE_URL", "postgresql://dating_app@localhost:55432/dating_app")
+	t.Setenv("NOTIFICATION_PUSH_PROVIDER", "direct")
+	t.Setenv("NOTIFICATION_FCM_PROJECT_ID", "")
+	t.Setenv("NOTIFICATION_FCM_CREDENTIALS_FILE", "")
+	t.Setenv("GOOGLE_APPLICATION_CREDENTIALS", "")
+	t.Setenv("NOTIFICATION_APNS_TEAM_ID", "")
+
+	if _, err := Load(); err == nil {
+		t.Fatal("expected incomplete direct push configuration to fail")
+	}
+}
+
+func TestLoad_AcceptsFCMDirectPushProvider(t *testing.T) {
+	credentialsFile := filepath.Join(t.TempDir(), "firebase.json")
+	if err := os.WriteFile(credentialsFile, []byte(`{}`), 0o600); err != nil {
+		t.Fatalf("write credentials fixture: %v", err)
+	}
+	t.Setenv("USE_LOCAL_DB", "true")
+	t.Setenv("LOCAL_DATABASE_URL", "postgresql://dating_app@localhost:55432/dating_app")
+	t.Setenv("NOTIFICATION_PUSH_PROVIDER", "direct")
+	t.Setenv("NOTIFICATION_FCM_PROJECT_ID", "project-1")
+	t.Setenv("GOOGLE_APPLICATION_CREDENTIALS", credentialsFile)
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.NotificationPushProvider != "direct" || cfg.NotificationFCMCredentialsFile == "" {
+		t.Fatalf("cfg=%+v", cfg)
 	}
 }
 

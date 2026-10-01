@@ -1,439 +1,371 @@
 import 'package:flutter/material.dart';
-
+import 'package:flutter/services.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/widgets/glass_widgets.dart';
+import '../../../core/widgets/connect_brand.dart';
+import '../../../l10n/app_localizations.dart';
 import 'auth_screen.dart';
 import 'signup_screen.dart';
 
+/// First screen. Follows the member's theme the way Today does: flat theme
+/// ground, serif headline, one filled call to action.
+///
+/// Campaign photography is illustrative, never a member profile.
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    body: CrystalScaffold(
-      child: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final minHeight = constraints.maxHeight - 24;
-
-            return SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(24, 14, 24, 14),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    minHeight: minHeight < 0 ? 0 : minHeight,
-                    maxWidth: AppTheme.contentMaxWidth,
+  Widget build(BuildContext context) => AnnotatedRegion<SystemUiOverlayStyle>(
+    value: Theme.of(context).brightness == Brightness.dark
+        ? SystemUiOverlayStyle.light
+        : SystemUiOverlayStyle.dark,
+    child: Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      body: Stack(
+        children: [
+          SafeArea(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final wide = constraints.maxWidth >= 720;
+                return SingleChildScrollView(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: wide ? 40 : 24,
+                    vertical: 20,
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(top: 70),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const _PremiumBadge(),
-                            const SizedBox(height: 18),
-                            Text(
-                              'Verified people.\nReal chemistry.',
-                              style: Theme.of(context).textTheme.displayMedium
-                                  ?.copyWith(
-                                    color: Colors.white,
-                                    fontSize: 34,
-                                    fontWeight: FontWeight.w900,
-                                    height: 1.02,
-                                    letterSpacing: -0.5,
-                                  ),
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              'Skip the guessing. Meet safety-checked singles '
-                              'who are ready for intentional dating.',
-                              style: Theme.of(context).textTheme.bodyLarge
-                                  ?.copyWith(
-                                    color: Colors.white.withValues(alpha: 0.88),
-                                    height: 1.32,
-                                    letterSpacing: 0.05,
-                                  ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 22),
-                        child: _VerifiedMembersCard(),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 86),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            GlassButton(
-                              label: 'Create Account — It’s Free',
-                              icon: Icons.person_add_alt_1_rounded,
-                              shinyEffect: true,
-                              textColor: AppTheme.textDark,
-                              fontWeight: FontWeight.w900,
-                              onPressed: () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute<void>(
-                                    builder: (_) => const SignupScreen(),
-                                  ),
-                                );
-                              },
-                            ),
-                            const SizedBox(height: 14),
-                            _SignInMagnetButton(
-                              onTap: () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute<void>(
-                                    builder: (_) => const AuthScreen(),
-                                  ),
-                                );
-                              },
-                            ),
-                            const SizedBox(height: 14),
-                            Center(
-                              child: Text(
-                                'By continuing, you agree to our Terms and '
-                                'Privacy Policy.',
-                                textAlign: TextAlign.center,
-                                style: Theme.of(context).textTheme.bodySmall
-                                    ?.copyWith(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.72,
-                                      ),
-                                      height: 1.35,
-                                    ),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 1040),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const Row(
+                            children: [
+                              Expanded(
+                                flex: 3,
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  alignment: Alignment.centerLeft,
+                                  child: ConnectBrand(),
+                                ),
+                              ),
+                              SizedBox(width: 16),
+                              Expanded(flex: 2, child: _Tagline()),
+                            ],
+                          ),
+                          SizedBox(height: wide ? 40 : 22),
+                          if (wide)
+                            const Row(
+                              children: [
+                                Expanded(child: _WelcomePhoto(height: 560)),
+                                SizedBox(width: 48),
+                                Expanded(child: _WelcomeInvitation(wide: true)),
+                              ],
+                            )
+                          else ...[
+                            _WelcomePhoto(
+                              height: (constraints.maxHeight * .37).clamp(
+                                200,
+                                330,
                               ),
                             ),
+                            const SizedBox(height: 26),
+                            const _WelcomeInvitation(wide: false),
                           ],
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+class _Tagline extends StatelessWidget {
+  const _Tagline();
+
+  @override
+  Widget build(BuildContext context) => Text(
+    AppLocalizations.of(context).welcomeTagline,
+    textAlign: TextAlign.right,
+    style: AppTheme.technical(
+      11,
+      Theme.of(context).colorScheme.onSurfaceVariant,
+      letterSpacing: 1.4,
+    ).copyWith(fontWeight: FontWeight.w600),
+  );
+}
+
+class _WelcomePhoto extends StatelessWidget {
+  const _WelcomePhoto({required this.height});
+  final double height;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    height: height,
+    child: Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppTheme.radiusL),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppTheme.radiusL),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.asset(
+              'assets/images/connect-cafe.png',
+              fit: BoxFit.cover,
+              alignment: const Alignment(0, -.35),
+              excludeFromSemantics: true,
+            ),
+            // Scrim at the foot so the white chip stays legible over the
+            // photo in every theme.
+            const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Color(0x00120A18),
+                    Color(0x00120A18),
+                    Color(0x99120A18),
+                  ],
+                  stops: [0, 0.55, 1],
+                ),
+              ),
+            ),
+            Positioned.fill(
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(AppTheme.radiusL),
+                    border: Border.all(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: 16,
+              left: 16,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  // Dark glass so the white label holds contrast on any
+                  // photo, and on the light ground before the photo loads.
+                  color: Colors.black.withValues(alpha: 0.55),
+                  borderRadius: const BorderRadius.all(Radius.circular(30)),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.22),
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.north_east_rounded,
+                        size: 15,
+                        color: Colors.white,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        AppLocalizations.of(context).welcomePhotoNote,
+                        style: const TextStyle(
+                          color: AppTheme.inkOnDark,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
                   ),
                 ),
               ),
-            );
-          },
+            ),
+          ],
         ),
       ),
     ),
   );
 }
 
-class _PremiumBadge extends StatelessWidget {
-  const _PremiumBadge();
+class _WelcomeInvitation extends StatelessWidget {
+  const _WelcomeInvitation({required this.wide});
+  final bool wide;
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-    decoration: BoxDecoration(
-      color: const Color(0xFF1D1302).withValues(alpha: 0.42),
-      borderRadius: BorderRadius.circular(999),
-      border: Border.all(
-        color: AppTheme.pureGoldHighlight.withValues(alpha: 0.44),
-      ),
-      boxShadow: [
-        BoxShadow(
-          color: AppTheme.pureGoldBright.withValues(alpha: 0.18),
-          blurRadius: 20,
-          offset: const Offset(0, 8),
-        ),
-      ],
-    ),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    final headline = AppTheme.display(
+      wide ? 54 : 42,
+      scheme.onSurface,
+      height: 1.02,
+      tracking: -0.015,
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Icon(
-          Icons.local_fire_department_rounded,
-          size: 18,
-          color: AppTheme.pureGoldBright,
-        ),
-        const SizedBox(width: 7),
-        Text(
-          'Most loved premium dating app',
-          style: Theme.of(context).textTheme.labelMedium?.copyWith(
-            color: Colors.white,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0.12,
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-class _VerifiedMembersCard extends StatelessWidget {
-  const _VerifiedMembersCard();
-
-  @override
-  Widget build(BuildContext context) => GlassContainer(
-    padding: const EdgeInsets.all(16),
-    borderRadius: BorderRadius.circular(24),
-    backgroundColor: const Color(0xFF1A1204).withValues(alpha: 0.24),
-    border: Border.all(
-      color: AppTheme.pureGoldHighlight.withValues(alpha: 0.34),
-    ),
-    shadows: [
-      BoxShadow(
-        color: Colors.black.withValues(alpha: 0.12),
-        blurRadius: 24,
-        offset: const Offset(0, 14),
-      ),
-      BoxShadow(
-        color: AppTheme.pureGoldBright.withValues(alpha: 0.14),
-        blurRadius: 24,
-        offset: const Offset(0, 4),
-      ),
-    ],
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Container(
-              height: 42,
-              width: 42,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: LinearGradient(
-                  colors: [
-                    AppTheme.pureGoldHighlight.withValues(alpha: 0.96),
-                    AppTheme.pureGoldBright.withValues(alpha: 0.88),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+        RichText(
+          text: TextSpan(
+            style: headline,
+            children: [
+              TextSpan(text: l10n.welcomeHeadlineLead),
+              WidgetSpan(
+                alignment: PlaceholderAlignment.baseline,
+                baseline: TextBaseline.alphabetic,
+                child: Text(
+                  l10n.welcomeHeadlineAccent,
+                  style: headline.copyWith(
+                    fontStyle: FontStyle.italic,
+                    color: scheme.primary,
+                  ),
                 ),
               ),
-              child: const Icon(
-                Icons.groups_2_rounded,
-                color: AppTheme.pureGoldInk,
-                size: 22,
-              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+        Text(
+          l10n.welcomeBody,
+          style: TextStyle(
+            fontSize: 15,
+            height: 1.5,
+            color: scheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 26),
+        Semantics(
+          label: 'qa.welcome.signup_button',
+          button: true,
+          child: _EmberCta(
+            label: l10n.welcomeCreateAccount,
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const SignupScreen()),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          ),
+        ),
+        TextButton.icon(
+          icon: const Icon(Icons.people_outline),
+          label: const Text('Just here to introduce friends'),
+          onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => const SignupScreen(introducer: true),
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Semantics(
+          label: 'qa.welcome.signin_button',
+          button: true,
+          child: TextButton(
+            style: TextButton.styleFrom(
+              minimumSize: const Size.fromHeight(48),
+              foregroundColor: scheme.onSurface,
+            ),
+            onPressed: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute<void>(builder: (_) => const AuthScreen())),
+            child: RichText(
+              text: TextSpan(
+                style: TextStyle(
+                  fontFamily: AppTheme.uiFamily,
+                  fontSize: 14,
+                  color: scheme.onSurfaceVariant,
+                ),
                 children: [
-                  Text(
-                    '120k+ verified members',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -0.1,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Nearby, active, and safety checked',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.white.withValues(alpha: 0.78),
-                      fontWeight: FontWeight.w600,
+                  TextSpan(text: l10n.welcomeAlreadyMember),
+                  TextSpan(
+                    text: l10n.welcomeSignIn,
+                    style: TextStyle(
+                      color: scheme.primary,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ],
               ),
             ),
-            const _LivePulseBadge(),
-          ],
-        ),
-        const SizedBox(height: 14),
-        const Row(
-          children: [
-            Expanded(
-              child: _TrustChip(
-                icon: Icons.verified_rounded,
-                label: 'Verified',
-              ),
-            ),
-            SizedBox(width: 9),
-            Expanded(
-              child: _TrustChip(icon: Icons.shield_rounded, label: 'Protected'),
-            ),
-            SizedBox(width: 9),
-            Expanded(
-              child: _TrustChip(icon: Icons.favorite_rounded, label: 'Serious'),
-            ),
-          ],
-        ),
-      ],
-    ),
-  );
-}
-
-class _LivePulseBadge extends StatelessWidget {
-  const _LivePulseBadge();
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
-    decoration: BoxDecoration(
-      color: AppTheme.safetyGreen.withValues(alpha: 0.16),
-      borderRadius: BorderRadius.circular(999),
-      border: Border.all(color: AppTheme.safetyGreen.withValues(alpha: 0.42)),
-    ),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          height: 7,
-          width: 7,
-          decoration: const BoxDecoration(
-            color: AppTheme.safetyGreen,
-            shape: BoxShape.circle,
           ),
         ),
-        const SizedBox(width: 5),
+        const SizedBox(height: 8),
         Text(
-          'LIVE',
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-            color: Colors.white,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 0.5,
+          l10n.welcomeFooter,
+          textAlign: TextAlign.center,
+          style: AppTheme.technical(
+            10.5,
+            scheme.onSurfaceVariant,
+            letterSpacing: 1.2,
+            weight: FontWeight.w500,
           ),
         ),
       ],
-    ),
-  );
+    );
+  }
 }
 
-class _SignInMagnetButton extends StatelessWidget {
-  const _SignInMagnetButton({required this.onTap});
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => GestureDetector(
-    behavior: HitTestBehavior.opaque,
-    onTap: onTap,
-    child: Container(
-      height: 62,
-      width: double.infinity,
-      padding: const EdgeInsets.all(1.2),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
-        gradient: LinearGradient(
-          colors: [
-            Colors.white.withValues(alpha: 0.72),
-            AppTheme.pureGoldHighlight.withValues(alpha: 0.88),
-            AppTheme.pureGoldBright.withValues(alpha: 0.52),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.pureGoldBright.withValues(alpha: 0.2),
-            blurRadius: 24,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(21),
-          gradient: LinearGradient(
-            colors: [
-              const Color(0xFF3A2707).withValues(alpha: 0.94),
-              const Color(0xFF7E570C).withValues(alpha: 0.9),
-              const Color(0xFF2B1A03).withValues(alpha: 0.92),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          child: Row(
-            children: [
-              Container(
-                height: 38,
-                width: 38,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.16),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.28),
-                  ),
-                ),
-                child: const Icon(
-                  Icons.login_rounded,
-                  color: AppTheme.pureGoldHighlight,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Already a member?',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.72),
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 1),
-                    Text(
-                      'Sign in and continue your story',
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.1,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              const Icon(
-                Icons.arrow_forward_rounded,
-                color: AppTheme.pureGoldHighlight,
-                size: 22,
-              ),
-            ],
-          ),
-        ),
-      ),
-    ),
-  );
-}
-
-class _TrustChip extends StatelessWidget {
-  const _TrustChip({required this.icon, required this.label});
-  final IconData icon;
+/// The one filled button on the screen, in the theme's primary colour.
+class _EmberCta extends StatelessWidget {
+  const _EmberCta({required this.label, required this.onPressed});
   final String label;
+  final VoidCallback onPressed;
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-    decoration: BoxDecoration(
-      color: Colors.white.withValues(alpha: 0.13),
-      borderRadius: const BorderRadius.all(Radius.circular(999)),
-      border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-    ),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(icon, size: 15, color: AppTheme.pureGoldBright),
-        const SizedBox(width: 5),
-        Flexible(
-          child: Text(
-            label,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AppTheme.textLight,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.1,
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      color: Colors.transparent,
+      child: Ink(
+        decoration: BoxDecoration(
+          color: scheme.primary,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(999),
+          child: SizedBox(
+            height: 58,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      label,
+                      style: TextStyle(
+                        fontFamily: AppTheme.uiFamily,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.2,
+                        color: scheme.onPrimary,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: scheme.onPrimary.withValues(alpha: 0.18),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.arrow_forward_rounded,
+                      color: scheme.onPrimary,
+                      size: 20,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
-      ],
-    ),
-  );
+      ),
+    );
+  }
 }

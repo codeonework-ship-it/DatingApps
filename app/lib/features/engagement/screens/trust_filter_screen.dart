@@ -1,3 +1,4 @@
+import '../../swipe/providers/curated_daily_set_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -97,7 +98,10 @@ class _TrustFilterScreenState extends ConsumerState<TrustFilterScreen> {
                               growable: false,
                             ),
                           );
-                          if (mounted) {
+                          ref.invalidate(curatedDailySetProvider);
+                          if (context.mounted &&
+                              ref.read(trustFilterNotifierProvider).error ==
+                                  null) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text('Trust filters saved.'),

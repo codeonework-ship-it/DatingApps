@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -17,11 +19,69 @@ class ProfilePhotoItem {
     required this.photoUrl,
     required this.storagePath,
     required this.ordering,
+    this.originalFilename = '',
+    this.mimeType = '',
+    this.widthPx = 0,
+    this.heightPx = 0,
+    this.sizeBytes = 0,
+    this.moderationStatus = 'pending',
   });
   final String id;
   final String photoUrl;
   final String storagePath;
   final int ordering;
+  final String originalFilename;
+  final String mimeType;
+  final int widthPx;
+  final int heightPx;
+  final int sizeBytes;
+  final String moderationStatus;
+
+  bool get isHeic =>
+      mimeType == 'image/heic' ||
+      originalFilename.toLowerCase().endsWith('.heic') ||
+      photoUrl.toLowerCase().contains('.heic');
+
+  ProfilePhotoItem withOrdering(int value) => ProfilePhotoItem(
+    id: id,
+    photoUrl: photoUrl,
+    storagePath: storagePath,
+    ordering: value,
+    originalFilename: originalFilename,
+    mimeType: mimeType,
+    widthPx: widthPx,
+    heightPx: heightPx,
+    sizeBytes: sizeBytes,
+    moderationStatus: moderationStatus,
+  );
+}
+
+String profileMediaErrorMessage(Object error) {
+  if (error is StateError) {
+    return error.message.toString();
+  }
+  if (error is DioException) {
+    final data = error.response?.data;
+    final serverMessage = data is Map
+        ? (data['error'] ?? data['message'])?.toString().trim()
+        : data?.toString().trim();
+    if (serverMessage != null && serverMessage.isNotEmpty) {
+      return serverMessage;
+    }
+    switch (error.response?.statusCode) {
+      case 413:
+        return 'This photo is larger than the 10 MB limit.';
+      case 415:
+        return 'Use a JPEG, PNG, WebP, or HEIC photo.';
+      case 422:
+        return 'Photo dimensions must be between 300×300 and 4096×4096.';
+      case 409:
+        return 'Your profile photo quota has been reached.';
+      case 507:
+        return 'Photo storage is temporarily full. Please try again later.';
+    }
+  }
+  return 'Photo update failed. Please try again.';
 }
 
 class ProfileDraft {
@@ -119,6 +179,9 @@ class ProfileDraft {
   final String? motherTongue;
   final bool hookupOnly;
 
+  // Optional edits must distinguish an omitted argument from an explicit clear.
+  static const _unchanged = Object();
+
   ProfileDraft copyWith({
     String? phoneNumber,
     String? name,
@@ -126,10 +189,10 @@ class ProfileDraft {
     String? gender,
     List<ProfilePhotoItem>? photos,
     String? bio,
-    int? heightCm,
-    String? education,
-    String? profession,
-    String? incomeRange,
+    Object? heightCm = _unchanged,
+    Object? education = _unchanged,
+    Object? profession = _unchanged,
+    Object? incomeRange = _unchanged,
     List<String>? seekingGenders,
     int? minAgeYears,
     int? maxAgeYears,
@@ -137,30 +200,30 @@ class ProfileDraft {
     List<String>? educationFilter,
     bool? seriousOnly,
     bool? verifiedOnly,
-    String? country,
-    String? regionState,
-    String? city,
-    String? instagramHandle,
+    Object? country = _unchanged,
+    Object? regionState = _unchanged,
+    Object? city = _unchanged,
+    Object? instagramHandle = _unchanged,
     List<String>? hobbies,
     List<String>? favoriteBooks,
     List<String>? favoriteNovels,
     List<String>? favoriteSongs,
     List<String>? extraCurriculars,
-    String? additionalInfo,
+    Object? additionalInfo = _unchanged,
     List<String>? intentTags,
     List<String>? languageTags,
-    String? petPreference,
-    String? dietPreference,
-    String? workoutFrequency,
-    String? dietType,
-    String? sleepSchedule,
-    String? travelStyle,
-    String? politicalComfortRange,
+    Object? petPreference = _unchanged,
+    Object? dietPreference = _unchanged,
+    Object? workoutFrequency = _unchanged,
+    Object? dietType = _unchanged,
+    Object? sleepSchedule = _unchanged,
+    Object? travelStyle = _unchanged,
+    Object? politicalComfortRange = _unchanged,
     List<String>? dealBreakerTags,
     String? drinking,
     String? smoking,
-    String? religion,
-    String? motherTongue,
+    Object? religion = _unchanged,
+    Object? motherTongue = _unchanged,
     bool? hookupOnly,
   }) => ProfileDraft(
     userId: userId,
@@ -170,10 +233,18 @@ class ProfileDraft {
     gender: gender ?? this.gender,
     photos: photos ?? this.photos,
     bio: bio ?? this.bio,
-    heightCm: heightCm ?? this.heightCm,
-    education: education ?? this.education,
-    profession: profession ?? this.profession,
-    incomeRange: incomeRange ?? this.incomeRange,
+    heightCm: identical(heightCm, _unchanged)
+        ? this.heightCm
+        : heightCm as int?,
+    education: identical(education, _unchanged)
+        ? this.education
+        : education as String?,
+    profession: identical(profession, _unchanged)
+        ? this.profession
+        : profession as String?,
+    incomeRange: identical(incomeRange, _unchanged)
+        ? this.incomeRange
+        : incomeRange as String?,
     seekingGenders: seekingGenders ?? this.seekingGenders,
     minAgeYears: minAgeYears ?? this.minAgeYears,
     maxAgeYears: maxAgeYears ?? this.maxAgeYears,
@@ -181,30 +252,54 @@ class ProfileDraft {
     educationFilter: educationFilter ?? this.educationFilter,
     seriousOnly: seriousOnly ?? this.seriousOnly,
     verifiedOnly: verifiedOnly ?? this.verifiedOnly,
-    country: country ?? this.country,
-    regionState: regionState ?? this.regionState,
-    city: city ?? this.city,
-    instagramHandle: instagramHandle ?? this.instagramHandle,
+    country: identical(country, _unchanged) ? this.country : country as String?,
+    regionState: identical(regionState, _unchanged)
+        ? this.regionState
+        : regionState as String?,
+    city: identical(city, _unchanged) ? this.city : city as String?,
+    instagramHandle: identical(instagramHandle, _unchanged)
+        ? this.instagramHandle
+        : instagramHandle as String?,
     hobbies: hobbies ?? this.hobbies,
     favoriteBooks: favoriteBooks ?? this.favoriteBooks,
     favoriteNovels: favoriteNovels ?? this.favoriteNovels,
     favoriteSongs: favoriteSongs ?? this.favoriteSongs,
     extraCurriculars: extraCurriculars ?? this.extraCurriculars,
-    additionalInfo: additionalInfo ?? this.additionalInfo,
+    additionalInfo: identical(additionalInfo, _unchanged)
+        ? this.additionalInfo
+        : additionalInfo as String?,
     intentTags: intentTags ?? this.intentTags,
     languageTags: languageTags ?? this.languageTags,
-    petPreference: petPreference ?? this.petPreference,
-    dietPreference: dietPreference ?? this.dietPreference,
-    workoutFrequency: workoutFrequency ?? this.workoutFrequency,
-    dietType: dietType ?? this.dietType,
-    sleepSchedule: sleepSchedule ?? this.sleepSchedule,
-    travelStyle: travelStyle ?? this.travelStyle,
-    politicalComfortRange: politicalComfortRange ?? this.politicalComfortRange,
+    petPreference: identical(petPreference, _unchanged)
+        ? this.petPreference
+        : petPreference as String?,
+    dietPreference: identical(dietPreference, _unchanged)
+        ? this.dietPreference
+        : dietPreference as String?,
+    workoutFrequency: identical(workoutFrequency, _unchanged)
+        ? this.workoutFrequency
+        : workoutFrequency as String?,
+    dietType: identical(dietType, _unchanged)
+        ? this.dietType
+        : dietType as String?,
+    sleepSchedule: identical(sleepSchedule, _unchanged)
+        ? this.sleepSchedule
+        : sleepSchedule as String?,
+    travelStyle: identical(travelStyle, _unchanged)
+        ? this.travelStyle
+        : travelStyle as String?,
+    politicalComfortRange: identical(politicalComfortRange, _unchanged)
+        ? this.politicalComfortRange
+        : politicalComfortRange as String?,
     dealBreakerTags: dealBreakerTags ?? this.dealBreakerTags,
     drinking: drinking ?? this.drinking,
     smoking: smoking ?? this.smoking,
-    religion: religion ?? this.religion,
-    motherTongue: motherTongue ?? this.motherTongue,
+    religion: identical(religion, _unchanged)
+        ? this.religion
+        : religion as String?,
+    motherTongue: identical(motherTongue, _unchanged)
+        ? this.motherTongue
+        : motherTongue as String?,
     hookupOnly: hookupOnly ?? this.hookupOnly,
   );
 
@@ -251,27 +346,17 @@ class ProfileSetupNotifier extends _$ProfileSetupNotifier {
     // forward/back never triggers a re-fetch that could wipe in-progress data.
     ref.keepAlive();
 
-    final fallbackPhone = auth.email ?? '';
+    const fallbackPhone = '';
 
     try {
-      final draft = await _fetchDraft(userId, fallbackPhone: fallbackPhone);
+      final draft = await _fetchDraft(
+        userId,
+        fallbackPhone: fallbackPhone,
+      ).timeout(const Duration(seconds: 10));
       return _applySignupFallback(draft, auth.pendingSignup);
-    } on DioException catch (e, stackTrace) {
-      log
-        ..warning(
-          'Profile draft API unavailable, using local fallback: ${e.message}',
-        )
-        ..error('Profile draft API unavailable', e, stackTrace);
-      return _applySignupFallback(
-        _defaultDraft(userId, fallbackPhone),
-        auth.pendingSignup,
-      );
     } on Object catch (e, stackTrace) {
       log.error('Failed to load profile draft', e, stackTrace);
-      return _applySignupFallback(
-        _defaultDraft(userId, fallbackPhone),
-        auth.pendingSignup,
-      );
+      rethrow;
     }
   }
 
@@ -468,6 +553,9 @@ class ProfileSetupNotifier extends _$ProfileSetupNotifier {
         'Maximum ${ValidationConstants.maxPhotos} photos are allowed.',
       );
     }
+    if (await file.length() > 10 * 1024 * 1024) {
+      throw StateError('This photo is larger than the 10 MB limit.');
+    }
 
     final ts = DateTime.now().millisecondsSinceEpoch;
     final photoId = '${current.userId}-$ts';
@@ -488,8 +576,8 @@ class ProfileSetupNotifier extends _$ProfileSetupNotifier {
       // ── 2. Upload to Go BFF via multipart/form-data ──────────────────────
       final dio = ref.read(apiClientProvider);
       final multipart = FormData.fromMap({
-        'image': await MultipartFile.fromFile(
-          file.path,
+        'image': MultipartFile.fromBytes(
+          await file.readAsBytes(),
           filename: '$photoId$ext',
         ),
       });
@@ -541,14 +629,7 @@ class ProfileSetupNotifier extends _$ProfileSetupNotifier {
       ..removeWhere((item) => item.id == photo.id);
     final normalized = <ProfilePhotoItem>[];
     for (var i = 0; i < remaining.length; i++) {
-      normalized.add(
-        ProfilePhotoItem(
-          id: remaining[i].id,
-          photoUrl: remaining[i].photoUrl,
-          storagePath: remaining[i].storagePath,
-          ordering: i,
-        ),
-      );
+      normalized.add(remaining[i].withOrdering(i));
     }
     final optimistic = current.copyWith(photos: normalized);
     state = AsyncData(optimistic);
@@ -567,7 +648,12 @@ class ProfileSetupNotifier extends _$ProfileSetupNotifier {
       );
     } on DioException catch (e, stackTrace) {
       log.error('Failed to delete photo', e, stackTrace);
-      state = AsyncData(optimistic);
+      state = AsyncData(current);
+      rethrow;
+    } on Object catch (e, stackTrace) {
+      log.error('Unexpected error deleting photo', e, stackTrace);
+      state = AsyncData(current);
+      rethrow;
     }
   }
 
@@ -580,14 +666,7 @@ class ProfileSetupNotifier extends _$ProfileSetupNotifier {
 
     final normalized = <ProfilePhotoItem>[];
     for (var i = 0; i < photos.length; i++) {
-      normalized.add(
-        ProfilePhotoItem(
-          id: photos[i].id,
-          photoUrl: photos[i].photoUrl,
-          storagePath: photos[i].storagePath,
-          ordering: i,
-        ),
-      );
+      normalized.add(photos[i].withOrdering(i));
     }
     final optimistic = current.copyWith(photos: normalized);
     state = AsyncData(optimistic);
@@ -607,7 +686,12 @@ class ProfileSetupNotifier extends _$ProfileSetupNotifier {
       );
     } on DioException catch (e, stackTrace) {
       log.error('Failed to reorder photos', e, stackTrace);
-      state = AsyncData(optimistic);
+      state = AsyncData(current);
+      rethrow;
+    } on Object catch (e, stackTrace) {
+      log.error('Unexpected error reordering photos', e, stackTrace);
+      state = AsyncData(current);
+      rethrow;
     }
   }
 
@@ -619,6 +703,7 @@ class ProfileSetupNotifier extends _$ProfileSetupNotifier {
         current.dateOfBirth != null &&
         current.gender.trim().isNotEmpty &&
         current.photos.length >= ValidationConstants.minPhotos &&
+        current.bio.trim().length >= ValidationConstants.minBioLength &&
         current.seekingGenders.isNotEmpty;
 
     if (!isValid) {
@@ -672,6 +757,8 @@ class ProfileSetupNotifier extends _$ProfileSetupNotifier {
     } on DioException catch (e, stackTrace) {
       log.error('Failed to patch profile draft', e, stackTrace);
       state = AsyncData(optimistic);
+      // Keep edits available for retry, but do not acknowledge a failed write.
+      rethrow;
     }
   }
 
@@ -694,6 +781,18 @@ class ProfileSetupNotifier extends _$ProfileSetupNotifier {
             photoUrl: _asString(item['photo_url'], fallback: ''),
             storagePath: _asString(item['storage_path'], fallback: ''),
             ordering: _asInt(item['ordering'], fallback: 0),
+            originalFilename: _asString(
+              item['original_filename'],
+              fallback: '',
+            ),
+            mimeType: _asString(item['mime_type'], fallback: ''),
+            widthPx: _asInt(item['width_px'], fallback: 0),
+            heightPx: _asInt(item['height_px'], fallback: 0),
+            sizeBytes: _asInt(item['size_bytes'], fallback: 0),
+            moderationStatus: _asString(
+              item['moderation_status'],
+              fallback: 'pending',
+            ),
           ),
         )
         .toList();
@@ -750,62 +849,12 @@ class ProfileSetupNotifier extends _$ProfileSetupNotifier {
     );
   }
 
-  ProfileDraft _defaultDraft(String userId, String fallbackPhone) =>
-      ProfileDraft(
-        userId: userId,
-        phoneNumber: fallbackPhone,
-        name: '',
-        dateOfBirth: null,
-        gender: 'M',
-        photos: const [],
-        bio: '',
-        heightCm: null,
-        education: null,
-        profession: null,
-        incomeRange: null,
-        seekingGenders: const ['M', 'F'],
-        minAgeYears: 18,
-        maxAgeYears: 60,
-        maxDistanceKm: 50,
-        educationFilter: const [],
-        seriousOnly: true,
-        verifiedOnly: false,
-        country: null,
-        regionState: null,
-        city: null,
-        instagramHandle: null,
-        hobbies: const [],
-        favoriteBooks: const [],
-        favoriteNovels: const [],
-        favoriteSongs: const [],
-        extraCurriculars: const [],
-        additionalInfo: null,
-        intentTags: const [],
-        languageTags: const [],
-        petPreference: null,
-        dietPreference: null,
-        workoutFrequency: null,
-        dietType: null,
-        sleepSchedule: null,
-        travelStyle: null,
-        politicalComfortRange: null,
-        dealBreakerTags: const [],
-        drinking: 'Never',
-        smoking: 'Never',
-        religion: null,
-        motherTongue: null,
-        hookupOnly: false,
-      );
-
   ProfileDraft _applySignupFallback(ProfileDraft draft, SignupDraft? signup) {
     if (signup == null) {
       return draft;
     }
     final parsedDob = _parseDate(signup.dateOfBirth.trim());
     return draft.copyWith(
-      phoneNumber: draft.phoneNumber.trim().isEmpty
-          ? signup.phoneNumber.trim()
-          : draft.phoneNumber,
       name: draft.name.trim().isEmpty ? signup.name.trim() : draft.name,
       dateOfBirth: draft.dateOfBirth ?? parsedDob,
       gender: draft.gender.trim().isEmpty ? signup.gender.trim() : draft.gender,

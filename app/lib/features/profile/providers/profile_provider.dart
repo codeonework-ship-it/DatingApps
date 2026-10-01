@@ -65,7 +65,7 @@ class ProfileNotifier extends _$ProfileNotifier {
         final now = DateTime.now();
         final mockUserId =
             authState.userId ?? AppRuntimeConfig.mockFallbackUserId;
-        final mockContact = authState.email ?? '+919900000000';
+        const mockContact = '+919900000000';
         state = state.copyWith(
           user: User(
             id: mockUserId,
@@ -155,8 +155,7 @@ class ProfileNotifier extends _$ProfileNotifier {
           final now = DateTime.now();
           final fallbackUser = User(
             id: currentUserId,
-            phoneNumber: (draft['phone_number'] ?? authState.email ?? '')
-                .toString(),
+            phoneNumber: (draft['phone_number'] ?? '').toString(),
             name: (draft['name'] ?? 'You').toString(),
             dateOfBirth:
                 DateTime.tryParse((draft['date_of_birth'] ?? '').toString()) ??
@@ -229,7 +228,7 @@ class ProfileNotifier extends _$ProfileNotifier {
           _normalizeUserJson(
             userRaw,
             currentUserId: currentUserId,
-            fallbackPhone: authState.email ?? '+919900000000',
+            fallbackPhone: '+919900000000',
           ),
         ),
         preferences: preferencesRaw.isEmpty
@@ -251,42 +250,6 @@ class ProfileNotifier extends _$ProfileNotifier {
       final message = data is Map && data['error'] != null
           ? data['error'].toString()
           : 'Failed to load profile. Please try again.';
-      if (_isSupabaseBackedProfileFailure(e, message)) {
-        final authState = ref.read(authNotifierProvider);
-        final fallbackUserId = authState.userId;
-        if (fallbackUserId != null) {
-          final now = DateTime.now();
-          final fallbackUser =
-              state.user ??
-              User(
-                id: fallbackUserId,
-                phoneNumber: authState.email ?? '+919900000000',
-                name: 'You',
-                dateOfBirth: DateTime(1996, 1, 1),
-                gender: 'Prefer not to say',
-                profileCompletion: 65,
-                isVerified: false,
-                verificationBadge: false,
-                createdAt: now,
-                lastLogin: now,
-                isActive: true,
-                isBlocked: false,
-                blockedUsers: const <String>[],
-                updatedAt: now,
-              );
-
-          state = state.copyWith(
-            user: fallbackUser,
-            preferences: state.preferences,
-            likesCount: state.likesCount,
-            matchesCount: state.matchesCount,
-            messagesCount: state.messagesCount,
-            isLoading: false,
-            error: null,
-          );
-          return;
-        }
-      }
       state = state.copyWith(isLoading: false, error: message);
     } catch (e, stackTrace) {
       log.error('Failed to load profile', e, stackTrace);
@@ -298,7 +261,7 @@ class ProfileNotifier extends _$ProfileNotifier {
             state.user ??
             User(
               id: fallbackUserId,
-              phoneNumber: authState.email ?? '+919900000000',
+              phoneNumber: '+919900000000',
               name: 'You',
               dateOfBirth: DateTime(1996, 1, 1),
               gender: 'Prefer not to say',
@@ -332,17 +295,6 @@ class ProfileNotifier extends _$ProfileNotifier {
   Future<void> refresh() async {
     await _load();
   }
-}
-
-bool _isSupabaseBackedProfileFailure(DioException error, String message) {
-  final lowered = message.toLowerCase();
-  if (lowered.contains('supabase') && lowered.contains('request failed')) {
-    return true;
-  }
-  final payload = error.response?.data;
-  final payloadText = payload?.toString().toLowerCase() ?? '';
-  return payloadText.contains('supabase') &&
-      payloadText.contains('request failed');
 }
 
 String? _asNullableString(dynamic value) {
@@ -379,9 +331,9 @@ Map<String, dynamic> _normalizeUserJson(
         ? currentUserId
         : _pickString(raw, const ['id']),
     'phoneNumber':
-        _pickString(raw, const ['phoneNumber', 'phone_number', 'email']).isEmpty
+        _pickString(raw, const ['phoneNumber', 'phone_number']).isEmpty
         ? fallbackPhone
-        : _pickString(raw, const ['phoneNumber', 'phone_number', 'email']),
+        : _pickString(raw, const ['phoneNumber', 'phone_number']),
     'name': _pickString(raw, const ['name']).isEmpty
         ? 'You'
         : _pickString(raw, const ['name']),

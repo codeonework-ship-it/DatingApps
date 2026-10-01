@@ -1,0 +1,68 @@
+{
+  "contract_id": "connect.calls-identity-voice-push",
+  "contract_version": "1.0.0",
+  "effective_date": "2026-09-27",
+  "implementation": {
+    "call_transport": {
+      "status": "implemented",
+      "production_mode": "jitsi_jwt",
+      "token_ttl_seconds": 300,
+      "public_jitsi_allowed_in_production": false,
+      "member_and_room_bound_tokens": true
+    },
+    "identity_verification": {
+      "status": "implemented",
+      "provider_mode": "webhook",
+      "evidence_delivery": "validated_multipart_bytes",
+      "supported_decisions": ["approved", "rejected", "manual_review"],
+      "provider_failure_behavior": "fail_closed_and_delete_uncommitted_uploads"
+    },
+    "voice": {
+      "status": "implemented",
+      "moderation_mode": "webhook",
+      "supported_decisions": ["approved", "rejected", "manual_review"],
+      "playback": "short_lived_signed_private_stream",
+      "rejected_or_manual_review_audio_is_deliverable": false
+    },
+    "push": {
+      "status": "implemented_pending_physical_device_acceptance",
+      "providers": ["fcm_http_v1", "apns_http2"],
+      "provider_ack_is_device_display_evidence": false
+    }
+  },
+  "physical_push_matrix": [
+    {"id":"PUSH-AND-FG-CALL","platform":"android","app_state":"foreground","event":"incoming_call","status":"pending","evidence":null},
+    {"id":"PUSH-AND-FG-NUDGE","platform":"android","app_state":"foreground","event":"match_nudge","status":"pending","evidence":null},
+    {"id":"PUSH-AND-BG-CALL","platform":"android","app_state":"background","event":"incoming_call","status":"pending","evidence":null},
+    {"id":"PUSH-AND-BG-NUDGE","platform":"android","app_state":"background","event":"match_nudge","status":"pending","evidence":null},
+    {"id":"PUSH-AND-TERM-CALL","platform":"android","app_state":"terminated","event":"incoming_call","status":"pending","evidence":null},
+    {"id":"PUSH-AND-TERM-NUDGE","platform":"android","app_state":"terminated","event":"match_nudge","status":"pending","evidence":null},
+    {"id":"PUSH-IOS-FG-CALL","platform":"ios","app_state":"foreground","event":"incoming_call","status":"pending","evidence":null},
+    {"id":"PUSH-IOS-FG-NUDGE","platform":"ios","app_state":"foreground","event":"match_nudge","status":"pending","evidence":null},
+    {"id":"PUSH-IOS-BG-CALL","platform":"ios","app_state":"background","event":"incoming_call","status":"pending","evidence":null},
+    {"id":"PUSH-IOS-BG-NUDGE","platform":"ios","app_state":"background","event":"match_nudge","status":"pending","evidence":null},
+    {"id":"PUSH-IOS-TERM-CALL","platform":"ios","app_state":"terminated","event":"incoming_call","status":"pending","evidence":null},
+    {"id":"PUSH-IOS-TERM-NUDGE","platform":"ios","app_state":"terminated","event":"match_nudge","status":"pending","evidence":null}
+  ],
+  "additional_acceptance": [
+    {"id":"PUSH-TOKEN-ROTATION","status":"pending","evidence":null},
+    {"id":"PUSH-INVALID-FCM","status":"pending","evidence":null},
+    {"id":"PUSH-INVALID-APNS","status":"pending","evidence":null},
+    {"id":"CALL-PAIRED-DEVICES","status":"pending","evidence":null},
+    {"id":"CALL-NETWORK-CHANGE","status":"pending","evidence":null},
+    {"id":"IDENTITY-PROVIDER-CORPUS","status":"pending","evidence":null},
+    {"id":"VOICE-PHYSICAL-RECORD-PLAY","status":"pending","evidence":null},
+    {"id":"VOICE-MODERATION-CORPUS","status":"pending","evidence":null}
+  ],
+  "production_acceptance": {
+    "decision": "NO_GO",
+    "rationale": "Provider code is implemented, but no production credentials, signed Android/iOS physical devices, paired call run, or labelled provider corpus evidence is present."
+  },
+  "backlog_disposition": {
+    "PEN-03": "signed_private_call_transport_implemented_paired_device_acceptance_pending",
+    "PEN-04": "identity_provider_adapter_implemented_target_provider_corpus_pending",
+    "PEN-09": "voice_moderation_and_private_playback_implemented_device_and_corpus_acceptance_pending",
+    "PEN-35": "fcm_apns_code_complete_physical_device_matrix_pending",
+    "PEN-36": "provider_failure_and_private_media_controls_implemented_target_environment_acceptance_pending"
+  }
+}

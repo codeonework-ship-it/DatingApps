@@ -1,0 +1,65 @@
+// Grafana Alloy: ships Connect's journald logs (and the nginx error log) to
+// the local Loki. Installed to /etc/alloy/config.alloy; the alloy user must be
+// in the systemd-journal and adm groups (install_monitoring.sh does this).
+// Labels stay low-cardinality (unit, level, priority); correlation_id and
+// route travel as structured metadata so they are searchable without
+// exploding streams.
+
+loki.relabel "journal" {
+  forward_to = []
+
+  rule {
+    source_labels = ["__journal__systemd_unit"]
+    regex         = `(connect.*|nginx|postgresql.*|grafana-server|loki|alloy)\.service`
+    action        = "keep"
+  }
+  rule {
+    source_labels = ["__journal__systemd_unit"]
+    target_label  = "unit"
+  }
+  rule {
+    source_labels = ["__journal_priority_keyword"]
+    target_label  = "priority"
+  }
+}
+
+loki.source.journal "system" {
+  max_age       = "12h"
+  relabel_rules = loki.relabel.journal.rules
+  forward_to    = [loki.process.connect.receiver]
+  labels        = {job = "journal", host = constants.hostname}
+}
+
+loki.process "connect" {
+  forward_to = [loki.write.local.receiver]
+
+  // Connect services log zap JSON in production.
+  stage.match {
+    selector = `{unit=~"connect.*"}`
+
+    stage.json {
+      expressions = {level = "level", correlation_id = "correlation_id", route = "route"}
+    }
+    stage.labels {
+      values = {level = ""}
+    }
+    stage.structured_metadata {
+      values = {correlation_id = "", route = ""}
+    }
+  }
+}
+
+local.file_match "nginx_errors" {
+  path_targets = [{"__path__" = "/var/log/nginx/error.log", job = "nginx", unit = "nginx.service"}]
+}
+
+loki.source.file "nginx_errors" {
+  targets    = local.file_match.nginx_errors.targets
+  forward_to = [loki.write.local.receiver]
+}
+
+loki.write "local" {
+  endpoint {
+    url = "http://127.0.0.1:3100/loki/api/v1/push"
+  }
+}

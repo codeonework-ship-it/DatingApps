@@ -1,0 +1,52 @@
+{% extends "control_panel/base.html" %}
+{% block topbar_title %}Operator Audit{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="eyebrow">Append-only evidence</div>
+    <h1><i class="bi bi-fingerprint header-icon"></i> Operator Audit Log</h1>
+    <p class="text-muted mb-0">Who changed platform state, what they changed and the request correlation trail.</p>
+  </div>
+  <div class="text-end"><span class="badge badge-active">Immutable</span><div class="text-muted small mt-2">{{ source }}</div></div>
+</div>
+
+<div class="glass-card mb-4">
+  <form method="get" class="row g-3 align-items-end">
+    <div class="col-md-3"><label class="form-label">Event type</label><input name="event_type" value="{{ filters.event_type }}" class="glass-input" placeholder="admin.request"></div>
+    <div class="col-md-3"><label class="form-label">Actor user ID</label><input name="actor_user_id" value="{{ filters.actor_user_id }}" class="glass-input" placeholder="UUID"></div>
+    <div class="col-md-2"><label class="form-label">Resource</label><input name="resource_type" value="{{ filters.resource_type }}" class="glass-input" placeholder="users"></div>
+    <div class="col-md-2"><label class="form-label">Limit</label><input type="number" name="limit" value="{{ limit }}" min="1" max="500" class="glass-input"></div>
+    <div class="col-md-2 d-flex gap-2"><button class="btn btn-glow" type="submit"><i class="bi bi-funnel me-1"></i>Apply</button><a href="{% url 'audit_log' %}" class="btn btn-glass">Clear</a></div>
+  </form>
+</div>
+
+{% if error %}<div class="alert-glass warning"><i class="bi bi-exclamation-triangle"></i>{{ error }}</div>{% endif %}
+
+<div class="glass-card">
+  <div class="d-flex justify-content-between mb-3"><span class="text-muted small">{{ events|length }} event{{ events|length|pluralize }}</span><span class="text-muted small">Snapshot {{ snapshot_at|date:"M d, H:i:s" }} UTC</span></div>
+  {% if events %}
+  <div class="table-responsive">
+    <table class="glass-table">
+      <thead><tr><th>Time</th><th>Event</th><th>Actor</th><th>Subject</th><th>Resource</th><th>Request</th></tr></thead>
+      <tbody>
+      {% for item in events %}
+        <tr>
+          <td class="text-muted small text-nowrap">{% firstof item.occurred_at "—" %}</td>
+          <td><span class="badge badge-purple">{{ item.event_type }}</span><div class="font-monospace text-muted small mt-1">tx {{ item.txid }}</div></td>
+          <td><div>{{ item.actor_role }}</div><div class="font-monospace text-muted small">{{ item.actor_user_id|truncatechars:18 }}</div></td>
+          <td class="font-monospace text-muted small">{{ item.subject_user_id|default:"—"|truncatechars:18 }}</td>
+          <td><div>{{ item.resource_type }}</div><div class="font-monospace text-muted small">{{ item.resource_id|default:"—"|truncatechars:24 }}</div></td>
+          <td>
+            {% if item.payload.method %}<div><strong>{{ item.payload.method }}</strong> · {{ item.payload.status|default:"—" }}</div>{% endif %}
+            {% if item.payload.path %}<div class="font-monospace text-muted small">{{ item.payload.path|truncatechars:34 }}</div>{% endif %}
+            <div class="font-monospace text-muted small">{{ item.correlation_id|default:"—"|truncatechars:28 }}</div>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}<div class="empty-command-state">No audit events matched these filters.</div>{% endif %}
+</div>
+{% endblock %}

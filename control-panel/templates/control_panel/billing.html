@@ -17,6 +17,12 @@
     <a href="{% url 'billing_payments' %}" class="btn btn-glass">
       <i class="bi bi-receipt me-2"></i>Payments
     </a>
+    <a href="{% url 'billing_webhook_events' %}" class="btn btn-glass">
+      <i class="bi bi-broadcast me-2"></i>Webhooks
+    </a>
+    <a href="{% url 'billing_reconciliation' %}" class="btn btn-glass">
+      <i class="bi bi-clipboard-check me-2"></i>Reconciliation
+    </a>
     <a href="{% url 'billing_revenue_analytics' %}" class="btn btn-glow">
       <i class="bi bi-graph-up-arrow me-2"></i>Revenue
     </a>
@@ -58,15 +64,15 @@
       <div style="font-size:1.6rem;font-weight:700;color:var(--gold);">
         <i class="bi bi-coin me-1"></i>{{ total_coins_purchased|default:"0" }}
       </div>
-      <div class="text-muted small">Total Coins Purchased</div>
+      <div class="text-muted small">Coins purchased, live, last 30 days (grants excluded)</div>
     </div>
   </div>
   <div class="col-sm-6 col-lg-4">
     <div class="glass-card text-center py-3">
       <div style="font-size:1.6rem;font-weight:700;color:#22c55e;">
-        <i class="bi bi-currency-dollar me-1"></i>{{ total_revenue_minor|default:"0" }}
+        {% for r in revenue_by_currency %}<div>{{ r.net }} {{ r.currency }}</div>{% empty %}0.00{% endfor %}
       </div>
-      <div class="text-muted small">Total Revenue (minor units)</div>
+      <div class="text-muted small">Net revenue, live, last 30 days (per currency)</div>
     </div>
   </div>
   <div class="col-sm-6 col-lg-4">
@@ -74,7 +80,7 @@
       <div style="font-size:1.6rem;font-weight:700;color:var(--aqua);">
         <i class="bi bi-people me-1"></i>{{ unique_buyers|default:"0" }}
       </div>
-      <div class="text-muted small">Unique Buyers</div>
+      <div class="text-muted small">Paying members, last 30 days</div>
     </div>
   </div>
 </div>

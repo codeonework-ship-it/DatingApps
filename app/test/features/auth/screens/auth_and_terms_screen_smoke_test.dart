@@ -1,28 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:verified_dating_app/core/theme/app_theme.dart';
 import 'package:verified_dating_app/features/auth/providers/auth_provider.dart';
 import 'package:verified_dating_app/features/auth/providers/terms_provider.dart';
 import 'package:verified_dating_app/features/auth/screens/auth_screen.dart';
+import 'package:verified_dating_app/features/auth/screens/signup_screen.dart';
 import 'package:verified_dating_app/features/auth/screens/user_agreement_screen.dart';
+import 'package:verified_dating_app/l10n/app_localizations.dart';
 
-class _PhoneStepAuthNotifier extends AuthNotifier {
+class _SignedOutAuthNotifier extends AuthNotifier {
   @override
-  AuthState build() => const AuthState(
-    isAuthenticated: false,
-    isOtpSent: false,
-    isLoading: false,
-  );
-}
-
-class _OtpStepAuthNotifier extends AuthNotifier {
-  @override
-  AuthState build() => const AuthState(
-    isAuthenticated: false,
-    isOtpSent: true,
-    isLoading: false,
-    phoneNumber: '+919876543210',
-  );
+  AuthState build() =>
+      const AuthState(isAuthenticated: false, isLoading: false);
 }
 
 class _TermsStubNotifier extends TermsAcceptance {
@@ -41,17 +31,24 @@ Widget _buildHarness({
   required List<Override> overrides,
 }) => ProviderScope(
   overrides: overrides,
-  child: MaterialApp(home: child),
+  child: MaterialApp(
+    theme: AppTheme.darkTheme,
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
+    home: child,
+  ),
 );
 
 void main() {
   group('AuthScreen smoke', () {
-    testWidgets('renders phone step without layout exceptions', (tester) async {
+    testWidgets('renders credential fields without layout exceptions', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         _buildHarness(
           child: const AuthScreen(),
           overrides: [
-            authNotifierProvider.overrideWith(_PhoneStepAuthNotifier.new),
+            authNotifierProvider.overrideWith(_SignedOutAuthNotifier.new),
           ],
         ),
       );
@@ -59,25 +56,70 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
 
-      expect(find.text('Mobile number'), findsOneWidget);
+      expect(find.text('Welcome back'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('qa.signin.username_field')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('qa.signin.password_field')),
+        findsOneWidget,
+      );
+      expect(find.text('Sign in'), findsWidgets);
       expect(tester.takeException(), isNull);
     });
+  });
 
-    testWidgets('renders OTP step without layout exceptions', (tester) async {
+  group('SignupScreen smoke', () {
+    testWidgets('rejects a one-character username before submitting signup', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         _buildHarness(
-          child: const AuthScreen(),
+          child: const SignupScreen(),
           overrides: [
-            authNotifierProvider.overrideWith(_OtpStepAuthNotifier.new),
+            authNotifierProvider.overrideWith(_SignedOutAuthNotifier.new),
           ],
         ),
       );
-
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.enterText(find.byType(TextField).first, 'a');
+      final submit = find.byKey(
+        const ValueKey('qa.signup.create_account_button'),
+      );
+      await tester.ensureVisible(submit);
+      await tester.tap(submit);
       await tester.pump();
+      expect(
+        find.text(
+          'Username must be 3–30 characters using letters, numbers, _ or .',
+        ),
+        findsOneWidget,
+      );
+    });
+    testWidgets('renders username and password signup without OTP', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _buildHarness(
+          child: const SignupScreen(),
+          overrides: [
+            authNotifierProvider.overrideWith(_SignedOutAuthNotifier.new),
+          ],
+        ),
+      );
       await tester.pump(const Duration(milliseconds: 300));
 
-      expect(find.text('Code sent to'), findsOneWidget);
-      expect(find.text('Verify & Continue'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('qa.signup.username_field')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('qa.signup.password_field')),
+        findsOneWidget,
+      );
+      expect(find.text('Create account'), findsOneWidget);
+      expect(find.textContaining('OTP'), findsNothing);
       expect(tester.takeException(), isNull);
     });
   });

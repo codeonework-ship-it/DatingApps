@@ -1,0 +1,9 @@
+# Starts/stops the Connect monitoring stack:  sudo systemctl start connect-monitoring.target
+# Grafana, Loki and Alloy run from their APT packages (grafana-server, loki,
+# alloy) with the drop-ins in deploy/monitoring/{grafana,loki,alloy}.
+[Unit]
+Description=Connect monitoring stack
+Wants=connect-prometheus.service connect-alertmanager.service connect-node-exporter.service connect-postgres-exporter.service connect-blackbox-exporter.service connect-disk-usage.timer
+
+[Install]
+WantedBy=multi-user.target

@@ -1,7 +1,12 @@
 package mobile
 
 import (
+	"bytes"
 	"encoding/json"
+	"image"
+	"image/color"
+	"image/png"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -16,6 +21,7 @@ import (
 )
 
 func TestServer_AdminVerificationAndActivityFlow(t *testing.T) {
+	installOperatorPrincipal(t, "qa-admin", "admin")
 	cfg := config.Config{
 		APIPrefix:        "/v1",
 		AuthGRPCAddr:     "127.0.0.1:19091",
@@ -32,8 +38,7 @@ func TestServer_AdminVerificationAndActivityFlow(t *testing.T) {
 	}
 	defer server.Close()
 
-	submitReq := httptest.NewRequest(http.MethodPost, "/v1/verification/user-123/submit", strings.NewReader("{}"))
-	submitReq.Header.Set("Content-Type", "application/json")
+	submitReq := verificationEvidenceRequest(t, "/v1/verification/user-123/submit")
 	submitRec := httptest.NewRecorder()
 	server.Handler().ServeHTTP(submitRec, submitReq)
 	if submitRec.Code != http.StatusOK {
@@ -65,8 +70,7 @@ func TestServer_AdminVerificationAndActivityFlow(t *testing.T) {
 		t.Fatalf("approve verification code = %d", approveRec.Code)
 	}
 
-	submitAgainReq := httptest.NewRequest(http.MethodPost, "/v1/verification/user-123/submit", strings.NewReader("{}"))
-	submitAgainReq.Header.Set("Content-Type", "application/json")
+	submitAgainReq := verificationEvidenceRequest(t, "/v1/verification/user-123/submit")
 	submitAgainRec := httptest.NewRecorder()
 	server.Handler().ServeHTTP(submitAgainRec, submitAgainReq)
 	if submitAgainRec.Code != http.StatusOK {
@@ -129,7 +133,35 @@ func TestServer_AdminVerificationAndActivityFlow(t *testing.T) {
 	}
 }
 
+func verificationEvidenceRequest(t *testing.T, target string) *http.Request {
+	t.Helper()
+	var payload bytes.Buffer
+	writer := multipart.NewWriter(&payload)
+	for _, field := range []string{"id_document", "selfie"} {
+		part, err := writer.CreateFormFile(field, field+".png")
+		if err != nil {
+			t.Fatalf("create %s multipart field: %v", field, err)
+		}
+		img := image.NewRGBA(image.Rect(0, 0, 320, 320))
+		for y := 0; y < 320; y++ {
+			for x := 0; x < 320; x++ {
+				img.Set(x, y, color.RGBA{R: 110, G: 70, B: 130, A: 255})
+			}
+		}
+		if err := png.Encode(part, img); err != nil {
+			t.Fatalf("encode %s fixture: %v", field, err)
+		}
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatalf("close multipart payload: %v", err)
+	}
+	req := httptest.NewRequest(http.MethodPost, target, &payload)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	return req
+}
+
 func TestServer_AdminAnalyticsOverviewIncludesFeatureFlagsAndFunnelMetrics(t *testing.T) {
+	installOperatorPrincipal(t, "qa-admin", "admin")
 	cfg := config.Config{
 		APIPrefix:                  "/v1",
 		AuthGRPCAddr:               "127.0.0.1:19091",
@@ -260,7 +292,30 @@ func TestServer_AdminAnalyticsOverviewIncludesFeatureFlagsAndFunnelMetrics(t *te
 	}
 }
 
+func TestAdminUserFilterSQLUsesParametersAndCurrentSuspensionState(t *testing.T) {
+	req := httptest.NewRequest(
+		http.MethodGet,
+		"/v1/admin/users?q=alex%27%20OR%201%3D1&gender=nonbinary&verified=yes&status=suspended",
+		nil,
+	)
+	where, args := adminUserFilterSQL(req)
+	if strings.Contains(where, "alex") || strings.Contains(where, "nonbinary") {
+		t.Fatalf("filter values must not be interpolated into SQL: %s", where)
+	}
+	if len(args) != 2 || args[0] != "%alex' OR 1=1%" || args[1] != "nonbinary" {
+		t.Fatalf("unexpected filter args: %#v", args)
+	}
+	for _, fragment := range []string{
+		"username ILIKE $1", "gender = $2", "is_verified", "suspended_until > NOW()",
+	} {
+		if !strings.Contains(where, fragment) {
+			t.Fatalf("filter SQL missing %q: %s", fragment, where)
+		}
+	}
+}
+
 func TestServer_AdminAnalyticsOverviewIncludesRoseGiftFunnelMetrics(t *testing.T) {
+	installOperatorPrincipal(t, "qa-admin", "admin")
 	cfg := config.Config{
 		APIPrefix:        "/v1",
 		AuthGRPCAddr:     "127.0.0.1:19091",

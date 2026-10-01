@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_theme.dart';
 import '../models/rose_gift.dart';
 import 'rose_gift_glyph.dart';
 
@@ -10,6 +9,9 @@ class MessageBubble extends StatelessWidget {
     required this.timestamp,
     required this.isDelivered,
     required this.isRead,
+    this.assisted = false,
+    this.receivedGiftFrom,
+    this.onGiftActions,
     super.key,
   });
   final String message;
@@ -18,109 +20,120 @@ class MessageBubble extends StatelessWidget {
   final bool isDelivered;
   final bool isRead;
 
-  String _formatTime(DateTime time) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final yesterday = today.subtract(const Duration(days: 1));
-    final messageDate = DateTime(time.year, time.month, time.day);
-
-    if (messageDate == today) {
-      return '${time.hour}:${time.minute.toString().padLeft(2, '0')}';
-    } else if (messageDate == yesterday) {
-      return 'Yesterday';
-    } else {
-      return '${time.month}/${time.day}';
-    }
-  }
+  /// True when the message started as a copilot draft. Shown to both members.
+  final bool assisted;
+  final String? receivedGiftFrom;
+  final VoidCallback? onGiftActions;
 
   @override
   Widget build(BuildContext context) {
-    final resolvedMessage = _resolveMessageContent(message);
-    final maxWidthFactor = _maxWidthFactorForType(resolvedMessage.layoutType);
-    final isGiftLike = resolvedMessage.layoutType != _MessageLayoutType.plain;
-
-    return Align(
-      alignment: isFromCurrentUser
-          ? Alignment.centerRight
-          : Alignment.centerLeft,
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxWidth: MediaQuery.sizeOf(context).width * maxWidthFactor,
-        ),
-        child: Column(
-          crossAxisAlignment: isFromCurrentUser
-              ? CrossAxisAlignment.end
-              : CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              decoration: BoxDecoration(
-                color: isGiftLike
-                    ? null
-                    : isFromCurrentUser
-                    ? AppTheme.primaryRed.withValues(alpha: 0.95)
-                    : Colors.white,
-                gradient: isGiftLike
-                    ? LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          Colors.white.withValues(alpha: 0.98),
-                          AppTheme.pureGoldHighlight.withValues(alpha: 0.34),
-                          AppTheme.crystalGoldSoft.withValues(alpha: 0.46),
-                        ],
-                      )
-                    : null,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(isGiftLike ? 22 : 16),
-                  topRight: Radius.circular(isGiftLike ? 22 : 16),
-                  bottomLeft: isFromCurrentUser
-                      ? Radius.circular(isGiftLike ? 22 : 16)
-                      : Radius.zero,
-                  bottomRight: isFromCurrentUser
-                      ? Radius.zero
-                      : Radius.circular(isGiftLike ? 22 : 16),
+    final content = _resolveMessageContent(message);
+    final gift = content.layoutType != _MessageLayoutType.plain;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final bubbleColor = gift
+        ? scheme.tertiaryContainer
+        : isFromCurrentUser
+        ? scheme.primary
+        : scheme.surface;
+    return LayoutBuilder(
+      builder: (context, area) => Align(
+        alignment: isFromCurrentUser
+            ? Alignment.centerRight
+            : Alignment.centerLeft,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: (area.maxWidth * (gift ? .88 : .82))
+                .clamp(0, gift ? 330 : 520)
+                .toDouble(),
+          ),
+          child: Column(
+            crossAxisAlignment: isFromCurrentUser
+                ? CrossAxisAlignment.end
+                : CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: gift ? 18 : 16,
+                  vertical: gift ? 18 : 12,
                 ),
-                border: Border.all(
-                  color: isGiftLike
-                      ? AppTheme.pureGoldBright.withValues(alpha: 0.46)
-                      : isFromCurrentUser
-                      ? AppTheme.primaryRed.withValues(alpha: 0.45)
-                      : Colors.grey.withValues(alpha: 0.28),
-                  width: 1,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: isGiftLike
-                        ? AppTheme.pureGoldBright.withValues(alpha: 0.22)
-                        : Colors.black.withValues(alpha: 0.06),
-                    blurRadius: isGiftLike ? 22 : 8,
-                    offset: Offset(0, isGiftLike ? 8 : 2),
+                decoration: BoxDecoration(
+                  color: bubbleColor,
+                  borderRadius: BorderRadius.only(
+                    topLeft: const Radius.circular(22),
+                    topRight: const Radius.circular(22),
+                    bottomLeft: Radius.circular(isFromCurrentUser ? 22 : 6),
+                    bottomRight: Radius.circular(isFromCurrentUser ? 6 : 22),
                   ),
-                ],
+                  border: Border.all(
+                    color: gift
+                        ? scheme.tertiary.withValues(alpha: .18)
+                        : isFromCurrentUser
+                        ? Colors.transparent
+                        : scheme.outlineVariant,
+                  ),
+                ),
+                child: _buildContent(context, content),
               ),
-              child: _buildContent(context, resolvedMessage),
-            ),
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    _formatTime(timestamp),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppTheme.textHint,
-                      fontSize: 11,
+              if (gift && !isFromCurrentUser && onGiftActions != null)
+                TextButton.icon(
+                  key: const ValueKey('qa.chat.gift_receiver_actions'),
+                  onPressed: onGiftActions,
+                  icon: const Icon(Icons.more_horiz_rounded, size: 18),
+                  label: const Text('Gift options'),
+                  style: TextButton.styleFrom(
+                    minimumSize: const Size(48, 44),
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                  ),
+                ),
+              Padding(
+                padding: const EdgeInsets.only(top: 6, left: 4, right: 4),
+                child: Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  alignment: isFromCurrentUser
+                      ? WrapAlignment.end
+                      : WrapAlignment.start,
+                  children: [
+                    Text(
+                      MaterialLocalizations.of(context).formatTimeOfDay(
+                        TimeOfDay.fromDateTime(timestamp.toLocal()),
+                      ),
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                        fontSize: 11,
+                      ),
                     ),
-                  ),
-                  if (isFromCurrentUser) ...[
-                    const SizedBox(width: 4),
-                    _buildDeliveryIcon(),
+                    if (isFromCurrentUser)
+                      Semantics(
+                        label: isRead
+                            ? 'Read'
+                            : isDelivered
+                            ? 'Delivered'
+                            : 'Sent',
+                        child: Icon(
+                          isRead || isDelivered ? Icons.done_all : Icons.done,
+                          size: 15,
+                          color: isRead
+                              ? scheme.primary
+                              : scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    if (assisted)
+                      Text(
+                        'Drafted with help',
+                        key: const ValueKey('qa.chat.assisted_label'),
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                          fontSize: 11,
+                        ),
+                      ),
                   ],
-                ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -182,47 +195,27 @@ class MessageBubble extends StatelessWidget {
     );
   }
 
-  double _maxWidthFactorForType(_MessageLayoutType type) {
-    switch (type) {
-      case _MessageLayoutType.gestureGift:
-        return 0.82;
-      case _MessageLayoutType.gift:
-        return 0.76;
-      case _MessageLayoutType.plain:
-        return 0.68;
-      case _MessageLayoutType.mixed:
-        return 0.86;
-    }
-  }
-
-  Widget _buildDeliveryIcon() {
-    if (isRead) {
-      return const Icon(Icons.done_all, size: 14, color: AppTheme.successGreen);
-    }
-    if (isDelivered) {
-      return const Icon(Icons.done_all, size: 14, color: AppTheme.textHint);
-    }
-    return const Icon(Icons.done, size: 14, color: AppTheme.textHint);
-  }
-
   Widget _buildContent(
     BuildContext context,
     _ResolvedMessageContent resolvedMessage,
   ) {
     final segments = resolvedMessage.segments;
     final plainText = resolvedMessage.plainText.trim();
+    final scheme = Theme.of(context).colorScheme;
     final textColor = segments.isNotEmpty
-        ? AppTheme.pureGoldInk
+        ? scheme.onTertiaryContainer
         : isFromCurrentUser
-        ? Colors.white
-        : AppTheme.textDark;
+        ? scheme.onPrimary
+        : scheme.onSurface;
 
     if (segments.isEmpty) {
       return Text(
         plainText,
-        style: Theme.of(
-          context,
-        ).textTheme.bodyMedium?.copyWith(color: textColor),
+        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+          color: textColor,
+          fontSize: 15,
+          height: 1.5,
+        ),
       );
     }
 
@@ -263,7 +256,11 @@ class MessageBubble extends StatelessWidget {
   ) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      _buildPill(context, label: 'Gesture + Rose Gift', color: textColor),
+      _buildPill(
+        context,
+        label: _giftHeading('Gesture + Rose Gift'),
+        color: textColor,
+      ),
       const SizedBox(height: 14),
       _buildMessageSection(
         child: Column(
@@ -376,7 +373,11 @@ class MessageBubble extends StatelessWidget {
   ) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      _buildPill(context, label: 'Glossy Rose Gift', color: textColor),
+      _buildPill(
+        context,
+        label: _giftHeading('A little something for you'),
+        color: textColor,
+      ),
       const SizedBox(height: 12),
       _buildGiftPreview(
         giftName: gift.name,
@@ -403,12 +404,17 @@ class MessageBubble extends StatelessWidget {
     ],
   );
 
+  String _giftHeading(String fallback) {
+    final sender = receivedGiftFrom?.trim() ?? '';
+    return sender.isEmpty ? fallback : 'Gift received from $sender';
+  }
+
   Widget _buildPill(
     BuildContext context, {
     required String label,
     required Color color,
   }) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
     decoration: BoxDecoration(
       color: color.withValues(alpha: 0.12),
       borderRadius: BorderRadius.circular(999),
@@ -425,7 +431,7 @@ class MessageBubble extends StatelessWidget {
   Widget _buildMessageSection({required Widget child, required Color color}) =>
       Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(18),

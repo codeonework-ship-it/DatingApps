@@ -1,12 +1,16 @@
+import '../../blog/blog_screen.dart';
+import '../../intentional_dating/profile_stories.dart';
+import '../../../core/providers/runtime_feature_flags_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/app_runtime_config.dart';
 import '../../../core/providers/safety_actions_provider.dart';
-import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
 import '../../common/screens/moderation_appeals_screen.dart';
 import '../../common/widgets/report_user_sheet.dart';
+import '../../friends/friend_actions.dart';
+import '../../friends/providers/friend_social_provider.dart';
 import '../models/discovery_profile.dart';
 import '../providers/profile_details_provider.dart';
 
@@ -51,25 +55,37 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final detailsAsync = ref.watch(profileDetailsProvider(widget.profile.id));
+    final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(gradient: AppTheme.bgGradient),
+      body: ColoredBox(
+        color: Theme.of(context).scaffoldBackgroundColor,
         child: SafeArea(
           child: detailsAsync.when(
-            loading: () => const Center(
+            loading: () => Center(
               child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                valueColor: AlwaysStoppedAnimation<Color>(scheme.primary),
               ),
             ),
             error: (_, _) => Center(
-              child: TextButton(
-                onPressed: () =>
-                    ref.invalidate(profileDetailsProvider(widget.profile.id)),
-                child: const Text(
-                  'Retry',
-                  style: TextStyle(color: Colors.white),
-                ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'This profile is unavailable right now.',
+                    style: TextStyle(color: scheme.onSurface),
+                  ),
+                  TextButton(
+                    onPressed: () => ref.invalidate(
+                      profileDetailsProvider(widget.profile.id),
+                    ),
+                    child: const Text('Retry'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).maybePop(),
+                    child: const Text('Go back'),
+                  ),
+                ],
               ),
             ),
             data: (d) {
@@ -93,60 +109,84 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
                           pinned: true,
                           backgroundColor: Colors.transparent,
                           elevation: 0,
-                          leading: IconButton(
-                            icon: const Icon(
-                              Icons.arrow_back,
-                              color: Colors.white,
+                          leading: Semantics(
+                            label: 'qa.profile_detail.back_button',
+                            button: true,
+                            child: IconButton(
+                              key: const ValueKey(
+                                'qa.profile_detail.back_button',
+                              ),
+                              icon: Icon(
+                                Icons.arrow_back,
+                                color: scheme.onSurface,
+                              ),
+                              onPressed: () => Navigator.of(
+                                context,
+                              ).pop(ProfileDetailsAction.none),
                             ),
-                            onPressed: () => Navigator.of(
-                              context,
-                            ).pop(ProfileDetailsAction.none),
                           ),
                           title: Text(
-                            '${d.name}, ${d.age}',
-                            style: const TextStyle(color: Colors.white),
+                            d.displayName,
+                            style: TextStyle(color: scheme.onSurface),
                           ),
                           actions: [
-                            IconButton(
-                              icon: const Icon(
-                                Icons.report,
-                                color: Colors.white,
-                              ),
-                              onPressed: () async {
-                                final reportId = await showReportUserSheet(
-                                  context: context,
-                                  onSubmit:
-                                      ({required reason, description}) async => ref
+                            AddFriendButton(
+                              userId: d.userId,
+                              name: d.name,
+                              source: FriendRequestSource.profile,
+                              style: AddFriendStyle.icon,
+                            ),
+                            Semantics(
+                              label: 'qa.profile_detail.report_button',
+                              button: true,
+                              child: IconButton(
+                                key: const ValueKey(
+                                  'qa.profile_detail.report_button',
+                                ),
+                                icon: Icon(
+                                  Icons.report,
+                                  color: scheme.onSurface,
+                                ),
+                                onPressed: () async {
+                                  final reportId = await showReportUserSheet(
+                                    context: context,
+                                    onSubmit:
+                                        ({
+                                          required reason,
+                                          description,
+                                        }) async => ref
                                             .read(safetyActionsProvider)
                                             .reportUser(
                                               reportedUserId: d.userId,
                                               reason: reason,
                                               description: description,
                                             ),
-                                );
-                                if (!context.mounted) {
-                                  return;
-                                }
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: const Text('Report submitted.'),
-                                    action: SnackBarAction(
-                                      label: 'Appeal',
-                                      onPressed: () {
-                                        Navigator.of(context).push(
-                                          MaterialPageRoute<void>(
-                                            builder: (_) => ModerationAppealsScreen(
-                                              initialReason:
-                                                  'Review moderation outcome for report on user ${d.userId}',
-                                              initialReportId: reportId,
+                                  );
+                                  if (!context.mounted) {
+                                    return;
+                                  }
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: const Text('Report submitted.'),
+                                      action: SnackBarAction(
+                                        label: 'Appeal',
+                                        onPressed: () {
+                                          Navigator.of(context).push(
+                                            MaterialPageRoute<void>(
+                                              builder: (_) =>
+                                                  ModerationAppealsScreen(
+                                                    initialReason:
+                                                        'Review moderation outcome for report on user ${d.userId}',
+                                                    initialReportId: reportId,
+                                                  ),
                                             ),
-                                          ),
-                                        );
-                                      },
+                                          );
+                                        },
+                                      ),
                                     ),
-                                  ),
-                                );
-                              },
+                                  );
+                                },
+                              ),
                             ),
                           ],
                         ),
@@ -179,9 +219,7 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
                                     ..scale(scale, scale),
                                   child: GlassContainer(
                                     padding: EdgeInsets.zero,
-                                    backgroundColor: Colors.white.withValues(
-                                      alpha: 0.95,
-                                    ),
+                                    backgroundColor: scheme.surface,
                                     blur: 10,
                                     borderRadius: const BorderRadius.all(
                                       Radius.circular(24),
@@ -197,88 +235,91 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
                                               Expanded(
                                                 child: Stack(
                                                   children: [
-                                                    PageView.builder(
-                                                      controller:
-                                                          _photoPageController,
-                                                      onPageChanged: (index) {
-                                                        if (!mounted) {
-                                                          return;
-                                                        }
-                                                        setState(
-                                                          () =>
-                                                              _selectedPhotoIndex =
-                                                                  index,
-                                                        );
-                                                      },
-                                                      itemCount:
-                                                          safeGalleryPhotos
-                                                              .length,
-                                                      itemBuilder: (context, index) {
-                                                        final url =
-                                                            safeGalleryPhotos[index];
-                                                        return ClipRRect(
-                                                          borderRadius:
-                                                              const BorderRadius.vertical(
-                                                                top:
-                                                                    Radius.circular(
-                                                                      24,
-                                                                    ),
-                                                              ),
-                                                          child: Stack(
-                                                            fit:
-                                                                StackFit.expand,
-                                                            children: [
-                                                              Image.network(
-                                                                url,
-                                                                fit: BoxFit
-                                                                    .cover,
-                                                                width: double
-                                                                    .infinity,
-                                                                errorBuilder:
-                                                                    (
-                                                                      context,
-                                                                      _,
-                                                                      _,
-                                                                    ) => Container(
-                                                                      color: Colors
-                                                                          .grey
-                                                                          .shade300,
-                                                                      child: const Center(
-                                                                        child: Icon(
-                                                                          Icons
-                                                                              .image,
-                                                                          size:
-                                                                              48,
-                                                                        ),
+                                                    Semantics(
+                                                      label:
+                                                          'qa.profile_detail.carousel',
+                                                      child: PageView.builder(
+                                                        key: const ValueKey(
+                                                          'qa.profile_detail.carousel',
+                                                        ),
+                                                        controller:
+                                                            _photoPageController,
+                                                        onPageChanged: (index) {
+                                                          if (!mounted) {
+                                                            return;
+                                                          }
+                                                          setState(
+                                                            () =>
+                                                                _selectedPhotoIndex =
+                                                                    index,
+                                                          );
+                                                        },
+                                                        itemCount:
+                                                            safeGalleryPhotos
+                                                                .length,
+                                                        itemBuilder: (context, index) {
+                                                          final url =
+                                                              safeGalleryPhotos[index];
+                                                          return ClipRRect(
+                                                            borderRadius:
+                                                                const BorderRadius.vertical(
+                                                                  top:
+                                                                      Radius.circular(
+                                                                        24,
                                                                       ),
-                                                                    ),
-                                                              ),
-                                                              Positioned.fill(
-                                                                child: DecoratedBox(
-                                                                  decoration: BoxDecoration(
-                                                                    gradient: LinearGradient(
-                                                                      begin: Alignment
-                                                                          .topCenter,
-                                                                      end: Alignment
-                                                                          .bottomCenter,
-                                                                      colors: [
-                                                                        Colors.black.withValues(
-                                                                          alpha:
-                                                                              0.04,
-                                                                        ),
-                                                                        Colors.black.withValues(
-                                                                          alpha:
-                                                                              0.34,
-                                                                        ),
-                                                                      ],
+                                                                ),
+                                                            child: Stack(
+                                                              fit: StackFit
+                                                                  .expand,
+                                                              children: [
+                                                                Image.network(
+                                                                  url,
+                                                                  fit: BoxFit
+                                                                      .cover,
+                                                                  width: double
+                                                                      .infinity,
+                                                                  errorBuilder: (context, _, _) => Container(
+                                                                    color: scheme
+                                                                        .surfaceContainerHighest,
+                                                                    child: Center(
+                                                                      child: Icon(
+                                                                        Icons
+                                                                            .image,
+                                                                        size:
+                                                                            48,
+                                                                        color: scheme
+                                                                            .onSurfaceVariant,
+                                                                      ),
                                                                     ),
                                                                   ),
                                                                 ),
-                                                              ),
-                                                            ],
-                                                          ),
-                                                        );
-                                                      },
+                                                                Positioned.fill(
+                                                                  child: DecoratedBox(
+                                                                    decoration: BoxDecoration(
+                                                                      gradient: LinearGradient(
+                                                                        begin: Alignment
+                                                                            .topCenter,
+                                                                        end: Alignment
+                                                                            .bottomCenter,
+                                                                        colors: [
+                                                                          Colors.black.withValues(
+                                                                            alpha:
+                                                                                0.04,
+                                                                          ),
+                                                                          Colors.black.withValues(
+                                                                            alpha:
+                                                                                0.34,
+                                                                          ),
+                                                                        ],
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                          );
+                                                        },
+                                                      ),
                                                     ),
                                                     Positioned(
                                                       top: 12,
@@ -286,8 +327,8 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
                                                       child: GlassContainer(
                                                         padding:
                                                             const EdgeInsets.symmetric(
-                                                              horizontal: 10,
-                                                              vertical: 6,
+                                                              horizontal: 12,
+                                                              vertical: 8,
                                                             ),
                                                         backgroundColor: Colors
                                                             .white
@@ -317,13 +358,13 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
                                                   width: double.infinity,
                                                   padding:
                                                       const EdgeInsets.fromLTRB(
-                                                        14,
-                                                        10,
-                                                        14,
-                                                        10,
+                                                        16,
+                                                        12,
+                                                        16,
+                                                        12,
                                                       ),
-                                                  color: Colors.white
-                                                      .withValues(alpha: 0.18),
+                                                  color: scheme
+                                                      .surfaceContainerLow,
                                                   child: ListView.separated(
                                                     scrollDirection:
                                                         Axis.horizontal,
@@ -337,101 +378,111 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
                                                       final isSelected =
                                                           _selectedPhotoIndex ==
                                                           index;
-                                                      return GestureDetector(
-                                                        onTap: () {
-                                                          _photoPageController
-                                                              .animateToPage(
-                                                                index,
-                                                                duration:
-                                                                    const Duration(
-                                                                      milliseconds:
-                                                                          220,
-                                                                    ),
-                                                                curve: Curves
-                                                                    .easeOut,
-                                                              );
-                                                          setState(
-                                                            () =>
-                                                                _selectedPhotoIndex =
-                                                                    index,
-                                                          );
-                                                        },
-                                                        child: AnimatedContainer(
-                                                          duration:
-                                                              const Duration(
-                                                                milliseconds:
-                                                                    180,
-                                                              ),
-                                                          width: isSelected
-                                                              ? 72
-                                                              : 58,
-                                                          transform:
-                                                              Matrix4.identity()
-                                                                ..translate(
-                                                                  0.0,
-                                                                  isSelected
-                                                                      ? -3.0
-                                                                      : 0.0,
-                                                                ),
-                                                          decoration: BoxDecoration(
-                                                            borderRadius:
-                                                                BorderRadius.circular(
-                                                                  14,
-                                                                ),
-                                                            border: Border.all(
-                                                              color: isSelected
-                                                                  ? AppTheme
-                                                                        .primaryRed
-                                                                  : Colors.white
-                                                                        .withValues(
-                                                                          alpha:
-                                                                              0.45,
-                                                                        ),
-                                                              width: isSelected
-                                                                  ? 2.2
-                                                                  : 1.4,
-                                                            ),
-                                                            boxShadow: [
-                                                              BoxShadow(
-                                                                color: Colors
-                                                                    .black
-                                                                    .withValues(
-                                                                      alpha:
-                                                                          isSelected
-                                                                          ? 0.22
-                                                                          : 0.12,
-                                                                    ),
-                                                                blurRadius:
-                                                                    isSelected
-                                                                    ? 10
-                                                                    : 7,
-                                                                offset:
-                                                                    const Offset(
-                                                                      0,
-                                                                      3,
-                                                                    ),
-                                                              ),
-                                                            ],
+                                                      return Semantics(
+                                                        label:
+                                                            'qa.profile_detail.thumbnail_$index',
+                                                        button: true,
+                                                        selected: isSelected,
+                                                        child: GestureDetector(
+                                                          key: ValueKey<String>(
+                                                            'qa.profile_detail.thumbnail_$index',
                                                           ),
-                                                          clipBehavior:
-                                                              Clip.antiAlias,
-                                                          child: Image.network(
-                                                            safeGalleryPhotos[index],
-                                                            fit: BoxFit.cover,
-                                                            errorBuilder:
-                                                                (
-                                                                  context,
-                                                                  _,
-                                                                  _,
-                                                                ) => Container(
-                                                                  color: Colors
-                                                                      .grey
-                                                                      .shade300,
-                                                                  child: const Icon(
-                                                                    Icons.image,
-                                                                    size: 22,
-                                                                  ),
+                                                          onTap: () {
+                                                            _photoPageController
+                                                                .animateToPage(
+                                                                  index,
+                                                                  duration:
+                                                                      const Duration(
+                                                                        milliseconds:
+                                                                            220,
+                                                                      ),
+                                                                  curve: Curves
+                                                                      .easeOut,
+                                                                );
+                                                            setState(
+                                                              () =>
+                                                                  _selectedPhotoIndex =
+                                                                      index,
+                                                            );
+                                                          },
+                                                          child: AnimatedContainer(
+                                                            duration:
+                                                                const Duration(
+                                                                  milliseconds:
+                                                                      180,
                                                                 ),
+                                                            width: isSelected
+                                                                ? 72
+                                                                : 58,
+                                                            transform:
+                                                                Matrix4.identity()
+                                                                  ..translate(
+                                                                    0.0,
+                                                                    isSelected
+                                                                        ? -3.0
+                                                                        : 0.0,
+                                                                  ),
+                                                            decoration: BoxDecoration(
+                                                              borderRadius:
+                                                                  BorderRadius.circular(
+                                                                    14,
+                                                                  ),
+                                                              border: Border.all(
+                                                                color:
+                                                                    isSelected
+                                                                    ? scheme
+                                                                          .primary
+                                                                    : scheme
+                                                                          .outlineVariant,
+                                                                width:
+                                                                    isSelected
+                                                                    ? 2.2
+                                                                    : 1.4,
+                                                              ),
+                                                              boxShadow: [
+                                                                BoxShadow(
+                                                                  color: Colors
+                                                                      .black
+                                                                      .withValues(
+                                                                        alpha:
+                                                                            isSelected
+                                                                            ? 0.22
+                                                                            : 0.12,
+                                                                      ),
+                                                                  blurRadius:
+                                                                      isSelected
+                                                                      ? 10
+                                                                      : 7,
+                                                                  offset:
+                                                                      const Offset(
+                                                                        0,
+                                                                        3,
+                                                                      ),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                            clipBehavior:
+                                                                Clip.antiAlias,
+                                                            child: Image.network(
+                                                              safeGalleryPhotos[index],
+                                                              fit: BoxFit.cover,
+                                                              errorBuilder:
+                                                                  (
+                                                                    context,
+                                                                    _,
+                                                                    _,
+                                                                  ) => Container(
+                                                                    color: scheme
+                                                                        .surfaceContainerHighest,
+                                                                    child: Icon(
+                                                                      Icons
+                                                                          .image,
+                                                                      size: 22,
+                                                                      color: scheme
+                                                                          .onSurfaceVariant,
+                                                                    ),
+                                                                  ),
+                                                            ),
                                                           ),
                                                         ),
                                                       );
@@ -477,19 +528,61 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
                                                       ? TextOverflow.visible
                                                       : TextOverflow.ellipsis,
                                                 ),
-                                                TextButton(
-                                                  onPressed: () => setState(
-                                                    () => _expandedBio =
-                                                        !_expandedBio,
-                                                  ),
-                                                  child: Text(
-                                                    _expandedBio
-                                                        ? 'Read less'
-                                                        : 'Read more',
+                                                Semantics(
+                                                  label:
+                                                      'qa.profile_detail.read_more_button',
+                                                  button: true,
+                                                  child: TextButton(
+                                                    key: const ValueKey(
+                                                      'qa.profile_detail.read_more_button',
+                                                    ),
+                                                    onPressed: () => setState(
+                                                      () => _expandedBio =
+                                                          !_expandedBio,
+                                                    ),
+                                                    child: Text(
+                                                      _expandedBio
+                                                          ? 'Read less'
+                                                          : 'Read more',
+                                                    ),
                                                   ),
                                                 ),
                                               ],
                                               _kv('About', d.additionalInfo),
+                                              if (ref
+                                                      .watch(
+                                                        runtimeFeatureFlagsProvider,
+                                                      )
+                                                      .valueOrNull
+                                                      ?.enabled(
+                                                        'intentional_dating_enabled',
+                                                        fallback: false,
+                                                      ) ==
+                                                  true)
+                                                Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment
+                                                          .stretch,
+                                                  children: [
+                                                    ProfileStoriesSection(
+                                                      userId: widget.profile.id,
+                                                    ),
+                                                    OutlinedButton.icon(
+                                                      icon: const Icon(
+                                                        Icons
+                                                            .menu_book_outlined,
+                                                      ),
+                                                      label: const Text(
+                                                        'Read their chapters',
+                                                      ),
+                                                      onPressed: () => openBlog(
+                                                        context,
+                                                        authorId:
+                                                            widget.profile.id,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
                                               _kv(
                                                 'Instagram',
                                                 d.instagramHandle,
@@ -599,6 +692,9 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
                                                 'Languages',
                                                 d.languageTags,
                                               ),
+                                              _VouchesSection(
+                                                userId: widget.profile.id,
+                                              ),
                                             ],
                                           ),
                                         ),
@@ -622,19 +718,33 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
                       builder: (context, constraints) {
                         final compact = constraints.maxWidth < 390;
 
-                        final messageButton = GlassButton(
-                          label: 'Message',
-                          icon: Icons.message_rounded,
-                          onPressed: () => Navigator.of(
-                            context,
-                          ).pop(ProfileDetailsAction.message),
+                        final messageButton = Semantics(
+                          label: 'qa.profile_detail.message_button',
+                          button: true,
+                          child: GlassButton(
+                            key: const ValueKey(
+                              'qa.profile_detail.message_button',
+                            ),
+                            label: 'Message',
+                            icon: Icons.message_rounded,
+                            onPressed: () => Navigator.of(
+                              context,
+                            ).pop(ProfileDetailsAction.message),
+                          ),
                         );
-                        final loveButton = GlassButton(
-                          label: 'Love',
-                          icon: Icons.favorite_rounded,
-                          onPressed: () => Navigator.of(
-                            context,
-                          ).pop(ProfileDetailsAction.love),
+                        final loveButton = Semantics(
+                          label: 'qa.profile_detail.love_button',
+                          button: true,
+                          child: GlassButton(
+                            key: const ValueKey(
+                              'qa.profile_detail.love_button',
+                            ),
+                            label: 'Love',
+                            icon: Icons.favorite_rounded,
+                            onPressed: () => Navigator.of(
+                              context,
+                            ).pop(ProfileDetailsAction.love),
+                          ),
                         );
 
                         if (compact) {
@@ -675,7 +785,7 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
   Widget _kv(String label, String? value) {
     if (value == null || value.trim().isEmpty) return const SizedBox.shrink();
     return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         children: [
           SizedBox(
@@ -710,11 +820,11 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
                 .map(
                   (value) => Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
+                      horizontal: 12,
+                      vertical: 8,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade200,
+                      color: Theme.of(context).colorScheme.surfaceContainerHigh,
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Text(value),
@@ -724,6 +834,64 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Approved vouches from the member's friends, shown with first names only.
+class _VouchesSection extends ConsumerWidget {
+  const _VouchesSection({required this.userId});
+
+  final String userId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final vouches = ref.watch(publicVouchesProvider(userId));
+    return vouches.maybeWhen(
+      data: (items) {
+        if (items.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        final theme = Theme.of(context);
+        return Padding(
+          padding: const EdgeInsets.only(top: 16),
+          child: Column(
+            key: const ValueKey('qa.profile.vouches'),
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Vouched for by friends',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 8),
+              for (final vouch in items)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.verified_rounded,
+                        size: 18,
+                        color: theme.colorScheme.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '“${vouch.text}” — ${vouch.voucherName}',
+                          style: theme.textTheme.bodyMedium,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+      orElse: () => const SizedBox.shrink(),
     );
   }
 }

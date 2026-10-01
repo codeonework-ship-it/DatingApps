@@ -1,246 +1,273 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
+import '../platform/checkout_launcher.dart';
+import '../providers/subscription_provider.dart';
+import '../providers/wallet_provider.dart';
 
-class WalletPaymentScreen extends StatelessWidget {
+/// Wallet: coin balance, coin packs bought by card through the provider's
+/// hosted checkout, and the credit history. The balance shown always comes
+/// from the backend; a purchase only counts once the provider settles it.
+class WalletPaymentScreen extends ConsumerStatefulWidget {
   const WalletPaymentScreen({required this.walletCoins, super.key});
 
+  /// Balance known by the caller, shown until the wallet loads.
   final int walletCoins;
+
+  @override
+  ConsumerState<WalletPaymentScreen> createState() =>
+      _WalletPaymentScreenState();
+}
+
+class _WalletPaymentScreenState extends ConsumerState<WalletPaymentScreen> {
+  late final AutoDisposeStateNotifierProvider<WalletNotifier, WalletState>
+  _wallet;
+
+  @override
+  void initState() {
+    super.initState();
+    _wallet = walletProvider(widget.walletCoins);
+    Future<void>.microtask(() => ref.read(_wallet.notifier).load());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(_wallet);
+    final scheme = Theme.of(context).colorScheme;
+    final muted = scheme.onSurfaceVariant;
+    final balance = state.balance ?? widget.walletCoins;
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Wallet & Payments')),
+      body: PostLoginBackdrop(
+        child: SafeArea(
+          child: RefreshIndicator(
+            onRefresh: ref.read(_wallet.notifier).load,
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+              children: [
+                if (state.paymentMode == 'sandbox' ||
+                    state.paymentMode == 'test') ...[
+                  const _InlineNote(
+                    message:
+                        'Test payments · no real charge. '
+                        'Use test card details only.',
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                _BalanceHero(balance: balance, isLoading: state.isLoading),
+                if (state.error != null) ...[
+                  const SizedBox(height: 12),
+                  _InlineNote(message: state.error!, isError: true),
+                ],
+                const SizedBox(height: 24),
+                Text(
+                  'Popular top-ups',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Pay by card on the secure checkout page. Coins land in your '
+                  'wallet as soon as the payment settles.',
+                  style: TextStyle(fontSize: 12, color: muted),
+                ),
+                const SizedBox(height: 12),
+                if (!state.paymentsAvailable)
+                  const _InlineNote(
+                    message:
+                        'Card payments are not enabled on this server yet.',
+                  )
+                else if (state.isLoading && state.packages.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Center(
+                      child: CircularProgressIndicator(color: scheme.primary),
+                    ),
+                  )
+                else if (state.packages.isEmpty)
+                  Text(
+                    'No coin packs are on sale right now.',
+                    style: TextStyle(color: muted),
+                  )
+                else
+                  LayoutBuilder(
+                    builder: (context, bounds) {
+                      final columns = bounds.maxWidth >= 640 ? 3 : 2;
+                      final width =
+                          (bounds.maxWidth - 12 * (columns - 1)) / columns;
+                      return Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: [
+                          for (var i = 0; i < state.packages.length; i++)
+                            SizedBox(
+                              width: width,
+                              child: _PackageCard(
+                                package: state.packages[i],
+                                highlight: i == 1,
+                                isBusy:
+                                    state.buyingPackageId ==
+                                    state.packages[i].id,
+                                onBuy: () => _buy(state.packages[i]),
+                              ),
+                            ),
+                        ],
+                      );
+                    },
+                  ),
+                const SizedBox(height: 24),
+                Text(
+                  'Wallet activity',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 8),
+                if (state.purchases.isEmpty)
+                  Text('No coin purchases yet.', style: TextStyle(color: muted))
+                else
+                  GlassContainer(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 4,
+                    ),
+                    child: Column(
+                      children: [
+                        for (var i = 0; i < state.purchases.length; i++) ...[
+                          _PurchaseRow(purchase: state.purchases[i]),
+                          if (i < state.purchases.length - 1)
+                            Divider(height: 1, color: scheme.outlineVariant),
+                        ],
+                      ],
+                    ),
+                  ),
+                const SizedBox(height: 20),
+                Text(
+                  'Coins are used for gifts and boosts inside Connect. '
+                  'Purchases are final once settled; card details stay with '
+                  'the payment provider.',
+                  style: TextStyle(fontSize: 12, height: 1.4, color: muted),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _buy(CoinPackage package) async {
+    final notifier = ref.read(_wallet.notifier);
+    final checkout = await notifier.startCheckout(package);
+    if (checkout == null || !mounted) {
+      return;
+    }
+    final paid = await launchHostedCheckout(
+      context,
+      checkout: checkout,
+      title: '${package.totalCoins} coins',
+    );
+    if (!mounted) {
+      return;
+    }
+    final outcome = await notifier.awaitCheckout(
+      checkout,
+      timeout: paid == true
+          ? const Duration(seconds: 45)
+          : const Duration(seconds: 6),
+    );
+    if (!mounted) {
+      return;
+    }
+    final message = switch (outcome) {
+      CheckoutOutcome.completed =>
+        '${package.totalCoins} coins added to your wallet.',
+      CheckoutOutcome.pending =>
+        'Payment is still being confirmed. Pull to refresh in a moment.',
+      _ =>
+        'This checkout session has ended. '
+            'Review your payment history before trying again.',
+    };
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+}
+
+class _BalanceHero extends StatelessWidget {
+  const _BalanceHero({required this.balance, required this.isLoading});
+
+  final int balance;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
-    return Scaffold(
-      backgroundColor: const Color(0xFFF7F1E6),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        foregroundColor: AppTheme.textDark,
-        elevation: 0,
-        title: const Text('Wallet & Payments'),
-      ),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+    final scheme = theme.colorScheme;
+    return Padding(
+      padding: const EdgeInsets.all(4),
+      child: GlassContainer(
+        padding: const EdgeInsets.all(20),
+        borderRadius: const BorderRadius.all(Radius.circular(20)),
+        child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Color(0xFFFFF4D2),
-                    AppTheme.pureGoldBright,
-                    AppTheme.crystalGoldSoft,
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(28),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppTheme.crystalGoldSoft.withValues(alpha: 0.34),
-                    blurRadius: 28,
-                    offset: const Offset(0, 16),
-                  ),
-                ],
-                border: Border.all(
-                  color: AppTheme.pureGoldHighlight.withValues(alpha: 0.92),
-                ),
+              width: 56,
+              height: 56,
+              // Coin badge: stays gold in every theme.
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppTheme.gold,
               ),
+              child: const Icon(
+                Icons.toll_rounded,
+                color: Colors.white,
+                size: 30,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.42),
-                          borderRadius: BorderRadius.circular(18),
-                        ),
-                        child: const Icon(
-                          Icons.account_balance_wallet_rounded,
-                          color: AppTheme.pureGoldInk,
-                          size: 28,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Glow wallet balance',
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: AppTheme.pureGoldInk.withValues(
-                                  alpha: 0.76,
-                                ),
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '$walletCoins coins',
-                              style: theme.textTheme.headlineSmall?.copyWith(
-                                color: AppTheme.pureGoldInk,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Instant top-up processing...')),
-                          );
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.28),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Text(
-                            'Instant top-up',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: AppTheme.pureGoldInk,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
                   Text(
-                    'Top up once and keep roses, gestures, and premium '
-                    'actions ready for every match.',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: AppTheme.pureGoldInk.withValues(alpha: 0.78),
-                      height: 1.45,
+                    'Glow wallet balance',
+                    style: TextStyle(
+                      fontSize: 12,
+                      letterSpacing: 1.1,
+                      fontWeight: FontWeight.w700,
+                      color: scheme.primary,
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  const Row(
-                    children: [
-                      Expanded(
-                        child: _HeroStatChip(
-                          icon: Icons.flash_on_rounded,
-                          label: 'Instant credit',
-                        ),
-                      ),
-                      SizedBox(width: 10),
-                      Expanded(
-                        child: _HeroStatChip(
-                          icon: Icons.verified_user_rounded,
-                          label: 'Secure payments',
-                        ),
-                      ),
-                    ],
+                  const SizedBox(height: 4),
+                  GradientText(
+                    '$balance coins',
+                    gradient: LinearGradient(
+                      colors: [scheme.onSurface, scheme.onSurface],
+                    ),
+                    style:
+                        theme.textTheme.headlineMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ) ??
+                        const TextStyle(fontSize: 28),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 18),
-            Text(
-              'Payment methods',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w800,
-                color: AppTheme.textDark,
+            if (isLoading)
+              SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: scheme.primary,
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            const _PaymentMethodTile(
-              icon: Icons.credit_card_rounded,
-              title: 'Credit Card',
-              subtitle: 'Visa, Mastercard, Amex',
-              accentColor: AppTheme.trustBlue,
-              tag: 'Fastest',
-            ),
-            const SizedBox(height: 12),
-            const _PaymentMethodTile(
-              icon: Icons.payment_rounded,
-              title: 'Debit Card',
-              subtitle: 'Direct bank card payments',
-              accentColor: AppTheme.primaryRed,
-              tag: 'Reliable',
-            ),
-            const SizedBox(height: 12),
-            const _PaymentMethodTile(
-              icon: Icons.qr_code_2_rounded,
-              title: 'UPI',
-              subtitle: 'Pay using any UPI app',
-              accentColor: AppTheme.successGreen,
-              tag: 'Popular',
-            ),
-            const SizedBox(height: 18),
-            Text(
-              'Popular top-ups',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w800,
-                color: AppTheme.textDark,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Designed for quick gifting, better intros, '
-              'and last-minute boosts.',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: AppTheme.textGrey,
-                height: 1.35,
-              ),
-            ),
-            const SizedBox(height: 12),
-            const Row(
-              children: [
-                Expanded(
-                  child: _CoinPackCard(
-                    coins: 25,
-                    price: '₹99',
-                    label: 'Starter',
-                    bonus: 'Perfect for first chats',
-                  ),
-                ),
-                SizedBox(width: 12),
-                Expanded(
-                  child: _CoinPackCard(
-                    coins: 75,
-                    price: '₹249',
-                    label: 'Most Loved',
-                    bonus: '+10 bonus glow coins',
-                    isFeatured: true,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            const Row(
-              children: [
-                Expanded(
-                  child: _CoinPackCard(
-                    coins: 150,
-                    price: '₹449',
-                    label: 'Date Night',
-                    bonus: 'Best for gifting streaks',
-                  ),
-                ),
-                SizedBox(width: 12),
-                Expanded(
-                  child: _CoinPackCard(
-                    coins: 400,
-                    price: '₹999',
-                    label: 'VIP Vault',
-                    bonus: '+65 bonus glow coins',
-                    isFeatured: true,
-                  ),
-                ),
-              ],
-            ),
           ],
         ),
       ),
@@ -248,270 +275,182 @@ class WalletPaymentScreen extends StatelessWidget {
   }
 }
 
-class _PaymentMethodTile extends StatelessWidget {
-  const _PaymentMethodTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.accentColor,
-    required this.tag,
+class _PackageCard extends StatelessWidget {
+  const _PackageCard({
+    required this.package,
+    required this.highlight,
+    required this.isBusy,
+    required this.onBuy,
   });
 
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final Color accentColor;
-  final String tag;
-
-  @override
-  Widget build(BuildContext context) => GlassContainer(
-    padding: const EdgeInsets.all(16),
-    backgroundColor: Colors.white.withValues(alpha: 0.9),
-    blur: 12,
-    crystalEffect: true,
-    borderRadius: BorderRadius.circular(20),
-    child: Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: accentColor.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Icon(icon, color: accentColor),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: AppTheme.textDark,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                subtitle,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: AppTheme.textGrey),
-              ),
-              const SizedBox(height: 8),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: accentColor.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    tag,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: accentColor,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 10),
-        Container(
-          width: 34,
-          height: 34,
-          decoration: BoxDecoration(
-            color: accentColor.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: const Icon(
-            Icons.chevron_right_rounded,
-            color: AppTheme.textGrey,
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-class _HeroStatChip extends StatelessWidget {
-  const _HeroStatChip({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-    decoration: BoxDecoration(
-      color: Colors.white.withValues(alpha: 0.26),
-      borderRadius: BorderRadius.circular(16),
-    ),
-    child: Row(
-      children: [
-        Icon(icon, color: AppTheme.pureGoldInk, size: 18),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AppTheme.pureGoldInk,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-class _CoinPackCard extends StatelessWidget {
-  const _CoinPackCard({
-    required this.coins,
-    required this.price,
-    required this.label,
-    required this.bonus,
-    this.isFeatured = false,
-  });
-
-  final int coins;
-  final String price;
-  final String label;
-  final String bonus;
-  final bool isFeatured;
+  final CoinPackage package;
+  final bool highlight;
+  final bool isBusy;
+  final VoidCallback onBuy;
 
   @override
   Widget build(BuildContext context) {
-    final gradient = isFeatured
-        ? const [Color(0xFFFFF0C4), AppTheme.pureGoldBright, Color(0xFFF2B945)]
-        : const [Colors.white, Color(0xFFFFF8EB), Color(0xFFF9E0A8)];
-
-    return Container(
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final accent = scheme.primary;
+    return GlassContainer(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: gradient,
-        ),
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.crystalGoldSoft.withValues(
-              alpha: isFeatured ? 0.32 : 0.18,
-            ),
-            blurRadius: isFeatured ? 20 : 14,
-            offset: const Offset(0, 10),
-          ),
-        ],
-        border: Border.all(
-          color: isFeatured
-              ? AppTheme.pureGoldHighlight.withValues(alpha: 0.94)
-              : AppTheme.crystalGoldSoft.withValues(alpha: 0.42),
-        ),
-      ),
+      borderRadius: const BorderRadius.all(Radius.circular(20)),
+      border: highlight ? Border.all(color: accent, width: 1.5) : null,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(
-                  isFeatured
-                      ? Icons.auto_awesome_rounded
-                      : Icons.workspace_premium_rounded,
-                  color: AppTheme.pureGoldInk,
-                  size: 18,
-                ),
-              ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.34),
-                  borderRadius: BorderRadius.circular(999),
-                ),
+              const Icon(Icons.toll_rounded, color: AppTheme.gold, size: 18),
+              const SizedBox(width: 8),
+              Expanded(
                 child: Text(
-                  label,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppTheme.pureGoldInk,
+                  package.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
                     fontWeight: FontWeight.w800,
+                    fontSize: 13,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
           Text(
-            '$coins coins',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: AppTheme.pureGoldInk,
+            '${package.totalCoins}',
+            style: theme.textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.w900,
+              color: accent,
             ),
           ),
-          const SizedBox(height: 6),
           Text(
-            bonus,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AppTheme.pureGoldInk.withValues(alpha: 0.78),
-              fontWeight: FontWeight.w600,
-              height: 1.35,
-            ),
+            package.bonusCoins > 0
+                ? 'coins · +${package.bonusCoins} bonus'
+                : 'coins',
+            style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
           ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Text(
-                price,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: AppTheme.pureGoldInk,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const Spacer(),
-              GestureDetector(
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Processing purchase for $coins coins...')),
-                  );
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 7,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.28),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    'Top up',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppTheme.pureGoldInk,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-              ),
-            ],
+          const SizedBox(height: 12),
+          GlassButton(
+            label: isBusy
+                ? 'Opening…'
+                : _money(package.price, package.currency),
+            icon: Icons.credit_card,
+            isLoading: isBusy,
+            onPressed: isBusy ? null : onBuy,
           ),
         ],
       ),
     );
   }
+}
+
+class _PurchaseRow extends StatelessWidget {
+  const _PurchaseRow({required this.purchase});
+
+  final WalletPurchase purchase;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final label = switch (purchase.source) {
+      'admin_topup' => 'Top-up from support',
+      'promo' => 'Promotion',
+      _ => 'Coin purchase',
+    };
+    final paid = purchase.amountMinor > 0
+        ? ' · ${_money(purchase.amountMinor / 100, purchase.currency)}'
+        : '';
+    return ListTile(
+      dense: true,
+      leading: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: AppTheme.gold.withValues(alpha: 0.14),
+          shape: BoxShape.circle,
+        ),
+        child: const Icon(
+          Icons.add_circle_outline,
+          size: 18,
+          color: AppTheme.gold,
+        ),
+      ),
+      title: Text(
+        '$label$paid',
+        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+      ),
+      subtitle: Text(
+        _dateLabel(purchase.createdAt),
+        style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+      ),
+      trailing: Text(
+        '+${purchase.coins}',
+        style: const TextStyle(
+          fontWeight: FontWeight.w800,
+          color: AppTheme.successGreen,
+        ),
+      ),
+    );
+  }
+}
+
+class _InlineNote extends StatelessWidget {
+  const _InlineNote({required this.message, this.isError = false});
+
+  final String message;
+  final bool isError;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final color = isError ? scheme.error : scheme.secondary;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: const BorderRadius.all(Radius.circular(14)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.info_outline, size: 18, color: color),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(message, style: TextStyle(color: color, fontSize: 13)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+String _money(double amount, String currency) {
+  final symbol = switch (currency.toUpperCase()) {
+    'INR' => '₹',
+    'USD' => r'$',
+    'EUR' => '€',
+    'GBP' => '£',
+    _ => '${currency.toUpperCase()} ',
+  };
+  return '$symbol${amount.toStringAsFixed(2)}';
+}
+
+String _dateLabel(DateTime value) {
+  final local = value.toLocal();
+  const months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+  return '${local.day} ${months[local.month - 1]} ${local.year}';
 }

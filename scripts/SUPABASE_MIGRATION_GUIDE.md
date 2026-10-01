@@ -11,7 +11,7 @@
 
 ```
 Project URL   : https://ufrmtgriqpyzqaewvtgn.supabase.co
-Publishable Key: sb_publishable_fdrhcB-7-G9yh6RJmqe4mw_acCVKC9_
+Publishable Key: YOUR_SUPABASE_PUBLISHABLE_KEY
 ```
 
 **⚠️ IMPORTANT**: 
@@ -95,17 +95,20 @@ Navigate to **Database → Replication** and enable for:
 
 ## 🚀 STEP 5: CONFIGURE AUTHENTICATION
 
-### Enable Phone OTP
+### Enable username/password
 
 1. **Authentication → Providers**
-2. **Phone tab**:
-   - Toggle "Enable Phone Auth"
-   - Keep "Auto-confirm" OFF for security
+2. **Email/Password provider**:
+   - Keep the provider enabled for the backend's internal credential mapping
+   - Configure `SUPABASE_SERVICE_ROLE` so account creation can confirm the
+     internal identity without an email workflow
+3. Apply `backend/scripts/050_username_password_identity.sql`.
 
-### Test Phone OTP
+### Test username/password
 ```bash
-# Use Supabase CLI or dashboard to test
-supabase functions invoke send-otp --body '{"phone": "+919999999999"}'
+curl -X POST http://localhost:8080/v1/auth/signup \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"test_user","password":"Password123"}'
 ```
 
 ---
@@ -194,7 +197,7 @@ USING (
 ```env
 # Supabase Configuration
 SUPABASE_URL=https://ufrmtgriqpyzqaewvtgn.supabase.co
-SUPABASE_ANON_KEY=sb_publishable_fdrhcB-7-G9yh6RJmqe4mw_acCVKC9_
+SUPABASE_ANON_KEY=YOUR_SUPABASE_PUBLISHABLE_KEY
 SUPABASE_SERVICE_ROLE=<paste-service-role-key-from-dashboard>
 
 # API Configuration
@@ -300,7 +303,7 @@ AND foreign_table_name IS NOT NULL;
 
 ### Configuration
 - [ ] Realtime enabled for: messages, matches, notifications
-- [ ] Phone OTP configured
+- [ ] Username/password configured
 - [ ] Storage bucket created
 - [ ] RLS policies set up
 - [ ] Service role key saved
@@ -316,7 +319,7 @@ AND foreign_table_name IS NOT NULL;
 - [ ] Can query user_management.users
 - [ ] Can insert test data
 - [ ] Real-time subscriptions working
-- [ ] Phone OTP functional
+- [ ] Username/password functional
 
 ### Documentation
 - [ ] Supabase credentials secured

@@ -48,6 +48,35 @@ void main() {
       expect(find.text('3 coins'), findsOneWidget);
     });
 
+    testWidgets('labels a received gift and exposes receiver controls', (
+      tester,
+    ) async {
+      var opened = false;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: MessageBubble(
+              message:
+                  '[gift:id=rose_blue_rare|name=Blue Rose|url=https://example.com/blue.gif|price=3]',
+              isFromCurrentUser: false,
+              timestamp: DateTime(2026, 3, 19, 10, 30),
+              isDelivered: true,
+              isRead: false,
+              receivedGiftFrom: 'Maya',
+              onGiftActions: () => opened = true,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Gift received from Maya'), findsOneWidget);
+      expect(find.text('Gift options'), findsOneWidget);
+      await tester.tap(
+        find.byKey(const ValueKey('qa.chat.gift_receiver_actions')),
+      );
+      expect(opened, isTrue);
+    });
+
     testWidgets(
       'preserves plain text and renders gift card when gift payload is appended',
       (tester) async {

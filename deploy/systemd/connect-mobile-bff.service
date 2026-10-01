@@ -1,0 +1,61 @@
+# Connect mobile BFF — the only backend process that reads/writes media.
+# Install: sudo install -m 0644 deploy/systemd/connect-mobile-bff.service /etc/systemd/system/
+# Guide:   documents/MEDIA_STORAGE_VPS_AND_S3_2026-10-01.md
+[Unit]
+Description=Connect mobile BFF (API, realtime, media storage)
+Documentation=file:///opt/connect/src/documents/MEDIA_STORAGE_VPS_AND_S3_2026-10-01.md
+Wants=network-online.target
+After=network-online.target postgresql.service connect-backend@auth-svc.service connect-backend@profile-svc.service connect-backend@matching-svc.service connect-backend@chat-svc.service
+PartOf=connect.target
+
+[Service]
+Type=simple
+User=connect
+Group=connect
+WorkingDirectory=/opt/connect
+# Common runtime settings, then the SEPARATE storage file (local VPS layout or
+# AWS S3 bucket + credentials). Later files win for duplicate keys.
+EnvironmentFile=/etc/connect/connect.env
+EnvironmentFile=/etc/connect/storage.env
+# XP award spool must live on a writable, persistent path.
+Environment=PROGRESSION_AWARD_SPOOL_PATH=/var/lib/connect/spool/xp-award-spool.jsonl
+ExecStart=/opt/connect/bin/mobile-bff
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+LimitNOFILE=65536
+# New files: 0640 at most (the app sets 0600/0640 explicitly anyway).
+UMask=0027
+
+# ── Hardening ──
+NoNewPrivileges=yes
+ProtectSystem=strict
+# Media (local backend) and the spool are the only writable paths.
+ReadWritePaths=/var/lib/connect/media /var/lib/connect/spool
+ReadOnlyPaths=/etc/connect
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+ProcSubset=pid
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+RestrictNamespaces=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RemoveIPC=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+
+[Install]
+WantedBy=connect.target

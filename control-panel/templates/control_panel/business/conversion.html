@@ -1,0 +1,32 @@
+{% extends "control_panel/business/_layout.html" %}
+{% block business_title %}Conversion & funnel{% endblock %}
+{% block business_heading %}Conversion &amp; paywall funnel{% endblock %}
+{% block business_lede %}Free → paid by signup cohort, LTV curves, and checkout sessions from creation to payment and refund.{% endblock %}
+{% block business_body %}
+<div class="biz-kpis">
+  <div class="biz-kpi"><small>Subscribers / 30-day actives</small><strong>{% if actives.rate is not None %}{% widthratio actives.rate 1 100 %}%{% else %}—{% endif %}</strong><span>{{ actives.paying_subscribers }} subscribers · {{ actives.active_members_30d }} actives · assumption {{ actives.assumption }}</span></div>
+  <div class="biz-kpi"><small>Trial → paid</small><strong>n/a</strong><span>{{ data.trials.note }}</span></div>
+</div>
+{% endblock %}
+{% block business_after %}
+<div class="glass-card mb-4">
+  <div class="d-flex justify-content-between align-items-start gap-2 mb-2"><h6 class="mb-0">Checkout funnel</h6>
+    <a class="btn btn-sm btn-glass biz-noprint" href="{{ funnel_csv_url }}?table=funnel{% if query %}&{{ query }}{% endif %}"><i class="bi bi-download"></i> CSV</a></div>
+  {% if funnel_error %}<div class="alert-glass alert-glass-warning mb-2">{{ funnel_error }}</div>{% endif %}
+  <div class="biz-note mb-2">{{ funnel.instrumentation.paywall_views }} · {{ funnel.instrumentation.platform }}</div>
+  <div class="biz-chart mb-3"><canvas id="chart-funnel" aria-label="Checkout funnel"></canvas></div>
+  {% if funnel_table.rows %}
+  <div class="table-responsive"><table class="glass-table w-100"><thead><tr>{% for c in funnel_table.columns %}<th>{{ c }}</th>{% endfor %}</tr></thead>
+  <tbody>{% for row in funnel_table.rows %}<tr>{% for v in row %}<td>{{ v }}</td>{% endfor %}</tr>{% endfor %}</tbody></table></div>
+  {% else %}<div class="empty-command-state">No checkout sessions in this window.</div>{% endif %}
+</div>
+{% endblock %}
+{% block business_js %}
+{{ funnel_chart|json_script:"biz-funnel" }}
+<script>
+  (function () {
+    const f = JSON.parse(document.getElementById('biz-funnel').textContent);
+    bizChart('chart-funnel', {type: 'bar', data: {labels: f.labels, datasets: [{label: 'Checkout sessions (counts under 5 hidden)', data: f.data}]}, options: {indexAxis: 'y'}});
+  })();
+</script>
+{% endblock %}

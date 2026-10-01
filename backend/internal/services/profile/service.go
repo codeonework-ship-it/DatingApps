@@ -10,8 +10,9 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/structpb"
 
+	profileapp "github.com/verified-dating/backend/internal/modules/profile/application"
 	"github.com/verified-dating/backend/internal/platform/config"
-	"github.com/verified-dating/backend/internal/platform/supabase"
+	"github.com/verified-dating/backend/internal/platform/dataaccess"
 )
 
 type Repository interface {
@@ -23,14 +24,14 @@ type Repository interface {
 }
 
 type SupabaseRepository struct {
-	db         *supabase.Client
+	db         dataaccess.Client
 	cfg        config.Config
 	mu         sync.Mutex
 	mockUsers  map[string]map[string]any
 	mockPhotos map[string][]string
 }
 
-func NewRepository(db *supabase.Client, cfg config.Config) Repository {
+func NewRepository(db dataaccess.Client, cfg config.Config) Repository {
 	return &SupabaseRepository{
 		db:         db,
 		cfg:        cfg,
@@ -94,6 +95,9 @@ func (s *Service) UpsertProfile(ctx context.Context, req *structpb.Struct) (*str
 		})
 	}
 	s.log.Info("profile_upsert_requested", zap.String("user_id", toString(profile["id"])))
+	if err := profileapp.ValidateMemberProfileUpdate(profile); err != nil {
+		return nil, err
+	}
 
 	updated, err := s.repo.UpsertUser(ctx, profile)
 	if err != nil {
@@ -161,7 +165,7 @@ func (r *SupabaseRepository) GetUser(ctx context.Context, userID string) (map[st
 	params.Set("limit", "1")
 	rows, err := r.db.Select(ctx, r.cfg.UserSchema, r.cfg.UsersTable, params)
 	if err != nil {
-		if r.cfg.MockOTPEnabled {
+		if r.cfg.MockDataEnabled {
 			r.mu.Lock()
 			defer r.mu.Unlock()
 			if user, ok := r.mockUsers[userID]; ok {
@@ -184,19 +188,23 @@ func (r *SupabaseRepository) GetUser(ctx context.Context, userID string) (map[st
 	if len(rows) == 0 {
 		return map[string]any{}, false, nil
 	}
-	return rows[0], true, nil
+	return profileRowToAPI(rows[0]), true, nil
 }
 
 func (r *SupabaseRepository) UpsertUser(ctx context.Context, profile map[string]any) (map[string]any, error) {
+	persistedProfile := profile
+	if r.cfg.UseLocalDB {
+		persistedProfile = profilePayloadToPostgres(profile)
+	}
 	rows, err := r.db.Upsert(
 		ctx,
 		r.cfg.UserSchema,
 		r.cfg.UsersTable,
-		[]map[string]any{profile},
+		[]map[string]any{persistedProfile},
 		"id",
 	)
 	if err != nil {
-		if r.cfg.MockOTPEnabled {
+		if r.cfg.MockDataEnabled {
 			userID := toString(profile["id"])
 			if userID == "" {
 				return map[string]any{}, nil
@@ -218,16 +226,16 @@ func (r *SupabaseRepository) UpsertUser(ctx context.Context, profile map[string]
 	if len(rows) == 0 {
 		return map[string]any{}, nil
 	}
-	return rows[0], nil
+	return profileRowToAPI(rows[0]), nil
 }
 
 func (r *SupabaseRepository) GetPreferences(ctx context.Context, userID string) (map[string]any, error) {
 	params := url.Values{}
-	params.Set("userId", "eq."+userID)
+	params.Set(profileColumn(r.cfg.UseLocalDB, "userId"), "eq."+userID)
 	params.Set("limit", "1")
 	rows, err := r.db.Select(ctx, r.cfg.UserSchema, r.cfg.PreferencesTable, params)
 	if err != nil {
-		if r.cfg.MockOTPEnabled {
+		if r.cfg.MockDataEnabled {
 			return map[string]any{}, nil
 		}
 		return nil, err
@@ -235,17 +243,17 @@ func (r *SupabaseRepository) GetPreferences(ctx context.Context, userID string) 
 	if len(rows) == 0 {
 		return map[string]any{}, nil
 	}
-	return rows[0], nil
+	return profileRowToAPI(rows[0]), nil
 }
 
 func (r *SupabaseRepository) GetPhotos(ctx context.Context, userID string) ([]string, error) {
 	params := url.Values{}
-	params.Set("userId", "eq."+userID)
-	params.Set("select", "photoUrl,ordering")
+	params.Set(profileColumn(r.cfg.UseLocalDB, "userId"), "eq."+userID)
+	params.Set("select", profileSelect(r.cfg.UseLocalDB, "photoUrl,ordering"))
 	params.Set("order", "ordering.asc")
 	rows, err := r.db.Select(ctx, r.cfg.UserSchema, r.cfg.PhotosTable, params)
 	if err != nil {
-		if r.cfg.MockOTPEnabled {
+		if r.cfg.MockDataEnabled {
 			r.mu.Lock()
 			defer r.mu.Unlock()
 			if photos, ok := r.mockPhotos[userID]; ok {
@@ -261,7 +269,7 @@ func (r *SupabaseRepository) GetPhotos(ctx context.Context, userID string) ([]st
 	}
 	out := make([]string, 0, len(rows))
 	for _, row := range rows {
-		photoURL := toString(row["photoUrl"])
+		photoURL := toString(row[profileColumn(r.cfg.UseLocalDB, "photoUrl")])
 		if photoURL != "" {
 			out = append(out, photoURL)
 		}
@@ -271,12 +279,12 @@ func (r *SupabaseRepository) GetPhotos(ctx context.Context, userID string) ([]st
 
 func (r *SupabaseRepository) GetStats(ctx context.Context, userID string) (map[string]any, error) {
 	likesParams := url.Values{}
-	likesParams.Set("userId", "eq."+userID)
-	likesParams.Set("isLike", "eq.true")
+	likesParams.Set(profileColumn(r.cfg.UseLocalDB, "userId"), "eq."+userID)
+	likesParams.Set(profileColumn(r.cfg.UseLocalDB, "isLike"), "eq.true")
 	likesParams.Set("select", "id")
 	likesRows, err := r.db.Select(ctx, r.cfg.MatchingSchema, r.cfg.SwipesTable, likesParams)
 	if err != nil {
-		if r.cfg.MockOTPEnabled {
+		if r.cfg.MockDataEnabled {
 			return map[string]any{
 				"likes_count":    0,
 				"matches_count":  0,
@@ -288,13 +296,13 @@ func (r *SupabaseRepository) GetStats(ctx context.Context, userID string) (map[s
 	}
 
 	matchesParams := url.Values{}
-	matchesParams.Set("or", "(userId1.eq."+userID+",userId2.eq."+userID+")")
-	matchesParams.Set("user1Status", "eq.active")
-	matchesParams.Set("user2Status", "eq.active")
+	matchesParams.Set("or", "("+profileColumn(r.cfg.UseLocalDB, "userId1")+".eq."+userID+","+profileColumn(r.cfg.UseLocalDB, "userId2")+".eq."+userID+")")
+	matchesParams.Set(profileColumn(r.cfg.UseLocalDB, "user1Status"), "eq.active")
+	matchesParams.Set(profileColumn(r.cfg.UseLocalDB, "user2Status"), "eq.active")
 	matchesParams.Set("select", "id")
 	matchesRows, err := r.db.Select(ctx, r.cfg.MatchingSchema, r.cfg.MatchesTable, matchesParams)
 	if err != nil {
-		if r.cfg.MockOTPEnabled {
+		if r.cfg.MockDataEnabled {
 			return map[string]any{
 				"likes_count":    len(likesRows),
 				"matches_count":  0,
@@ -306,11 +314,11 @@ func (r *SupabaseRepository) GetStats(ctx context.Context, userID string) (map[s
 	}
 
 	messagesParams := url.Values{}
-	messagesParams.Set("senderId", "eq."+userID)
+	messagesParams.Set(profileColumn(r.cfg.UseLocalDB, "senderId"), "eq."+userID)
 	messagesParams.Set("select", "id")
 	messagesRows, err := r.db.Select(ctx, r.cfg.MatchingSchema, r.cfg.MessagesTable, messagesParams)
 	if err != nil {
-		if r.cfg.MockOTPEnabled {
+		if r.cfg.MockDataEnabled {
 			return map[string]any{
 				"likes_count":    len(likesRows),
 				"matches_count":  len(matchesRows),
@@ -322,11 +330,11 @@ func (r *SupabaseRepository) GetStats(ctx context.Context, userID string) (map[s
 	}
 
 	photosParams := url.Values{}
-	photosParams.Set("userId", "eq."+userID)
+	photosParams.Set(profileColumn(r.cfg.UseLocalDB, "userId"), "eq."+userID)
 	photosParams.Set("select", "id")
 	photosRows, err := r.db.Select(ctx, r.cfg.UserSchema, r.cfg.PhotosTable, photosParams)
 	if err != nil {
-		if r.cfg.MockOTPEnabled {
+		if r.cfg.MockDataEnabled {
 			return map[string]any{
 				"likes_count":    len(likesRows),
 				"matches_count":  len(matchesRows),
@@ -350,6 +358,96 @@ func toString(value any) string {
 		return typed
 	}
 	return strings.TrimSpace(fmt.Sprintf("%v", value))
+}
+
+func profileColumn(local bool, column string) string {
+	if !local {
+		return column
+	}
+	switch column {
+	case "userId":
+		return "user_id"
+	case "targetUserId":
+		return "target_user_id"
+	case "isLike":
+		return "is_like"
+	case "userId1":
+		return "user_id_1"
+	case "userId2":
+		return "user_id_2"
+	case "user1Status":
+		return "user_1_status"
+	case "user2Status":
+		return "user_2_status"
+	case "senderId":
+		return "sender_id"
+	case "photoUrl":
+		return "photo_url"
+	default:
+		return column
+	}
+}
+
+func profileSelect(local bool, selectList string) string {
+	if !local {
+		return selectList
+	}
+	parts := strings.Split(selectList, ",")
+	for i, part := range parts {
+		parts[i] = profileColumn(true, strings.TrimSpace(part))
+	}
+	return strings.Join(parts, ",")
+}
+
+func profilePayloadToPostgres(profile map[string]any) map[string]any {
+	columns := map[string]string{
+		"dateOfBirth":        "date_of_birth",
+		"phoneNumber":        "phone_number",
+		"heightCm":           "height_cm",
+		"incomeRange":        "income_range",
+		"motherTongue":       "mother_tongue",
+		"relationshipStatus": "relationship_status",
+		"personalityType":    "personality_type",
+		"profileCompletion":  "profile_completion",
+		"isVerified":         "is_verified",
+		"isActive":           "is_active",
+	}
+	out := make(map[string]any, len(profile))
+	for key, value := range profile {
+		if persisted, ok := columns[key]; ok {
+			out[persisted] = value
+		} else {
+			out[key] = value
+		}
+	}
+	return out
+}
+
+func profileRowToAPI(row map[string]any) map[string]any {
+	columns := map[string]string{
+		"date_of_birth":       "dateOfBirth",
+		"phone_number":        "phoneNumber",
+		"height_cm":           "heightCm",
+		"income_range":        "incomeRange",
+		"mother_tongue":       "motherTongue",
+		"relationship_status": "relationshipStatus",
+		"personality_type":    "personalityType",
+		"profile_completion":  "profileCompletion",
+		"is_verified":         "isVerified",
+		"is_active":           "isActive",
+		"created_at":          "createdAt",
+		"updated_at":          "updatedAt",
+		"last_login_at":       "lastLoginAt",
+	}
+	out := make(map[string]any, len(row))
+	for key, value := range row {
+		if api, ok := columns[key]; ok {
+			out[api] = value
+		} else {
+			out[key] = value
+		}
+	}
+	return out
 }
 
 func stringsToAnySlice(values []string) []any {

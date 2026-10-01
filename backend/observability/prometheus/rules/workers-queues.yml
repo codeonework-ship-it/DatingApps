@@ -1,0 +1,142 @@
+# Background workers and in-process queues of the mobile BFF.
+#
+# Every worker publishes verified_dating_worker_* heartbeats (see
+# backend/internal/platform/observability/metrics_workers.go). A worker is
+# stale when its last success is older than 3x its own interval, with a
+# five-minute floor so sub-second pollers do not flap on a slow scrape.
+# Runbooks: documents/MONITORING_RUNBOOKS_2026-10-01.md
+groups:
+  - name: verified-dating-workers-recording
+    interval: 30s
+    rules:
+      - record: verified_dating:worker_heartbeat_age_seconds
+        expr: time() - verified_dating_worker_last_success_timestamp_seconds
+      - record: verified_dating:worker_stale_threshold_seconds
+        expr: clamp_min(3 * verified_dating_worker_expected_interval_seconds, 300)
+      - record: verified_dating:worker_error_ratio:rate15m
+        expr: |
+          sum by (job, instance, worker) (rate(verified_dating_worker_runs_total{result="error"}[15m]))
+            / clamp_min(sum by (job, instance, worker) (rate(verified_dating_worker_runs_total[15m])), 1e-9)
+      - record: verified_dating:chat_sends:rate5m
+        expr: |
+          sum by (route) (rate(verified_dating_http_requests_total{service="mobile_bff",method="POST",status_class="2xx",route=~"/v1/chat/\\{matchID\\}/messages|/v1/social/channels/\\{channelID\\}/messages"}[5m]))
+      - record: verified_dating:realtime_connections:sum
+        expr: sum by (job, instance) (verified_dating_realtime_connections{service="mobile_bff"})
+
+  - name: verified-dating-workers
+    interval: 30s
+    rules:
+      - alert: VerifiedDatingCriticalWorkerStale
+        expr: |
+          verified_dating:worker_heartbeat_age_seconds{worker=~"sos_delivery|sos_gauge_refresh|notification_delivery|level_projection"}
+            > verified_dating:worker_stale_threshold_seconds
+        for: 2m
+        labels:
+          severity: page
+          owner: backend-oncall
+        annotations:
+          summary: "Critical worker {{ $labels.worker }} has not succeeded recently"
+          description: "{{ $labels.worker }} last succeeded {{ $value | humanizeDuration }} ago (threshold: 3x its interval, at least 5 minutes). SOS, notification or XP delivery is stalled."
+          runbook_url: /documents/MONITORING_RUNBOOKS_2026-10-01.md#verifieddatingcriticalworkerstale
+
+      - alert: VerifiedDatingWorkerStale
+        expr: |
+          verified_dating:worker_heartbeat_age_seconds{worker!~"sos_delivery|sos_gauge_refresh|notification_delivery|level_projection"}
+            > verified_dating:worker_stale_threshold_seconds
+        for: 5m
+        labels:
+          severity: ticket
+          owner: backend-oncall
+        annotations:
+          summary: "Background worker {{ $labels.worker }} has not succeeded recently"
+          description: "{{ $labels.worker }} last succeeded {{ $value | humanizeDuration }} ago, more than 3x its interval. Its work (erasure, cleanup, billing expiry, sweeps, retention) is piling up."
+          runbook_url: /documents/MONITORING_RUNBOOKS_2026-10-01.md#verifieddatingworkerstale
+
+      - alert: VerifiedDatingWorkerErrorRateHigh
+        expr: verified_dating:worker_error_ratio:rate15m > 0.5
+        for: 15m
+        labels:
+          severity: ticket
+          owner: backend-oncall
+        annotations:
+          summary: "More than half of {{ $labels.worker }} runs are failing"
+          description: "{{ $value | humanizePercentage }} of {{ $labels.worker }} runs failed over 15 minutes."
+          runbook_url: /documents/MONITORING_RUNBOOKS_2026-10-01.md#verifieddatingworkererrorratehigh
+
+      - alert: VerifiedDatingAccountErasureFailures
+        expr: increase(verified_dating_worker_items_total{worker="account_erasure",outcome="failed"}[6h]) > 0
+        labels:
+          severity: ticket
+          owner: trust-safety-oncall
+        annotations:
+          summary: Scheduled account erasures are failing
+          description: "{{ $value | humanize }} member erasures failed in six hours. Deletion is a legal promise; each failure is retried hourly but must be investigated."
+          runbook_url: /documents/MONITORING_RUNBOOKS_2026-10-01.md#verifieddatingaccounterasurefailures
+
+      - alert: VerifiedDatingFanoutDroppingEvents
+        expr: increase(verified_dating_queue_dropped_total[10m]) > 0
+        labels:
+          severity: ticket
+          owner: backend-oncall
+        annotations:
+          summary: "In-process queue {{ $labels.queue }} dropped work"
+          description: "{{ $value | humanize }} jobs were dropped in ten minutes because the queue was full. Activity events and aggregates are incomplete."
+          runbook_url: /documents/MONITORING_RUNBOOKS_2026-10-01.md#verifieddatingfanoutdroppingevents
+
+      - alert: VerifiedDatingFanoutQueueSaturated
+        expr: verified_dating_queue_depth / clamp_min(verified_dating_queue_capacity, 1) > 0.8
+        for: 5m
+        labels:
+          severity: ticket
+          owner: backend-oncall
+        annotations:
+          summary: "In-process queue {{ $labels.queue }} is over 80% full"
+          description: "The queue is {{ $value | humanizePercentage }} full; drops start at 100%."
+          runbook_url: /documents/MONITORING_RUNBOOKS_2026-10-01.md#verifieddatingfanoutqueuesaturated
+
+  - name: verified-dating-realtime
+    interval: 30s
+    rules:
+      # A deploy or BFF restart drops every socket at once; the alert waits
+      # 5 minutes so clients that reconnect clear it.
+      - alert: VerifiedDatingRealtimeConnectionsDropped
+        expr: |
+          (
+            max_over_time(verified_dating:realtime_connections:sum[15m]) - verified_dating:realtime_connections:sum
+          ) / clamp_min(max_over_time(verified_dating:realtime_connections:sum[15m]), 1) > 0.5
+          and max_over_time(verified_dating:realtime_connections:sum[15m]) >= 20
+        for: 5m
+        labels:
+          severity: page
+          owner: backend-oncall
+        annotations:
+          summary: More than half of realtime (WebSocket) connections dropped and did not come back
+          description: "Open sockets fell by {{ $value | humanizePercentage }} versus the last 15 minutes. Chat and notifications are not live for those members."
+          runbook_url: /documents/MONITORING_RUNBOOKS_2026-10-01.md#verifieddatingrealtimeconnectionsdropped
+
+      - alert: VerifiedDatingRealtimeShortLivedConnections
+        expr: |
+          sum by (job, instance) (rate(verified_dating_realtime_connection_duration_seconds_bucket{service="mobile_bff",le=~"10|10\\.0"}[10m]))
+            / clamp_min(sum by (job, instance) (rate(verified_dating_realtime_connection_duration_seconds_count{service="mobile_bff"}[10m])), 1e-9)
+          > 0.5
+          and sum by (job, instance) (rate(verified_dating_realtime_connection_duration_seconds_count{service="mobile_bff"}[10m])) > 0.05
+        for: 10m
+        labels:
+          severity: ticket
+          owner: backend-oncall
+        annotations:
+          summary: Most realtime connections close within ten seconds
+          description: "{{ $value | humanizePercentage }} of closed sockets lived under 10s: clients are reconnect-looping (proxy timeouts, auth revocation, or delivery errors)."
+          runbook_url: /documents/MONITORING_RUNBOOKS_2026-10-01.md#verifieddatingrealtimeshortlivedconnections
+
+      - alert: VerifiedDatingRealtimeDeliveryLagHigh
+        expr: |
+          histogram_quantile(0.95, sum by (le, stream) (rate(verified_dating_realtime_delivery_lag_seconds_bucket[10m]))) > 5
+        for: 10m
+        labels:
+          severity: ticket
+          owner: backend-oncall
+        annotations:
+          summary: "Realtime {{ $labels.stream }} delivery p95 is above five seconds"
+          description: "Live events reach connected sockets {{ $value | humanizeDuration }} after being written (p95). Polling is 400ms, so this means database slowness or overloaded sockets."
+          runbook_url: /documents/MONITORING_RUNBOOKS_2026-10-01.md#verifieddatingrealtimedeliverylaghigh

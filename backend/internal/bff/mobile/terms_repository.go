@@ -2,6 +2,7 @@ package mobile
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"net/url"
 	"strings"
@@ -9,7 +10,7 @@ import (
 	"time"
 
 	"github.com/verified-dating/backend/internal/platform/config"
-	"github.com/verified-dating/backend/internal/platform/supabase"
+	"github.com/verified-dating/backend/internal/platform/postgresdata"
 )
 
 type termsAgreementRecord struct {
@@ -24,7 +25,8 @@ type termsAgreementRecord struct {
 
 type termsAgreementRepository struct {
 	cfg   config.Config
-	db    *supabase.Client
+	db    repositoryDB
+	pg    *sql.DB
 	mu    sync.RWMutex
 	local map[string]termsAgreementRecord
 }
@@ -52,28 +54,24 @@ func defaultTermsAgreementRecord(userID string) termsAgreementRecord {
 	}
 }
 
-func newTermsAgreementRepository(cfg config.Config) *termsAgreementRepository {
-	apiKey := strings.TrimSpace(cfg.SupabaseServiceRole)
-	if apiKey == "" {
-		apiKey = strings.TrimSpace(cfg.SupabaseAnonKey)
+func newTermsAgreementRepository(cfg config.Config, supplied ...repositoryDB) *termsAgreementRepository {
+	direct := repositoryDBFor(cfg, supplied)
+	if cfg.UseLocalDB {
+		db, err := postgresdata.OpenSQL(cfg.DatabaseURL, postgresOptions(cfg, 8, 2))
+		if err == nil {
+			return &termsAgreementRepository{cfg: cfg, db: direct, pg: db, local: map[string]termsAgreementRecord{}}
+		}
+		return &termsAgreementRepository{cfg: cfg, db: direct, local: map[string]termsAgreementRecord{}}
 	}
-	if strings.TrimSpace(cfg.SupabaseURL) == "" || apiKey == "" {
+	if direct == nil {
 		return &termsAgreementRepository{
 			cfg:   cfg,
 			local: map[string]termsAgreementRecord{},
 		}
 	}
-
-	client := supabase.NewClient(
-		cfg.SupabaseURL,
-		cfg.SupabaseAnonKey,
-		cfg.SupabaseServiceRole,
-		cfg.SupabaseHTTPTimeout(),
-	)
-	client.SetReadBaseURL(cfg.SupabaseReadReplicaURL)
 	return &termsAgreementRepository{
 		cfg:   cfg,
-		db:    client,
+		db:    direct,
 		local: map[string]termsAgreementRecord{},
 	}
 }
@@ -85,6 +83,9 @@ func (r *termsAgreementRepository) getAgreement(
 	trimmedUserID := strings.TrimSpace(userID)
 	if trimmedUserID == "" {
 		return termsAgreementRecord{}, errors.New("user id is required")
+	}
+	if r.pg != nil {
+		return r.getAgreementPostgres(ctx, trimmedUserID)
 	}
 	if r.db == nil {
 		record, ok := r.localRecord(trimmedUserID)
@@ -144,6 +145,9 @@ func (r *termsAgreementRepository) updateAgreement(
 	trimmedUserID := strings.TrimSpace(userID)
 	if trimmedUserID == "" {
 		return termsAgreementRecord{}, errors.New("user id is required")
+	}
+	if r.pg != nil {
+		return r.updateAgreementPostgres(ctx, trimmedUserID, accepted, termsVersion)
 	}
 
 	now := time.Now().UTC().Format(time.RFC3339)

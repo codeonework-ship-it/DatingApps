@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+
+	"github.com/verified-dating/backend/internal/platform/config"
 )
 
 var roseGiftTelemetryEventStatusByName = map[string]string{
@@ -83,20 +85,32 @@ func (s *Server) topUpWalletCoins(w http.ResponseWriter, r *http.Request) {
 	if reason == "" {
 		reason = "manual_top_up"
 	}
-	requestedBy := strings.TrimSpace(r.Header.Get("X-Admin-User"))
-	if requestedBy == "" {
-		requestedBy = strings.TrimSpace(toString(payload["requested_by"]))
-	}
-	if s.requiresWalletTopUpApprover() && requestedBy == "" {
-		writeError(w, http.StatusForbidden, errors.New("wallet top-up requires X-Admin-User in this environment"))
+	// Coins are created here from nothing, so the approver is taken from the
+	// authenticated session and nowhere else.
+	//
+	// Three things were wrong before. The approver could come from
+	// `requested_by` in the caller's own body, which `enforceBodyIdentity`
+	// does not police — it checks nine actor keys and not this one — so a
+	// member could name any approver they liked. The gate only tested that
+	// the string was non-empty, never that it belonged to a privileged
+	// operator. And it applied solely when the environment string matched a
+	// known production name, so an unset or unrecognised environment left no
+	// gate at all: a plain member could mint 1000 coins for themselves.
+	// Measured before this change — role `user`, a 500-coin self-grant, no
+	// payment involved.
+	//
+	// `/wallet/{userID}/coins/buy` is the member-facing path; this one is an
+	// operator tool and now says so in every environment.
+	operatorID, err := authenticatedOperatorID(r)
+	if err != nil {
+		writeError(w, http.StatusForbidden,
+			errors.New("wallet top-up requires an authenticated operator role"))
 		return
 	}
-	if requestedBy == "" {
-		requestedBy = userID
-	}
-	wallet, err := s.store.topUpWalletCoins(userID, amount, reason)
-	if err != nil {
-		writeError(w, http.StatusBadRequest, err)
+	requestedBy := operatorID
+	wallet, topUpErr := s.store.topUpWalletCoins(userID, amount, reason)
+	if topUpErr != nil {
+		writeError(w, http.StatusBadRequest, topUpErr)
 		return
 	}
 	auditReceiptID := newGroupUUID()
@@ -130,6 +144,23 @@ func (s *Server) topUpWalletCoins(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) buyWalletCoins(w http.ResponseWriter, r *http.Request) {
+	// With a payment provider configured, coins are bought through card
+	// checkout (POST /billing/checkout kind=coin_package); a client-asserted
+	// credit is refused.
+	if s.billing != nil && !s.cfg.BillingLocalActivationEnabled {
+		writeError(w, http.StatusConflict, errors.New("coins are purchased through card checkout; call POST /billing/checkout with kind=coin_package"))
+		return
+	}
+	// Without a provider this path credits coins with no payment. That is a
+	// developer convenience only: anywhere not explicitly local, refuse rather
+	// than let a member mint coins for themselves.
+	if !config.IsLocalEnvironment(s.cfg.Environment) {
+		writeJSON(w, http.StatusConflict, map[string]any{
+			"success": false, "error": "coin purchases require a configured payment provider",
+			"error_code": "PAYMENT_PROVIDER_REQUIRED",
+		})
+		return
+	}
 	userID := strings.TrimSpace(chi.URLParam(r, "userID"))
 	if userID == "" {
 		writeError(w, http.StatusBadRequest, errors.New("user id is required"))
@@ -440,6 +471,42 @@ func (s *Server) sendRoseGift(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// A gift is written to the conversation as a durable chat message, with
+	// any optional note embedded in that message. Apply the sender's plan
+	// message quota before the transactional gift send so this route cannot be
+	// used as an alternate, unmetered way to message after the daily limit.
+	// The idempotency middleware runs before this handler, so a retry of a
+	// completed send replays the original response without checking or spending
+	// the quota again.
+	if !s.enforceDailyQuota(w, r, s.requestUserID(r, senderUserID), "message") {
+		s.store.recordActivity(activityEvent{
+			UserID:   senderUserID,
+			Actor:    senderUserID,
+			Action:   "gift_send_failed",
+			Status:   "failed",
+			Resource: "/chat/" + matchID + "/gifts/send",
+			Details: map[string]any{
+				"match_id":        matchID,
+				"gift_id":         giftID,
+				"error_code":      "DAILY_MESSAGE_LIMIT_REACHED",
+				"idempotency_key": idempotencyKey,
+			},
+		})
+		s.recordDurableGiftSpendActivity(giftSpendActivityRecord{
+			MatchID:        matchID,
+			SenderUserID:   senderUserID,
+			ReceiverUserID: receiverUserID,
+			GiftID:         giftID,
+			Action:         "gift_send_failed",
+			Status:         "failed",
+			IdempotencyKey: idempotencyKey,
+			ErrorCode:      "DAILY_MESSAGE_LIMIT_REACHED",
+			ErrorMessage:   "daily message quota reached",
+			CreatedAt:      time.Now().UTC(),
+		})
+		return
+	}
+
 	giftSend, err := s.store.sendRoseGift(
 		matchID,
 		senderUserID,
@@ -450,6 +517,27 @@ func (s *Server) sendRoseGift(w http.ResponseWriter, r *http.Request) {
 		time.Now().UTC(),
 	)
 	if err != nil {
+		if status, code, ok := giftSendErrorStatus(err); ok {
+			s.store.recordActivity(activityEvent{
+				UserID:   senderUserID,
+				Actor:    senderUserID,
+				Action:   "gift_send_failed",
+				Status:   "failed",
+				Resource: "/chat/" + matchID + "/gifts/send",
+				Details: map[string]any{
+					"match_id":        matchID,
+					"gift_id":         giftID,
+					"error_code":      code,
+					"idempotency_key": idempotencyKey,
+				},
+			})
+			writeJSON(w, status, map[string]any{
+				"success":    false,
+				"error":      err.Error(),
+				"error_code": code,
+			})
+			return
+		}
 		if strings.Contains(strings.ToLower(err.Error()), "insufficient") {
 			s.store.recordActivity(activityEvent{
 				UserID:   senderUserID,
@@ -480,6 +568,14 @@ func (s *Server) sendRoseGift(w http.ResponseWriter, r *http.Request) {
 				"success":    false,
 				"error":      err.Error(),
 				"error_code": "INSUFFICIENT_COINS",
+			})
+			return
+		}
+		if errors.Is(err, errGiftUnavailable) {
+			writeJSON(w, http.StatusUnprocessableEntity, map[string]any{
+				"success":    false,
+				"error":      err.Error(),
+				"error_code": "GIFT_UNAVAILABLE",
 			})
 			return
 		}
@@ -546,6 +642,9 @@ func (s *Server) sendRoseGift(w http.ResponseWriter, r *http.Request) {
 			"remaining_coins": giftSend.RemainingCoins,
 		},
 	})
+	if receiver := strings.TrimSpace(giftSend.ReceiverUserID); receiver != "" {
+		receiverUserID = receiver
+	}
 	s.recordDurableGiftSpendActivity(giftSpendActivityRecord{
 		MatchID:            matchID,
 		SenderUserID:       senderUserID,
@@ -587,6 +686,31 @@ func (s *Server) sendRoseGift(w http.ResponseWriter, r *http.Request) {
 			"coin_balance": giftSend.RemainingCoins,
 		},
 	})
+}
+
+// giftSendErrorStatus maps the transactional ledger's refusals to documented
+// responses. Anything else falls through to the handler's existing mapping.
+func giftSendErrorStatus(err error) (int, string, bool) {
+	switch {
+	case errors.Is(err, errFreeGiftDailyLimit):
+		return http.StatusTooManyRequests, "FREE_GIFT_DAILY_LIMIT_REACHED", true
+	case errors.Is(err, errGiftReceiverMismatch):
+		return http.StatusForbidden, "GIFT_RECEIVER_MISMATCH", true
+	case errors.Is(err, errGiftMatchInactive):
+		return http.StatusForbidden, "MATCH_NOT_ACTIVE", true
+	case errors.Is(err, errGiftIdempotencyReplay):
+		return http.StatusConflict, "IDEMPOTENCY_KEY_REUSED", true
+	case errors.Is(err, errWalletFrozen):
+		return http.StatusLocked, "WALLET_FROZEN", true
+	}
+	if status, code, ok := economyControlStatus(err); ok {
+		return status, code, true
+	}
+	var velocity *errGiftVelocityLimit
+	if errors.As(err, &velocity) {
+		return http.StatusTooManyRequests, "GIFT_VELOCITY_LIMIT", true
+	}
+	return 0, "", false
 }
 
 func roseGiftChatMessageResponse(giftSend roseGiftSendView, matchID, senderUserID string) map[string]any {

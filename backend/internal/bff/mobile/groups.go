@@ -99,7 +99,7 @@ func normalizeCommunityVisibility(raw string) string {
 	}
 }
 
-func (m *memoryStore) createCommunityGroup(
+func (m *runtimeStore) createCommunityGroup(
 	ownerUserID,
 	name,
 	city,
@@ -176,7 +176,7 @@ func (m *memoryStore) createCommunityGroup(
 	return view, invites, nil
 }
 
-func (m *memoryStore) createCommunityGroupInvites(
+func (m *runtimeStore) createCommunityGroupInvites(
 	groupID,
 	inviterUserID string,
 	inviteeUserIDs []string,
@@ -207,7 +207,7 @@ func (m *memoryStore) createCommunityGroupInvites(
 	return m.createCommunityGroupInvitesLocked(trimmedGroupID, trimmedInviter, inviteeUserIDs, now)
 }
 
-func (m *memoryStore) createCommunityGroupInvitesLocked(
+func (m *runtimeStore) createCommunityGroupInvitesLocked(
 	groupID,
 	inviterUserID string,
 	inviteeUserIDs []string,
@@ -278,7 +278,7 @@ func (m *memoryStore) createCommunityGroupInvitesLocked(
 	return out, nil
 }
 
-func (m *memoryStore) respondCommunityGroupInvite(
+func (m *runtimeStore) respondCommunityGroupInvite(
 	groupID,
 	userID,
 	decision string,
@@ -354,7 +354,7 @@ func (m *memoryStore) respondCommunityGroupInvite(
 	return groupView, inviteView, nil
 }
 
-func (m *memoryStore) listCommunityGroups(
+func (m *runtimeStore) listCommunityGroups(
 	userID,
 	city,
 	topic string,
@@ -423,7 +423,7 @@ func (m *memoryStore) listCommunityGroups(
 	return out
 }
 
-func (m *memoryStore) listCommunityGroupInvites(userID, status string, limit int) []communityGroupInviteView {
+func (m *runtimeStore) listCommunityGroupInvites(userID, status string, limit int) []communityGroupInviteView {
 	if m.communityGroupRepo != nil {
 		invites, err := m.communityGroupRepo.listInvites(
 			context.Background(),
@@ -480,7 +480,7 @@ func (m *memoryStore) listCommunityGroupInvites(userID, status string, limit int
 	return out
 }
 
-func (m *memoryStore) buildCommunityGroupViewLocked(record communityGroupRecord, userID string) communityGroupView {
+func (m *runtimeStore) buildCommunityGroupViewLocked(record communityGroupRecord, userID string) communityGroupView {
 	members := m.communityGroupMembers[record.ID]
 	memberCount := 0
 	isMember := false
@@ -513,7 +513,7 @@ func (m *memoryStore) buildCommunityGroupViewLocked(record communityGroupRecord,
 	}
 }
 
-func (m *memoryStore) buildCommunityGroupInviteViewLocked(
+func (m *runtimeStore) buildCommunityGroupInviteViewLocked(
 	record communityGroupRecord,
 	invite communityGroupInvite,
 ) communityGroupInviteView {

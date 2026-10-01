@@ -125,7 +125,7 @@
 
 ```env
 SUPABASE_URL=https://ufrmtgriqpyzqaewvtgn.supabase.co
-SUPABASE_ANON_KEY=sb_publishable_fdrhcB-7-G9yh6RJmqe4mw_acCVKC9_
+SUPABASE_ANON_KEY=YOUR_SUPABASE_PUBLISHABLE_KEY
 SUPABASE_SERVICE_ROLE=<TO_FILL_FROM_DASHBOARD>
 ```
 
@@ -165,7 +165,7 @@ SUPABASE_SERVICE_ROLE=<TO_FILL_FROM_DASHBOARD>
 ## 🔐 SECURITY CONFIGURED
 
 ### Authentication
-✅ Phone OTP via Supabase  
+✅ Username/password via Supabase
 ✅ JWT tokens for sessions  
 ✅ Service role separation  
 ✅ Row Level Security (RLS) ready  
@@ -188,7 +188,7 @@ SUPABASE_SERVICE_ROLE=<TO_FILL_FROM_DASHBOARD>
 
 ```
 Project URL    : https://ufrmtgriqpyzqaewvtgn.supabase.co
-Publishable Key: sb_publishable_fdrhcB-7-G9yh6RJmqe4mw_acCVKC9_
+Publishable Key: YOUR_SUPABASE_PUBLISHABLE_KEY
 Service Role   : [Need to get from dashboard Settings → API]
 ```
 
@@ -209,7 +209,7 @@ Service Role   : [Need to get from dashboard Settings → API]
 
 **Step 2: Configure Supabase** (15 min)
 1. Enable realtime for messaging, matches, notifications
-2. Setup Phone OTP authentication
+2. Setup Username/password authentication
 3. Create storage bucket for photos
 4. Get Service Role Key
 5. Save to `.env.local`
@@ -297,7 +297,7 @@ Service Role   : [Need to get from dashboard Settings → API]
 
 ### After Configuration
 - [ ] Realtime enabled on messaging tables
-- [ ] Phone OTP authentication working
+- [ ] Username/password authentication working
 - [ ] Service role key obtained
 - [ ] Storage bucket created
 - [ ] RLS policies ready

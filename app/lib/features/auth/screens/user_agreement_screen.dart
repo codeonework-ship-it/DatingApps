@@ -20,6 +20,7 @@ class _UserAgreementScreenState extends ConsumerState<UserAgreementScreen> {
   Widget build(BuildContext context) {
     final termsState = ref.watch(termsAcceptanceProvider);
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
@@ -38,24 +39,13 @@ class _UserAgreementScreenState extends ConsumerState<UserAgreementScreen> {
                     _buildHeader(context),
                     const SizedBox(height: 22),
                     Container(
-                      padding: const EdgeInsets.all(22),
+                      padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.94),
+                        color: scheme.surface,
                         borderRadius: const BorderRadius.all(
-                          Radius.circular(28),
+                          Radius.circular(20),
                         ),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.72),
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppTheme.crystalGoldDeep.withValues(
-                              alpha: 0.18,
-                            ),
-                            blurRadius: 24,
-                            offset: const Offset(0, 12),
-                          ),
-                        ],
+                        border: Border.all(color: scheme.outlineVariant),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -93,112 +83,126 @@ class _UserAgreementScreenState extends ConsumerState<UserAgreementScreen> {
                           const SizedBox(height: 18),
                           Container(
                             width: double.infinity,
-                            padding: const EdgeInsets.all(14),
+                            padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: AppTheme.crystalGoldFog.withValues(
-                                alpha: 0.36,
-                              ),
+                              color: scheme.primaryContainer,
                               borderRadius: BorderRadius.circular(18),
-                              border: Border.all(
-                                color: AppTheme.crystalGoldSoft.withValues(
-                                  alpha: 0.34,
-                                ),
-                              ),
                             ),
                             child: Text(
                               'You can review the full policy details later '
                               'from settings, but acceptance is required '
                               'before using the app.',
-                              style: Theme.of(context).textTheme.bodyMedium,
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(color: scheme.onPrimaryContainer),
                             ),
                           ),
                           const SizedBox(height: 18),
-                          InkWell(
-                            onTap: () {
-                              setState(() {
-                                _accepted = !_accepted;
-                              });
-                            },
-                            borderRadius: BorderRadius.circular(18),
-                            child: Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(18),
-                                border: Border.all(
-                                  color: _accepted
-                                      ? AppTheme.trustBlue
-                                      : AppTheme.crystalGoldSoft.withValues(
-                                          alpha: 0.5,
-                                        ),
-                                  width: _accepted ? 1.5 : 1.0,
+                          Semantics(
+                            label: 'qa.terms.accept_checkbox',
+                            button: true,
+                            checked: _accepted,
+                            child: InkWell(
+                              key: const ValueKey('qa.terms.accept_checkbox'),
+                              onTap: () {
+                                setState(() {
+                                  _accepted = !_accepted;
+                                });
+                              },
+                              borderRadius: BorderRadius.circular(18),
+                              child: Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.fromLTRB(
+                                  12,
+                                  12,
+                                  12,
+                                  8,
                                 ),
-                              ),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  Checkbox(
-                                    value: _accepted,
-                                    activeColor: AppTheme.trustBlue,
-                                    checkColor: Colors.white,
-                                    onChanged: (value) {
-                                      setState(() {
-                                        _accepted = value ?? false;
-                                      });
-                                    },
+                                decoration: BoxDecoration(
+                                  color: scheme.surface,
+                                  borderRadius: BorderRadius.circular(18),
+                                  border: Border.all(
+                                    color: _accepted
+                                        ? scheme.primary
+                                        : scheme.outlineVariant,
+                                    width: _accepted ? 1.5 : 1.0,
                                   ),
-                                  const Expanded(
-                                    child: Padding(
-                                      padding: EdgeInsets.only(
-                                        top: 2,
-                                        bottom: 2,
+                                ),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Checkbox(
+                                      key: const ValueKey(
+                                        'qa.terms.accept_checkbox_input',
                                       ),
-                                      child: Text(
-                                        'I agree to the Terms & Privacy Policy',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w500,
+                                      value: _accepted,
+                                      activeColor: scheme.primary,
+                                      checkColor: scheme.onPrimary,
+                                      onChanged: (value) {
+                                        setState(() {
+                                          _accepted = value ?? false;
+                                        });
+                                      },
+                                    ),
+                                    Expanded(
+                                      child: Padding(
+                                        padding: const EdgeInsets.only(
+                                          top: 4,
+                                          bottom: 4,
+                                        ),
+                                        child: Text(
+                                          'I agree to the Terms & Privacy Policy',
+                                          style: TextStyle(
+                                            color: scheme.onSurface,
+                                            fontWeight: FontWeight.w500,
+                                          ),
                                         ),
                                       ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
                           ),
                           const SizedBox(height: 18),
-                          GlassButton(
-                            label: 'I Accept and Continue',
-                            icon: Icons.check_circle_rounded,
-                            shinyEffect: true,
-                            isLoading: termsState.isLoading,
-                            onPressed: !_accepted
-                                ? null
-                                : () async {
-                                    final saved = await ref
-                                        .read(termsAcceptanceProvider.notifier)
-                                        .accept();
-                                    if (!context.mounted) {
-                                      return;
-                                    }
-                                    if (!saved) {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            'Could not save your agreement. Please check network and try again.',
+                          Semantics(
+                            label: 'qa.terms.continue_button',
+                            button: true,
+                            child: GlassButton(
+                              key: const ValueKey('qa.terms.continue_button'),
+                              label: 'I Accept and Continue',
+                              icon: Icons.check_circle_rounded,
+                              shinyEffect: true,
+                              isLoading: termsState.isLoading,
+                              onPressed: !_accepted
+                                  ? null
+                                  : () async {
+                                      final saved = await ref
+                                          .read(
+                                            termsAcceptanceProvider.notifier,
+                                          )
+                                          .accept();
+                                      if (!context.mounted) {
+                                        return;
+                                      }
+                                      if (!saved) {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              'Could not save your agreement. Please check network and try again.',
+                                            ),
                                           ),
-                                        ),
-                                      );
-                                      return;
-                                    }
-                                    // Do not force a profile-setup route here.
-                                    // The root app gate decides the next screen:
-                                    // existing sign-in users go to Discover,
-                                    // while new sign-up users continue setup if
-                                    // their profile is incomplete.
-                                  },
+                                        );
+                                        return;
+                                      }
+                                      // Do not force a profile-setup route here.
+                                      // The root app gate decides the next screen:
+                                      // existing sign-in users go to Discover,
+                                      // while new sign-up users continue setup if
+                                      // their profile is incomplete.
+                                    },
+                            ),
                           ),
                         ],
                       ),
@@ -213,57 +217,54 @@ class _UserAgreementScreenState extends ConsumerState<UserAgreementScreen> {
     );
   }
 
-  Widget _buildHeader(BuildContext context) => Column(
-    children: [
-      Container(
-        width: 72,
-        height: 72,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: const LinearGradient(
-            colors: [Color(0x99FFFFFF), Color(0x66F5D179)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+  Widget _buildHeader(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Column(
+      children: [
+        Container(
+          width: 72,
+          height: 72,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: scheme.primaryContainer,
           ),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.45)),
+          child: Icon(
+            Icons.gavel_rounded,
+            color: scheme.onPrimaryContainer,
+            size: 34,
+          ),
         ),
-        child: const Icon(Icons.gavel_rounded, color: Colors.white, size: 34),
-      ),
-      const SizedBox(height: 14),
-      GradientText(
-        'Terms and Conditions',
-        style: Theme.of(context).textTheme.displaySmall!,
-        gradient: const LinearGradient(
-          colors: [Colors.white, Color(0xFFF8E2A8)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+        const SizedBox(height: 14),
+        Text(
+          'Terms and Conditions',
+          style: Theme.of(
+            context,
+          ).textTheme.displaySmall!.copyWith(color: scheme.onSurface),
         ),
-      ),
-      const SizedBox(height: 8),
-      Text(
-        'A quick review before you enter the app.',
-        textAlign: TextAlign.center,
-        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-          color: Colors.white.withValues(alpha: 0.86),
+        const SizedBox(height: 8),
+        Text(
+          'A quick review before you enter the app.',
+          textAlign: TextAlign.center,
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
         ),
-      ),
-    ],
-  );
+      ],
+    );
+  }
 
   Widget _termPoint(BuildContext context, String text) => Padding(
-    padding: const EdgeInsets.only(bottom: 10),
+    padding: const EdgeInsets.only(bottom: 12),
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
           width: 8,
           height: 8,
-          margin: const EdgeInsets.only(top: 6),
-          decoration: const BoxDecoration(
+          margin: const EdgeInsets.only(top: 8),
+          decoration: BoxDecoration(
             shape: BoxShape.circle,
-            gradient: LinearGradient(
-              colors: [AppTheme.crystalGoldSoft, AppTheme.crystalGoldDeep],
-            ),
+            color: Theme.of(context).colorScheme.primary,
           ),
         ),
         const SizedBox(width: 10),

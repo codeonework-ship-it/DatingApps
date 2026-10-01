@@ -13,6 +13,13 @@ const (
 	trustBadgeRespectfulCommunicator = "respectful_communicator"
 	trustBadgeConsistentProfile      = "consistent_profile"
 	trustBadgeVerifiedActive         = "verified_active"
+	// Shows up: mutually confirmed dates through the post-date debrief
+	// (migration 092), with no disputed dates in the window.
+	trustBadgeShowsUp = "shows_up"
+)
+
+const (
+	showsUpMinConfirmedDates = 2
 )
 
 type trustMilestone struct {
@@ -62,6 +69,8 @@ type trustSignalBreakdown struct {
 	verificationApproved  bool
 	promptCompletions     int
 	promptTotal           int
+	confirmedDates        int
+	disputedDates         int
 }
 
 func trustBadgeCatalog() []trustBadge {
@@ -70,10 +79,11 @@ func trustBadgeCatalog() []trustBadge {
 		{BadgeCode: trustBadgeRespectfulCommunicator, BadgeLabel: "Respectful Communicator", Status: "not_earned"},
 		{BadgeCode: trustBadgeConsistentProfile, BadgeLabel: "Consistent Profile", Status: "not_earned"},
 		{BadgeCode: trustBadgeVerifiedActive, BadgeLabel: "Verified & Active", Status: "not_earned"},
+		{BadgeCode: trustBadgeShowsUp, BadgeLabel: "Shows Up", Status: "not_earned"},
 	}
 }
 
-func (m *memoryStore) recomputeUserTrustBadges(userID string) (trustMilestone, []trustBadge, error) {
+func (m *runtimeStore) recomputeUserTrustBadges(userID string) (trustMilestone, []trustBadge, error) {
 	trimmedUserID := strings.TrimSpace(userID)
 	if trimmedUserID == "" {
 		return trustMilestone{}, nil, errors.New("user_id is required")
@@ -148,7 +158,7 @@ func (m *memoryStore) recomputeUserTrustBadges(userID string) (trustMilestone, [
 	return milestone, badges, nil
 }
 
-func (m *memoryStore) listUserTrustBadgeHistory(userID string, limit int) ([]trustBadgeHistoryEvent, error) {
+func (m *runtimeStore) listUserTrustBadgeHistory(userID string, limit int) ([]trustBadgeHistoryEvent, error) {
 	trimmedUserID := strings.TrimSpace(userID)
 	if trimmedUserID == "" {
 		return nil, errors.New("user_id is required")
@@ -171,7 +181,7 @@ func (m *memoryStore) listUserTrustBadgeHistory(userID string, limit int) ([]tru
 	return out, nil
 }
 
-func (m *memoryStore) computeTrustSignalBreakdownLocked(userID string) trustSignalBreakdown {
+func (m *runtimeStore) computeTrustSignalBreakdownLocked(userID string) trustSignalBreakdown {
 	profileDepthScore := 0
 	if draft, ok := m.profiles[userID]; ok {
 		profileDepthScore = clampInt(draft.ProfileCompletion, 0, 100)
@@ -219,7 +229,7 @@ func (m *memoryStore) computeTrustSignalBreakdownLocked(userID string) trustSign
 	}
 }
 
-func (m *memoryStore) evaluateBadgeRulesLocked(b trustSignalBreakdown) map[string]trustBadgeRuleDecision {
+func (m *runtimeStore) evaluateBadgeRulesLocked(b trustSignalBreakdown) map[string]trustBadgeRuleDecision {
 	unsafeDetected := b.unsafeSignalCount > 0 || b.reportRiskPenalty >= 40
 	unsafeReason := "unsafe behavior detected"
 
@@ -245,6 +255,7 @@ func (m *memoryStore) evaluateBadgeRulesLocked(b trustSignalBreakdown) map[strin
 			active: b.verificationApproved && b.activitySignalCount >= 3,
 			reason: fmt.Sprintf("verified with %d activity signals", b.activitySignalCount),
 		},
+		trustBadgeShowsUp: showsUpRule(b.confirmedDates, b.disputedDates),
 	}
 
 	if !unsafeDetected {
@@ -259,7 +270,7 @@ func (m *memoryStore) evaluateBadgeRulesLocked(b trustSignalBreakdown) map[strin
 	return rules
 }
 
-func (m *memoryStore) computeCommunicationScoreLocked(userID string) (score int, flaggedCount int) {
+func (m *runtimeStore) computeCommunicationScoreLocked(userID string) (score int, flaggedCount int) {
 	total := 0
 	appreciated := 0
 	for _, gestures := range m.matchGestures {
@@ -286,7 +297,7 @@ func (m *memoryStore) computeCommunicationScoreLocked(userID string) (score int,
 	return clampInt(score, 0, 100), flaggedCount
 }
 
-func (m *memoryStore) computePromptCompletionScoreLocked(userID string) (score int, completions int, total int) {
+func (m *runtimeStore) computePromptCompletionScoreLocked(userID string) (score int, completions int, total int) {
 	for _, workflow := range m.questWorkflows {
 		if strings.TrimSpace(workflow.SubmitterUserID) != userID {
 			continue
@@ -313,7 +324,7 @@ func (m *memoryStore) computePromptCompletionScoreLocked(userID string) (score i
 	return clampInt((completions*100)/total, 0, 100), completions, total
 }
 
-func (m *memoryStore) computeReportRiskPenaltyLocked(userID string) (penalty int, unsafeReports int) {
+func (m *runtimeStore) computeReportRiskPenaltyLocked(userID string) (penalty int, unsafeReports int) {
 	reportsAgainst := 0
 	pendingOrReview := 0
 	severeActions := 0
@@ -348,7 +359,7 @@ func (m *memoryStore) computeReportRiskPenaltyLocked(userID string) (penalty int
 	return clampInt(penalty, 0, 100), unsafeReports
 }
 
-func (m *memoryStore) appendBadgeHistoryLocked(userID, badgeCode, action, reason, occurredAt string) {
+func (m *runtimeStore) appendBadgeHistoryLocked(userID, badgeCode, action, reason, occurredAt string) {
 	m.activitySeq++
 	event := trustBadgeHistoryEvent{
 		ID:         fmt.Sprintf("badge-hist-%d", m.activitySeq),
@@ -361,7 +372,7 @@ func (m *memoryStore) appendBadgeHistoryLocked(userID, badgeCode, action, reason
 	m.badgeHistory[userID] = append(m.badgeHistory[userID], event)
 }
 
-func (m *memoryStore) snapshotBadgesLocked(userID string) []trustBadge {
+func (m *runtimeStore) snapshotBadgesLocked(userID string) []trustBadge {
 	items := m.userBadges[userID]
 	catalog := trustBadgeCatalog()
 	out := make([]trustBadge, 0, len(catalog))
@@ -401,4 +412,16 @@ func maxInt(a, b int) int {
 		return a
 	}
 	return b
+}
+
+// showsUpRule awards "Shows up" after enough mutually confirmed dates, and
+// holds it back while any date in the window is disputed.
+func showsUpRule(confirmedDates, disputedDates int) trustBadgeRuleDecision {
+	return trustBadgeRuleDecision{
+		active: confirmedDates >= showsUpMinConfirmedDates && disputedDates == 0,
+		reason: fmt.Sprintf(
+			"%d confirmed dates, %d disputed in the last 180 days",
+			confirmedDates, disputedDates,
+		),
+	}
 }

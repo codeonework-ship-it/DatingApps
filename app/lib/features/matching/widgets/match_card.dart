@@ -1,156 +1,135 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_theme.dart';
-import '../../../core/widgets/glass_widgets.dart';
+import '../../messaging/widgets/chat_chrome.dart';
 import '../providers/match_provider.dart';
 
 class MatchCard extends StatelessWidget {
-  const MatchCard({super.key, required this.match, required this.onTap});
+  const MatchCard({
+    super.key,
+    required this.match,
+    required this.onTap,
+    this.onOptions,
+  });
   final Match match;
   final VoidCallback onTap;
+  final VoidCallback? onOptions;
 
   @override
   Widget build(BuildContext context) {
-    final displayName = _cleanDisplayText(match.userName, fallback: 'Unknown');
-    final displayMessage = _cleanDisplayText(
-      match.lastMessage,
-      fallback: 'Say hi 👋',
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final displayName = _cleanDisplayText(
+      match.userName,
+      fallback: 'Your match',
     );
-
-    return GestureDetector(
-      onTap: onTap,
-      child: GlassContainer(
-        padding: const EdgeInsets.all(12),
-        backgroundColor: Colors.white.withValues(alpha: 0.82),
-        blur: 12,
-        crystalEffect: true,
-        borderRadius: const BorderRadius.all(Radius.circular(16)),
-        shadows: [
-          BoxShadow(
-            color: AppTheme.trustBlue.withValues(alpha: 0.12),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
-        ],
-        child: Row(
-          children: [
-            // Profile Photo
-            Stack(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.network(
-                    match.userPhoto,
-                    width: 70,
-                    height: 70,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                        width: 70,
-                        height: 70,
-                        decoration: const BoxDecoration(
-                          gradient: AppTheme.postLoginGradient,
-                        ),
-                        child: const Center(
-                          child: Icon(Icons.person, color: AppTheme.textHint),
-                        ),
-                      ),
-                  ),
-                ),
-                // Online Indicator
-                if (match.isOnline)
-                  Positioned(
-                    bottom: 2,
-                    right: 2,
-                    child: Container(
-                      width: 16,
-                      height: 16,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppTheme.successGreen,
-                        border: Border.all(color: Colors.white, width: 2),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-
-            const SizedBox(width: 12),
-
-            // Match Info
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          displayName,
-                          style: Theme.of(context).textTheme.titleMedium,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      if (match.unreadCount > 0)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppTheme.primaryRed,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            '${match.unreadCount}',
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(color: Colors.white, fontSize: 10),
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    displayMessage,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodySmall?.copyWith(color: AppTheme.textGrey),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _formatTime(match.lastMessageTime),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppTheme.textHint,
-                      fontSize: 11,
-                    ),
-                  ),
-                ],
+    final raw = _cleanDisplayText(
+      match.lastMessage,
+      fallback: 'Start your conversation',
+    );
+    final displayMessage =
+        raw.contains('[gift:') || raw.contains('[gesture_gift:')
+        ? 'A little gift in your conversation'
+        : raw;
+    final unread = match.unreadCount > 0;
+    return Material(
+      color: unread
+          ? Color.alphaBlend(
+              scheme.primary.withValues(alpha: .035),
+              scheme.surface,
+            )
+          : scheme.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(22),
+        side: BorderSide(
+          color: unread
+              ? scheme.primary.withValues(alpha: .22)
+              : scheme.outlineVariant,
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        onLongPress: onOptions,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              ChatAvatar(
+                name: displayName,
+                photoUrl: match.userPhoto,
+                size: 56,
               ),
-            ),
-
-            // Action Buttons
-            Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.phone, color: AppTheme.primaryRed),
-                  onPressed: () {},
-                  iconSize: 18,
-                  constraints: const BoxConstraints(),
-                  padding: EdgeInsets.zero,
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            displayName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: unread
+                                  ? FontWeight.w800
+                                  : FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          _formatTime(match.lastMessageTime),
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: unread
+                                ? scheme.primary
+                                : scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            displayMessage,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                        if (unread)
+                          Padding(
+                            padding: const EdgeInsets.only(left: 10),
+                            child: Badge(
+                              backgroundColor: scheme.primary,
+                              textColor: scheme.onPrimary,
+                              label: Text(
+                                match.unreadCount > 99
+                                    ? '99+'
+                                    : '${match.unreadCount}',
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 4),
+              ),
+              if (onOptions != null)
                 IconButton(
-                  icon: const Icon(Icons.message, color: AppTheme.primaryRed),
-                  onPressed: onTap,
-                  iconSize: 18,
-                  constraints: const BoxConstraints(),
-                  padding: EdgeInsets.zero,
+                  tooltip: 'Conversation options for $displayName',
+                  onPressed: onOptions,
+                  icon: Icon(
+                    Icons.more_horiz_rounded,
+                    color: scheme.onSurfaceVariant,
+                  ),
                 ),
-              ],
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -162,7 +141,10 @@ class MatchCard extends StatelessWidget {
       return fallback;
     }
     final lowered = trimmed.toLowerCase();
-    if (lowered == 'nil' || lowered == 'null' || lowered == 'n/a') {
+    if (lowered == 'nil' ||
+        lowered == '<nil>' ||
+        lowered == 'null' ||
+        lowered == 'n/a') {
       return fallback;
     }
     return trimmed;

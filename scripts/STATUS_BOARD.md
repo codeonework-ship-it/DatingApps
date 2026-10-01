@@ -263,7 +263,7 @@ STORAGE/REALTIME/AUTH hardening: track via launch governance docs   ⏳
 **During Deployment**
 - [x] Service role key obtained and saved
 - [ ] RLS policies configured
-- [ ] Phone OTP enabled
+- [ ] Username/password enabled
 - [ ] Storage bucket secured (private)
 
 **After Deployment**

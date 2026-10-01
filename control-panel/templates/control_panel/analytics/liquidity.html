@@ -1,0 +1,13 @@
+{% extends "control_panel/base.html" %}
+{% block topbar_title %}Analytics · Liquidity{% endblock %}
+{% block content %}
+{% include "control_panel/analytics/_nav.html" with page_title="Liquidity by city" page_intro="Where there are enough active members, and enough of each other, to meet." show_filters=True %}
+<section class="glass-card mb-4" aria-labelledby="liq-heading">
+  <div class="d-flex justify-content-between align-items-center mb-2"><h2 id="liq-heading" class="h5 mb-0">Cities by active members</h2>
+  <a class="btn btn-glass btn-sm" href="{% url 'analytics_export' 'liquidity' %}?{{ export_query }}"><i class="bi bi-download me-1"></i>CSV</a></div>
+  {% include "control_panel/analytics/_chart.html" with chart_id="chart-liquidity" chart_label="Active women and men in the 15 largest cities" %}
+  {% include "control_panel/analytics/_table.html" with table=table caption="Women per man and women share use members active in the range; match participations count each match once per member." %}
+  {% if range.definition %}<p class="small text-muted mt-2">{{ range.definition }}</p>{% endif %}
+</section>
+{% endblock %}
+{% block extra_js %}{% include "control_panel/analytics/_chart_js.html" %}{% endblock %}

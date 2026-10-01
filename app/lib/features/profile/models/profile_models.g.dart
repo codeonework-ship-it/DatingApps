@@ -137,6 +137,7 @@ _$UserSettingsImpl _$$UserSettingsImplFromJson(Map<String, dynamic> json) =>
       notifyNewMessage: json['notifyNewMessage'] as bool? ?? true,
       notifyLikes: json['notifyLikes'] as bool? ?? true,
       theme: json['theme'] as String? ?? 'light',
+      locale: json['locale'] as String? ?? '',
       updatedAt: json['updatedAt'] == null
           ? null
           : DateTime.parse(json['updatedAt'] as String),
@@ -152,6 +153,7 @@ Map<String, dynamic> _$$UserSettingsImplToJson(_$UserSettingsImpl instance) =>
       'notifyNewMessage': instance.notifyNewMessage,
       'notifyLikes': instance.notifyLikes,
       'theme': instance.theme,
+      'locale': instance.locale,
       'updatedAt': instance.updatedAt?.toIso8601String(),
     };
 

@@ -13,6 +13,7 @@ import (
 	"github.com/verified-dating/backend/internal/contracts/rpc"
 	"github.com/verified-dating/backend/internal/platform/concurrency"
 	"github.com/verified-dating/backend/internal/platform/config"
+	"github.com/verified-dating/backend/internal/platform/dataaccess"
 	"github.com/verified-dating/backend/internal/platform/grpcx"
 	"github.com/verified-dating/backend/internal/platform/observability"
 	"github.com/verified-dating/backend/internal/platform/supabase"
@@ -33,6 +34,7 @@ func main() {
 
 	reg := prometheus.DefaultRegisterer
 	grpcMetrics := observability.NewGRPCMetrics(reg)
+	observability.RegisterProcessMetrics(reg, "chat-svc")
 	interceptor := observability.UnaryServerInterceptor(log, grpcMetrics)
 
 	runtimeCtx, runtimeCancel := context.WithCancel(context.Background())
@@ -42,25 +44,29 @@ func main() {
 	workers.Start(runtimeCtx)
 	defer workers.Close()
 
-	db := supabase.NewClient(
-		cfg.SupabaseURL,
-		cfg.SupabaseAnonKey,
-		cfg.SupabaseServiceRole,
-		cfg.SupabaseHTTPTimeout(),
-	)
-	realtime := supabase.NewRealtimeClient(
-		cfg.SupabaseURL,
-		cfg.SupabaseAnonKey,
-		log,
-		cfg.ChatRealtimeLogLevel,
-		cfg.ChatRealtimeHeartbeat(),
-	)
-	chatRepo := chat.NewRepository(db, cfg)
+	store, err := dataaccess.Open(context.Background(), cfg)
+	if err != nil {
+		log.Fatal("open_chat_data_store_failed", zap.Error(err))
+	}
+	defer store.Close()
+	var realtime *supabase.RealtimeClient
+	if !cfg.UseLocalDB {
+		realtime = supabase.NewRealtimeClient(
+			cfg.SupabaseURL,
+			cfg.SupabaseAnonKey,
+			log,
+			cfg.ChatRealtimeLogLevel,
+			cfg.ChatRealtimeHeartbeat(),
+		)
+	}
+	chatRepo := chat.NewRepository(store.Client, cfg)
 	chatService := chat.NewService(chatRepo, realtime, workers, log, cfg)
 	if err := chatService.StartRealtime(runtimeCtx); err != nil {
 		log.Warn("chat_realtime_start_failed", zap.Error(err))
 	}
-	defer func() { _ = realtime.Close() }()
+	if realtime != nil {
+		defer func() { _ = realtime.Close() }()
+	}
 
 	server, err := grpcx.New(cfg.ChatGRPCAddr, log, grpc.UnaryInterceptor(interceptor))
 	if err != nil {

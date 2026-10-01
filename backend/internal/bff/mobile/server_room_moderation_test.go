@@ -167,6 +167,7 @@ func TestServer_RemoveUserRequiresActiveRoomTransition(t *testing.T) {
 			StartsAt:    now.Add(-2 * time.Hour),
 			EndsAt:      now.Add(-1 * time.Hour),
 			Capacity:    10,
+			Hosts:       []string{"mod-5"},
 		},
 	}
 	server.store.roomParticipants = map[string]map[string]conversationRoomParticipant{}
@@ -210,9 +211,38 @@ func seedActiveModerationRoom(server *Server, roomID string) {
 			StartsAt:    now.Add(-15 * time.Minute),
 			EndsAt:      now.Add(45 * time.Minute),
 			Capacity:    10,
+			Hosts:       []string{"mod-1", "mod-2", "mod-3", "mod-4"},
 		},
 	}
 	server.store.roomParticipants = map[string]map[string]conversationRoomParticipant{}
 	server.store.roomModerationActions = map[string][]conversationRoomModerationAction{}
 	server.store.roomActiveBlocks = map[string]map[string]conversationRoomBlock{}
+}
+
+// Only a room's hosts may moderate; anyone else naming themselves as the
+// moderator is refused (in-memory mode; live rooms are covered in
+// live_rooms_test.go).
+func TestServer_ModerateConversationRoomRequiresHost(t *testing.T) {
+	server := newQuestWorkflowTestServer(t)
+	defer server.Close()
+
+	seedActiveModerationRoom(server, "room-moderation-host-only")
+
+	req := httptest.NewRequest(
+		http.MethodPost,
+		"/v1/rooms/room-moderation-host-only/moderate",
+		strings.NewReader(`{"moderator_user_id":"user-a","target_user_id":"user-b","action":"remove_user"}`),
+	)
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	server.Handler().ServeHTTP(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("non-host moderation expected 403, got=%d body=%s", rec.Code, rec.Body.String())
+	}
+	server.store.mu.RLock()
+	actions := len(server.store.roomModerationActions["room-moderation-host-only"])
+	server.store.mu.RUnlock()
+	if actions != 0 {
+		t.Fatalf("a refused action was recorded")
+	}
 }

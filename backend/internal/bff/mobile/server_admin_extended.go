@@ -1,8 +1,11 @@
 package mobile
 
 import (
+	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -10,8 +13,8 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	authapp "github.com/verified-dating/backend/internal/modules/auth/application"
 	"github.com/verified-dating/backend/internal/platform/config"
-	"github.com/verified-dating/backend/internal/platform/supabase"
 )
 
 // ─── Admin Repository ────────────────────────────────────────────────────────
@@ -19,33 +22,167 @@ import (
 type adminRepository struct {
 	cfg config.Config
 	db  roseGiftRepositoryDB // reuse same interface (SelectRead/Insert/Update/Delete)
+	pg  *sql.DB
 }
 
-func newAdminRepository(cfg config.Config) *adminRepository {
-	apiKey := strings.TrimSpace(cfg.SupabaseServiceRole)
-	if apiKey == "" {
-		apiKey = strings.TrimSpace(cfg.SupabaseAnonKey)
+func (s *Server) runtimeFeatureEnabled(ctx context.Context, key string, fallback bool) (bool, error) {
+	repo := s.store.adminRepo
+	if repo == nil {
+		return fallback, nil
 	}
-	if strings.TrimSpace(cfg.SupabaseURL) == "" || apiKey == "" {
+	if repo.pg != nil {
+		var enabled bool
+		err := repo.pg.QueryRowContext(
+			ctx,
+			`SELECT value_bool FROM matching.platform_feature_flags WHERE key = $1`,
+			strings.TrimSpace(key),
+		).Scan(&enabled)
+		if errors.Is(err, sql.ErrNoRows) {
+			return fallback, nil
+		}
+		if err != nil {
+			return fallback, err
+		}
+		return enabled, nil
+	}
+	params := url.Values{}
+	params.Set("select", "value_bool")
+	params.Set("key", "eq."+strings.TrimSpace(key))
+	params.Set("limit", "1")
+	rows, err := repo.db.SelectRead(ctx, repo.cfg.MatchingSchema, "platform_feature_flags", params)
+	if err != nil {
+		return fallback, err
+	}
+	if len(rows) == 0 {
+		return fallback, nil
+	}
+	return orBool(rows[0]["value_bool"], fallback), nil
+}
+
+func newAdminRepository(cfg config.Config, supplied ...repositoryDB) *adminRepository {
+	db := repositoryDBFor(cfg, supplied)
+	if db == nil {
 		return nil
 	}
-	client := supabase.NewClient(
-		cfg.SupabaseURL,
-		cfg.SupabaseAnonKey,
-		cfg.SupabaseServiceRole,
-		time.Duration(cfg.SupabaseHTTPTimeoutSec)*time.Second,
-	)
-	return &adminRepository{cfg: cfg, db: client}
+	return &adminRepository{cfg: cfg, db: db}
 }
 
 // ─── Helper: require X-Admin-User ────────────────────────────────────────────
 
+// requireAdminUser authorizes an operator request.
+//
+// This previously accepted any request carrying a non-empty X-Admin-User
+// header. That header is client-supplied, so on any deployment where the
+// security middleware did not run it was a complete authorization bypass: a
+// caller could reach every admin handler by inventing a value for it.
+//
+// Authorization now derives entirely from the authenticated principal
+// established by securityMiddleware. The header is retained only as an audit
+// label and is overwritten by the middleware from the verified principal, so it
+// can no longer grant access on its own.
 func requireAdminUser(r *http.Request) error {
-	h := strings.TrimSpace(r.Header.Get("X-Admin-User"))
-	if h == "" {
-		return errors.New("missing X-Admin-User header")
+	_, err := authenticatedOperatorID(r)
+	return err
+}
+
+func authenticatedOperatorID(r *http.Request) (string, error) {
+	principal, ok := principalFromRequest(r)
+	if !ok || strings.TrimSpace(principal.UserID) == "" ||
+		(!principal.Roles["admin"] && !principal.Roles["trust_safety"] &&
+			!principal.Roles["ops_admin"] && !principal.Roles["moderator"] &&
+			!principal.Roles["analyst"] && !principal.Roles["finance"]) {
+		return "", errors.New("authenticated operator role is required")
 	}
-	return nil
+	return principal.UserID, nil
+}
+
+// adminListAuditEvents exposes the append-only operator audit view to
+// authenticated operators. Product activities and operator mutations are
+// separate evidence streams; the command center needs both to explain what
+// happened and who changed platform state.
+func (s *Server) adminListAuditEvents(w http.ResponseWriter, r *http.Request) {
+	if err := requireAdminUser(r); err != nil {
+		writeError(w, http.StatusUnauthorized, err)
+		return
+	}
+	repo := s.store.adminRepo
+	if repo == nil || repo.pg == nil {
+		writeError(w, http.StatusServiceUnavailable, errors.New("operator audit store unavailable"))
+		return
+	}
+
+	limit := 100
+	if raw := strings.TrimSpace(r.URL.Query().Get("limit")); raw != "" {
+		if parsed, err := strconv.Atoi(raw); err == nil && parsed > 0 && parsed <= 500 {
+			limit = parsed
+		}
+	}
+	clauses := []string{"TRUE"}
+	args := []any{}
+	addFilter := func(column, value string) {
+		value = strings.TrimSpace(value)
+		if value == "" {
+			return
+		}
+		args = append(args, value)
+		clauses = append(clauses, fmt.Sprintf("%s = $%d", column, len(args)))
+	}
+	addFilter("event_type", r.URL.Query().Get("event_type"))
+	addFilter("actor_user_id::text", r.URL.Query().Get("actor_user_id"))
+	addFilter("subject_user_id::text", r.URL.Query().Get("subject_user_id"))
+	addFilter("resource_type", r.URL.Query().Get("resource_type"))
+	args = append(args, limit)
+
+	ctx, cancel := s.withRequestTimeout(r.Context())
+	defer cancel()
+	query := fmt.Sprintf(`
+		SELECT id, occurred_at, txid, event_type,
+		       COALESCE(actor_user_id::text,''), actor_role,
+		       COALESCE(subject_user_id::text,''), resource_type,
+		       COALESCE(resource_id,''), COALESCE(correlation_id,''), payload
+		FROM audit.operator_action_log
+		WHERE %s
+		ORDER BY occurred_at DESC, id DESC
+		LIMIT $%d`, strings.Join(clauses, " AND "), len(args))
+	rows, err := repo.pg.QueryContext(ctx, query, args...)
+	if err != nil {
+		writeError(w, http.StatusBadGateway, err)
+		return
+	}
+	defer rows.Close()
+
+	events := make([]map[string]any, 0, limit)
+	for rows.Next() {
+		var id, txid int64
+		var occurredAt time.Time
+		var eventType, actorUserID, actorRole, subjectUserID string
+		var resourceType, resourceID, correlationID string
+		var rawPayload []byte
+		if err := rows.Scan(
+			&id, &occurredAt, &txid, &eventType, &actorUserID, &actorRole,
+			&subjectUserID, &resourceType, &resourceID, &correlationID, &rawPayload,
+		); err != nil {
+			writeError(w, http.StatusBadGateway, err)
+			return
+		}
+		payload := map[string]any{}
+		_ = json.Unmarshal(rawPayload, &payload)
+		events = append(events, map[string]any{
+			"id": id, "occurred_at": occurredAt.UTC(), "txid": txid,
+			"event_type": eventType, "actor_user_id": actorUserID, "actor_role": actorRole,
+			"subject_user_id": subjectUserID, "resource_type": resourceType,
+			"resource_id": resourceID, "correlation_id": correlationID, "payload": payload,
+		})
+	}
+	if err := rows.Err(); err != nil {
+		writeError(w, http.StatusBadGateway, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"events": events, "count": len(events), "limit": limit,
+		"source": "audit.operator_action_log", "append_only": true,
+		"as_of": time.Now().UTC(),
+	})
 }
 
 // ─── Gift Catalog Admin ───────────────────────────────────────────────────────
@@ -70,7 +207,6 @@ func (s *Server) adminListCatalogGifts(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-
 	params := url.Values{}
 	params.Set("select", "id,name,gif_url,tier,price_coins,icon_key,icon_emoji,category,description,max_per_match_per_day,is_active,sort_order,start_date,end_date,created_at,updated_at")
 	params.Set("order", "sort_order.asc,created_at.asc")
@@ -349,13 +485,13 @@ func (s *Server) adminListUsers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	params := url.Values{}
-	params.Set("select", "id,name,phone_number,gender,bio,height_cm,education,profession,city,state,country,profile_completion,is_verified,last_login_at,created_at,suspended_at,suspended_reason,is_banned")
+	params.Set("select", "id,username,name,phone_number,gender,bio,height_cm,education,profession,city,state,country,profile_completion,is_verified,last_login_at,created_at,suspended_at,suspended_reason,is_banned")
 	params.Set("order", "created_at.desc")
 	params.Set("limit", strconv.Itoa(limit))
 	params.Set("offset", strconv.Itoa(offset))
 
 	if q := strings.TrimSpace(r.URL.Query().Get("q")); q != "" {
-		params.Set("or", "(name.ilike.*"+q+"*,phone_number.ilike.*"+q+"*)")
+		params.Set("or", "(username.ilike.*"+q+"*,name.ilike.*"+q+"*,phone_number.ilike.*"+q+"*)")
 	}
 	if gender := strings.TrimSpace(r.URL.Query().Get("gender")); gender != "" {
 		params.Set("gender", "eq."+gender)
@@ -385,10 +521,83 @@ func (s *Server) adminListUsers(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadGateway, err)
 		return
 	}
+	total := len(rows)
+	kpis := map[string]any{
+		"total":        total,
+		"active":       0,
+		"suspended":    0,
+		"banned":       0,
+		"verified":     0,
+		"verified_pct": 0.0,
+		"scope":        "returned_page",
+	}
+	if repo.pg != nil {
+		where, args := adminUserFilterSQL(r)
+		if err := repo.pg.QueryRowContext(ctx, "SELECT COUNT(*) FROM user_management.users"+where, args...).Scan(&total); err != nil {
+			writeError(w, http.StatusBadGateway, err)
+			return
+		}
+		var all, active, suspended, banned, verified int
+		if err := repo.pg.QueryRowContext(ctx, `
+			SELECT COUNT(*),
+			       COUNT(*) FILTER (WHERE COALESCE(is_active,TRUE) AND NOT COALESCE(is_banned,FALSE)
+			         AND NOT (suspended_at IS NOT NULL AND (suspended_until IS NULL OR suspended_until > NOW()))),
+			       COUNT(*) FILTER (WHERE suspended_at IS NOT NULL AND (suspended_until IS NULL OR suspended_until > NOW())),
+			       COUNT(*) FILTER (WHERE COALESCE(is_banned,FALSE)),
+			       COUNT(*) FILTER (WHERE COALESCE(is_verified,FALSE))
+			FROM user_management.users`).Scan(&all, &active, &suspended, &banned, &verified); err != nil {
+			writeError(w, http.StatusBadGateway, err)
+			return
+		}
+		verifiedPct := 0.0
+		if all > 0 {
+			verifiedPct = float64(verified) * 100 / float64(all)
+		}
+		kpis = map[string]any{
+			"total": all, "active": active, "suspended": suspended,
+			"banned": banned, "verified": verified, "verified_pct": verifiedPct,
+			"scope": "all_users", "as_of": time.Now().UTC(),
+		}
+	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"users": rows,
-		"total": len(rows),
+		"total": total,
+		"kpis":  kpis,
 	})
+}
+
+func adminUserFilterSQL(r *http.Request) (string, []any) {
+	clauses := []string{}
+	args := []any{}
+	add := func(clause string, value any) {
+		args = append(args, value)
+		clauses = append(clauses, fmt.Sprintf(clause, len(args)))
+	}
+	if q := strings.TrimSpace(r.URL.Query().Get("q")); q != "" {
+		add("(username ILIKE $%[1]d OR name ILIKE $%[1]d OR phone_number ILIKE $%[1]d)", "%"+q+"%")
+		// The clause contains the same placeholder three times intentionally.
+	}
+	if gender := strings.TrimSpace(r.URL.Query().Get("gender")); gender != "" {
+		add("gender = $%d", gender)
+	}
+	switch strings.TrimSpace(r.URL.Query().Get("verified")) {
+	case "yes":
+		clauses = append(clauses, "COALESCE(is_verified,FALSE) = TRUE")
+	case "no":
+		clauses = append(clauses, "COALESCE(is_verified,FALSE) = FALSE")
+	}
+	switch strings.TrimSpace(r.URL.Query().Get("status")) {
+	case "active":
+		clauses = append(clauses, "COALESCE(is_active,TRUE) = TRUE", "COALESCE(is_banned,FALSE) = FALSE", "NOT (suspended_at IS NOT NULL AND (suspended_until IS NULL OR suspended_until > NOW()))")
+	case "suspended":
+		clauses = append(clauses, "suspended_at IS NOT NULL AND (suspended_until IS NULL OR suspended_until > NOW())")
+	case "banned":
+		clauses = append(clauses, "COALESCE(is_banned,FALSE) = TRUE")
+	}
+	if len(clauses) == 0 {
+		return "", args
+	}
+	return " WHERE " + strings.Join(clauses, " AND "), args
 }
 
 func (s *Server) adminGetUser(w http.ResponseWriter, r *http.Request) {
@@ -413,7 +622,7 @@ func (s *Server) adminGetUser(w http.ResponseWriter, r *http.Request) {
 
 	params := url.Values{}
 	params.Set("id", "eq."+userID)
-	params.Set("select", "id,name,phone_number,gender,bio,height_cm,education,profession,income_range,drinking,smoking,religion,mother_tongue,personality_type,city,state,country,profile_completion,is_verified,is_active,last_login_at,created_at,updated_at,suspended_at,suspended_reason,suspended_until,is_banned")
+	params.Set("select", "id,username,name,phone_number,gender,bio,height_cm,education,profession,income_range,drinking,smoking,religion,mother_tongue,personality_type,city,state,country,profile_completion,is_verified,is_active,last_login_at,created_at,updated_at,suspended_at,suspended_reason,suspended_until,is_banned")
 	params.Set("limit", "1")
 
 	rows, err := repo.db.SelectRead(ctx, repo.cfg.UserSchema, repo.cfg.UsersTable, params)
@@ -451,6 +660,24 @@ func (s *Server) adminSuspendUser(w http.ResponseWriter, r *http.Request) {
 	repo := s.store.adminRepo
 	if repo == nil {
 		writeError(w, http.StatusServiceUnavailable, errors.New("admin repository unavailable"))
+		return
+	}
+	if repo.pg != nil {
+		operatorID, authErr := authenticatedOperatorID(r)
+		if authErr != nil {
+			writeError(w, http.StatusForbidden, authErr)
+			return
+		}
+		var until *time.Time
+		if body.Days > 0 {
+			value := time.Now().UTC().AddDate(0, 0, body.Days)
+			until = &value
+		}
+		if err := repo.setUserSuspension(ctx, operatorID, userID, body.Reason, until, true); err != nil {
+			writeError(w, http.StatusBadRequest, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"user_id": userID, "suspended": true, "reason": body.Reason})
 		return
 	}
 
@@ -492,6 +719,19 @@ func (s *Server) adminUnsuspendUser(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusServiceUnavailable, errors.New("admin repository unavailable"))
 		return
 	}
+	if repo.pg != nil {
+		operatorID, authErr := authenticatedOperatorID(r)
+		if authErr != nil {
+			writeError(w, http.StatusForbidden, authErr)
+			return
+		}
+		if err := repo.setUserSuspension(ctx, operatorID, userID, "", nil, false); err != nil {
+			writeError(w, http.StatusBadRequest, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"user_id": userID, "suspended": false})
+		return
+	}
 
 	filters := url.Values{}
 	filters.Set("id", "eq."+userID)
@@ -521,9 +761,11 @@ func (s *Server) adminCreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	name, _ := body["name"].(string)
+	username, _ := body["username"].(string)
+	password, _ := body["password"].(string)
 	phone, _ := body["phone_number"].(string)
-	if strings.TrimSpace(name) == "" || strings.TrimSpace(phone) == "" {
-		writeError(w, http.StatusBadRequest, errors.New("name and phone_number are required"))
+	if strings.TrimSpace(name) == "" || strings.TrimSpace(username) == "" || password == "" {
+		writeError(w, http.StatusBadRequest, errors.New("name, username, and password are required"))
 		return
 	}
 
@@ -536,14 +778,46 @@ func (s *Server) adminCreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	username = strings.ToLower(strings.TrimSpace(username))
+	authResponse, err := s.mediator.Send(ctx, authapp.SignupCommandName, authapp.SignupCommand{
+		Username: username,
+		Password: password,
+	})
+	if err != nil {
+		if errors.Is(err, authapp.ErrValidation) {
+			writeError(w, http.StatusBadRequest, err)
+			return
+		}
+		writeError(w, http.StatusBadGateway, err)
+		return
+	}
+	authPayload, ok := authResponse.(map[string]any)
+	if !ok {
+		writeError(w, http.StatusBadGateway, errors.New("unexpected signup response payload"))
+		return
+	}
+	if success, _ := authPayload["success"].(bool); !success {
+		writeError(w, http.StatusConflict, errors.New(orString(authPayload["error"], "username is already taken")))
+		return
+	}
+	userID := strings.TrimSpace(toString(authPayload["user_id"]))
+	if userID == "" {
+		writeError(w, http.StatusBadGateway, errors.New("signup response did not include user_id"))
+		return
+	}
+
 	dob := orString(body["date_of_birth"], "2000-01-01")
 	payload := map[string]any{
+		"id":             userID,
+		"username":       username,
 		"name":           strings.TrimSpace(name),
-		"phone_number":   strings.TrimSpace(phone),
 		"date_of_birth":  dob,
 		"gender":         orString(body["gender"], "other"),
 		"bio":            orString(body["bio"], ""),
 		"terms_accepted": true,
+	}
+	if strings.TrimSpace(phone) != "" {
+		payload["phone_number"] = strings.TrimSpace(phone)
 	}
 	if v, ok := body["height_cm"]; ok {
 		payload["height_cm"] = v
@@ -629,27 +903,98 @@ func (s *Server) adminDeleteUser(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, errors.New("userID is required"))
 		return
 	}
+	// A hard delete of the users row skipped erasure entirely: storage
+	// objects, audit copies and SOS data survived, nothing was audited, and
+	// RESTRICT foreign keys could fail it halfway. Operator removal now
+	// schedules the same erasure a member's own deletion does.
+	repo := s.store.profileRepo
+	if repo == nil || repo.pg == nil {
+		writeError(w, http.StatusServiceUnavailable, errors.New("account erasure persistence is unavailable"))
+		return
+	}
+	operatorID := ""
+	if principal, ok := principalFromRequest(r); ok {
+		operatorID = principal.UserID
+	}
+	reason := strings.TrimSpace(r.URL.Query().Get("reason"))
+	if reason == "" {
+		reason = "operator_account_removal"
+	}
 
+	ctx, cancel := s.withRequestTimeout(r.Context())
+	defer cancel()
+	state, err := repo.scheduleAccountDeletion(ctx, userID, operatorID, "operator", reason)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			writeError(w, http.StatusNotFound, errors.New("user not found"))
+		case strings.Contains(err.Error(), "already scheduled"):
+			writeJSON(w, http.StatusConflict, map[string]any{
+				"success": false, "error": err.Error(), "error_code": "DELETION_ALREADY_SCHEDULED",
+			})
+		default:
+			writeError(w, http.StatusBadGateway, err)
+		}
+		return
+	}
+	writeJSON(w, http.StatusAccepted, map[string]any{
+		"user_id":            userID,
+		"deletion_scheduled": true,
+		"deleted":            false,
+		"lifecycle":          state,
+	})
+}
+
+// ─── Feature Flags ──────────────────────────────────────────────────────────
+
+// runtimeConfigFlags is the application-facing projection of the operator
+// feature-flag table. It intentionally omits operator identity and descriptions:
+// the mobile client only needs the current switch values and their revision.
+func (s *Server) runtimeConfigFlags(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := s.withRequestTimeout(r.Context())
 	defer cancel()
 
 	repo := s.store.adminRepo
 	if repo == nil {
-		writeError(w, http.StatusServiceUnavailable, errors.New("admin repository unavailable"))
+		writeJSON(w, http.StatusOK, map[string]any{
+			"flags": s.applyReleaseExclusions(defaultFeatureFlags()), "source": "defaults",
+		})
 		return
 	}
 
-	filters := url.Values{}
-	filters.Set("id", "eq."+userID)
-	_, err := repo.db.Delete(ctx, repo.cfg.UserSchema, repo.cfg.UsersTable, filters)
+	params := url.Values{}
+	params.Set("select", "key,value_bool,updated_at")
+	params.Set("order", "key.asc")
+	rows, err := repo.db.SelectRead(ctx, repo.cfg.MatchingSchema, "platform_feature_flags", params)
 	if err != nil {
-		writeError(w, http.StatusBadGateway, err)
+		writeError(w, http.StatusServiceUnavailable, errors.New("runtime feature flags unavailable"))
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"user_id": userID, "deleted": true})
+	writeJSON(w, http.StatusOK, map[string]any{"flags": s.applyReleaseExclusions(rows), "source": "db"})
 }
 
-// ─── Feature Flags ──────────────────────────────────────────────────────────
+// applyReleaseExclusions reports every release-excluded flag as off, adding a
+// row when the database has none, so shipped clients hide those surfaces.
+func (s *Server) applyReleaseExclusions(rows []map[string]any) []map[string]any {
+	if len(s.cfg.ReleaseExcludedFlags) == 0 {
+		return rows
+	}
+	seen := map[string]bool{}
+	for _, row := range rows {
+		key := strings.TrimSpace(toString(row["key"]))
+		seen[key] = true
+		if s.cfg.IsReleaseExcluded(key) {
+			row["value_bool"] = false
+			row["release_excluded"] = true
+		}
+	}
+	for _, key := range s.cfg.ReleaseExcludedFlags {
+		if !seen[key] {
+			rows = append(rows, map[string]any{"key": key, "value_bool": false, "release_excluded": true})
+		}
+	}
+	return rows
+}
 
 func (s *Server) adminListConfigFlags(w http.ResponseWriter, r *http.Request) {
 	if err := requireAdminUser(r); err != nil {
@@ -756,6 +1101,42 @@ func (s *Server) adminListEngagementPrompts(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"prompts": rows, "count": len(rows)})
+}
+
+func (s *Server) adminListEngagementNudges(w http.ResponseWriter, r *http.Request) {
+	if err := requireAdminUser(r); err != nil {
+		writeError(w, http.StatusUnauthorized, err)
+		return
+	}
+	ctx, cancel := s.withRequestTimeout(r.Context())
+	defer cancel()
+	repo := s.store.adminRepo
+	if repo == nil {
+		writeJSON(w, http.StatusOK, map[string]any{"nudges": []any{}, "count": 0, "by_type": map[string]int{}})
+		return
+	}
+	params := url.Values{}
+	params.Set("select", "id,match_id,user_id,counterparty_user_id,nudge_type,created_at,clicked_at")
+	params.Set("order", "created_at.desc")
+	params.Set("limit", "100")
+	rows, err := repo.db.SelectRead(ctx, repo.cfg.MatchingSchema, "match_nudges", params)
+	if err != nil {
+		writeError(w, http.StatusBadGateway, err)
+		return
+	}
+	byType := map[string]int{}
+	clicked := 0
+	for _, row := range rows {
+		byType[strings.TrimSpace(toString(row["nudge_type"]))]++
+		if strings.TrimSpace(toString(row["clicked_at"])) != "" {
+			clicked++
+		}
+	}
+	enabled, _ := s.runtimeFeatureEnabled(ctx, "match_nudges_enabled", true)
+	writeJSON(w, http.StatusOK, map[string]any{
+		"nudges": rows, "count": len(rows), "clicked": clicked,
+		"by_type": byType, "enabled": enabled,
+	})
 }
 
 func (s *Server) adminCreateEngagementPrompt(w http.ResponseWriter, r *http.Request) {
@@ -1005,6 +1386,19 @@ func (s *Server) adminBanUser(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusServiceUnavailable, errors.New("admin repository unavailable"))
 		return
 	}
+	if repo.pg != nil {
+		operatorID, authErr := authenticatedOperatorID(r)
+		if authErr != nil {
+			writeError(w, http.StatusForbidden, authErr)
+			return
+		}
+		if err := repo.setUserBan(ctx, operatorID, userID, body.Reason, true); err != nil {
+			writeError(w, http.StatusBadRequest, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"user_id": userID, "banned": true, "reason": body.Reason})
+		return
+	}
 
 	filters := url.Values{}
 	filters.Set("id", "eq."+userID)
@@ -1039,6 +1433,19 @@ func (s *Server) adminUnbanUser(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusServiceUnavailable, errors.New("admin repository unavailable"))
 		return
 	}
+	if repo.pg != nil {
+		operatorID, authErr := authenticatedOperatorID(r)
+		if authErr != nil {
+			writeError(w, http.StatusForbidden, authErr)
+			return
+		}
+		if err := repo.setUserBan(ctx, operatorID, userID, "", false); err != nil {
+			writeError(w, http.StatusBadRequest, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"user_id": userID, "banned": false})
+		return
+	}
 
 	filters := url.Values{}
 	filters.Set("id", "eq."+userID)
@@ -1070,6 +1477,19 @@ func (s *Server) adminForceVerifyUser(w http.ResponseWriter, r *http.Request) {
 	repo := s.store.adminRepo
 	if repo == nil {
 		writeError(w, http.StatusServiceUnavailable, errors.New("admin repository unavailable"))
+		return
+	}
+	if repo.pg != nil {
+		operatorID, authErr := authenticatedOperatorID(r)
+		if authErr != nil {
+			writeError(w, http.StatusForbidden, authErr)
+			return
+		}
+		if err := repo.forceVerifyUser(ctx, operatorID, userID); err != nil {
+			writeError(w, http.StatusBadRequest, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"user_id": userID, "verified": true})
 		return
 	}
 
@@ -1240,6 +1660,20 @@ func (s *Server) adminListSOSAlerts(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]any{"alerts": []any{}, "count": 0})
 		return
 	}
+	if repo.pg != nil && s.store.safetyRepo != nil {
+		alerts, listErr := s.store.safetyRepo.listSOSAlerts(ctx, "", 100)
+		if listErr != nil {
+			writeError(w, http.StatusBadGateway, listErr)
+			return
+		}
+		metrics, metricsErr := s.store.safetyRepo.sosDeliveryMetrics(ctx)
+		if metricsErr != nil {
+			writeError(w, http.StatusBadGateway, metricsErr)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"alerts": alerts, "count": len(alerts), "delivery_metrics": metrics})
+		return
+	}
 
 	params := url.Values{}
 	params.Set("select", "id,user_id,status,created_at,resolved_at,resolved_by")
@@ -1272,6 +1706,20 @@ func (s *Server) adminResolveSOSAlert(w http.ResponseWriter, r *http.Request) {
 	repo := s.store.adminRepo
 	if repo == nil {
 		writeError(w, http.StatusServiceUnavailable, errors.New("admin repository unavailable"))
+		return
+	}
+	if repo.pg != nil && s.store.safetyRepo != nil {
+		operatorID, authErr := authenticatedOperatorID(r)
+		if authErr != nil {
+			writeError(w, http.StatusForbidden, authErr)
+			return
+		}
+		alert, resolveErr := s.store.safetyRepo.resolveSOSAlert(ctx, alertID, operatorID, "")
+		if resolveErr != nil {
+			writeError(w, http.StatusBadRequest, resolveErr)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"alert": alert, "alert_id": alertID, "resolved": true})
 		return
 	}
 
@@ -1309,53 +1757,12 @@ func (s *Server) adminGetWalletBalance(w http.ResponseWriter, r *http.Request) {
 
 // ─── Billing Stats / KPI ─────────────────────────────────────────────────────
 
+// adminBillingStats is windowed (since/until, default 30 days), aggregated in
+// SQL, excludes local activations, sandbox (unless mode=sandbox|all), admin
+// grants and promotions, and reports money per currency. See
+// business_reports.go and documents/BUSINESS_REPORTS_2026-10-01.md.
 func (s *Server) adminBillingStats(w http.ResponseWriter, r *http.Request) {
-	if err := requireAdminUser(r); err != nil {
-		writeError(w, http.StatusUnauthorized, err)
-		return
-	}
-
-	ctx, cancel := s.withRequestTimeout(r.Context())
-	defer cancel()
-
-	repo := s.store.adminRepo
-	if repo == nil {
-		writeJSON(w, http.StatusOK, map[string]any{
-			"total_coins_purchased": 0, "total_revenue_minor": 0,
-			"unique_buyers": 0, "transaction_count": 0, "source": "unavailable",
-		})
-		return
-	}
-
-	// Total coins purchased + revenue + unique buyers via wallet_coin_purchases
-	txParams := url.Values{}
-	txParams.Set("select", "coins,amount_minor,user_id")
-	allTx, err := repo.db.SelectRead(ctx, repo.cfg.MatchingSchema, "wallet_coin_purchases", txParams)
-
-	totalCoins := 0
-	totalRevenue := 0
-	uniqueBuyers := map[string]bool{}
-	if err == nil {
-		for _, row := range allTx {
-			if c, ok := toInt(row["coins"]); ok {
-				totalCoins += c
-			}
-			if a, ok := toInt(row["amount_minor"]); ok {
-				totalRevenue += a
-			}
-			if uid, ok := row["user_id"].(string); ok && uid != "" {
-				uniqueBuyers[uid] = true
-			}
-		}
-	}
-
-	writeJSON(w, http.StatusOK, map[string]any{
-		"total_coins_purchased": totalCoins,
-		"total_revenue_minor":   totalRevenue,
-		"unique_buyers":         len(uniqueBuyers),
-		"transaction_count":     len(allTx),
-		"source":                "db",
-	})
+	s.billingStatsSummary(w, r)
 }
 
 // ─── Admin Grant Coins (from billing page — user_id in body) ─────────────────
@@ -1427,7 +1834,7 @@ func (s *Server) adminListSubscriptions(w http.ResponseWriter, r *http.Request) 
 	}
 
 	params := url.Values{}
-	params.Set("select", "id,user_id,plan_code,status,billing_cycle,start_date,end_date,next_billing_date,auto_renew,provider_subscription_id,created_at,updated_at")
+	params.Set("select", "id,user_id,plan_code,status,billing_cycle,start_date,end_date,next_billing_date,auto_renew,cancel_at_period_end,current_period_end,provider,provider_subscription_id,payment_method_brand,payment_method_last4,amount_minor,currency,created_at,updated_at")
 	params.Set("order", "created_at.desc")
 	params.Set("limit", strconv.Itoa(limit))
 	params.Set("offset", strconv.Itoa(offset))
@@ -1476,7 +1883,7 @@ func (s *Server) adminListPayments(w http.ResponseWriter, r *http.Request) {
 	}
 
 	params := url.Values{}
-	params.Set("select", "id,user_id,subscription_id,amount_paise,currency,status,provider_payment_id,provider_order_id,paid_at,created_at,metadata")
+	params.Set("select", "id,user_id,subscription_id,amount_paise,currency,status,provider,provider_payment_id,provider_invoice_id,billing_reason,payment_method_brand,payment_method_last4,refunded_amount_paise,failure_reason,paid_at,created_at,metadata")
 	params.Set("order", "created_at.desc")
 	params.Set("limit", strconv.Itoa(limit))
 	params.Set("offset", strconv.Itoa(offset))
@@ -1495,104 +1902,12 @@ func (s *Server) adminListPayments(w http.ResponseWriter, r *http.Request) {
 
 // ─── Revenue Analytics (FR-10) ───────────────────────────────────────────────
 
+// adminRevenueAnalytics shares its definitions with the business revenue
+// report and the reconciliation report: windowed, SQL-aggregated, live and
+// sandbox separated, admin grants and promotions excluded, partial refunds
+// netted, and money kept per currency.
 func (s *Server) adminRevenueAnalytics(w http.ResponseWriter, r *http.Request) {
-	if err := requireAdminUser(r); err != nil {
-		writeError(w, http.StatusUnauthorized, err)
-		return
-	}
-
-	ctx, cancel := s.withRequestTimeout(r.Context())
-	defer cancel()
-
-	repo := s.store.adminRepo
-	if repo == nil {
-		writeJSON(w, http.StatusOK, map[string]any{
-			"coin_purchases": map[string]any{},
-			"subscriptions":  map[string]any{},
-			"payments":       map[string]any{},
-			"source":         "unavailable",
-		})
-		return
-	}
-
-	// --- Coin purchases aggregates ---
-	coinParams := url.Values{}
-	coinParams.Set("select", "coins,amount_minor,user_id,source,created_at")
-	allCoins, _ := repo.db.SelectRead(ctx, repo.cfg.MatchingSchema, "wallet_coin_purchases", coinParams)
-
-	totalCoins, totalMinor, uniqueBuyers := 0, 0, map[string]bool{}
-	sourceCounts := map[string]int{}
-	for _, row := range allCoins {
-		if c, ok := toInt(row["coins"]); ok {
-			totalCoins += c
-		}
-		if a, ok := toInt(row["amount_minor"]); ok {
-			totalMinor += a
-		}
-		if uid, ok := row["user_id"].(string); ok {
-			uniqueBuyers[uid] = true
-		}
-		if src, ok := row["source"].(string); ok {
-			sourceCounts[src]++
-		}
-	}
-
-	coinStats := map[string]any{
-		"total_coins":   totalCoins,
-		"total_minor":   totalMinor,
-		"total_count":   len(allCoins),
-		"unique_buyers": len(uniqueBuyers),
-		"by_source":     sourceCounts,
-	}
-
-	// --- Subscription aggregates ---
-	subParams := url.Values{}
-	subParams.Set("select", "status,plan_code,billing_cycle")
-	allSubs, _ := repo.db.SelectRead(ctx, repo.cfg.MatchingSchema, "billing_subscriptions_runtime", subParams)
-	subStatusCounts := map[string]int{}
-	subPlanCounts := map[string]int{}
-	for _, row := range allSubs {
-		if s, ok := row["status"].(string); ok {
-			subStatusCounts[s]++
-		}
-		if p, ok := row["plan_code"].(string); ok {
-			subPlanCounts[p]++
-		}
-	}
-	subStats := map[string]any{
-		"total":     len(allSubs),
-		"by_status": subStatusCounts,
-		"by_plan":   subPlanCounts,
-	}
-
-	// --- Payment aggregates ---
-	payParams := url.Values{}
-	payParams.Set("select", "amount_paise,currency,status")
-	allPay, _ := repo.db.SelectRead(ctx, repo.cfg.MatchingSchema, "billing_payments_runtime", payParams)
-	payStatusCounts := map[string]int{}
-	totalPaisePaid := 0
-	for _, row := range allPay {
-		if s, ok := row["status"].(string); ok {
-			payStatusCounts[s]++
-			if s == "success" {
-				if a, ok := toInt(row["amount_paise"]); ok {
-					totalPaisePaid += a
-				}
-			}
-		}
-	}
-	payStats := map[string]any{
-		"total":            len(allPay),
-		"by_status":        payStatusCounts,
-		"total_paid_paise": totalPaisePaid,
-	}
-
-	writeJSON(w, http.StatusOK, map[string]any{
-		"coin_purchases": coinStats,
-		"subscriptions":  subStats,
-		"payments":       payStats,
-		"source":         "db",
-	})
+	s.billingRevenueAnalytics(w, r)
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -1635,6 +1950,18 @@ func defaultFeatureFlags() []map[string]any {
 		{"quest_workflow_v2_enabled", "Use quest workflow v2"},
 		{"circles_enabled", "Enable community circles"},
 		{"daily_prompts_enabled", "Show daily engagement prompts"},
+		{"match_nudges_enabled", "Enable match nudge sending"},
+		{"group_coffee_polls_enabled", "Enable group coffee polls"},
+		{"safety_sos_enabled", "Enable SOS delivery commands"},
+		{"level_progression_enabled", "Enable level and XP progression"},
+		{"intentional_dating_enabled", "Opt-in dating rhythm and private chemistry"},
+		{"date_plans_enabled", "Date plans on matches shared with friends and friend groups"},
+		{"graduation_enabled", "Graduation: a matched pair leaves Connect together, discovery pauses, friends celebrate"},
+		{"friend_intros_enabled", "Friend vouches on profiles and friend-made intros"},
+		{"copilot_enabled", "Writing copilot drafts with honest assisted-message marks"},
+		{"curated_daily_set_enabled", "Curated daily candidate set with fair-exposure ranking and reasons"},
+		{"photo_themes_enabled", "Photo Themes: one moderated photo per prompt"},
+		{"clubs_enabled", "Book & Film Clubs: weekly picks, discussion, reviews and lists"},
 	}
 	out := make([]map[string]any, len(keys))
 	for i, kd := range keys {
@@ -1650,4 +1977,53 @@ func defaultCoinPackages() []map[string]any {
 		{"id": "value", "label": "Best Value", "coin_amount": 1200, "price_usd": 7.99, "is_active": true, "sort_order": 3},
 		{"id": "premium", "label": "Premium", "coin_amount": 3000, "price_usd": 17.99, "is_active": true, "sort_order": 4},
 	}
+}
+
+// ─── Webhook ledger (PEN-01) ────────────────────────────────────────────────
+
+// adminListBillingWebhookEvents exposes the provider event ledger so an
+// operator can see what the provider actually reported, whether it was
+// applied, ignored, deduplicated or failed, and why.
+func (s *Server) adminListBillingWebhookEvents(w http.ResponseWriter, r *http.Request) {
+	if err := requireAdminUser(r); err != nil {
+		writeError(w, http.StatusUnauthorized, err)
+		return
+	}
+	limit := 50
+	if raw := strings.TrimSpace(r.URL.Query().Get("limit")); raw != "" {
+		if v, err := strconv.Atoi(raw); err == nil && v > 0 && v <= 500 {
+			limit = v
+		}
+	}
+	offset := 0
+	if raw := strings.TrimSpace(r.URL.Query().Get("offset")); raw != "" {
+		if v, err := strconv.Atoi(raw); err == nil && v >= 0 {
+			offset = v
+		}
+	}
+	ctx, cancel := s.withRequestTimeout(r.Context())
+	defer cancel()
+
+	repo := s.store.adminRepo
+	if repo == nil {
+		writeJSON(w, http.StatusOK, map[string]any{"events": []any{}, "total": 0})
+		return
+	}
+	params := url.Values{}
+	params.Set("select", "id,provider,event_id,event_type,event_created_at,received_at,processed_at,status,error")
+	params.Set("order", "received_at.desc")
+	params.Set("limit", strconv.Itoa(limit))
+	params.Set("offset", strconv.Itoa(offset))
+	if status := strings.TrimSpace(r.URL.Query().Get("status")); status != "" {
+		params.Set("status", "eq."+status)
+	}
+	if eventType := strings.TrimSpace(r.URL.Query().Get("event_type")); eventType != "" {
+		params.Set("event_type", "eq."+eventType)
+	}
+	rows, err := repo.db.SelectRead(ctx, repo.cfg.MatchingSchema, "billing_webhook_events", params)
+	if err != nil {
+		writeJSON(w, http.StatusOK, map[string]any{"events": []any{}, "total": 0, "note": "table not found"})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"events": rows, "total": len(rows)})
 }

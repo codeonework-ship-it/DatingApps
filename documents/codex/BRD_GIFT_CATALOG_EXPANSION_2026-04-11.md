@@ -111,7 +111,7 @@ Every catalog item returned from the API must have a non-empty `icon_key`.
 | EC-2 | Exclusive gift double-tap (same second, diff idempotency keys) | DB unique partial index prevents double debit |
 | EC-3 | Free gift on midnight UTC boundary | Entitlement date in UTC, not local time |
 | EC-4 | Seasonal gift sent after `end_date` | Treated as inactive; 422 response |
-| EC-5 | User has no wallet row, sends free gift | Wallet auto-created with 12 coins; send succeeds |
+| EC-5 | User has no wallet row, sends free gift | Empty wallet is auto-created with 0 coins; free send succeeds and no synthetic credit is created |
 | EC-6 | System milestone gift in paginated chat | Appears in correct chronological position on all pages |
 | EC-7 | Same send with identical idempotency key from two devices | Idempotent replay; single debit |
 | EC-8 | E-card message > 500 chars | HTTP 422 `message_too_long` |

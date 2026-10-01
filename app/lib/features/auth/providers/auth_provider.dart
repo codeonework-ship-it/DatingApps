@@ -1,8 +1,12 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../core/auth/auth_session_store.dart';
 import '../../../core/config/app_runtime_config.dart';
 import '../../../core/config/feature_flags.dart';
+import '../../../core/notifications/push_notification_service.dart';
 import '../../../core/providers/api_client_provider.dart';
 import '../../../core/utils/logger.dart';
 
@@ -10,588 +14,474 @@ part 'auth_provider.g.dart';
 
 class SignupDraft {
   const SignupDraft({
-    required this.phoneNumber,
+    required this.username,
     required this.name,
     required this.dateOfBirth,
     required this.gender,
+    this.accountKind = 'dating',
   });
 
-  final String phoneNumber;
+  final String username;
   final String name;
   final String dateOfBirth;
   final String gender;
+  final String accountKind;
 }
 
-/// Auth State
 class AuthState {
   const AuthState({
-    this.phoneNumber,
-    this.email,
-    this.otp,
+    this.username,
+    this.accountKind = 'dating',
     this.isLoading = false,
     this.error,
-    this.isOtpSent = false,
     this.isAuthenticated = false,
     this.userId,
-    this.isSignupFlow = false,
+    this.accessToken,
+    this.refreshToken,
+    this.isNewAccount = false,
     this.pendingSignup,
   });
-  final String? phoneNumber;
-  final String? email;
-  final String? otp;
+
+  final String? username;
+  final String accountKind;
+  bool get isIntroducer => accountKind == 'introducer';
   final bool isLoading;
   final String? error;
-  final bool isOtpSent;
   final bool isAuthenticated;
   final String? userId;
-  final bool isSignupFlow;
+  final String? accessToken;
+  final String? refreshToken;
+  final bool isNewAccount;
   final SignupDraft? pendingSignup;
 
   static const Object _unset = Object();
 
   AuthState copyWith({
-    Object? phoneNumber = _unset,
-    Object? email = _unset,
-    Object? otp = _unset,
+    Object? username = _unset,
     Object? isLoading = _unset,
     Object? error = _unset,
-    Object? isOtpSent = _unset,
     Object? isAuthenticated = _unset,
     Object? userId = _unset,
-    Object? isSignupFlow = _unset,
+    Object? accessToken = _unset,
+    Object? refreshToken = _unset,
+    Object? isNewAccount = _unset,
     Object? pendingSignup = _unset,
   }) => AuthState(
-    phoneNumber: identical(phoneNumber, _unset)
-        ? this.phoneNumber
-        : phoneNumber as String?,
-    email: identical(email, _unset) ? this.email : email as String?,
-    otp: identical(otp, _unset) ? this.otp : otp as String?,
+    accountKind: accountKind,
+    username: identical(username, _unset) ? this.username : username as String?,
     isLoading: identical(isLoading, _unset)
         ? this.isLoading
         : isLoading! as bool,
     error: identical(error, _unset) ? this.error : error as String?,
-    isOtpSent: identical(isOtpSent, _unset)
-        ? this.isOtpSent
-        : isOtpSent! as bool,
     isAuthenticated: identical(isAuthenticated, _unset)
         ? this.isAuthenticated
         : isAuthenticated! as bool,
     userId: identical(userId, _unset) ? this.userId : userId as String?,
-    isSignupFlow: identical(isSignupFlow, _unset)
-        ? this.isSignupFlow
-        : isSignupFlow! as bool,
+    accessToken: identical(accessToken, _unset)
+        ? this.accessToken
+        : accessToken as String?,
+    refreshToken: identical(refreshToken, _unset)
+        ? this.refreshToken
+        : refreshToken as String?,
+    isNewAccount: identical(isNewAccount, _unset)
+        ? this.isNewAccount
+        : isNewAccount! as bool,
     pendingSignup: identical(pendingSignup, _unset)
         ? this.pendingSignup
         : pendingSignup as SignupDraft?,
   );
 }
 
-/// Auth Provider
-@riverpod
+@Riverpod(keepAlive: true)
 class AuthNotifier extends _$AuthNotifier {
+  int _attempt = 0;
   @override
-  AuthState build() => const AuthState();
-
-  /// Send OTP to mobile number
-  Future<void> sendOtp(String mobileNumber) async {
-    state = state.copyWith(
-      isLoading: true,
-      error: null,
-      isSignupFlow: false,
-      pendingSignup: null,
-    );
-
-    try {
-      final normalized = _normalizePhoneNumber(mobileNumber);
-      final transportEmail = _phoneToAuthEmail(normalized);
-      if (normalized.isEmpty) {
-        state = state.copyWith(
-          error: 'Please enter your mobile number.',
-          isLoading: false,
-        );
-        return;
-      }
-
-      if (!_isValidPhoneNumber(normalized)) {
-        state = state.copyWith(
-          error: 'Please enter a valid mobile number.',
-          isLoading: false,
-        );
-        return;
-      }
-
-      const shouldBypassOtp = kBypassOtpValidation;
-
-      if (shouldBypassOtp) {
-        await Future<void>.delayed(const Duration(milliseconds: 150));
-      } else if (kUseMockAuth) {
-        await Future<void>.delayed(const Duration(milliseconds: 300));
-      } else {
-        final dio = ref.read(apiClientProvider);
-        try {
-          await dio.post<dynamic>(
-            '/auth/send-otp',
-            data: {'email': transportEmail, 'phone': normalized},
-          );
-        } on DioException catch (e) {
-          final message = _extractApiError(e, fallback: '').toLowerCase();
-          final needsEmailOnlyRetry =
-              message.contains('valid email is required') ||
-              message.contains('email is required');
-          if (!needsEmailOnlyRetry) {
-            rethrow;
-          }
-
-          await dio.post<dynamic>(
-            '/auth/send-otp',
-            data: {'email': transportEmail},
-          );
-        }
-      }
-
-      state = state.copyWith(
-        phoneNumber: normalized,
-        email: transportEmail,
-        isOtpSent: true,
-        isLoading: false,
-        error: null,
-      );
-    } on DioException catch (e, stackTrace) {
-      log.error('Failed to send OTP', e, stackTrace);
-      state = state.copyWith(
-        error: _extractApiError(
-          e,
-          fallback: 'Failed to send OTP. Please try again.',
-        ),
-        isLoading: false,
-      );
-    } on Object catch (e, stackTrace) {
-      log.error('Failed to send OTP', e, stackTrace);
-      state = state.copyWith(
-        error: 'Failed to send OTP. Please try again.',
-        isLoading: false,
-      );
-    }
-  }
-
-  /// Send OTP for a new explicit signup. The account-domain user row is not
-  /// bootstrapped until the OTP is verified successfully.
-  Future<void> sendSignupOtp(SignupDraft signup) async {
-    state = state.copyWith(
-      isLoading: true,
-      error: null,
-      isSignupFlow: true,
-      pendingSignup: signup,
-    );
-
-    try {
-      final normalized = _normalizePhoneNumber(signup.phoneNumber);
-      final transportEmail = _phoneToAuthEmail(normalized);
-      if (!_isValidPhoneNumber(normalized)) {
-        state = state.copyWith(
-          error: 'Please enter a valid mobile number.',
-          isLoading: false,
-        );
-        return;
-      }
-
-      if (kBypassOtpValidation) {
-        final existing = await _signupPhoneAlreadyRegistered(transportEmail);
-        if (existing) {
-          state = state.copyWith(
-            error:
-                'An account already exists for this mobile number. Please sign in instead.',
-            isLoading: false,
-          );
-          return;
-        }
-        await Future<void>.delayed(const Duration(milliseconds: 150));
-      } else if (kUseMockAuth) {
-        await Future<void>.delayed(const Duration(milliseconds: 300));
-      } else {
-        final dio = ref.read(apiClientProvider);
-        try {
-          await dio.post<dynamic>(
-            '/auth/send-otp',
-            data: {'email': transportEmail, 'phone': normalized},
-          );
-        } on DioException catch (e) {
-          final message = _extractApiError(e, fallback: '').toLowerCase();
-          final needsEmailOnlyRetry =
-              message.contains('valid email is required') ||
-              message.contains('email is required');
-          if (!needsEmailOnlyRetry) {
-            rethrow;
-          }
-          await dio.post<dynamic>(
-            '/auth/send-otp',
-            data: {'email': transportEmail},
-          );
-        }
-      }
-
-      state = state.copyWith(
-        phoneNumber: normalized,
-        email: transportEmail,
-        isOtpSent: true,
-        isLoading: false,
-        error: null,
-        pendingSignup: SignupDraft(
-          phoneNumber: normalized,
-          name: signup.name.trim(),
-          dateOfBirth: signup.dateOfBirth.trim(),
-          gender: signup.gender.trim(),
-        ),
-      );
-    } on DioException catch (e, stackTrace) {
-      log.error('Failed to send signup OTP', e, stackTrace);
-      state = state.copyWith(
-        error: _extractApiError(
-          e,
-          fallback: 'Failed to send OTP. Please try again.',
-        ),
-        isLoading: false,
-      );
-    } on Object catch (e, stackTrace) {
-      log.error('Failed to send signup OTP', e, stackTrace);
-      state = state.copyWith(
-        error: 'Failed to send OTP. Please try again.',
-        isLoading: false,
-      );
-    }
-  }
-
-  /// Verify OTP
-  Future<void> verifyOtp(String otp) async {
-    state = state.copyWith(isLoading: true, error: null);
-
-    try {
-      final otpToken = otp.trim();
-      final authEmail = state.email;
-
-      if (authEmail == null || authEmail.isEmpty) {
-        state = state.copyWith(
-          error: 'Please enter your mobile number first.',
-          isLoading: false,
-        );
-        return;
-      }
-
-      const shouldBypassOtp = kBypassOtpValidation;
-
-      if (!shouldBypassOtp && !RegExp(r'^\d{6}$').hasMatch(otpToken)) {
-        state = state.copyWith(
-          error: 'Please enter a valid 6-digit OTP.',
-          isLoading: false,
-        );
-        return;
-      }
-
-      if (shouldBypassOtp) {
-        if (otpToken != kOtpBypassCode) {
-          state = state.copyWith(
-            error: 'Use 123456 as the temporary OTP.',
-            isLoading: false,
-          );
-          return;
-        }
-        await Future<void>.delayed(const Duration(milliseconds: 150));
-        final mockUserId = AppRuntimeConfig.mockUserIdForIdentifier(authEmail);
-        state = state.copyWith(
-          isAuthenticated: true,
-          userId: mockUserId,
-          isLoading: false,
-          otp: otpToken,
-          error: null,
-          isSignupFlow: false,
-          pendingSignup: null,
-        );
-        return;
-      }
-
-      if (kUseMockAuth) {
-        await Future<void>.delayed(const Duration(milliseconds: 300));
-        final mockUserId = AppRuntimeConfig.mockUserIdForIdentifier(authEmail);
-        state = state.copyWith(
-          isAuthenticated: true,
-          userId: mockUserId,
-          isLoading: false,
-          otp: otpToken,
-          error: null,
-          isSignupFlow: false,
-          pendingSignup: null,
-        );
-        return;
-      }
-
-      final dio = ref.read(apiClientProvider);
-      final response = await dio.post<dynamic>(
-        '/auth/verify-otp',
-        data: {'email': authEmail, 'phone': state.phoneNumber, 'otp': otpToken},
-      );
-      final data =
-          (response.data as Map?)?.cast<String, dynamic>() ??
-          <String, dynamic>{};
-      final success = data['success'] == true;
-      if (!success) {
-        state = state.copyWith(
-          error: data['error']?.toString() ?? 'Invalid OTP. Please try again.',
-          isLoading: false,
-        );
-        return;
-      }
-
-      state = state.copyWith(
+  AuthState build() {
+    final session = AuthSessionStore.instance;
+    if (session.restored && session.userId != null) {
+      return AuthState(
         isAuthenticated: true,
-        userId: data['user_id']?.toString(),
-        isLoading: false,
-        otp: otpToken,
-        error: null,
-        isSignupFlow: false,
-        pendingSignup: null,
+        userId: session.userId,
+        username: session.username,
+        accessToken: session.accessToken,
+        refreshToken: session.refreshToken,
+        isNewAccount: session.isNewAccount,
+        accountKind: session.accountKind,
       );
-      if ((state.userId ?? '').trim().isEmpty) {
-        state = state.copyWith(
-          isAuthenticated: false,
-          userId: null,
-          isLoading: false,
-          error: 'Login failed. Backend response did not include a user id.',
+    }
+    return const AuthState();
+  }
+
+  Future<void> signIn({
+    required String username,
+    required String password,
+  }) async {
+    if (state.isLoading || state.isAuthenticated) return;
+    final attempt = ++_attempt;
+    final normalized = _normalizeUsername(username);
+    if (!_validateCredentials(
+      normalized,
+      password,
+      requireStrongPassword: false,
+    )) {
+      return;
+    }
+
+    _beginAuth(normalized);
+    try {
+      if (kUseMockAuth) {
+        await Future<void>.delayed(const Duration(milliseconds: 200));
+        if (attempt != _attempt) return;
+        _completeAuth(
+          username: normalized,
+          userId: _mockUserId(normalized),
+          isNewAccount: false,
         );
+        return;
       }
-    } on DioException catch (e, stackTrace) {
-      log.error('Failed to verify OTP', e, stackTrace);
-      state = state.copyWith(
-        error: _extractApiError(e, fallback: 'Invalid OTP. Please try again.'),
-        isLoading: false,
+
+      final data = await _credentialRequest(
+        '/auth/login',
+        username: normalized,
+        password: password,
       );
+      if (attempt != _attempt) return;
+      _completeFromResponse(data, username: normalized, isNewAccount: false);
+    } on DioException catch (e, stackTrace) {
+      if (attempt != _attempt) return;
+      AuthSessionStore.instance.clear();
+      _fail(e, stackTrace, fallback: 'Unable to sign in. Try again.');
     } on Object catch (e, stackTrace) {
-      log.error('Failed to verify OTP', e, stackTrace);
+      if (attempt != _attempt) return;
+      AuthSessionStore.instance.clear();
+      log.error('Username login failed', e, stackTrace);
       state = state.copyWith(
-        error: 'Invalid OTP. Please try again.',
         isLoading: false,
+        error: 'Unable to sign in. Try again.',
       );
     }
   }
 
-  /// Verify signup OTP and durably bootstrap the app-domain user/profile draft.
-  Future<void> verifySignupOtp(String otp) async {
-    state = state.copyWith(isLoading: true, error: null, isSignupFlow: true);
+  Future<void> signUp({
+    required SignupDraft signup,
+    required String password,
+  }) async {
+    if (state.isLoading || state.isAuthenticated) return;
+    final attempt = ++_attempt;
+    final normalized = _normalizeUsername(signup.username);
+    if (!_validateCredentials(
+      normalized,
+      password,
+      requireStrongPassword: true,
+    )) {
+      return;
+    }
+    final normalizedDraft = SignupDraft(
+      username: normalized,
+      name: signup.name.trim(),
+      dateOfBirth: signup.dateOfBirth.trim(),
+      gender: signup.gender.trim(),
+      accountKind: signup.accountKind,
+    );
+    _beginAuth(normalized, pendingSignup: normalizedDraft);
 
     try {
-      final signup = state.pendingSignup;
-      final otpToken = otp.trim();
-      final authEmail = state.email;
-
-      if (signup == null || authEmail == null || authEmail.isEmpty) {
-        state = state.copyWith(
-          error: 'Please enter your signup details first.',
-          isLoading: false,
-        );
-        return;
-      }
-
-      if (!kBypassOtpValidation && !RegExp(r'^\d{6}$').hasMatch(otpToken)) {
-        state = state.copyWith(
-          error: 'Please enter a valid 6-digit OTP.',
-          isLoading: false,
-        );
-        return;
-      }
-
-      if (kBypassOtpValidation) {
-        if (otpToken != kOtpBypassCode) {
-          state = state.copyWith(
-            error: 'Use 123456 as the temporary OTP.',
-            isLoading: false,
-          );
-          return;
-        }
-        await Future<void>.delayed(const Duration(milliseconds: 150));
-        final mockUserId = AppRuntimeConfig.mockUserIdForIdentifier(authEmail);
-        await _tryBootstrapSignupProfile(userId: mockUserId, signup: signup);
-        state = state.copyWith(
-          isAuthenticated: true,
-          userId: mockUserId,
-          isLoading: false,
-          otp: otpToken,
-          error: null,
-        );
-        return;
-      }
-
       if (kUseMockAuth) {
-        await Future<void>.delayed(const Duration(milliseconds: 150));
-        final mockUserId = AppRuntimeConfig.mockUserIdForIdentifier(authEmail);
-        state = state.copyWith(
-          isAuthenticated: true,
-          userId: mockUserId,
-          isLoading: false,
-          otp: otpToken,
-          error: null,
+        await Future<void>.delayed(const Duration(milliseconds: 200));
+        if (attempt != _attempt) return;
+        _completeAuth(
+          username: normalized,
+          userId: _mockUserId(normalized),
+          isNewAccount: true,
+          pendingSignup: normalizedDraft,
         );
         return;
       }
 
-      final dio = ref.read(apiClientProvider);
-      final verifyResponse = await dio.post<dynamic>(
-        '/auth/verify-otp',
-        data: {'email': authEmail, 'phone': state.phoneNumber, 'otp': otpToken},
+      final data = await _credentialRequest(
+        '/auth/signup',
+        username: normalized,
+        password: password,
+        signup: normalizedDraft,
       );
-      final verifyData =
-          (verifyResponse.data as Map?)?.cast<String, dynamic>() ??
-          <String, dynamic>{};
-      if (verifyData['success'] != true) {
+      if (attempt != _attempt) return;
+      final session = _sessionFrom(data);
+      if (session == null) {
         state = state.copyWith(
-          error:
-              verifyData['error']?.toString() ??
-              'Invalid OTP. Please try again.',
           isLoading: false,
+          error: data['error']?.toString() ?? 'Unable to create account.',
         );
         return;
       }
 
-      final userId = verifyData['user_id']?.toString() ?? '';
-      if (userId.trim().isEmpty) {
-        state = state.copyWith(
-          error: 'Signup failed. Backend response did not include a user id.',
-          isLoading: false,
-        );
-        return;
+      AuthSessionStore.instance.update(
+        accessToken: session.accessToken,
+        refreshToken: session.refreshToken,
+      );
+      if (normalizedDraft.accountKind != 'introducer') {
+        await _bootstrapProfile(session.userId, normalizedDraft);
       }
-
-      await _bootstrapSignupProfile(userId: userId, signup: signup);
-
-      state = state.copyWith(
-        isAuthenticated: true,
-        userId: userId,
-        isLoading: false,
-        otp: otpToken,
-        error: null,
+      if (attempt != _attempt) return;
+      _completeAuth(
+        username: normalized,
+        userId: session.userId,
+        accessToken: session.accessToken,
+        refreshToken: session.refreshToken,
+        accountKind: data['account_kind']?.toString() ?? 'dating',
+        isNewAccount: true,
+        pendingSignup: normalizedDraft,
       );
     } on DioException catch (e, stackTrace) {
-      log.error('Failed to verify signup OTP', e, stackTrace);
-      state = state.copyWith(
-        error: _extractApiError(
-          e,
-          fallback: 'Signup failed. Please try again.',
-        ),
-        isLoading: false,
-      );
+      if (attempt != _attempt) return;
+      AuthSessionStore.instance.clear();
+      _fail(e, stackTrace, fallback: 'Unable to create account. Try again.');
     } on Object catch (e, stackTrace) {
-      log.error('Failed to verify signup OTP', e, stackTrace);
+      if (attempt != _attempt) return;
+      AuthSessionStore.instance.clear();
+      log.error('Username signup failed', e, stackTrace);
       state = state.copyWith(
-        error: 'Signup failed. Please try again.',
         isLoading: false,
+        error: 'Unable to create account. Try again.',
       );
     }
   }
 
-  /// Logout
   Future<void> logout() async {
-    state = const AuthState();
+    final attempt =
+        ++_attempt; // Invalidate pending login/signup responses before any await.
+    final userId = state.userId;
+    state = const AuthState(isLoading: true);
+    try {
+      if (userId != null && userId.isNotEmpty) {
+        await ref.read(pushNotificationServiceProvider).unregister(userId);
+      }
+    } on Object catch (error, stackTrace) {
+      log.warning('Push unregister failed during logout', error, stackTrace);
+    }
+    if (attempt != _attempt) return;
+    try {
+      if (AuthSessionStore.instance.accessToken?.isNotEmpty ?? false) {
+        await ref.read(apiClientProvider).post<dynamic>('/auth/logout');
+      }
+    } on Object catch (error, stackTrace) {
+      log.warning(
+        'Server-side logout failed; clearing local session',
+        error,
+        stackTrace,
+      );
+    } finally {
+      if (attempt == _attempt) {
+        AuthSessionStore.instance.clear();
+        state = const AuthState();
+      }
+    }
   }
 
-  /// Clear error
   void clearError() {
     state = state.copyWith(error: null);
   }
 
-  /// Move back to phone-entry step from OTP step.
-  void backToIdentifierEntry() {
-    state = state.copyWith(isOtpSent: false, error: null, isLoading: false);
-  }
-
-  /// Reset an in-progress unauthenticated auth flow when the user switches
-  /// between sign-in and sign-up surfaces.
   void resetAuthFlow() {
     if (!state.isAuthenticated) {
+      ++_attempt;
+      AuthSessionStore.instance.clear();
       state = const AuthState();
     }
   }
 
-  Future<void> _bootstrapSignupProfile({
-    required String userId,
-    required SignupDraft signup,
-  }) async {
-    if (kUseMockAuth) return;
+  bool _validateCredentials(
+    String username,
+    String password, {
+    required bool requireStrongPassword,
+  }) {
+    if (!_isValidUsername(username)) {
+      state = state.copyWith(
+        isLoading: false,
+        error:
+            'Username must be 3–30 characters using letters, numbers, _ or .',
+      );
+      return false;
+    }
+    if (password.isEmpty) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Please enter your password.',
+      );
+      return false;
+    }
+    if (requireStrongPassword && !_isStrongPassword(password)) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Password must be 8–72 bytes with letters and numbers.',
+      );
+      return false;
+    }
+    return true;
+  }
 
-    final dio = ref.read(apiClientProvider);
-    await dio.post<dynamic>(
-      '/auth/signup/bootstrap',
-      data: {
-        'user_id': userId,
-        'phone': _normalizePhoneNumber(signup.phoneNumber),
-        'name': signup.name.trim(),
-        'date_of_birth': signup.dateOfBirth.trim(),
-        'gender': signup.gender.trim(),
-      },
+  void _beginAuth(String username, {SignupDraft? pendingSignup}) {
+    AuthSessionStore.instance.clear(persisted: false);
+    state = AuthState(
+      username: username,
+      isLoading: true,
+      pendingSignup: pendingSignup,
     );
   }
 
-  Future<void> _tryBootstrapSignupProfile({
-    required String userId,
-    required SignupDraft signup,
+  Future<Map<String, dynamic>> _credentialRequest(
+    String path, {
+    required String username,
+    required String password,
+    SignupDraft? signup,
   }) async {
-    try {
-      await _bootstrapSignupProfile(userId: userId, signup: signup);
-    } on DioException catch (e, stackTrace) {
-      final status = e.response?.statusCode ?? 0;
-      if (status == 404 ||
-          status >= 500 ||
-          e.type == DioExceptionType.connectionError) {
-        log.warning(
-          'Signup bootstrap unavailable during OTP bypass; continuing with local draft fallback: ${e.message}',
+    final response = await ref
+        .read(apiClientProvider)
+        .post<dynamic>(
+          path,
+          data: {
+            'username': username,
+            'password': password,
+            if (signup?.accountKind == 'introducer') ...{
+              'account_kind': 'introducer',
+              'name': signup!.name,
+              'date_of_birth': signup.dateOfBirth,
+            },
+          },
         );
-        return;
-      }
-      log.error('Signup bootstrap failed during OTP bypass', e, stackTrace);
-      rethrow;
+    return (response.data as Map?)?.cast<String, dynamic>() ??
+        <String, dynamic>{};
+  }
+
+  void _completeFromResponse(
+    Map<String, dynamic> data, {
+    required String username,
+    required bool isNewAccount,
+  }) {
+    final session = _sessionFrom(data);
+    if (session == null) {
+      state = state.copyWith(
+        isLoading: false,
+        error: data['error']?.toString() ?? 'Invalid username or password.',
+      );
+      return;
     }
+    AuthSessionStore.instance.update(
+      accessToken: session.accessToken,
+      refreshToken: session.refreshToken,
+    );
+    _completeAuth(
+      username: username,
+      userId: session.userId,
+      accessToken: session.accessToken,
+      refreshToken: session.refreshToken,
+      accountKind: data['account_kind']?.toString() ?? 'dating',
+      isNewAccount: data['signup_required'] is bool
+          ? data['signup_required'] as bool
+          : isNewAccount,
+    );
   }
 
-  Future<bool> _signupPhoneAlreadyRegistered(String authEmail) async {
-    if (kUseMockAuth) return false;
-    try {
-      final userId = AppRuntimeConfig.mockUserIdForIdentifier(authEmail);
-      final dio = ref.read(apiClientProvider);
-      final response = await dio.get<dynamic>('/profile/$userId/summary');
-      final body =
-          (response.data as Map?)?.cast<String, dynamic>() ??
-          <String, dynamic>{};
-      return body['found'] == true;
-    } on DioException catch (e) {
-      final status = e.response?.statusCode ?? 0;
-      if (status == 404 ||
-          status >= 500 ||
-          e.type == DioExceptionType.connectionError) {
-        return false;
-      }
-      return false;
-    } on Object {
-      return false;
+  void _completeAuth({
+    required String username,
+    required String userId,
+    required bool isNewAccount,
+    String? accessToken,
+    String? refreshToken,
+    SignupDraft? pendingSignup,
+    String accountKind = 'dating',
+  }) {
+    AuthSessionStore.instance.identify(
+      userId: userId,
+      username: username,
+      accountKind: accountKind,
+      isNewAccount: isNewAccount,
+    );
+    state = AuthState(
+      accountKind: accountKind,
+      username: username,
+      isAuthenticated: true,
+      userId: userId,
+      accessToken: accessToken,
+      refreshToken: refreshToken,
+      isNewAccount: isNewAccount,
+      pendingSignup: pendingSignup,
+    );
+  }
+
+  _AuthSession? _sessionFrom(Map<String, dynamic> data) {
+    final userId = data['user_id']?.toString().trim() ?? '';
+    final accessToken = data['access_token']?.toString().trim() ?? '';
+    if (data['success'] != true || userId.isEmpty || accessToken.isEmpty) {
+      return null;
     }
+    return _AuthSession(
+      userId: userId,
+      accessToken: accessToken,
+      refreshToken: data['refresh_token']?.toString().trim(),
+    );
+  }
+
+  Future<void> _bootstrapProfile(String userId, SignupDraft signup) async {
+    await ref
+        .read(apiClientProvider)
+        .post<dynamic>(
+          '/auth/signup/bootstrap',
+          data: {
+            'user_id': userId,
+            'username': signup.username,
+            'name': signup.name,
+            'date_of_birth': signup.dateOfBirth,
+            'gender': signup.gender,
+          },
+        );
+  }
+
+  void _fail(
+    DioException error,
+    StackTrace stackTrace, {
+    required String fallback,
+  }) {
+    log.error('Credential authentication failed', error, stackTrace);
+    state = state.copyWith(
+      isLoading: false,
+      error: _extractApiError(error, fallback: fallback),
+    );
+  }
+
+  String _mockUserId(String username) {
+    final forced = AppRuntimeConfig.qaForcedUserId;
+    return forced.isNotEmpty
+        ? forced
+        : AppRuntimeConfig.mockUserIdForIdentifier(username);
   }
 }
 
-String _normalizePhoneNumber(String input) {
-  final compact = input.trim().replaceAll(RegExp(r'\s+|-'), '');
-  if (compact.startsWith('+')) {
-    final digits = compact.substring(1).replaceAll(RegExp(r'[^0-9]'), '');
-    return '+$digits';
-  }
-  return compact.replaceAll(RegExp(r'[^0-9]'), '');
+class _AuthSession {
+  const _AuthSession({
+    required this.userId,
+    required this.accessToken,
+    this.refreshToken,
+  });
+
+  final String userId;
+  final String accessToken;
+  final String? refreshToken;
 }
 
-bool _isValidPhoneNumber(String input) =>
-    RegExp(r'^\+?[0-9]{10,15}$').hasMatch(input);
+String _normalizeUsername(String input) => input.trim().toLowerCase();
 
-String _phoneToAuthEmail(String normalizedPhone) {
-  final localPart = normalizedPhone.replaceAll(RegExp(r'[^0-9]'), '');
-  return 'mobile_$localPart@phone.local';
-}
+// Matches release_contract.v1.json and the backend: 3–30 characters.
+bool _isValidUsername(String input) =>
+    RegExp(r'^[a-z0-9][a-z0-9._]{1,28}[a-z0-9]$').hasMatch(input);
 
-String _extractApiError(DioException e, {required String fallback}) {
-  final data = e.response?.data;
+bool _isStrongPassword(String password) =>
+    utf8.encode(password).length >= 8 &&
+    utf8.encode(password).length <= 72 &&
+    RegExp('[A-Za-z]').hasMatch(password) &&
+    RegExp('[0-9]').hasMatch(password);
+
+String _extractApiError(DioException error, {required String fallback}) {
+  final data = error.response?.data;
   if (data is Map && data['error'] != null) {
     return data['error'].toString();
   }

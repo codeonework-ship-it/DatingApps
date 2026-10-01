@@ -1,0 +1,182 @@
+# BFF reliability guardrails. HTTP series carry a constant service label
+# (mobile_bff | api_gateway); BFF-only gauges are exported by the BFF alone
+# since the 2026-10-01 metric split, so no gateway zero-series can fire them.
+# Runbooks: documents/MONITORING_RUNBOOKS_2026-10-01.md
+groups:
+  - name: verified-dating-reliability
+    interval: 30s
+    rules:
+      - alert: VerifiedDatingHTTPP99LatencyHigh
+        expr: |
+          histogram_quantile(0.99,
+            sum by (le) (rate(verified_dating_http_request_duration_seconds_bucket{service="mobile_bff",route!~"/metrics|/healthz|/readyz|/debug/.*|unmatched"}[5m]))
+          ) > 2
+        for: 10m
+        labels:
+          severity: page
+          owner: backend-oncall
+        annotations:
+          summary: Mobile BFF p99 latency exceeds two seconds
+          description: "Across all BFF routes the p99 latency is {{ $value | humanizeDuration }}. Check the API overview dashboard for the slowest routes and the database dashboard for saturation."
+          runbook_url: /documents/MONITORING_RUNBOOKS_2026-10-01.md#verifieddatinghttpp99latencyhigh
+
+      - alert: VerifiedDatingHTTPErrorBudgetBurn
+        expr: |
+          sum(rate(verified_dating_http_requests_total{service="mobile_bff",status_class="5xx"}[5m]))
+            / clamp_min(sum(rate(verified_dating_http_requests_total{service="mobile_bff",status_class!="1xx"}[5m])), 0.001)
+          > 0.02
+        for: 5m
+        labels:
+          severity: page
+          owner: backend-oncall
+        annotations:
+          summary: Mobile BFF 5xx ratio exceeds two percent
+          description: "{{ $value | humanizePercentage }} of BFF requests failed with 5xx in the last five minutes (all routes). Per-route burn alerts name the failing route."
+          runbook_url: /documents/MONITORING_RUNBOOKS_2026-10-01.md#verifieddatinghttperrorbudgetburn
+
+      - alert: VerifiedDatingGatewayUpstreamUnavailable
+        expr: |
+          sum(rate(verified_dating_http_responses_by_code_total{service="api_gateway",code=~"502|503|504"}[5m]))
+            / clamp_min(sum(rate(verified_dating_http_responses_by_code_total{service="api_gateway"}[5m])), 0.001)
+          > 0.05
+        for: 3m
+        labels:
+          severity: page
+          owner: backend-oncall
+        annotations:
+          summary: The API gateway cannot reach the mobile BFF
+          description: "{{ $value | humanizePercentage }} of gateway responses are 502/503/504: the BFF is down, restarting or overloaded."
+          runbook_url: /documents/MONITORING_RUNBOOKS_2026-10-01.md#verifieddatinggatewayupstreamunavailable
+
+      - alert: VerifiedDatingRequestTimeoutRateHigh
+        expr: |
+          sum(rate(verified_dating_reliability_request_timeouts_total[5m]))
+            / clamp_min(sum(rate(verified_dating_http_requests_total{service="mobile_bff"}[5m])), 0.001)
+          > 0.01
+        for: 5m
+        labels:
+          severity: page
+          owner: backend-oncall
+        annotations:
+          summary: More than one percent of requests exhaust their timeout tier
+          description: "{{ $value | humanizePercentage }} of BFF requests hit their timeout tier. Usually the database or an upstream provider is slow."
+          runbook_url: /documents/MONITORING_RUNBOOKS_2026-10-01.md#verifieddatingrequesttimeoutratehigh
+
+      - alert: VerifiedDatingBulkheadShedding
+        expr: sum by (domain) (rate(verified_dating_reliability_requests_shed_total[5m])) > 0
+        for: 5m
+        labels:
+          severity: ticket
+          owner: backend-oncall
+        annotations:
+          summary: "BFF bulkhead {{ $labels.domain }} is shedding requests"
+          description: "The {{ $labels.domain }} bulkhead rejected requests with 429 for five minutes ({{ $value | humanize }}/s)."
+          runbook_url: /documents/MONITORING_RUNBOOKS_2026-10-01.md#verifieddatingbulkheadshedding
+
+      - alert: VerifiedDatingNotificationQueueLagHigh
+        expr: verified_dating_notification_oldest_pending_age_seconds > 30
+        for: 5m
+        labels:
+          severity: page
+          owner: backend-oncall
+        annotations:
+          summary: Oldest notification has waited for more than 30 seconds
+          description: "The oldest pending notification is {{ $value | humanizeDuration }} old; push and in-app delivery are lagging."
+          runbook_url: /documents/MONITORING_RUNBOOKS_2026-10-01.md#verifieddatingnotificationqueuelaghigh
+
+      - alert: VerifiedDatingNotificationQueueDepthHigh
+        expr: verified_dating_notification_queue_depth > 1000
+        for: 5m
+        labels:
+          severity: ticket
+          owner: backend-oncall
+        annotations:
+          summary: Notification outbox contains more than 1000 pending jobs
+          description: "{{ $value | humanize }} notification jobs are pending or retrying."
+          runbook_url: /documents/MONITORING_RUNBOOKS_2026-10-01.md#verifieddatingnotificationqueuedepthhigh
+
+      - alert: VerifiedDatingNotificationDeadLetters
+        expr: verified_dating_notification_dead_letters > 0
+        for: 2m
+        labels:
+          severity: ticket
+          owner: backend-oncall
+        annotations:
+          summary: Notification delivery has dead-letter jobs
+          description: "{{ $value | humanize }} notification jobs exhausted their retries."
+          runbook_url: /documents/MONITORING_RUNBOOKS_2026-10-01.md#verifieddatingnotificationdeadletters
+
+      # Only meaningful with traffic: the view reports 100% when there were no
+      # attempts, and a handful of attempts must not page.
+      - alert: VerifiedDatingPushSuccessSLOBreach
+        expr: |
+          verified_dating_notification_push_success_percent_15m < 99
+          and on (instance, job) verified_dating_notification_push_attempts_15m >= 20
+        for: 5m
+        labels:
+          severity: page
+          owner: backend-oncall
+        annotations:
+          summary: Push provider success is below 99 percent over 15 minutes
+          description: "Push success is {{ $value | humanize }}% over the last 15 minutes with at least 20 attempts."
+          runbook_url: /documents/MONITORING_RUNBOOKS_2026-10-01.md#verifieddatingpushsuccessslobreach
+
+      - alert: VerifiedDatingPushP95LatencyHigh
+        expr: verified_dating_notification_push_p95_latency_ms_15m > 10000
+        for: 5m
+        labels:
+          severity: ticket
+          owner: backend-oncall
+        annotations:
+          summary: Push provider p95 delivery latency exceeds ten seconds
+          description: "Outbox-to-provider p95 is {{ $value | humanize }} ms over 15 minutes."
+          runbook_url: /documents/MONITORING_RUNBOOKS_2026-10-01.md#verifieddatingpushp95latencyhigh
+
+      # pg_stat_database_deadlocks comes from postgres_exporter (deploy/monitoring).
+      - alert: VerifiedDatingPostgresDeadlocks
+        expr: increase(pg_stat_database_deadlocks{datname!~"template.*|postgres"}[10m]) > 0
+        labels:
+          severity: page
+          owner: platform-oncall
+        annotations:
+          summary: "PostgreSQL reported a deadlock in {{ $labels.datname }}"
+          description: "{{ $value | humanize }} deadlocks in ten minutes. A transaction was aborted; the client saw an error."
+          runbook_url: /documents/MONITORING_RUNBOOKS_2026-10-01.md#verifieddatingpostgresdeadlocks
+
+      - alert: VerifiedDatingIdempotencyExpiredLeases
+        expr: verified_dating_reliability_idempotency_expired_leases > 0
+        for: 5m
+        labels:
+          severity: page
+          owner: backend-oncall
+        annotations:
+          summary: Shared idempotency leases remain expired
+          description: "{{ $value | humanize }} idempotency leases expired without completing; those requests have an uncertain outcome."
+          runbook_url: /documents/MONITORING_RUNBOOKS_2026-10-01.md#verifieddatingidempotencyexpiredleases
+
+      - alert: VerifiedDatingIdempotencyRetentionBacklog
+        expr: verified_dating_reliability_idempotency_retention_backlog > 10000
+        for: 15m
+        labels:
+          severity: ticket
+          owner: backend-oncall
+        annotations:
+          summary: Shared idempotency retention backlog is above ten thousand records
+          description: "{{ $value | humanize }} expired idempotency records are waiting for archival."
+          runbook_url: /documents/MONITORING_RUNBOOKS_2026-10-01.md#verifieddatingidempotencyretentionbacklog
+
+      # Every application pool (verified_dating_db_pool_*), not only the
+      # idempotency pool the old verified_dating_reliability_postgres_* gauges cover.
+      - alert: VerifiedDatingPostgresPoolSaturation
+        expr: |
+          max by (job, instance, pool) (
+            verified_dating_db_pool_in_use_connections / clamp_min(verified_dating_db_pool_max_connections, 1)
+          ) > 0.9
+        for: 10m
+        labels:
+          severity: page
+          owner: platform-oncall
+        annotations:
+          summary: "Database pool {{ $labels.pool }} ({{ $labels.job }}) is over ninety percent utilized"
+          description: "{{ $value | humanizePercentage }} of the pool's connections are checked out. Requests queue for a connection and time out."
+          runbook_url: /documents/MONITORING_RUNBOOKS_2026-10-01.md#verifieddatingpostgrespoolsaturation

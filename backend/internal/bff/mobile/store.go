@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 	"sync"
@@ -13,11 +14,13 @@ import (
 	"unicode"
 
 	matchingdomain "github.com/verified-dating/backend/internal/modules/matching/domain"
+	profileapp "github.com/verified-dating/backend/internal/modules/profile/application"
 	"github.com/verified-dating/backend/internal/platform/config"
 )
 
 type profileDraft struct {
 	UserID             string         `json:"user_id"`
+	Username           string         `json:"username"`
 	PhoneNumber        string         `json:"phone_number"`
 	Name               string         `json:"name"`
 	DateOfBirth        string         `json:"date_of_birth,omitempty"`
@@ -70,9 +73,16 @@ type friendConnection struct {
 	UserID     string `json:"user_id"`
 	FriendID   string `json:"friend_user_id"`
 	Status     string `json:"status"`
+	Direction  string `json:"direction,omitempty"`
 	CreatedAt  string `json:"created_at"`
 	UpdatedAt  string `json:"updated_at"`
 	FriendName string `json:"friend_name"`
+	// Card and request details (migration 116). Optional so older clients
+	// and the in-memory store keep working.
+	FriendUsername string `json:"friend_username,omitempty"`
+	FriendPhotoURL string `json:"friend_photo_url,omitempty"`
+	FriendCity     string `json:"friend_city,omitempty"`
+	Source         string `json:"source,omitempty"`
 }
 
 type friendActivity struct {
@@ -86,10 +96,17 @@ type friendActivity struct {
 }
 
 type profilePhoto struct {
-	ID          string `json:"id"`
-	PhotoURL    string `json:"photo_url"`
-	Ordering    int    `json:"ordering"`
-	StoragePath string `json:"storage_path,omitempty"`
+	ID               string `json:"id"`
+	PhotoURL         string `json:"photo_url"`
+	Ordering         int    `json:"ordering"`
+	StoragePath      string `json:"storage_path,omitempty"`
+	OriginalFilename string `json:"original_filename,omitempty"`
+	MimeType         string `json:"mime_type,omitempty"`
+	WidthPx          int    `json:"width_px,omitempty"`
+	HeightPx         int    `json:"height_px,omitempty"`
+	SizeBytes        int64  `json:"size_bytes,omitempty"`
+	ModerationStatus string `json:"moderation_status,omitempty"`
+	ModerationReason string `json:"moderation_reason,omitempty"`
 }
 
 type userSettings struct {
@@ -101,7 +118,10 @@ type userSettings struct {
 	NotifyNewMessage  bool   `json:"notify_new_message"`
 	NotifyLikes       bool   `json:"notify_likes"`
 	Theme             string `json:"theme"`
-	UpdatedAt         string `json:"updated_at"`
+	// Locale is the member's chosen UI language as a BCP 47 tag limited to
+	// language[-REGION] ("de", "en-GB"). Empty means "follow the device".
+	Locale    string `json:"locale"`
+	UpdatedAt string `json:"updated_at"`
 }
 
 type emergencyContact struct {
@@ -120,12 +140,13 @@ type blockedUser struct {
 }
 
 type verificationState struct {
-	UserID          string `json:"user_id,omitempty"`
-	Status          string `json:"status,omitempty"`
-	RejectionReason string `json:"rejection_reason,omitempty"`
-	SubmittedAt     string `json:"submitted_at,omitempty"`
-	ReviewedAt      string `json:"reviewed_at,omitempty"`
-	ReviewedBy      string `json:"reviewed_by,omitempty"`
+	UserID           string `json:"user_id,omitempty"`
+	Status           string `json:"status,omitempty"`
+	RejectionReason  string `json:"rejection_reason,omitempty"`
+	SubmittedAt      string `json:"submitted_at,omitempty"`
+	ReviewedAt       string `json:"reviewed_at,omitempty"`
+	ReviewedBy       string `json:"reviewed_by,omitempty"`
+	EvidenceReceived bool   `json:"evidence_received"`
 }
 
 type activityEvent struct {
@@ -137,6 +158,9 @@ type activityEvent struct {
 	Resource  string         `json:"resource,omitempty"`
 	Details   map[string]any `json:"details,omitempty"`
 	CreatedAt string         `json:"created_at"`
+	// Domain is stored as event_domain; empty means "mobile_bff". Request
+	// telemetry uses activityDomainAPIRequest (90-day retention, migration 122).
+	Domain string `json:"domain,omitempty"`
 }
 
 type videoCallSession struct {
@@ -319,6 +343,19 @@ type voiceIcebreaker struct {
 	SentAt           string `json:"sent_at,omitempty"`
 	LastPlayedAt     string `json:"last_played_at,omitempty"`
 	PlayCount        int    `json:"play_count"`
+	HasAudio         bool   `json:"has_audio"`
+	AudioStoragePath string `json:"-"`
+	AudioMimeType    string `json:"-"`
+	AudioSizeBytes   int64  `json:"-"`
+	AudioSHA256      string `json:"-"`
+}
+
+type voiceRecordingMetadata struct {
+	StoragePath string
+	MimeType    string
+	SizeBytes   int64
+	SHA256      string
+	Content     []byte
 }
 
 type groupCoffeePollOption struct {
@@ -377,6 +414,22 @@ type userSubscription struct {
 	StartDate       string `json:"start_date"`
 	NextBillingDate string `json:"next_billing_date"`
 	UpdatedAt       string `json:"updated_at"`
+
+	// Provider-driven lifecycle (PEN-01). Zero values describe the free tier.
+	Provider               string `json:"provider,omitempty"`
+	ProviderSubscriptionID string `json:"provider_subscription_id,omitempty"`
+	IsPaid                 bool   `json:"is_paid"`
+	Entitled               bool   `json:"entitled"`
+	AutoRenew              bool   `json:"auto_renew"`
+	CancelAtPeriodEnd      bool   `json:"cancel_at_period_end"`
+	CancelledAt            string `json:"cancelled_at,omitempty"`
+	EndDate                string `json:"end_date,omitempty"`
+	CurrentPeriodStart     string `json:"current_period_start,omitempty"`
+	CurrentPeriodEnd       string `json:"current_period_end,omitempty"`
+	AmountMinor            int64  `json:"amount_minor"`
+	Currency               string `json:"currency,omitempty"`
+	CardBrand              string `json:"card_brand,omitempty"`
+	CardLast4              string `json:"card_last4,omitempty"`
 }
 
 type paymentRecord struct {
@@ -388,6 +441,20 @@ type paymentRecord struct {
 	Status        string  `json:"status"`
 	PaymentMethod string  `json:"payment_method"`
 	CreatedAt     string  `json:"created_at"`
+
+	AmountMinor       int64   `json:"amount_minor"`
+	Provider          string  `json:"provider,omitempty"`
+	ProviderPaymentID string  `json:"provider_payment_id,omitempty"`
+	BillingReason     string  `json:"billing_reason,omitempty"`
+	PeriodStart       string  `json:"period_start,omitempty"`
+	PeriodEnd         string  `json:"period_end,omitempty"`
+	CardBrand         string  `json:"card_brand,omitempty"`
+	CardLast4         string  `json:"card_last4,omitempty"`
+	RefundedAmount    float64 `json:"refunded_amount"`
+	FailureReason     string  `json:"failure_reason,omitempty"`
+	PaidAt            string  `json:"paid_at,omitempty"`
+	DisputeStatus     string  `json:"dispute_status,omitempty"`
+	DisputeReason     string  `json:"dispute_reason,omitempty"`
 }
 
 type monetizationMatrixItem struct {
@@ -502,6 +569,23 @@ const (
 	appealSLADuration           = 48 * time.Hour
 )
 
+var activitySessionAllowedTypes = map[string]struct{}{
+	"co_op_prompt":      {},
+	"this_or_that":      {},
+	"value_match_round": {},
+}
+
+func normalizeActivitySessionType(raw string) (string, error) {
+	value := strings.ToLower(strings.TrimSpace(raw))
+	if value == "" {
+		value = "co_op_prompt"
+	}
+	if _, ok := activitySessionAllowedTypes[value]; !ok {
+		return "", errors.New("unsupported activity_type")
+	}
+	return value, nil
+}
+
 type dailyPromptTemplate struct {
 	Code   string
 	Domain string
@@ -571,7 +655,7 @@ var (
 	}
 )
 
-type memoryStore struct {
+type runtimeStore struct {
 	mu                          sync.RWMutex
 	cfg                         config.Config
 	profiles                    map[string]profileDraft
@@ -598,6 +682,9 @@ type memoryStore struct {
 	roomActiveBlocks            map[string]map[string]conversationRoomBlock
 	friends                     map[string]map[string]friendConnection
 	friendActivities            map[string][]friendActivity
+	friendDeclines              map[string]time.Time   // requester|recipient -> last decline (friend_requests.go)
+	friendSends                 map[string][]time.Time // requester -> request send times (friend_requests.go)
+	friendSearchHidden          map[string]bool        // members who opted out of friend search (friend_requests.go)
 	activitySessions            map[string]activitySession
 	dailyPromptAnswers          map[string]map[string]dailyPromptAnswer
 	dailyPromptStreaks          map[string]dailyPromptStreak
@@ -638,11 +725,29 @@ type memoryStore struct {
 	activityRepo                *activityRepository
 	communityGroupRepo          *communityGroupRepository
 	giftsRepo                   *roseGiftRepository
+	giftLedger                  *giftSendLedger
 	adminRepo                   *adminRepository
+	billingRepo                 *billingRepository
 }
 
-func newMemoryStore(cfg config.Config) *memoryStore {
-	return &memoryStore{
+func newRuntimeStore(cfg config.Config, supplied ...repositoryDB) *runtimeStore {
+	db := repositoryDBFor(cfg, supplied)
+	profileRepo := newProfileRepository(cfg, db)
+	safetyRepo := newSafetyRepository(cfg, db)
+	verificationRepo := newVerificationRepository(cfg, db)
+	adminRepo := newAdminRepository(cfg, db)
+	if profileRepo != nil && profileRepo.pg != nil {
+		if safetyRepo != nil {
+			safetyRepo.pg = profileRepo.pg
+		}
+		if verificationRepo != nil {
+			verificationRepo.pg = profileRepo.pg
+		}
+		if adminRepo != nil {
+			adminRepo.pg = profileRepo.pg
+		}
+	}
+	store := &runtimeStore{
 		cfg:                         cfg,
 		profiles:                    make(map[string]profileDraft),
 		settings:                    make(map[string]userSettings),
@@ -690,23 +795,28 @@ func newMemoryStore(cfg config.Config) *memoryStore {
 		questTemplates:              make(map[string]questTemplateRequirement),
 		questWorkflows:              make(map[string]questSubmissionWorkflow),
 		matchGestures:               make(map[string][]matchGesture),
-		engagementRepo:              newEngagementRepository(cfg),
-		profileRepo:                 newProfileRepository(cfg),
-		socialRepo:                  newSocialRepository(cfg),
-		verificationRepo:            newVerificationRepository(cfg),
-		safetyRepo:                  newSafetyRepository(cfg),
+		engagementRepo:              newEngagementRepository(cfg, db),
+		profileRepo:                 profileRepo,
+		socialRepo:                  newSocialRepository(cfg, db),
+		verificationRepo:            verificationRepo,
+		safetyRepo:                  safetyRepo,
 		spotlightExposureByTier:     make(map[string]int),
 		spotlightLikeByTier:         make(map[string]int),
 		spotlightMatchByTier:        make(map[string]int),
 		spotlightExposureByUser:     make(map[string]int),
 		spotlightEligibleUsers:      make(map[string]string),
-		questRepo:                   newQuestRepository(cfg),
-		dailyPromptRepo:             newDailyPromptRepository(cfg),
-		activityRepo:                newActivityRepository(cfg),
-		communityGroupRepo:          newCommunityGroupRepository(cfg),
-		giftsRepo:                   newRoseGiftRepository(cfg),
-		adminRepo:                   newAdminRepository(cfg),
+		questRepo:                   newQuestRepository(cfg, db),
+		dailyPromptRepo:             newDailyPromptRepository(cfg, db),
+		activityRepo:                newActivityRepository(cfg, db),
+		communityGroupRepo:          newCommunityGroupRepository(cfg, db),
+		giftsRepo:                   newRoseGiftRepository(cfg, db),
+		adminRepo:                   adminRepo,
 	}
+	if profileRepo != nil {
+		store.billingRepo = newBillingRepository(profileRepo.pg)
+		store.giftLedger = newGiftSendLedger(profileRepo.pg)
+	}
+	return store
 }
 
 func isQuestRepoPersistenceUnavailable(err error) bool {
@@ -748,11 +858,11 @@ func isGiftRepoPersistenceUnavailable(err error) bool {
 		strings.Contains(msg, "dial tcp")
 }
 
-func (m *memoryStore) durableEngagementRequired() bool {
+func (m *runtimeStore) durableEngagementRequired() bool {
 	return m != nil && m.cfg.RequireDurableEngagementStore
 }
 
-func (m *memoryStore) unlockPolicyVariant() string {
+func (m *runtimeStore) unlockPolicyVariant() string {
 	if m == nil {
 		return unlockPolicyRequireQuestTemplate
 	}
@@ -763,15 +873,15 @@ func (m *memoryStore) unlockPolicyVariant() string {
 	return unlockPolicyRequireQuestTemplate
 }
 
-func (m *memoryStore) requiresQuestTemplateByDefault() bool {
+func (m *runtimeStore) requiresQuestTemplateByDefault() bool {
 	return m.unlockPolicyVariant() == unlockPolicyRequireQuestTemplate
 }
 
-func (m *memoryStore) assistedReviewEnabled() bool {
+func (m *runtimeStore) assistedReviewEnabled() bool {
 	return m != nil && m.cfg.FeatureAssistedReviewAutomation
 }
 
-func (m *memoryStore) assistedReviewDecision(matchID, submitterUserID, responseText string) (bool, string, string) {
+func (m *runtimeStore) assistedReviewDecision(matchID, submitterUserID, responseText string) (bool, string, string) {
 	template, hasTemplate := m.getQuestTemplate(strings.TrimSpace(matchID))
 	if !hasTemplate {
 		return false, "", ""
@@ -779,7 +889,7 @@ func (m *memoryStore) assistedReviewDecision(matchID, submitterUserID, responseT
 	return m.assistedReviewDecisionWithTemplate(template, submitterUserID, responseText)
 }
 
-func (m *memoryStore) assistedReviewDecisionWithTemplate(template questTemplateRequirement, submitterUserID, responseText string) (bool, string, string) {
+func (m *runtimeStore) assistedReviewDecisionWithTemplate(template questTemplateRequirement, submitterUserID, responseText string) (bool, string, string) {
 	if !m.assistedReviewEnabled() {
 		return false, "", ""
 	}
@@ -821,7 +931,7 @@ func containsString(values []string, target string) bool {
 	return false
 }
 
-func (m *memoryStore) getQuestTemplate(matchID string) (questTemplateRequirement, bool) {
+func (m *runtimeStore) getQuestTemplate(matchID string) (questTemplateRequirement, bool) {
 	if m.questRepo != nil {
 		item, ok, err := m.questRepo.getQuestTemplate(context.Background(), matchID)
 		if err == nil {
@@ -851,7 +961,7 @@ func (m *memoryStore) getQuestTemplate(matchID string) (questTemplateRequirement
 	return item, true
 }
 
-func (m *memoryStore) upsertQuestTemplate(
+func (m *runtimeStore) upsertQuestTemplate(
 	matchID,
 	creatorUserID,
 	prompt string,
@@ -935,7 +1045,7 @@ func (m *memoryStore) upsertQuestTemplate(
 	return item, nil
 }
 
-func (m *memoryStore) listQuestTemplatesByMatchIDs(matchIDs []string) map[string]questTemplateRequirement {
+func (m *runtimeStore) listQuestTemplatesByMatchIDs(matchIDs []string) map[string]questTemplateRequirement {
 	if m.questRepo != nil {
 		result, err := m.questRepo.listQuestTemplatesByMatchIDs(context.Background(), matchIDs)
 		if err == nil {
@@ -967,7 +1077,7 @@ func (m *memoryStore) listQuestTemplatesByMatchIDs(matchIDs []string) map[string
 	return result
 }
 
-func (m *memoryStore) getQuestWorkflow(matchID string) (questSubmissionWorkflow, bool) {
+func (m *runtimeStore) getQuestWorkflow(matchID string) (questSubmissionWorkflow, bool) {
 	if m.questRepo != nil {
 		workflow, ok, err := m.questRepo.getQuestWorkflow(context.Background(), matchID)
 		if err == nil {
@@ -997,7 +1107,7 @@ func (m *memoryStore) getQuestWorkflow(matchID string) (questSubmissionWorkflow,
 	return normalizeQuestWorkflow(workflow), true
 }
 
-func (m *memoryStore) submitQuestResponse(
+func (m *runtimeStore) submitQuestResponse(
 	matchID,
 	submitterUserID,
 	responseText string,
@@ -1127,7 +1237,7 @@ func (m *memoryStore) submitQuestResponse(
 	return normalized, nil
 }
 
-func (m *memoryStore) reviewQuestResponse(
+func (m *runtimeStore) reviewQuestResponse(
 	matchID,
 	reviewerUserID,
 	decisionStatus,
@@ -1197,7 +1307,7 @@ func (m *memoryStore) reviewQuestResponse(
 	return normalizeQuestWorkflow(workflow), nil
 }
 
-func (m *memoryStore) listQuestWorkflowsByMatchIDs(matchIDs []string) map[string]questSubmissionWorkflow {
+func (m *runtimeStore) listQuestWorkflowsByMatchIDs(matchIDs []string) map[string]questSubmissionWorkflow {
 	if m.questRepo != nil {
 		result, err := m.questRepo.listQuestWorkflowsByMatchIDs(context.Background(), matchIDs)
 		if err == nil {
@@ -1229,7 +1339,7 @@ func (m *memoryStore) listQuestWorkflowsByMatchIDs(matchIDs []string) map[string
 	return result
 }
 
-func (m *memoryStore) getMatchUnlockState(matchID string) (string, bool) {
+func (m *runtimeStore) getMatchUnlockState(matchID string) (string, bool) {
 	trimmedMatchID := strings.TrimSpace(matchID)
 	if trimmedMatchID == "" {
 		if m.requiresQuestTemplateByDefault() {
@@ -1257,7 +1367,7 @@ func (m *memoryStore) getMatchUnlockState(matchID string) (string, bool) {
 	return workflow.UnlockState, true
 }
 
-func (m *memoryStore) listMatchUnlockStatesByMatchIDs(matchIDs []string) map[string]string {
+func (m *runtimeStore) listMatchUnlockStatesByMatchIDs(matchIDs []string) map[string]string {
 	if m.questRepo != nil {
 		states, err := m.questRepo.listUnlockStatesByMatchIDs(context.Background(), matchIDs)
 		if err == nil {
@@ -1295,7 +1405,7 @@ func (m *memoryStore) listMatchUnlockStatesByMatchIDs(matchIDs []string) map[str
 	return out
 }
 
-func (m *memoryStore) isChatUnlocked(matchID string) (bool, string, error) {
+func (m *runtimeStore) isChatUnlocked(matchID string) (bool, string, error) {
 	trimmedMatchID := strings.TrimSpace(matchID)
 	if trimmedMatchID == "" {
 		return false, string(matchingdomain.UnlockStateMatched), errors.New("match id is required")
@@ -1431,7 +1541,7 @@ func transitionUnlockState(current string, action matchingdomain.UnlockAction) s
 	return string(next)
 }
 
-func (m *memoryStore) getDraft(userID string) profileDraft {
+func (m *runtimeStore) getDraft(userID string) profileDraft {
 	if m.profileRepo != nil {
 		draft, err := m.profileRepo.getDraft(context.Background(), userID)
 		if err == nil {
@@ -1458,6 +1568,15 @@ func (m *memoryStore) getDraft(userID string) profileDraft {
 }
 
 func applyDraftPatch(draft profileDraft, payload map[string]any) profileDraft {
+	// PATCH must distinguish omission (preserve) from explicit null (clear).
+	// Reading a missing map key as nil previously erased unrelated fields.
+	optionalString := func(key string) (*string, bool) {
+		value, present := payload[key]
+		if !present {
+			return nil, false
+		}
+		return toOptionalString(value)
+	}
 	if value := strings.TrimSpace(toString(payload["phone_number"])); value != "" {
 		draft.PhoneNumber = value
 	}
@@ -1473,16 +1592,18 @@ func applyDraftPatch(draft profileDraft, payload map[string]any) profileDraft {
 	if value, ok := payload["bio"].(string); ok {
 		draft.Bio = strings.TrimSpace(value)
 	}
-	if value, ok := toInt(payload["height_cm"]); ok {
+	if raw, present := payload["height_cm"]; present && raw == nil {
+		draft.HeightCm = nil
+	} else if value, ok := toInt(raw); present && ok {
 		draft.HeightCm = &value
 	}
-	if value, ok := toOptionalString(payload["education"]); ok {
+	if value, ok := optionalString("education"); ok {
 		draft.Education = value
 	}
-	if value, ok := toOptionalString(payload["profession"]); ok {
+	if value, ok := optionalString("profession"); ok {
 		draft.Profession = value
 	}
-	if value, ok := toOptionalString(payload["income_range"]); ok {
+	if value, ok := optionalString("income_range"); ok {
 		draft.IncomeRange = value
 	}
 	if value, ok := toStringSlice(payload["seeking_genders"]); ok && len(value) > 0 {
@@ -1506,16 +1627,16 @@ func applyDraftPatch(draft profileDraft, payload map[string]any) profileDraft {
 	if value, ok := payload["verified_only"].(bool); ok {
 		draft.VerifiedOnly = value
 	}
-	if value, ok := toOptionalString(payload["country"]); ok {
+	if value, ok := optionalString("country"); ok {
 		draft.Country = value
 	}
-	if value, ok := toOptionalString(payload["state"]); ok {
+	if value, ok := optionalString("state"); ok {
 		draft.RegionState = value
 	}
-	if value, ok := toOptionalString(payload["city"]); ok {
+	if value, ok := optionalString("city"); ok {
 		draft.City = value
 	}
-	if value, ok := toOptionalString(payload["instagram_handle"]); ok {
+	if value, ok := optionalString("instagram_handle"); ok {
 		draft.InstagramHandle = value
 	}
 	if value, ok := toStringSlice(payload["hobbies"]); ok {
@@ -1533,7 +1654,7 @@ func applyDraftPatch(draft profileDraft, payload map[string]any) profileDraft {
 	if value, ok := toStringSlice(payload["extra_curriculars"]); ok {
 		draft.ExtraCurriculars = value
 	}
-	if value, ok := toOptionalString(payload["additional_info"]); ok {
+	if value, ok := optionalString("additional_info"); ok {
 		draft.AdditionalInfo = value
 	}
 	if value, ok := toStringSlice(payload["intent_tags"]); ok {
@@ -1542,25 +1663,25 @@ func applyDraftPatch(draft profileDraft, payload map[string]any) profileDraft {
 	if value, ok := toStringSlice(payload["language_tags"]); ok {
 		draft.LanguageTags = value
 	}
-	if value, ok := toOptionalString(payload["pet_preference"]); ok {
+	if value, ok := optionalString("pet_preference"); ok {
 		draft.PetPreference = value
 	}
-	if value, ok := toOptionalString(payload["diet_preference"]); ok {
+	if value, ok := optionalString("diet_preference"); ok {
 		draft.DietPreference = value
 	}
-	if value, ok := toOptionalString(payload["workout_frequency"]); ok {
+	if value, ok := optionalString("workout_frequency"); ok {
 		draft.WorkoutFrequency = value
 	}
-	if value, ok := toOptionalString(payload["diet_type"]); ok {
+	if value, ok := optionalString("diet_type"); ok {
 		draft.DietType = value
 	}
-	if value, ok := toOptionalString(payload["sleep_schedule"]); ok {
+	if value, ok := optionalString("sleep_schedule"); ok {
 		draft.SleepSchedule = value
 	}
-	if value, ok := toOptionalString(payload["travel_style"]); ok {
+	if value, ok := optionalString("travel_style"); ok {
 		draft.TravelStyle = value
 	}
-	if value, ok := toOptionalString(payload["political_comfort_range"]); ok {
+	if value, ok := optionalString("political_comfort_range"); ok {
 		draft.PoliticalComfort = value
 	}
 	if value, ok := toStringSlice(payload["deal_breaker_tags"]); ok {
@@ -1572,16 +1693,16 @@ func applyDraftPatch(draft profileDraft, payload map[string]any) profileDraft {
 	if value := strings.TrimSpace(toString(payload["smoking"])); value != "" {
 		draft.Smoking = value
 	}
-	if value, ok := toOptionalString(payload["religion"]); ok {
+	if value, ok := optionalString("religion"); ok {
 		draft.Religion = value
 	}
-	if value, ok := toOptionalString(payload["mother_tongue"]); ok {
+	if value, ok := optionalString("mother_tongue"); ok {
 		draft.MotherTongue = value
 	}
-	if value, ok := toOptionalString(payload["relationship_status"]); ok {
+	if value, ok := optionalString("relationship_status"); ok {
 		draft.RelationshipStatus = value
 	}
-	if value, ok := toOptionalString(payload["personality_type"]); ok {
+	if value, ok := optionalString("personality_type"); ok {
 		draft.PersonalityType = value
 	}
 	if value, ok := payload["party_lover"].(bool); ok {
@@ -1598,8 +1719,8 @@ func mergeSignupIntoDraft(draft profileDraft, input signupBootstrapInput) profil
 	if strings.TrimSpace(draft.UserID) == "" {
 		draft.UserID = strings.TrimSpace(input.UserID)
 	}
-	if strings.TrimSpace(draft.PhoneNumber) == "" {
-		draft.PhoneNumber = strings.TrimSpace(input.PhoneNumber)
+	if strings.TrimSpace(draft.Username) == "" {
+		draft.Username = strings.TrimSpace(input.Username)
 	}
 	if strings.TrimSpace(draft.Name) == "" {
 		draft.Name = strings.TrimSpace(input.Name)
@@ -1616,7 +1737,7 @@ func mergeSignupIntoDraft(draft profileDraft, input signupBootstrapInput) profil
 	return draft
 }
 
-func (m *memoryStore) bootstrapSignup(input signupBootstrapInput) (profileDraft, bool, error) {
+func (m *runtimeStore) bootstrapSignup(input signupBootstrapInput) (profileDraft, bool, error) {
 	trimmedUserID := strings.TrimSpace(input.UserID)
 	if trimmedUserID == "" {
 		return profileDraft{}, false, errors.New("user_id is required")
@@ -1638,8 +1759,8 @@ func (m *memoryStore) bootstrapSignup(input signupBootstrapInput) (profileDraft,
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	for existingUserID, existingDraft := range m.profiles {
-		if existingUserID != trimmedUserID && strings.TrimSpace(existingDraft.PhoneNumber) == strings.TrimSpace(input.PhoneNumber) {
-			return profileDraft{}, false, errSignupPhoneAlreadyExists
+		if existingUserID != trimmedUserID && strings.EqualFold(strings.TrimSpace(existingDraft.Username), strings.TrimSpace(input.Username)) {
+			return profileDraft{}, false, errSignupUsernameAlreadyExists
 		}
 	}
 	draft, exists := m.profiles[trimmedUserID]
@@ -1651,7 +1772,7 @@ func (m *memoryStore) bootstrapSignup(input signupBootstrapInput) (profileDraft,
 	return copyDraft(draft), !exists, nil
 }
 
-func (m *memoryStore) patchDraft(userID string, payload map[string]any) profileDraft {
+func (m *runtimeStore) patchDraft(userID string, payload map[string]any) profileDraft {
 	if m.profileRepo != nil {
 		draft, err := m.profileRepo.getDraft(context.Background(), userID)
 		if err == nil {
@@ -1684,39 +1805,112 @@ func (m *memoryStore) patchDraft(userID string, payload map[string]any) profileD
 	return copyDraft(draft)
 }
 
-func (m *memoryStore) addPhoto(userID string, photoURL string, storagePath string) profileDraft {
-	m.mu.Lock()
+func (m *runtimeStore) addPhoto(userID string, photoURL string, storagePath string) profileDraft {
+	draft, _ := m.addValidatedPhoto(userID, profileapp.ProfilePhotoUploadInput{
+		ID:          newProfilePhotoID(),
+		PhotoURL:    photoURL,
+		StoragePath: storagePath,
+	})
+	return draft
+}
 
+func (m *runtimeStore) addValidatedPhoto(userID string, upload profileapp.ProfilePhotoUploadInput) (profileDraft, error) {
+	if strings.TrimSpace(upload.ID) == "" {
+		upload.ID = newProfilePhotoID()
+	}
+	if m.profileRepo != nil {
+		draft, err := m.profileRepo.getDraft(context.Background(), userID)
+		if err != nil {
+			return profileDraft{}, err
+		}
+		if len(draft.Photos) >= maxProfilePhotos {
+			return profileDraft{}, errors.New("photo quota reached: maximum 5 photos")
+		}
+		photo := profilePhoto{
+			ID:               upload.ID,
+			PhotoURL:         strings.TrimSpace(upload.PhotoURL),
+			Ordering:         len(draft.Photos),
+			StoragePath:      strings.TrimSpace(upload.StoragePath),
+			OriginalFilename: strings.TrimSpace(upload.OriginalFilename),
+			MimeType:         strings.TrimSpace(upload.MimeType),
+			WidthPx:          upload.WidthPx,
+			HeightPx:         upload.HeightPx,
+			SizeBytes:        upload.SizeBytes,
+			ModerationStatus: normalizedMediaModerationStatus(upload.ModerationStatus),
+			ModerationReason: strings.TrimSpace(upload.ModerationReason),
+		}
+		draft.Photos = append(draft.Photos, photo)
+		if m.profileRepo.pg != nil {
+			if err := m.profileRepo.addPhotoPostgres(context.Background(), draft, upload); err != nil {
+				return profileDraft{}, err
+			}
+		} else if err := m.profileRepo.upsertDraft(context.Background(), draft); err != nil {
+			return profileDraft{}, err
+		}
+		m.mu.Lock()
+		m.profiles[userID] = copyDraft(draft)
+		m.mu.Unlock()
+		return copyDraft(draft), nil
+	}
+
+	m.mu.Lock()
 	draft, ok := m.profiles[userID]
 	if !ok {
 		draft = defaultDraft(userID)
 	}
 
-	nextID := fmt.Sprintf("photo-%d-%d", len(draft.Photos)+1, time.Now().UnixNano())
-	if strings.TrimSpace(photoURL) == "" {
-		photoURL = seedURL(m.cfg.MockPhotoSeedURLTemplate, nextID)
+	if len(draft.Photos) >= maxProfilePhotos {
+		m.mu.Unlock()
+		return profileDraft{}, errors.New("photo quota reached: maximum 5 photos")
 	}
-
+	if strings.TrimSpace(upload.PhotoURL) == "" {
+		upload.PhotoURL = seedURL(m.cfg.MockPhotoSeedURLTemplate, upload.ID)
+	}
 	draft.Photos = append(draft.Photos, profilePhoto{
-		ID:          nextID,
-		PhotoURL:    photoURL,
-		Ordering:    len(draft.Photos),
-		StoragePath: storagePath,
+		ID:               upload.ID,
+		PhotoURL:         upload.PhotoURL,
+		Ordering:         len(draft.Photos),
+		StoragePath:      upload.StoragePath,
+		OriginalFilename: upload.OriginalFilename,
+		MimeType:         upload.MimeType,
+		WidthPx:          upload.WidthPx,
+		HeightPx:         upload.HeightPx,
+		SizeBytes:        upload.SizeBytes,
+		ModerationStatus: normalizedMediaModerationStatus(upload.ModerationStatus),
+		ModerationReason: strings.TrimSpace(upload.ModerationReason),
 	})
 	m.profiles[userID] = draft
 	snapshot := copyDraft(draft)
 	m.mu.Unlock()
 
-	// Persist to durable repo so that subsequent patchDraft calls read back the
-	// full draft including photos rather than returning an outdated repo record.
-	if m.profileRepo != nil {
-		_ = m.profileRepo.upsertDraft(context.Background(), snapshot)
-	}
-
-	return snapshot
+	return snapshot, nil
 }
 
-func (m *memoryStore) deletePhoto(userID, photoID string) profileDraft {
+func normalizedMediaModerationStatus(value string) string {
+	switch strings.TrimSpace(value) {
+	case mediaModerationApproved, mediaModerationReviewRequired, mediaModerationRejected:
+		return strings.TrimSpace(value)
+	default:
+		return "pending"
+	}
+}
+
+func (m *runtimeStore) deletePhoto(userID, photoID string) profileDraft {
+	draft, _ := m.deletePhotoDurable(userID, photoID)
+	return draft
+}
+
+func (m *runtimeStore) deletePhotoDurable(userID, photoID string) (profileDraft, error) {
+	if m.profileRepo != nil && m.profileRepo.pg != nil {
+		draft, _, err := m.profileRepo.deletePhotoPostgres(context.Background(), userID, photoID)
+		if err != nil {
+			return profileDraft{}, err
+		}
+		m.mu.Lock()
+		m.profiles[userID] = copyDraft(draft)
+		m.mu.Unlock()
+		return copyDraft(draft), nil
+	}
 	m.mu.Lock()
 
 	draft, ok := m.profiles[userID]
@@ -1740,13 +1934,30 @@ func (m *memoryStore) deletePhoto(userID, photoID string) profileDraft {
 	m.mu.Unlock()
 
 	if m.profileRepo != nil {
-		_ = m.profileRepo.upsertDraft(context.Background(), snapshot)
+		if err := m.profileRepo.upsertDraft(context.Background(), snapshot); err != nil {
+			return profileDraft{}, err
+		}
 	}
 
-	return snapshot
+	return snapshot, nil
 }
 
-func (m *memoryStore) reorderPhotos(userID string, photoIDs []string) profileDraft {
+func (m *runtimeStore) reorderPhotos(userID string, photoIDs []string) profileDraft {
+	draft, _ := m.reorderPhotosDurable(userID, photoIDs)
+	return draft
+}
+
+func (m *runtimeStore) reorderPhotosDurable(userID string, photoIDs []string) (profileDraft, error) {
+	if m.profileRepo != nil && m.profileRepo.pg != nil {
+		draft, err := m.profileRepo.reorderPhotosPostgres(context.Background(), userID, photoIDs)
+		if err != nil {
+			return profileDraft{}, err
+		}
+		m.mu.Lock()
+		m.profiles[userID] = copyDraft(draft)
+		m.mu.Unlock()
+		return copyDraft(draft), nil
+	}
 	m.mu.Lock()
 
 	draft, ok := m.profiles[userID]
@@ -1782,13 +1993,15 @@ func (m *memoryStore) reorderPhotos(userID string, photoIDs []string) profileDra
 	m.mu.Unlock()
 
 	if m.profileRepo != nil {
-		_ = m.profileRepo.upsertDraft(context.Background(), snapshot)
+		if err := m.profileRepo.upsertDraft(context.Background(), snapshot); err != nil {
+			return profileDraft{}, err
+		}
 	}
 
-	return snapshot
+	return snapshot, nil
 }
 
-func (m *memoryStore) completeProfile(userID string) (profileDraft, error) {
+func (m *runtimeStore) completeProfile(userID string) (profileDraft, error) {
 	if m.profileRepo != nil {
 		draft, err := m.profileRepo.getDraft(context.Background(), userID)
 		if err == nil {
@@ -1841,17 +2054,29 @@ func (m *memoryStore) completeProfile(userID string) (profileDraft, error) {
 }
 
 func validateDraftReadyForCompletion(draft profileDraft) error {
+	if err := validateProfileBasics(draft.Name, draft.DateOfBirth, normalizeSignupGender(draft.Gender), time.Now().UTC()); err != nil {
+		return err
+	}
 	if len(strings.TrimSpace(draft.Name)) < 2 ||
 		strings.TrimSpace(draft.DateOfBirth) == "" ||
 		strings.TrimSpace(draft.Gender) == "" ||
 		len(draft.Photos) < 2 ||
+		len([]rune(strings.TrimSpace(draft.Bio))) < 10 ||
 		len(draft.SeekingGenders) == 0 {
 		return errors.New("profile is incomplete")
+	}
+	// PROF-004 bounds the bio at 500 characters. Only the lower bound was
+	// checked, and no write path enforced the upper one: a 600-character bio
+	// was accepted on the draft and would have completed. Reported separately
+	// from "incomplete" because an over-long bio is the opposite problem and
+	// the member needs to be told which way to move.
+	if len([]rune(strings.TrimSpace(draft.Bio))) > 500 {
+		return errors.New("bio must be 500 characters or fewer")
 	}
 	return nil
 }
 
-func (m *memoryStore) getSettings(userID string) userSettings {
+func (m *runtimeStore) getSettings(userID string) userSettings {
 	if m.profileRepo != nil {
 		settings, err := m.profileRepo.getSettings(context.Background(), userID)
 		if err == nil {
@@ -1898,11 +2123,28 @@ func applySettingsPatch(settings userSettings, payload map[string]any) userSetti
 	if value := strings.TrimSpace(toString(payload["theme"])); value != "" {
 		settings.Theme = value
 	}
+	if raw, present := payload["locale"]; present {
+		// An explicit empty string (or null) returns the member to the device
+		// language. Malformed tags are refused upstream by the profile service
+		// with a 400; this guard keeps the in-memory store consistent with the
+		// column CHECK should a caller bypass that validation.
+		switch value := raw.(type) {
+		case nil:
+			settings.Locale = ""
+		case string:
+			if trimmed := strings.TrimSpace(value); trimmed == "" || settingsLocalePattern.MatchString(trimmed) {
+				settings.Locale = trimmed
+			}
+		}
+	}
 	settings.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
 	return settings
 }
 
-func (m *memoryStore) patchSettings(userID string, payload map[string]any) userSettings {
+// settingsLocalePattern mirrors user_settings_locale_check (093_member_locale.sql).
+var settingsLocalePattern = regexp.MustCompile(`^[a-z]{2}(-[A-Z]{2})?$`)
+
+func (m *runtimeStore) patchSettings(userID string, payload map[string]any) userSettings {
 	if m.profileRepo != nil {
 		settings, err := m.profileRepo.getSettings(context.Background(), userID)
 		if err == nil {
@@ -1933,7 +2175,7 @@ func (m *memoryStore) patchSettings(userID string, payload map[string]any) userS
 	return settings
 }
 
-func (m *memoryStore) listEmergencyContacts(userID string) []emergencyContact {
+func (m *runtimeStore) listEmergencyContacts(userID string) []emergencyContact {
 	if m.profileRepo != nil {
 		items, err := m.profileRepo.listEmergencyContacts(context.Background(), userID)
 		if err == nil {
@@ -1952,7 +2194,7 @@ func (m *memoryStore) listEmergencyContacts(userID string) []emergencyContact {
 	return copyContacts(m.contacts[userID])
 }
 
-func (m *memoryStore) addEmergencyContact(userID, name, phoneNumber string) ([]emergencyContact, error) {
+func (m *runtimeStore) addEmergencyContact(userID, name, phoneNumber string) ([]emergencyContact, error) {
 	if m.profileRepo != nil {
 		existing, err := m.profileRepo.listEmergencyContacts(context.Background(), userID)
 		if err == nil {
@@ -1993,7 +2235,7 @@ func (m *memoryStore) addEmergencyContact(userID, name, phoneNumber string) ([]e
 	return copyContacts(items), nil
 }
 
-func (m *memoryStore) updateEmergencyContact(userID, contactID, name, phoneNumber string) ([]emergencyContact, error) {
+func (m *runtimeStore) updateEmergencyContact(userID, contactID, name, phoneNumber string) ([]emergencyContact, error) {
 	if m.profileRepo != nil {
 		err := m.profileRepo.updateEmergencyContact(context.Background(), userID, contactID, name, phoneNumber)
 		if err == nil {
@@ -2030,7 +2272,7 @@ func (m *memoryStore) updateEmergencyContact(userID, contactID, name, phoneNumbe
 	return copyContacts(items), nil
 }
 
-func (m *memoryStore) deleteEmergencyContact(userID, contactID string) []emergencyContact {
+func (m *runtimeStore) deleteEmergencyContact(userID, contactID string) []emergencyContact {
 	if m.profileRepo != nil {
 		err := m.profileRepo.deleteEmergencyContact(context.Background(), userID, contactID)
 		if err == nil {
@@ -2066,7 +2308,7 @@ func (m *memoryStore) deleteEmergencyContact(userID, contactID string) []emergen
 	return copyContacts(filtered)
 }
 
-func (m *memoryStore) listBlockedUsers(userID string) []blockedUser {
+func (m *runtimeStore) listBlockedUsers(userID string) []blockedUser {
 	if m.profileRepo != nil {
 		items, err := m.profileRepo.listBlockedUsers(context.Background(), userID)
 		if err == nil {
@@ -2088,14 +2330,22 @@ func (m *memoryStore) listBlockedUsers(userID string) []blockedUser {
 	return out
 }
 
-func (m *memoryStore) blockUser(userID, blockedUserID string) {
+func (m *runtimeStore) blockUser(userID, blockedUserID string) error {
+	if m.safetyRepo != nil && m.safetyRepo.pg != nil {
+		if err := m.safetyRepo.blockUserPostgres(context.Background(), userID, blockedUserID, ""); err != nil {
+			return err
+		}
+		m.removeFriend(userID, blockedUserID)
+		return nil
+	}
 	if m.profileRepo != nil {
 		err := m.profileRepo.blockUser(context.Background(), userID, blockedUserID, "")
 		if err == nil {
-			return
+			m.removeFriend(userID, blockedUserID)
+			return nil
 		}
 		if m.durableEngagementRequired() || !isProfileRepoPersistenceUnavailable(err) {
-			return
+			return err
 		}
 	}
 
@@ -2110,16 +2360,26 @@ func (m *memoryStore) blockUser(userID, blockedUserID string) {
 		Name:     "Blocked User",
 		PhotoURL: seedURL(m.cfg.MockBlockedPhotoTemplate, blockedUserID),
 	}
+	if entries, ok := m.friends[userID]; ok {
+		delete(entries, blockedUserID)
+	}
+	if entries, ok := m.friends[blockedUserID]; ok {
+		delete(entries, userID)
+	}
+	return nil
 }
 
-func (m *memoryStore) unblockUser(userID, blockedUserID string) {
+func (m *runtimeStore) unblockUser(userID, blockedUserID string) error {
+	if m.safetyRepo != nil && m.safetyRepo.pg != nil {
+		return m.safetyRepo.unblockUserPostgres(context.Background(), userID, blockedUserID)
+	}
 	if m.profileRepo != nil {
 		err := m.profileRepo.unblockUser(context.Background(), userID, blockedUserID)
 		if err == nil {
-			return
+			return nil
 		}
 		if m.durableEngagementRequired() || !isProfileRepoPersistenceUnavailable(err) {
-			return
+			return err
 		}
 	}
 
@@ -2128,9 +2388,10 @@ func (m *memoryStore) unblockUser(userID, blockedUserID string) {
 
 	entries := m.blockedUsers[userID]
 	delete(entries, blockedUserID)
+	return nil
 }
 
-func (m *memoryStore) listFriends(userID string) []friendConnection {
+func (m *runtimeStore) listFriends(userID string) []friendConnection {
 	if m.socialRepo != nil {
 		friends, err := m.socialRepo.listFriends(context.Background(), userID)
 		if err == nil {
@@ -2145,9 +2406,23 @@ func (m *memoryStore) listFriends(userID string) []friendConnection {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	entries := m.friends[userID]
-	out := make([]friendConnection, 0, len(entries))
+	out := make([]friendConnection, 0, len(entries)+2)
 	for _, item := range entries {
 		out = append(out, item)
+	}
+	for requesterID, requesterEntries := range m.friends {
+		if requesterID == userID {
+			continue
+		}
+		if pending, ok := requesterEntries[userID]; ok && pending.Status == "pending" {
+			pending.UserID = userID
+			pending.FriendID = requesterID
+			pending.Direction = "incoming"
+			if draft, found := m.profiles[requesterID]; found && strings.TrimSpace(draft.Name) != "" {
+				pending.FriendName = strings.TrimSpace(draft.Name)
+			}
+			out = append(out, pending)
+		}
 	}
 	sort.SliceStable(out, func(i, j int) bool {
 		return out[i].UpdatedAt > out[j].UpdatedAt
@@ -2155,18 +2430,23 @@ func (m *memoryStore) listFriends(userID string) []friendConnection {
 	return out
 }
 
-func (m *memoryStore) addFriend(userID, friendUserID string) (friendConnection, error) {
-	trimmedUserID := strings.TrimSpace(userID)
-	trimmedFriendID := strings.TrimSpace(friendUserID)
-	if trimmedUserID == "" || trimmedFriendID == "" {
-		return friendConnection{}, errors.New("user_id and friend_user_id are required")
-	}
-	if trimmedUserID == trimmedFriendID {
-		return friendConnection{}, errors.New("cannot add yourself as friend")
-	}
+// addFriend sends a friend request with no recorded source. See
+// addFriendFrom in friend_requests.go for the rules.
+func (m *runtimeStore) addFriend(userID, friendUserID string) (friendConnection, error) {
+	return m.addFriendFrom(userID, friendUserID, "")
+}
 
+func (m *runtimeStore) decideFriendRequest(userID, requesterUserID, decision string) (friendConnection, error) {
+	userID, requesterUserID = strings.TrimSpace(userID), strings.TrimSpace(requesterUserID)
+	decision = strings.ToLower(strings.TrimSpace(decision))
+	if userID == "" || requesterUserID == "" || userID == requesterUserID {
+		return friendConnection{}, errors.New("recipient and requester must be different users")
+	}
+	if decision != "accept" && decision != "decline" {
+		return friendConnection{}, errors.New("decision must be accept or decline")
+	}
 	if m.socialRepo != nil {
-		connection, err := m.socialRepo.addFriend(context.Background(), trimmedUserID, trimmedFriendID, time.Now().UTC())
+		connection, err := m.socialRepo.decideFriendRequest(context.Background(), userID, requesterUserID, decision, time.Now().UTC())
 		if err == nil {
 			return connection, nil
 		}
@@ -2177,69 +2457,67 @@ func (m *memoryStore) addFriend(userID, friendUserID string) (friendConnection, 
 
 	m.mu.Lock()
 	defer m.mu.Unlock()
-
-	now := time.Now().UTC().Format(time.RFC3339)
-	if _, ok := m.friends[trimmedUserID]; !ok {
-		m.friends[trimmedUserID] = make(map[string]friendConnection)
+	request, ok := m.friends[requesterUserID][userID]
+	if !ok || request.Status != "pending" {
+		return friendConnection{}, errors.New("pending friend request not found")
 	}
-	if _, ok := m.friends[trimmedFriendID]; !ok {
-		m.friends[trimmedFriendID] = make(map[string]friendConnection)
+	if decision == "decline" {
+		delete(m.friends[requesterUserID], userID)
+		m.recordFriendDeclineLocked(requesterUserID, userID)
+		return friendConnection{}, nil
 	}
-
-	friendName := "Friend"
-	if draft, ok := m.profiles[trimmedFriendID]; ok {
-		if strings.TrimSpace(draft.Name) != "" {
-			friendName = strings.TrimSpace(draft.Name)
-		}
+	if m.friendPairBlockedLocked(userID, requesterUserID) {
+		return friendConnection{}, errors.New("friend request is unavailable")
 	}
-
-	connection := friendConnection{
-		UserID:     trimmedUserID,
-		FriendID:   trimmedFriendID,
-		Status:     "accepted",
-		CreatedAt:  now,
-		UpdatedAt:  now,
-		FriendName: friendName,
-	}
-	inverseFriendName := "Friend"
-	if draft, ok := m.profiles[trimmedUserID]; ok {
-		if strings.TrimSpace(draft.Name) != "" {
-			inverseFriendName = strings.TrimSpace(draft.Name)
-		}
-	}
-	inverse := friendConnection{
-		UserID:     trimmedFriendID,
-		FriendID:   trimmedUserID,
-		Status:     "accepted",
-		CreatedAt:  now,
-		UpdatedAt:  now,
-		FriendName: inverseFriendName,
-	}
-
-	m.friends[trimmedUserID][trimmedFriendID] = connection
-	m.friends[trimmedFriendID][trimmedUserID] = inverse
-
-	if _, ok := m.friendActivities[trimmedUserID]; !ok {
-		m.friendActivities[trimmedUserID] = []friendActivity{}
-	}
-	if _, ok := m.friendActivities[trimmedFriendID]; !ok {
-		m.friendActivities[trimmedFriendID] = []friendActivity{}
-	}
-	activityID := fmt.Sprintf("friend-activity-%d", time.Now().UnixNano())
-	m.friendActivities[trimmedUserID] = append([]friendActivity{{
-		ID:          activityID,
-		UserID:      trimmedUserID,
-		FriendID:    trimmedFriendID,
-		Type:        "friend_connected",
-		Title:       "New Friend Added",
-		Description: "You can now join friend activities together.",
-		CreatedAt:   now,
-	}}, m.friendActivities[trimmedUserID]...)
-
-	return connection, nil
+	return m.acceptFriendLocked(userID, requesterUserID, request), nil
 }
 
-func (m *memoryStore) removeFriend(userID, friendUserID string) {
+// acceptFriendLocked turns requester's pending request into a friendship
+// (both directions accepted) and records the activity for both. Caller holds
+// m.mu.
+func (m *runtimeStore) acceptFriendLocked(userID, requesterUserID string, request friendConnection) friendConnection {
+	now := time.Now().UTC().Format(time.RFC3339)
+	if _, ok := m.friends[userID]; !ok {
+		m.friends[userID] = make(map[string]friendConnection)
+	}
+	request.Status, request.Direction, request.UpdatedAt = "accepted", "", now
+	m.friends[requesterUserID][userID] = request
+	requesterName := "Friend"
+	if draft, ok := m.profiles[requesterUserID]; ok && strings.TrimSpace(draft.Name) != "" {
+		requesterName = strings.TrimSpace(draft.Name)
+	}
+	accepted := friendConnection{UserID: userID, FriendID: requesterUserID, Status: "accepted", CreatedAt: request.CreatedAt, UpdatedAt: now, FriendName: requesterName, Source: request.Source}
+	m.friends[userID][requesterUserID] = accepted
+	delete(m.friendDeclines, requesterUserID+"|"+userID)
+	delete(m.friendDeclines, userID+"|"+requesterUserID)
+	for _, owner := range []string{userID, requesterUserID} {
+		friendID := userID
+		if owner == userID {
+			friendID = requesterUserID
+		}
+		m.friendActivities[owner] = append([]friendActivity{{
+			ID: fmt.Sprintf("friend-activity-%d-%s", time.Now().UnixNano(), owner), UserID: owner,
+			FriendID: friendID,
+			Type:     "friend_connected", Title: "Friend request accepted",
+			Description: "You can now join friend activities together.", CreatedAt: now,
+		}}, m.friendActivities[owner]...)
+	}
+	return accepted
+}
+
+func (m *runtimeStore) friendPairBlocked(userID, friendUserID string) bool {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.friendPairBlockedLocked(userID, friendUserID)
+}
+
+func (m *runtimeStore) friendPairBlockedLocked(userID, friendUserID string) bool {
+	_, first := m.blockedUsers[userID][friendUserID]
+	_, second := m.blockedUsers[friendUserID][userID]
+	return first || second
+}
+
+func (m *runtimeStore) removeFriend(userID, friendUserID string) {
 	if m.socialRepo != nil {
 		err := m.socialRepo.removeFriend(context.Background(), userID, friendUserID)
 		if err == nil {
@@ -2260,7 +2538,7 @@ func (m *memoryStore) removeFriend(userID, friendUserID string) {
 	}
 }
 
-func (m *memoryStore) listFriendActivities(userID string, limit int) []friendActivity {
+func (m *runtimeStore) listFriendActivities(userID string, limit int) []friendActivity {
 	if limit <= 0 || limit > 100 {
 		limit = 20
 	}
@@ -2298,33 +2576,43 @@ func (m *memoryStore) listFriendActivities(userID string, limit int) []friendAct
 	return items
 }
 
-func (m *memoryStore) getVerification(userID string) verificationState {
+func (m *runtimeStore) getVerification(userID string) verificationState {
+	state, _ := m.getVerificationResult(userID)
+	return state
+}
+
+func (m *runtimeStore) getVerificationResult(userID string) (verificationState, error) {
 	if m.verificationRepo != nil {
 		state, err := m.verificationRepo.getVerification(context.Background(), userID)
 		if err == nil {
-			return state
+			return state, nil
 		}
 		if m.durableEngagementRequired() || !isVerificationRepoPersistenceUnavailable(err) {
-			return verificationState{UserID: userID}
+			return verificationState{}, err
 		}
 	}
 
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	if current, ok := m.verification[userID]; ok {
-		return current
+		return current, nil
 	}
-	return verificationState{UserID: userID}
+	return verificationState{UserID: userID}, nil
 }
 
-func (m *memoryStore) submitVerification(userID string) verificationState {
+func (m *runtimeStore) submitVerification(userID string) verificationState {
+	state, _ := m.submitVerificationResult(userID)
+	return state
+}
+
+func (m *runtimeStore) submitVerificationResult(userID string) (verificationState, error) {
 	if m.verificationRepo != nil {
 		state, err := m.verificationRepo.submitVerification(context.Background(), userID)
 		if err == nil {
-			return state
+			return state, nil
 		}
 		if m.durableEngagementRequired() || !isVerificationRepoPersistenceUnavailable(err) {
-			return verificationState{UserID: userID}
+			return verificationState{}, err
 		}
 	}
 
@@ -2336,10 +2624,31 @@ func (m *memoryStore) submitVerification(userID string) verificationState {
 		SubmittedAt: time.Now().UTC().Format(time.RFC3339),
 	}
 	m.verification[userID] = state
-	return state
+	return state, nil
 }
 
-func (m *memoryStore) reviewVerification(
+func (m *runtimeStore) attachVerificationEvidence(userID string, details map[string]any) (verificationState, error) {
+	if m.verificationRepo != nil {
+		state, err := m.verificationRepo.attachVerificationEvidence(context.Background(), userID, details)
+		if err == nil {
+			return state, nil
+		}
+		if m.durableEngagementRequired() || !isVerificationRepoPersistenceUnavailable(err) {
+			return verificationState{}, err
+		}
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	state, ok := m.verification[userID]
+	if !ok {
+		return verificationState{}, errors.New("verification not found")
+	}
+	state.EvidenceReceived = true
+	m.verification[userID] = state
+	return state, nil
+}
+
+func (m *runtimeStore) reviewVerification(
 	userID string,
 	status string,
 	rejectionReason string,
@@ -2371,14 +2680,19 @@ func (m *memoryStore) reviewVerification(
 	return current, nil
 }
 
-func (m *memoryStore) listVerifications(status string, limit int) []verificationState {
+func (m *runtimeStore) listVerifications(status string, limit int) []verificationState {
+	states, _ := m.listVerificationsResult(status, limit)
+	return states
+}
+
+func (m *runtimeStore) listVerificationsResult(status string, limit int) ([]verificationState, error) {
 	if m.verificationRepo != nil {
 		states, err := m.verificationRepo.listVerifications(context.Background(), status, limit)
 		if err == nil {
-			return states
+			return states, nil
 		}
 		if m.durableEngagementRequired() || !isVerificationRepoPersistenceUnavailable(err) {
-			return []verificationState{}
+			return nil, err
 		}
 	}
 
@@ -2404,10 +2718,10 @@ func (m *memoryStore) listVerifications(status string, limit int) []verification
 	if len(out) > limit {
 		out = out[:limit]
 	}
-	return out
+	return out, nil
 }
 
-func (m *memoryStore) recordActivity(event activityEvent) {
+func (m *runtimeStore) recordActivity(event activityEvent) {
 	if event.CreatedAt == "" {
 		event.CreatedAt = time.Now().UTC().Format(time.RFC3339)
 	}
@@ -2436,7 +2750,7 @@ func (m *memoryStore) recordActivity(event activityEvent) {
 	}
 }
 
-func (m *memoryStore) applyExperimentDimensions(event *activityEvent) {
+func (m *runtimeStore) applyExperimentDimensions(event *activityEvent) {
 	if m == nil || event == nil {
 		return
 	}
@@ -2497,7 +2811,7 @@ func experimentBucket(userID, experimentKey string) int {
 	return int(value % 100)
 }
 
-func (m *memoryStore) listActivities(limit int) []activityEvent {
+func (m *runtimeStore) listActivities(limit int) []activityEvent {
 	if m.activityRepo != nil {
 		items, err := m.activityRepo.listActivityEvents(context.Background(), limit)
 		if err == nil {
@@ -2536,7 +2850,7 @@ func (m *memoryStore) listActivities(limit int) []activityEvent {
 	return out
 }
 
-func (m *memoryStore) trackMessageDeleteAudit(userID string, deleted bool) map[string]any {
+func (m *runtimeStore) trackMessageDeleteAudit(userID string, deleted bool) map[string]any {
 	trimmedUserID := strings.TrimSpace(userID)
 	if trimmedUserID == "" {
 		return map[string]any{}
@@ -2599,19 +2913,19 @@ func (m *memoryStore) trackMessageDeleteAudit(userID string, deleted bool) map[s
 	}
 }
 
-func (m *memoryStore) startActivitySession(matchID, initiatorUserID, participantUserID, activityType string, metadata map[string]any) (activitySession, error) {
+func (m *runtimeStore) startActivitySession(matchID, initiatorUserID, participantUserID, activityType string, metadata map[string]any) (activitySession, error) {
 	trimmedMatchID := strings.TrimSpace(matchID)
 	trimmedInitiator := strings.TrimSpace(initiatorUserID)
 	trimmedParticipant := strings.TrimSpace(participantUserID)
-	trimmedType := strings.TrimSpace(activityType)
+	trimmedType, typeErr := normalizeActivitySessionType(activityType)
 	if trimmedMatchID == "" || trimmedInitiator == "" || trimmedParticipant == "" {
 		return activitySession{}, errors.New("match_id, initiator_user_id, and participant_user_id are required")
 	}
 	if trimmedInitiator == trimmedParticipant {
 		return activitySession{}, errors.New("initiator and participant must be different users")
 	}
-	if trimmedType == "" {
-		trimmedType = "co_op_prompt"
+	if typeErr != nil {
+		return activitySession{}, typeErr
 	}
 
 	now := time.Now().UTC()
@@ -2663,7 +2977,7 @@ func (m *memoryStore) startActivitySession(matchID, initiatorUserID, participant
 	return session, nil
 }
 
-func (m *memoryStore) submitActivitySessionResponses(sessionID, userID string, responses []string) (activitySession, error) {
+func (m *runtimeStore) submitActivitySessionResponses(sessionID, userID string, responses []string) (activitySession, error) {
 	trimmedSessionID := strings.TrimSpace(sessionID)
 	trimmedUserID := strings.TrimSpace(userID)
 	if trimmedSessionID == "" || trimmedUserID == "" {
@@ -2720,7 +3034,7 @@ func (m *memoryStore) submitActivitySessionResponses(sessionID, userID string, r
 	return session, nil
 }
 
-func (m *memoryStore) getActivitySessionSummary(sessionID string) (activitySessionSummary, activitySession, error) {
+func (m *runtimeStore) getActivitySessionSummary(sessionID string) (activitySessionSummary, activitySession, error) {
 	trimmedSessionID := strings.TrimSpace(sessionID)
 	if trimmedSessionID == "" {
 		return activitySessionSummary{}, activitySession{}, errors.New("session_id is required")
@@ -2744,7 +3058,7 @@ func (m *memoryStore) getActivitySessionSummary(sessionID string) (activitySessi
 	return session.Summary, session, nil
 }
 
-func (m *memoryStore) getDailyPromptView(userID string, now time.Time) (dailyPromptView, error) {
+func (m *runtimeStore) getDailyPromptView(userID string, now time.Time) (dailyPromptView, error) {
 	if m.dailyPromptRepo != nil {
 		return m.dailyPromptRepo.getDailyPromptView(context.Background(), userID, now)
 	}
@@ -2762,7 +3076,7 @@ func (m *memoryStore) getDailyPromptView(userID string, now time.Time) (dailyPro
 	return m.buildDailyPromptViewLocked(trimmedUserID, prompt), nil
 }
 
-func (m *memoryStore) submitDailyPromptAnswer(userID, promptID, answerText string, now time.Time) (dailyPromptView, bool, error) {
+func (m *runtimeStore) submitDailyPromptAnswer(userID, promptID, answerText string, now time.Time) (dailyPromptView, bool, error) {
 	if m.dailyPromptRepo != nil {
 		return m.dailyPromptRepo.submitDailyPromptAnswer(context.Background(), userID, promptID, answerText, now)
 	}
@@ -2849,7 +3163,7 @@ func (m *memoryStore) submitDailyPromptAnswer(userID, promptID, answerText strin
 	return view, isEdit, nil
 }
 
-func (m *memoryStore) buildDailyPromptViewLocked(userID string, prompt dailyPrompt) dailyPromptView {
+func (m *runtimeStore) buildDailyPromptViewLocked(userID string, prompt dailyPrompt) dailyPromptView {
 	view := dailyPromptView{
 		Prompt: prompt,
 		Streak: normalizeDailyPromptStreak(m.dailyPromptStreaks[userID]),
@@ -2873,7 +3187,7 @@ func (m *memoryStore) buildDailyPromptViewLocked(userID string, prompt dailyProm
 	return view
 }
 
-func (m *memoryStore) buildDailyPromptSparkLocked(userID, promptDate, normalizedAnswer string) dailyPromptSpark {
+func (m *runtimeStore) buildDailyPromptSparkLocked(userID, promptDate, normalizedAnswer string) dailyPromptSpark {
 	spark := dailyPromptSpark{
 		SimilarUserIDs: []string{},
 	}
@@ -2905,7 +3219,7 @@ func (m *memoryStore) buildDailyPromptSparkLocked(userID, promptDate, normalized
 	return spark
 }
 
-func (m *memoryStore) listDailyPromptResponders(userID string, now time.Time, limit, offset int) (dailyPromptRespondersPage, error) {
+func (m *runtimeStore) listDailyPromptResponders(userID string, now time.Time, limit, offset int) (dailyPromptRespondersPage, error) {
 	if m.dailyPromptRepo != nil {
 		return m.dailyPromptRepo.listDailyPromptResponders(context.Background(), userID, now, limit, offset)
 	}
@@ -3006,7 +3320,7 @@ func (m *memoryStore) listDailyPromptResponders(userID string, now time.Time, li
 	return page, nil
 }
 
-func (m *memoryStore) updateDailyPromptStreakLocked(userID, promptDate string, now time.Time) (dailyPromptStreak, int) {
+func (m *runtimeStore) updateDailyPromptStreakLocked(userID, promptDate string, now time.Time) (dailyPromptStreak, int) {
 	streak := m.dailyPromptStreaks[userID]
 	streak.UserID = userID
 	streak.LastAnsweredDate = strings.TrimSpace(streak.LastAnsweredDate)
@@ -3045,7 +3359,7 @@ func (m *memoryStore) updateDailyPromptStreakLocked(userID, promptDate string, n
 	return streak, 0
 }
 
-func (m *memoryStore) sendMatchNudge(matchID, userID, counterpartyUserID, nudgeType string, now time.Time) (matchNudge, error) {
+func (m *runtimeStore) sendMatchNudge(matchID, userID, counterpartyUserID, nudgeType string, now time.Time) (matchNudge, error) {
 	if m.socialRepo != nil {
 		return m.socialRepo.sendMatchNudge(context.Background(), matchID, userID, counterpartyUserID, nudgeType, now)
 	}
@@ -3102,7 +3416,7 @@ func (m *memoryStore) sendMatchNudge(matchID, userID, counterpartyUserID, nudgeT
 	return nudge, nil
 }
 
-func (m *memoryStore) markMatchNudgeClicked(nudgeID, userID string, now time.Time) (matchNudge, error) {
+func (m *runtimeStore) markMatchNudgeClicked(nudgeID, userID string, now time.Time) (matchNudge, error) {
 	if m.socialRepo != nil {
 		return m.socialRepo.markMatchNudgeClicked(context.Background(), nudgeID, userID, now)
 	}
@@ -3135,7 +3449,7 @@ func (m *memoryStore) markMatchNudgeClicked(nudgeID, userID string, now time.Tim
 	return matchNudge{}, errors.New("nudge not found")
 }
 
-func (m *memoryStore) markConversationResumed(matchID, userID, triggerNudgeID string, now time.Time) (conversationResumed, error) {
+func (m *runtimeStore) markConversationResumed(matchID, userID, triggerNudgeID string, now time.Time) (conversationResumed, error) {
 	if m.socialRepo != nil {
 		return m.socialRepo.markConversationResumed(context.Background(), matchID, userID, triggerNudgeID, now)
 	}
@@ -3175,7 +3489,7 @@ func (m *memoryStore) markConversationResumed(matchID, userID, triggerNudgeID st
 	return item, nil
 }
 
-func (m *memoryStore) isNudgeSuppressedBySafetyLocked(userID, counterpartyUserID string, now time.Time) bool {
+func (m *runtimeStore) isNudgeSuppressedBySafetyLocked(userID, counterpartyUserID string, now time.Time) bool {
 	if userID == "" || counterpartyUserID == "" {
 		return true
 	}
@@ -3210,7 +3524,7 @@ func (m *memoryStore) isNudgeSuppressedBySafetyLocked(userID, counterpartyUserID
 	return false
 }
 
-func (m *memoryStore) getCircleChallengeView(circleID, userID string, now time.Time) (circleChallengeView, error) {
+func (m *runtimeStore) getCircleChallengeView(circleID, userID string, now time.Time) (circleChallengeView, error) {
 	trimmedCircleID := strings.TrimSpace(circleID)
 	trimmedUserID := strings.TrimSpace(userID)
 	if trimmedCircleID == "" {
@@ -3271,7 +3585,7 @@ func (m *memoryStore) getCircleChallengeView(circleID, userID string, now time.T
 	return view, nil
 }
 
-func (m *memoryStore) joinCircle(circleID, userID string, now time.Time) (circleMembership, error) {
+func (m *runtimeStore) joinCircle(circleID, userID string, now time.Time) (circleMembership, error) {
 	trimmedCircleID := strings.TrimSpace(circleID)
 	trimmedUserID := strings.TrimSpace(userID)
 	if trimmedCircleID == "" {
@@ -3322,7 +3636,7 @@ func (m *memoryStore) joinCircle(circleID, userID string, now time.Time) (circle
 	return membership, nil
 }
 
-func (m *memoryStore) isCircleMemberLocked(circleID, userID string) bool {
+func (m *runtimeStore) isCircleMemberLocked(circleID, userID string) bool {
 	trimmedCircleID := strings.TrimSpace(circleID)
 	trimmedUserID := strings.TrimSpace(userID)
 	if trimmedCircleID == "" || trimmedUserID == "" {
@@ -3336,7 +3650,7 @@ func (m *memoryStore) isCircleMemberLocked(circleID, userID string) bool {
 	return ok
 }
 
-func (m *memoryStore) submitCircleChallengeEntry(
+func (m *runtimeStore) submitCircleChallengeEntry(
 	circleID,
 	challengeID,
 	userID,
@@ -3432,13 +3746,13 @@ func (m *memoryStore) submitCircleChallengeEntry(
 	return view, entry, nil
 }
 
-func (m *memoryStore) listVoiceIcebreakerPrompts() []voiceIcebreakerPrompt {
+func (m *runtimeStore) listVoiceIcebreakerPrompts() []voiceIcebreakerPrompt {
 	items := make([]voiceIcebreakerPrompt, len(voiceIcebreakerPromptCatalog))
 	copy(items, voiceIcebreakerPromptCatalog)
 	return items
 }
 
-func (m *memoryStore) startVoiceIcebreaker(matchID, senderUserID, receiverUserID, promptID string, now time.Time) (voiceIcebreaker, error) {
+func (m *runtimeStore) startVoiceIcebreaker(matchID, senderUserID, receiverUserID, promptID string, now time.Time) (voiceIcebreaker, error) {
 	trimmedMatchID := strings.TrimSpace(matchID)
 	trimmedSenderID := strings.TrimSpace(senderUserID)
 	trimmedReceiverID := strings.TrimSpace(receiverUserID)
@@ -3522,7 +3836,53 @@ func (m *memoryStore) startVoiceIcebreaker(matchID, senderUserID, receiverUserID
 	return icebreaker, nil
 }
 
-func (m *memoryStore) sendVoiceIcebreaker(icebreakerID, senderUserID, transcript string, durationSeconds int, now time.Time) (voiceIcebreaker, error) {
+func (m *runtimeStore) attachVoiceRecording(icebreakerID, senderUserID string, recording voiceRecordingMetadata) error {
+	trimmedID := strings.TrimSpace(icebreakerID)
+	trimmedSender := strings.TrimSpace(senderUserID)
+	if trimmedID == "" || trimmedSender == "" || strings.TrimSpace(recording.StoragePath) == "" {
+		return errors.New("voice recording metadata is incomplete")
+	}
+	if m.engagementRepo != nil {
+		return m.engagementRepo.attachVoiceRecording(context.Background(), trimmedID, trimmedSender, recording)
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	item, ok := m.voiceIcebreakers[trimmedID]
+	if !ok {
+		return errors.New("voice icebreaker not found")
+	}
+	if item.SenderUserID != trimmedSender || item.Status != "started" {
+		return errors.New("voice icebreaker cannot accept this recording")
+	}
+	item.HasAudio = true
+	item.AudioStoragePath = recording.StoragePath
+	item.AudioMimeType = recording.MimeType
+	item.AudioSizeBytes = recording.SizeBytes
+	item.AudioSHA256 = recording.SHA256
+	m.voiceIcebreakers[trimmedID] = item
+	return nil
+}
+
+func (m *runtimeStore) detachVoiceRecording(icebreakerID string) {
+	if m.engagementRepo != nil {
+		_ = m.engagementRepo.detachVoiceRecording(context.Background(), icebreakerID)
+		return
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	item, ok := m.voiceIcebreakers[icebreakerID]
+	if !ok {
+		return
+	}
+	item.HasAudio = false
+	item.AudioStoragePath = ""
+	item.AudioMimeType = ""
+	item.AudioSizeBytes = 0
+	item.AudioSHA256 = ""
+	m.voiceIcebreakers[icebreakerID] = item
+}
+
+func (m *runtimeStore) sendVoiceIcebreaker(icebreakerID, senderUserID, transcript string, durationSeconds int, now time.Time) (voiceIcebreaker, error) {
 	trimmedIcebreakerID := strings.TrimSpace(icebreakerID)
 	trimmedSenderID := strings.TrimSpace(senderUserID)
 	trimmedTranscript := strings.TrimSpace(transcript)
@@ -3586,7 +3946,7 @@ func (m *memoryStore) sendVoiceIcebreaker(icebreakerID, senderUserID, transcript
 	return item, nil
 }
 
-func (m *memoryStore) markVoiceIcebreakerPlayed(icebreakerID, userID string, now time.Time) (voiceIcebreaker, error) {
+func (m *runtimeStore) markVoiceIcebreakerPlayed(icebreakerID, userID string, now time.Time) (voiceIcebreaker, error) {
 	trimmedIcebreakerID := strings.TrimSpace(icebreakerID)
 	trimmedUserID := strings.TrimSpace(userID)
 	if trimmedIcebreakerID == "" || trimmedUserID == "" {
@@ -3637,7 +3997,38 @@ func (m *memoryStore) markVoiceIcebreakerPlayed(icebreakerID, userID string, now
 	return item, nil
 }
 
-func (m *memoryStore) createGroupCoffeePoll(
+func (m *runtimeStore) voiceIcebreakerForPlayback(icebreakerID, userID string) (voiceIcebreaker, error) {
+	icebreakerID, userID = strings.TrimSpace(icebreakerID), strings.TrimSpace(userID)
+	var item voiceIcebreaker
+	var err error
+	if m.engagementRepo != nil {
+		item, err = m.engagementRepo.findVoiceIcebreakerByID(context.Background(), icebreakerID)
+		if err != nil {
+			return voiceIcebreaker{}, err
+		}
+	} else {
+		m.mu.RLock()
+		item = m.voiceIcebreakers[icebreakerID]
+		m.mu.RUnlock()
+	}
+	if item.ID == "" || (item.SenderUserID != userID && item.ReceiverUserID != userID) {
+		return voiceIcebreaker{}, errors.New("voice recording is unavailable")
+	}
+	if item.ModerationStatus != "approved" || (item.Status != "sent" && item.Status != "played") || !item.HasAudio || item.AudioStoragePath == "" {
+		return voiceIcebreaker{}, errors.New("voice recording is not approved for playback")
+	}
+	if m.engagementRepo != nil && (m.profileRepo == nil || m.profileRepo.pg == nil) {
+		return voiceIcebreaker{}, errors.New("voice access checks are unavailable")
+	}
+	if m.profileRepo != nil && m.profileRepo.pg != nil {
+		if _, err := voicePairAvailable(context.Background(), m.profileRepo.pg, item.MatchID, userID); err != nil {
+			return voiceIcebreaker{}, errors.New("voice conversation is unavailable")
+		}
+	}
+	return item, nil
+}
+
+func (m *runtimeStore) createGroupCoffeePoll(
 	creatorUserID string,
 	participantUserIDs []string,
 	options []groupCoffeePollOption,
@@ -3725,7 +4116,7 @@ func (m *memoryStore) createGroupCoffeePoll(
 	return poll, nil
 }
 
-func (m *memoryStore) voteGroupCoffeePoll(pollID, userID, optionID string) (groupCoffeePoll, error) {
+func (m *runtimeStore) voteGroupCoffeePoll(pollID, userID, optionID string) (groupCoffeePoll, error) {
 	trimmedPollID := strings.TrimSpace(pollID)
 	trimmedUserID := strings.TrimSpace(userID)
 	trimmedOptionID := strings.TrimSpace(optionID)
@@ -3804,7 +4195,7 @@ func (m *memoryStore) voteGroupCoffeePoll(pollID, userID, optionID string) (grou
 	return poll, nil
 }
 
-func (m *memoryStore) finalizeGroupCoffeePoll(pollID, userID string, now time.Time) (groupCoffeePoll, groupCoffeePollOption, error) {
+func (m *runtimeStore) finalizeGroupCoffeePoll(pollID, userID string, now time.Time) (groupCoffeePoll, groupCoffeePollOption, error) {
 	trimmedPollID := strings.TrimSpace(pollID)
 	trimmedUserID := strings.TrimSpace(userID)
 	if trimmedPollID == "" || trimmedUserID == "" {
@@ -3860,7 +4251,7 @@ func (m *memoryStore) finalizeGroupCoffeePoll(pollID, userID string, now time.Ti
 	return poll, selected, nil
 }
 
-func (m *memoryStore) getGroupCoffeePoll(pollID string) (groupCoffeePoll, bool) {
+func (m *runtimeStore) getGroupCoffeePoll(pollID string) (groupCoffeePoll, bool) {
 	trimmedPollID := strings.TrimSpace(pollID)
 	if trimmedPollID == "" {
 		return groupCoffeePoll{}, false
@@ -3893,7 +4284,7 @@ func (m *memoryStore) getGroupCoffeePoll(pollID string) (groupCoffeePoll, bool) 
 	return pollCopy, true
 }
 
-func (m *memoryStore) listGroupCoffeePolls(userID, status string, limit int) []groupCoffeePoll {
+func (m *runtimeStore) listGroupCoffeePolls(userID, status string, limit int) []groupCoffeePoll {
 	trimmedUserID := strings.TrimSpace(userID)
 	trimmedStatus := strings.ToLower(strings.TrimSpace(status))
 	if trimmedUserID == "" {
@@ -3947,7 +4338,7 @@ func (m *memoryStore) listGroupCoffeePolls(userID, status string, limit int) []g
 	return out
 }
 
-func (m *memoryStore) finalizeActivityTimeoutIfNeededLocked(session *activitySession, now time.Time) {
+func (m *runtimeStore) finalizeActivityTimeoutIfNeededLocked(session *activitySession, now time.Time) {
 	if session == nil {
 		return
 	}
@@ -3967,7 +4358,7 @@ func (m *memoryStore) finalizeActivityTimeoutIfNeededLocked(session *activitySes
 	session.Summary = m.buildActivitySummaryLocked(*session, now)
 }
 
-func (m *memoryStore) buildActivitySummaryLocked(session activitySession, now time.Time) activitySessionSummary {
+func (m *runtimeStore) buildActivitySummaryLocked(session activitySession, now time.Time) activitySessionSummary {
 	completed := make([]string, 0, len(session.ResponsesByUser))
 	pending := make([]string, 0, len(session.ParticipantIDs))
 	for _, userID := range session.ParticipantIDs {
@@ -3998,7 +4389,7 @@ func (m *memoryStore) buildActivitySummaryLocked(session activitySession, now ti
 	}
 }
 
-func (m *memoryStore) startVideoCall(matchID, initiatorID, recipientID string) (videoCallSession, error) {
+func (m *runtimeStore) startVideoCall(matchID, initiatorID, recipientID string) (videoCallSession, error) {
 	if m.engagementRepo != nil {
 		session, err := m.engagementRepo.startVideoCall(context.Background(), matchID, initiatorID, recipientID, time.Now().UTC())
 		if err == nil {
@@ -4038,7 +4429,7 @@ func (m *memoryStore) startVideoCall(matchID, initiatorID, recipientID string) (
 	return session, nil
 }
 
-func (m *memoryStore) endVideoCall(callID, endedBy string) (videoCallSession, error) {
+func (m *runtimeStore) endVideoCall(callID, endedBy string) (videoCallSession, error) {
 	if m.engagementRepo != nil {
 		session, err := m.engagementRepo.endVideoCall(context.Background(), callID, endedBy, time.Now().UTC())
 		if err == nil {
@@ -4065,6 +4456,10 @@ func (m *memoryStore) endVideoCall(callID, endedBy string) (videoCallSession, er
 	if session.Status == "ended" {
 		return session, nil
 	}
+	trimmedEndedBy := strings.TrimSpace(endedBy)
+	if trimmedEndedBy == "" || (trimmedEndedBy != session.InitiatorID && trimmedEndedBy != session.RecipientID) {
+		return videoCallSession{}, errors.New("only a call participant can end this call")
+	}
 
 	startedAt, _ := time.Parse(time.RFC3339, session.StartedAt)
 	now := time.Now().UTC()
@@ -4076,12 +4471,12 @@ func (m *memoryStore) endVideoCall(callID, endedBy string) (videoCallSession, er
 	session.Status = "ended"
 	session.EndedAt = now.Format(time.RFC3339)
 	session.DurationSec = duration
-	session.EndedByUserID = strings.TrimSpace(endedBy)
+	session.EndedByUserID = trimmedEndedBy
 	m.calls[callID] = session
 	return session, nil
 }
 
-func (m *memoryStore) listVideoCalls(userID string, limit int) []videoCallSession {
+func (m *runtimeStore) listVideoCalls(userID string, limit int) []videoCallSession {
 	if m.engagementRepo != nil {
 		items, err := m.engagementRepo.listVideoCalls(context.Background(), userID, limit)
 		if err == nil {
@@ -4113,7 +4508,7 @@ func (m *memoryStore) listVideoCalls(userID string, limit int) []videoCallSessio
 	return out
 }
 
-func (m *memoryStore) createSOSAlert(
+func (m *runtimeStore) createSOSAlert(
 	userID, matchID, level, message string,
 	latitude, longitude float64,
 ) (sosAlert, error) {
@@ -4166,7 +4561,7 @@ func (m *memoryStore) createSOSAlert(
 	return alert, nil
 }
 
-func (m *memoryStore) resolveSOSAlert(alertID, resolvedBy, note string) (sosAlert, error) {
+func (m *runtimeStore) resolveSOSAlert(alertID, resolvedBy, note string) (sosAlert, error) {
 	if m.safetyRepo != nil {
 		alert, err := m.safetyRepo.resolveSOSAlert(context.Background(), alertID, resolvedBy, note)
 		if err == nil {
@@ -4200,7 +4595,7 @@ func (m *memoryStore) resolveSOSAlert(alertID, resolvedBy, note string) (sosAler
 	return alert, nil
 }
 
-func (m *memoryStore) listSOSAlerts(userID string, limit int) []sosAlert {
+func (m *runtimeStore) listSOSAlerts(userID string, limit int) []sosAlert {
 	if m.safetyRepo != nil {
 		alerts, err := m.safetyRepo.listSOSAlerts(context.Background(), userID, limit)
 		if err == nil {
@@ -4235,7 +4630,16 @@ func (m *memoryStore) listSOSAlerts(userID string, limit int) []sosAlert {
 	return out
 }
 
-func (m *memoryStore) listSubscriptionPlans() []subscriptionPlan {
+func (m *runtimeStore) listSubscriptionPlans() []subscriptionPlan {
+	if m.billingRepo != nil {
+		plans, err := m.billingRepo.listPlans(context.Background())
+		if err == nil {
+			return plans
+		}
+		if m.durableEngagementRequired() {
+			panic(err)
+		}
+	}
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	out := make([]subscriptionPlan, len(m.plans))
@@ -4243,7 +4647,16 @@ func (m *memoryStore) listSubscriptionPlans() []subscriptionPlan {
 	return out
 }
 
-func (m *memoryStore) getSubscription(userID string) userSubscription {
+func (m *runtimeStore) getSubscription(userID string) userSubscription {
+	if m.billingRepo != nil {
+		subscription, err := m.billingRepo.getSubscription(context.Background(), userID)
+		if err == nil {
+			return subscription
+		}
+		if m.durableEngagementRequired() {
+			panic(err)
+		}
+	}
 	userID = strings.TrimSpace(userID)
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -4264,7 +4677,10 @@ func (m *memoryStore) getSubscription(userID string) userSubscription {
 	}
 }
 
-func (m *memoryStore) subscribe(userID, planID, billingCycle string) (userSubscription, paymentRecord, error) {
+func (m *runtimeStore) subscribe(userID, planID, billingCycle string) (userSubscription, paymentRecord, error) {
+	if m.billingRepo != nil {
+		return m.billingRepo.subscribe(context.Background(), userID, planID, billingCycle)
+	}
 	userID = strings.TrimSpace(userID)
 	planID = strings.TrimSpace(planID)
 	billingCycle = strings.ToLower(strings.TrimSpace(billingCycle))
@@ -4330,7 +4746,16 @@ func (m *memoryStore) subscribe(userID, planID, billingCycle string) (userSubscr
 	return sub, payment, nil
 }
 
-func (m *memoryStore) listPayments(userID string, limit int) []paymentRecord {
+func (m *runtimeStore) listPayments(userID string, limit int) []paymentRecord {
+	if m.billingRepo != nil {
+		payments, err := m.billingRepo.listPayments(context.Background(), userID, limit)
+		if err == nil {
+			return payments
+		}
+		if m.durableEngagementRequired() {
+			panic(err)
+		}
+	}
 	userID = strings.TrimSpace(userID)
 	if limit <= 0 || limit > 500 {
 		limit = 100
@@ -4351,7 +4776,7 @@ func (m *memoryStore) listPayments(userID string, limit int) []paymentRecord {
 	return out
 }
 
-func (m *memoryStore) billingCoexistenceMatrix() map[string]any {
+func (m *runtimeStore) billingCoexistenceMatrix() map[string]any {
 	matrixVersion := "2026-03-03"
 	coreProgressionFeatures := []string{
 		"quest_unlock_workflow",
@@ -4408,7 +4833,7 @@ func (m *memoryStore) billingCoexistenceMatrix() map[string]any {
 	}
 }
 
-func (m *memoryStore) createReport(
+func (m *runtimeStore) createReport(
 	reporterUserID, reportedUserID, reason, description string,
 ) (moderationReport, error) {
 	if m.safetyRepo != nil {
@@ -4448,7 +4873,7 @@ func (m *memoryStore) createReport(
 	return report, nil
 }
 
-func (m *memoryStore) listReports(status string, limit int) []moderationReport {
+func (m *runtimeStore) listReports(status string, limit int) []moderationReport {
 	if m.safetyRepo != nil {
 		reports, err := m.safetyRepo.listReports(context.Background(), status, limit)
 		if err == nil {
@@ -4481,7 +4906,7 @@ func (m *memoryStore) listReports(status string, limit int) []moderationReport {
 	return out
 }
 
-func (m *memoryStore) actionReport(
+func (m *runtimeStore) actionReport(
 	reportID, status, action, reviewedBy string,
 ) (moderationReport, error) {
 	if m.safetyRepo != nil {
@@ -4525,7 +4950,7 @@ func (m *memoryStore) actionReport(
 	return moderationReport{}, errors.New("report not found")
 }
 
-func (m *memoryStore) submitModerationAppeal(
+func (m *runtimeStore) submitModerationAppeal(
 	userID, reportID, reason, description string,
 ) (moderationAppeal, error) {
 	if m.safetyRepo != nil {
@@ -4566,7 +4991,7 @@ func (m *memoryStore) submitModerationAppeal(
 	return appeal, nil
 }
 
-func (m *memoryStore) getModerationAppeal(appealID, requesterUserID string, admin bool) (moderationAppeal, error) {
+func (m *runtimeStore) getModerationAppeal(appealID, requesterUserID string, admin bool) (moderationAppeal, error) {
 	if m.safetyRepo != nil {
 		appeal, err := m.safetyRepo.getModerationAppeal(context.Background(), appealID, requesterUserID, admin)
 		if err == nil {
@@ -4599,7 +5024,7 @@ func (m *memoryStore) getModerationAppeal(appealID, requesterUserID string, admi
 	return moderationAppeal{}, errors.New("appeal not found")
 }
 
-func (m *memoryStore) listModerationAppeals(status string, limit int) []moderationAppeal {
+func (m *runtimeStore) listModerationAppeals(status string, limit int) []moderationAppeal {
 	if m.safetyRepo != nil {
 		appeals, err := m.safetyRepo.listModerationAppeals(context.Background(), status, limit)
 		if err == nil {
@@ -4632,7 +5057,7 @@ func (m *memoryStore) listModerationAppeals(status string, limit int) []moderati
 	return out
 }
 
-func (m *memoryStore) listModerationAppealsForUser(userID, status string, limit int) []moderationAppeal {
+func (m *runtimeStore) listModerationAppealsForUser(userID, status string, limit int) []moderationAppeal {
 	if m.safetyRepo != nil {
 		appeals, err := m.safetyRepo.listModerationAppealsForUser(context.Background(), userID, status, limit)
 		if err == nil {
@@ -4672,7 +5097,7 @@ func (m *memoryStore) listModerationAppealsForUser(userID, status string, limit 
 	return out
 }
 
-func (m *memoryStore) actionModerationAppeal(
+func (m *runtimeStore) actionModerationAppeal(
 	appealID, status, resolutionReason, reviewedBy string,
 ) (moderationAppeal, error) {
 	if m.safetyRepo != nil {
@@ -4720,7 +5145,7 @@ func (m *memoryStore) actionModerationAppeal(
 	return moderationAppeal{}, errors.New("appeal not found")
 }
 
-func (m *memoryStore) userAnalytics(userID string) map[string]any {
+func (m *runtimeStore) userAnalytics(userID string) map[string]any {
 	userID = strings.TrimSpace(userID)
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -4772,7 +5197,7 @@ func (m *memoryStore) userAnalytics(userID string) map[string]any {
 	}
 }
 
-func (m *memoryStore) adminAnalyticsOverview() map[string]any {
+func (m *runtimeStore) adminAnalyticsOverview() map[string]any {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 

@@ -1,9 +1,11 @@
 // ignore_for_file: prefer_const_constructors, prefer_const_literals_to_create_immutables, lines_longer_than_80_chars
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:verified_dating_app/features/profile/providers/profile_setup_provider.dart';
+import 'package:verified_dating_app/features/profile/screens/setup/setup_photos_screen.dart';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -21,6 +23,7 @@ class _FakeNotifier extends ProfileSetupNotifier {
   int saveBasicInfoCalls = 0;
   int saveAboutCalls = 0;
   int completeProfileCalls = 0;
+  int deletePhotoCalls = 0;
 
   @override
   Future<void> saveBasicInfo({
@@ -63,6 +66,17 @@ class _FakeNotifier extends ProfileSetupNotifier {
   Future<void> completeProfile() async {
     completeProfileCalls++;
     // Simulate marking draft as completed.
+  }
+
+  @override
+  Future<void> deletePhoto(ProfilePhotoItem photo) async {
+    deletePhotoCalls++;
+    final current = state.valueOrNull ?? _initial;
+    state = AsyncData(
+      current.copyWith(
+        photos: current.photos.where((item) => item.id != photo.id).toList(),
+      ),
+    );
   }
 }
 
@@ -119,6 +133,23 @@ ProviderContainer _container(_FakeNotifier notifier) => ProviderContainer(
 // ─── tests ───────────────────────────────────────────────────────────────────
 
 void main() {
+  group('Profile media API errors', () {
+    test('uses the backend validation message when supplied', () {
+      final error = DioException(
+        requestOptions: RequestOptions(path: '/profile/u/photos'),
+        response: Response<dynamic>(
+          requestOptions: RequestOptions(path: '/profile/u/photos'),
+          statusCode: 422,
+          data: {'error': 'Photo must be at least 300 × 300 pixels.'},
+        ),
+      );
+      expect(
+        profileMediaErrorMessage(error),
+        'Photo must be at least 300 × 300 pixels.',
+      );
+    });
+  });
+
   group('ProfileSetupNotifier — initial state', () {
     test('builds with the provided initial draft', () async {
       final notifier = _FakeNotifier(_baseDraft());
@@ -366,7 +397,7 @@ void main() {
             profileSetupNotifierProvider.overrideWith(() => notifier),
           ],
           child: Consumer(
-            builder: (_, ref, __) {
+            builder: (context, ref, child) {
               final draft = ref.watch(profileSetupNotifierProvider).valueOrNull;
               return MaterialApp(
                 home: Scaffold(body: Text(draft?.name ?? 'loading')),
@@ -378,6 +409,44 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
       expect(find.text('Widget Test'), findsOneWidget);
+    });
+  });
+
+  group('Photo deletion confirmation', () {
+    testWidgets('does not delete until the confirmation action is accepted', (
+      tester,
+    ) async {
+      const photo = ProfilePhotoItem(
+        id: 'confirm-photo',
+        photoUrl: 'https://example.test/photo.jpg',
+        storagePath: 'u/photo.jpg',
+        ordering: 0,
+      );
+      final notifier = _FakeNotifier(_baseDraft().copyWith(photos: [photo]));
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            profileSetupNotifierProvider.overrideWith(() => notifier),
+          ],
+          child: const MaterialApp(home: SetupPhotosScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const ValueKey('qa.setup.photos.delete_confirm-photo')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Remove this photo?'), findsOneWidget);
+      expect(notifier.deletePhotoCalls, 0);
+
+      await tester.tap(
+        find.byKey(const ValueKey('qa.setup.photos.confirm_delete')),
+      );
+      await tester.pumpAndSettle();
+      expect(notifier.deletePhotoCalls, 1);
+      expect(notifier.state.valueOrNull?.photos, isEmpty);
     });
   });
 }

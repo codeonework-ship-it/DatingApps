@@ -1,6 +1,8 @@
 package mobile
 
 import (
+	"bytes"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -42,17 +44,13 @@ func TestServer_VoiceIcebreakerLifecycle(t *testing.T) {
 	icebreaker := toMap(t, startPayload["voice_icebreaker"])
 	icebreakerID := stringValue(icebreaker["id"])
 
-	sendBody := `{
-		"sender_user_id": "user-voice-a",
-		"duration_seconds": 30,
-		"transcript": "A calm Sunday for me is tea, a long walk, and one hour of reading."
-	}`
-	sendReq := httptest.NewRequest(
-		http.MethodPost,
+	sendReq := voiceRecordingRequest(
+		t,
 		"/v1/engagement/voice-icebreakers/"+icebreakerID+"/send",
-		strings.NewReader(sendBody),
+		"user-voice-a",
+		"30",
+		"A calm Sunday for me is tea, a long walk, and one hour of reading.",
 	)
-	sendReq.Header.Set("Content-Type", "application/json")
 	sendRec := httptest.NewRecorder()
 	server.Handler().ServeHTTP(sendRec, sendReq)
 	if sendRec.Code != http.StatusOK {
@@ -70,6 +68,21 @@ func TestServer_VoiceIcebreakerLifecycle(t *testing.T) {
 	server.Handler().ServeHTTP(playRec, playReq)
 	if playRec.Code != http.StatusOK {
 		t.Fatalf("play voice icebreaker code=%d body=%s", playRec.Code, playRec.Body.String())
+	}
+	playPayload := decodeJSONMap(t, playRec.Body.Bytes())
+	playedItem := toMap(t, playPayload["voice_icebreaker"])
+	audioURL := stringValue(playedItem["audio_url"])
+	if audioURL == "" {
+		t.Fatal("expected a signed private playback URL")
+	}
+	mediaReq := httptest.NewRequest(http.MethodGet, audioURL, nil)
+	mediaRec := httptest.NewRecorder()
+	server.Handler().ServeHTTP(mediaRec, mediaReq)
+	if mediaRec.Code != http.StatusOK || mediaRec.Body.Len() == 0 {
+		t.Fatalf("private playback code=%d bytes=%d body=%s", mediaRec.Code, mediaRec.Body.Len(), mediaRec.Body.String())
+	}
+	if mediaRec.Header().Get("Cache-Control") != "private, no-store" {
+		t.Fatalf("unexpected playback cache policy %q", mediaRec.Header().Get("Cache-Control"))
 	}
 
 	server.store.mu.RLock()
@@ -127,20 +140,44 @@ func TestServer_VoiceIcebreakerInvalidDuration(t *testing.T) {
 	icebreaker := toMap(t, startPayload["voice_icebreaker"])
 	icebreakerID := stringValue(icebreaker["id"])
 
-	sendBody := `{
-		"sender_user_id": "user-voice-e",
-		"duration_seconds": 12,
-		"transcript": "Short sample transcript text for validation."
-	}`
-	sendReq := httptest.NewRequest(
-		http.MethodPost,
+	sendReq := voiceRecordingRequest(
+		t,
 		"/v1/engagement/voice-icebreakers/"+icebreakerID+"/send",
-		strings.NewReader(sendBody),
+		"user-voice-e",
+		"12",
+		"Short sample transcript text for validation.",
 	)
-	sendReq.Header.Set("Content-Type", "application/json")
 	sendRec := httptest.NewRecorder()
 	server.Handler().ServeHTTP(sendRec, sendReq)
 	if sendRec.Code != http.StatusBadRequest {
 		t.Fatalf("expected invalid duration status=400, got code=%d body=%s", sendRec.Code, sendRec.Body.String())
 	}
+}
+
+func voiceRecordingRequest(t *testing.T, target, senderID, duration, transcript string) *http.Request {
+	t.Helper()
+	var payload bytes.Buffer
+	writer := multipart.NewWriter(&payload)
+	for key, value := range map[string]string{
+		"sender_user_id":   senderID,
+		"duration_seconds": duration,
+		"transcript":       transcript,
+	} {
+		if err := writer.WriteField(key, value); err != nil {
+			t.Fatalf("write %s: %v", key, err)
+		}
+	}
+	part, err := writer.CreateFormFile("audio", "voice.webm")
+	if err != nil {
+		t.Fatalf("create audio part: %v", err)
+	}
+	if _, err := part.Write(append([]byte{0x1a, 0x45, 0xdf, 0xa3}, bytes.Repeat([]byte{0x01}, 1024)...)); err != nil {
+		t.Fatalf("write audio fixture: %v", err)
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatalf("close multipart: %v", err)
+	}
+	req := httptest.NewRequest(http.MethodPost, target, &payload)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	return req
 }

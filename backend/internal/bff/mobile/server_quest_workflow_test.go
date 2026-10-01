@@ -253,6 +253,9 @@ func TestServer_QuestWorkflowRateLimitSaturation(t *testing.T) {
 }
 
 func TestServer_ChatSendBlockedWhenQuestLocked(t *testing.T) {
+	// The chat body names user-a as the sender, so that is the authenticated
+	// identity; the operator role covers the template upsert.
+	installOperatorPrincipal(t, "user-a", "admin")
 	server := newQuestWorkflowTestServer(t)
 	defer server.Close()
 
@@ -365,12 +368,18 @@ func TestServer_UnlockStateRequiresQuestByDefaultWhenTemplateMissing(t *testing.
 }
 
 func TestServer_AssistedReviewAutoApprove_WhenThresholdsSatisfied(t *testing.T) {
+	installOperatorPrincipal(t, "qa-admin", "admin")
 	server := newQuestWorkflowTestServerWithConfig(t, func(cfg *config.Config) {
 		cfg.FeatureAssistedReviewAutomation = true
 		cfg.AssistedReviewMinChars = 80
 		cfg.AssistedReviewMinWordCount = 12
 	})
 	defer server.Close()
+	// Each request authenticates as the actor it names: body actor fields
+	// are rejected when they disagree with the session, for every caller
+	// including admins, so driving all three steps as qa-admin relied on an
+	// on-behalf-of path the security model does not offer.
+	installOperatorPrincipal(t, "user-b")
 
 	upsertTemplateBody := `{
 		"creator_user_id": "user-b",
@@ -390,6 +399,7 @@ func TestServer_AssistedReviewAutoApprove_WhenThresholdsSatisfied(t *testing.T) 
 		t.Fatalf("upsert template code = %d body=%s", upsertTemplateRec.Code, upsertTemplateRec.Body.String())
 	}
 
+	installOperatorPrincipal(t, "user-a")
 	submitBody := `{
 		"submitter_user_id":"user-a",
 		"response_text":"I handled a disagreement by listening carefully first, summarizing her point before mine, and agreeing on shared values and boundaries. We both left feeling respected and clear about the next steps."}`
@@ -417,6 +427,7 @@ func TestServer_AssistedReviewAutoApprove_WhenThresholdsSatisfied(t *testing.T) 
 		t.Fatalf("expected review_reason prefixed by %q, got %q", autoReviewReasonPrefix, got)
 	}
 
+	installOperatorPrincipal(t, "qa-admin", "admin")
 	activitiesReq := httptest.NewRequest(http.MethodGet, "/v1/admin/activities?limit=100", nil)
 	activitiesRec := httptest.NewRecorder()
 	server.Handler().ServeHTTP(activitiesRec, activitiesReq)
@@ -453,6 +464,7 @@ func newQuestWorkflowTestServer(t *testing.T) *Server {
 	t.Helper()
 
 	cfg := config.Config{
+		Environment:      "test",
 		APIPrefix:        "/v1",
 		AuthGRPCAddr:     "127.0.0.1:19091",
 		ProfileGRPCAddr:  "127.0.0.1:19092",
@@ -468,6 +480,7 @@ func newQuestWorkflowTestServerWithConfig(t *testing.T, mutate func(*config.Conf
 	t.Helper()
 
 	cfg := config.Config{
+		Environment:      "test",
 		APIPrefix:        "/v1",
 		AuthGRPCAddr:     "127.0.0.1:19091",
 		ProfileGRPCAddr:  "127.0.0.1:19092",

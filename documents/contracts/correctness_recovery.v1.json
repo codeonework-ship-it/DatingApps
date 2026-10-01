@@ -1,0 +1,39 @@
+{
+  "contract_id": "connect.correctness-idempotency-recovery",
+  "contract_version": "1.0.0",
+  "effective_date": "2026-09-27",
+  "local_controls": [
+    {"id":"COR-AGGREGATE-OWNERSHIP","status":"passed","evidence":"backend/scripts/078_correctness_recovery_contracts.sql"},
+    {"id":"COR-UNCERTAIN-SAVE","status":"passed","evidence":"backend/internal/bff/mobile/server_operation_recovery.go"},
+    {"id":"COR-EXPIRED-CURSOR","status":"passed","evidence":"backend/internal/bff/mobile/replay_recovery.go"},
+    {"id":"COR-XP-REPAIR","status":"passed","evidence":"backend/internal/bff/mobile/level_progression.go"},
+    {"id":"COR-FLAG-ENFORCEMENT","status":"passed","evidence":"backend/internal/bff/mobile/server_feature_flags.go"},
+    {"id":"COR-MULTI-INSTANCE-HARNESS","status":"passed","evidence":"qa/reliability/run_cross_instance_idempotency_gate.sh"},
+    {"id":"COR-LOCAL-BACKUP-RESTORE","status":"passed","evidence":"qa/reliability/run_backup_restore_drill.sh"}
+  ],
+  "production_acceptance_matrix": [
+    {"id":"PROD-MULTI-INSTANCE-RECOVERY","status":"pending","evidence":null},
+    {"id":"PROD-BACKUP-OBJECT-RESTORE","status":"pending","evidence":null},
+    {"id":"PROD-RPO-RTO-FAILOVER","status":"pending","evidence":null},
+    {"id":"PROD-DISTRIBUTED-CAPACITY","status":"pending","evidence":null},
+    {"id":"PROD-24H-SOAK","status":"pending","evidence":null},
+    {"id":"PROD-ROLLING-DEPLOY-CHAOS","status":"pending","evidence":null},
+    {"id":"PROD-DATABASE-NETWORK-PROVIDER-CHAOS","status":"pending","evidence":null}
+  ],
+  "production_acceptance": {
+    "decision": "NO_GO",
+    "rationale": "Local recovery controls and guarded test harnesses are complete; target-environment backup, failover, capacity, 24-hour soak and chaos evidence is not present."
+  },
+  "backlog_disposition": {
+    "PEN-18":"implemented_local_uncertain_outcome_status_and_reconciliation",
+    "PEN-19":"shared_dedupe_and_fail_closed_expired_lease_implemented_domain_matrix_remains_continuous",
+    "PEN-21":"implemented_retention_checkpoint_410_snapshot_resume_contract",
+    "PEN-22":"implemented_durable_xp_award_repair_queue",
+    "PEN-23":"implemented_server_enforcement_for_critical_flags",
+    "PEN-24":"implemented_executable_aggregate_ownership_registry_production_pool_evidence_pending",
+    "PEN-40":"production_observability_evidence_pending",
+    "PEN-41":"local_restore_drill_available_production_rpo_rto_and_object_restore_pending",
+    "PEN-42":"guarded_capacity_and_24h_soak_harnesses_available_production_run_pending",
+    "PEN-43":"guarded_chaos_harness_available_production_run_pending"
+  }
+}

@@ -1,0 +1,44 @@
+# node_exporter for Connect: host metrics, systemd unit states and the
+# textfile written by connect-disk-usage.timer. Loopback only.
+[Unit]
+Description=Connect monitoring - node_exporter
+Wants=network-online.target
+After=network-online.target
+PartOf=connect-monitoring.target
+
+[Service]
+Type=simple
+User=node_exporter
+Group=node_exporter
+ExecStart=/opt/connect-monitoring/node_exporter/node_exporter \
+  --web.listen-address=127.0.0.1:9100 \
+  --collector.systemd \
+  --collector.systemd.unit-include=(connect.*|postgresql.*|nginx|prometheus.*|grafana-server|loki|alloy)[.]service \
+  --collector.textfile.directory=/var/lib/node_exporter/textfile
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=yes
+ProtectSystem=strict
+PrivateTmp=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+RestrictNamespaces=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RemoveIPC=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+# Needs to stat every mount point and query systemd over D-Bus.
+ProtectHome=read-only
+
+[Install]
+WantedBy=connect-monitoring.target

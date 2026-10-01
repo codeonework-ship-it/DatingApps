@@ -1,0 +1,795 @@
+{
+  "id": null,
+  "uid": "connect-realtime-chat",
+  "title": "Connect \u00b7 Realtime & chat",
+  "description": "WebSocket connections, chat send rate and latency, live delivery lag and fan-out.",
+  "tags": [
+    "connect",
+    "realtime",
+    "chat"
+  ],
+  "timezone": "browser",
+  "editable": true,
+  "graphTooltip": 1,
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "verified-dating-prometheus"
+        },
+        "enable": true,
+        "iconColor": "orange",
+        "name": "Restarts",
+        "expr": "changes(process_start_time_seconds{job=~\"connect-.*\"}[2m]) > 0",
+        "titleFormat": "{{component}} restarted",
+        "step": "1m"
+      }
+    ]
+  },
+  "links": [
+    {
+      "title": "Connect dashboards",
+      "type": "dashboards",
+      "tags": [
+        "connect"
+      ],
+      "asDropdown": true
+    }
+  ],
+  "templating": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "Connections",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "panels": []
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Open sockets (BFF)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 0,
+        "y": 1
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(verified_dating_realtime_connections{service=\"mobile_bff\"})",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Chat sends / min",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 6,
+        "y": 1
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(verified_dating:chat_sends:rate5m) * 60",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Live delivery p95",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 12,
+        "y": 1
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(verified_dating_realtime_delivery_lag_seconds_bucket[10m])))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 2
+              },
+              {
+                "color": "red",
+                "value": 5
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Sockets closing < 10s",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 18,
+        "y": 1
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(verified_dating_realtime_connection_duration_seconds_bucket{service=\"mobile_bff\",le=~\"10|10\\\\.0\"}[10m])) / clamp_min(sum(rate(verified_dating_realtime_connection_duration_seconds_count{service=\"mobile_bff\"}[10m])), 1e-9)",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.3
+              },
+              {
+                "color": "red",
+                "value": 0.5
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Open sockets by stream",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (route) (verified_dating_realtime_connections{service=\"mobile_bff\"})",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "{{route}}"
+        },
+        {
+          "refId": "B",
+          "expr": "sum(verified_dating_realtime_connections{service=\"api_gateway\"})",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "gateway (all)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Connections opened / s",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (route) (rate(verified_dating_realtime_connections_opened_total{service=\"mobile_bff\"}[5m]))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "{{route}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Connection lifetime",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 17
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.5, sum by (le) (rate(verified_dating_realtime_connection_duration_seconds_bucket{service=\"mobile_bff\"}[15m])))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "p50"
+        },
+        {
+          "refId": "B",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(verified_dating_realtime_connection_duration_seconds_bucket{service=\"mobile_bff\"}[15m])))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "p95"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Live delivery lag",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 17
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.5, sum by (le, stream) (rate(verified_dating_realtime_delivery_lag_seconds_bucket[5m])))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "p50 {{stream}}"
+        },
+        {
+          "refId": "B",
+          "expr": "histogram_quantile(0.95, sum by (le, stream) (rate(verified_dating_realtime_delivery_lag_seconds_bucket[5m])))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "p95 {{stream}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 10,
+      "type": "row",
+      "title": "Chat sends",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 25
+      },
+      "panels": []
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Chat sends / s (2xx)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 26
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "verified_dating:chat_sends:rate5m",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "{{route}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "Chat send status",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 26
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (route, status_class) (rate(verified_dating_http_requests_total{service=\"mobile_bff\",method=\"POST\",route=~\"/v1/chat/\\\\{matchID\\\\}/messages|/v1/social/channels/\\\\{channelID\\\\}/messages\"}[5m]))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "{{route}} {{status_class}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "Chat send p95",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 26
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum by (route, le) (rate(verified_dating_http_request_duration_seconds_bucket{service=\"mobile_bff\",method=\"POST\",route=~\"/v1/chat/\\\\{matchID\\\\}/messages|/v1/social/channels/\\\\{channelID\\\\}/messages\"}[5m])))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "{{route}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 14,
+      "type": "row",
+      "title": "Fan-out",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 34
+      },
+      "panels": []
+    },
+    {
+      "id": 15,
+      "type": "timeseries",
+      "title": "Activity fan-out queue",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 35
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "verified_dating_queue_depth{queue=\"activity_fanout\"}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "depth"
+        },
+        {
+          "refId": "B",
+          "expr": "verified_dating_queue_capacity{queue=\"activity_fanout\"}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "capacity"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 16,
+      "type": "timeseries",
+      "title": "Fan-out drops / s",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 35
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "rate(verified_dating_queue_dropped_total{queue=\"activity_fanout\"}[5m])",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "dropped"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 17,
+      "type": "row",
+      "title": "Logs",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 43
+      },
+      "panels": []
+    },
+    {
+      "id": 18,
+      "type": "logs",
+      "title": "Realtime warnings (Loki)",
+      "datasource": {
+        "type": "loki",
+        "uid": "verified-dating-loki"
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 44
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "{unit=\"connect-mobile-bff.service\"} | json | msg=~\".*realtime.*\"",
+          "datasource": {
+            "type": "loki",
+            "uid": "verified-dating-loki"
+          }
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "sortOrder": "Descending",
+        "enableLogDetails": true
+      }
+    }
+  ]
+}

@@ -145,7 +145,15 @@ void main() {
 
       expect(find.text('Preview your profile'), findsOneWidget);
       expect(find.text('This is how others will see you.'), findsOneWidget);
-      expect(find.text('Ananya Singh, 27'), findsOneWidget);
+      final now = DateTime.now();
+      final birthday = DateTime(1998, 6, 20);
+      final age =
+          now.year -
+          birthday.year -
+          (now.isBefore(DateTime(now.year, birthday.month, birthday.day))
+              ? 1
+              : 0);
+      expect(find.text('Ananya Singh, $age'), findsOneWidget);
       // Button may be off-screen in small viewport; check its existence.
       expect(
         find.text('Complete Profile', skipOffstage: false),
@@ -178,7 +186,10 @@ void main() {
         ProviderScope(
           overrides: [
             profileSetupNotifierProvider.overrideWith(
-              () => _FakeProfileSetupNotifier(_validDraft()),
+              () => _FakeProfileSetupNotifier(
+                _validDraft(),
+                buildDelay: const Duration(seconds: 1),
+              ),
             ),
           ],
           child: const MaterialApp(home: SetupPreviewScreen()),
@@ -189,6 +200,7 @@ void main() {
       // (If the notifier resolves instantly the test verifies that the
       // when(loading:…) branch is exercised at least on the initial frame.)
       expect(find.byType(CircularProgressIndicator), findsWidgets);
+      await tester.pump(const Duration(seconds: 1));
     });
 
     testWidgets('displays bio text in preview', (tester) async {

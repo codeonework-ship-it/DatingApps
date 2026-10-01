@@ -18,14 +18,20 @@ class DiscoveryProfile {
     required this.languageTags,
     required this.isVerified,
     required this.photoUrls,
+    this.publicAge,
     this.isSpotlight = false,
     this.spotlightTier,
     this.spotlightScore,
     this.spotlightReason,
+    this.reasons = const <String>[],
+    this.why,
+    this.sharedActivities = const <String>[],
+    this.availabilityOverlaps = false,
   });
   final String id;
   final String name;
-  final DateTime dateOfBirth;
+  final DateTime? dateOfBirth;
+  final int? publicAge;
   final String? bio;
   final String? additionalInfo;
   final String? profession;
@@ -43,7 +49,21 @@ class DiscoveryProfile {
   final double? spotlightScore;
   final String? spotlightReason;
 
-  int get age => dateOfBirth.age;
+  /// Explainability chips from the curated daily set catalogue
+  /// ("Shares your intent", "Verified & active", ...). Empty for a candidate
+  /// that is not in today's curated set.
+  final List<String> reasons;
+
+  /// One-line explanation shown under the chips; null when not curated.
+  final String? why;
+
+  /// Intersection of explicit dating preferences, supplied by the server.
+  final List<String> sharedActivities;
+  final bool availabilityOverlaps;
+
+  int? get age => publicAge ?? dateOfBirth?.age;
+
+  String get displayName => age == null ? name : '$name, $age';
 
   String get subtitle {
     final parts = <String>[];

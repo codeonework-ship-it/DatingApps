@@ -2,14 +2,15 @@ package gatewayhttp
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/httprate"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
@@ -46,6 +47,25 @@ func NewRouter(
 	}
 
 	proxy := httputil.NewSingleHostReverseProxy(target)
+	proxy.ModifyResponse = func(response *http.Response) error {
+		if response.StatusCode < http.StatusInternalServerError {
+			return nil
+		}
+		_ = response.Body.Close()
+		body := `{"success":false,"error":"The service is temporarily unavailable. Please try again.","error_code":"UPSTREAM_SERVICE_ERROR"}`
+		response.Body = io.NopCloser(strings.NewReader(body))
+		response.ContentLength = int64(len(body))
+		response.Header.Set("Content-Type", "application/json")
+		response.Header.Set("Content-Length", strconv.Itoa(len(body)))
+		response.Header.Set("Cache-Control", "no-store")
+		return nil
+	}
+	proxy.ErrorHandler = func(w http.ResponseWriter, _ *http.Request, _ error) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Cache-Control", "no-store")
+		w.WriteHeader(http.StatusBadGateway)
+		_, _ = w.Write([]byte(`{"success":false,"error":"The service is temporarily unavailable. Please try again.","error_code":"UPSTREAM_SERVICE_ERROR"}`))
+	}
 	originalDirector := proxy.Director
 	proxy.Director = func(req *http.Request) {
 		originalHost := strings.TrimSpace(req.Host)
@@ -69,11 +89,13 @@ func NewRouter(
 	}
 
 	r := chi.NewRouter()
+	r.Use(securityHeadersMiddleware(apiPrefix))
 	r.Use(observability.CorrelationIDMiddleware(log))
+	// Before shedding and rate limiting so 429s and recovered panics are counted.
+	r.Use(observability.RequestLoggingMiddleware(log, metrics, "api_gateway"))
 	r.Use(observability.GlobalExceptionMiddleware(log))
 	r.Use(observability.InflightSheddingMiddleware(log, "api_gateway", maxInFlight, retryAfterSec))
 	r.Use(httprate.LimitByIP(rateLimitRequests, rateLimitWindow))
-	r.Use(observability.RequestLoggingMiddleware(log, metrics, "api_gateway"))
 
 	r.Get("/healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -100,7 +122,6 @@ func NewRouter(
 	})
 
 	r.Handle("/metrics", promhttp.Handler())
-	r.Mount("/debug", middleware.Profiler())
 	r.Handle("/openapi.yaml", proxy)
 	r.Handle("/docs", proxy)
 	r.Handle("/docs/*", proxy)
@@ -108,4 +129,21 @@ func NewRouter(
 	r.Handle(apiPrefix, proxy)
 
 	return r, nil
+}
+
+func securityHeadersMiddleware(apiPrefix string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("X-Content-Type-Options", "nosniff")
+			w.Header().Set("X-Frame-Options", "DENY")
+			w.Header().Set("Referrer-Policy", "no-referrer")
+			w.Header().Set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), usb=()")
+			w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+			if r.URL.Path == apiPrefix || strings.HasPrefix(r.URL.Path, apiPrefix+"/") {
+				w.Header().Set("Cache-Control", "no-store")
+				w.Header().Set("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'")
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
 }

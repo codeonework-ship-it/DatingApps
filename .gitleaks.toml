@@ -1,0 +1,17 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Deterministic non-secret idempotency and experiment identifiers used by tests"
+regexTarget = "secret"
+regexes = [
+  '''^(?:wallet-buy-idem-[A-Za-z0-9-]+|idem-gesture-decision-[A-Za-z0-9-]+|rose-smoke-(?:free|paid)-[A-Za-z0-9-]+|xp_weighting_v1)$''',
+]
+
+[[allowlists]]
+description = "Product requirement prose misclassified as a generic key"
+regexTarget = "match"
+regexes = [
+  '''credential validation,''',
+  '''auth-age contracts,''',
+]

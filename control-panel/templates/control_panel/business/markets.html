@@ -1,0 +1,46 @@
+{% extends "control_panel/business/_layout.html" %}
+{% block business_title %}Market readiness{% endblock %}
+{% block business_heading %}Market &amp; city launch readiness{% endblock %}
+{% block business_lede %}City gates from the go-to-market strategy: verified members, gender balance among verified women and men, then plans kept per active member to go live. Targets are assumptions the owner sets below.{% endblock %}
+{% block business_body %}
+<div class="glass-card mb-4">
+  <div class="biz-note mb-2">Default gates: {{ defaults.verified_target }} verified · larger gender ≤ {{ defaults.max_gender_share }} · plans kept ≥ {{ defaults.plans_kept_target }} per active member per week · approaching from {{ defaults.approaching_share }} of target. Members without a city: {{ members_without_city }}.</div>
+  {% if rows %}
+  <div class="table-responsive"><table class="glass-table w-100">
+    <thead><tr><th>City</th><th>Status</th><th>Members</th><th>Verified</th><th>Target</th><th>Progress</th><th>Women / men (verified)</th><th>Largest share</th><th>Active 30d</th><th>New verified 30d</th><th>Growth</th><th>Days to target</th><th>Plans kept / active</th><th>Live gate</th></tr></thead>
+    <tbody>{% for r in rows %}
+      <tr>
+        <td>{{ r.city }}{% if r.configured %} <span class="biz-note">#{{ r.launch_order|default:"–" }} · {{ r.currency }}</span>{% endif %}</td>
+        <td><span class="biz-status {{ r.status }}">{{ r.status|cut:"_"|upper }}</span></td>
+        <td>{{ r.members }}</td><td>{{ r.verified_members }}</td><td>{{ r.verified_target }}</td><td>{{ r.verified_progress }}</td>
+        <td>{{ r.verified_women }} / {{ r.verified_men }}</td>
+        <td>{{ r.gender_share }}{% if r.gender_met %} <i class="bi bi-check2 text-success" title="gate met"></i>{% endif %}</td>
+        <td>{{ r.active_30d }}</td><td>{{ r.new_verified_30d }}</td><td>{{ r.verified_growth_30d|default:"—" }}</td><td>{{ r.projected_days_to_target|default:"—" }}</td>
+        <td>{{ r.plans_value|default:"—" }} / {{ r.plans_target }}</td><td>{{ r.live_gate_met|yesno:"met,—" }}</td>
+      </tr>{% endfor %}</tbody>
+  </table></div>
+  {% else %}<div class="empty-command-state">No members with a city yet.</div>{% endif %}
+</div>
+{% endblock %}
+{% block business_after %}
+<div class="glass-card mb-4 biz-noprint">
+  <h6>Add or update a launch market</h6>
+  <form method="post" action="{% url 'business_market_save' %}" class="row g-2 align-items-end">
+    {% csrf_token %}
+    <div class="col-6 col-md-2"><label class="form-label small text-muted">City key</label><input name="city_key" class="glass-input" required pattern="[a-z0-9][a-z0-9_-]{0,63}" placeholder="bengaluru"></div>
+    <div class="col-6 col-md-2"><label class="form-label small text-muted">Display name</label><input name="display_name" class="glass-input" required></div>
+    <div class="col-6 col-md-2"><label class="form-label small text-muted">Country</label><input name="country" class="glass-input" required></div>
+    <div class="col-6 col-md-1"><label class="form-label small text-muted">Currency</label><input name="currency" class="glass-input" required maxlength="3" placeholder="INR"></div>
+    <div class="col-6 col-md-1"><label class="form-label small text-muted">Order</label><input name="launch_order" type="number" min="1" class="glass-input"></div>
+    <div class="col-6 col-md-2"><label class="form-label small text-muted">Verified target</label><input name="verified_target" type="number" min="1" class="glass-input" value="3000"></div>
+    <div class="col-6 col-md-2"><label class="form-label small text-muted">Max gender share</label><input name="max_gender_share" type="number" step="0.01" min="0.51" max="1" class="glass-input" value="0.60"></div>
+    <div class="col-6 col-md-2"><label class="form-label small text-muted">Plans kept target</label><input name="plans_kept_target" type="number" step="0.01" min="0" class="glass-input" value="0.08"></div>
+    <div class="col-6 col-md-2"><label class="form-label small text-muted">Approaching from</label><input name="approaching_share" type="number" step="0.05" min="0.05" max="0.95" class="glass-input" value="0.5"></div>
+    <div class="col-12 col-md-4"><label class="form-label small text-muted">Aliases (comma separated)</label><input name="aliases" class="glass-input" placeholder="bangalore"></div>
+    <div class="col-12 col-md-4"><label class="form-label small text-muted">Notes</label><input name="notes" class="glass-input" maxlength="500"></div>
+    <div class="col-6 col-md-2"><label class="form-label small text-muted"><input type="checkbox" name="active" checked> Active</label></div>
+    <div class="col-6 col-md-2"><button class="btn btn-glow w-100">Save market</button></div>
+  </form>
+  <div class="biz-note mt-2">Finance, ops admin and admin can edit gates. Saving an existing city key replaces its gates.</div>
+</div>
+{% endblock %}

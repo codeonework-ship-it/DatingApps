@@ -10,32 +10,21 @@ import (
 
 	matchingdomain "github.com/verified-dating/backend/internal/modules/matching/domain"
 	"github.com/verified-dating/backend/internal/platform/config"
-	"github.com/verified-dating/backend/internal/platform/supabase"
 )
 
 var errUnauthorizedQuestAction = errors.New("unauthorized quest action")
 
 type questRepository struct {
 	cfg config.Config
-	db  *supabase.Client
+	db  repositoryDB
 }
 
-func newQuestRepository(cfg config.Config) *questRepository {
-	apiKey := strings.TrimSpace(cfg.SupabaseServiceRole)
-	if apiKey == "" {
-		apiKey = strings.TrimSpace(cfg.SupabaseAnonKey)
-	}
-	if strings.TrimSpace(cfg.SupabaseURL) == "" || apiKey == "" {
+func newQuestRepository(cfg config.Config, supplied ...repositoryDB) *questRepository {
+	db := repositoryDBFor(cfg, supplied)
+	if db == nil {
 		return nil
 	}
-	client := supabase.NewClient(
-		cfg.SupabaseURL,
-		cfg.SupabaseAnonKey,
-		cfg.SupabaseServiceRole,
-		time.Duration(cfg.SupabaseHTTPTimeoutSec)*time.Second,
-	)
-	client.SetReadBaseURL(cfg.SupabaseReadReplicaURL)
-	return &questRepository{cfg: cfg, db: client}
+	return &questRepository{cfg: cfg, db: db}
 }
 
 func (r *questRepository) getQuestTemplate(ctx context.Context, matchID string) (questTemplateRequirement, bool, error) {
@@ -574,7 +563,13 @@ func (r *questRepository) validateMatchParticipant(ctx context.Context, matchID,
 	}
 	params := url.Values{}
 	params.Set("id", "eq."+strings.TrimSpace(matchID))
-	params.Set("select", "userId1,userId2")
+	user1Column := "userId1"
+	user2Column := "userId2"
+	if r.cfg.UseLocalDB {
+		user1Column = "user_id_1"
+		user2Column = "user_id_2"
+	}
+	params.Set("select", user1Column+","+user2Column)
 	params.Set("limit", "1")
 	rows, err := r.db.SelectRead(ctx, r.questMatchSchema(), r.cfg.MatchesTable, params)
 	if err != nil {
@@ -583,8 +578,8 @@ func (r *questRepository) validateMatchParticipant(ctx context.Context, matchID,
 	if len(rows) == 0 {
 		return errUnauthorizedQuestAction
 	}
-	userID1 := asString(rows[0], "userId1", "userid1")
-	userID2 := asString(rows[0], "userId2", "userid2")
+	userID1 := asString(rows[0], "user_id_1", "userId1", "userid1")
+	userID2 := asString(rows[0], "user_id_2", "userId2", "userid2")
 	if userID != userID1 && userID != userID2 {
 		return errUnauthorizedQuestAction
 	}

@@ -42,9 +42,27 @@ type PatchProfileDraftCommand struct {
 }
 
 type AddProfilePhotoCommand struct {
-	UserID      string
-	PhotoURL    string
-	StoragePath string
+	UserID string
+	Photo  ProfilePhotoUploadInput
+}
+
+type ProfilePhotoUploadInput struct {
+	ID                     string
+	PhotoURL               string
+	StoragePath            string
+	OriginalFilename       string
+	MimeType               string
+	WidthPx                int
+	HeightPx               int
+	SizeBytes              int64
+	ContentSHA256          string
+	ModerationStatus       string
+	ModerationProvider     string
+	ModerationModelVersion string
+	ModerationReason       string
+	ModerationLabelsJSON   []byte
+	ModerationConfidence   float32
+	ModerationDurationMS   int64
 }
 
 type DeleteProfilePhotoCommand struct {

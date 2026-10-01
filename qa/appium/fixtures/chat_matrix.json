@@ -1,0 +1,11 @@
+[
+  {
+    "name": "matches-visible",
+    "kind": "matches",
+    "min_matches": 1
+  },
+  {
+    "name": "message-list-visible-or-locked",
+    "kind": "message_list"
+  }
+]

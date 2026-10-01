@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
@@ -48,7 +49,8 @@ func main() {
 	}
 
 	reg := prometheus.DefaultRegisterer
-	httpMetrics := observability.NewHTTPMetrics(reg)
+	httpMetrics := observability.NewGatewayMetrics(reg)
+	observability.RegisterProcessMetrics(reg, "api-gateway")
 
 	router, err := gatewayhttp.NewRouter(
 		log,
@@ -69,6 +71,8 @@ func main() {
 		Addr:              cfg.APIGatewayAddr,
 		Handler:           router,
 		ReadHeaderTimeout: cfg.APIGatewayReadHeaderTimeout(),
+		IdleTimeout:       120 * time.Second,
+		MaxHeaderBytes:    1 << 20,
 	}
 
 	go func() {

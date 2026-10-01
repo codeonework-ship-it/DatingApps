@@ -6,7 +6,6 @@ import '../../../core/config/feature_flags.dart';
 import '../../../core/providers/api_client_provider.dart';
 import '../../../core/utils/logger.dart';
 import '../../auth/providers/auth_provider.dart';
-import '../../profile/providers/profile_setup_provider.dart';
 
 part 'match_provider.g.dart';
 
@@ -105,53 +104,8 @@ class MatchNotifier extends _$MatchNotifier {
       }
 
       final dio = ref.read(apiClientProvider);
-      final queryParameters = <String, dynamic>{};
-      final draftValue = ref.read(profileSetupNotifierProvider);
-      final draft = draftValue.valueOrNull;
-      if (draft != null) {
-        if (draft.intentTags.isNotEmpty) {
-          queryParameters['intent_tags'] = draft.intentTags.join(',');
-        }
-        if (draft.languageTags.isNotEmpty) {
-          queryParameters['language_tags'] = draft.languageTags.join(',');
-        }
-        if ((draft.petPreference ?? '').trim().isNotEmpty) {
-          queryParameters['pet_preference'] = draft.petPreference;
-        }
-        if ((draft.workoutFrequency ?? '').trim().isNotEmpty) {
-          queryParameters['workout_frequency'] = draft.workoutFrequency;
-        }
-        if ((draft.dietType ?? '').trim().isNotEmpty) {
-          queryParameters['diet_type'] = draft.dietType;
-        }
-        if ((draft.sleepSchedule ?? '').trim().isNotEmpty) {
-          queryParameters['sleep_schedule'] = draft.sleepSchedule;
-        }
-        if ((draft.travelStyle ?? '').trim().isNotEmpty) {
-          queryParameters['travel_style'] = draft.travelStyle;
-        }
-        if ((draft.politicalComfortRange ?? '').trim().isNotEmpty) {
-          queryParameters['political_comfort_range'] =
-              draft.politicalComfortRange;
-        }
-        if (draft.dealBreakerTags.isNotEmpty) {
-          queryParameters['deal_breaker_tags'] = draft.dealBreakerTags.join(
-            ',',
-          );
-        }
-        if ((draft.country ?? '').trim().isNotEmpty) {
-          queryParameters['country'] = draft.country;
-        }
-        if ((draft.regionState ?? '').trim().isNotEmpty) {
-          queryParameters['state'] = draft.regionState;
-        }
-        if ((draft.city ?? '').trim().isNotEmpty) {
-          queryParameters['city'] = draft.city;
-        }
-      }
       final response = await dio.get<Map<String, dynamic>>(
         '/matches/$currentUserId',
-        queryParameters: queryParameters,
       );
       final body =
           (response.data as Map?)?.cast<String, dynamic>() ??

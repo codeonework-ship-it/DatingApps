@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:verified_dating_app/core/theme/app_theme.dart';
+import 'package:verified_dating_app/core/i18n/app_locale_provider.dart';
 import 'package:verified_dating_app/features/auth/providers/auth_provider.dart';
+import 'package:verified_dating_app/features/common/providers/app_theme_provider.dart';
 import 'package:verified_dating_app/main.dart';
 
 // ---------------------------------------------------------------------------
@@ -30,6 +31,9 @@ void main() {
         await tester.pumpWidget(
           ProviderScope(
             overrides: [
+              appThemeProvider.overrideWith(_pinnedTheme),
+              appLocaleProvider.overrideWith(_pinnedLocale),
+              appThemeProvider.overrideWith(_pinnedTheme),
               authNotifierProvider.overrideWith(
                 () => _FakeAuthNotifier(isAuthenticated: true),
               ),
@@ -53,6 +57,8 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            appThemeProvider.overrideWith(_pinnedTheme),
+            appLocaleProvider.overrideWith(_pinnedLocale),
             authNotifierProvider.overrideWith(
               () => _FakeAuthNotifier(isAuthenticated: false),
             ),
@@ -68,15 +74,17 @@ void main() {
     });
 
     // -----------------------------------------------------------------------
-    // 3. Verify the Crystal Gold themed gradient is present in the gate
-    //    loading screen (bgGradient background instead of bare white).
+    // 3. The gate loading screen sits on the theme's ground, like Today and
+    //    every other screen, never a bare white page.
     // -----------------------------------------------------------------------
-    testWidgets('gate loading uses Crystal Gold bgGradient (not white)', (
+    testWidgets('gate loading uses the theme ground (not white)', (
       tester,
     ) async {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            appThemeProvider.overrideWith(_pinnedTheme),
+            appLocaleProvider.overrideWith(_pinnedLocale),
             authNotifierProvider.overrideWith(
               () => _FakeAuthNotifier(isAuthenticated: true),
             ),
@@ -86,24 +94,28 @@ void main() {
       );
       await tester.pump();
 
-      // The loading screen's Container should have the bgGradient decoration.
-      final containerFinder = find.byWidgetPredicate(
-        (w) =>
-            w is Container &&
-            w.decoration is BoxDecoration &&
-            (w.decoration! as BoxDecoration).gradient == AppTheme.bgGradient,
+      final spinner = find.byType(CircularProgressIndicator);
+      final theme = Theme.of(tester.element(spinner));
+      final scaffold = tester.widget<Scaffold>(
+        find.ancestor(of: spinner, matching: find.byType(Scaffold)).first,
       );
-      expect(containerFinder, findsOneWidget);
+      expect(
+        scaffold.backgroundColor ?? theme.scaffoldBackgroundColor,
+        theme.scaffoldBackgroundColor,
+      );
+      expect(theme.scaffoldBackgroundColor, isNot(const Color(0xFFFFFFFF)));
     });
 
     // -----------------------------------------------------------------------
-    // 4. The loading screen should show a gold-colored spinner, not the
+    // 4. The loading spinner uses the theme's primary colour, not the
     //    default blue MaterialApp spinner.
     // -----------------------------------------------------------------------
-    testWidgets('gate loading has crystalGoldSoft spinner', (tester) async {
+    testWidgets('gate loading spinner uses the theme primary', (tester) async {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            appThemeProvider.overrideWith(_pinnedTheme),
+            appLocaleProvider.overrideWith(_pinnedLocale),
             authNotifierProvider.overrideWith(
               () => _FakeAuthNotifier(isAuthenticated: true),
             ),
@@ -121,7 +133,10 @@ void main() {
       );
       final color =
           (indicator.valueColor as AlwaysStoppedAnimation<Color>?)?.value;
-      expect(color, AppTheme.crystalGoldSoft);
+      final primary = Theme.of(
+        tester.element(indicatorFinder),
+      ).colorScheme.primary;
+      expect(color, primary);
     });
 
     // -----------------------------------------------------------------------
@@ -131,6 +146,8 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            appThemeProvider.overrideWith(_pinnedTheme),
+            appLocaleProvider.overrideWith(_pinnedLocale),
             authNotifierProvider.overrideWith(
               () => _FakeAuthNotifier(isAuthenticated: true),
             ),
@@ -151,6 +168,8 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            appThemeProvider.overrideWith(_pinnedTheme),
+            appLocaleProvider.overrideWith(_pinnedLocale),
             authNotifierProvider.overrideWith(
               () => _FakeAuthNotifier(isAuthenticated: true),
             ),
@@ -176,7 +195,33 @@ class _FakeAuthNotifier extends AuthNotifier {
   @override
   AuthState build() => AuthState(
     isAuthenticated: isAuthenticated,
+    isNewAccount: isAuthenticated,
     userId: isAuthenticated ? 'user-1' : null,
-    phoneNumber: isAuthenticated ? '+919999999999' : null,
+    username: isAuthenticated ? 'test_user' : null,
   );
+}
+
+/// The gate asks for the account's stored theme once authenticated. These
+/// tests exercise navigation, not theming, and stub no HTTP layer — without
+/// this the settings request stays in flight and the test fails on a pending
+/// timer rather than on anything it set out to check.
+AppThemeNotifier _pinnedTheme(Ref ref) => _PinnedThemeNotifier(ref);
+
+class _PinnedThemeNotifier extends AppThemeNotifier {
+  _PinnedThemeNotifier(super.ref);
+
+  @override
+  Future<void> ensureLoaded() async {}
+}
+
+/// Same reason as [_pinnedTheme]: the gate also asks for the account's stored
+/// language, which would otherwise leave a settings request (and its timer)
+/// in flight.
+AppLocaleNotifier _pinnedLocale(Ref ref) => _PinnedLocaleNotifier(ref);
+
+class _PinnedLocaleNotifier extends AppLocaleNotifier {
+  _PinnedLocaleNotifier(super.ref);
+
+  @override
+  Future<void> ensureLoaded() async {}
 }

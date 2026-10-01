@@ -1,155 +1,208 @@
 {% extends "control_panel/base.html" %}
-{% block topbar_title %}Dashboard{% endblock %}
+{% block topbar_title %}Command Center{% endblock %}
 
 {% block content %}
-<div class="page-header">
+<section class="command-hero mb-4">
   <div>
-    <h1><i class="bi bi-speedometer2 header-icon"></i> Overview Dashboard</h1>
-    <p class="text-muted mb-0">Live platform health and key metrics</p>
+    <div class="eyebrow"><span class="live-pulse"></span> Operations command center</div>
+    <h1>Every critical signal, one decision surface.</h1>
+    <p>Live platform state, safety queues, product health and immutable operator actions. Snapshot {{ snapshot_at|date:"M d, H:i:s" }} UTC.</p>
   </div>
-  <form method="get" class="d-flex gap-2">
-    <input type="text" name="user_id" value="{{ focus_user_id }}" class="glass-input" style="width:280px;" placeholder="Filter by User ID…">
-    <button type="submit" class="btn btn-glow"><i class="bi bi-search me-1"></i>Focus</button>
-    {% if focus_user_id %}<a href="{% url 'dashboard' %}" class="btn btn-glass">Clear</a>{% endif %}
-  </form>
-</div>
+  <div class="command-actions">
+    <form method="get" class="d-flex flex-wrap gap-2 align-items-end">
+      <input type="text" name="user_id" value="{{ focus_user_id }}" class="glass-input" style="width:240px" placeholder="Focus user ID">
+      <select name="refresh" class="glass-select" aria-label="Auto refresh interval">
+        <option value="0" {% if refresh_seconds == 0 %}selected{% endif %}>Manual refresh</option>
+        <option value="15" {% if refresh_seconds == 15 %}selected{% endif %}>Every 15 sec</option>
+        <option value="30" {% if refresh_seconds == 30 %}selected{% endif %}>Every 30 sec</option>
+        <option value="60" {% if refresh_seconds == 60 %}selected{% endif %}>Every minute</option>
+        <option value="120" {% if refresh_seconds == 120 %}selected{% endif %}>Every 2 min</option>
+      </select>
+      <button type="submit" class="btn btn-glow"><i class="bi bi-arrow-clockwise me-1"></i>Refresh</button>
+    </form>
+  </div>
+</section>
 
-<!-- System Health -->
-<div class="row g-3 mb-4">
-  <div class="col-sm-6 col-lg-3">
-    <div class="kpi-card {% if health.status == 'ok' %}kpi-green{% else %}kpi-red{% endif %}">
-      <div class="kpi-label"><i class="bi bi-heart-pulse-fill me-1"></i>Gateway Health</div>
-      <div class="kpi-value">{{ health.status|upper|default:"—" }}</div>
-      {% if health_error %}<div class="text-danger small mt-1">{{ health_error }}</div>{% endif %}
-    </div>
-  </div>
-  <div class="col-sm-6 col-lg-3">
-    <div class="kpi-card {% if readiness.status == 'ready' %}kpi-green{% else %}kpi-red{% endif %}">
-      <div class="kpi-label"><i class="bi bi-check2-circle me-1"></i>Readiness</div>
-      <div class="kpi-value">{{ readiness.status|upper|default:"—" }}</div>
-    </div>
-  </div>
-  <div class="col-sm-6 col-lg-3">
-    <div class="kpi-card kpi-purple">
-      <div class="kpi-label"><i class="bi bi-person-check me-1"></i>Pending Verifications</div>
-      <div class="kpi-value">{{ pending_verifications|length }}</div>
-    </div>
-  </div>
-  <div class="col-sm-6 col-lg-3">
-    <div class="kpi-card kpi-aqua">
-      <div class="kpi-label"><i class="bi bi-activity me-1"></i>Recent Activities</div>
-      <div class="kpi-value">{{ activities|length }}</div>
-    </div>
-  </div>
-</div>
-
-<!-- Spotlight Metrics -->
-{% if spotlight_metrics %}
-<div class="row g-3 mb-4">
-  {% for key, value in spotlight_metrics.items %}
-  <div class="col-6 col-md-3">
-    <div class="kpi-card kpi-gold">
-      <div class="kpi-label">{{ key|title }}</div>
-      <div class="kpi-value">{{ value }}</div>
-    </div>
-  </div>
-  {% endfor %}
+{% if analytics_error or activity_error or audit_error or event_error %}
+<div class="alert-glass warning mb-4">
+  <i class="bi bi-exclamation-triangle-fill"></i>
+  Some sources are unavailable. Available signals remain visible and missing values are marked unavailable.
 </div>
 {% endif %}
 
-<!-- Main Panels -->
+<div class="system-strip mb-4">
+  <div class="system-state">
+    <span class="status-orb {% if health.status == 'ok' %}good{% else %}bad{% endif %}"></span>
+    <div><strong>API health</strong><small>{{ health.status|default:"unreachable"|upper }}</small></div>
+  </div>
+  <div class="system-state">
+    <span class="status-orb {% if readiness.status == 'ready' %}good{% else %}bad{% endif %}"></span>
+    <div><strong>Database readiness</strong><small>{{ readiness.status|default:"unreachable"|upper }}</small></div>
+  </div>
+  <div class="system-state">
+    <span class="status-orb {% if audit_error %}bad{% else %}good{% endif %}"></span>
+    <div><strong>Operator audit</strong><small>{% if audit_error %}UNAVAILABLE{% else %}APPEND-ONLY{% endif %}</small></div>
+  </div>
+  <div class="system-state">
+    <span class="status-orb {% if event_pipeline.coverage_complete %}good{% else %}bad{% endif %}"></span>
+    <div><strong>Event architecture</strong><small>{% if event_pipeline.coverage_complete %}{{ event_pipeline.registered_sources }} SOURCES{% else %}COVERAGE GAP{% endif %}</small></div>
+  </div>
+</div>
+
+<div class="glass-card mt-4 mb-4">
+  <div class="section-heading compact">
+    <div><span class="eyebrow">Event backbone</span><h2>Canonical domain stream</h2></div>
+    <a href="{% url 'domain_events' %}" class="btn btn-glass btn-sm">Explore events</a>
+  </div>
+  <div class="row g-3 mb-3">
+    <div class="col-6 col-lg-3"><div class="signal-card"><span>Events · 15m</span><strong>{{ event_pipeline.events_15m|default_if_none:"—" }}</strong><small>Transactional publications</small></div></div>
+    <div class="col-6 col-lg-3"><div class="signal-card"><span>Registered sources</span><strong>{{ event_pipeline.registered_sources|default_if_none:"—" }}</strong><small>{{ event_pipeline.unregistered_sources|default_if_none:"—" }} uncovered</small></div></div>
+    <div class="col-6 col-lg-3"><div class="signal-card"><span>Pending delivery</span><strong>{{ event_pipeline.pending_deliveries|default_if_none:"—" }}</strong><small>At-least-once consumers</small></div></div>
+    <div class="col-6 col-lg-3"><div class="signal-card"><span>Dead letters</span><strong>{{ event_pipeline.dead_letters|default_if_none:"—" }}</strong><small>Requires operator action</small></div></div>
+  </div>
+  {% if domain_events %}
+  <div class="timeline-list">
+    {% for item in domain_events|slice:":5" %}
+    <div class="timeline-row">
+      <span class="timeline-dot"></span>
+      <div><strong>{{ item.event_name }}</strong><small>{{ item.aggregate_type }} · {{ item.aggregate_id|truncatechars:28 }}</small></div>
+      <span class="font-monospace text-muted small">#{{ item.sequence_id }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}<div class="empty-command-state">{% if event_error %}Event pipeline unavailable: {{ event_error }}{% else %}Waiting for the next committed state change.{% endif %}</div>{% endif %}
+</div>
+
+<div class="section-heading">
+  <div><span class="eyebrow">Platform snapshot</span><h2>Member and risk posture</h2></div>
+  <span class="definition-note">Each metric states its source and window.</span>
+</div>
+<div class="metric-grid mb-5">
+  {% for metric in headline_metrics %}
+  <article class="metric-tile {% if not metric.available %}unavailable{% endif %}">
+    <div class="metric-top"><span>{{ metric.label }}</span><i class="bi {% if metric.available %}bi-activity{% else %}bi-dash-circle{% endif %}"></i></div>
+    <div class="metric-number">{% if metric.available %}{{ metric.value|default_if_none:"—" }}{% else %}—{% endif %}</div>
+    <div class="metric-unit">{{ metric.unit }}</div>
+    <div class="metric-meta"><strong>{{ metric.window }}</strong><span>{{ metric.source }}</span></div>
+  </article>
+  {% endfor %}
+</div>
+
+<div class="section-heading">
+  <div><span class="eyebrow">Response queues</span><h2>SLA watch</h2></div>
+  <span class="definition-note">SOS 5m · reports/verifications/media 24h · appeals 48h</span>
+</div>
+<div class="queue-grid mb-5">
+  {% for queue in queue_cards %}
+  <a href="{% url queue.url_name %}" class="queue-card {{ queue.tone }}">
+    <div class="queue-count">{{ queue.count }}</div>
+    <div class="queue-name">{{ queue.label }}</div>
+    <div class="queue-meta">
+      <span>{{ queue.overdue }} overdue</span>
+      <span>Oldest {{ queue.oldest_minutes }}m</span>
+      <span>Target {{ queue.target }}</span>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+
+<div class="row g-4 mb-5">
+  <div class="col-12 col-xxl-7">
+    <div class="glass-card h-100">
+      <div class="section-heading compact">
+        <div><span class="eyebrow">Product KPIs · durable snapshots</span><h2>North star and engagement</h2></div><a href="{% url 'analytics_overview' %}" class="btn btn-glass btn-sm">Open analytics</a>
+      </div>
+      <div class="row g-3">
+        {% for metric in product_metrics %}
+        <div class="col-sm-6">
+          <div class="signal-card">
+            <div class="d-flex justify-content-between"><span>{{ metric.label }}</span><i class="bi bi-graph-up"></i></div>
+            <strong>{{ metric.value|default_if_none:"—" }}{{ metric.unit }}</strong>
+            <small>{{ metric.definition }}</small>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% if data_quality_checks %}
+      <div class="quality-band mt-3">
+        <i class="bi bi-check2-shield"></i>
+        <div><strong>Telemetry quality contract</strong><span>{{ data_quality_checks }}</span></div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-12 col-xxl-5">
+    <div class="glass-card h-100">
+      <div class="section-heading compact">
+        <div><span class="eyebrow">Release posture</span><h2>Operator readiness</h2></div>
+      </div>
+      <div class="readiness-list">
+        {% for item in readiness_controls %}
+        <div class="readiness-row">
+          <span class="readiness-icon {{ item.status }}"><i class="bi {% if item.status == 'implemented' %}bi-check-lg{% elif item.status == 'deployment_gate' %}bi-hourglass-split{% else %}bi-exclamation-lg{% endif %}"></i></span>
+          <div><strong>{{ item.label }}</strong><small>{{ item.detail }}</small></div>
+          <span class="readiness-status">{{ item.status|cut:"_"|title }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="row g-4">
-  <div class="col-xl-6">
-    <div class="glass-card">
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <h6 class="mb-0" style="color:var(--gold);"><i class="bi bi-person-badge me-2"></i>Pending Verifications</h6>
-        <a href="{% url 'verification_queue' %}" class="btn btn-glass btn-sm">View All</a>
+  <div class="col-12 col-xl-6">
+    <div class="glass-card h-100">
+      <div class="section-heading compact">
+        <div><span class="eyebrow">Member events</span><h2>Recent platform activity</h2></div>
+        <a href="{% url 'activity_feed' %}" class="btn btn-glass btn-sm">Explore feed</a>
       </div>
-      {% if verification_error %}<div class="alert-glass alert-glass-warning">{{ verification_error }}</div>{% endif %}
-      {% if pending_verifications %}
-      <div class="table-responsive">
-        <table class="glass-table">
-          <thead><tr><th>User ID</th><th>Status</th><th>Submitted</th><th>Actions</th></tr></thead>
-          <tbody>
-            {% for v in pending_verifications %}
-            <tr>
-              <td class="font-monospace small">{{ v.user_id|slice:":10" }}…</td>
-              <td><span class="badge badge-warning">{{ v.status }}</span></td>
-              <td class="text-muted small">{{ v.submitted_at|date:"M d"|default:"—" }}</td>
-              <td>
-                <div class="d-flex gap-1">
-                  <form method="post" action="{% url 'approve_verification' v.user_id %}">{% csrf_token %}
-                    <button class="btn btn-success-glass btn-sm" title="Approve"><i class="bi bi-check"></i></button>
-                  </form>
-                  <button class="btn btn-danger-glass btn-sm" data-bs-toggle="collapse"
-                    data-bs-target="#rej-{{ v.user_id|slice:':6' }}" title="Reject"><i class="bi bi-x"></i></button>
-                </div>
-                <div id="rej-{{ v.user_id|slice:':6' }}" class="collapse mt-2">
-                  <form method="post" action="{% url 'reject_verification' v.user_id %}" class="d-flex gap-1">
-                    {% csrf_token %}
-                    <input name="rejection_reason" class="glass-input" placeholder="Reason…" required>
-                    <button class="btn btn-danger-glass btn-sm">Go</button>
-                  </form>
-                </div>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      {% else %}
-      <p class="text-muted text-center py-4">No pending verifications 🎉</p>
-      {% endif %}
-    </div>
-  </div>
-
-  <div class="col-xl-6">
-    <div class="glass-card">
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <h6 class="mb-0" style="color:var(--gold);"><i class="bi bi-activity me-2"></i>Recent Activity</h6>
-        <a href="{% url 'activity_feed' %}" class="btn btn-glass btn-sm">View All</a>
-      </div>
-      {% if activity_error %}<div class="alert-glass alert-glass-warning">{{ activity_error }}</div>{% endif %}
       {% if activities %}
-      <div class="table-responsive">
-        <table class="glass-table">
-          <thead><tr><th>Event</th><th>User</th><th>Time</th></tr></thead>
-          <tbody>
-            {% for act in activities %}
-            <tr>
-              <td><span class="badge badge-purple">{{ act.event_type|default:"event" }}</span></td>
-              <td class="font-monospace small text-muted">{{ act.user_id|slice:":8" }}…</td>
-              <td class="text-muted small">{{ act.occurred_at|date:"M d H:i"|default:"—" }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+      <div class="timeline-list">
+        {% for item in activities|slice:":8" %}
+        <div class="timeline-row">
+          <span class="timeline-dot"></span>
+          <div><strong>{% firstof item.action item.event_type "Platform event" %}</strong><small>{{ item.user_id|default:"system" }} · {% firstof item.created_at item.occurred_at "time unavailable" %}</small></div>
+          <span class="badge {% if item.status == 'success' or item.status == 'ok' %}badge-active{% elif item.status == 'error' or item.status == 'failed' %}badge-danger{% else %}badge-inactive{% endif %}">{{ item.status|default:"event" }}</span>
+        </div>
+        {% endfor %}
       </div>
-      {% else %}
-      <p class="text-muted text-center py-4">No recent activity.</p>
-      {% endif %}
+      {% else %}<div class="empty-command-state">No recent product activity was returned.</div>{% endif %}
+    </div>
+  </div>
+  <div class="col-12 col-xl-6">
+    <div class="glass-card h-100">
+      <div class="section-heading compact">
+        <div><span class="eyebrow">Accountability</span><h2>Recent operator actions</h2></div>
+        <a href="{% url 'audit_log' %}" class="btn btn-glass btn-sm">Open audit log</a>
+      </div>
+      {% if audit_events %}
+      <div class="timeline-list">
+        {% for item in audit_events|slice:":8" %}
+        <div class="timeline-row">
+          <span class="timeline-dot audit"></span>
+          <div><strong>{{ item.event_type }}</strong><small>{{ item.actor_role }} · {{ item.resource_type }}{% if item.resource_id %}/{{ item.resource_id }}{% endif %}</small></div>
+          <span class="font-monospace text-muted small">#{{ item.id }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}<div class="empty-command-state">{% if audit_error %}Audit source unavailable: {{ audit_error }}{% else %}No operator mutations recorded.{% endif %}</div>{% endif %}
     </div>
   </div>
 </div>
 
-<!-- Kibana -->
-<div class="glass-card mt-4">
-  <h6 class="mb-3" style="color:rgba(255,255,255,0.6);"><i class="bi bi-graph-up me-2"></i>Observability</h6>
-  <div class="d-flex flex-wrap gap-3">
-    <a href="{{ kibana_discover_url }}" target="_blank" class="btn btn-glass">
-      <i class="bi bi-search me-2"></i>Kibana Discover
-    </a>
-    <a href="{{ kibana_dashboard_url }}" target="_blank" class="btn btn-glass">
-      <i class="bi bi-bar-chart-line me-2"></i>Kibana Dashboard
-    </a>
+<div class="glass-card mt-4 observability-bar">
+  <div><span class="eyebrow">Deep diagnostics</span><h2>Observability workspace</h2><p>Use the focused user context to continue from this command center into retained logs.</p></div>
+  <div class="d-flex flex-wrap gap-2">
+    <a href="{{ kibana_discover_url }}" target="_blank" rel="noopener" class="btn btn-glass"><i class="bi bi-search me-2"></i>{{ observability_links.logs_label|default:"Kibana Discover" }}</a>
+    <a href="{{ kibana_dashboard_url }}" target="_blank" rel="noopener" class="btn btn-glass"><i class="bi bi-bar-chart-line me-2"></i>{{ observability_links.dashboards_label|default:"Dashboards" }}</a>
   </div>
 </div>
-
-<!-- deprecated content below kept for reference then removed -->
-{% comment %}
-<section class="grid two">
-    <article class="card">
-        <h2>Health</h2>
-{% endcomment %}
 {% endblock %}
 
+{% block extra_js %}
+{% if refresh_seconds %}
+<script>
+  window.setTimeout(() => window.location.reload(), {{ refresh_seconds }} * 1000);
+</script>
+{% endif %}
+{% endblock %}

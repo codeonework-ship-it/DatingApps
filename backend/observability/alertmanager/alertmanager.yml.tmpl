@@ -1,0 +1,108 @@
+# Alertmanager configuration template for Connect.
+#
+# Render with backend/observability/alertmanager/render_config.sh (the deploy
+# kit runs it from deploy/monitoring/install_monitoring.sh). Secrets come from
+# /etc/connect-monitoring/alertmanager.env (root:alertmanager 0640) and never
+# live in git. Lines between "#@IF VAR" and "#@END" are kept only when VAR is
+# set, so an unconfigured channel never produces an invalid receiver.
+#
+# Routing:
+#   severity=page   -> oncall-page      (PagerDuty Events v2 / any webhook pager + Slack page channel)
+#   severity=ticket -> engineering-ticket (Slack ticket channel + email + optional webhook)
+#   severity=none   -> deadmans-switch  (VerifiedDatingWatchdog heartbeat)
+global:
+  resolve_timeout: 5m
+#@IF ALERT_SMTP_SMARTHOST
+  smtp_smarthost: ${ALERT_SMTP_SMARTHOST}
+  smtp_from: ${ALERT_SMTP_FROM}
+  smtp_auth_username: ${ALERT_SMTP_USERNAME}
+  smtp_auth_password: ${ALERT_SMTP_PASSWORD}
+  smtp_require_tls: true
+#@END
+
+templates:
+  - ${ALERTMANAGER_TEMPLATES_DIR}/connect.tmpl
+
+route:
+  receiver: engineering-ticket
+  group_by: [alertname, job, service, route, worker, pool]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  routes:
+    - matchers: [alertname="VerifiedDatingWatchdog"]
+      receiver: deadmans-switch
+      group_wait: 0s
+      group_interval: 1m
+      repeat_interval: 1m
+    - matchers: [severity="page"]
+      receiver: oncall-page
+      repeat_interval: 30m
+    - matchers: [severity="ticket"]
+      receiver: engineering-ticket
+      repeat_interval: 12h
+
+receivers:
+  - name: oncall-page
+#@IF PAGERDUTY_ROUTING_KEY
+    pagerduty_configs:
+      - routing_key: ${PAGERDUTY_ROUTING_KEY}
+        send_resolved: true
+        severity: critical
+        description: '{{ template "connect.title" . }}'
+        links:
+          - href: '${RUNBOOK_BASE_URL}{{ (index .Alerts 0).Annotations.runbook_url }}'
+            text: Runbook
+#@END
+    webhook_configs:
+      - url: ${ALERTMANAGER_PAGE_WEBHOOK_URL}
+        send_resolved: true
+        max_alerts: 20
+#@IF SLACK_WEBHOOK_URL
+    slack_configs:
+      - api_url: ${SLACK_WEBHOOK_URL}
+        channel: '${SLACK_PAGE_CHANNEL}'
+        send_resolved: true
+        title: '{{ template "connect.title" . }}'
+        text: '{{ template "connect.text" . }}'
+#@END
+
+  - name: engineering-ticket
+    webhook_configs:
+      - url: ${ALERTMANAGER_TICKET_WEBHOOK_URL}
+        send_resolved: true
+        max_alerts: 20
+#@IF SLACK_WEBHOOK_URL
+    slack_configs:
+      - api_url: ${SLACK_WEBHOOK_URL}
+        channel: '${SLACK_TICKET_CHANNEL}'
+        send_resolved: true
+        title: '{{ template "connect.title" . }}'
+        text: '{{ template "connect.text" . }}'
+#@END
+#@IF ALERT_EMAIL_TO
+    email_configs:
+      - to: ${ALERT_EMAIL_TO}
+        send_resolved: true
+        headers:
+          Subject: '{{ template "connect.title" . }}'
+        text: '{{ template "connect.text" . }}'
+#@END
+
+  - name: deadmans-switch
+#@IF DEADMANS_SWITCH_URL
+    webhook_configs:
+      - url: ${DEADMANS_SWITCH_URL}
+        send_resolved: false
+#@END
+
+inhibit_rules:
+  - source_matchers: [severity="page"]
+    target_matchers: [severity="ticket"]
+    equal: [alertname, job, service]
+  # When PostgreSQL is down every pool, worker and route alert is a symptom.
+  - source_matchers: [alertname="VerifiedDatingPostgresDown"]
+    target_matchers: [alertname=~"VerifiedDatingPostgresPoolSaturation|VerifiedDatingPostgresPoolWaiting|VerifiedDatingWorkerStale|VerifiedDatingWorkerErrorRateHigh|VerifiedDatingRouteErrorBudget.*|VerifiedDatingHTTPErrorBudgetBurn"]
+  # A BFF that is not scraped makes its own gauges look absent or stale.
+  - source_matchers: [alertname="VerifiedDatingTargetDown", job="connect-mobile-bff"]
+    target_matchers: [alertname=~"VerifiedDatingSOSGaugesMissing|VerifiedDatingCriticalWorkerStale|VerifiedDatingWorkerStale"]

@@ -1,0 +1,25 @@
+# Writes media/database disk usage for node_exporter's textfile collector.
+# Runs as root only to read the 0700 media areas; it cannot write anywhere
+# except the textfile directory and has no network access.
+[Unit]
+Description=Connect monitoring - media and database disk usage report
+After=local-fs.target
+
+[Service]
+Type=oneshot
+Nice=15
+IOSchedulingClass=idle
+ExecStart=/opt/connect-monitoring/bin/connect-disk-usage.sh --media-root /var/lib/connect/media --postgres-dir /var/lib/postgresql --out /var/lib/node_exporter/textfile/connect_disk.prom
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/var/lib/node_exporter/textfile
+ProtectHome=yes
+PrivateTmp=yes
+PrivateNetwork=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+CapabilityBoundingSet=CAP_DAC_READ_SEARCH
+RestrictAddressFamilies=AF_UNIX
+SystemCallArchitectures=native

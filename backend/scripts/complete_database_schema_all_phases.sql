@@ -32,7 +32,9 @@ SET search_path TO public, user_management, matching, safety, monetization, admi
 
 CREATE TABLE user_management.users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  phoneNumber TEXT UNIQUE NOT NULL,
+  username TEXT UNIQUE NOT NULL DEFAULT ('user_' || SUBSTRING(REPLACE(gen_random_uuid()::TEXT, '-', '') FROM 1 FOR 20))
+    CHECK (username ~ '^[a-z0-9]([a-z0-9._]{1,28}[a-z0-9])?$'),
+  phoneNumber TEXT UNIQUE,
   name TEXT NOT NULL,
   dateOfBirth DATE NOT NULL,
   gender TEXT NOT NULL CHECK (gender IN ('M', 'F', 'Other')),
@@ -55,6 +57,23 @@ CREATE TABLE user_management.users (
   updatedAt TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE UNIQUE INDEX idx_users_username ON user_management.users(LOWER(username));
+
+CREATE OR REPLACE FUNCTION user_management.prevent_username_change()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  IF OLD.username IS DISTINCT FROM NEW.username THEN
+    RAISE EXCEPTION 'username is immutable';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER trg_users_username_immutable
+BEFORE UPDATE OF username ON user_management.users
+FOR EACH ROW EXECUTE FUNCTION user_management.prevent_username_change();
 CREATE INDEX idx_users_phoneNumber ON user_management.users(phoneNumber);
 CREATE INDEX idx_users_isVerified ON user_management.users(isVerified);
 CREATE INDEX idx_users_gender_dateOfBirth ON user_management.users(gender, dateOfBirth);

@@ -25,8 +25,44 @@ if ! grep -q 'CorrelationIDMiddleware' internal/bff/mobile/server.go; then
 fi
 
 echo "[3/4] Checking structured logger bootstrap in service entrypoints..."
+
+# Binaries under cmd/ that are tools rather than long-lived services.
+#
+# The rule exists so that anything running in production emits structured,
+# aggregatable logs. A one-shot CLI is a different thing: its stdout *is* the
+# result a human or CI reads, so wrapping that in log envelopes would corrupt
+# the output it exists to produce, and it exits long before any aggregator
+# would scrape it.
+#
+# Keep this list short and justify every entry. Anything that accepts traffic
+# or runs unattended belongs in the checked set, not here.
+NON_SERVICE_BINARIES=(
+  "realtime-smoke-client"  # one-shot websocket smoke probe; prints event JSON, exits 0/1
+)
+
+# A stale exemption is worse than none, because it silently stops covering a
+# binary that was renamed or removed.
+for name in "${NON_SERVICE_BINARIES[@]}"; do
+  if [[ ! -f "cmd/${name}/main.go" ]]; then
+    echo "FAIL: non-service exemption '${name}' no longer exists; remove it from the list"
+    exit 1
+  fi
+done
+
 MISSING_LOGGER=0
 while IFS= read -r file; do
+  binary="$(basename "$(dirname "$file")")"
+  skip=0
+  for name in "${NON_SERVICE_BINARIES[@]}"; do
+    if [[ "$binary" == "$name" ]]; then
+      skip=1
+      break
+    fi
+  done
+  if [[ "$skip" -eq 1 ]]; then
+    echo "  skipping ${binary} (not a service)"
+    continue
+  fi
   if ! grep -q 'observability.NewLogger' "$file"; then
     echo "FAIL: structured logger bootstrap missing in $file"
     MISSING_LOGGER=1

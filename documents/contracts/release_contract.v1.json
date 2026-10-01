@@ -1,0 +1,165 @@
+{
+  "contract_id": "connect.release-contract",
+  "contract_version": "1.0.0",
+  "effective_date": "2026-09-27",
+  "supersedes": [],
+  "authority": "Canonical product and architecture baseline for the first production release candidate",
+  "change_control": {
+    "required_review_roles": [
+      "product_manager",
+      "software_architect",
+      "trust_and_safety_lead",
+      "qa_release_lead"
+    ],
+    "breaking_rule_change_requires_version_bump": true,
+    "production_exception_requires": [
+      "written_rationale",
+      "expiry_utc",
+      "product_manager_approval",
+      "incident_commander_approval"
+    ]
+  },
+  "member_contract": {
+    "authentication": {
+      "username": {
+        "normalization": "trim_and_lowercase",
+        "minimum_characters": 3,
+        "maximum_characters": 30,
+        "allowed_pattern": "^[a-z0-9][a-z0-9._]{1,28}[a-z0-9]$",
+        "mutable": false
+      },
+      "password": {
+        "minimum_utf8_bytes": 8,
+        "maximum_utf8_bytes": 72,
+        "requires_ascii_letter": true,
+        "requires_ascii_digit": true,
+        "stored_or_logged_in_plaintext": false
+      }
+    },
+    "age_and_identity": {
+      "minimum_age_years": 18,
+      "maximum_age_years": 80,
+      "calculation": "calendar_age_at_request_time_utc",
+      "leap_day_rule": "birthday_occurs_on_march_1_in_non_leap_years",
+      "gender_selection_required": true,
+      "supported_gender_codes": ["M", "F", "Other"],
+      "identity_verification_required_for_account": false,
+      "identity_verification_required_for_discovery": false
+    }
+  },
+  "profile_contract": {
+    "completion_percent_required": 100,
+    "approved_active_photos_required": 2,
+    "public_projection_allowlist_required": true,
+    "private_draft_fallback_allowed": false,
+    "discovery_and_spotlight_share_publication_predicate": true,
+    "current_account_restrictions_override_snapshots": true,
+    "identity_verification_is_independent_state": true,
+    "ineligible_states": [
+      "inactive",
+      "banned",
+      "suspended",
+      "deactivated",
+      "erased",
+      "credential_disabled",
+      "blocked_in_either_direction"
+    ]
+  },
+  "economy_contract": {
+    "first_release_mode": "disabled",
+    "currency": "INR",
+    "minor_unit": "paise",
+    "real_money_checkout_enabled": false,
+    "coin_purchase_enabled": false,
+    "paid_gifts_enabled": false,
+    "free_gifts_enabled": false,
+    "wallet_cash_value": false,
+    "wallet_transferable": false,
+    "reason": "Billing is separately owned and provider, catalogue, settlement and reconciliation acceptance are incomplete.",
+    "activation_requires": [
+      "billing_owner_approval",
+      "approved_price_catalogue",
+      "provider_test_mode_acceptance",
+      "settlement_reconciliation",
+      "refund_dispute_and_chargeback_acceptance",
+      "atomic_concurrent_spend_acceptance"
+    ]
+  },
+  "quest_contract": {
+    "first_release_mode": "disabled",
+    "gender_based_role_assignment_allowed": false,
+    "assisted_review_enabled": false,
+    "future_role_model": {
+      "template_owner": "first_match_participant_to_create_the_template",
+      "submitter": "either_active_match_participant",
+      "reviewer": "the_other_active_match_participant",
+      "self_review_allowed": false
+    },
+    "activation_requires": [
+      "server_enforced_role_matrix",
+      "template_freeze_during_pending_review",
+      "cooldown_and_attempt_acceptance",
+      "appeal_and_moderation_owner",
+      "negative_authorization_suite"
+    ]
+  },
+  "release_scope": {
+    "release_name": "Connect Core closed beta",
+    "audience": "invited_adults",
+    "enabled_capabilities": [
+      "username_password_authentication",
+      "profile_creation_and_editing",
+      "preferences_and_filters",
+      "published_profile_discovery",
+      "matching",
+      "text_chat",
+      "block_report_and_unmatch",
+      "account_settings"
+    ],
+    "excluded_capabilities": [
+      "real_money_billing",
+      "coin_purchases",
+      "digital_gifts",
+      "quest_unlock_workflow",
+      "live_audio_video_calls",
+      "voice_icebreakers",
+      "identity_verified_badge",
+      "production_push_notifications",
+      "xp_progression"
+    ],
+    "scope_rule": "An excluded capability must be inaccessible in shipped clients and rejected by its server command before production GO."
+  },
+  "ownership": [
+    {"area": "product_contract", "accountable_role": "product_manager", "named_owner": null, "approval_required_for_go": true},
+    {"area": "architecture_and_backend", "accountable_role": "software_architect_backend_lead", "named_owner": null, "approval_required_for_go": true},
+    {"area": "android_and_web_clients", "accountable_role": "client_engineering_lead", "named_owner": null, "approval_required_for_go": true},
+    {"area": "privacy_and_moderation", "accountable_role": "trust_and_safety_lead", "named_owner": null, "approval_required_for_go": true},
+    {"area": "quality_and_release_evidence", "accountable_role": "qa_release_lead", "named_owner": null, "approval_required_for_go": true},
+    {"area": "production_operations", "accountable_role": "sre_incident_commander", "named_owner": null, "approval_required_for_go": true},
+    {"area": "billing", "accountable_role": "separate_billing_owner", "named_owner": null, "approval_required_for_go": false}
+  ],
+  "production_release": {
+    "decision": "NO_GO",
+    "decision_timestamp_utc": null,
+    "decision_rationale": "The governing baseline is explicit, but target-environment evidence, named operational owners and exclusion enforcement are not complete.",
+    "p0_rule": "Every P0 gate must pass and every required named owner must approve before GO.",
+    "gates": [
+      {"id": "GOV-001", "priority": "P0", "status": "passed", "description": "Versioned release contract validates and matches core implementation anchors.", "evidence": "qa/governance/run_release_governance_gate.sh"},
+      {"id": "GOV-002", "priority": "P0", "status": "pending", "description": "Every excluded capability is disabled in production clients and rejected server-side.", "evidence": null},
+      {"id": "GOV-003", "priority": "P0", "status": "pending", "description": "Named owners and UTC approvals are recorded.", "evidence": null},
+      {"id": "GOV-004", "priority": "P0", "status": "pending", "description": "Target-environment migration, security, privacy, restore and rollback evidence is attached.", "evidence": null},
+      {"id": "GOV-005", "priority": "P0", "status": "pending", "description": "Representative Android and browser critical journeys pass against the release candidate.", "evidence": null},
+      {"id": "GOV-006", "priority": "P0", "status": "pending", "description": "Trust and Safety coverage and escalation ownership are staffed for the launch window.", "evidence": null}
+    ]
+  },
+  "backlog_disposition": {
+    "PEN-14": "approved_and_implemented_locally",
+    "PEN-15": "approved_baseline_and_implemented_locally",
+    "PEN-16": "approved_and_aligned_at_8_to_72_utf8_bytes",
+    "PEN-17": "approved_18_to_80_calendar_age_and_explicit_gender_selection",
+    "PEN-25": "excluded_from_first_release_owned_by_billing_epic",
+    "PEN-26": "excluded_from_first_release_pending_economy_activation_gate",
+    "PEN-27": "excluded_from_first_release_with_gender_neutral_future_role_contract",
+    "PEN-46": "release_governance_defined_production_decision_remains_no_go"
+  }
+}

@@ -1,0 +1,52 @@
+# Alertmanager for Connect. Listens on 127.0.0.1:9193 (9093/9094 are used by
+# matching-svc/chat-svc gRPC) with clustering disabled (single VPS).
+[Unit]
+Description=Connect monitoring - Alertmanager
+Documentation=file:///opt/connect/src/documents/MONITORING_AND_OBSERVABILITY_2026-10-01.md
+Wants=network-online.target
+After=network-online.target
+PartOf=connect-monitoring.target
+
+[Service]
+Type=simple
+User=alertmanager
+Group=alertmanager
+ExecStartPre=/opt/connect-monitoring/alertmanager/amtool check-config /etc/connect-monitoring/alertmanager/alertmanager.yml
+ExecStart=/opt/connect-monitoring/alertmanager/alertmanager \
+  --config.file=/etc/connect-monitoring/alertmanager/alertmanager.yml \
+  --storage.path=/var/lib/connect-monitoring/alertmanager \
+  --web.listen-address=127.0.0.1:9193 \
+  --cluster.listen-address= \
+  --data.retention=120h
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+RestartSec=5
+UMask=0027
+ReadWritePaths=/var/lib/connect-monitoring/alertmanager
+ReadOnlyPaths=/etc/connect-monitoring
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+RestrictNamespaces=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RemoveIPC=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+
+[Install]
+WantedBy=connect-monitoring.target

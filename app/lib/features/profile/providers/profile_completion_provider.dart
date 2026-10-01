@@ -47,32 +47,18 @@ Future<ProfileCompletion> profileCompletion(ProfileCompletionRef ref) async {
 
   try {
     final dio = ref.read(apiClientProvider);
-    final response = await dio.get<dynamic>('/profile/$userId/summary');
-    final body =
-        (response.data as Map?)?.cast<String, dynamic>() ?? <String, dynamic>{};
-    final found = body['found'] == true;
-    final user =
-        (body['user'] as Map?)?.cast<String, dynamic>() ?? <String, dynamic>{};
-    final stats =
-        (body['stats'] as Map?)?.cast<String, dynamic>() ?? <String, dynamic>{};
-
-    final summaryCompletion =
-        (user['profileCompletion'] as num?)?.toInt() ??
-        (user['profile_completion'] as num?)?.toInt() ??
-        0;
-    final summaryPhotoCount =
-        (stats['photo_count'] as num?)?.toInt() ??
-        (stats['photoCount'] as num?)?.toInt() ??
-        0;
-
-    if (found &&
-        user.isNotEmpty &&
-        summaryCompletion >= 100 &&
-        summaryPhotoCount >= 2) {
-      return ProfileCompletion(
+    final workflowResponse = await dio.get<dynamic>(
+      '/auth/signup/workflow/$userId',
+    );
+    final workflow =
+        (workflowResponse.data as Map?)?.cast<String, dynamic>() ??
+        <String, dynamic>{};
+    if (workflow['state'] == 'completed' &&
+        workflow['current_activity'] == 'done') {
+      return const ProfileCompletion(
         hasUserRow: true,
-        profileCompletion: summaryCompletion,
-        photoCount: summaryPhotoCount,
+        profileCompletion: 100,
+        photoCount: ValidationConstants.minPhotos,
       );
     }
 
@@ -112,24 +98,12 @@ Future<ProfileCompletion> profileCompletion(ProfileCompletionRef ref) async {
       fallbackCompletion,
       draftCompletionFromServer,
     );
-    final resolvedCompletion = math.max(
-      summaryCompletion,
-      resolvedDraftCompletion,
-    );
-    final resolvedPhotoCount = math.max(summaryPhotoCount, draftPhotos.length);
-    final resolvedHasUserRow = found || user.isNotEmpty || draft.isNotEmpty;
-
     return ProfileCompletion(
-      hasUserRow: resolvedHasUserRow,
-      profileCompletion: resolvedCompletion,
-      photoCount: resolvedPhotoCount,
+      hasUserRow: draft.isNotEmpty,
+      profileCompletion: resolvedDraftCompletion,
+      photoCount: draftPhotos.length,
     );
   } on DioException {
-    // Keep navigation usable when backend profile summary is temporarily unavailable.
-    return const ProfileCompletion(
-      hasUserRow: true,
-      profileCompletion: 100,
-      photoCount: 2,
-    );
+    rethrow;
   }
 }

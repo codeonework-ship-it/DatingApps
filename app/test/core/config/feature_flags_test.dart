@@ -14,11 +14,19 @@ void main() {
     test('defines auth/discovery mock controls', () {
       expect(kUseMockAuth, isA<bool>());
       expect(kUseMockDiscoveryData, isA<bool>());
-      expect(kBypassOtpValidation, isA<bool>());
+      expect(kEnableQaAutomation, isA<bool>());
     });
 
-    test('keeps OTP bypass disabled by default', () {
-      expect(kBypassOtpValidation, isFalse);
+    test('keeps QA automation helpers off unless a build opts in', () {
+      // This flag gates automation-only surfaces — most visibly the "QA
+      // Verification Upload" entry in Settings — so a default of `true` puts
+      // them in front of real members. It previously defaulted to `true` and
+      // this test asserted that, which locked the leak in place.
+      //
+      // The Appium runner opts in explicitly with
+      // `--dart-define=ENABLE_QA_AUTOMATION=true`, so nothing in the suite
+      // depends on the default.
+      expect(kEnableQaAutomation, isFalse);
     });
   });
 }

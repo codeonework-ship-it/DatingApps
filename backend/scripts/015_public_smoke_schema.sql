@@ -2,7 +2,9 @@
 
 CREATE TABLE IF NOT EXISTS public.users (
   id UUID PRIMARY KEY,
-  phoneNumber TEXT UNIQUE NOT NULL,
+  username TEXT UNIQUE NOT NULL DEFAULT ('user_' || SUBSTRING(REPLACE(gen_random_uuid()::TEXT, '-', '') FROM 1 FOR 20))
+    CHECK (username ~ '^[a-z0-9]([a-z0-9._]{1,28}[a-z0-9])?$'),
+  phoneNumber TEXT UNIQUE,
   name TEXT NOT NULL,
   dateOfBirth DATE NOT NULL,
   gender TEXT NOT NULL,
@@ -15,6 +17,9 @@ CREATE TABLE IF NOT EXISTS public.users (
   createdAt TIMESTAMPTZ DEFAULT NOW(),
   updatedAt TIMESTAMPTZ DEFAULT NOW()
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_public_users_username_normalized
+  ON public.users(LOWER(username));
 
 CREATE TABLE IF NOT EXISTS public.preferences (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

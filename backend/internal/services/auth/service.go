@@ -8,30 +8,43 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/structpb"
 
 	"github.com/verified-dating/backend/internal/platform/config"
+	"github.com/verified-dating/backend/internal/platform/observability"
 )
 
 type Repository interface {
-	SendOTP(context.Context, string) (map[string]any, error)
-	VerifyOTP(context.Context, string, string) (map[string]any, error)
+	Login(context.Context, string, string) (map[string]any, error)
+	Signup(context.Context, string, string) (map[string]any, error)
+}
+
+type mockCredential struct {
+	password string
+	userID   string
 }
 
 type SupabaseRepository struct {
 	cfg        config.Config
 	log        *zap.Logger
 	httpClient *http.Client
+	mockMu     sync.Mutex
+	mockUsers  map[string]mockCredential
 }
 
 func NewRepository(cfg config.Config, log *zap.Logger) Repository {
+	if cfg.UseLocalDB {
+		return NewPostgresRepository(cfg, log)
+	}
 	return &SupabaseRepository{
 		cfg:        cfg,
 		log:        log,
 		httpClient: &http.Client{Timeout: cfg.AuthHTTPTimeout()},
+		mockUsers:  make(map[string]mockCredential),
 	}
 }
 
@@ -44,190 +57,235 @@ func NewService(repo Repository, log *zap.Logger) *Service {
 	return &Service{repo: repo, log: log}
 }
 
-func (s *Service) SendOtp(ctx context.Context, req *structpb.Struct) (*structpb.Struct, error) {
-	payload := req.AsMap()
-	email, _ := payload["email"].(string)
-	if strings.TrimSpace(email) == "" {
-		email, _ = payload["phone"].(string)
-	}
-	email = strings.TrimSpace(strings.ToLower(email))
-	s.log.Info("auth_send_otp_requested", zap.String("email", email))
-	if email == "" {
-		return structpb.NewStruct(map[string]any{
-			"accepted": false,
-			"error":    "email is required",
-		})
-	}
-
-	out, err := s.repo.SendOTP(ctx, email)
-	if err != nil {
-		s.log.Error("auth_send_otp_failed", zap.String("email", email), zap.Error(err))
-		return nil, err
-	}
-	s.log.Info("auth_send_otp_completed", zap.String("email", email))
-	return structpb.NewStruct(out)
-}
-
-func (s *Service) VerifyOtp(ctx context.Context, req *structpb.Struct) (*structpb.Struct, error) {
-	payload := req.AsMap()
-	email, _ := payload["email"].(string)
-	if strings.TrimSpace(email) == "" {
-		email, _ = payload["phone"].(string)
-	}
-	otp, _ := payload["otp"].(string)
-	email = strings.TrimSpace(strings.ToLower(email))
-	otp = strings.TrimSpace(otp)
-	s.log.Info("auth_verify_otp_requested", zap.String("email", email))
-
-	if email == "" || otp == "" {
+func (s *Service) Login(ctx context.Context, req *structpb.Struct) (*structpb.Struct, error) {
+	username, password := credentials(req)
+	s.log.Info("auth_login_requested", zap.String("username_ref", observability.PseudonymizeIdentifier(username)))
+	if username == "" || password == "" {
 		return structpb.NewStruct(map[string]any{
 			"success": false,
-			"error":   "email and otp are required",
+			"error":   "username and password are required",
 		})
 	}
-
-	out, err := s.repo.VerifyOTP(ctx, email, otp)
+	out, err := s.repo.Login(ctx, username, password)
 	if err != nil {
-		s.log.Error("auth_verify_otp_failed", zap.String("email", email), zap.Error(err))
+		s.log.Error("auth_login_failed", zap.String("username_ref", observability.PseudonymizeIdentifier(username)), zap.Error(err))
 		return nil, err
 	}
-	s.log.Info("auth_verify_otp_completed", zap.String("email", email))
 	return structpb.NewStruct(out)
 }
 
-func (r *SupabaseRepository) SendOTP(ctx context.Context, email string) (map[string]any, error) {
-	correlationID := uuid.NewString()
-	if r.cfg.MockOTPEnabled {
-		r.log.Info(
-			"auth_send_otp_mock",
-			zap.String("email", email),
-			zap.String("correlation_id", correlationID),
-		)
-		return map[string]any{
-			"accepted":       true,
-			"correlation_id": correlationID,
-			"mock_otp":       r.cfg.MockOTPCode,
-		}, nil
+func (s *Service) Signup(ctx context.Context, req *structpb.Struct) (*structpb.Struct, error) {
+	username, password := credentials(req)
+	s.log.Info("auth_signup_requested", zap.String("username_ref", observability.PseudonymizeIdentifier(username)))
+	if username == "" || password == "" {
+		return structpb.NewStruct(map[string]any{
+			"success": false,
+			"error":   "username and password are required",
+		})
 	}
-
-	body, _ := json.Marshal(map[string]any{
-		"email":       email,
-		"create_user": true,
-	})
-
-	reqHTTP, err := http.NewRequestWithContext(
-		ctx,
-		http.MethodPost,
-		r.cfg.SupabaseURL+"/auth/v1/otp",
-		bytes.NewReader(body),
-	)
-	if err != nil {
-		return nil, err
-	}
-	reqHTTP.Header.Set("apikey", r.cfg.SupabaseAnonKey)
-	reqHTTP.Header.Set("Authorization", "Bearer "+r.cfg.SupabaseAnonKey)
-	reqHTTP.Header.Set("Content-Type", "application/json")
-
-	resp, err := r.httpClient.Do(reqHTTP)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	resBody, _ := io.ReadAll(resp.Body)
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		errorMessage := "failed to send otp"
-		if len(resBody) > 0 {
-			var upstream map[string]any
-			if err := json.Unmarshal(resBody, &upstream); err == nil {
-				if msg, ok := upstream["msg"].(string); ok && strings.TrimSpace(msg) != "" {
-					errorMessage = strings.TrimSpace(msg)
-				} else if msg, ok := upstream["error_description"].(string); ok && strings.TrimSpace(msg) != "" {
-					errorMessage = strings.TrimSpace(msg)
-				} else if msg, ok := upstream["error"].(string); ok && strings.TrimSpace(msg) != "" {
-					errorMessage = strings.TrimSpace(msg)
-				}
-			}
+	var out map[string]any
+	var err error
+	kind, _ := req.AsMap()["account_kind"].(string)
+	if kind != "" && kind != "dating" {
+		repo, ok := s.repo.(interface {
+			SignupIntroducer(context.Context, string, string, string, string) (map[string]any, error)
+		})
+		if kind != "introducer" || !ok {
+			return structpb.NewStruct(map[string]any{"success": false, "error": "account type is unavailable"})
 		}
-		r.log.Warn(
-			"auth_send_otp_failed",
-			zap.Int("status", resp.StatusCode),
-			zap.ByteString("body", resBody),
-		)
-		return map[string]any{
-			"accepted": false,
-			"error":    errorMessage,
-		}, nil
+		name, _ := req.AsMap()["name"].(string)
+		dob, _ := req.AsMap()["date_of_birth"].(string)
+		out, err = repo.SignupIntroducer(ctx, username, password, name, dob)
+	} else {
+		out, err = s.repo.Signup(ctx, username, password)
 	}
-
-	return map[string]any{
-		"accepted":       true,
-		"correlation_id": correlationID,
-	}, nil
+	if err != nil {
+		s.log.Error("auth_signup_failed", zap.String("username_ref", observability.PseudonymizeIdentifier(username)), zap.Error(err))
+		return nil, err
+	}
+	return structpb.NewStruct(out)
 }
 
-func (r *SupabaseRepository) VerifyOTP(ctx context.Context, email, otp string) (map[string]any, error) {
-	if r.cfg.MockOTPEnabled {
-		expected := strings.TrimSpace(r.cfg.MockOTPCode)
-		ok := len(otp) == 6 && (expected == "" || otp == expected)
+func credentials(req *structpb.Struct) (string, string) {
+	payload := req.AsMap()
+	username, _ := payload["username"].(string)
+	password, _ := payload["password"].(string)
+	return strings.ToLower(strings.TrimSpace(username)), password
+}
+
+func (r *SupabaseRepository) Login(ctx context.Context, username, password string) (map[string]any, error) {
+	username = strings.ToLower(strings.TrimSpace(username))
+	if r.cfg.MockAuthEnabled {
+		return r.mockLogin(username, password), nil
+	}
+	return r.passwordGrant(ctx, username, password)
+}
+
+func (r *SupabaseRepository) Signup(ctx context.Context, username, password string) (map[string]any, error) {
+	username = strings.ToLower(strings.TrimSpace(username))
+	if r.cfg.MockAuthEnabled {
+		return r.mockSignup(username, password), nil
+	}
+
+	email := internalEmail(username)
+	body := map[string]any{
+		"email":    email,
+		"password": password,
+		"user_metadata": map[string]any{
+			"username": username,
+		},
+	}
+	endpoint := r.cfg.SupabaseURL + "/auth/v1/signup"
+	authorization := r.cfg.SupabaseAnonKey
+	if serviceRole := strings.TrimSpace(r.cfg.SupabaseServiceRole); serviceRole != "" {
+		endpoint = r.cfg.SupabaseURL + "/auth/v1/admin/users"
+		authorization = serviceRole
+		body["email_confirm"] = true
+	}
+
+	status, decoded, raw, err := r.authRequest(ctx, endpoint, authorization, body)
+	if err != nil {
+		return nil, err
+	}
+	if status < 200 || status >= 300 {
+		message := upstreamAuthError(raw, "username is already taken")
+		if status == http.StatusUnprocessableEntity || status == http.StatusConflict {
+			message = "username is already taken"
+		}
+		return map[string]any{"success": false, "error": message}, nil
+	}
+
+	// Admin creation does not return a session, so authenticate immediately.
+	if strings.TrimSpace(r.cfg.SupabaseServiceRole) != "" {
+		return r.passwordGrant(ctx, username, password)
+	}
+	return sessionResponse(decoded), nil
+}
+
+func (r *SupabaseRepository) passwordGrant(ctx context.Context, username, password string) (map[string]any, error) {
+	endpoint := r.cfg.SupabaseURL + "/auth/v1/token?grant_type=password"
+	status, decoded, raw, err := r.authRequest(ctx, endpoint, r.cfg.SupabaseAnonKey, map[string]any{
+		"email":    internalEmail(username),
+		"password": password,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if status < 200 || status >= 300 {
 		return map[string]any{
-			"success":       ok,
-			"access_token":  r.cfg.MockAccessToken,
-			"refresh_token": r.cfg.MockRefreshToken,
-			"user_id":       r.cfg.MockUserID,
+			"success": false,
+			"error":   upstreamAuthError(raw, "invalid username or password"),
 		}, nil
 	}
+	return sessionResponse(decoded), nil
+}
 
-	body, _ := json.Marshal(map[string]any{
-		"type":  "email",
-		"email": email,
-		"token": otp,
-	})
-
-	reqHTTP, err := http.NewRequestWithContext(
-		ctx,
-		http.MethodPost,
-		r.cfg.SupabaseURL+"/auth/v1/verify",
-		bytes.NewReader(body),
-	)
+func (r *SupabaseRepository) authRequest(
+	ctx context.Context,
+	endpoint string,
+	authorization string,
+	payload map[string]any,
+) (int, map[string]any, []byte, error) {
+	body, _ := json.Marshal(payload)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(body))
 	if err != nil {
-		return nil, err
+		return 0, nil, nil, err
 	}
-	reqHTTP.Header.Set("apikey", r.cfg.SupabaseAnonKey)
-	reqHTTP.Header.Set("Authorization", "Bearer "+r.cfg.SupabaseAnonKey)
-	reqHTTP.Header.Set("Content-Type", "application/json")
-
-	resp, err := r.httpClient.Do(reqHTTP)
+	req.Header.Set("apikey", r.cfg.SupabaseAnonKey)
+	req.Header.Set("Authorization", "Bearer "+authorization)
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := r.httpClient.Do(req)
 	if err != nil {
-		return nil, err
+		return 0, nil, nil, err
 	}
 	defer resp.Body.Close()
-
-	resBody, _ := io.ReadAll(resp.Body)
-	if resp.StatusCode < 200 || resp.StatusCode >= 299 {
-		r.log.Warn(
-			"auth_verify_otp_failed",
-			zap.Int("status", resp.StatusCode),
-			zap.ByteString("body", resBody),
-		)
-		return map[string]any{"success": false, "error": "invalid otp"}, nil
+	raw, _ := io.ReadAll(resp.Body)
+	decoded := map[string]any{}
+	if len(raw) > 0 {
+		if err := json.Unmarshal(raw, &decoded); err != nil && resp.StatusCode >= 200 && resp.StatusCode < 300 {
+			return resp.StatusCode, nil, raw, fmt.Errorf("decode auth response: %w", err)
+		}
 	}
+	return resp.StatusCode, decoded, raw, nil
+}
 
-	var decoded map[string]any
-	if err := json.Unmarshal(resBody, &decoded); err != nil {
-		return nil, fmt.Errorf("decode verify response: %w", err)
+func (r *SupabaseRepository) mockLogin(username, password string) map[string]any {
+	r.mockMu.Lock()
+	defer r.mockMu.Unlock()
+	if username == r.cfg.MockAuthUsername && password == r.cfg.MockAuthPassword {
+		return mockSession(r.cfg.MockUserID, r.cfg.MockAccessToken, r.cfg.MockRefreshToken)
 	}
+	credential, ok := r.mockUsers[username]
+	if !ok || credential.password != password {
+		return map[string]any{"success": false, "error": "invalid username or password"}
+	}
+	return mockSession(credential.userID, "mock-access-"+credential.userID, "mock-refresh-"+credential.userID)
+}
 
-	session, _ := decoded["session"].(map[string]any)
+func (r *SupabaseRepository) mockSignup(username, password string) map[string]any {
+	r.mockMu.Lock()
+	defer r.mockMu.Unlock()
+	if username == r.cfg.MockAuthUsername {
+		return map[string]any{"success": false, "error": "username is already taken"}
+	}
+	if r.mockUsers == nil {
+		r.mockUsers = make(map[string]mockCredential)
+	}
+	if _, exists := r.mockUsers[username]; exists {
+		return map[string]any{"success": false, "error": "username is already taken"}
+	}
+	userID := uuid.NewSHA1(uuid.NameSpaceURL, []byte("username:"+username)).String()
+	r.mockUsers[username] = mockCredential{password: password, userID: userID}
+	return mockSession(userID, "mock-access-"+userID, "mock-refresh-"+userID)
+}
+
+func mockSession(userID, accessToken, refreshToken string) map[string]any {
+	return map[string]any{
+		"success":          true,
+		"user_id":          userID,
+		"access_token":     accessToken,
+		"refresh_token":    refreshToken,
+		"workflow_state":   "completed",
+		"current_activity": "done",
+		"signup_required":  false,
+	}
+}
+
+func sessionResponse(decoded map[string]any) map[string]any {
 	user, _ := decoded["user"].(map[string]any)
 	userID, _ := user["id"].(string)
-	accessToken, _ := session["access_token"].(string)
-	refreshToken, _ := session["refresh_token"].(string)
-
+	accessToken, _ := decoded["access_token"].(string)
+	refreshToken, _ := decoded["refresh_token"].(string)
+	if accessToken == "" || userID == "" {
+		return map[string]any{
+			"success": false,
+			"error":   "account created without an active session; verify the auth provider configuration",
+		}
+	}
 	return map[string]any{
-		"success":       accessToken != "",
+		"success":       true,
+		"user_id":       userID,
 		"access_token":  accessToken,
 		"refresh_token": refreshToken,
-		"user_id":       userID,
-	}, nil
+	}
+}
+
+func internalEmail(username string) string {
+	return strings.ToLower(strings.TrimSpace(username)) + "@username.local"
+}
+
+func upstreamAuthError(body []byte, fallback string) string {
+	if len(body) == 0 {
+		return fallback
+	}
+	var upstream map[string]any
+	if err := json.Unmarshal(body, &upstream); err != nil {
+		return fallback
+	}
+	for _, key := range []string{"msg", "error_description", "error", "message"} {
+		if message, ok := upstream[key].(string); ok && strings.TrimSpace(message) != "" {
+			return strings.TrimSpace(message)
+		}
+	}
+	return fallback
 }

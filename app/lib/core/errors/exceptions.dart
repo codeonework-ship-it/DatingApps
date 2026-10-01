@@ -28,11 +28,7 @@ class NetworkException extends AppException {
 
 /// Server related exceptions
 class ServerException extends AppException {
-  ServerException({
-    required super.message,
-    this.statusCode,
-    super.stackTrace,
-  });
+  ServerException({required super.message, this.statusCode, super.stackTrace});
   final int? statusCode;
 }
 

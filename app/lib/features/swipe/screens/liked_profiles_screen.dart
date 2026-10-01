@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
 import '../providers/swipe_provider.dart';
 import 'profile_details_screen.dart';
@@ -11,19 +10,20 @@ class LikedProfilesScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
     final state = ref.watch(swipeNotifierProvider);
     final likedProfiles = state.likedProfiles;
 
     return Scaffold(
       appBar: AppBar(title: Text('Liked Profiles (${likedProfiles.length})')),
-      body: Container(
-        decoration: const BoxDecoration(gradient: AppTheme.bgGradient),
+      body: ColoredBox(
+        color: Theme.of(context).scaffoldBackgroundColor,
         child: SafeArea(
           child: likedProfiles.isEmpty
-              ? const Center(
+              ? Center(
                   child: Text(
                     'No liked profiles yet',
-                    style: TextStyle(color: Colors.white),
+                    style: TextStyle(color: scheme.onSurfaceVariant),
                   ),
                 )
               : ListView.separated(
@@ -38,7 +38,8 @@ class LikedProfilesScreen extends ConsumerWidget {
 
                     return GlassContainer(
                       padding: const EdgeInsets.all(12),
-                      backgroundColor: Colors.white.withValues(alpha: 0.9),
+                      backgroundColor: scheme.surface,
+                      border: Border.all(color: scheme.outlineVariant),
                       blur: 10,
                       borderRadius: BorderRadius.circular(16),
                       child: Row(
@@ -49,8 +50,11 @@ class LikedProfilesScreen extends ConsumerWidget {
                                 ? Container(
                                     width: 60,
                                     height: 60,
-                                    color: Colors.grey.shade300,
-                                    child: const Icon(Icons.person),
+                                    color: scheme.surfaceContainerHighest,
+                                    child: Icon(
+                                      Icons.person,
+                                      color: scheme.onSurfaceVariant,
+                                    ),
                                   )
                                 : Image.network(
                                     photoUrl,
@@ -60,8 +64,11 @@ class LikedProfilesScreen extends ConsumerWidget {
                                     errorBuilder: (_, _, _) => Container(
                                       width: 60,
                                       height: 60,
-                                      color: Colors.grey.shade300,
-                                      child: const Icon(Icons.person),
+                                      color: scheme.surfaceContainerHighest,
+                                      child: Icon(
+                                        Icons.person,
+                                        color: scheme.onSurfaceVariant,
+                                      ),
                                     ),
                                   ),
                           ),
@@ -71,7 +78,7 @@ class LikedProfilesScreen extends ConsumerWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  '${profile.name}, ${profile.age}',
+                                  profile.displayName,
                                   style: Theme.of(context).textTheme.titleMedium
                                       ?.copyWith(fontWeight: FontWeight.w700),
                                 ),

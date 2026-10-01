@@ -10,35 +10,19 @@ import (
 	"time"
 
 	"github.com/verified-dating/backend/internal/platform/config"
-	"github.com/verified-dating/backend/internal/platform/supabase"
 )
 
 type communityGroupRepository struct {
 	cfg config.Config
-	db  *supabase.Client
+	db  repositoryDB
 }
 
-func newCommunityGroupRepository(cfg config.Config) *communityGroupRepository {
-	databaseURL := strings.ToLower(strings.TrimSpace(cfg.DatabaseURL))
-	if strings.Contains(databaseURL, "localhost") || strings.Contains(databaseURL, "127.0.0.1") {
+func newCommunityGroupRepository(cfg config.Config, supplied ...repositoryDB) *communityGroupRepository {
+	db := repositoryDBFor(cfg, supplied)
+	if db == nil {
 		return nil
 	}
-
-	apiKey := strings.TrimSpace(cfg.SupabaseServiceRole)
-	if apiKey == "" {
-		apiKey = strings.TrimSpace(cfg.SupabaseAnonKey)
-	}
-	if strings.TrimSpace(cfg.SupabaseURL) == "" || apiKey == "" {
-		return nil
-	}
-	client := supabase.NewClient(
-		cfg.SupabaseURL,
-		cfg.SupabaseAnonKey,
-		cfg.SupabaseServiceRole,
-		time.Duration(cfg.SupabaseHTTPTimeoutSec)*time.Second,
-	)
-	client.SetReadBaseURL(cfg.SupabaseReadReplicaURL)
-	return &communityGroupRepository{cfg: cfg, db: client}
+	return &communityGroupRepository{cfg: cfg, db: db}
 }
 
 func (r *communityGroupRepository) createGroup(

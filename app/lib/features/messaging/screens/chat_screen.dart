@@ -1,16 +1,29 @@
+import '../../engagement/screens/voice_icebreakers_screen.dart';
+import '../../intentional_dating/connection_card.dart';
 import 'dart:ui';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../core/config/feature_flags.dart';
+import '../../../core/platform/browser_context.dart';
+import '../../../core/providers/network_quality_provider.dart';
+import '../../../core/providers/runtime_feature_flags_provider.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/widgets/glass_widgets.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../common/screens/main_navigation_screen.dart';
+import '../../graduation/widgets/graduation_banner.dart';
+import '../../payment/providers/entitlements_provider.dart';
+import '../../payment/screens/subscription_screen.dart';
 import '../../payment/screens/wallet_payment_screen.dart';
+import '../../plans/widgets/date_plan_card.dart';
 import '../models/messaging_models.dart' as models;
 import '../models/rose_gift.dart';
+import '../providers/copilot_provider.dart';
 import '../providers/message_provider.dart';
+import '../widgets/chat_chrome.dart';
+import '../widgets/copilot_sheet.dart';
 import '../widgets/message_bubble.dart';
 import '../widgets/rose_gift_glyph.dart';
 
@@ -33,6 +46,12 @@ class ChatScreen extends ConsumerStatefulWidget {
 
 class _ChatScreenState extends ConsumerState<ChatScreen> {
   final _messageController = TextEditingController();
+  final _composerFocus = FocusNode();
+  bool _isSendingMessage = false;
+
+  /// The copilot draft currently in the composer, if any. Cleared when the
+  /// field is emptied, so a member who rewrites from scratch is not marked.
+  String? _assistDraftId;
   final _scrollController = ScrollController();
   static const _quickEmojis = <String>[
     '😊',
@@ -72,6 +91,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   @override
   void initState() {
     super.initState();
+    _composerFocus.addListener(() {
+      if (_composerFocus.hasFocus && _isGiftTrayOpen) {
+        setState(() => _isGiftTrayOpen = false);
+      }
+    });
+    _messageController.addListener(() {
+      if (_assistDraftId != null && _messageController.text.trim().isEmpty) {
+        setState(() => _assistDraftId = null);
+      }
+    });
     Future<void>.microtask(() {
       ref
           .read(messageNotifierProvider(widget.matchId).notifier)
@@ -107,8 +136,28 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       ..selection = TextSelection.collapsed(offset: combined.length);
   }
 
+  Future<void> _openCopilot(MessageState messageState) async {
+    final draft = await showCopilotSheet(
+      context: context,
+      matchId: widget.matchId,
+      partnerName: widget.userName,
+      conversationStarted: messageState.messages.isNotEmpty,
+    );
+    if (draft == null || !mounted) {
+      return;
+    }
+    setState(() {
+      _messageController.text = draft.text;
+      _messageController.selection = TextSelection.collapsed(
+        offset: draft.text.length,
+      );
+      _assistDraftId = draft.id;
+    });
+  }
+
   @override
   void dispose() {
+    _composerFocus.dispose();
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -120,748 +169,808 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       previous,
       next,
     ) {
-      if (!mounted || next.error == null || next.error == previous?.error) {
+      if (!mounted || next.error == null || next.error == previous?.error)
         return;
-      }
-
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(SnackBar(content: Text(next.error!)));
     });
-
-    final messageState = ref.watch(messageNotifierProvider(widget.matchId));
-    final messageNotifier = ref.read(
-      messageNotifierProvider(widget.matchId).notifier,
-    );
+    final state = ref.watch(messageNotifierProvider(widget.matchId));
     final currentUserId = ref.watch(authNotifierProvider).userId;
-    final isPendingConversation = widget.matchId.startsWith('pending-');
-    const roseGiftTrayEnabled = kFeatureRoseGiftTray;
+    final pending = widget.matchId.startsWith('pending-');
+    final flags = ref
+        .watch(runtimeFeatureFlagsProvider)
+        .maybeWhen(
+          data: (flags) => flags,
+          orElse: () => RuntimeFeatureFlags.defaults,
+        );
+    final giftsEnabled = kFeatureRoseGiftTray && flags.enabled('gifts_enabled');
+    final copilotEnabled =
+        flags.enabled('copilot_enabled', fallback: true) && !pending;
+    final plansEnabled =
+        flags.enabled('date_plans_enabled', fallback: true) && !pending;
+    final graduationEnabled =
+        flags.enabled('graduation_enabled', fallback: true) && !pending;
+    final offline =
+        ref.watch(networkQualityProvider).status ==
+        NetworkQualityStatus.offline;
+    final intentionalEnabled =
+        flags.enabled('intentional_dating_enabled', fallback: false) &&
+        !pending &&
+        state.isMatchActive;
+    final canCompose = !state.isChatLocked && state.isMatchActive;
+    final voiceEnabled =
+        flags.enabled('voice_icebreakers_enabled') && canCompose && !pending;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFFFAF0),
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: const Color(0xFFFFFAF0),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppTheme.textDark),
-          onPressed: () {
-            if (context.mounted) {
-              final navigator = Navigator.of(context);
-              if (navigator.canPop()) {
-                navigator.pop();
-                return;
-              }
-              navigator.pushAndRemoveUntil(
-                MaterialPageRoute<void>(
-                  builder: (_) => const MainNavigationScreen(),
-                ),
-                (route) => false,
-              );
-            }
-          },
-        ),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              widget.userName,
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            Text(
-              'Active now',
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: AppTheme.successGreen),
-            ),
-          ],
-        ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: _buildWalletHeaderChip(
-              messageState.walletCoins,
-              onTap: () {
-                if (!context.mounted) {
-                  return;
-                }
-                Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => WalletPaymentScreen(
-                      walletCoins: messageState.walletCoins,
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFFFFFAF0), Color(0xFFFFFDF8), Color(0xFFFFF6E7)],
-          ),
-        ),
-        child: Stack(
-          children: [
-            Column(
-              children: [
-                // Messages List
-                Expanded(
-                  child: messageState.isLoading
-                      ? const Center(
-                          child: CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              AppTheme.primaryRed,
-                            ),
-                          ),
-                        )
-                      : messageState.messages.isEmpty
-                      ? Center(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 24),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.chat_bubble_outline_rounded,
-                                  size: 46,
-                                  color: AppTheme.textHint.withValues(
-                                    alpha: 0.8,
-                                  ),
-                                ),
-                                const SizedBox(height: 10),
-                                Text(
-                                  'No messages yet',
-                                  style: Theme.of(context).textTheme.titleMedium
-                                      ?.copyWith(
-                                        color: AppTheme.textDark,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  isPendingConversation
-                                      ? 'This conversation will be ready once '
-                                            'the match is confirmed.'
-                                      : 'Start with a warm opener, emoji, '
-                                            'or rose gift.',
-                                  textAlign: TextAlign.center,
-                                  style: Theme.of(context).textTheme.bodySmall
-                                      ?.copyWith(color: AppTheme.textGrey),
-                                ),
-                              ],
-                            ),
-                          ),
-                        )
-                      : ListView.builder(
-                          controller: _scrollController,
-                          reverse: true,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
-                          itemCount: messageState.messages.length,
-                          itemBuilder: (context, index) {
-                            final message = messageState.messages[index];
-                            final isCurrentUser =
-                                currentUserId != null &&
-                                message.senderId == currentUserId;
-
-                            return Padding(
-                              key: ValueKey<String>(message.id),
-                              padding: const EdgeInsets.symmetric(vertical: 4),
-                              child: GestureDetector(
-                                onLongPress: isCurrentUser && !message.isDeleted
-                                    ? () => _confirmDeleteMessage(message.id)
-                                    : null,
-                                child: MessageBubble(
-                                  message: message.text,
-                                  isFromCurrentUser: isCurrentUser,
-                                  timestamp: message.createdAt,
-                                  isDelivered:
-                                      message.deliveredAt != null ||
-                                      message.readAt != null,
-                                  isRead: message.readAt != null,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                ),
-
-                // Typing Indicator
-                if (messageState.isTyping)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
+      backgroundColor: scheme.surfaceContainerLow,
+      body: SafeArea(
+        bottom: false,
+        child: LayoutBuilder(
+          builder: (context, viewport) {
+            final wide = viewport.maxWidth >= 1050;
+            return Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1280),
+                child: Padding(
+                  padding: EdgeInsets.all(wide ? 24 : 0),
+                  child: Container(
+                    clipBehavior: Clip.antiAlias,
+                    decoration: BoxDecoration(
+                      color: scheme.surface,
+                      borderRadius: BorderRadius.circular(wide ? 28 : 0),
+                      border: wide
+                          ? Border.all(color: scheme.outlineVariant)
+                          : null,
                     ),
                     child: Row(
                       children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
+                        if (wide)
+                          ChatConversationSidebar(
+                            name: widget.userName,
+                            photoUrl: widget.userPhotoUrl,
+                            trustLine: _ConversationTrustLine(
+                              matchId: widget.matchId,
+                            ),
+                            onBack: _goBack,
+                            onGift:
+                                giftsEnabled &&
+                                    canCompose &&
+                                    !_isSendingMessage &&
+                                    !state.isSendingGift
+                                ? _toggleGiftTray
+                                : null,
+                            onCopilot:
+                                copilotEnabled &&
+                                    canCompose &&
+                                    !_isSendingMessage &&
+                                    !state.isSendingGift
+                                ? () => _openCopilot(state)
+                                : null,
                           ),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[100],
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: Row(
+                        Expanded(
+                          child: Stack(
                             children: [
-                              for (int i = 0; i < 3; i++)
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 2,
-                                  ),
-                                  child: Container(
-                                    width: 8,
-                                    height: 8,
-                                    decoration: const BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: AppTheme.textHint,
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'typing...',
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: AppTheme.textHint),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                if (roseGiftTrayEnabled &&
-                    !messageState.isChatLocked &&
-                    _isGiftTrayOpen)
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
-                    margin: const EdgeInsets.only(bottom: 4),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          Colors.white.withValues(alpha: 0.94),
-                          AppTheme.pureGoldHighlight.withValues(alpha: 0.12),
-                          AppTheme.crystalGoldSoft.withValues(alpha: 0.22),
-                        ],
-                      ),
-                      border: Border(
-                        top: BorderSide(
-                          color: AppTheme.pureGoldBright.withValues(
-                            alpha: 0.34,
-                          ),
-                          width: 1,
-                        ),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppTheme.pureGoldBright.withValues(
-                            alpha: 0.12,
-                          ),
-                          blurRadius: 22,
-                          offset: const Offset(0, -8),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Text(
-                              'Gifts',
-                              style: Theme.of(context).textTheme.titleSmall
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                    color: AppTheme.textDark,
-                                  ),
-                            ),
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 5,
-                              ),
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    AppTheme.pureGoldHighlight.withValues(
-                                      alpha: 0.55,
-                                    ),
-                                    AppTheme.pureGoldBright.withValues(
-                                      alpha: 0.24,
-                                    ),
-                                  ],
-                                ),
-                                borderRadius: BorderRadius.circular(999),
-                                border: Border.all(
-                                  color: AppTheme.pureGoldBright.withValues(
-                                    alpha: 0.36,
-                                  ),
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
+                              Column(
                                 children: [
-                                  const Icon(
-                                    Icons.auto_awesome_rounded,
-                                    size: 12,
-                                    color: AppTheme.pureGoldInk,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    'Send a rose gift',
-                                    style: Theme.of(context).textTheme.bodySmall
-                                        ?.copyWith(
-                                          color: AppTheme.pureGoldInk,
-                                          fontWeight: FontWeight.w700,
+                                  Container(
+                                    padding: EdgeInsets.fromLTRB(
+                                      wide ? 24 : 4,
+                                      12,
+                                      12,
+                                      12,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      border: Border(
+                                        bottom: BorderSide(
+                                          color: scheme.outlineVariant,
                                         ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const Spacer(),
-                            Material(
-                              color: Colors.transparent,
-                              child: InkWell(
-                                onTap: () {
-                                  setState(() {
-                                    _isGiftTrayOpen = false;
-                                  });
-                                },
-                                borderRadius: BorderRadius.circular(14),
-                                child: Ink(
-                                  width: 30,
-                                  height: 30,
-                                  decoration: BoxDecoration(
-                                    gradient: const LinearGradient(
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                      colors: [
-                                        AppTheme.pureGoldHighlight,
-                                        AppTheme.pureGoldBright,
-                                        AppTheme.crystalGoldSoft,
-                                      ],
-                                    ),
-                                    borderRadius: BorderRadius.circular(14),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: AppTheme.pureGoldBright
-                                            .withValues(alpha: 0.45),
-                                        blurRadius: 12,
-                                        offset: const Offset(0, 5),
                                       ),
-                                    ],
-                                    border: Border.all(
-                                      color: AppTheme.pureGoldHighlight
-                                          .withValues(alpha: 0.85),
                                     ),
-                                  ),
-                                  child: const Icon(
-                                    Icons.close_rounded,
-                                    size: 14,
-                                    color: AppTheme.pureGoldInk,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        if (messageState.giftCategories.length > 1)
-                          SizedBox(
-                            height: 30,
-                            child: ListView(
-                              scrollDirection: Axis.horizontal,
-                              children: [
-                                Padding(
-                                  padding: const EdgeInsets.only(right: 6),
-                                  child: ChoiceChip(
-                                    label: const Text('All'),
-                                    selected: _selectedGiftCategory == null,
-                                    onSelected: (_) => setState(() {
-                                      _selectedGiftCategory = null;
-                                    }),
-                                    labelStyle: const TextStyle(fontSize: 11),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 6,
-                                      vertical: 0,
-                                    ),
-                                    visualDensity: VisualDensity.compact,
-                                  ),
-                                ),
-                                ...messageState.giftCategories.map(
-                                  (cat) => Padding(
-                                    padding: const EdgeInsets.only(right: 6),
-                                    child: ChoiceChip(
-                                      label: Text(
-                                        cat[0].toUpperCase() +
-                                            cat
-                                                .substring(1)
-                                                .replaceAll('_', ' '),
-                                      ),
-                                      selected: _selectedGiftCategory == cat,
-                                      onSelected: (_) => setState(() {
-                                        _selectedGiftCategory =
-                                            _selectedGiftCategory == cat
-                                            ? null
-                                            : cat;
-                                      }),
-                                      labelStyle: const TextStyle(fontSize: 11),
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 6,
-                                        vertical: 0,
-                                      ),
-                                      visualDensity: VisualDensity.compact,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        const SizedBox(height: 8),
-                        SizedBox(
-                          height: 120,
-                          child: Builder(
-                            builder: (context) {
-                              final visibleGifts = _selectedGiftCategory == null
-                                  ? messageState.giftCatalog
-                                  : messageState.giftCatalog
-                                        .where(
-                                          (g) =>
-                                              g.category ==
-                                              _selectedGiftCategory,
-                                        )
-                                        .toList();
-                              return ListView.separated(
-                                scrollDirection: Axis.horizontal,
-                                itemCount: visibleGifts.length,
-                                separatorBuilder: (_, _) =>
-                                    const SizedBox(width: 10),
-                                itemBuilder: (context, index) {
-                                  final gift = visibleGifts[index];
-                                  final isLocked =
-                                      !gift.isFree &&
-                                      messageState.walletCoins <
-                                          gift.priceCoins;
-                                  final giftCostLabel = isLocked
-                                      ? 'Add coins'
-                                      : gift.isFree
-                                      ? 'One tap • Free'
-                                      : 'One tap • ${gift.priceCoins} coins';
-                                  return GestureDetector(
-                                    onTap: messageState.isSendingGift
-                                        ? null
-                                        : () => _sendRoseGiftOneTap(
-                                            gift,
-                                            isLocked,
-                                          ),
-                                    child: Container(
-                                      width: 110,
-                                      padding: const EdgeInsets.all(8),
-                                      decoration: BoxDecoration(
-                                        gradient: LinearGradient(
-                                          begin: Alignment.topLeft,
-                                          end: Alignment.bottomRight,
-                                          colors: isLocked
-                                              ? [
-                                                  Colors.white.withValues(
-                                                    alpha: 0.55,
-                                                  ),
-                                                  Colors.grey.shade100,
-                                                ]
-                                              : [
-                                                  Colors.white,
-                                                  AppTheme.pureGoldHighlight
-                                                      .withValues(alpha: 0.15),
-                                                  AppTheme.crystalGoldSoft
-                                                      .withValues(alpha: 0.24),
-                                                ],
-                                        ),
-                                        borderRadius: BorderRadius.circular(16),
-                                        border: Border.all(
-                                          color: isLocked
-                                              ? AppTheme.textHint.withValues(
-                                                  alpha: 0.22,
-                                                )
-                                              : AppTheme.pureGoldBright
-                                                    .withValues(alpha: 0.5),
-                                        ),
-                                        boxShadow: isLocked
-                                            ? null
-                                            : [
-                                                BoxShadow(
-                                                  color: AppTheme.pureGoldBright
-                                                      .withValues(alpha: 0.18),
-                                                  blurRadius: 18,
-                                                  offset: const Offset(0, 7),
-                                                ),
-                                              ],
-                                      ),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Expanded(
-                                            child: ClipRRect(
-                                              borderRadius:
-                                                  BorderRadius.circular(10),
-                                              child: RoseGiftVisual(
-                                                iconKey: gift.iconKey,
-                                                giftId: gift.id,
-                                                giftName: gift.name,
-                                                size: const Size(110, 76),
-                                              ),
+                                    child: Row(
+                                      children: [
+                                        if (!wide)
+                                          IconButton(
+                                            tooltip: 'Back to conversations',
+                                            onPressed: _goBack,
+                                            icon: const Icon(
+                                              Icons.arrow_back_rounded,
                                             ),
                                           ),
-                                          const SizedBox(height: 6),
-                                          Row(
+                                        ChatAvatar(
+                                          name: widget.userName,
+                                          photoUrl: widget.userPhotoUrl,
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
                                             children: [
-                                              RoseGiftGlyph(
-                                                iconKey: gift.iconKey,
-                                                giftId: gift.id,
-                                                giftName: gift.name,
-                                                size: 16,
-                                                iconSize: 10,
+                                              Text(
+                                                widget.userName,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: theme
+                                                    .textTheme
+                                                    .titleMedium
+                                                    ?.copyWith(
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                    ),
                                               ),
-                                              const SizedBox(width: 5),
-                                              Expanded(
-                                                child: Text(
-                                                  gift.name,
-                                                  maxLines: 1,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  style: Theme.of(context)
-                                                      .textTheme
-                                                      .bodySmall
-                                                      ?.copyWith(
-                                                        fontWeight:
-                                                            FontWeight.w600,
-                                                      ),
-                                                ),
+                                              const SizedBox(height: 3),
+                                              _ConversationTrustLine(
+                                                matchId: widget.matchId,
                                               ),
                                             ],
                                           ),
-                                          const SizedBox(height: 3),
-                                          Text(
-                                            giftCostLabel,
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .bodySmall
-                                                ?.copyWith(
-                                                  color: isLocked
-                                                      ? AppTheme.textGrey
-                                                      : gift.isFree
-                                                      ? AppTheme.successGreen
-                                                      : AppTheme.pureGoldInk,
-                                                  fontWeight: FontWeight.w700,
-                                                  fontSize: 11,
+                                        ),
+                                        if (flags.enabled('billing_enabled'))
+                                          _buildWalletHeaderChip(
+                                            state.walletCoins,
+                                            onTap: () async {
+                                              await Navigator.of(context).push(
+                                                MaterialPageRoute<void>(
+                                                  builder: (_) =>
+                                                      WalletPaymentScreen(
+                                                        walletCoins:
+                                                            state.walletCoins,
+                                                      ),
                                                 ),
+                                              );
+                                              if (mounted)
+                                                await ref
+                                                    .read(
+                                                      messageNotifierProvider(
+                                                        widget.matchId,
+                                                      ).notifier,
+                                                    )
+                                                    .refreshWallet();
+                                            },
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                  if (offline)
+                                    Container(
+                                      width: double.infinity,
+                                      color: scheme.tertiaryContainer,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 20,
+                                        vertical: 8,
+                                      ),
+                                      child: Text(
+                                        'You’re offline. Your draft will stay here while you reconnect.',
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(
+                                              color: scheme.onTertiaryContainer,
+                                            ),
+                                      ),
+                                    ),
+                                  Expanded(
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          begin: Alignment.topCenter,
+                                          end: Alignment.bottomCenter,
+                                          colors: [
+                                            scheme.surfaceContainerLow,
+                                            Color.alphaBlend(
+                                              scheme.secondary.withValues(
+                                                alpha: .035,
+                                              ),
+                                              scheme.surface,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      child: LayoutBuilder(
+                                        builder: (context, area) => Column(
+                                          children: [
+                                            if (voiceEnabled ||
+                                                plansEnabled ||
+                                                intentionalEnabled ||
+                                                graduationEnabled)
+                                              ConstrainedBox(
+                                                constraints: BoxConstraints(
+                                                  maxHeight:
+                                                      area.maxHeight * .30,
+                                                ),
+                                                child: SingleChildScrollView(
+                                                  child: Column(
+                                                    children: [
+                                                      if (voiceEnabled)
+                                                        TextButton.icon(
+                                                          onPressed: () =>
+                                                              Navigator.of(
+                                                                context,
+                                                              ).push<void>(
+                                                                MaterialPageRoute(
+                                                                  builder: (_) => VoiceIcebreakersScreen(
+                                                                    matchId: widget
+                                                                        .matchId,
+                                                                    receiverUserId:
+                                                                        widget
+                                                                            .otherUserId,
+                                                                    partnerName:
+                                                                        widget
+                                                                            .userName,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                          icon: const Icon(
+                                                            Icons
+                                                                .mic_none_rounded,
+                                                          ),
+                                                          label: const Text(
+                                                            'Share a voice hello · read & listen',
+                                                          ),
+                                                        ),
+                                                      if (intentionalEnabled)
+                                                        DatingConnectionCard(
+                                                          matchId:
+                                                              widget.matchId,
+                                                        ),
+                                                      if (plansEnabled)
+                                                        DatePlanCard(
+                                                          matchId:
+                                                              widget.matchId,
+                                                          partnerName:
+                                                              widget.userName,
+                                                        ),
+                                                      if (graduationEnabled)
+                                                        GraduationBanner(
+                                                          matchId:
+                                                              widget.matchId,
+                                                          partnerName:
+                                                              widget.userName,
+                                                        ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                            Expanded(
+                                              child: state.isLoading
+                                                  ? const Center(
+                                                      child:
+                                                          CircularProgressIndicator(
+                                                            strokeWidth: 2,
+                                                          ),
+                                                    )
+                                                  : state.messages.isEmpty &&
+                                                        state.error != null
+                                                  ? Center(
+                                                      child: Padding(
+                                                        padding:
+                                                            const EdgeInsets.all(
+                                                              24,
+                                                            ),
+                                                        child: Column(
+                                                          mainAxisSize:
+                                                              MainAxisSize.min,
+                                                          children: [
+                                                            Icon(
+                                                              Icons
+                                                                  .cloud_off_outlined,
+                                                              size: 36,
+                                                              color: scheme
+                                                                  .onSurfaceVariant,
+                                                            ),
+                                                            const SizedBox(
+                                                              height: 16,
+                                                            ),
+                                                            Text(
+                                                              'Let’s reconnect.',
+                                                              style: theme
+                                                                  .textTheme
+                                                                  .titleLarge,
+                                                            ),
+                                                            const SizedBox(
+                                                              height: 8,
+                                                            ),
+                                                            const Text(
+                                                              'Your conversation couldn’t load. Try again.',
+                                                              textAlign:
+                                                                  TextAlign
+                                                                      .center,
+                                                            ),
+                                                            const SizedBox(
+                                                              height: 16,
+                                                            ),
+                                                            OutlinedButton.icon(
+                                                              onPressed: () =>
+                                                                  ref.invalidate(
+                                                                    messageNotifierProvider(
+                                                                      widget
+                                                                          .matchId,
+                                                                    ),
+                                                                  ),
+                                                              icon: const Icon(
+                                                                Icons.refresh,
+                                                              ),
+                                                              label: const Text(
+                                                                'Retry',
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                    )
+                                                  : state.messages.isEmpty
+                                                  ? ChatWelcome(
+                                                      name: widget.userName,
+                                                      photoUrl:
+                                                          widget.userPhotoUrl,
+                                                      pending: pending,
+                                                      onStarter: canCompose
+                                                          ? (text) {
+                                                              _messageController
+                                                                      .text =
+                                                                  text;
+                                                              _messageController
+                                                                      .selection =
+                                                                  TextSelection.collapsed(
+                                                                    offset: text
+                                                                        .length,
+                                                                  );
+                                                              _composerFocus
+                                                                  .requestFocus();
+                                                            }
+                                                          : null,
+                                                    )
+                                                  : ListView.builder(
+                                                      controller:
+                                                          _scrollController,
+                                                      reverse: true,
+                                                      keyboardDismissBehavior:
+                                                          ScrollViewKeyboardDismissBehavior
+                                                              .onDrag,
+                                                      padding:
+                                                          EdgeInsets.symmetric(
+                                                            horizontal: wide
+                                                                ? 28
+                                                                : 18,
+                                                            vertical: 12,
+                                                          ),
+                                                      itemCount:
+                                                          state.messages.length,
+                                                      itemBuilder: (context, index) {
+                                                        final message = state
+                                                            .messages[index];
+                                                        final mine =
+                                                            currentUserId !=
+                                                                null &&
+                                                            message.senderId ==
+                                                                currentUserId;
+                                                        final incomingGift =
+                                                            !mine &&
+                                                            !message
+                                                                .isDeleted &&
+                                                            containsGiftPayload(
+                                                              message.text,
+                                                            );
+                                                        final older =
+                                                            index + 1 <
+                                                                state
+                                                                    .messages
+                                                                    .length
+                                                            ? state
+                                                                  .messages[index +
+                                                                  1]
+                                                            : null;
+                                                        final newDay =
+                                                            older == null ||
+                                                            !DateUtils.isSameDay(
+                                                              message.createdAt
+                                                                  .toLocal(),
+                                                              older.createdAt
+                                                                  .toLocal(),
+                                                            );
+                                                        return Column(
+                                                          key: ValueKey(
+                                                            message.id,
+                                                          ),
+                                                          children: [
+                                                            if (newDay)
+                                                              ChatDateDivider(
+                                                                date: message
+                                                                    .createdAt,
+                                                              ),
+                                                            Padding(
+                                                              padding:
+                                                                  const EdgeInsets.symmetric(
+                                                                    vertical: 5,
+                                                                  ),
+                                                              child: Semantics(
+                                                                label:
+                                                                    'qa.chat.message.${message.id}',
+                                                                button:
+                                                                    (mine &&
+                                                                        !message
+                                                                            .isDeleted) ||
+                                                                    incomingGift,
+                                                                child: GestureDetector(
+                                                                  key: ValueKey(
+                                                                    'qa.chat.message.${message.id}',
+                                                                  ),
+                                                                  onLongPress:
+                                                                      mine &&
+                                                                          !message
+                                                                              .isDeleted
+                                                                      ? () => _confirmDeleteMessage(
+                                                                          message
+                                                                              .id,
+                                                                        )
+                                                                      : incomingGift
+                                                                      ? () => _showGiftReceiverActions(
+                                                                          message,
+                                                                        )
+                                                                      : null,
+                                                                  child: MessageBubble(
+                                                                    message:
+                                                                        message
+                                                                            .text,
+                                                                    isFromCurrentUser:
+                                                                        mine,
+                                                                    assisted: state
+                                                                        .assistedMessageIds
+                                                                        .contains(
+                                                                          message
+                                                                              .id,
+                                                                        ),
+                                                                    timestamp:
+                                                                        message
+                                                                            .createdAt,
+                                                                    isDelivered:
+                                                                        message.deliveredAt !=
+                                                                            null ||
+                                                                        message.readAt !=
+                                                                            null,
+                                                                    isRead:
+                                                                        message
+                                                                            .readAt !=
+                                                                        null,
+                                                                    receivedGiftFrom:
+                                                                        incomingGift
+                                                                        ? widget
+                                                                              .userName
+                                                                        : null,
+                                                                    onGiftActions:
+                                                                        incomingGift
+                                                                        ? () => _showGiftReceiverActions(
+                                                                            message,
+                                                                          )
+                                                                        : null,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        );
+                                                      },
+                                                    ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  if (giftsEnabled &&
+                                      canCompose &&
+                                      _isGiftTrayOpen)
+                                    ConstrainedBox(
+                                      constraints: BoxConstraints(
+                                        maxHeight: viewport.maxHeight * .32,
+                                      ),
+                                      child: _buildGiftTray(state),
+                                    ),
+                                  if (!canCompose)
+                                    Container(
+                                      key: const ValueKey(
+                                        'qa.chat.locked_banner',
+                                      ),
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 20,
+                                        vertical: 12,
+                                      ),
+                                      color: scheme.secondaryContainer,
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.lock_outline_rounded,
+                                            size: 20,
+                                            color: scheme.onSecondaryContainer,
+                                          ),
+                                          const SizedBox(width: 10),
+                                          Expanded(
+                                            child: Text(
+                                              !state.isMatchActive
+                                                  ? 'This conversation has ended.'
+                                                  : 'Complete the current unlock step to continue this conversation.',
+                                              style: theme.textTheme.bodySmall
+                                                  ?.copyWith(
+                                                    color: scheme
+                                                        .onSecondaryContainer,
+                                                  ),
+                                            ),
                                           ),
                                         ],
                                       ),
                                     ),
-                                  );
-                                },
-                              );
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                // Input Area
-                if (messageState.isChatLocked)
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    color: AppTheme.primaryRed.withValues(alpha: 0.08),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.lock_outline,
-                              color: AppTheme.primaryRed,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                messageState.unlockPolicyVariant ==
-                                        'allow_without_template'
-                                    ? 'Chat is temporarily locked. Complete '
-                                          'the current unlock step to continue.'
-                                    : 'Complete and get quest approval to '
-                                          'unlock chat.',
-                                style: Theme.of(context).textTheme.bodyMedium
-                                    ?.copyWith(
-                                      color: AppTheme.primaryRed,
-                                      fontWeight: FontWeight.w600,
+                                  if (state.dailyLimit != null)
+                                    _DailyLimitBanner(
+                                      limit: DailyLimit.fromRefusal(
+                                        state.dailyLimit,
+                                      ),
+                                      onSeePlans: () =>
+                                          Navigator.of(context).push(
+                                            MaterialPageRoute<void>(
+                                              builder: (_) =>
+                                                  const SubscriptionScreen(),
+                                            ),
+                                          ),
                                     ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        if (messageState.error != null) ...[
-                          const SizedBox(height: 8),
-                          Text(
-                            messageState.error!,
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  color: AppTheme.primaryRed,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                SafeArea(
-                  top: false,
-                  child: GlassContainer(
-                    padding: const EdgeInsets.only(
-                      left: 16,
-                      right: 16,
-                      top: 12,
-                      bottom: 12,
-                    ),
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(28),
-                      topRight: Radius.circular(28),
-                    ),
-                    backgroundColor: Colors.white.withValues(alpha: 0.78),
-                    border: Border.all(
-                      color: AppTheme.pureGoldBright.withValues(alpha: 0.28),
-                    ),
-                    child: Row(
-                      children: [
-                        // Emoji/Attachment Button
-                        IconButton(
-                          icon: Icon(
-                            _isGiftTrayOpen
-                                ? Icons.close_rounded
-                                : Icons.add_circle_outline,
-                            color: AppTheme.pureGoldInk,
-                          ),
-                          onPressed:
-                              messageState.isChatLocked || !roseGiftTrayEnabled
-                              ? null
-                              : () {
-                                  final nextValue = !_isGiftTrayOpen;
-                                  setState(() {
-                                    _isGiftTrayOpen = nextValue;
-                                  });
-                                  if (nextValue) {
-                                    messageNotifier.trackGiftPanelOpened();
-                                  }
-                                },
-                        ),
-                        // Text Field
-                        Expanded(
-                          child: TextField(
-                            controller: _messageController,
-                            enabled: !messageState.isChatLocked,
-                            decoration: InputDecoration(
-                              hintText: 'Type a message...',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(24),
-                                borderSide: const BorderSide(
-                                  color: AppTheme.pureGoldBright,
-                                  width: 1,
-                                ),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(24),
-                                borderSide: BorderSide(
-                                  color: Colors.grey[300]!,
-                                  width: 1,
-                                ),
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 10,
-                              ),
-                              suffixIcon: IconButton(
-                                icon: const Icon(
-                                  Icons.emoji_emotions_outlined,
-                                  color: AppTheme.pureGoldInk,
-                                ),
-                                onPressed: () => _showEmojiPicker(context),
-                              ),
-                            ),
-                            maxLines: null,
-                            textCapitalization: TextCapitalization.sentences,
-                            onChanged: (value) {
-                              messageNotifier.setTyping(
-                                isTyping: value.isNotEmpty,
-                              );
-                            },
-                          ),
-                        ),
-
-                        const SizedBox(width: 8),
-
-                        // Send Button
-                        GestureDetector(
-                          onTap: () {
-                            if (messageState.isChatLocked) {
-                              return;
-                            }
-                            if (_messageController.text.trim().isNotEmpty) {
-                              messageNotifier.sendMessage(
-                                _messageController.text,
-                              );
-                              _messageController.clear();
-                              messageNotifier.setTyping(isTyping: false);
-                            }
-                          },
-                          child: Container(
-                            width: 44,
-                            height: 44,
-                            decoration: const BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  AppTheme.pureGoldHighlight,
-                                  AppTheme.pureGoldBright,
-                                  AppTheme.pureGoldCore,
+                                  _QuotaHint(),
+                                  ChatComposer(
+                                    controller: _messageController,
+                                    focusNode: _composerFocus,
+                                    enabled: canCompose && !offline,
+                                    sending:
+                                        _isSendingMessage ||
+                                        state.isSendingGift,
+                                    giftTrayOpen: _isGiftTrayOpen,
+                                    onSend: _sendMessage,
+                                    onChanged: (value) => ref
+                                        .read(
+                                          messageNotifierProvider(
+                                            widget.matchId,
+                                          ).notifier,
+                                        )
+                                        .setTyping(isTyping: value.isNotEmpty),
+                                    onEmoji: () => _showEmojiPicker(context),
+                                    onGift: giftsEnabled
+                                        ? _toggleGiftTray
+                                        : null,
+                                    onCopilot: copilotEnabled
+                                        ? () => _openCopilot(state)
+                                        : null,
+                                    assisted: _assistDraftId != null,
+                                  ),
                                 ],
                               ),
-                            ),
-                            child: const Icon(
-                              Icons.send,
-                              color: AppTheme.pureGoldInk,
-                              size: 18,
-                            ),
+                              if (state.isSendingGift)
+                                _buildSendingGiftVeil(context),
+                            ],
                           ),
                         ),
                       ],
                     ),
                   ),
                 ),
-              ],
-            ),
-            if (messageState.isSendingGift) _buildSendingGiftVeil(context),
-          ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  void _goBack() {
+    final navigator = Navigator.of(context);
+    if (navigator.canPop()) {
+      navigator.pop();
+      return;
+    }
+    if (kIsWeb) {
+      setWebRoute('/matches');
+      return;
+    }
+    navigator.pushAndRemoveUntil(
+      MaterialPageRoute<void>(builder: (_) => const MainNavigationScreen()),
+      (_) => false,
+    );
+  }
+
+  void _toggleGiftTray() {
+    setState(() => _isGiftTrayOpen = !_isGiftTrayOpen);
+    if (_isGiftTrayOpen) {
+      _composerFocus.unfocus();
+      ref
+          .read(messageNotifierProvider(widget.matchId).notifier)
+          .trackGiftPanelOpened();
+    }
+  }
+
+  Future<void> _sendMessage() async {
+    final text = _messageController.text.trim();
+    final state = ref.read(messageNotifierProvider(widget.matchId));
+    if (text.isEmpty ||
+        _isSendingMessage ||
+        state.isSendingGift ||
+        state.isChatLocked ||
+        !state.isMatchActive ||
+        ref.read(networkQualityProvider).status == NetworkQualityStatus.offline)
+      return;
+    setState(() => _isSendingMessage = true);
+    try {
+      final sent = await ref
+          .read(messageNotifierProvider(widget.matchId).notifier)
+          .sendMessage(text, assistDraftId: _assistDraftId);
+      if (!mounted) return;
+      if (sent && _messageController.text.trim() == text) {
+        _messageController.clear();
+        _assistDraftId = null;
+        ref
+            .read(messageNotifierProvider(widget.matchId).notifier)
+            .setTyping(isTyping: false);
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(
+            0,
+            duration: MediaQuery.disableAnimationsOf(context)
+                ? Duration.zero
+                : const Duration(milliseconds: 180),
+            curve: Curves.easeOut,
+          );
+        }
+      }
+      ref.invalidate(entitlementsProvider);
+    } finally {
+      if (mounted) {
+        setState(() => _isSendingMessage = false);
+      }
+    }
+  }
+
+  Widget _buildGiftTray(MessageState state) {
+    final scheme = Theme.of(context).colorScheme;
+    final visible = state.giftCatalog
+        .where(
+          (gift) =>
+              _selectedGiftCategory == null ||
+              gift.category == _selectedGiftCategory,
+        )
+        .toList();
+    return Container(
+      key: const ValueKey('qa.chat.gift_tray'),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerLow,
+        border: Border(top: BorderSide(color: scheme.outlineVariant)),
+      ),
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(18, 8, 18, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.card_giftcard_outlined,
+                    color: scheme.tertiary,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'A little something for them',
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Close gifts',
+                    onPressed: _toggleGiftTray,
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+                ],
+              ),
+              if (state.giftCategories.length > 1)
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      for (final category in <String?>[
+                        null,
+                        ...state.giftCategories,
+                      ])
+                        Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: ChoiceChip(
+                            label: Text(
+                              category == null
+                                  ? 'All gifts'
+                                  : category.replaceAll('_', ' '),
+                            ),
+                            selected: _selectedGiftCategory == category,
+                            onSelected: (_) => setState(
+                              () => _selectedGiftCategory = category,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              const SizedBox(height: 8),
+              if (visible.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text('No gifts available in this collection.'),
+                )
+              else
+                SizedBox(
+                  height: 156,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: visible.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: 10),
+                    itemBuilder: (context, index) {
+                      final gift = visible[index];
+                      final locked =
+                          !gift.isFree && state.walletCoins < gift.priceCoins;
+                      return Material(
+                        color: scheme.surface,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
+                          side: BorderSide(color: scheme.outlineVariant),
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: InkWell(
+                          key: ValueKey('qa.chat.gift_item.${gift.id}'),
+                          onTap: state.isSendingGift
+                              ? null
+                              : () => _sendRoseGiftOneTap(gift, locked),
+                          child: SizedBox(
+                            width: 126,
+                            child: Padding(
+                              padding: const EdgeInsets.all(10),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    child: Center(
+                                      child: RoseGiftVisual(
+                                        iconKey: gift.iconKey,
+                                        giftId: gift.id,
+                                        giftName: gift.name,
+                                        size: const Size(104, 78),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    gift.name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.labelLarge,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    locked
+                                        ? 'Add coins'
+                                        : gift.isFree
+                                        ? 'Free · 1 a day'
+                                        : _coinLabel(gift.priceCoins),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .labelSmall
+                                        ?.copyWith(color: scheme.primary),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -874,22 +983,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           filter: ImageFilter.blur(sigmaX: 2.8, sigmaY: 2.8),
           child: Container(
             alignment: Alignment.center,
-            color: AppTheme.pureGoldHighlight.withValues(alpha: 0.08),
+            color: Theme.of(
+              context,
+            ).colorScheme.tertiary.withValues(alpha: 0.08),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.86),
+                color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(999),
                 border: Border.all(
-                  color: AppTheme.pureGoldBright.withValues(alpha: 0.42),
+                  color: Theme.of(context).colorScheme.outlineVariant,
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppTheme.pureGoldBright.withValues(alpha: 0.24),
-                    blurRadius: 24,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -900,7 +1004,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     child: CircularProgressIndicator(
                       strokeWidth: 2.2,
                       valueColor: AlwaysStoppedAnimation<Color>(
-                        AppTheme.pureGoldInk.withValues(alpha: 0.86),
+                        Theme.of(context).colorScheme.primary,
                       ),
                     ),
                   ),
@@ -908,7 +1012,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   Text(
                     'Sending your gift…',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppTheme.pureGoldInk,
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -921,7 +1025,24 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     ),
   );
 
+  /// Key for the gift send the member last confirmed. A retry of the same
+  /// gift and note reuses it, so a send that reached the server before the
+  /// connection dropped is replayed rather than charged again.
+  String? _pendingGiftKey;
+  String? _pendingGiftSignature;
+
   Future<void> _sendRoseGiftOneTap(RoseGift gift, bool isLocked) async {
+    if (ref.read(networkQualityProvider).status ==
+        NetworkQualityStatus.offline) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            "You're offline. You can browse gifts and send once you reconnect.",
+          ),
+        ),
+      );
+      return;
+    }
     if (isLocked) {
       if (!mounted) {
         return;
@@ -935,20 +1056,45 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           ),
         ),
       );
+      await ref
+          .read(messageNotifierProvider(widget.matchId).notifier)
+          .refreshWallet();
       return;
     }
 
     final note = _messageController.text.trim();
+    if (!gift.isFree) {
+      final balance = ref
+          .read(messageNotifierProvider(widget.matchId))
+          .walletCoins;
+      final confirmed = await _confirmPaidGift(gift, note, balance);
+      if (!mounted || confirmed != true) {
+        return;
+      }
+    }
+
+    final signature = '${gift.id}\u0000$note';
+    if (_pendingGiftSignature != signature || _pendingGiftKey == null) {
+      _pendingGiftSignature = signature;
+      _pendingGiftKey = buildGiftSendIdempotencyKey(
+        senderUserId: ref.read(authNotifierProvider).userId ?? '',
+        matchId: widget.matchId,
+        giftId: gift.id,
+      );
+    }
     final sent = await ref
         .read(messageNotifierProvider(widget.matchId).notifier)
         .sendRoseGift(
           gift: gift,
           receiverUserId: widget.otherUserId,
           messageText: note,
+          idempotencyKey: _pendingGiftKey,
         );
     if (!mounted || !sent) {
       return;
     }
+    _pendingGiftKey = null;
+    _pendingGiftSignature = null;
     _messageController.clear();
     ref
         .read(messageNotifierProvider(widget.matchId).notifier)
@@ -956,6 +1102,107 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     setState(() {
       _isGiftTrayOpen = false;
     });
+  }
+
+  /// GIFT-002 / RG-103: a paid gift is only sent after the member sees what
+  /// it costs and what their balance will be. The composed note is shown and
+  /// kept; cancelling leaves it in the composer.
+  Future<bool?> _confirmPaidGift(RoseGift gift, String note, int balance) {
+    return showModalBottomSheet<bool>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        final theme = Theme.of(sheetContext);
+        final scheme = theme.colorScheme;
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: RoseGiftGlyph(
+                    giftName: gift.name,
+                    iconKey: gift.iconKey,
+                    giftId: gift.id,
+                    size: 72,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Send ${gift.name} to ${widget.userName}?',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                if (note.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: scheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(AppTheme.radiusS),
+                    ),
+                    child: Text(
+                      '“$note”',
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 16),
+                Semantics(
+                  label: 'qa.chat.gift_confirm.summary',
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        _coinLabel(gift.priceCoins),
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '·  $balance → ${balance - gift.priceCoins} left',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'A gift is a gesture, never an obligation to reply or meet.',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Semantics(
+                  label: 'qa.chat.gift_confirm.send',
+                  button: true,
+                  child: FilledButton(
+                    key: const ValueKey('qa.chat.gift_confirm.send'),
+                    onPressed: () => Navigator.of(sheetContext).pop(true),
+                    child: Text('Send for ${_coinLabel(gift.priceCoins)}'),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: () => Navigator.of(sheetContext).pop(false),
+                  child: const Text('Not now'),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _confirmDeleteMessage(String messageId) async {
@@ -974,7 +1221,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
     final shouldDelete = await showModalBottomSheet<bool>(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       builder: (context) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
@@ -996,27 +1243,35 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               const SizedBox(height: 14),
               SizedBox(
                 width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () => Navigator.of(context).pop(true),
-                  icon: const Icon(Icons.delete_outline),
-                  label: const Text('Delete for everyone'),
-                  style: Theme.of(context).elevatedButtonTheme.style?.copyWith(
-                    foregroundColor: WidgetStateProperty.resolveWith<Color>((
-                      states,
-                    ) {
-                      if (states.contains(WidgetState.disabled)) {
-                        return Colors.white.withValues(alpha: 0.7);
-                      }
-                      return Colors.white;
-                    }),
-                    backgroundColor: WidgetStateProperty.resolveWith<Color>((
-                      states,
-                    ) {
-                      if (states.contains(WidgetState.disabled)) {
-                        return AppTheme.errorRed.withValues(alpha: 0.55);
-                      }
-                      return AppTheme.errorRed;
-                    }),
+                child: Semantics(
+                  label: 'qa.chat.delete_message_action',
+                  button: true,
+                  child: ElevatedButton.icon(
+                    key: const ValueKey('qa.chat.delete_message_action'),
+                    onPressed: () => Navigator.of(context).pop(true),
+                    icon: const Icon(Icons.delete_outline),
+                    label: const Text('Delete for everyone'),
+                    style: Theme.of(context).elevatedButtonTheme.style
+                        ?.copyWith(
+                          foregroundColor:
+                              WidgetStateProperty.resolveWith<Color>((states) {
+                                if (states.contains(WidgetState.disabled)) {
+                                  return Theme.of(
+                                    context,
+                                  ).colorScheme.onError.withValues(alpha: 0.7);
+                                }
+                                return Theme.of(context).colorScheme.onError;
+                              }),
+                          backgroundColor:
+                              WidgetStateProperty.resolveWith<Color>((states) {
+                                if (states.contains(WidgetState.disabled)) {
+                                  return Theme.of(
+                                    context,
+                                  ).colorScheme.error.withValues(alpha: 0.55);
+                                }
+                                return Theme.of(context).colorScheme.error;
+                              }),
+                        ),
                   ),
                 ),
               ),
@@ -1069,10 +1324,205 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       );
   }
 
+  Future<void> _showGiftReceiverActions(models.Message message) async {
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Gift received from ${widget.userName}',
+                  style: Theme.of(
+                    sheetContext,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'You decide what stays in your chat.',
+                  style: Theme.of(sheetContext).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(sheetContext).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  key: const ValueKey('qa.chat.gift_hide'),
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.visibility_off_outlined),
+                  title: const Text('Hide gift'),
+                  subtitle: const Text('Remove it from your chat only.'),
+                  onTap: () => Navigator.of(sheetContext).pop('hide'),
+                ),
+                ListTile(
+                  key: const ValueKey('qa.chat.gift_report'),
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(
+                    Icons.flag_outlined,
+                    color: Theme.of(sheetContext).colorScheme.error,
+                  ),
+                  title: const Text('Report and hide'),
+                  subtitle: const Text(
+                    'Send it to the safety team and remove it now.',
+                  ),
+                  onTap: () => Navigator.of(sheetContext).pop('report'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(sheetContext).pop(),
+                  child: const Text('Cancel'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    if (!mounted || action == null) {
+      return;
+    }
+    if (action == 'report') {
+      await _showReportGiftSheet(message);
+      return;
+    }
+    final hidden = await ref
+        .read(messageNotifierProvider(widget.matchId).notifier)
+        .hideReceivedGift(message);
+    if (mounted && hidden) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(content: Text('Gift hidden from your chat.')),
+        );
+    }
+  }
+
+  Future<void> _showReportGiftSheet(models.Message message) async {
+    var selectedReason = 'unwanted';
+    var details = '';
+    final report = await showModalBottomSheet<Map<String, String>>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setSheetState) => SafeArea(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              20,
+              0,
+              20,
+              MediaQuery.viewInsetsOf(context).bottom + 20,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'Report this gift',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Choose a reason. The gift will be hidden immediately.',
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<String>(
+                    key: const ValueKey('qa.chat.gift_report_reason'),
+                    initialValue: selectedReason,
+                    decoration: const InputDecoration(labelText: 'Reason'),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'unwanted',
+                        child: Text('Unwanted gift'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'harassment',
+                        child: Text('Harassment'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'sexual_content',
+                        child: Text('Sexual content'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'scam',
+                        child: Text('Scam or fraud'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'other',
+                        child: Text('Something else'),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) {
+                        setSheetState(() => selectedReason = value);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    key: const ValueKey('qa.chat.gift_report_details'),
+                    maxLength: 500,
+                    maxLines: 3,
+                    decoration: const InputDecoration(
+                      labelText: 'Add details (optional)',
+                      alignLabelWithHint: true,
+                    ),
+                    onChanged: (value) => details = value,
+                  ),
+                  const SizedBox(height: 12),
+                  FilledButton.icon(
+                    key: const ValueKey('qa.chat.gift_report_submit'),
+                    onPressed: () => Navigator.of(
+                      context,
+                    ).pop({'reason': selectedReason, 'details': details}),
+                    icon: const Icon(Icons.shield_outlined),
+                    label: const Text('Submit report and hide'),
+                  ),
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('Cancel'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    if (!mounted || report == null) {
+      return;
+    }
+    final reported = await ref
+        .read(messageNotifierProvider(widget.matchId).notifier)
+        .reportReceivedGift(
+          message,
+          reason: report['reason'] ?? 'other',
+          details: report['details'] ?? '',
+        );
+    if (mounted && reported) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Gift reported and hidden. Our safety team will review it.',
+            ),
+          ),
+        );
+    }
+  }
+
   Future<void> _showEmojiPicker(BuildContext context) async {
     await showModalBottomSheet<void>(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       builder: (context) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
@@ -1084,7 +1534,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 'Quick emojis',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w800,
-                  color: AppTheme.textDark,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 12),
@@ -1112,7 +1562,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                           height: 48,
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
-                            color: AppTheme.primaryRed.withValues(alpha: 0.08),
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.primaryContainer,
                             borderRadius: BorderRadius.circular(14),
                           ),
                           child: Text(
@@ -1132,36 +1584,151 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   Widget _buildWalletHeaderChip(int walletCoins, {VoidCallback? onTap}) =>
-      GestureDetector(
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: AppTheme.primaryRed.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: AppTheme.primaryRed.withValues(alpha: 0.18),
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.account_balance_wallet_outlined,
-                size: 18,
-                color: AppTheme.primaryRed,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                '$walletCoins coins',
-                style: const TextStyle(
-                  color: AppTheme.primaryRed,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
+      Tooltip(
+        message: 'Your wallet · $walletCoins coins',
+        child: TextButton.icon(
+          onPressed: onTap,
+          icon: const Icon(Icons.toll_outlined, size: 18),
+          label: Text('$walletCoins'),
+          style: TextButton.styleFrom(minimumSize: const Size(64, 48)),
         ),
       );
+}
+
+/// Shown when the backend refused a message because today's allowance on the
+/// member's plan is used up. Reset time and a path to a bigger plan.
+class _DailyLimitBanner extends StatelessWidget {
+  const _DailyLimitBanner({required this.limit, required this.onSeePlans});
+
+  final DailyLimit? limit;
+  final VoidCallback onSeePlans;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final refusal = limit;
+    return Semantics(
+      label: 'qa.chat.daily_limit_banner',
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        color: scheme.tertiaryContainer.withValues(alpha: 0.6),
+        child: Row(
+          children: [
+            Icon(Icons.hourglass_bottom_rounded, color: scheme.tertiary),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    refusal?.headline ?? 'Daily message limit reached',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: scheme.onSurface,
+                    ),
+                  ),
+                  Text(
+                    refusal == null
+                        ? 'Try again tomorrow or upgrade your plan.'
+                        : '${refusal.resetLabel} · upgrade for more.',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+            TextButton(onPressed: onSeePlans, child: const Text('See plans')),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Remaining-messages hint under the composer for capped plans.
+class _QuotaHint extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final entitlements = ref.watch(entitlementsProvider).valueOrNull;
+    if (entitlements == null ||
+        !entitlements.enforced ||
+        entitlements.messages.unlimited) {
+      return const SizedBox.shrink();
+    }
+    final quota = entitlements.messages;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
+      child: Row(
+        children: [
+          Icon(
+            Icons.chat_bubble_outline,
+            size: 12,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              '${quota.label('messages')} on ${entitlements.planName}',
+              style: Theme.of(context).textTheme.labelSmall,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+String _coinLabel(int coins) => coins == 1 ? '1 coin' : '$coins coins';
+
+/// "Verified humans" when both members are verified, otherwise the usual
+/// presence line. Reads GET /matches/{id}/trust.
+class _ConversationTrustLine extends ConsumerWidget {
+  const _ConversationTrustLine({required this.matchId});
+
+  final String matchId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final trust = ref
+        .watch(conversationTrustProvider(matchId))
+        .maybeWhen(data: (value) => value, orElse: () => null);
+    final style = Theme.of(
+      context,
+    ).textTheme.bodySmall?.copyWith(color: AppTheme.successGreen);
+    if (trust == null || !trust.humanVerified) {
+      return Text(
+        'Your conversation',
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+      );
+    }
+    return Row(
+      key: const ValueKey('qa.chat.verified_humans'),
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(
+          Icons.verified_user_rounded,
+          size: 14,
+          color: AppTheme.successGreen,
+        ),
+        const SizedBox(width: 4),
+        Flexible(
+          child: Text(
+            trust.partnerShowsUp
+                ? 'Verified humans · Shows up'
+                : 'Verified humans',
+            // Small text takes the surface's secondary ink (4.5:1); the green
+            // stays on the icon only.
+            style: style?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+  }
 }

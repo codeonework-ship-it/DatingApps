@@ -37,7 +37,7 @@ type precomputedAggregateSnapshot struct {
 
 type asyncFanout struct {
 	log     *zap.Logger
-	store   *memoryStore
+	store   *runtimeStore
 	jobs    chan fanoutJob
 	stopCh  chan struct{}
 	wg      sync.WaitGroup
@@ -52,7 +52,7 @@ type asyncFanout struct {
 	agg   precomputedAggregateSnapshot
 }
 
-func newAsyncFanout(cfg config.Config, log *zap.Logger, store *memoryStore) *asyncFanout {
+func newAsyncFanout(cfg config.Config, log *zap.Logger, store *runtimeStore) *asyncFanout {
 	workers := cfg.FanoutWorkerCount
 	queueSize := cfg.FanoutQueueSize
 	if workers <= 0 || queueSize <= 0 {

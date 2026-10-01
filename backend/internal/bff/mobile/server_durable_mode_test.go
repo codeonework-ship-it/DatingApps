@@ -37,6 +37,31 @@ func TestNewServer_DurableModeRequiresQuestRepository(t *testing.T) {
 	}
 }
 
+func TestNewServer_ProductionCompositionForcesDurableMode(t *testing.T) {
+	previous := allowRuntimeMemoryFallback
+	allowRuntimeMemoryFallback = false
+	t.Cleanup(func() { allowRuntimeMemoryFallback = previous })
+
+	cfg := config.Config{
+		APIPrefix:                  "/v1",
+		AuthGRPCAddr:               "127.0.0.1:49091",
+		ProfileGRPCAddr:            "127.0.0.1:49092",
+		MatchingGRPCAddr:           "127.0.0.1:49093",
+		ChatGRPCAddr:               "127.0.0.1:49094",
+		FeatureEngagementUnlockMVP: true,
+	}
+
+	metrics := observability.NewHTTPMetrics(prometheus.NewRegistry())
+	server, err := NewServer(cfg, zap.NewNop(), metrics)
+	if err == nil {
+		server.Close()
+		t.Fatal("expected production composition to reject memory persistence")
+	}
+	if !strings.Contains(err.Error(), "quest/gesture persistence repository") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
 func TestNewServer_DurableModeRejectsMemoryOnlyEngagementFeatures(t *testing.T) {
 	cfg := config.Config{
 		APIPrefix:                     "/v1",

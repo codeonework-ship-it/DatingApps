@@ -188,3 +188,25 @@ func TestServer_ActivitySessionThisOrThatReplayLimit(t *testing.T) {
 		t.Fatalf("expected weekly replay limit message, got %s", thirdRec.Body.String())
 	}
 }
+
+func TestServer_ActivitySessionRejectsUnsupportedType(t *testing.T) {
+	server := newQuestWorkflowTestServer(t)
+	defer server.Close()
+
+	body := `{
+		"match_id": "match-activity-unsupported",
+		"initiator_user_id": "user-a",
+		"participant_user_id": "user-b",
+		"activity_type": "unreviewed_game"
+	}`
+	req := httptest.NewRequest(http.MethodPost, "/v1/activities/sessions/start", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	server.Handler().ServeHTTP(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for unsupported activity type, got %d body=%s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(strings.ToLower(rec.Body.String()), "unsupported activity_type") {
+		t.Fatalf("expected unsupported activity type message, got %s", rec.Body.String())
+	}
+}

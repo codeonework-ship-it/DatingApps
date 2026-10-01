@@ -1,0 +1,15 @@
+{
+  "completion_p95_seconds": 0.5297389499999999,
+  "dead_letters": 0,
+  "duration_seconds": 0.4403275,
+  "events": 2000,
+  "passed": true,
+  "projection_mismatches": 0,
+  "run_id": "92bddcf0-2dc5-41d9-bb6f-0151ae458099",
+  "thresholds": {
+    "maximum_p95_seconds": 5,
+    "minimum_events_per_second": 100
+  },
+  "throughput_events_per_second": 4542.073797344023,
+  "workers": 4
+}

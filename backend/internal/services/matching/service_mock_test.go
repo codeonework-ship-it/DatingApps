@@ -8,7 +8,7 @@ import (
 )
 
 func TestMockUsers_CountGenderAndAgeRange(t *testing.T) {
-	repo := &SupabaseRepository{
+	repo := &DataRepository{
 		cfg: config.Config{
 			MockFemaleUsersCount: 100,
 			MockMaleUsersCount:   100,

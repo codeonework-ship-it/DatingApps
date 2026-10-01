@@ -4,38 +4,31 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
 	"regexp"
 	"strings"
 	"time"
 
+	"github.com/go-chi/chi/v5"
+
 	"github.com/verified-dating/backend/internal/platform/config"
-	"github.com/verified-dating/backend/internal/platform/supabase"
+	"github.com/verified-dating/backend/internal/platform/observability"
 )
 
 type activityRepository struct {
 	cfg config.Config
-	db  *supabase.Client
+	db  repositoryDB
 }
 
 var uuidPattern = regexp.MustCompile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
 
-func newActivityRepository(cfg config.Config) *activityRepository {
-	apiKey := strings.TrimSpace(cfg.SupabaseServiceRole)
-	if apiKey == "" {
-		apiKey = strings.TrimSpace(cfg.SupabaseAnonKey)
-	}
-	if strings.TrimSpace(cfg.SupabaseURL) == "" || apiKey == "" {
+func newActivityRepository(cfg config.Config, supplied ...repositoryDB) *activityRepository {
+	db := repositoryDBFor(cfg, supplied)
+	if db == nil {
 		return nil
 	}
-	client := supabase.NewClient(
-		cfg.SupabaseURL,
-		cfg.SupabaseAnonKey,
-		cfg.SupabaseServiceRole,
-		time.Duration(cfg.SupabaseHTTPTimeoutSec)*time.Second,
-	)
-	client.SetReadBaseURL(cfg.SupabaseReadReplicaURL)
-	return &activityRepository{cfg: cfg, db: client}
+	return &activityRepository{cfg: cfg, db: db}
 }
 
 func isActivityRepoPersistenceUnavailable(err error) bool {
@@ -60,15 +53,15 @@ func (r *activityRepository) startActivitySession(
 	trimmedMatchID := strings.TrimSpace(matchID)
 	trimmedInitiator := strings.TrimSpace(initiatorUserID)
 	trimmedParticipant := strings.TrimSpace(participantUserID)
-	trimmedType := strings.TrimSpace(activityType)
+	trimmedType, typeErr := normalizeActivitySessionType(activityType)
 	if trimmedMatchID == "" || trimmedInitiator == "" || trimmedParticipant == "" {
 		return activitySession{}, errors.New("match_id, initiator_user_id, and participant_user_id are required")
 	}
 	if trimmedInitiator == trimmedParticipant {
 		return activitySession{}, errors.New("initiator and participant must be different users")
 	}
-	if trimmedType == "" {
-		trimmedType = "co_op_prompt"
+	if typeErr != nil {
+		return activitySession{}, typeErr
 	}
 
 	now := time.Now().UTC()
@@ -325,7 +318,7 @@ func (r *activityRepository) recordActivityEvent(ctx context.Context, event acti
 
 	rows, err := r.db.Insert(ctx, r.cfg.MatchingSchema, "activity_events", []map[string]any{{
 		"event_name":     action,
-		"event_domain":   "mobile_bff",
+		"event_domain":   activityEventDomain(event.Domain),
 		"event_version":  1,
 		"user_id":        nullableEventUUID(event.UserID),
 		"actor_user_id":  nullableEventUUID(event.Actor),
@@ -352,7 +345,7 @@ func (r *activityRepository) listActivityEvents(ctx context.Context, limit int) 
 		limit = 100
 	}
 	params := url.Values{}
-	params.Set("select", "id,event_name,user_id,actor_user_id,payload,created_at")
+	params.Set("select", "id,event_name,event_domain,user_id,actor_user_id,payload,created_at")
 	params.Set("order", "created_at.desc")
 	params.Set("limit", fmt.Sprintf("%d", limit))
 	rows, err := r.db.SelectRead(ctx, r.cfg.MatchingSchema, "activity_events", params)
@@ -386,6 +379,71 @@ func mapActivityEventRow(row map[string]any) activityEvent {
 		Resource:  strings.TrimSpace(toString(payload["resource"])),
 		Details:   mapOrEmpty(details),
 		CreatedAt: strings.TrimSpace(toString(row["created_at"])),
+		Domain:    strings.TrimSpace(toString(row["event_domain"])),
+	}
+}
+
+// activityDomainAPIRequest marks request telemetry written by the activity
+// middleware. These rows have their own 90-day retention class
+// (platform.run_client_telemetry_retention, migration 122), are deleted on
+// account erasure, and appear in the member export only as daily counts.
+const activityDomainAPIRequest = "api_request"
+
+func activityEventDomain(domain string) string {
+	if trimmed := strings.TrimSpace(domain); trimmed != "" {
+		return trimmed
+	}
+	return "mobile_bff"
+}
+
+// apiRequestActivityEvent is the minimised record of one API request.
+//
+// Stored: method, route template (e.g. "/v1/profile/{userID}"), status,
+// duration and content type, plus the member and actor ids in their own
+// columns. Not stored: the concrete path (it carries other members' and
+// matches' ids), the query string (search terms, coordinates, tokens) and the
+// client IP address.
+func (s *Server) apiRequestActivityEvent(r *http.Request, status int, elapsed time.Duration) activityEvent {
+	route := observability.RedactedRequestPath(r)
+
+	userID := strings.TrimSpace(chi.URLParam(r, "userID"))
+	if userID == "" {
+		userID = strings.TrimSpace(chi.URLParam(r, "matchID"))
+	}
+	if userID == "" {
+		userID = strings.TrimSpace(r.URL.Query().Get("user_id"))
+	}
+
+	actor := strings.TrimSpace(r.Header.Get("X-Admin-User"))
+	if actor == "" {
+		actor = strings.TrimSpace(r.Header.Get("X-User-ID"))
+	}
+	if actor == "" {
+		actor = "system"
+	}
+
+	details := mergeDetails(
+		map[string]any{
+			"method":       r.Method,
+			"path":         route,
+			"status_code":  status,
+			"duration_ms":  elapsed.Milliseconds(),
+			"content_type": r.Header.Get("Content-Type"),
+		},
+		// Classification reads the concrete path; only the derived
+		// dimensions are stored.
+		s.engagementTelemetryDetails(r.URL.Path),
+	)
+	details = mergeDetails(details, s.billingPolicyTelemetryDetails(r.URL.Path))
+
+	return activityEvent{
+		UserID:   userID,
+		Actor:    actor,
+		Action:   r.Method + " " + route,
+		Status:   statusLabel(status),
+		Resource: route,
+		Details:  details,
+		Domain:   activityDomainAPIRequest,
 	}
 }
 

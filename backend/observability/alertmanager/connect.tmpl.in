@@ -1,0 +1,15 @@
+{{/* Notification templates for Connect alerts. ${RUNBOOK_BASE_URL} is
+     substituted by render_config.sh; runbook_url annotations are relative. */}}
+{{ define "connect.title" -}}
+[{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] {{ .CommonLabels.severity | toUpper }} {{ .CommonLabels.alertname }}
+{{- end }}
+
+{{ define "connect.text" -}}
+{{ range .Alerts -}}
+*{{ .Annotations.summary }}*
+{{ .Annotations.description }}
+owner: {{ .Labels.owner }}{{ if .Labels.route }} · route: {{ .Labels.route }}{{ end }}{{ if .Labels.worker }} · worker: {{ .Labels.worker }}{{ end }}{{ if .Labels.pool }} · pool: {{ .Labels.pool }}{{ end }}
+runbook: ${RUNBOOK_BASE_URL}{{ .Annotations.runbook_url }}
+started: {{ .StartsAt.Format "2006-01-02 15:04 MST" }}
+{{ end -}}
+{{- end }}

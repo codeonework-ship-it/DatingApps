@@ -9,11 +9,9 @@ void main() {
       dotenv.testLoad(fileInput: '');
 
       expect(AppRuntimeConfig.appName, 'Connect');
-      expect(AppRuntimeConfig.apiBaseUrl, 'http://10.0.2.2:8080/v1');
+      expect(AppRuntimeConfig.apiBaseUrl, 'http://10.0.2.2:18080/v1');
       expect(AppRuntimeConfig.apiTimeoutMs, 30000);
       expect(AppRuntimeConfig.themeMode, ThemeMode.light);
-      expect(AppRuntimeConfig.supabaseUsersSchema, 'user_management');
-      expect(AppRuntimeConfig.supabaseUsersTable, 'users');
     });
 
     test('parses dark and system theme modes from env', () {
@@ -30,12 +28,6 @@ void main() {
 
       dotenv.testLoad(fileInput: 'API_TIMEOUT_MS=abc');
       expect(AppRuntimeConfig.apiTimeoutMs, 30000);
-    });
-
-    test('parses configurable supabase users table fq name', () {
-      dotenv.testLoad(fileInput: 'SUPABASE_USERS_TABLE=public.users');
-      expect(AppRuntimeConfig.supabaseUsersSchema, 'public');
-      expect(AppRuntimeConfig.supabaseUsersTable, 'users');
     });
 
     test('generates deterministic mock user id from identifier', () {

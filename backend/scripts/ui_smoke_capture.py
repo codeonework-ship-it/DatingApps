@@ -76,11 +76,12 @@ def has_any_label(root, labels):
     return find_node_by_text_or_desc(root, labels) is not None
 
 
-def get_first_edit_text(root):
-    for node in root.iter("node"):
-        if (node.attrib.get("class") or "") == "android.widget.EditText":
-            return node
-    return None
+def get_edit_texts(root):
+    return [
+        node
+        for node in root.iter("node")
+        if (node.attrib.get("class") or "") == "android.widget.EditText"
+    ]
 
 
 def tap_node(node):
@@ -137,7 +138,7 @@ def tap_bottom_tab(index: int, total_tabs: int = 6):
 def complete_mock_sign_in(max_attempts: int = 8):
     actions = [
         ["Start Secure Sign In", "Secure Sign In", "Sign In"],
-        ["Verify & Continue", "Continue", "Next", "Verify"],
+        ["Continue", "Next"],
         ["Skip", "Maybe later", "Not now"],
     ]
     for _ in range(max_attempts):
@@ -150,24 +151,15 @@ def complete_mock_sign_in(max_attempts: int = 8):
             if has_any_label(root, ["Discover", "Matches", "Engagement", "Friends", "Settings"]):
                 return True
 
-            if has_any_label(root, ["Enter mobile number", "Send OTP"]):
-                edit = get_first_edit_text(root)
-                if edit is not None:
-                    tap_node(edit)
-                    adb("shell input keyevent KEYCODE_MOVE_END")
-                    adb("shell input keyevent KEYCODE_DEL")
-                    adb("shell input text 9876543210")
+            if has_any_label(root, ["Username", "Password"]):
+                edits = get_edit_texts(root)
+                if len(edits) >= 2:
+                    tap_node(edits[0])
+                    adb("shell input text qa_user")
+                    tap_node(edits[1])
+                    adb("shell input text Password123!")
                     time.sleep(0.6)
-                tap_by_labels(["Send OTP"])
-                time.sleep(1.2)
-
-            if has_any_label(root, ["Enter verification code", "Verify & Continue"]):
-                edit = get_first_edit_text(root)
-                if edit is not None:
-                    tap_node(edit)
-                    adb("shell input text 123456")
-                    time.sleep(0.6)
-                tap_by_labels(["Verify & Continue", "Verify", "Continue"])
+                tap_by_labels(["Sign In"])
                 time.sleep(2)
         except Exception:
             pass

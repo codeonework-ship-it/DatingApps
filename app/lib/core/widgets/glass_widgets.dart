@@ -1,10 +1,15 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../theme/app_theme.dart';
+import '../theme/cinematic_effects.dart';
+import '../theme/theme_atmosphere.dart';
+import '../theme/theme_presets.dart';
 
-/// Glassmorphism container with crystal-like glossy highlights.
+/// Shared bordered surface, drawn the way Today draws its cards: the
+/// theme's paper colour, a hairline border and a 20pt radius. Legacy name and
+/// parameters retained for existing consumers; [blur], [opacity] and
+/// [crystalEffect] no longer change the look.
 class GlassContainer extends StatelessWidget {
   const GlassContainer({
     required this.child,
@@ -13,7 +18,7 @@ class GlassContainer extends StatelessWidget {
     this.opacity = AppTheme.glassLayerRegularOpacity,
     this.padding = const EdgeInsets.all(16),
     this.margin = EdgeInsets.zero,
-    this.borderRadius = const BorderRadius.all(Radius.circular(18)),
+    this.borderRadius = const BorderRadius.all(Radius.circular(20)),
     this.border,
     this.shadows,
     this.backgroundColor,
@@ -38,106 +43,20 @@ class GlassContainer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final useCrystal = AppTheme.forceCrystalEverywhere || crystalEffect;
-    final baseColor =
-        backgroundColor ??
-        (isDark
-            ? AppTheme.glassDark.withValues(alpha: opacity)
-            : AppTheme.glassLight.withValues(alpha: opacity));
-    final outerBorderColor = isDark
-        ? Colors.white.withValues(alpha: 0.24)
-        : Colors.white.withValues(alpha: 0.58);
-    final innerBorderColor = isDark
-        ? Colors.white.withValues(alpha: 0.08)
-        : Colors.white.withValues(alpha: 0.34);
-
+    final scheme = Theme.of(context).colorScheme;
     final content = Container(
       width: width,
       height: height,
       margin: margin,
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
+        color: backgroundColor ?? scheme.surface,
         borderRadius: borderRadius,
-        border: border ?? Border.all(color: outerBorderColor, width: 1),
-        boxShadow:
-            shadows ??
-            [
-              BoxShadow(
-                color: AppTheme.trustBlue.withValues(alpha: 0.16),
-                blurRadius: 30,
-                offset: const Offset(0, 12),
-              ),
-              BoxShadow(
-                color: Colors.white.withValues(alpha: isDark ? 0.04 : 0.28),
-                blurRadius: 14,
-                offset: const Offset(0, 2),
-              ),
-            ],
+        border: border ?? Border.all(color: scheme.outlineVariant),
+        boxShadow: shadows ?? const <BoxShadow>[],
       ),
-      child: ClipRRect(
-        borderRadius: borderRadius,
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: baseColor,
-                      borderRadius: borderRadius,
-                    ),
-                  ),
-                ),
-              ),
-              if (useCrystal)
-                Positioned.fill(
-                  child: IgnorePointer(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        borderRadius: borderRadius,
-                        gradient: AppTheme.crystalSurfaceGradient,
-                      ),
-                    ),
-                  ),
-                ),
-              if (useCrystal)
-                Positioned(
-                  top: -24,
-                  left: -12,
-                  right: 24,
-                  height: 110,
-                  child: IgnorePointer(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: RadialGradient(
-                          colors: [
-                            Colors.white.withValues(
-                              alpha: isDark ? 0.18 : 0.42,
-                            ),
-                            Colors.white.withValues(alpha: 0),
-                          ],
-                          radius: 1.1,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: borderRadius,
-                      border: Border.all(color: innerBorderColor, width: 0.95),
-                    ),
-                  ),
-                ),
-              ),
-              Padding(padding: padding, child: child),
-            ],
-          ),
-        ),
-      ),
+      padding: padding,
+      child: child,
     );
 
     if (onTap == null) {
@@ -174,6 +93,9 @@ class GlassButton extends StatefulWidget {
   final Color? backgroundColor;
   final Color? textColor;
   final FontWeight? fontWeight;
+
+  /// No longer read. Kept so existing call sites compile.
+  @Deprecated('No longer has any effect; remove this argument from call sites.')
   final bool shinyEffect;
 
   @override
@@ -184,7 +106,6 @@ class _GlassButtonState extends State<GlassButton>
     with TickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
-  AnimationController? _shineController;
 
   @override
   void initState() {
@@ -197,36 +118,11 @@ class _GlassButtonState extends State<GlassButton>
       begin: 1,
       end: 0.95,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
-    if (widget.shinyEffect) {
-      _shineController = AnimationController(
-        duration: const Duration(milliseconds: 1900),
-        vsync: this,
-      )..repeat();
-    }
-  }
-
-  @override
-  void didUpdateWidget(covariant GlassButton oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.shinyEffect == widget.shinyEffect) {
-      return;
-    }
-
-    if (widget.shinyEffect) {
-      _shineController = AnimationController(
-        duration: const Duration(milliseconds: 1900),
-        vsync: this,
-      )..repeat();
-    } else {
-      _shineController?.dispose();
-      _shineController = null;
-    }
   }
 
   @override
   void dispose() {
     _controller.dispose();
-    _shineController?.dispose();
     super.dispose();
   }
 
@@ -250,265 +146,72 @@ class _GlassButtonState extends State<GlassButton>
   @override
   Widget build(BuildContext context) {
     final isEnabled = widget.onPressed != null && !widget.isLoading;
-    final buttonTextColor = widget.textColor ?? AppTheme.pureGoldInk;
-    final baseColor = widget.backgroundColor ?? AppTheme.pureGoldCore;
-    final radius = BorderRadius.circular(AppTheme.radiusM);
+    final scheme = Theme.of(context).colorScheme;
+    final fill = widget.backgroundColor ?? scheme.primary;
+    final buttonTextColor = widget.textColor ?? scheme.onPrimary;
+    final radius = BorderRadius.circular(999);
     final width = widget.width;
-    final buttonStops = widget.shinyEffect
-        ? const [0.0, 0.22, 0.54, 0.82, 1.0]
-        : const [0.0, 0.5, 1.0];
-    final buttonGradient = LinearGradient(
-      colors: widget.shinyEffect
-          ? [
-              const Color(0xFFE0B238).withValues(alpha: 0.98),
-              const Color(0xFFF0C54B).withValues(alpha: 0.99),
-              const Color(0xFFF4CC61).withValues(alpha: 0.99),
-              const Color(0xFFE8BB3F).withValues(alpha: 0.99),
-              const Color(0xFFF1C95A).withValues(alpha: 0.98),
-            ]
-          : [
-              const Color(0xFFE2B53B).withValues(alpha: 0.94),
-              const Color(0xFFF0C54A).withValues(alpha: 0.96),
-              const Color(0xFFE8BB40).withValues(alpha: 0.94),
-            ],
-      stops: buttonStops,
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
+
+    final content = Container(
+      width: width ?? double.infinity,
+      constraints: const BoxConstraints(minHeight: AppTheme.buttonHeight),
+      alignment: Alignment.center,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      child: widget.isLoading
+          ? SizedBox(
+              height: 20,
+              width: 20,
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(buttonTextColor),
+                strokeWidth: 2,
+              ),
+            )
+          : Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (widget.icon != null) ...[
+                  Icon(widget.icon, color: buttonTextColor, size: 18),
+                  const SizedBox(width: 8),
+                ],
+                Flexible(
+                  child: Text(
+                    widget.label,
+                    textAlign: TextAlign.center,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      color: buttonTextColor,
+                      fontWeight: widget.fontWeight ?? FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
     );
-
-    final buttonChild = ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: 50),
-      child: GlassContainer(
-        width: width,
-        padding: EdgeInsets.zero,
+    // The fill, then the cinematic looks' passing sheen, then the label.
+    final buttonChild = DecoratedBox(
+      decoration: BoxDecoration(borderRadius: radius, color: fill),
+      child: CinematicSheen(
+        enabled: isEnabled,
         borderRadius: radius,
-        backgroundColor: baseColor.withValues(alpha: 0.34),
-        blur: AppTheme.glassBlurThick,
-        opacity: AppTheme.glassLayerThickOpacity,
-        shadows: [
-          BoxShadow(
-            color: AppTheme.pureGoldBright.withValues(alpha: 0.24),
-            blurRadius: 28,
-            offset: const Offset(0, 10),
-          ),
-          BoxShadow(
-            color: Colors.white.withValues(alpha: 0.22),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
-        child: Container(
-          width: double.infinity,
-          decoration: BoxDecoration(
-            borderRadius: radius,
-            gradient: buttonGradient,
-          ),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: ClipRRect(
-                    borderRadius: radius,
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        borderRadius: radius,
-                        gradient: RadialGradient(
-                          center: const Alignment(-0.85, -0.9),
-                          radius: 1.35,
-                          colors: [
-                            AppTheme.pureGoldHighlight.withValues(alpha: 0.28),
-                            Colors.transparent,
-                          ],
-                          stops: const [0.0, 0.78],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: ClipRRect(
-                    borderRadius: radius,
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        borderRadius: radius,
-                        gradient: RadialGradient(
-                          center: const Alignment(0.95, 1.1),
-                          radius: 1.1,
-                          colors: [
-                            const Color(0xFFFFC640).withValues(alpha: 0.34),
-                            Colors.transparent,
-                          ],
-                          stops: const [0.0, 0.78],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              if (widget.shinyEffect)
-                Positioned.fill(
-                  child: IgnorePointer(
-                    child: ClipRRect(
-                      borderRadius: radius,
-                      child: AnimatedBuilder(
-                        animation: _shineController ?? _controller,
-                        builder: (context, child) {
-                          final t = _shineController?.value ?? 0;
-                          final primaryLeft = -1.4 + (2.8 * t);
-                          final primaryRight = primaryLeft + 0.96;
-                          final secondaryLeft = -1.9 + (2.8 * t);
-                          final secondaryRight = secondaryLeft + 0.82;
-
-                          return Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              DecoratedBox(
-                                decoration: BoxDecoration(
-                                  borderRadius: radius,
-                                  gradient: LinearGradient(
-                                    begin: Alignment(primaryLeft, -1),
-                                    end: Alignment(primaryRight, 1),
-                                    colors: [
-                                      Colors.transparent,
-                                      const Color(
-                                        0xFFFFE7A3,
-                                      ).withValues(alpha: 0.18),
-                                      Colors.white.withValues(alpha: 0.22),
-                                      const Color(
-                                        0xFFFFC640,
-                                      ).withValues(alpha: 0.34),
-                                      Colors.transparent,
-                                    ],
-                                    stops: const [0.0, 0.35, 0.52, 0.66, 1.0],
-                                  ),
-                                ),
-                              ),
-                              DecoratedBox(
-                                decoration: BoxDecoration(
-                                  borderRadius: radius,
-                                  gradient: LinearGradient(
-                                    begin: Alignment(secondaryLeft, -1),
-                                    end: Alignment(secondaryRight, 1),
-                                    colors: [
-                                      Colors.transparent,
-                                      const Color(
-                                        0xFFFFF0C9,
-                                      ).withValues(alpha: 0.14),
-                                      AppTheme.pureGoldBright.withValues(
-                                        alpha: 0.28,
-                                      ),
-                                      Colors.transparent,
-                                    ],
-                                    stops: const [0.0, 0.45, 0.56, 1.0],
-                                  ),
-                                ),
-                              ),
-                              DecoratedBox(
-                                decoration: BoxDecoration(
-                                  borderRadius: radius,
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
-                                    colors: [
-                                      AppTheme.pureGoldHighlight.withValues(
-                                        alpha: 0.24,
-                                      ),
-                                      const Color(
-                                        0xFFFFD36B,
-                                      ).withValues(alpha: 0.08),
-                                      Colors.transparent,
-                                    ],
-                                    stops: const [0.0, 0.36, 0.72],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                ),
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      borderRadius: radius,
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.white.withValues(alpha: 0.34),
-                          Colors.white.withValues(alpha: 0),
-                        ],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        stops: const [0.0, 0.55],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 15,
-                ),
-                child: widget.isLoading
-                    ? SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            buttonTextColor,
-                          ),
-                          strokeWidth: 2,
-                        ),
-                      )
-                    : Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (widget.icon != null) ...[
-                            Icon(widget.icon, color: buttonTextColor, size: 18),
-                            const SizedBox(width: 8),
-                          ],
-                          Flexible(
-                            child: Text(
-                              widget.label,
-                              textAlign: TextAlign.center,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.labelLarge
-                                  ?.copyWith(
-                                    color: buttonTextColor,
-                                    fontWeight:
-                                        widget.fontWeight ?? FontWeight.w700,
-                                  ),
-                            ),
-                          ),
-                        ],
-                      ),
-              ),
-            ],
-          ),
-        ),
+        child: content,
       ),
     );
 
-    return AnimatedOpacity(
-      duration: const Duration(milliseconds: 150),
-      opacity: isEnabled ? 1 : 0.55,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTapDown: isEnabled ? _onTapDown : null,
-        onTapUp: isEnabled ? _onTapUp : null,
-        onTapCancel: isEnabled ? _onTapCancel : null,
-        child: ScaleTransition(
-          scale: _scaleAnimation,
-          child: width == null
-              ? SizedBox(width: double.infinity, child: buttonChild)
-              : buttonChild,
+    return Semantics(
+      button: true,
+      enabled: isEnabled,
+      label: widget.isLoading ? '${widget.label}, loading' : widget.label,
+      onTap: isEnabled ? widget.onPressed : null,
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 140),
+        opacity: isEnabled ? 1 : 0.5,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTapDown: isEnabled ? _onTapDown : null,
+          onTapUp: isEnabled ? _onTapUp : null,
+          onTapCancel: isEnabled ? _onTapCancel : null,
+          child: ScaleTransition(scale: _scaleAnimation, child: buttonChild),
         ),
       ),
     );
@@ -523,56 +226,31 @@ class GoldBackButton extends StatelessWidget {
   final String? tooltip;
 
   @override
-  Widget build(BuildContext context) => Semantics(
-    button: true,
-    label: tooltip ?? 'Back',
-    child: GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Container(
-        width: 48,
-        height: 48,
-        padding: const EdgeInsets.all(1.1),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
-          gradient: LinearGradient(
-            colors: [
-              AppTheme.pureGoldHighlight.withValues(alpha: 0.96),
-              AppTheme.pureGoldBright.withValues(alpha: 0.78),
-              Colors.white.withValues(alpha: 0.44),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: AppTheme.pureGoldBright.withValues(alpha: 0.22),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: DecoratedBox(
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Semantics(
+      button: true,
+      label: tooltip ?? 'Back',
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Container(
+          width: 48,
+          height: 48,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(17),
-            gradient: LinearGradient(
-              colors: [
-                const Color(0xFF6F4B05).withValues(alpha: 0.98),
-                const Color(0xFF2B1A03).withValues(alpha: 0.96),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            shape: BoxShape.circle,
+            color: scheme.surface,
+            border: Border.all(color: scheme.outlineVariant),
           ),
-          child: const Icon(
+          child: Icon(
             Icons.arrow_back_ios_new_rounded,
-            color: AppTheme.pureGoldHighlight,
+            color: scheme.onSurface,
             size: 20,
           ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 /// Soft crystal highlight blob to layer over gradient backgrounds.
@@ -582,9 +260,9 @@ class CrystalBloom extends StatelessWidget {
     this.alignment = Alignment.topRight,
     this.size = 220,
     this.colors = const [
-      Color(0x66FFFFFF),
-      Color(0x2EC7F9FF),
-      Color(0x00FFFFFF),
+      Color(0x66FF5C7A),
+      Color(0x1FFF5C7A),
+      Color(0x00FF5C7A),
     ],
   });
   final Alignment alignment;
@@ -595,19 +273,28 @@ class CrystalBloom extends StatelessWidget {
   Widget build(BuildContext context) => IgnorePointer(
     child: Align(
       alignment: alignment,
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: RadialGradient(colors: colors, radius: 0.9),
+      child: SizedBox(
+        // Oversized and mostly transparent. The previous bloom held ~18% alpha
+        // across its middle, which gave the falloff a plateau and made it read
+        // as a flat grey disc pasted on the ground rather than light in it.
+        width: size * 1.9,
+        height: size * 1.9,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: RadialGradient(
+              colors: colors,
+              stops: const [0, 0.34, 0.82],
+              radius: 0.62,
+            ),
+          ),
         ),
       ),
     ),
   );
 }
 
-/// Glossy shell for full-screen pages.
+/// Full-screen page shell on the theme's flat ground, like Today.
 class CrystalScaffold extends StatelessWidget {
   const CrystalScaffold({
     required this.child,
@@ -625,53 +312,49 @@ class CrystalScaffold extends StatelessWidget {
         ? child
         : Padding(padding: padding!, child: child);
 
-    return Container(
-      decoration: const BoxDecoration(gradient: AppTheme.bgGradient),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final viewport = MediaQuery.sizeOf(context);
-          final maxWidth =
-              constraints.hasBoundedWidth &&
-                  constraints.maxWidth.isFinite &&
-                  constraints.maxWidth > 0
-              ? constraints.maxWidth
-              : viewport.width;
-          final maxHeight =
-              constraints.hasBoundedHeight &&
-                  constraints.maxHeight.isFinite &&
-                  constraints.maxHeight > 0
-              ? constraints.maxHeight
-              : viewport.height;
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: Theme.of(context).brightness == Brightness.dark
+          ? SystemUiOverlayStyle.light
+          : SystemUiOverlayStyle.dark,
+      child: Container(
+        decoration: BoxDecoration(gradient: AppTheme.groundGradientOf(context)),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final viewport = MediaQuery.sizeOf(context);
+            final maxWidth =
+                constraints.hasBoundedWidth &&
+                    constraints.maxWidth.isFinite &&
+                    constraints.maxWidth > 0
+                ? constraints.maxWidth
+                : viewport.width;
+            final maxHeight =
+                constraints.hasBoundedHeight &&
+                    constraints.maxHeight.isFinite &&
+                    constraints.maxHeight > 0
+                ? constraints.maxHeight
+                : viewport.height;
 
-          final contentWidth = maxContentWidth == null
-              ? maxWidth
-              : maxContentWidth!.clamp(0, maxWidth).toDouble();
+            final contentWidth = maxContentWidth == null
+                ? maxWidth
+                : maxContentWidth!.clamp(0, maxWidth).toDouble();
 
-          return Stack(
-            children: [
-              const CrystalBloom(alignment: Alignment.topRight, size: 260),
-              const CrystalBloom(
-                alignment: Alignment.bottomLeft,
-                size: 240,
-                colors: [
-                  Color(0x4DFFFFFF),
-                  Color(0x2693C5FF),
-                  Color(0x00FFFFFF),
-                ],
-              ),
-              Positioned.fill(
-                child: Align(
-                  alignment: Alignment.topCenter,
-                  child: SizedBox(
-                    width: contentWidth,
-                    height: maxHeight,
-                    child: paddedContent,
+            return Stack(
+              fit: StackFit.expand,
+              children: [
+                Positioned.fill(
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    child: SizedBox(
+                      width: contentWidth,
+                      height: maxHeight,
+                      child: paddedContent,
+                    ),
                   ),
                 ),
-              ),
-            ],
-          );
-        },
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -695,70 +378,59 @@ class PostLoginBackdrop extends StatelessWidget {
         ? child
         : Padding(padding: padding!, child: child);
 
-    return Container(
-      decoration: const BoxDecoration(gradient: AppTheme.postLoginGradient),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final viewport = MediaQuery.sizeOf(context);
-          final maxWidth =
-              constraints.hasBoundedWidth &&
-                  constraints.maxWidth.isFinite &&
-                  constraints.maxWidth > 0
-              ? constraints.maxWidth
-              : viewport.width;
-          final maxHeight =
-              constraints.hasBoundedHeight &&
-                  constraints.maxHeight.isFinite &&
-                  constraints.maxHeight > 0
-              ? constraints.maxHeight
-              : viewport.height;
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: Theme.of(context).brightness == Brightness.dark
+          ? SystemUiOverlayStyle.light
+          : SystemUiOverlayStyle.dark,
+      child: Container(
+        decoration: BoxDecoration(gradient: AppTheme.groundGradientOf(context)),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final viewport = MediaQuery.sizeOf(context);
+            final maxWidth =
+                constraints.hasBoundedWidth &&
+                    constraints.maxWidth.isFinite &&
+                    constraints.maxWidth > 0
+                ? constraints.maxWidth
+                : viewport.width;
+            final maxHeight =
+                constraints.hasBoundedHeight &&
+                    constraints.maxHeight.isFinite &&
+                    constraints.maxHeight > 0
+                ? constraints.maxHeight
+                : viewport.height;
 
-          final contentWidth = maxContentWidth == null
-              ? maxWidth
-              : maxContentWidth!.clamp(0, maxWidth).toDouble();
+            final contentWidth = maxContentWidth == null
+                ? maxWidth
+                : maxContentWidth!.clamp(0, maxWidth).toDouble();
 
-          return Stack(
-            children: [
-              const CrystalBloom(
-                alignment: Alignment.topRight,
-                size: 300,
-                colors: [
-                  Color(0x42FFFFFF),
-                  Color(0x2D9ED6FF),
-                  Color(0x00FFFFFF),
-                ],
-              ),
-              const CrystalBloom(
-                alignment: Alignment.bottomLeft,
-                size: 270,
-                colors: [
-                  Color(0x38FFFFFF),
-                  Color(0x2667E8F9),
-                  Color(0x00FFFFFF),
-                ],
-              ),
-              const CrystalBloom(
-                alignment: Alignment.center,
-                size: 220,
-                colors: [
-                  Color(0x1FFFFFFF),
-                  Color(0x1486EFAC),
-                  Color(0x00FFFFFF),
-                ],
-              ),
-              Positioned.fill(
-                child: Align(
-                  alignment: Alignment.topCenter,
-                  child: SizedBox(
-                    width: contentWidth,
-                    height: maxHeight,
-                    child: paddedContent,
+            final themed = Theme.of(
+              context,
+            ).extension<ConnectPalette>()?.preset;
+            // A reduced-motion look (Calm) gets the flat ground alone.
+            final still = themed?.reducedMotion ?? false;
+            final cinematic =
+                !still && themed != null && !ThemePresets.isEveryday(themed);
+            return Stack(
+              fit: StackFit.expand,
+              children: [
+                // Today's look: the classic family sits on a flat ground;
+                // only the cinematic looks paint an atmosphere scene.
+                if (cinematic) ThemeAtmosphere(preset: themed),
+                Positioned.fill(
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    child: SizedBox(
+                      width: contentWidth,
+                      height: maxHeight,
+                      child: paddedContent,
+                    ),
                   ),
                 ),
-              ),
-            ],
-          );
-        },
+              ],
+            );
+          },
+        ),
       ),
     );
   }

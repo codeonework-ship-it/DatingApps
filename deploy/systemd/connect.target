@@ -1,0 +1,7 @@
+# Starts/stops the whole Connect stack:  sudo systemctl start connect.target
+[Unit]
+Description=Connect dating app stack
+Wants=connect-backend@auth-svc.service connect-backend@profile-svc.service connect-backend@matching-svc.service connect-backend@chat-svc.service connect-mobile-bff.service connect-backend@api-gateway.service connect-website.service
+
+[Install]
+WantedBy=multi-user.target

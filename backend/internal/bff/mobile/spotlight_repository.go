@@ -9,12 +9,11 @@ import (
 	"time"
 
 	"github.com/verified-dating/backend/internal/platform/config"
-	"github.com/verified-dating/backend/internal/platform/supabase"
 )
 
 type spotlightRepository struct {
 	cfg config.Config
-	db  *supabase.Client
+	db  repositoryDB
 }
 
 type spotlightUserCounter struct {
@@ -32,22 +31,12 @@ type spotlightSignalData struct {
 	SubscriptionPaid  bool
 }
 
-func newSpotlightRepository(cfg config.Config) *spotlightRepository {
-	apiKey := strings.TrimSpace(cfg.SupabaseServiceRole)
-	if apiKey == "" {
-		apiKey = strings.TrimSpace(cfg.SupabaseAnonKey)
-	}
-	if strings.TrimSpace(cfg.SupabaseURL) == "" || apiKey == "" {
+func newSpotlightRepository(cfg config.Config, supplied ...repositoryDB) *spotlightRepository {
+	db := repositoryDBFor(cfg, supplied)
+	if db == nil {
 		return nil
 	}
-	client := supabase.NewClient(
-		cfg.SupabaseURL,
-		cfg.SupabaseAnonKey,
-		cfg.SupabaseServiceRole,
-		time.Duration(cfg.SupabaseHTTPTimeoutSec)*time.Second,
-	)
-	client.SetReadBaseURL(cfg.SupabaseReadReplicaURL)
-	return &spotlightRepository{cfg: cfg, db: client}
+	return &spotlightRepository{cfg: cfg, db: db}
 }
 
 func isSpotlightRepoPersistenceUnavailable(err error) bool {

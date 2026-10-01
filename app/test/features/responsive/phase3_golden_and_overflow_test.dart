@@ -4,13 +4,16 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:verified_dating_app/core/providers/runtime_feature_flags_provider.dart';
 import 'package:verified_dating_app/core/theme/app_theme.dart';
 import 'package:verified_dating_app/features/engagement/providers/daily_prompt_provider.dart';
 import 'package:verified_dating_app/features/profile/providers/profile_setup_provider.dart';
-import 'package:verified_dating_app/features/profile/screens/setup/setup_basic_info_screen.dart';
+import 'package:verified_dating_app/features/profile/screens/setup/setup_about_screen.dart';
 import 'package:verified_dating_app/features/swipe/models/discovery_profile.dart';
 import 'package:verified_dating_app/features/swipe/providers/swipe_provider.dart';
+import 'package:verified_dating_app/features/auth/screens/welcome_screen.dart';
 import 'package:verified_dating_app/features/swipe/screens/home_discovery_screen.dart';
+import 'package:verified_dating_app/l10n/app_localizations.dart';
 
 class _FakeProfileSetupNotifier extends ProfileSetupNotifier {
   _FakeProfileSetupNotifier(this.initialDraft);
@@ -93,8 +96,15 @@ Widget _setupApp(ProfileDraft draft) => ProviderScope(
   ],
   child: MaterialApp(
     theme: AppTheme.lightTheme,
-    home: const SetupBasicInfoScreen(),
+    home: const SetupAboutScreen(isSetupFlow: true),
   ),
+);
+
+Widget _welcomeApp() => MaterialApp(
+  theme: AppTheme.lightTheme,
+  localizationsDelegates: AppLocalizations.localizationsDelegates,
+  supportedLocales: AppLocalizations.supportedLocales,
+  home: const WelcomeScreen(),
 );
 
 Widget _discoverApp() => ProviderScope(
@@ -105,6 +115,11 @@ Widget _discoverApp() => ProviderScope(
       ),
     ),
     dailyPromptProvider.overrideWith(_FakeDailyPromptNotifier.new),
+    // The screen reads runtime flags for the curated rail; keep the golden
+    // fixture offline.
+    runtimeFeatureFlagsProvider.overrideWith(
+      (ref) => Stream.value(RuntimeFeatureFlags.defaults),
+    ),
   ],
   child: MaterialApp(
     theme: AppTheme.lightTheme,
@@ -123,32 +138,6 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
   }
-
-  testWidgets('setup basic info phone golden has no overflow', (tester) async {
-    await setViewport(tester, const Size(360, 780));
-    await tester.pumpWidget(_setupApp(_draft(name: 'Asha')));
-    await pumpUi(tester);
-
-    expect(tester.takeException(), isNull);
-    await expectLater(
-      find.byType(SetupBasicInfoScreen),
-      matchesGoldenFile('goldens/setup_basic_info_phone.png'),
-    );
-  });
-
-  testWidgets('setup basic info tablet golden has no overflow', (tester) async {
-    await setViewport(tester, const Size(1024, 1366));
-    await tester.pumpWidget(
-      _setupApp(_draft(name: 'Priya', dob: DateTime(1997, 10, 12))),
-    );
-    await pumpUi(tester);
-
-    expect(tester.takeException(), isNull);
-    await expectLater(
-      find.byType(SetupBasicInfoScreen),
-      matchesGoldenFile('goldens/setup_basic_info_tablet.png'),
-    );
-  });
 
   testWidgets('discover phone golden has no overflow', (tester) async {
     await setViewport(tester, const Size(360, 780));
@@ -174,5 +163,63 @@ void main() {
       find.byType(HomeDiscoveryScreen),
       matchesGoldenFile('goldens/discover_tablet.png'),
     );
+  });
+
+  // ==========================================================================
+  // Device matrix
+  // ==========================================================================
+  //
+  // Golden files pin one phone and one tablet. They say nothing about the
+  // sizes where layouts actually break: the smallest phone still in support,
+  // the tallest phone, and a tablet in portrait. Overflow is asserted rather
+  // than compared to a reference image, so these stay valid across restyles.
+
+  const devices = <String, Size>{
+    'small phone (320x568)': Size(320, 568),
+    'phone (360x780)': Size(360, 780),
+    'large phone (430x932)': Size(430, 932),
+    'tablet portrait (768x1024)': Size(768, 1024),
+    'tablet landscape (1024x1366)': Size(1024, 1366),
+  };
+
+  devices.forEach((label, size) {
+    testWidgets('cover lays out without overflow on $label', (tester) async {
+      await setViewport(tester, size);
+      await tester.pumpWidget(_welcomeApp());
+      await pumpUi(tester);
+      expect(tester.takeException(), isNull, reason: 'overflow on $label');
+    });
+
+    testWidgets('setup about lays out without overflow on \$label', (
+      tester,
+    ) async {
+      await setViewport(tester, size);
+      await tester.pumpWidget(_setupApp(_draft(name: 'Asha')));
+      await pumpUi(tester);
+      expect(tester.takeException(), isNull, reason: 'overflow on $label');
+    });
+
+    testWidgets('discover lays out without overflow on $label', (tester) async {
+      await setViewport(tester, size);
+      await tester.pumpWidget(_discoverApp());
+      await pumpUi(tester);
+      expect(tester.takeException(), isNull, reason: 'overflow on $label');
+    });
+  });
+
+  // The smallest supported phone with accessibility text turned up is where
+  // fixed-height rows clip first.
+  testWidgets('cover survives large text on the smallest phone', (
+    tester,
+  ) async {
+    await setViewport(tester, const Size(320, 568));
+    await tester.pumpWidget(
+      MediaQuery(
+        data: const MediaQueryData(textScaler: TextScaler.linear(1.3)),
+        child: _welcomeApp(),
+      ),
+    );
+    await pumpUi(tester);
+    expect(tester.takeException(), isNull);
   });
 }

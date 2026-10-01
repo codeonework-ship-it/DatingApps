@@ -7,7 +7,6 @@ import '../../../core/utils/logger.dart';
 import '../../auth/providers/auth_provider.dart';
 
 class ModerationAppealItem {
-
   factory ModerationAppealItem.fromJson(Map<String, dynamic> json) {
     return ModerationAppealItem(
       id: json['id']?.toString() ?? '',

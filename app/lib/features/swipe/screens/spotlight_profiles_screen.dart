@@ -34,14 +34,15 @@ class _SpotlightProfilesScreenState extends State<SpotlightProfilesScreen>
   @override
   void initState() {
     super.initState();
-    _likeBurstController = AnimationController(
-      duration: const Duration(milliseconds: 1200),
-      vsync: this,
-    )..addStatusListener((status) {
-        if (status == AnimationStatus.completed && mounted) {
-          setState(() => _showLikeBurst = false);
-        }
-      });
+    _likeBurstController =
+        AnimationController(
+          duration: const Duration(milliseconds: 1200),
+          vsync: this,
+        )..addStatusListener((status) {
+          if (status == AnimationStatus.completed && mounted) {
+            setState(() => _showLikeBurst = false);
+          }
+        });
   }
 
   @override
@@ -68,12 +69,16 @@ class _SpotlightProfilesScreenState extends State<SpotlightProfilesScreen>
   }
 
   List<DiscoveryProfile> _applyFilters(List<DiscoveryProfile> source) {
-    return source.where((profile) {
-      final age = profile.age;
-      if (_verifiedOnly && !profile.isVerified) return false;
-      if (age < _ageRange.start || age > _ageRange.end) return false;
-      return true;
-    }).toList(growable: false);
+    return source
+        .where((profile) {
+          final age = profile.age;
+          if (_verifiedOnly && !profile.isVerified) return false;
+          // Hidden ages were checked by server eligibility and stay private.
+          if (age != null && (age < _ageRange.start || age > _ageRange.end))
+            return false;
+          return true;
+        })
+        .toList(growable: false);
   }
 
   Future<void> _openSpotlightFilters() async {
@@ -87,14 +92,14 @@ class _SpotlightProfilesScreenState extends State<SpotlightProfilesScreen>
         return StatefulBuilder(
           builder: (context, setSheetState) {
             return Container(
-              decoration: const BoxDecoration(
-                gradient: AppTheme.postLoginGradient,
+              decoration: BoxDecoration(
+                gradient: AppTheme.groundGradientOf(context),
                 borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(24),
                   topRight: Radius.circular(24),
                 ),
               ),
-              padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
               child: SafeArea(
                 top: false,
                 child: Column(
@@ -106,7 +111,8 @@ class _SpotlightProfilesScreenState extends State<SpotlightProfilesScreen>
                         width: 40,
                         height: 4,
                         decoration: BoxDecoration(
-                          color: AppTheme.textHint.withValues(alpha: 0.45),
+                          color: Theme.of(context).colorScheme.onSurfaceVariant
+                              .withValues(alpha: 0.45),
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
@@ -114,11 +120,10 @@ class _SpotlightProfilesScreenState extends State<SpotlightProfilesScreen>
                     const SizedBox(height: 14),
                     Text(
                       'Spotlight Filters',
-                      style:
-                          Theme.of(context).textTheme.titleMedium?.copyWith(
-                                color: AppTheme.textDark,
-                                fontWeight: FontWeight.w700,
-                              ),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurface,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                     const SizedBox(height: 10),
                     SwitchListTile(
@@ -269,12 +274,12 @@ class _SpotlightProfilesScreenState extends State<SpotlightProfilesScreen>
                             onOpenProfile: () async {
                               final action = await Navigator.of(context)
                                   .push<ProfileDetailsAction>(
-                                MaterialPageRoute<ProfileDetailsAction>(
-                                  builder: (_) => ProfileDetailsScreen(
-                                    profile: currentProfile,
-                                  ),
-                                ),
-                              );
+                                    MaterialPageRoute<ProfileDetailsAction>(
+                                      builder: (_) => ProfileDetailsScreen(
+                                        profile: currentProfile,
+                                      ),
+                                    ),
+                                  );
                               if (!context.mounted) return;
                               if (action == ProfileDetailsAction.love) {
                                 await _triggerLikeBurst(
@@ -341,23 +346,15 @@ class _SpotlightHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.88),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: AppTheme.trustBlue.withValues(alpha: 0.14),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: AppTheme.trustBlue.withValues(alpha: 0.1),
-              blurRadius: 14,
-              offset: const Offset(0, 7),
-            ),
-          ],
+          color: scheme.surface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: scheme.outlineVariant),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -365,18 +362,30 @@ class _SpotlightHeader extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                GestureDetector(
-                  onTap: onBack,
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      color: Colors.white.withValues(alpha: 0.72),
-                    ),
-                    child: const Icon(
-                      Icons.arrow_back_ios_new_rounded,
-                      size: 16,
-                      color: AppTheme.textDark,
+                Semantics(
+                  container: true,
+                  button: true,
+                  label: 'Back',
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: onBack,
+                    // The 32pt tile sits inside a full 48pt tap target.
+                    child: SizedBox.square(
+                      dimension: 48,
+                      child: Center(
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            color: scheme.surfaceContainerHigh,
+                          ),
+                          child: Icon(
+                            Icons.arrow_back_ios_new_rounded,
+                            size: 16,
+                            color: scheme.onSurface,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -387,29 +396,25 @@ class _SpotlightHeader extends StatelessWidget {
                     children: [
                       Text(
                         'Spotlight Matches',
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleMedium
+                        style: Theme.of(context).textTheme.titleMedium
                             ?.copyWith(
-                              color: AppTheme.textDark,
+                              color: Theme.of(context).colorScheme.onSurface,
                               fontWeight: FontWeight.w700,
                             ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         'Curated premium connections',
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodySmall
-                            ?.copyWith(color: AppTheme.textGrey),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                       ),
                       const SizedBox(height: 6),
                       Wrap(
                         spacing: 6,
                         runSpacing: 6,
                         children: [
-                          if (verifiedOnly)
-                            _chip(context, 'Verified only'),
+                          if (verifiedOnly) _chip(context, 'Verified only'),
                           _chip(
                             context,
                             '${ageRange.start.round()}–${ageRange.end.round()}',
@@ -467,69 +472,89 @@ class _SpotlightHeader extends StatelessWidget {
   }
 
   Widget _chip(BuildContext context, String label) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(999),
-        color: AppTheme.trustBlue.withValues(alpha: 0.12),
-        border:
-            Border.all(color: AppTheme.trustBlue.withValues(alpha: 0.24)),
+        color: scheme.primaryContainer,
       ),
       child: Text(
         label,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: AppTheme.textDark,
-              fontWeight: FontWeight.w700,
-            ),
+          color: scheme.onPrimaryContainer,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }
 
   Widget _bellButton(BuildContext context, int count) {
-    return GestureDetector(
-      onTap: () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No new notifications')),
-        );
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          color: Colors.white.withValues(alpha: 0.88),
-          border:
-              Border.all(color: AppTheme.trustBlue.withValues(alpha: 0.2)),
-        ),
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            const Icon(Icons.notifications_rounded,
-                size: 18, color: AppTheme.textDark),
-            if (count > 0)
-              Positioned(
-                right: -7,
-                top: -6,
-                child: Container(
-                  constraints:
-                      const BoxConstraints(minWidth: 14, minHeight: 14),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 3, vertical: 1),
-                  decoration: BoxDecoration(
-                    color: AppTheme.errorRed,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    count > 9 ? '9+' : count.toString(),
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 9,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
+    final scheme = Theme.of(context).colorScheme;
+    return Semantics(
+      container: true,
+      button: true,
+      label: 'Notifications',
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('No new notifications')));
+        },
+        // The 44x36 pill sits inside a full 48pt tap target.
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+          child: Center(
+            widthFactor: 1,
+            heightFactor: 1,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                color: scheme.surface,
+                border: Border.all(color: scheme.outlineVariant),
               ),
-          ],
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Icon(
+                    Icons.notifications_rounded,
+                    size: 18,
+                    color: scheme.onSurface,
+                  ),
+                  if (count > 0)
+                    Positioned(
+                      right: -7,
+                      top: -6,
+                      child: Container(
+                        constraints: const BoxConstraints(
+                          minWidth: 14,
+                          minHeight: 14,
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 1,
+                        ),
+                        decoration: BoxDecoration(
+                          color: scheme.error,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          count > 9 ? '9+' : count.toString(),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: scheme.onError,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -544,17 +569,23 @@ class _SpotlightHeader extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 9),
+        constraints: const BoxConstraints(minHeight: 48),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
-          color: Colors.white.withValues(alpha: 0.88),
-          border:
-              Border.all(color: AppTheme.trustBlue.withValues(alpha: 0.2)),
+          color: Theme.of(context).colorScheme.surface,
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 15, color: AppTheme.textDark),
+            Icon(
+              icon,
+              size: 15,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
             const SizedBox(width: 5),
             Flexible(
               child: Text(
@@ -562,9 +593,9 @@ class _SpotlightHeader extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: AppTheme.textDark,
-                      fontWeight: FontWeight.w700,
-                    ),
+                  color: Theme.of(context).colorScheme.onSurface,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ],
@@ -610,22 +641,22 @@ class _SpotlightCardArea extends StatelessWidget {
         final hPad = width < 390
             ? 12.0
             : width < 600
-                ? 16.0
-                : 24.0;
+            ? 16.0
+            : 24.0;
 
         return Column(
           children: [
             // Progress bar
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: hPad, vertical: 6),
+              padding: EdgeInsets.symmetric(horizontal: hPad, vertical: 8),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(4),
                 child: LinearProgressIndicator(
                   value: total > 0 ? (index + 1) / total : 0,
                   minHeight: 4,
-                  backgroundColor: AppTheme.textHint.withValues(alpha: 0.2),
-                  valueColor: const AlwaysStoppedAnimation<Color>(
-                    AppTheme.trustBlue,
+                  backgroundColor: Theme.of(context).colorScheme.outlineVariant,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    Theme.of(context).colorScheme.primary,
                   ),
                 ),
               ),
@@ -690,26 +721,27 @@ class _SpotlightEmptyState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.check_circle,
-              color: AppTheme.trustBlue, size: 64),
+          Icon(
+            Icons.check_circle,
+            color: Theme.of(context).colorScheme.primary,
+            size: 64,
+          ),
           const SizedBox(height: 16),
           Text(
             filteredCount == 0
                 ? 'No spotlight profiles match filters'
                 : 'All spotlight profiles reviewed!',
             textAlign: TextAlign.center,
-            style: Theme.of(context)
-                .textTheme
-                .titleLarge
-                ?.copyWith(color: AppTheme.textDark),
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             'Check back later for new spotlight profiles',
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall
-                ?.copyWith(color: AppTheme.textGrey),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
         ],
       ),
@@ -734,21 +766,21 @@ class _LikeBurst extends StatelessWidget {
         return Stack(
           children: List.generate(3, (i) {
             final delay = i * 0.17;
-            final t =
-                ((progress - delay) / (1 - delay)).clamp(0.0, 1.0);
+            final t = ((progress - delay) / (1 - delay)).clamp(0.0, 1.0);
             if (t <= 0) return const SizedBox.shrink();
 
             final eased = Curves.easeOutCubic.transform(t);
-            final sway = ((i - 1) * (isSuperLike ? 26 : 20)) +
+            final sway =
+                ((i - 1) * (isSuperLike ? 26 : 20)) +
                 math.sin(t * math.pi * 1.5) * (isSuperLike ? 7 : 5);
-            final scale = (isSuperLike ? 1.12 : 0.9) +
+            final scale =
+                (isSuperLike ? 1.12 : 0.9) +
                 (1 - t) * (isSuperLike ? 0.32 : 0.18);
             final opacity = ((1 - t) * 0.82).clamp(0.0, 0.82);
 
             return Positioned(
               left: cx + sway - 16,
-              bottom:
-                  126 + (eased * (isSuperLike ? 172 : 136)) + (i * 7),
+              bottom: 126 + (eased * (isSuperLike ? 172 : 136)) + (i * 7),
               child: Opacity(
                 opacity: opacity,
                 child: Transform.scale(
@@ -756,13 +788,13 @@ class _LikeBurst extends StatelessWidget {
                   child: Icon(
                     Icons.favorite_rounded,
                     color: i == 1
-                        ? AppTheme.crystalRose
-                            .withValues(alpha: 0.96)
-                        : AppTheme.crystalRose
-                            .withValues(alpha: 0.84),
-                    size: isSuperLike
-                        ? (i == 1 ? 72 : 62)
-                        : (i == 1 ? 48 : 42),
+                        ? Theme.of(
+                            context,
+                          ).colorScheme.primary.withValues(alpha: 0.96)
+                        : Theme.of(
+                            context,
+                          ).colorScheme.primary.withValues(alpha: 0.84),
+                    size: isSuperLike ? (i == 1 ? 72 : 62) : (i == 1 ? 48 : 42),
                   ),
                 ),
               ),

@@ -49,7 +49,7 @@ SET
 
 CREATE TABLE IF NOT EXISTS matching.user_wallets (
   user_id UUID PRIMARY KEY,
-  coin_balance INTEGER NOT NULL DEFAULT 12 CHECK (coin_balance >= 0),
+  coin_balance INTEGER NOT NULL DEFAULT 0 CHECK (coin_balance >= 0),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

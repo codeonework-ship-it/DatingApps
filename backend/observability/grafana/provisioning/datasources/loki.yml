@@ -1,0 +1,18 @@
+# Loki (central logs) datasource. Delete this file from
+# /etc/grafana/provisioning/datasources/ if Loki is not installed.
+apiVersion: 1
+
+datasources:
+  - name: Loki
+    uid: verified-dating-loki
+    type: loki
+    access: proxy
+    url: ${LOKI_URL}
+    editable: false
+    jsonData:
+      maxLines: 1000
+      derivedFields:
+        - name: correlation_id
+          matcherRegex: '"correlation_id":"([^"]+)"'
+          url: '{unit=~"connect.*"} |= "$${__value.raw}"'
+          datasourceUid: verified-dating-loki

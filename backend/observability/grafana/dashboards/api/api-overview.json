@@ -1,0 +1,1369 @@
+{
+  "id": null,
+  "uid": "connect-api-overview",
+  "title": "Connect \u00b7 API overview (RED per route)",
+  "description": "Rate, errors and duration per chi route template, SLO burn, saturation and build versions.",
+  "tags": [
+    "connect",
+    "api",
+    "slo"
+  ],
+  "timezone": "browser",
+  "editable": true,
+  "graphTooltip": 1,
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "verified-dating-prometheus"
+        },
+        "enable": true,
+        "iconColor": "orange",
+        "name": "Restarts",
+        "expr": "changes(process_start_time_seconds{job=~\"connect-.*\"}[2m]) > 0",
+        "titleFormat": "{{component}} restarted",
+        "step": "1m"
+      }
+    ]
+  },
+  "links": [
+    {
+      "title": "Connect dashboards",
+      "type": "dashboards",
+      "tags": [
+        "connect"
+      ],
+      "asDropdown": true
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "service",
+        "label": "Service",
+        "type": "custom",
+        "query": "mobile_bff,api_gateway",
+        "current": {
+          "text": "mobile_bff",
+          "value": "mobile_bff"
+        },
+        "multi": false,
+        "includeAll": false,
+        "options": [
+          {
+            "text": "mobile_bff",
+            "value": "mobile_bff",
+            "selected": true
+          },
+          {
+            "text": "api_gateway",
+            "value": "api_gateway",
+            "selected": false
+          }
+        ]
+      },
+      {
+        "name": "route",
+        "label": "Route",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "verified-dating-prometheus"
+        },
+        "query": {
+          "query": "label_values(verified_dating_http_requests_total{service=\"$service\"}, route)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "definition": "label_values(verified_dating_http_requests_total{service=\"$service\"}, route)",
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "current": {},
+        "sort": 1,
+        "regex": ""
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "Golden signals",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "panels": []
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Requests / s",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 4,
+        "x": 0,
+        "y": 1
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(verified_dating_http_requests_total{service=\"$service\",route=~\"$route\",route!~\"/metrics|/healthz|/readyz|/debug/.*|/docs.*|/openapi.yaml\",status_class!=\"1xx\"}[5m]))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "5xx ratio (5m)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 4,
+        "x": 4,
+        "y": 1
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(verified_dating_http_requests_total{service=\"$service\",route=~\"$route\",route!~\"/metrics|/healthz|/readyz|/debug/.*|/docs.*|/openapi.yaml\",status_class=\"5xx\"}[5m])) / clamp_min(sum(rate(verified_dating_http_requests_total{service=\"$service\",route=~\"$route\",route!~\"/metrics|/healthz|/readyz|/debug/.*|/docs.*|/openapi.yaml\",status_class!=\"1xx\"}[5m])), 1e-9)",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.005
+              },
+              {
+                "color": "red",
+                "value": 0.02
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "p95 latency",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 4,
+        "x": 8,
+        "y": 1
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(verified_dating_http_request_duration_seconds_bucket{service=\"$service\",route=~\"$route\",route!~\"/metrics|/healthz|/readyz|/debug/.*|/docs.*|/openapi.yaml\"}[5m])))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.5
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "In-flight requests",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 4,
+        "x": 12,
+        "y": 1
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(verified_dating_http_in_flight_requests{service=\"$service\"})",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Availability error budget left (30d, approx.)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 4,
+        "x": 16,
+        "y": 1
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "1 - avg_over_time(verified_dating:http_service_error_ratio:rate1h{service=\"$service\"}[30d]) / 0.005",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          }
+        }
+      ],
+      "description": "SLO: 99.5% of non-infrastructure requests without 5xx over 30 days. 100% = no budget used; negative = SLO missed.",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.25
+              },
+              {
+                "color": "green",
+                "value": 0.5
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 7,
+      "type": "stat",
+      "title": "Unmatched requests / s",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 4,
+        "x": 20,
+        "y": 1
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(verified_dating_http_requests_total{service=\"$service\",route=\"unmatched\"}[5m]))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          }
+        }
+      ],
+      "description": "Requests no route resolved (404/405 from the router): scanners, stale clients or a missing route.",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Requests / s by status class",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (status_class) (rate(verified_dating_http_requests_total{service=\"$service\",route=~\"$route\",route!~\"/metrics|/healthz|/readyz|/debug/.*|/docs.*|/openapi.yaml\"}[5m]))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "{{status_class}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Latency percentiles",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.50, sum by (le) (rate(verified_dating_http_request_duration_seconds_bucket{service=\"$service\",route=~\"$route\",route!~\"/metrics|/healthz|/readyz|/debug/.*|/docs.*|/openapi.yaml\"}[5m])))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "p50"
+        },
+        {
+          "refId": "B",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(verified_dating_http_request_duration_seconds_bucket{service=\"$service\",route=~\"$route\",route!~\"/metrics|/healthz|/readyz|/debug/.*|/docs.*|/openapi.yaml\"}[5m])))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "p95"
+        },
+        {
+          "refId": "C",
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(verified_dating_http_request_duration_seconds_bucket{service=\"$service\",route=~\"$route\",route!~\"/metrics|/healthz|/readyz|/debug/.*|/docs.*|/openapi.yaml\"}[5m])))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "p99"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 10,
+      "type": "row",
+      "title": "Per route",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 17
+      },
+      "panels": []
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Top 10 routes by traffic",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 18
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "topk(10, sum by (method, route) (rate(verified_dating_http_requests_total{service=\"$service\",route=~\"$route\",route!~\"/metrics|/healthz|/readyz|/debug/.*|/docs.*|/openapi.yaml\"}[5m])))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "{{method}} {{route}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "Top 10 slowest routes (p95)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 18
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "topk(10, histogram_quantile(0.95, sum by (route, le) (rate(verified_dating_http_request_duration_seconds_bucket{service=\"$service\",route=~\"$route\",route!~\"/metrics|/healthz|/readyz|/debug/.*|/docs.*|/openapi.yaml\"}[5m]))))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "{{route}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "Top 10 erroring routes (5xx ratio, 5m)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 26
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "topk(10, verified_dating:http_error_ratio:rate5m{service=\"$service\",route=~\"$route\"} > 0)",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "{{route}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 14,
+      "type": "timeseries",
+      "title": "Top 10 routes with 4xx",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 26
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "topk(10, sum by (route) (rate(verified_dating_http_requests_total{service=\"$service\",route=~\"$route\",route!~\"/metrics|/healthz|/readyz|/debug/.*|/docs.*|/openapi.yaml\",status_class=\"4xx\"}[5m])) > 0)",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "{{route}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 15,
+      "type": "table",
+      "title": "Route summary (1h)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 34
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (route) (verified_dating:http_requests:rate1h{service=\"$service\",route=~\"$route\"})",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "rps",
+          "instant": true
+        },
+        {
+          "refId": "B",
+          "expr": "sum by (route) (verified_dating:http_error_ratio:rate1h{service=\"$service\",route=~\"$route\"})",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "5xx",
+          "instant": true
+        },
+        {
+          "refId": "C",
+          "expr": "sum by (route) (verified_dating:http_latency_slow_ratio:rate1h{service=\"$service\",route=~\"$route\"})",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "slow",
+          "instant": true
+        }
+      ],
+      "description": "1h recording rules from backend/observability/prometheus/rules/api-slo.yml.",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "Value #A": "req/s",
+              "Value #B": "5xx ratio",
+              "Value #C": "> 1s ratio"
+            },
+            "excludeByName": {
+              "Time": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "type": "row",
+      "title": "SLO burn (mobile_bff)",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 44
+      },
+      "panels": []
+    },
+    {
+      "id": 17,
+      "type": "timeseries",
+      "title": "Availability burn rate (1h) \u2014 page above 14.4",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 45
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "topk(10, verified_dating:http_error_ratio:rate1h{service=\"mobile_bff\"} / 0.005)",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "{{route}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 6
+              },
+              {
+                "color": "red",
+                "value": 14.4
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 18,
+      "type": "timeseries",
+      "title": "Latency burn rate (1h) \u2014 page above 14.4",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 45
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "topk(10, verified_dating:http_latency_slow_ratio:rate1h{service=\"mobile_bff\"} / 0.01)",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "{{route}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 6
+              },
+              {
+                "color": "red",
+                "value": 14.4
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 19,
+      "type": "row",
+      "title": "Saturation",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 53
+      },
+      "panels": []
+    },
+    {
+      "id": 20,
+      "type": "timeseries",
+      "title": "Bulkhead shedding by domain",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 54
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (domain) (rate(verified_dating_reliability_requests_shed_total[5m]))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "{{domain}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 21,
+      "type": "timeseries",
+      "title": "Timeouts by tier/domain",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 54
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (tier, domain) (rate(verified_dating_reliability_request_timeouts_total[5m]))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "{{tier}}/{{domain}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 22,
+      "type": "timeseries",
+      "title": "Responses 429 / 5xx by code",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 54
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (code) (rate(verified_dating_http_responses_by_code_total{service=\"$service\",code=~\"429|5..\"}[5m]))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "{{code}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 23,
+      "type": "timeseries",
+      "title": "DB pool utilisation",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 62
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "verified_dating_db_pool_in_use_connections / clamp_min(verified_dating_db_pool_max_connections, 1)",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "{{component}} {{pool}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "max": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 24,
+      "type": "timeseries",
+      "title": "Goroutines",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 62
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "go_goroutines{job=~\"connect-.*\"}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "{{component}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 25,
+      "type": "timeseries",
+      "title": "Resident memory",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 62
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "process_resident_memory_bytes{job=~\"connect-.*\"}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "{{component}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 26,
+      "type": "timeseries",
+      "title": "CPU (cores)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 70
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "rate(process_cpu_seconds_total{job=~\"connect-.*\"}[5m])",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "{{component}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 27,
+      "type": "table",
+      "title": "Running builds",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 70
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "verified_dating_build_info",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "Value": true,
+              "__name__": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 28,
+      "type": "row",
+      "title": "Logs",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 78
+      },
+      "panels": []
+    },
+    {
+      "id": 29,
+      "type": "logs",
+      "title": "Errors and warnings (Loki)",
+      "datasource": {
+        "type": "loki",
+        "uid": "verified-dating-loki"
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 79
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "{unit=~\"connect.*\"} | json | level=~\"error|warn|fatal|panic\"",
+          "datasource": {
+            "type": "loki",
+            "uid": "verified-dating-loki"
+          }
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "sortOrder": "Descending",
+        "enableLogDetails": true
+      }
+    }
+  ]
+}

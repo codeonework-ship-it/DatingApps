@@ -1,0 +1,15 @@
+{
+  "name": "verified-dating-appium-qa",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Appium Android UI automation for the Verified Dating Flutter app",
+  "scripts": {
+    "appium": "appium --base-path /",
+    "appium:doctor": "appium driver list --installed",
+    "appium:install-driver": "appium driver install uiautomator2"
+  },
+  "devDependencies": {
+    "appium": "^2.19.0",
+    "appium-uiautomator2-driver": "^4.0.0"
+  }
+}

@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/verified-dating/backend/internal/platform/config"
 )
@@ -39,7 +40,15 @@ func TestServer_GiftsCatalogAndWalletTopUp(t *testing.T) {
 	getWalletPayload := decodeJSONMap(t, getWalletRec.Body.Bytes())
 	walletBefore := toMap(t, getWalletPayload["wallet"])
 	balanceBefore := int(walletBefore["coin_balance"].(float64))
+	if balanceBefore != 0 {
+		t.Fatalf("new wallet must start at zero, got %d", balanceBefore)
+	}
 
+	// Top-up creates coins from nothing, so it now requires an operator role
+	// rather than merely an authenticated owner. This step is arranging
+	// balance for the gift assertions below, not exercising authorization —
+	// that is covered by the dedicated case further down.
+	installOperatorPrincipal(t, userID, "admin")
 	topUpReq := httptest.NewRequest(
 		http.MethodPost,
 		"/v1/wallet/"+userID+"/coins/top-up",
@@ -147,8 +156,8 @@ func TestServer_BuyWalletCoinsIdempotencyReplayDoesNotDoubleCredit(t *testing.T)
 	}
 	walletPayload := decodeJSONMap(t, walletRec.Body.Bytes())
 	wallet := toMap(t, walletPayload["wallet"])
-	if got := int(wallet["coin_balance"].(float64)); got != 17 {
-		t.Fatalf("expected coin_balance=17 after idempotent replay, got %d", got)
+	if got := int(wallet["coin_balance"].(float64)); got != 5 {
+		t.Fatalf("expected coin_balance=5 after idempotent replay, got %d", got)
 	}
 }
 
@@ -157,6 +166,11 @@ func TestServer_TopUpWalletCoins_RequiresAdminInProductionLikeEnv(t *testing.T) 
 		target.Environment = "production"
 	})
 	defer server.Close()
+
+	// Authenticated as the wallet owner, but holding no operator role: the
+	// top-up must be refused. Authorization comes from the principal, so this
+	// is now the meaningful "not an admin" case.
+	installOperatorPrincipal(t, "wallet-user-prod-1")
 
 	req := httptest.NewRequest(
 		http.MethodPost,
@@ -177,7 +191,8 @@ func TestServer_TopUpWalletCoins_RequiresAdminInProductionLikeEnv(t *testing.T) 
 		strings.NewReader(`{"amount":5,"reason":"test_top_up"}`),
 	)
 	reqWithAdmin.Header.Set("Content-Type", "application/json")
-	reqWithAdmin.Header.Set("X-Admin-User", "qa-admin")
+	// Same caller, now carrying the operator role.
+	installOperatorPrincipal(t, "wallet-user-prod-1", "admin")
 	recWithAdmin := httptest.NewRecorder()
 	server.Handler().ServeHTTP(recWithAdmin, reqWithAdmin)
 
@@ -193,6 +208,9 @@ func TestServer_ListWalletCoinAudit(t *testing.T) {
 	defer server.Close()
 
 	const userID = "wallet-audit-user-1"
+	// Arranging balance for the audit assertions; top-up now requires an
+	// operator role because it creates coins from nothing.
+	installOperatorPrincipal(t, userID, "admin")
 	topUpReq := httptest.NewRequest(
 		http.MethodPost,
 		"/v1/wallet/"+userID+"/coins/top-up",
@@ -268,7 +286,7 @@ func TestServer_SendRoseGiftSuccess(t *testing.T) {
 	defer server.Close()
 
 	body := `{
-		"gift_id":"rose_blue_rare",
+		"gift_id":"rose_red_single",
 		"sender_user_id":"gift-sender-1",
 		"receiver_user_id":"gift-receiver-1",
 		"message_text":"Hello with a classy rose"
@@ -283,14 +301,14 @@ func TestServer_SendRoseGiftSuccess(t *testing.T) {
 	}
 	payload := decodeJSONMap(t, rec.Body.Bytes())
 	giftSend := toMap(t, payload["gift_send"])
-	if got := stringValue(giftSend["gift_id"]); got != "rose_blue_rare" {
-		t.Fatalf("expected gift_id rose_blue_rare, got %q", got)
+	if got := stringValue(giftSend["gift_id"]); got != "rose_red_single" {
+		t.Fatalf("expected gift_id rose_red_single, got %q", got)
 	}
 	if got := stringValue(giftSend["icon_key"]); got == "" {
 		t.Fatalf("expected icon_key in gift_send payload")
 	}
-	if got := int(giftSend["remaining_coins"].(float64)); got != 11 {
-		t.Fatalf("expected remaining_coins=11, got=%d", got)
+	if got := int(giftSend["remaining_coins"].(float64)); got != 0 {
+		t.Fatalf("expected remaining_coins=0, got=%d", got)
 	}
 	message := toMap(t, payload["message"])
 	if got := stringValue(message["text"]); !strings.Contains(got, "Hello with a classy rose") || !strings.Contains(got, "[gift:") {
@@ -303,6 +321,9 @@ func TestServer_SendRoseGiftInsufficientCoins(t *testing.T) {
 		target.DefaultUnlockPolicyVariant = "allow_without_template"
 	})
 	defer server.Close()
+	if _, _, err := server.store.buyWalletCoins("gift-sender-2", "test_funding", "internal", "coins", "", "fund-gift-sender-2", 10, 0, time.Now().UTC()); err != nil {
+		t.Fatal(err)
+	}
 
 	body := `{
 		"gift_id":"rose_crystal",
@@ -359,6 +380,9 @@ func TestServer_SendRoseGiftIdempotencyReplayDoesNotDoubleDebit(t *testing.T) {
 		target.DefaultUnlockPolicyVariant = "allow_without_template"
 	})
 	defer server.Close()
+	if _, _, err := server.store.buyWalletCoins("gift-sender-idem-1", "test_funding", "internal", "coins", "", "fund-gift-idem-1", 2, 0, time.Now().UTC()); err != nil {
+		t.Fatal(err)
+	}
 
 	body := `{
 		"gift_id":"rose_blue_rare",
@@ -408,8 +432,8 @@ func TestServer_SendRoseGiftIdempotencyReplayDoesNotDoubleDebit(t *testing.T) {
 	}
 	walletPayload := decodeJSONMap(t, walletRec.Body.Bytes())
 	wallet := toMap(t, walletPayload["wallet"])
-	if got := int(wallet["coin_balance"].(float64)); got != 11 {
-		t.Fatalf("expected coin_balance=11 after idempotent replay, got %d", got)
+	if got := int(wallet["coin_balance"].(float64)); got != 1 {
+		t.Fatalf("expected coin_balance=1 after idempotent replay, got %d", got)
 	}
 }
 
@@ -420,7 +444,7 @@ func TestServer_SendRoseGiftTelemetryActions(t *testing.T) {
 	defer server.Close()
 
 	successBody := `{
-		"gift_id":"rose_blue_rare",
+		"gift_id":"rose_red_single",
 		"sender_user_id":"gift-sender-telemetry-1",
 		"receiver_user_id":"gift-receiver-telemetry-1"
 	}`
@@ -430,6 +454,9 @@ func TestServer_SendRoseGiftTelemetryActions(t *testing.T) {
 	server.Handler().ServeHTTP(successRec, successReq)
 	if successRec.Code != http.StatusOK {
 		t.Fatalf("success send gift code=%d body=%s", successRec.Code, successRec.Body.String())
+	}
+	if _, _, err := server.store.buyWalletCoins("gift-sender-telemetry-2", "test_funding", "internal", "coins", "", "fund-gift-telemetry-2", 10, 0, time.Now().UTC()); err != nil {
+		t.Fatal(err)
 	}
 
 	failBody := `{
@@ -509,6 +536,9 @@ func TestServer_TopUpWalletCoinsRequiresAdminUserInProduction(t *testing.T) {
 }
 
 func TestServer_TopUpWalletCoinsWithAdminUserReturnsAuditReceipt(t *testing.T) {
+	// The audit receipt records the *authenticated* operator. It used to record
+	// whatever the caller put in X-Admin-User, which was unverifiable.
+	installOperatorPrincipal(t, "stage-wallet-user-1", "admin")
 	server := newQuestWorkflowTestServerWithConfig(t, func(target *config.Config) {
 		target.Environment = "staging"
 	})
@@ -520,7 +550,6 @@ func TestServer_TopUpWalletCoinsWithAdminUserReturnsAuditReceipt(t *testing.T) {
 		strings.NewReader(`{"amount":7,"reason":"qa_seed"}`),
 	)
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-Admin-User", "qa-admin")
 	rec := httptest.NewRecorder()
 	server.Handler().ServeHTTP(rec, req)
 
@@ -532,8 +561,8 @@ func TestServer_TopUpWalletCoinsWithAdminUserReturnsAuditReceipt(t *testing.T) {
 	if got := stringValue(audit["receipt_id"]); got == "" {
 		t.Fatalf("expected non-empty audit receipt id")
 	}
-	if got := stringValue(audit["requested_by"]); got != "qa-admin" {
-		t.Fatalf("expected requested_by qa-admin, got %q", got)
+	if got := stringValue(audit["requested_by"]); got != "stage-wallet-user-1" {
+		t.Fatalf("expected requested_by to be the authenticated operator, got %q", got)
 	}
 
 	activities := server.store.listActivities(20)
@@ -548,8 +577,8 @@ func TestServer_TopUpWalletCoinsWithAdminUserReturnsAuditReceipt(t *testing.T) {
 		if strings.TrimSpace(toString(item.Details["audit_receipt_id"])) == "" {
 			t.Fatalf("expected wallet.topup activity to include audit_receipt_id")
 		}
-		if strings.TrimSpace(toString(item.Details["requested_by"])) != "qa-admin" {
-			t.Fatalf("expected wallet.topup requested_by qa-admin")
+		if strings.TrimSpace(toString(item.Details["requested_by"])) != "stage-wallet-user-1" {
+			t.Fatalf("expected wallet.topup requested_by to be the authenticated operator")
 		}
 		foundWalletTopUp = true
 		break
@@ -565,6 +594,9 @@ func TestServer_ListWalletCoinAuditReturnsWalletAndGiftActions(t *testing.T) {
 	})
 	defer server.Close()
 
+	// Arranging balance for the audit assertions; top-up now requires an
+	// operator role because it creates coins from nothing.
+	installOperatorPrincipal(t, "audit-wallet-user-1", "admin")
 	topUpReq := httptest.NewRequest(
 		http.MethodPost,
 		"/v1/wallet/audit-wallet-user-1/coins/top-up",

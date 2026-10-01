@@ -1,0 +1,23 @@
+{% extends "control_panel/base.html" %}
+{% block topbar_title %}Photo Themes · Engagement{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>Photo Themes</h1><p>Short, warm prompts members answer with one photo. Archived themes stay readable but take no new photos. Reported photos arrive in Blog Moderation as theme entries.</p></div></div>
+{% if error %}<div class="alert-glass warning" role="alert">{{ error }}</div>{% endif %}
+<div class="glass-card mb-4">
+  <h2 class="h5">Add or update a theme</h2>
+  <p>Saving an existing slug updates that theme.</p>
+  <form method="post" action="{% url 'photo_theme_save' %}" class="row g-3">{% csrf_token %}
+    <div class="col-md-3"><label for="slug">Slug</label><input id="slug" name="slug" required pattern="[a-z0-9][a-z0-9-]{2,47}" class="glass-input w-100" placeholder="rainy-day-plans"></div>
+    <div class="col-md-4"><label for="title">Title</label><input id="title" name="title" required minlength="3" maxlength="60" class="glass-input w-100" placeholder="Rainy day plans"></div>
+    <div class="col-md-3"><label for="status">Status</label><select id="status" name="status" class="glass-select w-100"><option value="active">Active</option><option value="archived">Archived</option></select></div>
+    <div class="col-md-2"><label for="sort_order">Order</label><input id="sort_order" name="sort_order" type="number" value="100" class="glass-input w-100"></div>
+    <div class="col-12"><label for="prompt">Prompt shown to members</label><textarea id="prompt" name="prompt" required minlength="3" maxlength="200" class="glass-input w-100" placeholder="What does a perfect rainy afternoon look like for you?"></textarea></div>
+    <div><button class="btn btn-glow" type="submit">Save theme</button></div>
+  </form>
+</div>
+<div class="glass-card">
+  <h2 class="h5">Themes</h2>
+  <table class="table"><thead><tr><th scope="col">Order</th><th scope="col">Title</th><th scope="col">Prompt</th><th scope="col">Slug</th><th scope="col">Status</th><th scope="col">Live photos</th></tr></thead>
+  <tbody>{% for theme in themes %}<tr><td>{{ theme.sort_order }}</td><td>{{ theme.title }}</td><td>{{ theme.prompt }}</td><td><code>{{ theme.slug }}</code></td><td>{{ theme.status|title }}</td><td>{{ theme.entry_count }}</td></tr>{% empty %}<tr><td colspan="6">No themes yet.</td></tr>{% endfor %}</tbody></table>
+</div>
+{% endblock %}

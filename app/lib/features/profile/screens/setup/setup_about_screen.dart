@@ -14,10 +14,12 @@ import 'setup_shared_widgets.dart';
 /// smoking, religion).
 ///
 /// Uses the same [ConsumerStatefulWidget] + single-Scaffold pattern as
-/// [SetupBasicInfoScreen] to keep the widget-tree identity stable across
+/// the first setup step to keep the widget-tree identity stable across
 /// provider rebuilds.
 class SetupAboutScreen extends ConsumerStatefulWidget {
-  const SetupAboutScreen({super.key});
+  const SetupAboutScreen({super.key, this.isSetupFlow = true});
+
+  final bool isSetupFlow;
 
   @override
   ConsumerState<SetupAboutScreen> createState() => _SetupAboutScreenState();
@@ -88,9 +90,13 @@ class _SetupAboutScreenState extends ConsumerState<SetupAboutScreen> {
       SchedulerBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         setState(() => _isSaving = false);
-        Navigator.of(context).push<void>(
-          MaterialPageRoute<void>(builder: (_) => const SetupPreviewScreen()),
-        );
+        if (widget.isSetupFlow) {
+          Navigator.of(context).push<void>(
+            MaterialPageRoute<void>(builder: (_) => const SetupPreviewScreen()),
+          );
+        } else {
+          Navigator.of(context).pop();
+        }
       });
     } on Exception catch (_) {
       if (!mounted) return;
@@ -116,21 +122,29 @@ class _SetupAboutScreenState extends ConsumerState<SetupAboutScreen> {
     if (bio.isNotEmpty) {
       // Fire-and-forget: persist latest form values to BFF draft.
       // ignore: discarded_futures
-      notifier.saveAbout(
-        bio: bio,
-        heightCm: _height,
-        education: _education,
-        profession: _professionController.text.trim().isEmpty
-            ? null
-            : _professionController.text.trim(),
-        incomeRange: _income,
-      );
+      notifier
+          .saveAbout(
+            bio: bio,
+            heightCm: _height,
+            education: _education,
+            profession: _professionController.text.trim().isEmpty
+                ? null
+                : _professionController.text.trim(),
+            incomeRange: _income,
+          )
+          .catchError((Object error) {
+            _snack('Could not save your changes. Please try again.');
+          });
       // ignore: discarded_futures
-      notifier.saveLifestyle(
-        drinking: _drinking,
-        smoking: _smoking,
-        religion: _religion,
-      );
+      notifier
+          .saveLifestyle(
+            drinking: _drinking,
+            smoking: _smoking,
+            religion: _religion,
+          )
+          .catchError((Object error) {
+            _snack('Could not save your changes. Please try again.');
+          });
     }
   }
 
@@ -159,7 +173,9 @@ class _SetupAboutScreenState extends ConsumerState<SetupAboutScreen> {
       child: Scaffold(
         resizeToAvoidBottomInset: true,
         body: DecoratedBox(
-          decoration: const BoxDecoration(gradient: AppTheme.bgGradient),
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor,
+          ),
           child: SafeArea(
             child: Column(
               children: [
@@ -186,7 +202,9 @@ class _SetupAboutScreenState extends ConsumerState<SetupAboutScreen> {
                               style: Theme.of(context).textTheme.headlineSmall
                                   ?.copyWith(
                                     fontWeight: FontWeight.w800,
-                                    color: Colors.white,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurface,
                                     letterSpacing: -0.3,
                                   ),
                             ),
@@ -195,18 +213,22 @@ class _SetupAboutScreenState extends ConsumerState<SetupAboutScreen> {
                               'These details help find better matches.',
                               style: Theme.of(context).textTheme.bodySmall
                                   ?.copyWith(
-                                    color: Colors.white.withValues(alpha: 0.60),
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
                                   ),
                             ),
                             const SizedBox(height: 24),
                             FormCard(
                               child: draftAsync.when(
-                                loading: () => const Center(
+                                loading: () => Center(
                                   child: Padding(
-                                    padding: EdgeInsets.symmetric(vertical: 32),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 32,
+                                    ),
                                     child: CircularProgressIndicator(
                                       valueColor: AlwaysStoppedAnimation<Color>(
-                                        AppTheme.crystalGoldSoft,
+                                        Theme.of(context).colorScheme.primary,
                                       ),
                                     ),
                                   ),
@@ -241,6 +263,7 @@ class _SetupAboutScreenState extends ConsumerState<SetupAboutScreen> {
                                   onReligionChanged: (v) =>
                                       setState(() => _religion = v),
                                   onSave: _save,
+                                  isSetupFlow: widget.isSetupFlow,
                                 ),
                               ),
                             ),
@@ -282,6 +305,7 @@ class _AboutForm extends StatelessWidget {
     required this.onSmokingChanged,
     required this.onReligionChanged,
     required this.onSave,
+    required this.isSetupFlow,
   });
 
   final TextEditingController bioController;
@@ -301,6 +325,7 @@ class _AboutForm extends StatelessWidget {
   final ValueChanged<String?> onSmokingChanged;
   final ValueChanged<String?> onReligionChanged;
   final VoidCallback onSave;
+  final bool isSetupFlow;
 
   @override
   Widget build(BuildContext context) => Column(
@@ -310,47 +335,60 @@ class _AboutForm extends StatelessWidget {
       // -- Bio
       setupFormLabel(context, 'Bio', Icons.auto_stories_rounded),
       const SizedBox(height: 8),
-      TextField(
-        controller: bioController,
-        maxLength: ValidationConstants.maxBioLength,
-        maxLines: 5,
-        minLines: 3,
-        textCapitalization: TextCapitalization.sentences,
-        enabled: !isSaving,
-        onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
-        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-          color: Colors.white,
-          fontWeight: FontWeight.w400,
-        ),
-        decoration:
-            glassInputDecoration(
-              hint:
-                  'Tell people about you (min ${ValidationConstants.minBioLength} chars)',
-            ).copyWith(
-              counterStyle: TextStyle(
-                color: Colors.white.withValues(alpha: 0.45),
-                fontSize: 11,
+      Semantics(
+        label: 'qa.setup.about.bio_field',
+        textField: true,
+        child: TextField(
+          key: const ValueKey('qa.setup.about.bio_field'),
+          controller: bioController,
+          maxLength: ValidationConstants.maxBioLength,
+          maxLines: 5,
+          minLines: 3,
+          textCapitalization: TextCapitalization.sentences,
+          enabled: !isSaving,
+          onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: Theme.of(context).colorScheme.onSurface,
+            fontWeight: FontWeight.w400,
+          ),
+          decoration:
+              glassInputDecoration(
+                context,
+                hint:
+                    'Tell people about you (min ${ValidationConstants.minBioLength} chars)',
+              ).copyWith(
+                counterStyle: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontSize: 11,
+                ),
               ),
-            ),
+        ),
       ),
 
       const SizedBox(height: 20),
-      setupSectionDivider(),
+      setupSectionDivider(context),
       const SizedBox(height: 20),
 
       // -- Height
       setupFormLabel(context, 'Height (cm)', Icons.height_rounded),
       const SizedBox(height: 8),
-      GlassDropdown<int>(
-        hint: 'Select height',
-        value: height,
-        enabled: !isSaving,
-        items: List.generate(
-          ValidationConstants.maxHeightCm - ValidationConstants.minHeightCm + 1,
-          (i) => ValidationConstants.minHeightCm + i,
+      Semantics(
+        label: 'qa.setup.about.height_dropdown',
+        button: true,
+        child: GlassDropdown<int>(
+          key: const ValueKey('qa.setup.about.height_dropdown'),
+          hint: 'Select height',
+          value: height,
+          enabled: !isSaving,
+          items: List.generate(
+            ValidationConstants.maxHeightCm -
+                ValidationConstants.minHeightCm +
+                1,
+            (i) => ValidationConstants.minHeightCm + i,
+          ),
+          labelBuilder: (v) => '$v cm',
+          onChanged: onHeightChanged,
         ),
-        labelBuilder: (v) => '$v cm',
-        onChanged: onHeightChanged,
       ),
 
       const SizedBox(height: 20),
@@ -358,13 +396,18 @@ class _AboutForm extends StatelessWidget {
       // -- Education
       setupFormLabel(context, 'Education', Icons.school_rounded),
       const SizedBox(height: 8),
-      GlassDropdown<String>(
-        hint: 'Select education',
-        value: education,
-        enabled: !isSaving,
-        items: ProfileOptionsConstants.educationLevels,
-        labelBuilder: (v) => v,
-        onChanged: onEducationChanged,
+      Semantics(
+        label: 'qa.setup.about.education_dropdown',
+        button: true,
+        child: GlassDropdown<String>(
+          key: const ValueKey('qa.setup.about.education_dropdown'),
+          hint: 'Select education',
+          value: education,
+          enabled: !isSaving,
+          items: ProfileOptionsConstants.educationLevels,
+          labelBuilder: (v) => v,
+          onChanged: onEducationChanged,
+        ),
       ),
 
       const SizedBox(height: 20),
@@ -372,17 +415,25 @@ class _AboutForm extends StatelessWidget {
       // -- Profession
       setupFormLabel(context, 'Profession', Icons.work_outline_rounded),
       const SizedBox(height: 8),
-      TextField(
-        controller: professionController,
-        textCapitalization: TextCapitalization.words,
-        textInputAction: TextInputAction.next,
-        enabled: !isSaving,
-        onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
-        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-          color: Colors.white,
-          fontWeight: FontWeight.w500,
+      Semantics(
+        label: 'qa.setup.about.profession_field',
+        textField: true,
+        child: TextField(
+          key: const ValueKey('qa.setup.about.profession_field'),
+          controller: professionController,
+          textCapitalization: TextCapitalization.words,
+          textInputAction: TextInputAction.next,
+          enabled: !isSaving,
+          onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+            color: Theme.of(context).colorScheme.onSurface,
+            fontWeight: FontWeight.w500,
+          ),
+          decoration: glassInputDecoration(
+            context,
+            hint: 'e.g. Software Engineer',
+          ),
         ),
-        decoration: glassInputDecoration(hint: 'e.g. Software Engineer'),
       ),
 
       const SizedBox(height: 20),
@@ -400,7 +451,7 @@ class _AboutForm extends StatelessWidget {
       ),
 
       const SizedBox(height: 24),
-      setupSectionDivider(),
+      setupSectionDivider(context),
       const SizedBox(height: 20),
 
       // -- Lifestyle section
@@ -408,7 +459,7 @@ class _AboutForm extends StatelessWidget {
         'Lifestyle',
         style: Theme.of(context).textTheme.titleSmall?.copyWith(
           fontWeight: FontWeight.w800,
-          color: AppTheme.crystalGoldSoft,
+          color: Theme.of(context).colorScheme.primary,
           letterSpacing: 0.3,
         ),
       ),
@@ -417,13 +468,18 @@ class _AboutForm extends StatelessWidget {
       // -- Drinking
       setupFormLabel(context, 'Drinking', Icons.local_bar_rounded),
       const SizedBox(height: 8),
-      GlassDropdown<String>(
-        hint: 'Select',
-        value: drinking,
-        enabled: !isSaving,
-        items: ProfileOptionsConstants.drinkingOptions,
-        labelBuilder: (v) => v,
-        onChanged: onDrinkingChanged,
+      Semantics(
+        label: 'qa.setup.about.drinking_dropdown',
+        button: true,
+        child: GlassDropdown<String>(
+          key: const ValueKey('qa.setup.about.drinking_dropdown'),
+          hint: 'Select',
+          value: drinking,
+          enabled: !isSaving,
+          items: ProfileOptionsConstants.drinkingOptions,
+          labelBuilder: (v) => v,
+          onChanged: onDrinkingChanged,
+        ),
       ),
 
       const SizedBox(height: 20),
@@ -431,13 +487,18 @@ class _AboutForm extends StatelessWidget {
       // -- Smoking
       setupFormLabel(context, 'Smoking', Icons.smoking_rooms_rounded),
       const SizedBox(height: 8),
-      GlassDropdown<String>(
-        hint: 'Select',
-        value: smoking,
-        enabled: !isSaving,
-        items: ProfileOptionsConstants.smokingOptions,
-        labelBuilder: (v) => v,
-        onChanged: onSmokingChanged,
+      Semantics(
+        label: 'qa.setup.about.smoking_dropdown',
+        button: true,
+        child: GlassDropdown<String>(
+          key: const ValueKey('qa.setup.about.smoking_dropdown'),
+          hint: 'Select',
+          value: smoking,
+          enabled: !isSaving,
+          items: ProfileOptionsConstants.smokingOptions,
+          labelBuilder: (v) => v,
+          onChanged: onSmokingChanged,
+        ),
       ),
 
       const SizedBox(height: 20),
@@ -464,12 +525,25 @@ class _AboutForm extends StatelessWidget {
       SizedBox(
         width: double.infinity,
         height: 54,
-        child: GlassButton(
-          label: 'Continue',
-          icon: Icons.arrow_forward_rounded,
-          shinyEffect: true,
-          isLoading: isSaving,
-          onPressed: isSaving ? null : onSave,
+        child: Semantics(
+          label: isSetupFlow
+              ? 'qa.setup.about.continue_button'
+              : 'qa.setup.about.save_button',
+          button: true,
+          child: GlassButton(
+            key: ValueKey<String>(
+              isSetupFlow
+                  ? 'qa.setup.about.continue_button'
+                  : 'qa.setup.about.save_button',
+            ),
+            label: isSetupFlow ? 'Continue' : 'Save About',
+            icon: isSetupFlow
+                ? Icons.arrow_forward_rounded
+                : Icons.save_outlined,
+            shinyEffect: isSetupFlow,
+            isLoading: isSaving,
+            onPressed: isSaving ? null : onSave,
+          ),
         ),
       ),
     ],

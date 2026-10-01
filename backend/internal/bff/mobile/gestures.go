@@ -42,7 +42,7 @@ type gestureEffortScore struct {
 	Status             string `json:"status"`
 }
 
-func (m *memoryStore) listMatchGestures(matchID string) []matchGesture {
+func (m *runtimeStore) listMatchGestures(matchID string) []matchGesture {
 	trimmedMatchID := strings.TrimSpace(matchID)
 	if trimmedMatchID == "" {
 		return []matchGesture{}
@@ -70,7 +70,7 @@ func (m *memoryStore) listMatchGestures(matchID string) []matchGesture {
 	return copyGestures(m.matchGestures[trimmedMatchID])
 }
 
-func (m *memoryStore) createMatchGesture(
+func (m *runtimeStore) createMatchGesture(
 	matchID,
 	senderUserID,
 	receiverUserID,
@@ -146,7 +146,7 @@ func (m *memoryStore) createMatchGesture(
 	return gesture, nil
 }
 
-func (m *memoryStore) decideMatchGesture(
+func (m *runtimeStore) decideMatchGesture(
 	matchID,
 	gestureID,
 	reviewerUserID,
@@ -224,7 +224,7 @@ func (m *memoryStore) decideMatchGesture(
 	return matchGesture{}, errors.New("gesture not found")
 }
 
-func (m *memoryStore) getGestureScore(matchID, gestureID string) (gestureEffortScore, error) {
+func (m *runtimeStore) getGestureScore(matchID, gestureID string) (gestureEffortScore, error) {
 	trimmedMatchID := strings.TrimSpace(matchID)
 	trimmedGestureID := strings.TrimSpace(gestureID)
 	if trimmedMatchID == "" || trimmedGestureID == "" {

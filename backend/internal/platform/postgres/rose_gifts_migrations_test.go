@@ -15,7 +15,7 @@ func TestRoseGiftMigrations_ForwardSchemaCoverage(t *testing.T) {
 		"create table if not exists matching.user_wallets",
 		"create table if not exists matching.match_gift_sends",
 		"price_coins integer not null",
-		"coin_balance integer not null",
+		"coin_balance integer not null default 0",
 	)
 
 	script033 := mustReadMigrationScript(t, "033_rose_gifts_model_alignment.sql")
@@ -34,6 +34,17 @@ func TestRoseGiftMigrations_ForwardSchemaCoverage(t *testing.T) {
 		"receiver_user_id uuid not null",
 		"price_coins integer not null",
 		"details jsonb not null default '{}'::jsonb",
+	)
+}
+
+func TestWalletZeroDefaultAndLedgerRepairMigration(t *testing.T) {
+	script := mustReadMigrationScript(t, "090_zero_default_wallets_and_ledger_repair.sql")
+	assertContainsAll(t, script,
+		"alter column coin_balance set default 0",
+		"opening_balance_repair:090:",
+		"opening_balance_adjustment",
+		"on conflict (user_id,idempotency_key)",
+		"on conflict (provider,provider_event_id)",
 	)
 }
 

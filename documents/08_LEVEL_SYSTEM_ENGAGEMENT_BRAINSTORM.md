@@ -214,8 +214,16 @@ Recommended supporting events:
 
 ---
 
-## Implementation Notes (Next Draft)
-- Convert snapshot requirements into exact XP thresholds per level.
-- Define canonical quality-score formula and abuse-fraud scoring thresholds.
-- Add schema/event contract for XP ledger and level state history.
-- Add experimentation map for acceleration pricing and fairness perception.
+## Implementation Resolution (2026-08-09)
+
+The product decisions above are now implemented for the native local
+PostgreSQL runtime. Exact cumulative thresholds, source/global caps, decay,
+cooldowns, bounded quality/risk multipliers, trust gates, and deterministic
+fraud-review thresholds are authoritative in
+`LEVEL_XP_PROGRESSION_LOCAL_POSTGRES.md`. Migration 064 and the Go, Flutter,
+and Django runtime provide the ledger, projection, rewards, telemetry,
+experiments, member UI, and operator controls.
+
+Paid acceleration remains deliberately unimplemented. It is not required for
+progression and cannot be introduced without a separate product, safety, and
+billing review that preserves the non-bypass rules in this document.

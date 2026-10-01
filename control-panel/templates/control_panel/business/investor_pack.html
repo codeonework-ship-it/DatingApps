@@ -1,0 +1,27 @@
+{% extends "control_panel/business/_layout.html" %}
+{% block business_title %}Investor KPI pack{% endblock %}
+{% block business_heading %}Investor KPI pack{% endblock %}
+{% block business_lede %}Monthly members, MAU, north star, revenue, MRR, conversion, ARPPU, churn and CAC. Money is per currency; burn comes from the finance system.{% endblock %}
+{% block business_actions %}<button type="button" class="btn btn-glass" onclick="window.print()"><i class="bi bi-printer me-2"></i>Print</button><a class="btn btn-glass" href="{% url 'business_spend' %}"><i class="bi bi-cash-stack me-2"></i>CAC inputs</a>{% endblock %}
+{% block business_body %}
+{% if not inputs.marketing_spend.recorded %}<div class="glass-card mb-3"><i class="bi bi-exclamation-circle me-2"></i>CAC and payback need spend data: record marketing spend per month, channel, market and currency on the <a href="{% url 'business_spend' %}">Marketing spend</a> page.</div>{% endif %}
+<div class="glass-card mb-4">
+  {% if rows %}
+  <div class="table-responsive"><table class="glass-table w-100">
+    <thead><tr><th>Month</th><th>Members</th><th>New</th><th>MAU</th><th>Plans kept</th><th>North star</th><th>Currency</th><th>Gross</th><th>Net</th><th>MRR</th><th>ARR</th><th>Subscribers</th><th>Paying</th><th>ARPPU</th><th>Conversion</th><th>Sub churn</th><th>Spend</th><th>CAC</th><th>Payback (months)</th><th>Burn</th></tr></thead>
+    <tbody>{% for r in rows %}<tr>
+      <td>{{ r.month }}</td>
+      {% if r.first %}<td>{{ r.members_total }}</td><td>{{ r.new_members }}</td><td>{{ r.mau|default:"—" }}</td><td>{{ r.plans_kept }}</td><td>{{ r.north_star|default:"—" }}</td>{% else %}<td colspan="5"></td>{% endif %}
+      <td>{{ r.c.currency|default:"—" }}</td><td>{{ r.c.gross|default:"—" }}</td><td>{{ r.c.net|default:"—" }}</td><td>{{ r.c.mrr|default:"—" }}</td><td>{{ r.c.arr|default:"—" }}</td>
+      <td>{{ r.c.subscribers|default:"—" }}</td><td>{{ r.c.paying_members|default:"—" }}</td><td>{{ r.c.arppu|default:"—" }}</td><td>{{ r.c.conversion|default:"—" }}</td><td>{{ r.c.subscriber_churn_rate|default:"—" }}</td>
+      <td>{{ r.c.marketing_spend|default:"needs spend data" }}</td><td>{{ r.c.cac|default:"needs spend data" }}</td><td>{{ r.c.payback_months|default:"—" }}</td><td>{{ r.burn }}</td>
+    </tr>{% endfor %}</tbody>
+  </table></div>
+  {% else %}<div class="empty-command-state">No months in this window.</div>{% endif %}
+</div>
+<div class="glass-card mb-4">
+  <h6>How to read this pack</h6>
+  <ul class="biz-note mb-0">{% for k, v in definitions.items %}<li><strong>{{ k }}</strong>: {{ v }}</li>{% endfor %}
+    <li><strong>burn</strong>: {{ inputs.burn }}</li><li><strong>prices</strong>: {{ inputs.price_assumptions }}</li></ul>
+</div>
+{% endblock %}

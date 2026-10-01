@@ -29,7 +29,9 @@ class BlockedUsersScreen extends ConsumerWidget {
                 if (users.isEmpty) {
                   return GlassContainer(
                     padding: const EdgeInsets.all(16),
-                    backgroundColor: Colors.white.withValues(alpha: 0.9),
+                    backgroundColor: Theme.of(
+                      context,
+                    ).colorScheme.surface.withValues(alpha: 0.9),
                     blur: 12,
                     borderRadius: const BorderRadius.all(Radius.circular(24)),
                     child: const Center(
@@ -46,9 +48,11 @@ class BlockedUsersScreen extends ConsumerWidget {
                     return GlassContainer(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 12,
-                        vertical: 10,
+                        vertical: 12,
                       ),
-                      backgroundColor: Colors.white.withValues(alpha: 0.9),
+                      backgroundColor: Theme.of(
+                        context,
+                      ).colorScheme.surface.withValues(alpha: 0.9),
                       blur: 12,
                       borderRadius: const BorderRadius.all(Radius.circular(16)),
                       child: Row(

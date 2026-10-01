@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/verified-dating/backend/internal/platform/config"
-	"github.com/verified-dating/backend/internal/platform/supabase"
 )
 
 type roseGiftRepositoryDB interface {
@@ -54,22 +53,12 @@ type walletCoinCreditRequest struct {
 	Now            time.Time
 }
 
-func newRoseGiftRepository(cfg config.Config) *roseGiftRepository {
-	apiKey := strings.TrimSpace(cfg.SupabaseServiceRole)
-	if apiKey == "" {
-		apiKey = strings.TrimSpace(cfg.SupabaseAnonKey)
-	}
-	if strings.TrimSpace(cfg.SupabaseURL) == "" || apiKey == "" {
+func newRoseGiftRepository(cfg config.Config, supplied ...repositoryDB) *roseGiftRepository {
+	db := repositoryDBFor(cfg, supplied)
+	if db == nil {
 		return nil
 	}
-	client := supabase.NewClient(
-		cfg.SupabaseURL,
-		cfg.SupabaseAnonKey,
-		cfg.SupabaseServiceRole,
-		time.Duration(cfg.SupabaseHTTPTimeoutSec)*time.Second,
-	)
-	client.SetReadBaseURL(cfg.SupabaseReadReplicaURL)
-	return &roseGiftRepository{cfg: cfg, db: client}
+	return &roseGiftRepository{cfg: cfg, db: db}
 }
 
 func (r *roseGiftRepository) recordGiftSpendActivity(ctx context.Context, record giftSpendActivityRecord) error {
@@ -203,6 +192,27 @@ func (r *roseGiftRepository) listCatalog(ctx context.Context) ([]roseGiftCatalog
 	return out, nil
 }
 
+// errGiftUnavailable marks a gift that exists but cannot currently be sent —
+// retired, or outside its seasonal window. Distinct from "not found" because
+// the two map to different documented responses.
+var errGiftUnavailable = errors.New("gift is not available")
+
+// catalogEntryExists reports whether a gift id exists at all, ignoring whether
+// it is currently sendable.
+func (r *roseGiftRepository) catalogEntryExists(
+	ctx context.Context,
+	giftID string,
+) (bool, error) {
+	params := url.Values{}
+	params.Set("id", "eq."+strings.TrimSpace(giftID))
+	params.Set("limit", "1")
+	rows, err := r.selectGiftCatalogRows(ctx, params)
+	if err != nil {
+		return false, err
+	}
+	return len(rows) > 0, nil
+}
+
 func (r *roseGiftRepository) getCatalogByID(ctx context.Context, giftID string) (roseGiftCatalogItem, bool, error) {
 	trimmedGiftID := strings.TrimSpace(giftID)
 	if trimmedGiftID == "" {
@@ -249,7 +259,7 @@ func (r *roseGiftRepository) getWallet(ctx context.Context, userID string) (user
 	if len(rows) == 0 {
 		inserted, insertErr := r.db.Insert(ctx, r.cfg.MatchingSchema, r.cfg.UserWalletsTable, []map[string]any{{
 			"user_id":      trimmedUserID,
-			"coin_balance": 12,
+			"coin_balance": 0,
 			"updated_at":   time.Now().UTC().Format(time.RFC3339),
 		}})
 		if insertErr != nil {
@@ -475,6 +485,16 @@ func (r *roseGiftRepository) sendGift(
 		return roseGiftSendView{}, err
 	}
 	if !found {
+		// `getCatalogByID` filters on is_active, so a gift that exists but has
+		// been retired or has run past its window is indistinguishable here
+		// from one that never existed — and both were answered 400. GIFT-005
+		// documents 422 for the unavailable case, which is a different thing
+		// for a client to handle: the request was well formed, the gift simply
+		// cannot be sent. Re-check without the filter to tell them apart.
+		exists, existsErr := r.catalogEntryExists(ctx, giftID)
+		if existsErr == nil && exists {
+			return roseGiftSendView{}, errGiftUnavailable
+		}
 		return roseGiftSendView{}, errors.New("gift not found")
 	}
 	if gift.MaxPerMatchPerDay > 0 {

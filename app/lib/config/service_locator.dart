@@ -14,7 +14,7 @@ Future<void> setupServiceLocator() async {
 
   // Register providers/notifiers here.
 
-  // Register external services (Supabase APIs, Dio, etc.) here.
+  // Register external services (backend API client, local persistence) here.
 
   // Example:
   // getIt.registerSingleton<AuthRepository>(AuthRepositoryImpl());

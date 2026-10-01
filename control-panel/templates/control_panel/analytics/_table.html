@@ -1,0 +1,5 @@
+<div class="table-responsive"><table class="glass-table w-100">
+  {% if caption %}<caption class="text-muted small">{{ caption }}</caption>{% endif %}
+  <thead><tr>{% for c in table.columns %}<th scope="col"{% if c.kind != 'dimension' %} class="text-end"{% endif %}>{{ c.label }}</th>{% endfor %}</tr></thead>
+  <tbody>{% for row in table.rows %}<tr>{% for cell in row.cells %}<td{% if cell.numeric %} class="text-end"{% endif %}>{% if cell.suppressed %}<span title="Fewer than 5 members: withheld">&lt;5</span>{% else %}{{ cell.text }}{% endif %}</td>{% endfor %}</tr>{% empty %}<tr><td colspan="{{ table.columns|length|default:1 }}" class="text-muted">No data in this range.</td></tr>{% endfor %}</tbody>
+</table></div>

@@ -1,0 +1,41 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ConnectMediaObjects",
+      "Effect": "Allow",
+      "Action": [
+        "s3:PutObject",
+        "s3:GetObject",
+        "s3:DeleteObject"
+      ],
+      "Resource": [
+        "arn:aws:s3:::connect-media-private-example/public/profile_photos/*",
+        "arn:aws:s3:::connect-media-private-example/public/legacy_profile_photos/*",
+        "arn:aws:s3:::connect-media-private-example/public/group_covers/*",
+        "arn:aws:s3:::connect-media-private-example/quarantine/profile_photos/*",
+        "arn:aws:s3:::connect-media-private-example/private/chapter_photos/*",
+        "arn:aws:s3:::connect-media-private-example/private/theme_photos/*",
+        "arn:aws:s3:::connect-media-private-example/private/voice/*",
+        "arn:aws:s3:::connect-media-private-example/private/verification/*",
+        "arn:aws:s3:::connect-media-private-example/profile-photos/*"
+      ]
+    },
+    {
+      "Sid": "HeadMissingObjectsReturn404NotAccessDenied",
+      "Effect": "Allow",
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::connect-media-private-example",
+      "Condition": {
+        "StringLike": {
+          "s3:prefix": [
+            "public/*",
+            "quarantine/*",
+            "private/*",
+            "profile-photos/*"
+          ]
+        }
+      }
+    }
+  ]
+}

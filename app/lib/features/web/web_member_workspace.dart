@@ -1,0 +1,754 @@
+import 'dart:async';
+import '../blog/blog_screen.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/platform/browser_context.dart';
+import '../../core/providers/runtime_feature_flags_provider.dart';
+import '../../core/widgets/connect_brand.dart';
+import '../auth/providers/auth_provider.dart';
+import '../common/screens/main_navigation_screen.dart';
+import '../matching/screens/matches_list_screen.dart';
+import '../first_chapter/chapter_studio_screen.dart';
+import '../common/screens/account_data_screen.dart';
+import '../common/screens/privacy_safety_screen.dart';
+import '../common/screens/help_support_screen.dart';
+import '../common/screens/notification_settings_screen.dart';
+import '../common/screens/blocked_users_screen.dart';
+import '../common/screens/emergency_contacts_screen.dart';
+import '../common/screens/moderation_appeals_screen.dart';
+import '../engagement/screens/daily_prompt_screen.dart';
+import '../engagement/screens/level_progression_screen.dart';
+import '../engagement/screens/trust_badges_screen.dart';
+import '../engagement/screens/trust_filter_screen.dart';
+import '../engagement/screens/voice_icebreakers_screen.dart';
+import '../engagement/screens/circle_challenges_screen.dart';
+import '../engagement/screens/group_coffee_polls_screen.dart';
+import '../engagement/screens/conversation_rooms_screen.dart';
+import '../engagement/screens/match_nudges_screen.dart';
+import '../friends/screens/friends_screen.dart';
+import '../groups/groups_screen.dart';
+import '../calls/screens/call_history_screen.dart';
+import '../notifications/screens/notification_inbox_screen.dart';
+import '../payment/screens/subscription_screen.dart';
+import '../plans/screens/plans_screen.dart';
+import '../profile/screens/edit_profile_screen.dart';
+import '../profile/screens/setup/setup_photos_screen.dart';
+import '../profile/screens/setup/setup_preferences_screen.dart';
+import '../swipe/screens/liked_me_screen.dart';
+import '../verification/screens/verification_landing_screen.dart';
+
+class WebDestination {
+  const WebDestination(
+    this.path,
+    this.label,
+    this.icon,
+    this.build, {
+    this.flag,
+  });
+  final String path;
+  final String label;
+  final IconData icon;
+  final Widget Function() build;
+
+  /// Runtime flag that must be on for this destination to be reachable.
+  final String? flag;
+
+  bool availableWith(RuntimeFeatureFlags flags) =>
+      flag == null || flags.enabled(flag!, fallback: true);
+}
+
+final webDestinations = <WebDestination>[
+  WebDestination(
+    '/blog',
+    'Blog',
+    Icons.menu_book_outlined,
+    () => const BlogScreen(),
+    flag: 'intentional_dating_enabled',
+  ),
+  WebDestination(
+    '/first-chapter',
+    'First Chapter Studio',
+    Icons.auto_stories_outlined,
+    () => const ChapterStudioScreen(),
+    flag: 'intentional_dating_enabled',
+  ),
+  WebDestination(
+    '/preferences',
+    'Dating preferences',
+    Icons.tune_rounded,
+    () => const SetupPreferencesScreen(isSetupFlow: false),
+  ),
+  WebDestination(
+    '/edit-profile',
+    'Edit profile',
+    Icons.edit_outlined,
+    () => const EditProfileScreen(),
+  ),
+  WebDestination(
+    '/photos',
+    'Profile photos',
+    Icons.photo_library_outlined,
+    () => const SetupPhotosScreen(),
+  ),
+  // Matches the action route of the "Someone liked you" notification.
+  WebDestination(
+    '/likes',
+    'Liked you',
+    Icons.favorite_border_rounded,
+    () => const LikedMeScreen(),
+  ),
+  WebDestination(
+    '/notifications',
+    'Notifications',
+    Icons.notifications_outlined,
+    () => const NotificationInboxScreen(),
+  ),
+  WebDestination(
+    '/daily-prompt',
+    'Daily prompt',
+    Icons.lightbulb_outline_rounded,
+    () => const DailyPromptScreen(),
+    flag: 'daily_prompts_enabled',
+  ),
+  WebDestination(
+    '/progression',
+    'Levels & progress',
+    Icons.insights_rounded,
+    () => const LevelProgressionScreen(),
+    flag: 'level_progression_enabled',
+  ),
+  WebDestination(
+    '/trust',
+    'Trust badges',
+    Icons.verified_outlined,
+    () => const TrustBadgesScreen(),
+  ),
+  WebDestination(
+    '/trust-filters',
+    'Trust filters',
+    Icons.filter_alt_outlined,
+    () => const TrustFilterScreen(),
+  ),
+  WebDestination(
+    '/icebreakers',
+    'Icebreakers',
+    Icons.record_voice_over_outlined,
+    () => const VoiceIcebreakersScreen(),
+    flag: 'voice_icebreakers_enabled',
+  ),
+  WebDestination(
+    '/challenges',
+    'Circle challenges',
+    Icons.emoji_events_outlined,
+    () => const CircleChallengesScreen(),
+    flag: 'circles_enabled',
+  ),
+  WebDestination(
+    '/coffee',
+    'Coffee polls',
+    Icons.coffee_outlined,
+    () => const GroupCoffeePollsScreen(),
+    flag: 'group_coffee_polls_enabled',
+  ),
+  WebDestination(
+    '/groups',
+    'Groups',
+    Icons.groups_outlined,
+    () => const GroupsScreen(),
+    flag: 'groups_enabled',
+  ),
+  WebDestination(
+    '/rooms',
+    'Conversation rooms',
+    Icons.forum_outlined,
+    () => const ConversationRoomsScreen(),
+    flag: 'rooms_enabled',
+  ),
+  WebDestination(
+    '/nudges',
+    'Match nudges',
+    Icons.waving_hand_outlined,
+    () => const MatchNudgesScreen(),
+    flag: 'match_nudges_enabled',
+  ),
+  WebDestination(
+    '/friends',
+    'Friends',
+    Icons.people_outline_rounded,
+    () => const FriendsScreen(),
+  ),
+  WebDestination(
+    '/plans',
+    'Date plans',
+    Icons.event_available_rounded,
+    () => const PlansScreen(),
+    flag: 'date_plans_enabled',
+  ),
+  WebDestination(
+    '/calls',
+    'Call history',
+    Icons.call_outlined,
+    () => const CallHistoryScreen(),
+    flag: 'calls_enabled',
+  ),
+  WebDestination(
+    '/membership',
+    'Membership',
+    Icons.workspace_premium_outlined,
+    () => const SubscriptionScreen(),
+    flag: 'billing_enabled',
+  ),
+  WebDestination(
+    '/verification',
+    'Verification',
+    Icons.badge_outlined,
+    () => const VerificationLandingScreen(),
+    flag: 'identity_verification_enabled',
+  ),
+  WebDestination(
+    '/safety',
+    'Privacy & safety',
+    Icons.shield_outlined,
+    () => const PrivacySafetyScreen(),
+  ),
+  WebDestination(
+    '/account',
+    'Account & data',
+    Icons.manage_accounts_outlined,
+    () => const AccountDataScreen(),
+  ),
+  WebDestination(
+    '/blocked',
+    'Blocked members',
+    Icons.block_outlined,
+    () => const BlockedUsersScreen(),
+  ),
+  WebDestination(
+    '/emergency-contacts',
+    'Emergency contacts',
+    Icons.contact_emergency_outlined,
+    () => const EmergencyContactsScreen(),
+  ),
+  WebDestination(
+    '/appeals',
+    'Moderation appeals',
+    Icons.fact_check_outlined,
+    () => const ModerationAppealsScreen(),
+  ),
+  WebDestination(
+    '/notification-settings',
+    'Notification preferences',
+    Icons.notifications_active_outlined,
+    () => const NotificationSettingsScreen(),
+  ),
+  WebDestination(
+    '/help',
+    'Help & support',
+    Icons.help_outline_rounded,
+    () => const HelpSupportScreen(),
+  ),
+];
+
+const _primaryPaths = [
+  '/discover',
+  '/matches',
+  '/engagement',
+  '/profile',
+  '/settings',
+];
+const _primaryLabels = [
+  'Discover',
+  'Matches',
+  'Explore',
+  'My profile',
+  'Settings',
+];
+const _primaryIcons = [
+  Icons.explore_outlined,
+  Icons.favorite_border_rounded,
+  Icons.grid_view_rounded,
+  Icons.person_outline_rounded,
+  Icons.settings_outlined,
+];
+
+class WebMemberWorkspace extends ConsumerStatefulWidget {
+  const WebMemberWorkspace({super.key});
+  @override
+  ConsumerState<WebMemberWorkspace> createState() => _WebMemberWorkspaceState();
+}
+
+class _WebMemberWorkspaceState extends ConsumerState<WebMemberWorkspace> {
+  late String _path;
+  late StreamSubscription<void> _routes;
+  @override
+  void initState() {
+    super.initState();
+    _path = currentWebRoute();
+    if (['/', '/signin', '/signup', '/welcome'].contains(_path))
+      _path = '/discover';
+    _routes = webRouteChanges.listen((_) => _applyRoute(currentWebRoute()));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _go(_path);
+    });
+  }
+
+  void _applyRoute(String path) {
+    if (!mounted) return;
+    final index = _primaryPaths.indexOf(path);
+    if (index >= 0)
+      ref.read(mainNavigationIndexProvider.notifier).state = index;
+    setState(() => _path = path);
+  }
+
+  void _go(String path) {
+    if (path == '/matches')
+      ref.read(matchesViewProvider.notifier).state = MatchesView.discover;
+    setWebRoute(path);
+    _applyRoute(path);
+  }
+
+  @override
+  void dispose() {
+    _routes.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    ref.listen<int>(mainNavigationIndexProvider, (_, index) {
+      if (_primaryPaths.contains(_path) && _primaryPaths[index] != _path) {
+        _path = _primaryPaths[index];
+        setWebRoute(_path);
+      }
+    });
+    final wide = MediaQuery.sizeOf(context).width >= 900;
+    final colors = Theme.of(context).colorScheme;
+    final flags = ref
+        .watch(runtimeFeatureFlagsProvider)
+        .maybeWhen(
+          data: (value) => value,
+          orElse: () => RuntimeFeatureFlags.defaults,
+        );
+    final primaryIndex = _primaryPaths.indexOf(_path);
+    final destinations = webDestinations.where((d) => d.path == _path);
+    final destination = destinations.isEmpty ? null : destinations.first;
+    final Widget content = primaryIndex >= 0
+        ? const MainNavigationScreen()
+        : _path == '/features'
+        ? _FeatureDirectory(
+            onOpen: _go,
+            destinations: webDestinations
+                .where((d) => d.availableWith(flags))
+                .toList(growable: false),
+          )
+        : destination != null && !destination.availableWith(flags)
+        ? _UnavailableDestination(
+            label: destination.label,
+            onBack: () => _go('/discover'),
+          )
+        : destination != null
+        ? destination.build()
+        : Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('This page could not be found.'),
+                const SizedBox(height: 16),
+                FilledButton(
+                  onPressed: () => _go('/discover'),
+                  child: const Text('Back to Discover'),
+                ),
+              ],
+            ),
+          );
+    final title = primaryIndex >= 0
+        ? (primaryIndex == 0 &&
+                  flags.enabled(
+                    'intentional_dating_enabled',
+                    fallback: false,
+                  ) &&
+                  flags.enabled('curated_daily_set_enabled', fallback: true)
+              ? 'Today'
+              : _primaryLabels[primaryIndex])
+        : destination?.label ?? 'All features';
+    if (!wide) {
+      // A Scaffold, like the wide layout: the directory and "not available"
+      // pages have none of their own, and without a Material ancestor their
+      // text falls back to the framework's red error style.
+      return Scaffold(
+        body: Column(
+          children: [
+            if (primaryIndex < 0)
+              Material(
+                color: colors.surface,
+                child: SafeArea(
+                  bottom: false,
+                  child: Row(
+                    children: [
+                      BackButton(onPressed: () => _go('/engagement')),
+                      Expanded(child: Text(title)),
+                      IconButton(
+                        tooltip: 'All features',
+                        onPressed: () => _go('/features'),
+                        icon: const Icon(Icons.grid_view_rounded),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            Expanded(child: content),
+          ],
+        ),
+      );
+    }
+    return Scaffold(
+      body: Row(
+        children: [
+          Container(
+            key: const ValueKey<String>('qa.web.sidebar'),
+            width: 264,
+            decoration: BoxDecoration(
+              color: colors.surface,
+              border: Border(right: BorderSide(color: colors.outline)),
+            ),
+            child: SafeArea(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 28, 24, 28),
+                    child: ConnectBrand(
+                      onDark: Theme.of(context).brightness == Brightness.dark,
+                    ),
+                  ),
+                  Expanded(
+                    child: ListView(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      children: [
+                        for (var i = 0; i < _primaryPaths.length; i++)
+                          _nav(
+                            _primaryPaths[i],
+                            i == 0 &&
+                                    flags.enabled(
+                                      'intentional_dating_enabled',
+                                      fallback: false,
+                                    ) &&
+                                    flags.enabled(
+                                      'curated_daily_set_enabled',
+                                      fallback: true,
+                                    )
+                                ? 'Today'
+                                : _primaryLabels[i],
+                            _primaryIcons[i],
+                          ),
+                        if (flags.enabled(
+                          'intentional_dating_enabled',
+                          fallback: true,
+                        ))
+                          _nav('/blog', 'Blog', Icons.menu_book_outlined),
+                        const _SidebarLabel('More for you'),
+                        _nav('/features', 'All features', Icons.apps_rounded),
+                        _nav('/preferences', 'Preferences', Icons.tune_rounded),
+                        _nav(
+                          '/notifications',
+                          'Notifications',
+                          Icons.notifications_outlined,
+                        ),
+                        if (flags.enabled('billing_enabled', fallback: true))
+                          _nav(
+                            '/membership',
+                            'Membership',
+                            Icons.workspace_premium_outlined,
+                          ),
+                        _nav(
+                          '/safety',
+                          'Privacy & safety',
+                          Icons.shield_outlined,
+                        ),
+                        _nav(
+                          '/help',
+                          'Help & support',
+                          Icons.help_outline_rounded,
+                        ),
+                      ],
+                    ),
+                  ),
+                  Divider(height: 1, color: colors.outline),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                    child: Column(
+                      children: [
+                        _SidebarItem(
+                          label: 'Connect website',
+                          icon: Icons.open_in_new_rounded,
+                          onTap: openWebsiteHome,
+                        ),
+                        _SidebarItem(
+                          label: 'Sign out',
+                          icon: Icons.logout_rounded,
+                          onTap: () async {
+                            await ref
+                                .read(authNotifierProvider.notifier)
+                                .logout();
+                            setWebRoute('/signin');
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Expanded(
+            child: Column(
+              children: [
+                Container(
+                  height: 64,
+                  padding: const EdgeInsets.symmetric(horizontal: 40),
+                  decoration: BoxDecoration(
+                    color: colors.surface,
+                    border: Border(bottom: BorderSide(color: colors.outline)),
+                  ),
+                  child: Row(
+                    children: [
+                      Text(
+                        'Connect',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: colors.onSurfaceVariant,
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Icon(
+                          Icons.chevron_right_rounded,
+                          size: 18,
+                          color: colors.onSurfaceVariant,
+                        ),
+                      ),
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: colors.onSurface,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        'Your pace. Your choice.',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: colors.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(child: content),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _nav(String path, String label, IconData icon) => _SidebarItem(
+    label: label,
+    icon: icon,
+    selected: _path == path,
+    onTap: () => _go(path),
+  );
+}
+
+/// Sidebar group heading in the website's eyebrow style.
+class _SidebarLabel extends StatelessWidget {
+  const _SidebarLabel(this.label);
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(12, 28, 12, 8),
+    child: Text(
+      label.toUpperCase(),
+      style: TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 1.8,
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+      ),
+    ),
+  );
+}
+
+class _SidebarItem extends StatelessWidget {
+  const _SidebarItem({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+    this.selected = false,
+  });
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Semantics(
+        selected: selected,
+        button: true,
+        child: Material(
+          color: selected ? c.primaryContainer : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(12),
+            hoverColor: c.surfaceContainerHighest,
+            child: Container(
+              // A full 48pt row, whatever the label's line height.
+              constraints: const BoxConstraints(minHeight: 48),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              child: Row(
+                children: [
+                  Icon(
+                    icon,
+                    size: 20,
+                    color: selected ? c.primary : c.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: selected
+                            ? FontWeight.w600
+                            : FontWeight.w500,
+                        color: c.onSurface,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Shown when a destination's capability is switched off, including when a
+/// member opens its URL directly.
+class _UnavailableDestination extends StatelessWidget {
+  const _UnavailableDestination({required this.label, required this.onBack});
+  final String label;
+  final VoidCallback onBack;
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.lock_clock_outlined,
+            size: 40,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            '$label isn\'t available yet.',
+            style: Theme.of(context).textTheme.titleLarge,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            "It isn't part of this release of Connect.",
+            style: Theme.of(context).textTheme.bodyMedium,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 20),
+          FilledButton(
+            onPressed: onBack,
+            style: FilledButton.styleFrom(minimumSize: const Size(0, 48)),
+            child: const Text('Back to Discover'),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+class _FeatureDirectory extends StatelessWidget {
+  const _FeatureDirectory({required this.onOpen, required this.destinations});
+  final ValueChanged<String> onOpen;
+  final List<WebDestination> destinations;
+  @override
+  Widget build(BuildContext context) => SingleChildScrollView(
+    padding: const EdgeInsets.all(24),
+    child: Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 1080),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Make this space yours.',
+              style: Theme.of(context).textTheme.displaySmall,
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Your profile, conversations, community and controls — all in one place.',
+            ),
+            const SizedBox(height: 24),
+            LayoutBuilder(
+              builder: (context, bounds) => Wrap(
+                spacing: 16,
+                runSpacing: 16,
+                children: [
+                  for (final item in destinations)
+                    SizedBox(
+                      width: bounds.maxWidth >= 700
+                          ? (bounds.maxWidth - 32) / 3
+                          : bounds.maxWidth >= 440
+                          ? (bounds.maxWidth - 16) / 2
+                          : bounds.maxWidth,
+                      child: Card(
+                        margin: EdgeInsets.zero,
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.all(16),
+                          leading: Icon(
+                            item.icon,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                          title: Text(
+                            item.label,
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                          trailing: const Icon(
+                            Icons.north_east_rounded,
+                            size: 17,
+                          ),
+                          onTap: () => onOpen(item.path),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}

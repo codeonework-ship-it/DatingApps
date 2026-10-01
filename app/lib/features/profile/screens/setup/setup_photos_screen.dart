@@ -1,14 +1,16 @@
-import 'dart:io';
+import 'package:flutter/foundation.dart';
+import '../../../../core/platform/browser_context.dart';
+import '../../../../core/platform/platform_photo.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/constants/app_constants.dart';
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/layout/app_layout.dart';
 import '../../../../core/widgets/glass_widgets.dart';
 import '../../providers/profile_setup_provider.dart';
-import 'setup_preferences_screen.dart';
+import 'setup_about_screen.dart';
 import 'setup_shared_widgets.dart';
 
 /// Step 2 of 4 — photo gallery / camera picker with reorderable list.
@@ -42,9 +44,13 @@ class _SetupPhotosScreenState extends ConsumerState<SetupPhotosScreen> {
       if (widget.isSetupFlow) {
         Navigator.of(context).push<void>(
           MaterialPageRoute<void>(
-            builder: (_) => const SetupPreferencesScreen(isSetupFlow: true),
+            builder: (_) => const SetupAboutScreen(isSetupFlow: true),
           ),
         );
+      } else if (kIsWeb && !Navigator.of(context).canPop()) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Photos saved.')));
       } else {
         Navigator.of(context).pop();
       }
@@ -58,7 +64,7 @@ class _SetupPhotosScreenState extends ConsumerState<SetupPhotosScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.red.shade700,
+        backgroundColor: Theme.of(context).colorScheme.error,
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -80,8 +86,8 @@ class _SetupPhotosScreenState extends ConsumerState<SetupPhotosScreen> {
       await ref
           .read(profileSetupNotifierProvider.notifier)
           .addPhotoFromGallery();
-    } on Exception {
-      _showError('Photo upload failed. Please try again.');
+    } on Object catch (error) {
+      _showError(profileMediaErrorMessage(error));
     } finally {
       if (mounted) {
         setState(() => _isPickingPhoto = false);
@@ -105,12 +111,59 @@ class _SetupPhotosScreenState extends ConsumerState<SetupPhotosScreen> {
       await ref
           .read(profileSetupNotifierProvider.notifier)
           .addPhotoFromCamera();
-    } on Exception {
-      _showError('Photo upload failed. Please try again.');
+    } on Object catch (error) {
+      _showError(profileMediaErrorMessage(error));
     } finally {
       if (mounted) {
         setState(() => _isPickingPhoto = false);
       }
+    }
+  }
+
+  Future<void> _confirmDelete(ProfilePhotoItem photo) async {
+    if (_isPickingPhoto) {
+      return;
+    }
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Remove this photo?'),
+        content: const Text(
+          'It will be removed from your profile and deleted from storage.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            key: const ValueKey('qa.setup.photos.confirm_delete'),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Remove'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) {
+      return;
+    }
+    try {
+      await ref.read(profileSetupNotifierProvider.notifier).deletePhoto(photo);
+    } on Object catch (error) {
+      _showError(profileMediaErrorMessage(error));
+    }
+  }
+
+  Future<void> _reorderPhotos(int oldIndex, int newIndex) async {
+    if (_isPickingPhoto || oldIndex == newIndex) {
+      return;
+    }
+    try {
+      await ref
+          .read(profileSetupNotifierProvider.notifier)
+          .reorderPhotos(oldIndex, newIndex);
+    } on Object catch (error) {
+      _showError(profileMediaErrorMessage(error));
     }
   }
 
@@ -123,21 +176,29 @@ class _SetupPhotosScreenState extends ConsumerState<SetupPhotosScreen> {
 
     return Scaffold(
       body: DecoratedBox(
-        decoration: const BoxDecoration(gradient: AppTheme.bgGradient),
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+        ),
         child: SafeArea(
           child: Column(
             children: [
               SetupHeader(
-                currentStep: widget.isSetupFlow ? 1 : 2,
-                totalSteps: widget.isSetupFlow ? 2 : 4,
-                onBack: () => Navigator.of(context).pop(),
+                currentStep: 2,
+                totalSteps: 4,
+                onBack: () {
+                  if (kIsWeb && !Navigator.of(context).canPop()) {
+                    setWebRoute('/profile');
+                  } else {
+                    Navigator.of(context).pop();
+                  }
+                },
               ),
               Expanded(
                 child: draftAsync.when(
-                  loading: () => const Center(
+                  loading: () => Center(
                     child: CircularProgressIndicator(
                       valueColor: AlwaysStoppedAnimation<Color>(
-                        AppTheme.crystalGoldSoft,
+                        Theme.of(context).colorScheme.primary,
                       ),
                     ),
                   ),
@@ -158,30 +219,26 @@ class _SetupPhotosScreenState extends ConsumerState<SetupPhotosScreen> {
                     isPickingPhoto: _isPickingPhoto,
                     onPickGallery: _pickFromGallery,
                     onPickCamera: _pickFromCamera,
-                    onDeletePhoto: (photo) => ref
-                        .read(profileSetupNotifierProvider.notifier)
-                        .deletePhoto(photo),
-                    onReorder: (oldIndex, newIndex) => ref
-                        .read(profileSetupNotifierProvider.notifier)
-                        .reorderPhotos(oldIndex, newIndex),
+                    onDeletePhoto: _confirmDelete,
+                    onReorder: _reorderPhotos,
                     onSetPrimary: (index) {
-                      if (index == 0) {
+                      if (index == 0 || _isPickingPhoto) {
                         return;
                       }
-                      ref
-                          .read(profileSetupNotifierProvider.notifier)
-                          .reorderPhotos(index, 0);
+                      _reorderPhotos(index, 0);
                     },
                     onNext: () {
                       if (d.photos.length < ValidationConstants.minPhotos) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
+                          SnackBar(
+                            content: const Text(
                               'Please upload at least '
                               '${ValidationConstants.minPhotos} photos '
                               'to continue.',
                             ),
-                            backgroundColor: AppTheme.errorRed,
+                            backgroundColor: Theme.of(
+                              context,
+                            ).colorScheme.error,
                           ),
                         );
                         return;
@@ -246,7 +303,7 @@ class _PhotoListBody extends StatelessWidget {
                   'Add your photos',
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.w800,
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onSurface,
                     letterSpacing: -0.3,
                   ),
                 ),
@@ -255,7 +312,7 @@ class _PhotoListBody extends StatelessWidget {
                   'Add at least ${ValidationConstants.minPhotos} photos '
                   'to get matches',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.white.withValues(alpha: 0.60),
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -292,13 +349,20 @@ class _PhotoListBody extends StatelessWidget {
           ],
         ),
       ),
+      const SizedBox(height: 8),
+      Text(
+        'JPEG, PNG, WebP or HEIC · 300×300 minimum · 10 MB each · 50 MB total',
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+      ),
 
       // ── Tip banner ───────────────────────────────────────
       const SizedBox(height: 14),
       TipBanner(
         text: draft.photos.isEmpty
-            ? 'Profiles with at least ${ValidationConstants.minPhotos} '
-                  'photos get 3× more matches.'
+            ? 'Add at least ${ValidationConstants.minPhotos} photos '
+                  'to show different sides of you.'
             : draft.photos.length < ValidationConstants.minPhotos
             ? 'Add ${ValidationConstants.minPhotos - draft.photos.length}'
                   ' more photo(s) to unlock full matching.'
@@ -318,7 +382,7 @@ class _PhotoListBody extends StatelessWidget {
               physics: const NeverScrollableScrollPhysics(),
               buildDefaultDragHandles: false,
               itemCount: draft.photos.length,
-              onReorder: onReorder,
+              onReorder: isPickingPhoto ? (_, _) {} : onReorder,
               itemBuilder: (context, index) {
                 final photo = draft.photos[index];
                 return _PhotoRow(
@@ -327,6 +391,7 @@ class _PhotoListBody extends StatelessWidget {
                   index: index,
                   onDelete: () => onDeletePhoto(photo),
                   onSetPrimary: () => onSetPrimary(index),
+                  enabled: !isPickingPhoto,
                 );
               },
             ),
@@ -337,16 +402,21 @@ class _PhotoListBody extends StatelessWidget {
       const SizedBox(height: 24),
 
       // ── Next button ──────────────────────────────────────
-      SizedBox(
-        height: 54,
-        width: double.infinity,
-        child: GlassButton(
-          label: isSetupFlow ? 'Continue to Preferences' : 'Save Photos',
-          icon: Icons.arrow_forward_rounded,
-          shinyEffect: true,
-          textColor: AppTheme.textDark,
-          fontWeight: FontWeight.w800,
-          onPressed: onNext,
+      Semantics(
+        label: 'qa.setup.photos.next_button',
+        button: true,
+        child: SizedBox(
+          height: 54,
+          width: double.infinity,
+          child: GlassButton(
+            key: const ValueKey('qa.setup.photos.next_button'),
+            label: isSetupFlow ? 'Continue to About' : 'Save Photos',
+            icon: Icons.arrow_forward_rounded,
+            shinyEffect: true,
+            textColor: Theme.of(context).colorScheme.onSurface,
+            fontWeight: FontWeight.w800,
+            onPressed: onNext,
+          ),
         ),
       ),
     ],
@@ -368,15 +438,20 @@ class _PickerButton extends StatelessWidget {
   final bool isLoading;
 
   @override
-  Widget build(BuildContext context) => SizedBox(
-    height: 58,
-    child: GlassButton(
-      label: label,
-      icon: icon,
-      isLoading: isLoading,
-      textColor: AppTheme.textDark,
-      fontWeight: FontWeight.w800,
-      onPressed: isLoading ? null : onTap,
+  Widget build(BuildContext context) => Semantics(
+    label: 'qa.setup.photos.${label.toLowerCase()}_button',
+    button: true,
+    child: SizedBox(
+      height: 58,
+      child: GlassButton(
+        key: ValueKey<String>('qa.setup.photos.${label.toLowerCase()}_button'),
+        label: label,
+        icon: icon,
+        isLoading: isLoading,
+        textColor: Theme.of(context).colorScheme.onSurface,
+        fontWeight: FontWeight.w800,
+        onPressed: isLoading ? null : onTap,
+      ),
     ),
   );
 }
@@ -391,141 +466,177 @@ class _PhotoRow extends StatelessWidget {
     required this.index,
     required this.onDelete,
     required this.onSetPrimary,
+    required this.enabled,
     super.key,
   });
   final ProfilePhotoItem photo;
   final int index;
   final VoidCallback onDelete;
   final VoidCallback onSetPrimary;
+  final bool enabled;
 
-  Widget _buildThumbnail() {
+  Widget _buildThumbnail(ColorScheme scheme) {
     final url = photo.photoUrl;
-    // Local file path (optimistic entry during upload)
-    if (url.startsWith('/')) {
-      final file = File(url);
-      if (file.existsSync()) {
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(10),
-          child: Image.file(
-            file,
-            width: 60,
-            height: 60,
-            fit: BoxFit.cover,
-            errorBuilder: (_, _, _) => _brokenImage(),
-          ),
-        );
-      }
-      return _brokenImage();
-    }
     // Network URL (from BFF /v1/media/...)
     return ClipRRect(
       borderRadius: BorderRadius.circular(10),
-      child: Image.network(
+      child: platformPhoto(
         url,
         width: 60,
         height: 60,
         fit: BoxFit.cover,
-        errorBuilder: (_, _, _) => _brokenImage(),
+        errorBuilder: (_, _, _) => _brokenImage(scheme),
       ),
     );
   }
 
-  Widget _brokenImage() => Container(
+  Widget _brokenImage(ColorScheme scheme) => Container(
     width: 60,
     height: 60,
     decoration: BoxDecoration(
-      color: Colors.white.withValues(alpha: 0.12),
+      color: scheme.surfaceContainerHighest,
       borderRadius: BorderRadius.circular(10),
     ),
-    child: const Icon(
-      Icons.broken_image_outlined,
-      size: 28,
-      color: Colors.white38,
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(
+          photo.isHeic ? Icons.image_outlined : Icons.broken_image_outlined,
+          size: 24,
+          color: scheme.onSurfaceVariant,
+        ),
+        if (photo.isHeic)
+          Text(
+            'HEIC',
+            style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 9),
+          ),
+      ],
     ),
   );
 
   @override
-  Widget build(BuildContext context) => Container(
-    margin: const EdgeInsets.only(bottom: 8),
-    padding: const EdgeInsets.all(10),
-    decoration: BoxDecoration(
-      color: Colors.white.withValues(alpha: 0.08),
-      border: Border.all(
-        color: AppTheme.crystalGoldSoft.withValues(alpha: 0.20),
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        border: Border.all(color: scheme.outlineVariant),
+        borderRadius: BorderRadius.circular(14),
       ),
-      borderRadius: BorderRadius.circular(14),
-    ),
-    child: Row(
-      children: [
-        _buildThumbnail(),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                index == 0 ? 'Primary photo' : 'Photo ${index + 1}',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
+      child: Row(
+        children: [
+          _buildThumbnail(scheme),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  index == 0 ? 'Primary photo' : 'Photo ${index + 1}',
+                  style: TextStyle(
+                    color: scheme.onSurface,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
                 ),
-              ),
-              Text(
-                index == 0
-                    ? 'Shown first on your profile'
-                    : 'Drag handle to reorder',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.5),
-                  fontSize: 12,
+                Text(
+                  index == 0
+                      ? 'Shown first on your profile'
+                      : 'Drag handle to reorder',
+                  style: TextStyle(
+                    color: scheme.onSurfaceVariant,
+                    fontSize: 12,
+                  ),
                 ),
-              ),
-              if (index != 0)
-                Padding(
-                  padding: const EdgeInsets.only(top: 6),
-                  child: GestureDetector(
-                    onTap: onSetPrimary,
+                if (photo.moderationStatus != 'approved')
+                  Padding(
+                    padding: const EdgeInsets.only(top: AppLayout.space2),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.policy_outlined,
+                          size: 14,
+                          color: scheme.primary,
+                        ),
+                        const SizedBox(width: 5),
+                        Expanded(
+                          child: Text(
+                            photo.moderationStatus == 'review_required'
+                                ? 'Awaiting safety review'
+                                : 'Safety check in progress',
+                            style: TextStyle(
+                              color: scheme.primary,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                if (index != 0)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: GestureDetector(
+                      onTap: enabled ? onSetPrimary : null,
+                      child: Text(
+                        'Set as profile picture',
+                        style: TextStyle(
+                          color: scheme.primary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
                     child: Text(
-                      'Set as profile picture',
+                      'Profile picture selected',
                       style: TextStyle(
-                        color: AppTheme.crystalGoldSoft.withValues(alpha: 0.95),
+                        color: scheme.primary,
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
-                )
-              else
-                Padding(
-                  padding: const EdgeInsets.only(top: 6),
-                  child: Text(
-                    'Profile picture selected',
-                    style: TextStyle(
-                      color: AppTheme.crystalGoldSoft.withValues(alpha: 0.9),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
+              ],
+            ),
+          ),
+          Semantics(
+            label: 'qa.setup.photos.delete_${photo.id}',
+            button: true,
+            child: IconButton(
+              key: ValueKey<String>('qa.setup.photos.delete_${photo.id}'),
+              icon: Icon(Icons.delete_outline, color: scheme.error),
+              onPressed: enabled ? onDelete : null,
+              tooltip: 'Remove photo',
+            ),
+          ),
+          Semantics(
+            label: 'qa.setup.photos.reorder_${photo.id}',
+            button: true,
+            child: IgnorePointer(
+              ignoring: !enabled,
+              child: ReorderableDragStartListener(
+                index: index,
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 4, left: 4),
+                  child: Icon(
+                    Icons.drag_handle,
+                    color: scheme.onSurfaceVariant.withValues(
+                      alpha: enabled ? 1.0 : 0.4,
                     ),
                   ),
                 ),
-            ],
-          ),
-        ),
-        IconButton(
-          icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-          onPressed: onDelete,
-          tooltip: 'Remove photo',
-        ),
-        ReorderableDragStartListener(
-          index: index,
-          child: Padding(
-            padding: const EdgeInsets.only(right: 4, left: 2),
-            child: Icon(
-              Icons.drag_handle,
-              color: Colors.white.withValues(alpha: 0.5),
+              ),
             ),
           ),
-        ),
-      ],
-    ),
-  );
+        ],
+      ),
+    );
+  }
 }

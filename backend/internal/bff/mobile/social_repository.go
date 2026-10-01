@@ -10,30 +10,19 @@ import (
 	"time"
 
 	"github.com/verified-dating/backend/internal/platform/config"
-	"github.com/verified-dating/backend/internal/platform/supabase"
 )
 
 type socialRepository struct {
 	cfg config.Config
-	db  *supabase.Client
+	db  repositoryDB
 }
 
-func newSocialRepository(cfg config.Config) *socialRepository {
-	apiKey := strings.TrimSpace(cfg.SupabaseServiceRole)
-	if apiKey == "" {
-		apiKey = strings.TrimSpace(cfg.SupabaseAnonKey)
-	}
-	if strings.TrimSpace(cfg.SupabaseURL) == "" || apiKey == "" {
+func newSocialRepository(cfg config.Config, supplied ...repositoryDB) *socialRepository {
+	db := repositoryDBFor(cfg, supplied)
+	if db == nil {
 		return nil
 	}
-	client := supabase.NewClient(
-		cfg.SupabaseURL,
-		cfg.SupabaseAnonKey,
-		cfg.SupabaseServiceRole,
-		time.Duration(cfg.SupabaseHTTPTimeoutSec)*time.Second,
-	)
-	client.SetReadBaseURL(cfg.SupabaseReadReplicaURL)
-	return &socialRepository{cfg: cfg, db: client}
+	return &socialRepository{cfg: cfg, db: db}
 }
 
 func isSocialRepoPersistenceUnavailable(err error) bool {
@@ -55,7 +44,7 @@ func (r *socialRepository) listFriends(ctx context.Context, userID string) ([]fr
 
 	params := url.Values{}
 	params.Set("user_id", "eq."+trimmedUserID)
-	params.Set("status", "eq.accepted")
+	params.Set("status", "in.(accepted,pending)")
 	params.Set("order", "updated_at.desc")
 	params.Set("select", "user_id,friend_user_id,status,created_at,updated_at")
 	rows, err := r.db.SelectRead(ctx, r.cfg.MatchingSchema, "friend_connections", params)
@@ -63,9 +52,21 @@ func (r *socialRepository) listFriends(ctx context.Context, userID string) ([]fr
 		return nil, err
 	}
 
+	incomingParams := url.Values{}
+	incomingParams.Set("friend_user_id", "eq."+trimmedUserID)
+	incomingParams.Set("status", "eq.pending")
+	incomingParams.Set("select", "user_id,friend_user_id,status,created_at,updated_at")
+	incoming, err := r.db.SelectRead(ctx, r.cfg.MatchingSchema, "friend_connections", incomingParams)
+	if err != nil {
+		return nil, err
+	}
+	rows = append(rows, incoming...)
 	friendIDs := make([]string, 0, len(rows))
 	for _, row := range rows {
 		friendID := strings.TrimSpace(toString(row["friend_user_id"]))
+		if friendID == trimmedUserID {
+			friendID = strings.TrimSpace(toString(row["user_id"]))
+		}
 		if friendID != "" {
 			friendIDs = append(friendIDs, friendID)
 		}
@@ -78,14 +79,22 @@ func (r *socialRepository) listFriends(ctx context.Context, userID string) ([]fr
 	out := make([]friendConnection, 0, len(rows))
 	for _, row := range rows {
 		friendID := strings.TrimSpace(toString(row["friend_user_id"]))
+		direction := "outgoing"
+		if friendID == trimmedUserID {
+			friendID = strings.TrimSpace(toString(row["user_id"]))
+			direction = "incoming"
+		} else if strings.TrimSpace(toString(row["status"])) == "accepted" {
+			direction = ""
+		}
 		name := strings.TrimSpace(nameByID[friendID])
 		if name == "" {
 			name = "Friend"
 		}
 		out = append(out, friendConnection{
-			UserID:     strings.TrimSpace(toString(row["user_id"])),
+			UserID:     trimmedUserID,
 			FriendID:   friendID,
 			Status:     strings.TrimSpace(toString(row["status"])),
+			Direction:  direction,
 			CreatedAt:  normalizeTimestampString(row["created_at"]),
 			UpdatedAt:  normalizeTimestampString(row["updated_at"]),
 			FriendName: name,
@@ -94,7 +103,7 @@ func (r *socialRepository) listFriends(ctx context.Context, userID string) ([]fr
 	return out, nil
 }
 
-func (r *socialRepository) addFriend(ctx context.Context, userID, friendUserID string, now time.Time) (friendConnection, error) {
+func (r *socialRepository) addFriend(ctx context.Context, userID, friendUserID, source string, now time.Time) (friendConnection, error) {
 	trimmedUserID := strings.TrimSpace(userID)
 	trimmedFriendID := strings.TrimSpace(friendUserID)
 	if trimmedUserID == "" || trimmedFriendID == "" {
@@ -103,42 +112,58 @@ func (r *socialRepository) addFriend(ctx context.Context, userID, friendUserID s
 	if trimmedUserID == trimmedFriendID {
 		return friendConnection{}, errors.New("cannot add yourself as friend")
 	}
+	blocked, err := r.friendPairBlocked(ctx, trimmedUserID, trimmedFriendID)
+	if err != nil {
+		return friendConnection{}, err
+	}
+	if blocked {
+		return friendConnection{}, errors.New("friend request is unavailable")
+	}
+
+	// Never downgrade: an accepted friendship stays accepted, a repeated
+	// request stays as it is, and asking someone who already asked you
+	// accepts their request.
+	mine, err := r.friendConnectionStatus(ctx, trimmedUserID, trimmedFriendID)
+	if err != nil {
+		return friendConnection{}, err
+	}
+	theirs, err := r.friendConnectionStatus(ctx, trimmedFriendID, trimmedUserID)
+	if err != nil {
+		return friendConnection{}, err
+	}
+	switch {
+	case theirs == "pending" && mine != "accepted":
+		return r.decideFriendRequest(ctx, trimmedUserID, trimmedFriendID, "accept", now)
+	case mine == "accepted" || mine == "pending":
+		friends, listErr := r.listFriends(ctx, trimmedUserID)
+		if listErr != nil {
+			return friendConnection{}, listErr
+		}
+		for _, f := range friends {
+			if f.FriendID == trimmedFriendID {
+				return f, nil
+			}
+		}
+	}
 
 	nowISO := now.UTC().Format(time.RFC3339)
-	pair := []map[string]any{
-		{
-			"user_id":        trimmedUserID,
-			"friend_user_id": trimmedFriendID,
-			"status":         "accepted",
-			"created_at":     nowISO,
-			"updated_at":     nowISO,
-		},
-		{
-			"user_id":        trimmedFriendID,
-			"friend_user_id": trimmedUserID,
-			"status":         "accepted",
-			"created_at":     nowISO,
-			"updated_at":     nowISO,
-		},
+	row := map[string]any{
+		"user_id":        trimmedUserID,
+		"friend_user_id": trimmedFriendID,
+		"status":         "pending",
+		"created_at":     nowISO,
+		"updated_at":     nowISO,
 	}
+	if source != "" {
+		row["source"] = source
+	}
+	pair := []map[string]any{row}
 	if _, err := r.db.Upsert(ctx, r.cfg.MatchingSchema, "friend_connections", pair, "user_id,friend_user_id"); err != nil {
 		return friendConnection{}, err
 	}
 
 	friendNames, err := r.loadUserNames(ctx, []string{trimmedFriendID})
 	if err != nil {
-		return friendConnection{}, err
-	}
-
-	if _, err := r.db.Insert(ctx, r.cfg.MatchingSchema, "friend_activity_feed", []map[string]any{{
-		"user_id":        trimmedUserID,
-		"friend_user_id": trimmedFriendID,
-		"activity_type":  "friend_connected",
-		"title":          "New Friend Added",
-		"description":    "You can now join friend activities together.",
-		"metadata":       map[string]any{},
-		"created_at":     nowISO,
-	}}); err != nil {
 		return friendConnection{}, err
 	}
 
@@ -150,11 +175,90 @@ func (r *socialRepository) addFriend(ctx context.Context, userID, friendUserID s
 	return friendConnection{
 		UserID:     trimmedUserID,
 		FriendID:   trimmedFriendID,
-		Status:     "accepted",
+		Status:     "pending",
+		Direction:  "outgoing",
 		CreatedAt:  nowISO,
 		UpdatedAt:  nowISO,
 		FriendName: friendName,
+		Source:     source,
 	}, nil
+}
+
+// friendConnectionStatus is the status of the from -> to row, or "".
+func (r *socialRepository) friendConnectionStatus(ctx context.Context, from, to string) (string, error) {
+	params := url.Values{}
+	params.Set("user_id", "eq."+from)
+	params.Set("friend_user_id", "eq."+to)
+	params.Set("select", "status")
+	params.Set("limit", "1")
+	rows, err := r.db.SelectRead(ctx, r.cfg.MatchingSchema, "friend_connections", params)
+	if err != nil || len(rows) == 0 {
+		return "", err
+	}
+	return strings.TrimSpace(toString(rows[0]["status"])), nil
+}
+
+func (r *socialRepository) friendPairBlocked(ctx context.Context, firstUserID, secondUserID string) (bool, error) {
+	for _, pair := range [][2]string{{firstUserID, secondUserID}, {secondUserID, firstUserID}} {
+		params := url.Values{}
+		params.Set("user_id", "eq."+pair[0])
+		params.Set("blocked_user_id", "eq."+pair[1])
+		params.Set("select", "user_id")
+		params.Set("limit", "1")
+		rows, err := r.db.SelectRead(ctx, r.cfg.UserSchema, "blocked_users", params)
+		if err != nil {
+			return false, err
+		}
+		if len(rows) > 0 {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func (r *socialRepository) decideFriendRequest(ctx context.Context, recipientID, requesterID, decision string, now time.Time) (friendConnection, error) {
+	filters := url.Values{}
+	filters.Set("user_id", "eq."+requesterID)
+	filters.Set("friend_user_id", "eq."+recipientID)
+	filters.Set("status", "eq.pending")
+	rows, err := r.db.SelectRead(ctx, r.cfg.MatchingSchema, "friend_connections", filters)
+	if err != nil || len(rows) == 0 {
+		if err != nil {
+			return friendConnection{}, err
+		}
+		return friendConnection{}, errors.New("pending friend request not found")
+	}
+	if decision == "decline" {
+		_, err = r.db.Delete(ctx, r.cfg.MatchingSchema, "friend_connections", filters)
+		return friendConnection{}, err
+	}
+	if decision != "accept" {
+		return friendConnection{}, errors.New("decision must be accept or decline")
+	}
+	nowISO := now.UTC().Format(time.RFC3339)
+	pair := []map[string]any{
+		{"user_id": requesterID, "friend_user_id": recipientID, "status": "accepted", "updated_at": nowISO},
+		{"user_id": recipientID, "friend_user_id": requesterID, "status": "accepted", "created_at": nowISO, "updated_at": nowISO},
+	}
+	if _, err = r.db.Upsert(ctx, r.cfg.MatchingSchema, "friend_connections", pair, "user_id,friend_user_id"); err != nil {
+		return friendConnection{}, err
+	}
+	activities := []map[string]any{
+		{"user_id": recipientID, "friend_user_id": requesterID, "activity_type": "friend_connected", "title": "Friend request accepted", "description": "You can now join friend activities together.", "metadata": map[string]any{}, "created_at": nowISO},
+		{"user_id": requesterID, "friend_user_id": recipientID, "activity_type": "friend_connected", "title": "Friend request accepted", "description": "You can now join friend activities together.", "metadata": map[string]any{}, "created_at": nowISO},
+	}
+	if _, err = r.db.Insert(ctx, r.cfg.MatchingSchema, "friend_activity_feed", activities); err != nil {
+		return friendConnection{}, err
+	}
+	names, err := r.loadUserNames(ctx, []string{requesterID})
+	if err != nil {
+		return friendConnection{}, err
+	}
+	name := strings.TrimSpace(names[requesterID])
+	if name == "" {
+		name = "Friend"
+	}
+	return friendConnection{UserID: recipientID, FriendID: requesterID, Status: "accepted", CreatedAt: normalizeTimestampString(rows[0]["created_at"]), UpdatedAt: nowISO, FriendName: name}, nil
 }
 
 func (r *socialRepository) removeFriend(ctx context.Context, userID, friendUserID string) error {

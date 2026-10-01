@@ -1,0 +1,23 @@
+{% extends "control_panel/base.html" %}
+{% block topbar_title %}Analytics · Safety health{% endblock %}
+{% block content %}
+{% include "control_panel/analytics/_nav.html" with page_title="Safety health" page_intro="How often members report and block, how fast reports are actioned, and which surfaces draw reports." show_filters=True %}
+<section class="glass-card mb-4" aria-labelledby="saf-trend">
+  <div class="d-flex justify-content-between align-items-center mb-2"><h2 id="saf-trend" class="h5 mb-0">Reports and blocks per 1,000 DAU</h2>
+  <a class="btn btn-glass btn-sm" href="{% url 'analytics_export' 'safety' %}?{{ export_trend }}"><i class="bi bi-download me-1"></i>CSV</a></div>
+  {% include "control_panel/analytics/_chart.html" with chart_id="chart-safety" chart_label="Reports and blocks per 1,000 active member-days" %}
+  {% include "control_panel/analytics/_table.html" with table=trend %}
+</section>
+<section class="glass-card mb-4" aria-labelledby="saf-queues">
+  <div class="d-flex justify-content-between align-items-center mb-2"><h2 id="saf-queues" class="h5 mb-0">Time to action</h2>
+  <a class="btn btn-glass btn-sm" href="{% url 'analytics_export' 'safety' %}?{{ export_queues }}"><i class="bi bi-download me-1"></i>CSV</a></div>
+  {% include "control_panel/analytics/_table.html" with table=queues caption="Member reports: reviewed vs review deadline. Content reports: resolved vs review due. By the period the report was filed." %}
+</section>
+<section class="glass-card mb-4" aria-labelledby="saf-surfaces">
+  <div class="d-flex justify-content-between align-items-center mb-2"><h2 id="saf-surfaces" class="h5 mb-0">Reports per 1,000 interactions by surface</h2>
+  <a class="btn btn-glass btn-sm" href="{% url 'analytics_export' 'safety' %}?{{ export_surfaces }}"><i class="bi bi-download me-1"></i>CSV</a></div>
+  {% include "control_panel/analytics/_table.html" with table=by_surface caption="Guardrail from the entertainment strategy: new surfaces should stay at or below the chat baseline." %}
+  {% if range.definition %}<p class="small text-muted mt-2">{{ range.definition }}</p>{% endif %}
+</section>
+{% endblock %}
+{% block extra_js %}{% include "control_panel/analytics/_chart_js.html" %}{% endblock %}

@@ -5,15 +5,16 @@ import '../../../../core/constants/app_constants.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../providers/profile_completion_provider.dart';
 import '../../providers/profile_setup_provider.dart';
+import 'setup_about_screen.dart';
 import 'setup_photos_screen.dart';
-import 'setup_preferences_screen.dart';
+import 'setup_preview_screen.dart';
 
 /// Entry point for the profile setup flow.
 ///
 /// Checks auth state, loads profile completion status from the Go BFF
 /// (`/profile/{userId}/summary` then `/profile/{userId}/draft`), then
-/// routes signup users through photos and preferences so account details
-/// captured during signup are not requested again.
+/// routes signup users to the first incomplete durable activity. Account
+/// basics captured during signup are not requested again.
 class ProfileSetupEntryScreen extends ConsumerWidget {
   const ProfileSetupEntryScreen({super.key});
 
@@ -52,6 +53,9 @@ class ProfileSetupEntryScreen extends ConsumerWidget {
     if (draft.photos.length < ValidationConstants.minPhotos) {
       return const SetupPhotosScreen(isSetupFlow: true);
     }
-    return const SetupPreferencesScreen(isSetupFlow: true);
+    if (draft.bio.trim().length < ValidationConstants.minBioLength) {
+      return const SetupAboutScreen(isSetupFlow: true);
+    }
+    return const SetupPreviewScreen();
   }
 }

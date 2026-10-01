@@ -200,7 +200,7 @@ Advanced features (7 tables) and Growth models (9 tables) ready for expansion
 **Step 3**: Configure (Follow SUPABASE_SETUP_GUIDE.md)
 ```
 1. Enable real-time (for matches, messages, notifications)
-2. Setup Phone OTP authentication
+2. Setup Username/password authentication
 3. Confige Storage bucket (for photo uploads)
 4. Enable Row Level Security (RLS)
 5. Create service role key
@@ -363,7 +363,7 @@ final userProvider = FutureProvider.autoDispose<User>((ref) async {
 
 ### Application Level
 - ✅ JWT authentication
-- ✅ Phone OTP verification
+- ✅ Username/password verification
 - ✅ Password hashing (bcrypt)
 - ✅ ID verification photos
 - ✅ Activity audit logs

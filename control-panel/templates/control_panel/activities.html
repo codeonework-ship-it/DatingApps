@@ -7,12 +7,25 @@
     <h1><i class="bi bi-activity header-icon"></i> Activity Feed</h1>
     <p class="text-muted mb-0">Real-time platform event log</p>
   </div>
-  <form method="get" class="d-flex gap-2 align-items-end">
+  <form method="get" class="d-flex flex-wrap gap-2 align-items-end">
+    <div>
+      <label class="form-label text-muted small">Action contains</label>
+      <input name="action" value="{{ action_filter }}" class="glass-input" placeholder="login, match, report…">
+    </div>
+    <div>
+      <label class="form-label text-muted small">User ID</label>
+      <input name="user_id" value="{{ user_filter }}" class="glass-input" placeholder="UUID">
+    </div>
+    <div>
+      <label class="form-label text-muted small">Status</label>
+      <select name="status" class="glass-select"><option value="">All</option><option value="success" {% if status_filter == 'success' %}selected{% endif %}>Success</option><option value="failed" {% if status_filter == 'failed' %}selected{% endif %}>Failed</option><option value="client_error" {% if status_filter == 'client_error' %}selected{% endif %}>Client error</option></select>
+    </div>
     <div>
       <label class="form-label text-muted small">Limit</label>
       <input type="number" name="limit" value="{{ limit }}" min="1" max="1000" class="glass-input" style="width:80px;">
     </div>
-    <button type="submit" class="btn btn-glow"><i class="bi bi-arrow-clockwise me-1"></i>Refresh</button>
+    <button type="submit" class="btn btn-glow"><i class="bi bi-funnel me-1"></i>Apply</button>
+    <a href="{% url 'activity_feed' %}" class="btn btn-glass">Clear</a>
   </form>
 </div>
 
@@ -21,7 +34,7 @@
 {% endif %}
 
 <div class="glass-card">
-  <div class="mb-3 text-muted small">{{ activities|length }} event{{ activities|length|pluralize }}</div>
+  <div class="d-flex justify-content-between mb-3 text-muted small"><span>{{ activities|length }} event{{ activities|length|pluralize }}</span><span>Latest {{ limit }} events · {{ snapshot_at|date:"M d, H:i:s" }} UTC</span></div>
   {% if activities %}
   <div class="table-responsive">
     <table class="glass-table">
@@ -31,8 +44,8 @@
       <tbody>
         {% for item in activities %}
         <tr>
-          <td class="text-muted small">{{ item.created_at|default:item.occurred_at|default:"—" }}</td>
-          <td><span class="badge badge-purple">{{ item.action|default:item.event_type|default:"—" }}</span></td>
+          <td class="text-muted small">{% firstof item.created_at item.occurred_at "—" %}</td>
+          <td><span class="badge badge-purple">{% firstof item.action item.event_type "—" %}</span></td>
           <td>
             {% if item.status == "success" or item.status == "ok" %}
               <span class="badge badge-active">{{ item.status }}</span>
@@ -58,4 +71,3 @@
   {% endif %}
 </div>
 {% endblock %}
-

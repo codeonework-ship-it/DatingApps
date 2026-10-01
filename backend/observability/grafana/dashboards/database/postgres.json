@@ -1,0 +1,874 @@
+{
+  "id": null,
+  "uid": "connect-database",
+  "title": "Connect \u00b7 PostgreSQL",
+  "description": "postgres_exporter (connect_monitor role, pg_monitor) plus the application pool collectors.",
+  "tags": [
+    "connect",
+    "database",
+    "postgres"
+  ],
+  "timezone": "browser",
+  "editable": true,
+  "graphTooltip": 1,
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "verified-dating-prometheus"
+        },
+        "enable": true,
+        "iconColor": "orange",
+        "name": "Restarts",
+        "expr": "changes(process_start_time_seconds{job=~\"connect-.*\"}[2m]) > 0",
+        "titleFormat": "{{component}} restarted",
+        "step": "1m"
+      }
+    ]
+  },
+  "links": [
+    {
+      "title": "Connect dashboards",
+      "type": "dashboards",
+      "tags": [
+        "connect"
+      ],
+      "asDropdown": true
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "datname",
+        "label": "Database",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "verified-dating-prometheus"
+        },
+        "query": {
+          "query": "label_values(pg_stat_database_xact_commit, datname)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "definition": "label_values(pg_stat_database_xact_commit, datname)",
+        "refresh": 2,
+        "multi": false,
+        "includeAll": false,
+        "allValue": null,
+        "current": {},
+        "sort": 1,
+        "regex": "/^(?!template|postgres$).*/"
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "Health",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "panels": []
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "PostgreSQL up",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 4,
+        "x": 0,
+        "y": 1
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(pg_up)",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Connections used",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 4,
+        "x": 4,
+        "y": 1
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(pg_stat_activity_count) / max(pg_settings_max_connections)",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.6
+              },
+              {
+                "color": "red",
+                "value": 0.8
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Database size",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 4,
+        "x": 8,
+        "y": 1
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "pg_database_size_bytes{datname=\"$datname\"}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Cache hit ratio",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 4,
+        "x": 12,
+        "y": 1
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "rate(pg_stat_database_blks_hit{datname=\"$datname\"}[5m]) / clamp_min(rate(pg_stat_database_blks_hit{datname=\"$datname\"}[5m]) + rate(pg_stat_database_blks_read{datname=\"$datname\"}[5m]), 1e-9)",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.9
+              },
+              {
+                "color": "green",
+                "value": 0.98
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Deadlocks (24h)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 4,
+        "x": 16,
+        "y": 1
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "increase(pg_stat_database_deadlocks{datname=\"$datname\"}[24h])",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 7,
+      "type": "stat",
+      "title": "Data disk free",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 4,
+        "x": 20,
+        "y": 1
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "verified_dating_disk_avail_bytes{path_role=\"postgres\"} / verified_dating_disk_size_bytes{path_role=\"postgres\"}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.15
+              },
+              {
+                "color": "green",
+                "value": 0.3
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 8,
+      "type": "row",
+      "title": "Load",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 9
+      },
+      "panels": []
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Transactions / s",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 10
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "rate(pg_stat_database_xact_commit{datname=\"$datname\"}[5m])",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "commit"
+        },
+        {
+          "refId": "B",
+          "expr": "rate(pg_stat_database_xact_rollback{datname=\"$datname\"}[5m])",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "rollback"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Connections by state",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 10
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (state) (pg_stat_activity_count{datname=\"$datname\"})",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "{{state}}"
+        },
+        {
+          "refId": "B",
+          "expr": "max(pg_settings_max_connections)",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "max_connections"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Longest transaction by state",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 10
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "pg_stat_activity_max_tx_duration{datname=\"$datname\"}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "{{state}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "Rows / s",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 18
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "rate(pg_stat_database_tup_fetched{datname=\"$datname\"}[5m])",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "fetched"
+        },
+        {
+          "refId": "B",
+          "expr": "rate(pg_stat_database_tup_inserted{datname=\"$datname\"}[5m])",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "inserted"
+        },
+        {
+          "refId": "C",
+          "expr": "rate(pg_stat_database_tup_updated{datname=\"$datname\"}[5m])",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "updated"
+        },
+        {
+          "refId": "D",
+          "expr": "rate(pg_stat_database_tup_deleted{datname=\"$datname\"}[5m])",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "deleted"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "Locks by mode",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 18
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (mode) (pg_locks_count{datname=\"$datname\"})",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "{{mode}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 14,
+      "type": "timeseries",
+      "title": "Temp bytes / s",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 18
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "rate(pg_stat_database_temp_bytes{datname=\"$datname\"}[5m])",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "temp"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Bps"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 15,
+      "type": "row",
+      "title": "Application pools",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 26
+      },
+      "panels": []
+    },
+    {
+      "id": 16,
+      "type": "timeseries",
+      "title": "Pool in use vs max",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 27
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "verified_dating_db_pool_in_use_connections",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "{{component}} {{pool}} in use"
+        },
+        {
+          "refId": "B",
+          "expr": "verified_dating_db_pool_max_connections",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "{{component}} {{pool}} max"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 17,
+      "type": "timeseries",
+      "title": "Pool wait (s per s)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "verified-dating-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 27
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "rate(verified_dating_db_pool_wait_seconds_total[5m])",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "verified-dating-prometheus"
+          },
+          "legendFormat": "{{component}} {{pool}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    }
+  ]
+}

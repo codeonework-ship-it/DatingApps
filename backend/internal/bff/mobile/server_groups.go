@@ -1,300 +1,334 @@
 package mobile
 
 import (
-	"errors"
+	"context"
+	"database/sql"
 	"net/http"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
-
-	engagementapp "github.com/verified-dating/backend/internal/modules/engagement/application"
 )
 
+// HTTP handlers for lifestyle community groups and private friend groups
+// (lifestyle_groups.go, migration 118). Every actor is the authenticated
+// principal; actor ids in request bodies are ignored (and owner_user_id,
+// inviter_user_id or user_id naming someone else is rejected by the identity
+// middleware before a handler runs).
+
+func (s *Server) groupsContext(w http.ResponseWriter, r *http.Request) (string, *sql.DB, bool) {
+	actor, err := requestPrincipal(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, err)
+		return "", nil, false
+	}
+	db, err := s.growthDB()
+	if err != nil {
+		writeError(w, http.StatusServiceUnavailable, err)
+		return "", nil, false
+	}
+	w.Header().Set("Cache-Control", "private, no-store")
+	return actor.UserID, db, true
+}
+
+func (s *Server) groupFromPath(w http.ResponseWriter, r *http.Request) (string, *sql.DB, string, bool) {
+	actor, db, ok := s.groupsContext(w, r)
+	if !ok {
+		return "", nil, "", false
+	}
+	groupID := strings.TrimSpace(chi.URLParam(r, "groupID"))
+	if !activityUUID(w, groupID) {
+		return "", nil, "", false
+	}
+	return actor, db, groupID, true
+}
+
+func (s *Server) recordGroupActivity(actor, action, groupID string, details map[string]any) {
+	if s.store == nil {
+		return
+	}
+	if details == nil {
+		details = map[string]any{}
+	}
+	details["group_id"] = groupID
+	s.store.recordActivity(activityEvent{
+		UserID: actor, Actor: actor, Action: action, Status: "success",
+		Resource: "/engagement/groups/" + groupID, Details: details,
+	})
+}
+
+// GET /v1/engagement/group-categories
+func (s *Server) listGroupCategoriesHandler(w http.ResponseWriter, r *http.Request) {
+	_, db, ok := s.groupsContext(w, r)
+	if !ok {
+		return
+	}
+	categories, err := listGroupCategories(r.Context(), db)
+	if err != nil {
+		writeActivityError(w, err, groupsUnavailable)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"categories": categories})
+}
+
+// GET /v1/engagement/groups?scope=mine|discover&category=&q=
 func (s *Server) listCommunityGroups(w http.ResponseWriter, r *http.Request) {
-	userID := strings.TrimSpace(r.URL.Query().Get("user_id"))
-	city := strings.TrimSpace(r.URL.Query().Get("city"))
-	topic := strings.TrimSpace(r.URL.Query().Get("topic"))
-	onlyJoined := parseBoolQuery(r.URL.Query().Get("joined_only"))
-	limit := parseRoomLimit(r.URL.Query().Get("limit"), 50)
-
-	ctx, cancel := s.withRequestTimeout(r.Context())
-	defer cancel()
-
-	respAny, err := s.mediator.Send(
-		ctx,
-		engagementapp.ListCommunityGroupsCommandName,
-		engagementapp.ListCommunityGroupsCommand{
-			UserID:     userID,
-			City:       city,
-			Topic:      topic,
-			OnlyJoined: onlyJoined,
-			Limit:      limit,
-		},
-	)
-	if err != nil {
-		if errors.Is(err, engagementapp.ErrValidation) {
-			writeError(w, http.StatusBadRequest, err)
-			return
-		}
-		writeError(w, http.StatusBadRequest, err)
-		return
-	}
-
-	resp, ok := respAny.(map[string]any)
+	actor, db, ok := s.groupsContext(w, r)
 	if !ok {
-		writeError(w, http.StatusBadGateway, errors.New("unexpected list community groups response payload"))
 		return
 	}
-	groups := mapSlice(resp["groups"])
-	writeJSON(w, http.StatusOK, map[string]any{
-		"groups":       groups,
-		"count":        numericValue(resp["count"]),
-		"city_filter":  city,
-		"topic_filter": topic,
-		"joined_only":  onlyJoined,
-	})
+	query := r.URL.Query()
+	scope := strings.TrimSpace(query.Get("scope"))
+	if scope == "" || parseBoolQuery(query.Get("joined_only")) {
+		scope = "mine"
+	}
+	category := strings.TrimSpace(query.Get("category"))
+	groups, err := listGroups(r.Context(), db, actor, scope, category, query.Get("q"), boundedQueryLimit(r, 50, 50))
+	if err != nil {
+		writeActivityError(w, err, groupsUnavailable)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"groups": groups, "count": len(groups), "scope": scope, "category": category})
 }
 
+// POST /v1/engagement/groups
 func (s *Server) createCommunityGroup(w http.ResponseWriter, r *http.Request) {
-	payload, ok := readJSON(w, r)
+	actor, db, ok := s.groupsContext(w, r)
 	if !ok {
 		return
 	}
-
-	ownerUserID := strings.TrimSpace(toString(payload["owner_user_id"]))
-	name := strings.TrimSpace(toString(payload["name"]))
-	city := strings.TrimSpace(toString(payload["city"]))
-	topic := strings.TrimSpace(toString(payload["topic"]))
-	description := strings.TrimSpace(toString(payload["description"]))
-	visibility := strings.TrimSpace(toString(payload["visibility"]))
-	inviteeUserIDs := []string{}
-	if parsedInvitees, ok := toStringSlice(payload["invitee_user_ids"]); ok {
-		inviteeUserIDs = parsedInvitees
+	body, ok := readJSON(w, r)
+	if !ok {
+		return
 	}
-
-	ctx, cancel := s.withRequestTimeout(r.Context())
-	defer cancel()
-
-	respAny, err := s.mediator.Send(
-		ctx,
-		engagementapp.CreateCommunityGroupCommandName,
-		engagementapp.CreateCommunityGroupCommand{
-			OwnerUserID:    ownerUserID,
-			Name:           name,
-			City:           city,
-			Topic:          topic,
-			Description:    description,
-			Visibility:     visibility,
-			InviteeUserIDs: inviteeUserIDs,
-		},
-	)
-	if err != nil {
-		if errors.Is(err, engagementapp.ErrValidation) {
-			writeError(w, http.StatusBadRequest, err)
-			return
+	in := groupInput{
+		ID:          strings.TrimSpace(toString(body["group_id"])),
+		Kind:        toString(body["kind"]),
+		Category:    toString(body["category_slug"]),
+		Name:        toString(body["name"]),
+		Description: toString(body["description"]),
+		City:        toString(body["city"]),
+		CoverEmoji:  toString(body["cover_emoji"]),
+		CoverColor:  toString(body["cover_color"]),
+	}
+	// Older clients sent visibility instead of kind.
+	if strings.TrimSpace(in.Kind) == "" {
+		switch strings.TrimSpace(toString(body["visibility"])) {
+		case "public":
+			in.Kind = "community"
+		case "private":
+			in.Kind = "private"
 		}
-		writeError(w, http.StatusBadRequest, err)
+	}
+	if ids, ok := toStringSlice(body["invitee_user_ids"]); ok {
+		in.Invitees = ids
+	}
+	g, invited, err := createGroup(r.Context(), db, actor, in)
+	if err != nil {
+		writeActivityError(w, err, groupsUnavailable)
 		return
 	}
-
-	resp, ok := respAny.(map[string]any)
-	if !ok {
-		writeError(w, http.StatusBadGateway, errors.New("unexpected create community group response payload"))
-		return
-	}
-	group, _ := resp["group"].(map[string]any)
-	invites := mapSlice(resp["invites"])
-
-	s.store.recordActivity(activityEvent{
-		UserID:   ownerUserID,
-		Actor:    ownerUserID,
-		Action:   "community_group_created",
-		Status:   "success",
-		Resource: "/engagement/groups",
-		Details: map[string]any{
-			"group_id":       toString(group["id"]),
-			"group_city":     toString(group["city"]),
-			"group_topic":    toString(group["topic"]),
-			"member_count":   numericValue(group["member_count"]),
-			"invite_count":   len(invites),
-			"visibility":     toString(group["visibility"]),
-			"group_name":     toString(group["name"]),
-			"created_by_uid": ownerUserID,
-		},
+	s.recordGroupActivity(actor, "community_group_created", g.ID, map[string]any{
+		"kind": g.Kind, "category": g.CategorySlug, "invite_count": len(invited),
 	})
-
-	writeJSON(w, http.StatusCreated, map[string]any{
-		"group":   group,
-		"invites": invites,
-	})
+	writeJSON(w, http.StatusCreated, map[string]any{"group": g, "invited_user_ids": invited})
 }
 
+// GET, PATCH and DELETE /v1/engagement/groups/{groupID}
+func (s *Server) communityGroupHandler(w http.ResponseWriter, r *http.Request) {
+	actor, db, groupID, ok := s.groupFromPath(w, r)
+	if !ok {
+		return
+	}
+	switch r.Method {
+	case http.MethodPatch:
+		body, ok := readJSON(w, r)
+		if !ok {
+			return
+		}
+		g, err := updateGroup(r.Context(), db, actor, groupID, body)
+		if err != nil {
+			writeActivityError(w, err, groupsUnavailable)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"group": g})
+	case http.MethodDelete:
+		if err := deleteGroup(r.Context(), db, actor, groupID); err != nil {
+			writeActivityError(w, err, groupsUnavailable)
+			return
+		}
+		s.releaseGroupCoverMedia(context.WithoutCancel(r.Context()), groupID)
+		s.recordGroupActivity(actor, "community_group_deleted", groupID, nil)
+		writeJSON(w, http.StatusOK, map[string]any{"deleted": true, "group_id": groupID})
+	default:
+		g, err := readGroupDetail(r.Context(), db, actor, groupID)
+		if err == nil && g.IsMember && !g.Removed && g.ChannelID == "" {
+			// Groups created before group chat get their channel on first view.
+			if g.ChannelID, err = ensureRefChannel(r.Context(), db, "group", groupID); err != nil {
+				writeActivityError(w, err, groupsUnavailable)
+				return
+			}
+		}
+		if err != nil {
+			writeActivityError(w, err, groupsUnavailable)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"group": g})
+	}
+}
+
+// POST /v1/engagement/groups/{groupID}/join
+func (s *Server) joinCommunityGroupHandler(w http.ResponseWriter, r *http.Request) {
+	actor, db, groupID, ok := s.groupFromPath(w, r)
+	if !ok {
+		return
+	}
+	g, err := joinCommunityGroup(r.Context(), db, actor, groupID)
+	if err != nil {
+		writeActivityError(w, err, groupsUnavailable)
+		return
+	}
+	s.recordGroupActivity(actor, "community_group_joined", groupID, nil)
+	writeJSON(w, http.StatusOK, map[string]any{"group": g})
+}
+
+// POST /v1/engagement/groups/{groupID}/leave
+func (s *Server) leaveCommunityGroupHandler(w http.ResponseWriter, r *http.Request) {
+	actor, db, groupID, ok := s.groupFromPath(w, r)
+	if !ok {
+		return
+	}
+	result, err := leaveGroup(r.Context(), db, actor, groupID)
+	if err != nil {
+		writeActivityError(w, err, groupsUnavailable)
+		return
+	}
+	if result["deleted"] == true {
+		s.releaseGroupCoverMedia(context.WithoutCancel(r.Context()), groupID)
+	}
+	s.recordGroupActivity(actor, "community_group_left", groupID, map[string]any{"deleted": result["deleted"]})
+	writeJSON(w, http.StatusOK, result)
+}
+
+// GET /v1/engagement/groups/{groupID}/members (members only)
+func (s *Server) communityGroupMembersHandler(w http.ResponseWriter, r *http.Request) {
+	actor, db, groupID, ok := s.groupFromPath(w, r)
+	if !ok {
+		return
+	}
+	g, err := readGroup(r.Context(), db, actor, groupID)
+	if err == nil && !g.IsMember {
+		err = activityFail(http.StatusForbidden, "Join this group to see who's in it.")
+	}
+	if err != nil {
+		writeActivityError(w, err, groupsUnavailable)
+		return
+	}
+	members, err := readGroupMembers(r.Context(), db, actor, groupID, 0)
+	if err != nil {
+		writeActivityError(w, err, groupsUnavailable)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"members": members, "count": len(members)})
+}
+
+// POST /v1/engagement/groups/{groupID}/members/{userID}
+func (s *Server) manageCommunityGroupMemberHandler(w http.ResponseWriter, r *http.Request) {
+	actor, db, groupID, ok := s.groupFromPath(w, r)
+	if !ok {
+		return
+	}
+	target := strings.TrimSpace(chi.URLParam(r, "userID"))
+	if !activityUUID(w, target) {
+		return
+	}
+	body, ok := readJSON(w, r)
+	if !ok {
+		return
+	}
+	members, err := manageGroupMember(r.Context(), db, actor, groupID, target, toString(body["action"]))
+	if err != nil {
+		writeActivityError(w, err, groupsUnavailable)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"members": members})
+}
+
+// POST /v1/engagement/groups/{groupID}/invites
 func (s *Server) inviteCommunityGroupMembers(w http.ResponseWriter, r *http.Request) {
-	groupID := strings.TrimSpace(chi.URLParam(r, "groupID"))
-	payload, ok := readJSON(w, r)
+	actor, db, groupID, ok := s.groupFromPath(w, r)
 	if !ok {
 		return
 	}
-
-	inviterUserID := strings.TrimSpace(toString(payload["inviter_user_id"]))
-	inviteeUserIDs := []string{}
-	if parsedInvitees, ok := toStringSlice(payload["invitee_user_ids"]); ok {
-		inviteeUserIDs = parsedInvitees
+	body, ok := readJSON(w, r)
+	if !ok {
+		return
 	}
-
-	ctx, cancel := s.withRequestTimeout(r.Context())
-	defer cancel()
-
-	respAny, err := s.mediator.Send(
-		ctx,
-		engagementapp.InviteCommunityGroupMembersCommandName,
-		engagementapp.InviteCommunityGroupMembersCommand{GroupID: groupID, InviterUserID: inviterUserID, InviteeUserIDs: inviteeUserIDs},
-	)
+	ids, _ := toStringSlice(body["invitee_user_ids"])
+	invited, err := inviteToGroup(r.Context(), db, actor, groupID, ids)
 	if err != nil {
-		errMsg := strings.ToLower(err.Error())
-		switch {
-		case strings.Contains(errMsg, "not found"):
-			writeError(w, http.StatusNotFound, err)
-			return
-		case strings.Contains(errMsg, "access") || strings.Contains(errMsg, "only owners"):
-			writeJSON(w, http.StatusForbidden, map[string]any{
-				"success":    false,
-				"error":      err.Error(),
-				"error_code": "GROUP_ACCESS_DENIED",
-			})
-			return
-		default:
-			writeError(w, http.StatusBadRequest, err)
-			return
-		}
-	}
-
-	resp, ok := respAny.(map[string]any)
-	if !ok {
-		writeError(w, http.StatusBadGateway, errors.New("unexpected invite community group members response payload"))
+		writeActivityError(w, err, groupsUnavailable)
 		return
 	}
-	invites := mapSlice(resp["invites"])
-
-	s.store.recordActivity(activityEvent{
-		UserID:   inviterUserID,
-		Actor:    inviterUserID,
-		Action:   "community_group_invites_sent",
-		Status:   "success",
-		Resource: "/engagement/groups/" + groupID + "/invites",
-		Details: map[string]any{
-			"group_id":        groupID,
-			"invite_count":    len(invites),
-			"inviter_user_id": inviterUserID,
-		},
-	})
-
-	writeJSON(w, http.StatusOK, map[string]any{
-		"group_id": groupID,
-		"invites":  invites,
-	})
+	s.recordGroupActivity(actor, "community_group_invites_sent", groupID, map[string]any{"invite_count": len(invited)})
+	writeJSON(w, http.StatusOK, map[string]any{"group_id": groupID, "invited_user_ids": invited})
 }
 
+// POST /v1/engagement/groups/{groupID}/invites/respond
 func (s *Server) respondCommunityGroupInvite(w http.ResponseWriter, r *http.Request) {
-	groupID := strings.TrimSpace(chi.URLParam(r, "groupID"))
-	payload, ok := readJSON(w, r)
+	actor, db, groupID, ok := s.groupFromPath(w, r)
 	if !ok {
 		return
 	}
-
-	userID := strings.TrimSpace(toString(payload["user_id"]))
-	decision := strings.TrimSpace(toString(payload["decision"]))
-
-	ctx, cancel := s.withRequestTimeout(r.Context())
-	defer cancel()
-
-	respAny, err := s.mediator.Send(
-		ctx,
-		engagementapp.RespondCommunityGroupInviteCommandName,
-		engagementapp.RespondCommunityGroupInviteCommand{GroupID: groupID, UserID: userID, Decision: decision},
-	)
+	body, ok := readJSON(w, r)
+	if !ok {
+		return
+	}
+	decision := toString(body["decision"])
+	g, err := respondGroupInvite(r.Context(), db, actor, groupID, decision)
 	if err != nil {
-		errMsg := strings.ToLower(err.Error())
-		switch {
-		case strings.Contains(errMsg, "not found"):
-			writeError(w, http.StatusNotFound, err)
-			return
-		case strings.Contains(errMsg, "invite") && strings.Contains(errMsg, "not found"):
-			writeJSON(w, http.StatusNotFound, map[string]any{
-				"success":    false,
-				"error":      err.Error(),
-				"error_code": "GROUP_INVITE_NOT_FOUND",
-			})
-			return
-		case strings.Contains(errMsg, "decision") || strings.Contains(errMsg, "invalid"):
-			writeError(w, http.StatusBadRequest, err)
-			return
-		default:
-			writeError(w, http.StatusBadRequest, err)
-			return
-		}
-	}
-
-	resp, ok := respAny.(map[string]any)
-	if !ok {
-		writeError(w, http.StatusBadGateway, errors.New("unexpected respond community group invite response payload"))
+		writeActivityError(w, err, groupsUnavailable)
 		return
 	}
-	group, _ := resp["group"].(map[string]any)
-	invite, _ := resp["invite"].(map[string]any)
-
-	s.store.recordActivity(activityEvent{
-		UserID:   userID,
-		Actor:    userID,
-		Action:   "community_group_invite_responded",
-		Status:   "success",
-		Resource: "/engagement/groups/" + groupID + "/invites/respond",
-		Details: map[string]any{
-			"group_id": toString(group["id"]),
-			"decision": decision,
-			"status":   toString(invite["status"]),
-		},
-	})
-
-	writeJSON(w, http.StatusOK, map[string]any{
-		"group":  group,
-		"invite": invite,
-	})
+	s.recordGroupActivity(actor, "community_group_invite_responded", groupID, map[string]any{"decision": decision})
+	writeJSON(w, http.StatusOK, map[string]any{"group": g, "decision": strings.ToLower(strings.TrimSpace(decision))})
 }
 
+// GET /v1/engagement/group-invites (the member's pending invitations)
 func (s *Server) listCommunityGroupInvites(w http.ResponseWriter, r *http.Request) {
-	userID := strings.TrimSpace(r.URL.Query().Get("user_id"))
-	status := strings.TrimSpace(r.URL.Query().Get("status"))
-	limit := parseRoomLimit(r.URL.Query().Get("limit"), 50)
-
-	ctx, cancel := s.withRequestTimeout(r.Context())
-	defer cancel()
-
-	respAny, err := s.mediator.Send(
-		ctx,
-		engagementapp.ListCommunityGroupInvitesCommandName,
-		engagementapp.ListCommunityGroupInvitesCommand{UserID: userID, Status: status, Limit: limit},
-	)
+	actor, db, ok := s.groupsContext(w, r)
+	if !ok {
+		return
+	}
+	invites, err := listGroupInvites(r.Context(), db, actor)
 	if err != nil {
-		if errors.Is(err, engagementapp.ErrValidation) {
-			writeError(w, http.StatusBadRequest, err)
+		writeActivityError(w, err, groupsUnavailable)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"invites": invites, "count": len(invites), "status": "pending"})
+}
+
+// GET /v1/engagement/group-friends?group_id= (friends for the invite picker)
+func (s *Server) listGroupFriendsHandler(w http.ResponseWriter, r *http.Request) {
+	actor, db, ok := s.groupsContext(w, r)
+	if !ok {
+		return
+	}
+	groupID := strings.TrimSpace(r.URL.Query().Get("group_id"))
+	if groupID != "" {
+		if !activityUUID(w, groupID) {
 			return
 		}
-		writeError(w, http.StatusBadRequest, err)
+		if _, err := readGroup(r.Context(), db, actor, groupID); err != nil {
+			writeActivityError(w, err, groupsUnavailable)
+			return
+		}
+	}
+	friends, err := listGroupFriends(r.Context(), db, actor, groupID)
+	if err != nil {
+		writeActivityError(w, err, groupsUnavailable)
 		return
 	}
-
-	resp, ok := respAny.(map[string]any)
-	if !ok {
-		writeError(w, http.StatusBadGateway, errors.New("unexpected list community group invites response payload"))
-		return
-	}
-	invites := mapSlice(resp["invites"])
-	writeJSON(w, http.StatusOK, map[string]any{
-		"invites": invites,
-		"count":   numericValue(resp["count"]),
-		"status":  toString(resp["status"]),
-	})
+	writeJSON(w, http.StatusOK, map[string]any{"friends": friends})
 }
 
 func mapSlice(value any) []map[string]any {

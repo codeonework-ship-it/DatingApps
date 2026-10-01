@@ -85,6 +85,10 @@ class UserSettings with _$UserSettings {
     @Default(true) bool notifyNewMessage,
     @Default(true) bool notifyLikes,
     @Default('light') String theme,
+
+    /// Member-chosen UI language as a BCP 47 tag limited to
+    /// `language[-REGION]` (`de`, `en-GB`). Empty means "follow the device".
+    @Default('') String locale,
     DateTime? updatedAt,
   }) = _UserSettings;
 

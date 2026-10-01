@@ -1,0 +1,24 @@
+{% extends "control_panel/business/_layout.html" %}
+{% block business_title %}Coin economy{% endblock %}
+{% block business_heading %}Coin economy{% endblock %}
+{% block business_lede %}Coins bought vs granted vs spent, and the cash liability of coins still outstanding.{% endblock %}
+{% block business_body %}
+<div class="biz-kpis">
+  <div class="biz-kpi"><small>Purchased in window</small><strong>{{ sources.purchased.coins|default:0 }}</strong><span>money-backed buys ({{ data.mode }})</span></div>
+  <div class="biz-kpi"><small>Spent on gifts</small><strong>{{ gifts.coins|default:0 }}</strong><span>{{ gifts.paid_sends|default:0 }} paid sends · {{ gifts.free_sends|default:0 }} free</span></div>
+  <div class="biz-kpi"><small>Outstanding now</small><strong>{{ liability.outstanding_coins|default:0 }}</strong><span>debt {{ liability.debt_coins|default:0 }} · frozen wallets {{ liability.frozen_wallets|default:0 }}</span></div>
+  {% for v in liability.valuation %}<div class="biz-kpi"><small>Estimated liability · {{ v.currency }}</small><strong>{{ v.estimated_liability }} {{ v.currency }}</strong><span>{{ v.estimated_purchased_coins_outstanding }} purchased coins outstanding</span></div>{% endfor %}
+  <div class="biz-kpi"><small>Velocity</small><strong>{{ velocity.window_spend_to_outstanding|default:"—" }}</strong><span>{{ velocity.note }}</span></div>
+</div>
+<div class="biz-note mb-3">{{ liability.note }} Boosts: {{ sinks.boosts.note }} Theme packs: {{ sinks.theme_packs.note }}</div>
+<div class="glass-card mb-4"><h6>Sources (up) and sinks (down) by bucket</h6><div class="biz-chart"><canvas id="chart-coins" aria-label="Coin flows"></canvas></div></div>
+{% endblock %}
+{% block business_js %}
+{{ chart|json_script:"biz-coins" }}
+<script>
+  (function () {
+    const c = JSON.parse(document.getElementById('biz-coins').textContent);
+    bizChart('chart-coins', {type: 'bar', data: c, options: {scales: {x: {stacked: true}, y: {stacked: true}}}});
+  })();
+</script>
+{% endblock %}

@@ -234,7 +234,7 @@ func TestServer_GestureDecisionRetry_ReplaysCachedResponseAndAvoidsDuplicateActi
 	}
 }
 
-func TestServer_VoiceIcebreakerStartRetryReturnsConflictAndAvoidsDuplicateActivity(t *testing.T) {
+func TestServer_VoiceIcebreakerStartRetryReplaysAndAvoidsDuplicateActivity(t *testing.T) {
 	server := newQuestWorkflowTestServer(t)
 	defer server.Close()
 
@@ -255,10 +255,14 @@ func TestServer_VoiceIcebreakerStartRetryReturnsConflictAndAvoidsDuplicateActivi
 
 	retryReq := httptest.NewRequest(http.MethodPost, "/v1/engagement/voice-icebreakers/start", strings.NewReader(body))
 	retryReq.Header.Set("Content-Type", "application/json")
+	retryReq.Header.Set("Idempotency-Key", "idem-voice-start-1")
 	retryRec := httptest.NewRecorder()
 	server.Handler().ServeHTTP(retryRec, retryReq)
-	if retryRec.Code != http.StatusConflict {
+	if retryRec.Code != http.StatusOK {
 		t.Fatalf("retry voice start code=%d body=%s", retryRec.Code, retryRec.Body.String())
+	}
+	if got := retryRec.Header().Get("X-Idempotent-Replay"); got != "true" {
+		t.Fatalf("expected replay header true, got %q", got)
 	}
 
 	activities := server.store.listActivities(100)
@@ -344,7 +348,7 @@ func TestServer_GroupCoffeeVoteErrorAndReportingOutputs(t *testing.T) {
 	}
 }
 
-func TestServer_DailyPromptSubmitRetry_UpdatesAnswerAndRecordsReportingOutput(t *testing.T) {
+func TestServer_DailyPromptSubmitRetry_ReplaysWithoutDuplicateReportingOutput(t *testing.T) {
 	server := newQuestWorkflowTestServer(t)
 	defer server.Close()
 
@@ -372,16 +376,14 @@ func TestServer_DailyPromptSubmitRetry_UpdatesAnswerAndRecordsReportingOutput(t 
 
 	retryReq := httptest.NewRequest(http.MethodPost, "/v1/engagement/daily-prompt/"+userID+"/answer", strings.NewReader(body))
 	retryReq.Header.Set("Content-Type", "application/json")
+	retryReq.Header.Set("Idempotency-Key", "idem-daily-prompt-submit-1")
 	retryRec := httptest.NewRecorder()
 	server.Handler().ServeHTTP(retryRec, retryReq)
 	if retryRec.Code != http.StatusOK {
 		t.Fatalf("retry submit code=%d body=%s", retryRec.Code, retryRec.Body.String())
 	}
-	retryPayload := decodeJSONMap(t, retryRec.Body.Bytes())
-	retryView := toMap(t, retryPayload["daily_prompt"])
-	retryAnswer := toMap(t, retryView["answer"])
-	if got := boolValue(retryAnswer["is_edited"]); !got {
-		t.Fatalf("expected retry answer to be edited")
+	if got := retryRec.Header().Get("X-Idempotent-Replay"); got != "true" {
+		t.Fatalf("expected replay header true, got %q", got)
 	}
 
 	activities := server.store.listActivities(100)
@@ -396,15 +398,15 @@ func TestServer_DailyPromptSubmitRetry_UpdatesAnswerAndRecordsReportingOutput(t 
 			hasPromptID = true
 		}
 	}
-	if count != 2 {
-		t.Fatalf("expected exactly two daily_prompt_answer_submitted activities, got %d", count)
+	if count != 1 {
+		t.Fatalf("expected exactly one daily_prompt_answer_submitted activity, got %d", count)
 	}
 	if !hasPromptID {
 		t.Fatalf("expected activity details to include prompt_id %q", promptID)
 	}
 }
 
-func TestServer_MatchNudgeSendRetry_RecordsReportingOutputForEachAttempt(t *testing.T) {
+func TestServer_MatchNudgeSendRetry_ReplaysWithoutDuplicateReportingOutput(t *testing.T) {
 	server := newQuestWorkflowTestServer(t)
 	defer server.Close()
 
@@ -423,10 +425,14 @@ func TestServer_MatchNudgeSendRetry_RecordsReportingOutputForEachAttempt(t *test
 
 	retryReq := httptest.NewRequest(http.MethodPost, "/v1/engagement/match-nudges/send", strings.NewReader(body))
 	retryReq.Header.Set("Content-Type", "application/json")
+	retryReq.Header.Set("Idempotency-Key", "idem-match-nudge-send-1")
 	retryRec := httptest.NewRecorder()
 	server.Handler().ServeHTTP(retryRec, retryReq)
 	if retryRec.Code != http.StatusOK {
 		t.Fatalf("retry send nudge code=%d body=%s", retryRec.Code, retryRec.Body.String())
+	}
+	if got := retryRec.Header().Get("X-Idempotent-Replay"); got != "true" {
+		t.Fatalf("expected replay header true, got %q", got)
 	}
 
 	activities := server.store.listActivities(100)
@@ -441,15 +447,17 @@ func TestServer_MatchNudgeSendRetry_RecordsReportingOutputForEachAttempt(t *test
 			hasNudgeID = true
 		}
 	}
-	if count != 2 {
-		t.Fatalf("expected exactly two match_nudge_sent activities, got %d", count)
+	if count != 1 {
+		t.Fatalf("expected exactly one match_nudge_sent activity, got %d", count)
 	}
 	if !hasNudgeID {
 		t.Fatalf("expected activity details to include nudge_id %q", nudgeID)
 	}
 }
 
-func TestServer_CommunityGroupInviteMissingGroup_MapsNotFound(t *testing.T) {
+// Group invitations act for the signed-in member only (migration 118); a
+// missing group maps to 404 in TestGroupsMissingGroupMapsNotFoundPostgres.
+func TestServer_CommunityGroupInviteWithoutSession_IsRefused(t *testing.T) {
 	server := newQuestWorkflowTestServer(t)
 	defer server.Close()
 
@@ -458,7 +466,7 @@ func TestServer_CommunityGroupInviteMissingGroup_MapsNotFound(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
 	server.Handler().ServeHTTP(rec, req)
-	if rec.Code != http.StatusNotFound {
-		t.Fatalf("invite missing group code=%d body=%s", rec.Code, rec.Body.String())
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("invite without a session code=%d body=%s", rec.Code, rec.Body.String())
 	}
 }

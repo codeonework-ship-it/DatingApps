@@ -15,7 +15,7 @@ type trustFilterPreference struct {
 	UpdatedAt           string   `json:"updated_at"`
 }
 
-func (m *memoryStore) getTrustFilterPreference(userID string) (trustFilterPreference, error) {
+func (m *runtimeStore) getTrustFilterPreference(userID string) (trustFilterPreference, error) {
 	trimmedUserID := strings.TrimSpace(userID)
 	if trimmedUserID == "" {
 		return trustFilterPreference{}, errors.New("user_id is required")
@@ -37,7 +37,7 @@ func (m *memoryStore) getTrustFilterPreference(userID string) (trustFilterPrefer
 	}, nil
 }
 
-func (m *memoryStore) upsertTrustFilterPreference(
+func (m *runtimeStore) upsertTrustFilterPreference(
 	userID string,
 	enabled bool,
 	minimumActiveBadges int,
@@ -75,7 +75,7 @@ func (m *memoryStore) upsertTrustFilterPreference(
 	return copyTrustFilter(item), nil
 }
 
-func (m *memoryStore) listActiveTrustBadgeCodes(userID string) ([]string, error) {
+func (m *runtimeStore) listActiveTrustBadgeCodes(userID string) ([]string, error) {
 	trimmedUserID := strings.TrimSpace(userID)
 	if trimmedUserID == "" {
 		return nil, errors.New("user_id is required")

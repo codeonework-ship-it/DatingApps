@@ -17,6 +17,7 @@ local.properties
 # Environment secrets
 app/.env.local
 app/.env
+control-panel/.env
 
 # Flutter local build/cache artifacts
 app/.dart_tool/
@@ -30,3 +31,24 @@ backend/mobile-bff
 
 # Local generated proto mirror
 backend/github.com/
+
+# Local QA execution evidence (curated reports live in documents/qa).
+qa/results/
+qa/reports/
+
+# Website dependencies and browser test output
+website/node_modules/
+website/test-results/
+website/.build/
+
+# Local runtime artifacts (logs, emulator output, uploaded media incl. test
+# identity documents) — never commit.
+/.run/
+backend/internal/bff/mobile/.run/
+
+# Dependencies, caches and tool output
+node_modules/
+__pycache__/
+*.pyc
+/test-results/
+app/*.log

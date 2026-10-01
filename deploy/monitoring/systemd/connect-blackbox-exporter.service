@@ -1,0 +1,45 @@
+# blackbox_exporter for Connect (public HTTPS/TLS/WebSocket and loopback
+# readiness probes). Loopback only.
+[Unit]
+Description=Connect monitoring - blackbox_exporter
+Wants=network-online.target
+After=network-online.target
+PartOf=connect-monitoring.target
+
+[Service]
+Type=simple
+User=blackbox_exporter
+Group=blackbox_exporter
+ExecStart=/opt/connect-monitoring/blackbox_exporter/blackbox_exporter \
+  --config.file=/etc/connect-monitoring/blackbox/blackbox.yml \
+  --web.listen-address=127.0.0.1:9115
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+RestartSec=5
+ReadOnlyPaths=/etc/connect-monitoring
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+RestrictNamespaces=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RemoveIPC=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+
+[Install]
+WantedBy=connect-monitoring.target

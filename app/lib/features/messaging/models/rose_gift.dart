@@ -1,3 +1,7 @@
+/// Returns true when a chat message contains a server-recognized gift token.
+bool containsGiftPayload(String value) =>
+    RegExp(r'\[(gift|gesture_gift):[^\]]+\]').hasMatch(value);
+
 class RoseGift {
   const RoseGift({
     required this.id,

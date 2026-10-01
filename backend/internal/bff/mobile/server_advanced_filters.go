@@ -2,10 +2,16 @@ package mobile
 
 import (
 	"net/url"
+	"strconv"
 	"strings"
+	"time"
 )
 
 type advancedFilterCriteria struct {
+	seekingGenders   []string
+	educationFilter  []string
+	seriousOnly      bool
+	verifiedOnly     bool
 	intentTags       []string
 	languageTags     []string
 	motherTongue     string
@@ -20,6 +26,8 @@ type advancedFilterCriteria struct {
 	country          string
 	regionState      string
 	city             string
+	minAgeYears      int
+	maxAgeYears      int
 	religion         string
 	relationship     string
 	smoking          string
@@ -34,6 +42,11 @@ func (s *Server) attachAdvancedFilteredDiscovery(resp map[string]any, userID str
 	if !ok {
 		return
 	}
+	query = s.discoveryPreferenceQuery(userID, query)
+	if !hasAdvancedDiscoveryQuery(query) {
+		resp["advanced_filter"] = inactiveAdvancedFilterSummary()
+		return
+	}
 	criteria := s.buildAdvancedCriteria(userID, query)
 	filteredRows, summary := s.applyAdvancedFilterToRows(rows, "id", criteria)
 	resp["candidates"] = filteredRows
@@ -45,47 +58,117 @@ func (s *Server) attachAdvancedFilteredMatches(resp map[string]any, userID strin
 	if !ok {
 		return
 	}
+	if !hasAdvancedDiscoveryQuery(query) {
+		resp["advanced_filter"] = inactiveAdvancedFilterSummary()
+		return
+	}
 	criteria := s.buildAdvancedCriteria(userID, query)
 	filteredRows, summary := s.applyAdvancedFilterToRows(rows, "userId", criteria)
 	resp["matches"] = filteredRows
 	resp["advanced_filter"] = summary
 }
 
-func (s *Server) buildAdvancedCriteria(userID string, query url.Values) advancedFilterCriteria {
-	viewer := s.store.getDraft(userID)
+func inactiveAdvancedFilterSummary() map[string]any {
+	return map[string]any{
+		"active":             false,
+		"filtered_out_count": 0,
+		"applied":            map[string]any{},
+	}
+}
 
+func hasAdvancedDiscoveryQuery(query url.Values) bool {
+	for _, key := range []string{
+		"seeking_genders", "education_filter", "serious_only",
+		"verified_only",
+		"intent_tags",
+		"language_tags",
+		"mother_tongue",
+		"pet_preference",
+		"diet_preference",
+		"workout_frequency",
+		"diet_type",
+		"sleep_schedule",
+		"travel_style",
+		"political_comfort_range",
+		"deal_breaker_tags",
+		"country",
+		"state",
+		"city",
+		"min_age",
+		"max_age",
+		"religion",
+		"relationship_status",
+		"smoking",
+		"drinking",
+		"personality_type",
+		"party_lover",
+		"hookup_only",
+	} {
+		if strings.TrimSpace(query.Get(key)) != "" {
+			return true
+		}
+	}
+	return false
+}
+
+func trimDiscoveryCandidates(resp map[string]any, limit int) {
+	if limit <= 0 {
+		return
+	}
+	rows, ok := resp["candidates"].([]any)
+	if !ok || len(rows) <= limit {
+		return
+	}
+	resp["candidates"] = rows[:limit]
+}
+
+func (s *Server) buildAdvancedCriteria(userID string, query url.Values) advancedFilterCriteria {
 	criteria := advancedFilterCriteria{
-		intentTags:       normalizedList(queryListOrFallback(query, "intent_tags", viewer.IntentTags)),
-		languageTags:     normalizedList(queryListOrFallback(query, "language_tags", viewer.LanguageTags)),
-		motherTongue:     normalizedString(queryFirstOrFallback(query, "mother_tongue", derefString(viewer.MotherTongue))),
-		petPreference:    normalizedString(queryFirstOrFallback(query, "pet_preference", derefString(viewer.PetPreference))),
-		dietPreference:   normalizedString(queryFirstOrFallback(query, "diet_preference", derefString(viewer.DietPreference))),
-		workoutFrequency: normalizedString(queryFirstOrFallback(query, "workout_frequency", derefString(viewer.WorkoutFrequency))),
-		dietType:         normalizedString(queryFirstOrFallback(query, "diet_type", derefString(viewer.DietType))),
-		sleepSchedule:    normalizedString(queryFirstOrFallback(query, "sleep_schedule", derefString(viewer.SleepSchedule))),
-		travelStyle:      normalizedString(queryFirstOrFallback(query, "travel_style", derefString(viewer.TravelStyle))),
-		politicalRange:   normalizedString(queryFirstOrFallback(query, "political_comfort_range", derefString(viewer.PoliticalComfort))),
-		dealBreakerTags:  normalizedList(queryListOrFallback(query, "deal_breaker_tags", viewer.DealBreakerTags)),
-		country:          normalizedString(queryFirstOrFallback(query, "country", derefString(viewer.Country))),
-		regionState:      normalizedString(queryFirstOrFallback(query, "state", derefString(viewer.RegionState))),
-		city:             normalizedString(queryFirstOrFallback(query, "city", derefString(viewer.City))),
-		religion:         normalizedString(queryFirstOrFallback(query, "religion", derefString(viewer.Religion))),
-		relationship:     normalizedString(queryFirstOrFallback(query, "relationship_status", derefString(viewer.RelationshipStatus))),
-		smoking:          normalizedString(queryFirstOrFallback(query, "smoking", viewer.Smoking)),
-		drinking:         normalizedString(queryFirstOrFallback(query, "drinking", viewer.Drinking)),
-		personalityType:  normalizedString(queryFirstOrFallback(query, "personality_type", derefString(viewer.PersonalityType))),
+		seekingGenders:   normalizedList(queryListOrFallback(query, "seeking_genders", nil)),
+		educationFilter:  normalizedList(queryListOrFallback(query, "education_filter", nil)),
+		seriousOnly:      queryBool(query, "serious_only"),
+		verifiedOnly:     queryBool(query, "verified_only"),
+		intentTags:       normalizedList(queryListOrFallback(query, "intent_tags", nil)),
+		languageTags:     normalizedList(queryListOrFallback(query, "language_tags", nil)),
+		motherTongue:     normalizedString(queryFirstOrFallback(query, "mother_tongue", "")),
+		petPreference:    normalizedString(queryFirstOrFallback(query, "pet_preference", "")),
+		dietPreference:   normalizedString(queryFirstOrFallback(query, "diet_preference", "")),
+		workoutFrequency: normalizedString(queryFirstOrFallback(query, "workout_frequency", "")),
+		dietType:         normalizedString(queryFirstOrFallback(query, "diet_type", "")),
+		sleepSchedule:    normalizedString(queryFirstOrFallback(query, "sleep_schedule", "")),
+		travelStyle:      normalizedString(queryFirstOrFallback(query, "travel_style", "")),
+		politicalRange:   normalizedString(queryFirstOrFallback(query, "political_comfort_range", "")),
+		dealBreakerTags:  normalizedList(queryListOrFallback(query, "deal_breaker_tags", nil)),
+		country:          normalizedString(queryFirstOrFallback(query, "country", "")),
+		regionState:      normalizedString(queryFirstOrFallback(query, "state", "")),
+		city:             normalizedString(queryFirstOrFallback(query, "city", "")),
+		minAgeYears:      queryIntOrFallback(query, "min_age", 0),
+		maxAgeYears:      queryIntOrFallback(query, "max_age", 0),
+		religion:         normalizedString(queryFirstOrFallback(query, "religion", "")),
+		relationship:     normalizedString(queryFirstOrFallback(query, "relationship_status", "")),
+		smoking:          normalizedString(queryFirstOrFallback(query, "smoking", "")),
+		drinking:         normalizedString(queryFirstOrFallback(query, "drinking", "")),
+		personalityType:  normalizedString(queryFirstOrFallback(query, "personality_type", "")),
 		partyLoverOnly:   queryBool(query, "party_lover"),
-		hookupOnly:       queryBoolOrFallback(query, "hookup_only", viewer.HookupOnly),
+		hookupOnly:       queryBoolOrFallback(query, "hookup_only", false),
 	}
 
 	return criteria
 }
 
 func (s *Server) applyAdvancedFilterToRows(rows []any, idField string, criteria advancedFilterCriteria) ([]any, map[string]any) {
+	return applyAdvancedFilterRows(rows, idField, criteria, s.store.getDraft)
+}
+
+func applyAdvancedFilterRows(rows []any, idField string, criteria advancedFilterCriteria, load func(string) profileDraft) ([]any, map[string]any) {
 	summary := map[string]any{
 		"active":             criteria.hasAny(),
 		"filtered_out_count": 0,
 		"applied": map[string]any{
+			"seeking_genders":         criteria.seekingGenders,
+			"education_filter":        criteria.educationFilter,
+			"serious_only":            criteria.seriousOnly,
+			"verified_only":           criteria.verifiedOnly,
 			"intent_tags":             criteria.intentTags,
 			"language_tags":           criteria.languageTags,
 			"mother_tongue":           criteria.motherTongue,
@@ -100,6 +183,8 @@ func (s *Server) applyAdvancedFilterToRows(rows []any, idField string, criteria 
 			"country":                 criteria.country,
 			"state":                   criteria.regionState,
 			"city":                    criteria.city,
+			"min_age":                 criteria.minAgeYears,
+			"max_age":                 criteria.maxAgeYears,
 			"religion":                criteria.religion,
 			"relationship_status":     criteria.relationship,
 			"smoking":                 criteria.smoking,
@@ -128,7 +213,11 @@ func (s *Server) applyAdvancedFilterToRows(rows []any, idField string, criteria 
 			continue
 		}
 
-		targetDraft := s.store.getDraft(targetID)
+		if criteria.verifiedOnly && row["isVerified"] != true && row["is_verified"] != true {
+			filteredOut++
+			continue
+		}
+		targetDraft := load(targetID)
 		if criteria.matches(targetDraft) {
 			filtered = append(filtered, row)
 			continue
@@ -140,7 +229,7 @@ func (s *Server) applyAdvancedFilterToRows(rows []any, idField string, criteria 
 }
 
 func (c advancedFilterCriteria) hasAny() bool {
-	return len(c.intentTags) > 0 ||
+	return len(c.seekingGenders) > 0 || len(c.educationFilter) > 0 || c.seriousOnly || c.verifiedOnly || len(c.intentTags) > 0 ||
 		len(c.languageTags) > 0 ||
 		c.motherTongue != "" ||
 		c.petPreference != "" ||
@@ -154,6 +243,8 @@ func (c advancedFilterCriteria) hasAny() bool {
 		c.country != "" ||
 		c.regionState != "" ||
 		c.city != "" ||
+		c.minAgeYears > 0 ||
+		c.maxAgeYears > 0 ||
 		c.religion != "" ||
 		c.relationship != "" ||
 		c.smoking != "" ||
@@ -164,6 +255,24 @@ func (c advancedFilterCriteria) hasAny() bool {
 }
 
 func (c advancedFilterCriteria) matches(draft profileDraft) bool {
+	if len(c.seekingGenders) > 0 {
+		matched := false
+		for _, gender := range c.seekingGenders {
+			if canonicalGender(gender) == canonicalGender(draft.Gender) {
+				matched = true
+			}
+		}
+		if !matched {
+			return false
+		}
+	}
+	if len(c.educationFilter) > 0 && !hasAnyOverlap(c.educationFilter, []string{derefString(draft.Education)}) {
+		return false
+	}
+	if c.seriousOnly && !hasAnyOverlap([]string{"long_term", "long-term", "long term", "marriage", "serious", "serious_only", "serious_relationship", "serious relationship"}, draft.IntentTags) {
+		return false
+	}
+
 	if c.country != "" && normalizedString(derefString(draft.Country)) != c.country {
 		return false
 	}
@@ -171,6 +280,13 @@ func (c advancedFilterCriteria) matches(draft profileDraft) bool {
 		return false
 	}
 	if c.city != "" && normalizedString(derefString(draft.City)) != c.city {
+		return false
+	}
+	age := ageYearsFromDateOfBirth(draft.DateOfBirth, time.Now().UTC())
+	if c.minAgeYears > 0 && (age == 0 || age < c.minAgeYears) {
+		return false
+	}
+	if c.maxAgeYears > 0 && (age == 0 || age > c.maxAgeYears) {
 		return false
 	}
 	if c.religion != "" && normalizedString(derefString(draft.Religion)) != c.religion {
@@ -191,7 +307,7 @@ func (c advancedFilterCriteria) matches(draft profileDraft) bool {
 	if c.partyLoverOnly && !derefBool(draft.PartyLover) {
 		return false
 	}
-	if c.hookupOnly && !hasAnyOverlap([]string{"hookup", "casual"}, draft.IntentTags) {
+	if c.hookupOnly && !draft.HookupOnly && !hasAnyOverlap([]string{"hookup", "casual"}, draft.IntentTags) {
 		return false
 	}
 	if c.petPreference != "" && normalizedString(derefString(draft.PetPreference)) != c.petPreference {
@@ -223,7 +339,7 @@ func (c advancedFilterCriteria) matches(draft profileDraft) bool {
 		return false
 	}
 	if c.motherTongue != "" {
-		if !hasAnyOverlap([]string{c.motherTongue}, draft.LanguageTags) {
+		if normalizedString(derefString(draft.MotherTongue)) != c.motherTongue {
 			return false
 		}
 	}
@@ -236,6 +352,33 @@ func (c advancedFilterCriteria) matches(draft profileDraft) bool {
 func queryBool(query url.Values, key string) bool {
 	raw := strings.TrimSpace(strings.ToLower(query.Get(key)))
 	return raw == "1" || raw == "true" || raw == "yes"
+}
+
+func queryIntOrFallback(query url.Values, key string, fallback int) int {
+	raw := strings.TrimSpace(query.Get(key))
+	if raw == "" {
+		return fallback
+	}
+	value, err := strconv.Atoi(raw)
+	if err != nil || value < 0 {
+		return fallback
+	}
+	return value
+}
+
+func ageYearsFromDateOfBirth(raw string, now time.Time) int {
+	dob, err := time.Parse("2006-01-02", strings.TrimSpace(raw))
+	if err != nil {
+		return 0
+	}
+	age := now.Year() - dob.Year()
+	if now.Month() < dob.Month() || (now.Month() == dob.Month() && now.Day() < dob.Day()) {
+		age--
+	}
+	if age < 0 {
+		return 0
+	}
+	return age
 }
 
 func queryBoolOrFallback(query url.Values, key string, fallback bool) bool {
@@ -328,4 +471,46 @@ func queryFirstOrFallback(query url.Values, key string, fallback string) string 
 		return fallback
 	}
 	return raw
+}
+
+// Saved partner criteria apply on the first request. Query key presence is an
+// explicit override, including false/empty; personal lifestyle is not a partner filter.
+func (s *Server) discoveryPreferenceQuery(userID string, query url.Values) url.Values {
+	out := make(url.Values, len(query)+6)
+	for key, values := range query {
+		out[key] = append([]string(nil), values...)
+	}
+	if s.store.profileRepo == nil {
+		s.store.mu.Lock()
+		_, saved := s.store.profiles[userID]
+		s.store.mu.Unlock()
+		if !saved {
+			return out
+		}
+	}
+	draft := s.store.getDraft(userID)
+	defaults := map[string]string{
+		"seeking_genders":  strings.Join(draft.SeekingGenders, ","),
+		"education_filter": strings.Join(draft.EducationFilter, ","),
+		"min_age":          strconv.Itoa(draft.MinAgeYears), "max_age": strconv.Itoa(draft.MaxAgeYears),
+		"verified_only": strconv.FormatBool(draft.VerifiedOnly),
+		"serious_only":  strconv.FormatBool(draft.SeriousOnly),
+	}
+	for key, value := range defaults {
+		if _, exists := out[key]; !exists {
+			out.Set(key, value)
+		}
+	}
+	return out
+}
+
+func canonicalGender(value string) string {
+	switch normalizedString(value) {
+	case "m", "male", "man":
+		return "m"
+	case "f", "female", "woman":
+		return "f"
+	default:
+		return normalizedString(value)
+	}
 }

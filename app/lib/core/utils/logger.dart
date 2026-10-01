@@ -27,11 +27,21 @@ class CorrelationContext {
       runZoned(body, zoneValues: {_correlationZoneKey: correlationId});
 }
 
+/// Structured app logger.
+///
+/// Debug builds print every level. Profile and release builds print WARN and
+/// above only, so routine request/response chatter never reaches device logs.
 class AppLogger {
   factory AppLogger() => _instance;
 
   AppLogger._internal();
   static final AppLogger _instance = AppLogger._internal();
+
+  /// Receives handled errors passed to [error] together with an exception.
+  /// Installed by the self-hosted crash reporter; kept as a callback so the
+  /// logger has no dependency on it (and cannot recurse into it).
+  static void Function(String message, Object error, StackTrace? stackTrace)?
+  errorSink;
 
   void debug(
     String message, [
@@ -71,6 +81,14 @@ class AppLogger {
     String? correlationId,
   ]) {
     _log('ERROR', message, error, stackTrace, fields, correlationId);
+    final sink = errorSink;
+    if (sink != null && error != null) {
+      try {
+        sink(message, error as Object, stackTrace);
+      } on Object {
+        // Reporting must never break the caller.
+      }
+    }
   }
 
   void critical(
@@ -91,6 +109,9 @@ class AppLogger {
     Map<String, dynamic>? fields,
     String? correlationId,
   ) {
+    if (!kDebugMode && (level == 'DEBUG' || level == 'INFO')) {
+      return;
+    }
     final payload = <String, dynamic>{
       'timestamp': DateTime.now().toUtc().toIso8601String(),
       'level': level,

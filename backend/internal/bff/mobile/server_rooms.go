@@ -11,6 +11,11 @@ import (
 )
 
 func (s *Server) listConversationRooms(w http.ResponseWriter, r *http.Request) {
+	if db, err := s.growthDB(); err == nil {
+		// Live rooms over the SQL store (live_rooms.go).
+		s.liveRoomsList(w, r, db)
+		return
+	}
 	userID := strings.TrimSpace(r.URL.Query().Get("user_id"))
 	state := strings.TrimSpace(r.URL.Query().Get("state"))
 	friendOnly := parseBoolQuery(r.URL.Query().Get("friend_only"))
@@ -48,6 +53,11 @@ func (s *Server) listConversationRooms(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) joinConversationRoom(w http.ResponseWriter, r *http.Request) {
+	if db, err := s.growthDB(); err == nil {
+		// Live rooms over the SQL store (live_rooms.go).
+		s.liveRoomJoin(w, r, db)
+		return
+	}
 	roomID := strings.TrimSpace(chi.URLParam(r, "roomID"))
 	payload, ok := readJSON(w, r)
 	if !ok {
@@ -151,6 +161,11 @@ func (s *Server) joinConversationRoom(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) leaveConversationRoom(w http.ResponseWriter, r *http.Request) {
+	if db, err := s.growthDB(); err == nil {
+		// Live rooms over the SQL store (live_rooms.go).
+		s.liveRoomLeave(w, r, db)
+		return
+	}
 	roomID := strings.TrimSpace(chi.URLParam(r, "roomID"))
 	payload, ok := readJSON(w, r)
 	if !ok {
@@ -226,6 +241,11 @@ func (s *Server) leaveConversationRoom(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) moderateConversationRoom(w http.ResponseWriter, r *http.Request) {
+	if db, err := s.growthDB(); err == nil {
+		// Live rooms over the SQL store (live_rooms.go).
+		s.liveRoomModerate(w, r, db)
+		return
+	}
 	roomID := strings.TrimSpace(chi.URLParam(r, "roomID"))
 	payload, ok := readJSON(w, r)
 	if !ok {
@@ -263,6 +283,9 @@ func (s *Server) moderateConversationRoom(w http.ResponseWriter, r *http.Request
 			case errors.Is(err, errRoomModerationAction):
 				writeError(w, http.StatusBadRequest, err)
 				return
+			case errors.Is(err, errRoomModerationForbidden):
+				writeError(w, http.StatusForbidden, err)
+				return
 			case errors.Is(err, errRoomModerationNotActive):
 				writeJSON(w, http.StatusConflict, map[string]any{
 					"success":    false,
@@ -293,6 +316,9 @@ func (s *Server) moderateConversationRoom(w http.ResponseWriter, r *http.Request
 			return
 		case errors.Is(err, errRoomModerationAction):
 			writeError(w, http.StatusBadRequest, err)
+			return
+		case errors.Is(err, errRoomModerationForbidden):
+			writeError(w, http.StatusForbidden, err)
 			return
 		case errors.Is(err, errRoomModerationNotActive):
 			writeJSON(w, http.StatusConflict, map[string]any{

@@ -72,7 +72,13 @@ class TrustBadgesScreen extends ConsumerWidget {
                       subtitle: Text(
                         item.reason.isEmpty ? item.code : item.reason,
                       ),
-                      trailing: Text(item.happenedAt),
+                      trailing: SizedBox(
+                        width: 90,
+                        child: Text(
+                          item.happenedAt.split('T').first,
+                          maxLines: 2,
+                        ),
+                      ),
                     ),
                   ),
                 ),

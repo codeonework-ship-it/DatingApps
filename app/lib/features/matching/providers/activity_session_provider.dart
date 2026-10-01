@@ -38,17 +38,18 @@ class ActivitySummary {
     this.generatedAt,
   });
 
-  factory ActivitySummary.fromJson(Map<String, dynamic> json) => ActivitySummary(
-      sessionId: json['session_id']?.toString() ?? '',
-      matchId: json['match_id']?.toString() ?? '',
-      status: json['status']?.toString() ?? '',
-      totalParticipants: _intValue(json['total_participants']),
-      responsesSubmitted: _intValue(json['responses_submitted']),
-      participantsCompleted: _stringList(json['participants_completed']),
-      participantsPending: _stringList(json['participants_pending']),
-      insight: json['insight']?.toString() ?? '',
-      generatedAt: DateTime.tryParse(json['generated_at']?.toString() ?? ''),
-    );
+  factory ActivitySummary.fromJson(Map<String, dynamic> json) =>
+      ActivitySummary(
+        sessionId: json['session_id']?.toString() ?? '',
+        matchId: json['match_id']?.toString() ?? '',
+        status: json['status']?.toString() ?? '',
+        totalParticipants: _intValue(json['total_participants']),
+        responsesSubmitted: _intValue(json['responses_submitted']),
+        participantsCompleted: _stringList(json['participants_completed']),
+        participantsPending: _stringList(json['participants_pending']),
+        insight: json['insight']?.toString() ?? '',
+        generatedAt: DateTime.tryParse(json['generated_at']?.toString() ?? ''),
+      );
   final String sessionId;
   final String matchId;
   final String status;

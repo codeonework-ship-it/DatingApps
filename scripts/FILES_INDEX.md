@@ -294,7 +294,7 @@ Follow [DEVELOPMENT_ROADMAP.md](DEVELOPMENT_ROADMAP.md#follow-up):
 ## 🔒 SECURITY FEATURES
 
 - ✅ Row Level Security (RLS) enabled
-- ✅ Phone OTP authentication
+- ✅ Username/password authentication
 - ✅ JWT token-based access
 - ✅ Password hashing (bcrypt)
 - ✅ Foreign key constraints

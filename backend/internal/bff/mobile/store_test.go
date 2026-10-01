@@ -43,23 +43,23 @@ func TestMemoryStore_ActivityFeedLimitAndOrder(t *testing.T) {
 	store.recordActivity(activityEvent{
 		UserID:   "user-1",
 		Actor:    "system",
-		Action:   "POST /v1/auth/send-otp",
+		Action:   "POST /v1/auth/signup",
 		Status:   "success",
-		Resource: "/v1/auth/send-otp",
+		Resource: "/v1/auth/signup",
 	})
 	store.recordActivity(activityEvent{
 		UserID:   "user-2",
 		Actor:    "system",
-		Action:   "POST /v1/auth/verify-otp",
+		Action:   "POST /v1/auth/login",
 		Status:   "success",
-		Resource: "/v1/auth/verify-otp",
+		Resource: "/v1/auth/login",
 	})
 
 	items := store.listActivities(1)
 	if len(items) != 1 {
 		t.Fatalf("expected 1 activity item, got %d", len(items))
 	}
-	if items[0].Action != "POST /v1/auth/verify-otp" {
+	if items[0].Action != "POST /v1/auth/login" {
 		t.Fatalf("expected latest activity first, got %q", items[0].Action)
 	}
 	if items[0].ID == "" {

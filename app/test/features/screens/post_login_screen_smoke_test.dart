@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:verified_dating_app/core/theme/theme_atmosphere.dart';
 import 'package:verified_dating_app/core/widgets/themed_screen_scaffold.dart';
 import 'package:verified_dating_app/core/widgets/glass_widgets.dart';
 import 'package:verified_dating_app/core/theme/app_theme.dart';
@@ -101,16 +102,33 @@ void main() {
       });
     }
 
-    testWidgets('PostLoginBackdrop renders crystal blooms', (tester) async {
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(body: PostLoginBackdrop(child: Text('Test'))),
-        ),
-      );
+    testWidgets(
+      'PostLoginBackdrop is a flat ground with nothing over the content',
+      (tester) async {
+        // Every screen matches Today: the everyday looks paint one flat
+        // ground colour, with no blooms or other decoration that could sit
+        // over the content, take taps or be read by a screen reader.
+        var tapped = false;
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: PostLoginBackdrop(
+                child: TextButton(
+                  onPressed: () => tapped = true,
+                  child: const Text('Test'),
+                ),
+              ),
+            ),
+          ),
+        );
 
-      expect(find.text('Test'), findsOneWidget);
-      expect(find.byType(CrystalBloom), findsNWidgets(3));
-    });
+        expect(find.text('Test'), findsOneWidget);
+        expect(find.byType(CrystalBloom), findsNothing);
+        expect(find.byType(ThemeAtmosphere), findsNothing);
+        await tester.tap(find.text('Test'));
+        expect(tapped, isTrue);
+      },
+    );
 
     testWidgets('GlassButton renders with shiny effect', (tester) async {
       var pressed = false;

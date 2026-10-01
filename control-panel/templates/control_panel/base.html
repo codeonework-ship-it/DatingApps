@@ -155,6 +155,24 @@
         .kpi-value { font-size: 2rem; font-weight: 800; color: #fff; line-height: 1; }
         .kpi-label { font-size: 0.78rem; color: var(--text-muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
 
+        /* ── Command center ── */
+        .command-hero { display:flex; justify-content:space-between; align-items:flex-end; gap:24px; padding:30px; border:1px solid rgba(245,200,66,.2); border-radius:22px; background:radial-gradient(circle at 8% 10%,rgba(245,200,66,.14),transparent 36%),linear-gradient(135deg,rgba(31,25,67,.95),rgba(12,12,35,.92)); box-shadow:0 24px 80px rgba(0,0,0,.22); }
+        .command-hero h1 { font-size:clamp(1.7rem,3vw,2.6rem); letter-spacing:-.04em; margin:.35rem 0 .5rem; max-width:720px; }
+        .command-hero p { color:var(--text-muted); margin:0; max-width:720px; }
+        .eyebrow { color:var(--gold); font-size:.68rem; font-weight:800; letter-spacing:.15em; text-transform:uppercase; }
+        .live-pulse { display:inline-block; width:8px; height:8px; border-radius:50%; background:#22c55e; box-shadow:0 0 0 5px rgba(34,197,94,.12); margin-right:8px; }
+        .system-strip { display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--glass-border); border:1px solid var(--glass-border); border-radius:16px; overflow:hidden; }
+        .system-state { background:rgba(10,10,30,.85); padding:16px 18px; display:flex; align-items:center; gap:12px; }
+        .system-state strong,.system-state small { display:block; }
+        .system-state small { color:var(--text-muted); font-size:.64rem; margin-top:3px; letter-spacing:.08em; }
+        .status-orb { width:10px; height:10px; border-radius:50%; flex:none; }.status-orb.good{background:#22c55e;box-shadow:0 0 14px #22c55e}.status-orb.bad{background:#ef4444;box-shadow:0 0 14px #ef4444}.status-orb.neutral{background:var(--aqua);box-shadow:0 0 14px var(--aqua)}
+        .section-heading { display:flex; justify-content:space-between; align-items:end; gap:18px; margin-bottom:16px; }.section-heading.compact{align-items:center;margin-bottom:20px}.section-heading h2{font-size:1.2rem;margin:.25rem 0 0}.definition-note{color:var(--text-muted);font-size:.75rem}
+        .metric-grid { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:12px; }.metric-tile{min-height:178px;padding:18px;border:1px solid var(--glass-border);border-radius:16px;background:linear-gradient(160deg,rgba(255,255,255,.075),rgba(255,255,255,.025));}.metric-tile.unavailable{opacity:.58}.metric-top{display:flex;justify-content:space-between;color:var(--text-muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.06em}.metric-number{font-size:2rem;font-weight:800;margin-top:18px}.metric-unit{color:var(--aqua);font-size:.68rem;text-transform:uppercase}.metric-meta{border-top:1px solid rgba(255,255,255,.07);margin-top:16px;padding-top:10px;font-size:.63rem}.metric-meta strong,.metric-meta span{display:block}.metric-meta span{color:var(--text-muted);margin-top:3px}
+        .queue-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}.queue-card{display:block;color:var(--text-primary);text-decoration:none;padding:18px;border-radius:16px;border:1px solid var(--glass-border);background:rgba(255,255,255,.04);transition:.18s}.queue-card:hover{color:#fff;transform:translateY(-2px);border-color:rgba(255,255,255,.25)}.queue-card.danger{background:linear-gradient(150deg,rgba(239,68,68,.15),rgba(255,255,255,.03));border-color:rgba(239,68,68,.32)}.queue-card.warning{background:linear-gradient(150deg,rgba(245,158,11,.13),rgba(255,255,255,.03));border-color:rgba(245,158,11,.28)}.queue-card.green{border-color:rgba(34,197,94,.2)}.queue-count{font-size:2rem;font-weight:800}.queue-name{font-weight:700}.queue-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}.queue-meta span{font-size:.62rem;color:var(--text-muted);padding:3px 6px;background:rgba(0,0,0,.2);border-radius:6px}
+        .signal-card{height:100%;padding:16px;border:1px solid rgba(255,255,255,.08);border-radius:12px;background:rgba(0,0,0,.15)}.signal-card>div{color:var(--text-muted);font-size:.76rem}.signal-card strong{display:block;font-size:1.75rem;margin:.5rem 0}.signal-card small{color:var(--text-muted);display:block;line-height:1.45}.quality-band{display:flex;gap:12px;align-items:center;padding:14px;border-radius:12px;background:rgba(0,217,255,.06);border:1px solid rgba(0,217,255,.14)}.quality-band i{color:var(--aqua);font-size:1.3rem}.quality-band strong,.quality-band span{display:block}.quality-band span{color:var(--text-muted);font-size:.7rem;word-break:break-word}
+        .readiness-list{display:grid;gap:6px}.readiness-row{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;padding:10px;border-bottom:1px solid rgba(255,255,255,.06)}.readiness-row:last-child{border:0}.readiness-icon{width:28px;height:28px;border-radius:8px;display:grid;place-items:center}.readiness-icon.implemented{background:rgba(34,197,94,.15);color:#86efac}.readiness-icon.deployment_gate{background:rgba(245,158,11,.15);color:#fde68a}.readiness-icon.unavailable{background:rgba(239,68,68,.15);color:#fca5a5}.readiness-row strong,.readiness-row small{display:block}.readiness-row small{color:var(--text-muted);font-size:.68rem}.readiness-status{font-size:.62rem;color:var(--text-muted);text-transform:uppercase}
+        .timeline-list{display:grid}.timeline-row{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid rgba(255,255,255,.06)}.timeline-row:last-child{border:0}.timeline-dot{width:9px;height:9px;border-radius:50%;background:var(--aqua);box-shadow:0 0 10px rgba(0,217,255,.65)}.timeline-dot.audit{background:var(--gold);box-shadow:0 0 10px rgba(245,200,66,.55)}.timeline-row strong,.timeline-row small{display:block}.timeline-row strong{font-size:.82rem}.timeline-row small{font-size:.68rem;color:var(--text-muted);margin-top:2px}.empty-command-state{text-align:center;color:var(--text-muted);padding:42px 16px;border:1px dashed var(--glass-border);border-radius:12px}.observability-bar{display:flex;justify-content:space-between;align-items:center;gap:20px}.observability-bar h2{font-size:1.15rem;margin:.25rem 0}.observability-bar p{margin:0;color:var(--text-muted);font-size:.78rem}
+
         /* ── Tables ── */
         .glass-table { border-collapse: separate; border-spacing: 0; width: 100%; }
         .glass-table th {
@@ -296,27 +314,32 @@
             .sidebar { transform: translateX(-100%); }
             .sidebar.open { transform: translateX(0); }
             .main-content { margin-left: 0; }
+            .command-hero,.observability-bar { align-items:stretch; flex-direction:column; }
+            .metric-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+            .queue-grid,.system-strip { grid-template-columns:1fr; }
         }
+        @media (min-width:769px) and (max-width:1250px){.metric-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.queue-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.system-strip{grid-template-columns:repeat(2,1fr)}}
     </style>
     {% block extra_head %}{% endblock %}
 </head>
 <body>
 <div class="layout">
     <!-- ── Sidebar ── -->
+    {% if not login_page %}
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-logo">
             <div class="d-flex align-items-center gap-2 mb-1">
                 <span style="font-size:1.4rem;">💎</span>
                 <div>
                     <div class="brand-name">{{ project_name }}</div>
-                    <div class="brand-sub">Operator Console</div>
+                    <div class="brand-sub">Operations Command Center</div>
                 </div>
             </div>
         </div>
 
         <div class="sidebar-section-label">Overview</div>
         <a href="/" class="nav-item-link {% if request.path == '/' %}active{% endif %}">
-            <i class="bi bi-grid-1x2-fill nav-icon"></i> Dashboard
+            <i class="bi bi-grid-1x2-fill nav-icon"></i> Command Center
         </a>
 
         <div class="sidebar-section-label">Content</div>
@@ -329,7 +352,13 @@
         <a href="/engagement/nudges/" class="nav-item-link {% if '/engagement/nudges' in request.path %}active{% endif %}">
             <i class="bi bi-bell-fill nav-icon"></i> Nudge Templates
         </a>
+        <a href="/progression/" class="nav-item-link {% if '/progression' in request.path %}active{% endif %}">
+            <i class="bi bi-graph-up-arrow nav-icon"></i> Level & XP
+        </a>
 
+        <a href="{% url 'city_pilot' %}" class="nav-item-link {% if '/city-pilot' in request.path %}active{% endif %}">
+            <i class="bi bi-geo-alt-fill nav-icon"></i> City Pilot
+        </a>
         <div class="sidebar-section-label">Users</div>
         <a href="/users/" class="nav-item-link {% if '/users' in request.path %}active{% endif %}">
             <i class="bi bi-people-fill nav-icon"></i> User Management
@@ -339,12 +368,40 @@
         </a>
 
         <div class="sidebar-section-label">Moderation</div>
+        <a href="/moderation/media/" class="nav-item-link {% if '/moderation/media' in request.path %}active{% endif %}">
+            <i class="bi bi-images nav-icon"></i> Profile Media
+        </a>
+        <a href="{% url 'blog_reviews' %}" class="nav-item-link {% if '/moderation/blog' in request.path %}active{% endif %}"><i class="bi bi-journal-text nav-icon"></i> Blog Moderation</a>
+        <a href="{% url 'photo_themes' %}" class="nav-item-link {% if '/engagement/photo-themes' in request.path %}active{% endif %}"><i class="bi bi-camera nav-icon"></i> Photo Themes</a>
+        <a href="{% url 'rooms' %}" class="nav-item-link {% if '/moderation/rooms' in request.path %}active{% endif %}"><i class="bi bi-chat-square-dots nav-icon"></i> Conversation Rooms</a>
+        <a href="{% url 'group_covers' %}" class="nav-item-link {% if '/moderation/group-covers' in request.path %}active{% endif %}"><i class="bi bi-image nav-icon"></i> Group Covers</a>
         <a href="/moderation/reports/" class="nav-item-link {% if '/moderation/reports' in request.path %}active{% endif %}">
             <i class="bi bi-flag-fill nav-icon"></i> Reports
         </a>
         <a href="/appeals/" class="nav-item-link {% if '/appeals' in request.path %}active{% endif %}">
             <i class="bi bi-megaphone-fill nav-icon"></i> Appeals
         </a>
+        <a href="/support/" class="nav-item-link {% if '/support' in request.path %}active{% endif %}">
+            <i class="bi bi-headset nav-icon"></i> Member Support
+        </a>
+
+        <div class="sidebar-section-label">Analytics</div>
+        <a href="{% url 'analytics_overview' %}" class="nav-item-link {% if request.path == '/analytics/' %}active{% endif %}"><i class="bi bi-bar-chart-line nav-icon"></i> Overview</a>
+        <a href="{% url 'analytics_funnel' %}" class="nav-item-link {% if '/analytics/funnel' in request.path %}active{% endif %}"><i class="bi bi-funnel-fill nav-icon"></i> Activation funnel</a>
+        <a href="{% url 'analytics_retention' %}" class="nav-item-link {% if '/analytics/retention' in request.path %}active{% endif %}"><i class="bi bi-arrow-return-left nav-icon"></i> Retention</a>
+        <a href="{% url 'analytics_engagement' %}" class="nav-item-link {% if '/analytics/engagement' in request.path %}active{% endif %}"><i class="bi bi-hand-index-thumb nav-icon"></i> Engagement</a>
+        <a href="{% url 'analytics_liquidity' %}" class="nav-item-link {% if '/analytics/liquidity' in request.path %}active{% endif %}"><i class="bi bi-pin-map nav-icon"></i> Liquidity by city</a>
+        <a href="{% url 'analytics_safety' %}" class="nav-item-link {% if '/analytics/safety' in request.path %}active{% endif %}"><i class="bi bi-shield-exclamation nav-icon"></i> Safety health</a>
+        <a href="{% url 'analytics_data' %}" class="nav-item-link {% if '/analytics/data' in request.path %}active{% endif %}"><i class="bi bi-database-check nav-icon"></i> Data &amp; exclusions</a>
+        <div class="sidebar-section-label">Business</div>
+        <a href="{% url 'business_revenue' %}" class="nav-item-link {% if request.path == '/business/' %}active{% endif %}"><i class="bi bi-graph-up-arrow nav-icon"></i> Revenue</a>
+        <a href="{% url 'business_subscriptions' %}" class="nav-item-link {% if '/business/subscriptions' in request.path %}active{% endif %}"><i class="bi bi-arrow-repeat nav-icon"></i> Subscriptions &amp; MRR</a>
+        <a href="{% url 'business_conversion' %}" class="nav-item-link {% if '/business/conversion' in request.path %}active{% endif %}"><i class="bi bi-funnel nav-icon"></i> Conversion &amp; funnel</a>
+        <a href="{% url 'business_coins' %}" class="nav-item-link {% if '/business/coins' in request.path %}active{% endif %}"><i class="bi bi-coin nav-icon"></i> Coin economy</a>
+        <a href="{% url 'business_referrals' %}" class="nav-item-link {% if '/business/referrals' in request.path %}active{% endif %}"><i class="bi bi-people nav-icon"></i> Referrals</a>
+        <a href="{% url 'business_markets' %}" class="nav-item-link {% if '/business/markets' in request.path %}active{% endif %}"><i class="bi bi-geo-alt nav-icon"></i> Market readiness</a>
+        <a href="{% url 'business_investor_pack' %}" class="nav-item-link {% if '/business/investor-pack' in request.path %}active{% endif %}"><i class="bi bi-briefcase nav-icon"></i> Investor KPI pack</a>
+        <a href="{% url 'business_spend' %}" class="nav-item-link {% if '/business/spend' in request.path %}active{% endif %}"><i class="bi bi-cash-stack nav-icon"></i> Marketing spend</a>
 
         <div class="sidebar-section-label">Platform</div>
         <a href="/billing/" class="nav-item-link {% if '/billing' in request.path %}active{% endif %}">
@@ -358,11 +415,21 @@
         <a href="/safety/sos/" class="nav-item-link {% if '/safety' in request.path %}active{% endif %}">
             <i class="bi bi-exclamation-triangle-fill nav-icon"></i> SOS Alerts
         </a>
+        <a href="/account-recovery/" class="nav-item-link {% if '/account-recovery' in request.path %}active{% endif %}">
+            <i class="bi bi-key-fill nav-icon"></i> Account recovery
+        </a>
 
         <div class="sidebar-section-label">Logs</div>
         <a href="/activities/" class="nav-item-link {% if '/activities' in request.path %}active{% endif %}">
             <i class="bi bi-activity nav-icon"></i> Activity Feed
         </a>
+        <a href="/audit/" class="nav-item-link {% if '/audit' in request.path %}active{% endif %}">
+            <i class="bi bi-fingerprint nav-icon"></i> Operator Audit
+        </a>
+        <a href="/events/" class="nav-item-link {% if '/events' in request.path %}active{% endif %}">
+            <i class="bi bi-diagram-3-fill nav-icon"></i> Domain Events
+        </a>
+        <a href="{% url 'client_errors' %}" class="nav-item-link {% if '/client-errors' in request.path %}active{% endif %}"><i class="bi bi-bug-fill nav-icon"></i> Client errors</a>
 
         <div class="sidebar-footer">
             <div class="mb-1">
@@ -375,9 +442,11 @@
             <div class="text-muted" style="font-size:0.65rem;">Version 1.0 · 2026</div>
         </div>
     </aside>
+    {% endif %}
 
     <!-- ── Main ── -->
-    <div class="main-content">
+    <div class="main-content" {% if login_page %}style="margin-left:0"{% endif %}>
+        {% if not login_page %}
         <header class="topbar">
             <button class="btn btn-sm btn-glass d-md-none me-2" onclick="document.getElementById('sidebar').classList.toggle('open')">
                 <i class="bi bi-list"></i>
@@ -389,10 +458,16 @@
             {% else %}
                 <span class="topbar-badge badge-danger"><i class="bi bi-circle-fill" style="font-size:0.4rem;"></i> BFF Unreachable</span>
             {% endif %}
+            <span class="small text-muted ms-2">{{ request.session.operator_username|default:"operator" }}</span>
+            <form method="post" action="{% url 'operator_logout' %}" class="ms-1">
+                {% csrf_token %}
+                <button class="btn btn-glass btn-sm" title="Sign out"><i class="bi bi-box-arrow-right"></i></button>
+            </form>
             <a href="/admin/" class="btn btn-glass btn-sm ms-2" title="Django Admin">
                 <i class="bi bi-gear-fill"></i>
             </a>
         </header>
+        {% endif %}
 
         <main class="page-body">
             {% if messages %}

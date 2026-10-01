@@ -10,32 +10,21 @@ import (
 	"time"
 
 	"github.com/verified-dating/backend/internal/platform/config"
-	"github.com/verified-dating/backend/internal/platform/supabase"
 )
 
 const defaultConversationRoomCapacity = 20
 
 type conversationRoomRepository struct {
 	cfg config.Config
-	db  *supabase.Client
+	db  repositoryDB
 }
 
-func newConversationRoomRepository(cfg config.Config) *conversationRoomRepository {
-	apiKey := strings.TrimSpace(cfg.SupabaseServiceRole)
-	if apiKey == "" {
-		apiKey = strings.TrimSpace(cfg.SupabaseAnonKey)
-	}
-	if strings.TrimSpace(cfg.SupabaseURL) == "" || apiKey == "" {
+func newConversationRoomRepository(cfg config.Config, supplied ...repositoryDB) *conversationRoomRepository {
+	db := repositoryDBFor(cfg, supplied)
+	if db == nil {
 		return nil
 	}
-	client := supabase.NewClient(
-		cfg.SupabaseURL,
-		cfg.SupabaseAnonKey,
-		cfg.SupabaseServiceRole,
-		time.Duration(cfg.SupabaseHTTPTimeoutSec)*time.Second,
-	)
-	client.SetReadBaseURL(cfg.SupabaseReadReplicaURL)
-	return &conversationRoomRepository{cfg: cfg, db: client}
+	return &conversationRoomRepository{cfg: cfg, db: db}
 }
 
 func isConversationRoomRepoPersistenceUnavailable(err error) bool {
@@ -238,6 +227,9 @@ func (r *conversationRoomRepository) moderateConversationRoom(
 	if err != nil {
 		return conversationRoomView{}, conversationRoomModerationAction{}, err
 	}
+	if host, hostErr := r.isRoomHost(ctx, normalizedRoomID, normalizedModerator); hostErr != nil || !host {
+		return conversationRoomView{}, conversationRoomModerationAction{}, errRoomModerationForbidden
+	}
 	if normalizedAction == roomModerationActionRemove && roomLifecycleState(room.StartsAt, room.EndsAt, now) != roomLifecycleActive {
 		return conversationRoomView{}, conversationRoomModerationAction{}, errRoomModerationNotActive
 	}
@@ -326,6 +318,25 @@ func (r *conversationRoomRepository) deleteConversationRoomParticipant(ctx conte
 	filters.Set("room_id", "eq."+strings.TrimSpace(roomID))
 	filters.Set("user_id", "eq."+strings.TrimSpace(userID))
 	return r.db.Delete(ctx, r.cfg.MatchingSchema, "conversation_room_participants", filters)
+}
+
+// isRoomHost: userID is a current host or moderator of the room (migration
+// 117 role column). Any read error denies.
+func (r *conversationRoomRepository) isRoomHost(ctx context.Context, roomID, userID string) (bool, error) {
+	params := url.Values{}
+	params.Set("room_id", "eq."+strings.TrimSpace(roomID))
+	params.Set("user_id", "eq."+strings.TrimSpace(userID))
+	params.Set("role", "in.(host,moderator)")
+	params.Set("select", "status,left_at")
+	params.Set("limit", "1")
+	rows, err := r.db.SelectRead(ctx, r.cfg.MatchingSchema, "conversation_room_participants", params)
+	if err != nil {
+		return false, err
+	}
+	if len(rows) == 0 {
+		return false, nil
+	}
+	return !isInactiveRoomParticipant(strings.ToLower(strings.TrimSpace(toString(rows[0]["status"]))), rows[0]["left_at"]), nil
 }
 
 func (r *conversationRoomRepository) isUserBlockedInRoom(ctx context.Context, roomID, userID string, now time.Time) (bool, error) {

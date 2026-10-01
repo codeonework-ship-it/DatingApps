@@ -1,28 +1,27 @@
 package mobile
 
 import (
-	"bytes"
+	"bufio"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
-	"os"
 	"path"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
-	awsconfig "github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/credentials"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -32,6 +31,7 @@ import (
 	adminapp "github.com/verified-dating/backend/internal/modules/admin/application"
 	admininfra "github.com/verified-dating/backend/internal/modules/admin/infrastructure"
 	authapp "github.com/verified-dating/backend/internal/modules/auth/application"
+	authdomain "github.com/verified-dating/backend/internal/modules/auth/domain"
 	authinfra "github.com/verified-dating/backend/internal/modules/auth/infrastructure"
 	billingapp "github.com/verified-dating/backend/internal/modules/billing/application"
 	billinginfra "github.com/verified-dating/backend/internal/modules/billing/infrastructure"
@@ -50,7 +50,9 @@ import (
 	verificationapp "github.com/verified-dating/backend/internal/modules/verification/application"
 	verificationinfra "github.com/verified-dating/backend/internal/modules/verification/infrastructure"
 	"github.com/verified-dating/backend/internal/platform/config"
+	"github.com/verified-dating/backend/internal/platform/dataaccess"
 	"github.com/verified-dating/backend/internal/platform/docs"
+	"github.com/verified-dating/backend/internal/platform/mediastore"
 	"github.com/verified-dating/backend/internal/platform/mediatr"
 	"github.com/verified-dating/backend/internal/platform/observability"
 )
@@ -60,28 +62,87 @@ type Server struct {
 	log    *zap.Logger
 	router chi.Router
 
-	authConn        *grpc.ClientConn
-	profileConn     *grpc.ClientConn
-	matchingConn    *grpc.ClientConn
-	chatConn        *grpc.ClientConn
-	store           *memoryStore
-	masterData      *masterDataRepository
-	termsAgreements *termsAgreementRepository
-	dailyPrompts    *dailyPromptRepository
-	spotlight       *spotlightRepository
-	activities      *activityRepository
-	trust           *trustRepository
-	rooms           *conversationRoomRepository
-	mediator        *mediatr.Mediator
-	bulkheads       map[string]chan struct{}
-	idempotency     *idempotencyStore
-	fanout          *asyncFanout
-	s3Client        *s3.Client
+	authConn                 *grpc.ClientConn
+	profileConn              *grpc.ClientConn
+	matchingConn             *grpc.ClientConn
+	chatConn                 *grpc.ClientConn
+	runtimeData              *dataaccess.Store
+	store                    *runtimeStore
+	masterData               *masterDataRepository
+	termsAgreements          *termsAgreementRepository
+	dailyPrompts             *dailyPromptRepository
+	spotlight                *spotlightRepository
+	activities               *activityRepository
+	trust                    *trustRepository
+	rooms                    *conversationRoomRepository
+	realtime                 chatRealtimeEventStore
+	realtimeAuthorizer       realtimeSessionAuthorizer
+	notifications            *notificationRepository
+	notificationWorker       *notificationDeliveryEngine
+	sosDeliveryWorker        *sosDeliveryEngine
+	accountErasureWorker     *accountErasureWorker
+	trustRetentionWorker     *trustRetentionWorker
+	datePlanSweepWorker      *datePlanSweepWorker
+	analyticsSnapshotWorker  *analyticsSnapshotWorker
+	datePlanUnlockOverride   func(matchID string) (bool, string)
+	copilotProvider          copilotProvider
+	xpAwardSpool             *xpAwardSpool
+	progression              *levelProgressionRepository
+	progressionWorker        *levelProjectionEngine
+	billing                  *billingCheckoutService
+	mediator                 *mediatr.Mediator
+	bulkheads                map[string]chan struct{}
+	idempotency              *idempotencyStore
+	sharedIdempotency        *postgresIdempotencyStore
+	fanout                   *asyncFanout
+	media                    mediastore.Store
+	mediaOnce                sync.Once
+	mediaErr                 error
+	mediaModerator           mediaModerator
+	identityVerifier         identityVerificationProvider
+	voiceModerator           voiceModerationProvider
+	mediaCleanupCancel       context.CancelFunc
+	mediaCleanupDone         chan struct{}
+	idempotencyCleanupCancel context.CancelFunc
+	idempotencyCleanupDone   chan struct{}
+	httpMetrics              *observability.HTTPMetrics
 }
 
 const aliasRouteSunset = "Wed, 31 Dec 2026 23:59:59 GMT"
 
+// Tests may enable the legacy in-memory compatibility path from a _test.go
+// file. Production binaries cannot set this value.
+var allowRuntimeMemoryFallback bool
+
+// Tests may install a principal resolver so operator-authorized routes can be
+// exercised without a live Postgres. Production binaries cannot set this value,
+// so the only resolver they can ever use is the session-backed one.
+var testPrincipalResolver func(*http.Request) (securityPrincipal, error)
+
 func NewServer(cfg config.Config, log *zap.Logger, httpMetrics *observability.HTTPMetrics) (*Server, error) {
+	// Every real BFF process is durable. Tests that intentionally exercise the
+	// compatibility store construct runtimeStore directly and never pass through
+	// production composition. Repository errors must never fall through to RAM.
+	if !allowRuntimeMemoryFallback {
+		cfg.RequireDurableEngagementStore = true
+	}
+	var runtimeData *dataaccess.Store
+	if cfg.UseLocalDB {
+		ctx, cancel := context.WithTimeout(context.Background(), cfg.BFFRequestTimeout())
+		defer cancel()
+		var err error
+		runtimeData, err = dataaccess.Open(ctx, cfg)
+		if err != nil {
+			return nil, fmt.Errorf("open native postgres runtime store: %w", err)
+		}
+	}
+	constructed := false
+	defer func() {
+		if !constructed && runtimeData != nil {
+			runtimeData.Close()
+		}
+	}()
+
 	authConn, err := grpc.Dial(cfg.AuthGRPCAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, err
@@ -112,30 +173,58 @@ func NewServer(cfg config.Config, log *zap.Logger, httpMetrics *observability.HT
 		profileConn:     profileConn,
 		matchingConn:    matchingConn,
 		chatConn:        chatConn,
-		store:           newMemoryStore(cfg),
-		masterData:      newMasterDataRepository(cfg),
-		termsAgreements: newTermsAgreementRepository(cfg),
-		dailyPrompts:    newDailyPromptRepository(cfg),
-		spotlight:       newSpotlightRepository(cfg),
-		activities:      newActivityRepository(cfg),
-		trust:           newTrustRepository(cfg),
-		rooms:           newConversationRoomRepository(cfg),
+		runtimeData:     runtimeData,
+		store:           newRuntimeStore(cfg, clientFromStore(runtimeData)),
+		masterData:      newMasterDataRepository(cfg, clientFromStore(runtimeData)),
+		termsAgreements: newTermsAgreementRepository(cfg, clientFromStore(runtimeData)),
+		dailyPrompts:    newDailyPromptRepository(cfg, clientFromStore(runtimeData)),
+		spotlight:       newSpotlightRepository(cfg, clientFromStore(runtimeData)),
+		activities:      newActivityRepository(cfg, clientFromStore(runtimeData)),
+		trust:           newTrustRepository(cfg, clientFromStore(runtimeData)),
+		rooms:           newConversationRoomRepository(cfg, clientFromStore(runtimeData)),
 		mediator:        mediatr.New(),
 		bulkheads:       newBulkheadLimiters(cfg),
 		idempotency:     newIdempotencyStore(cfg.IdempotencyTTL()),
+		httpMetrics:     httpMetrics,
 	}
 	s.fanout = newAsyncFanout(cfg, log, s.store)
-	if s.usesAWSS3Storage() {
-		s.s3Client, err = newS3Client(cfg)
-		if err != nil {
-			_ = authConn.Close()
-			_ = profileConn.Close()
-			_ = matchingConn.Close()
-			_ = chatConn.Close()
-			return nil, fmt.Errorf("configure aws s3 storage: %w", err)
-		}
+	s.registerObservability()
+	s.mediaModerator, err = newMediaModerator(cfg)
+	if err != nil {
+		_ = authConn.Close()
+		_ = profileConn.Close()
+		_ = matchingConn.Close()
+		_ = chatConn.Close()
+		return nil, fmt.Errorf("configure media moderation: %w", err)
+	}
+	s.identityVerifier = newIdentityVerificationProvider(cfg)
+	s.voiceModerator = configuredVoiceModerationProvider(cfg)
+	if s.store.profileRepo != nil {
+		s.sharedIdempotency = newPostgresIdempotencyStore(s.store.profileRepo.pg, cfg)
+		s.realtime = newChatRealtimeRepository(s.store.profileRepo.pg)
+		s.realtimeAuthorizer = s.store.profileRepo
+		s.notifications = newNotificationRepository(s.store.profileRepo.pg)
+		s.notificationWorker = newNotificationDeliveryEngine(cfg, log, s.notifications, httpMetrics)
+		s.sosDeliveryWorker = newSOSDeliveryEngine(cfg, log, s.store.safetyRepo)
+		s.progression = newLevelProgressionRepository(s.store.profileRepo.pg)
+		s.progressionWorker = newLevelProjectionEngine(s.progression, log, httpMetrics)
+	}
+	xpRewardsDisabled.Store(cfg.IsReleaseExcluded("level_progression_enabled"))
+	if err := s.initMediaStore(context.Background()); err != nil {
+		_ = authConn.Close()
+		_ = profileConn.Close()
+		_ = matchingConn.Close()
+		_ = chatConn.Close()
+		return nil, fmt.Errorf("configure media storage: %w", err)
 	}
 	if err := s.validateDurableEngagementReadiness(); err != nil {
+		_ = authConn.Close()
+		_ = profileConn.Close()
+		_ = matchingConn.Close()
+		_ = chatConn.Close()
+		return nil, err
+	}
+	if err := s.validateNativePostgresReadiness(); err != nil {
 		_ = authConn.Close()
 		_ = profileConn.Close()
 		_ = matchingConn.Close()
@@ -153,9 +242,13 @@ func NewServer(cfg config.Config, log *zap.Logger, httpMetrics *observability.HT
 	profileStoreGateway := profileinfra.NewStoreGateway(
 		func(userID string) any { return s.store.getDraft(userID) },
 		func(userID string, payload map[string]any) any { return s.store.patchDraft(userID, payload) },
-		func(userID, photoURL, storagePath string) any { return s.store.addPhoto(userID, photoURL, storagePath) },
-		func(userID, photoID string) any { return s.store.deletePhoto(userID, photoID) },
-		func(userID string, photoIDs []string) any { return s.store.reorderPhotos(userID, photoIDs) },
+		func(userID string, photo profileapp.ProfilePhotoUploadInput) (any, error) {
+			return s.store.addValidatedPhoto(userID, photo)
+		},
+		func(userID, photoID string) (any, error) { return s.store.deletePhotoDurable(userID, photoID) },
+		func(userID string, photoIDs []string) (any, error) {
+			return s.store.reorderPhotosDurable(userID, photoIDs)
+		},
 		func(userID string) (any, error) { return s.store.completeProfile(userID) },
 		func(userID string) any { return s.store.getSettings(userID) },
 		func(userID string, payload map[string]any) any { return s.store.patchSettings(userID, payload) },
@@ -210,12 +303,10 @@ func NewServer(cfg config.Config, log *zap.Logger, httpMetrics *observability.HT
 			return s.store.createReport(reporterUserID, reportedUserID, reason, description)
 		},
 		func(userID, blockedUserID string) error {
-			s.store.blockUser(userID, blockedUserID)
-			return nil
+			return s.store.blockUser(userID, blockedUserID)
 		},
 		func(userID, blockedUserID string) error {
-			s.store.unblockUser(userID, blockedUserID)
-			return nil
+			return s.store.unblockUser(userID, blockedUserID)
 		},
 		func(userID, matchID, level, message string, latitude, longitude float64) (any, error) {
 			return s.store.createSOSAlert(userID, matchID, level, message, latitude, longitude)
@@ -327,9 +418,9 @@ func NewServer(cfg config.Config, log *zap.Logger, httpMetrics *observability.HT
 	engagementapp.RegisterHandlers(s.mediator, engagementService)
 
 	verificationGateway := verificationinfra.NewStoreGateway(
-		func(userID string) any { return s.store.getVerification(userID) },
-		func(userID string) any { return s.store.submitVerification(userID) },
-		func(status string, limit int) any { return s.store.listVerifications(status, limit) },
+		func(userID string) (any, error) { return s.store.getVerificationResult(userID) },
+		func(userID string) (any, error) { return s.store.submitVerificationResult(userID) },
+		func(status string, limit int) (any, error) { return s.store.listVerificationsResult(status, limit) },
 		func(userID, status, rejectionReason, reviewedBy string) (any, error) {
 			return s.store.reviewVerification(userID, status, rejectionReason, reviewedBy)
 		},
@@ -366,13 +457,75 @@ func NewServer(cfg config.Config, log *zap.Logger, httpMetrics *observability.HT
 	billingService := billingapp.NewService(billingGateway, log)
 	billingapp.RegisterHandlers(s.mediator, billingService)
 
+	// Card checkout + auto-renew (PEN-01). Present whenever a payment provider
+	// is configured; without durable billing persistence its endpoints fail
+	// closed with 503 rather than inventing state in memory.
+	billing, err := newBillingCheckoutService(cfg, log, s.store.billingRepo)
+	if err != nil {
+		return nil, fmt.Errorf("configure payments provider: %w", err)
+	}
+	s.billing = billing
+	if s.billing != nil && s.billing.repo != nil {
+		// One currency contract: a plan or coin package priced in another
+		// currency would show a member mixed prices and settle in a currency
+		// the reports do not sum. Refuse to start rather than sell it.
+		ctx, cancel := context.WithTimeout(context.Background(), cfg.BFFRequestTimeout())
+		mismatched, err := s.billing.repo.catalogCurrencyMismatch(ctx, cfg.PaymentsCurrency)
+		cancel()
+		if err != nil {
+			return nil, fmt.Errorf("check billing catalog currency: %w", err)
+		}
+		if len(mismatched) > 0 {
+			return nil, fmt.Errorf("billing catalog is not priced in %s: %s", cfg.PaymentsCurrency, strings.Join(mismatched, "; "))
+		}
+	}
+	if s.billing != nil {
+		s.billing.creditWallet = func(ctx context.Context, req walletCoinCreditRequest) error {
+			wallet, purchase, err := s.store.creditPurchasedCoins(ctx, req)
+			if err != nil {
+				return err
+			}
+			s.store.recordActivity(activityEvent{
+				UserID:   req.UserID,
+				Actor:    "payment_provider:" + req.Provider,
+				Action:   "wallet.coins.purchase",
+				Status:   "success",
+				Resource: "/billing/checkout",
+				Details: map[string]any{
+					"package_id":           req.PackageID,
+					"provider":             req.Provider,
+					"purchase_ref":         req.PurchaseRef,
+					"coins":                req.Coins,
+					"amount_minor":         req.AmountMinor,
+					"currency":             req.Currency,
+					"wallet_balance_after": wallet.CoinBalance,
+					"idempotency_key":      req.IdempotencyKey,
+					"purchase_id":          purchase.ID,
+				},
+			})
+			return nil
+		}
+	}
+
 	r := chi.NewRouter()
 	r.Use(observability.CorrelationIDMiddleware(log))
+	// Outermost after the correlation id so RED metrics and access logs also
+	// see shed (429), unauthenticated (401) and recovered-panic (500) responses.
+	r.Use(observability.RequestLoggingMiddleware(log, httpMetrics, "mobile_bff"))
 	r.Use(observability.GlobalExceptionMiddleware(log))
 	r.Use(observability.InflightSheddingMiddleware(log, "mobile_bff", cfg.BFFMaxInFlight, cfg.BFFRetryAfterSec))
 	r.Use(s.bulkheadMiddleware)
+	r.Use(s.securityMiddleware)
+	r.Use(s.timeoutTierMiddleware)
+	// Runtime flags are product policy, not presentation hints. Enforce them on
+	// the server before a command can enter idempotency or mutate an aggregate.
+	r.Use(s.featureFlagEnforcementMiddleware)
+	// Mounted after securityMiddleware so the idempotency namespace uses the
+	// verified principal rather than caller-supplied actor headers.
 	r.Use(s.idempotencyMiddleware)
-	r.Use(observability.RequestLoggingMiddleware(log, httpMetrics, "mobile_bff"))
+	// Mounted after securityMiddleware so the audited actor is the verified
+	// principal rather than anything the caller supplied.
+	r.Use(s.operatorAuditMiddleware)
 	r.Use(s.activityMiddleware)
 
 	r.Get("/healthz", s.healthz)
@@ -383,13 +536,25 @@ func NewServer(cfg config.Config, log *zap.Logger, httpMetrics *observability.HT
 	r.Get("/docs", docs.SwaggerUIHandler("/openapi.yaml"))
 
 	r.Route(cfg.APIPrefix, func(v1 chi.Router) {
-		v1.Post("/auth/send-otp", s.sendOTP)
-		v1.Post("/auth/verify-otp", s.verifyOTP)
+		v1.Post("/auth/login", s.login)
+		v1.Post("/auth/signup", s.signup)
+		v1.Post("/auth/refresh", s.refreshAuthSession)
+		v1.Post("/auth/logout", s.logout)
+		v1.Post("/auth/sessions/revoke", s.revokeAuthSessions)
+		v1.Post("/auth/password/change", s.changeAuthPassword)
+		v1.Post("/auth/password/recover", s.recoverAuthPassword)
+		v1.Post("/auth/recovery-code/rotate", s.rotateAuthRecoveryCode)
+		v1.Post("/auth/recovery/assistance", s.requestAccountRecoveryAssistance)
 		v1.Post("/auth/signup/bootstrap", s.bootstrapSignup)
+		v1.Get("/auth/signup/workflow/{userID}", s.getSignupWorkflow)
 		v1.Get("/users/{userID}/agreements/terms", s.getTermsAgreement)
 		v1.Patch("/users/{userID}/agreements/terms", s.patchTermsAgreement)
 		v1.Get("/discovery/{userID}", s.getDiscoveryCandidates)
+		v1.Get("/discovery/{userID}/today", s.getCuratedDailySet)
+		v1.Get("/discovery/{userID}/liked-me", s.listLikedMe)
 		v1.Get("/master-data/preferences", s.getPreferenceMasterData)
+		v1.Get("/config/flags", s.runtimeConfigFlags)
+		v1.Get("/operations/status", s.getOperationStatus)
 		v1.Get("/discovery/{userID}/filters/trust", s.getDiscoveryTrustFilter)
 		v1.Patch("/discovery/{userID}/filters/trust", s.patchDiscoveryTrustFilter)
 		v1.Post("/profile/views", s.recordProfileView)
@@ -404,6 +569,110 @@ func NewServer(cfg config.Config, log *zap.Logger, httpMetrics *observability.HT
 		v1.Delete("/profile/{userID}/photos/{photoID}", s.deleteProfilePhoto)
 		v1.Post("/profile/{userID}/photos/reorder", s.reorderProfilePhotos)
 		v1.Post("/profile/{userID}/complete", s.completeProfile)
+		v1.Get("/account/{userID}/lifecycle", s.getAccountLifecycle)
+		v1.Post("/account/{userID}/deactivate", s.deactivateAccount)
+		v1.Post("/account/{userID}/reactivate", s.reactivateAccount)
+		v1.Post("/account/{userID}/deletion", s.requestAccountDeletion)
+		v1.Delete("/account/{userID}/deletion", s.cancelAccountDeletion)
+		v1.Post("/account/{userID}/export", s.createAccountExport)
+		v1.Get("/account/{userID}/export", s.getAccountExport)
+		v1.Get("/account/{userID}/dating-preferences", s.datingPreferencesHandler)
+		v1.Put("/account/{userID}/dating-preferences", s.datingPreferencesHandler)
+		v1.Get("/matches/{matchID}/connection", s.getDatingConnection)
+		v1.Get("/chapters/catalogue", s.chapterCatalogue)
+		v1.Get("/blog/responses", s.blogResponsesHandler)
+		v1.Post("/blog/responses", s.blogResponsesHandler)
+		v1.Get("/blog/responses/{responseID}", s.blogResponsesHandler)
+		v1.Post("/blog/responses/{responseID}", s.blogResponsesHandler)
+		v1.Delete("/blog/responses/{responseID}", s.blogResponsesHandler)
+		v1.Get("/blog/publications", s.blogPublicationsHandler)
+		v1.Post("/blog/publications", s.blogPublicationsHandler)
+		v1.Post("/blog/publications/{shareID}", s.blogPublicationsHandler)
+		v1.Delete("/blog/publications/{shareID}", s.blogPublicationsHandler)
+		v1.Get("/blog/public/{shareID}", s.blogPublicHandler)
+		v1.Get("/blog/public/{shareID}/photos/{photoID}", s.blogPublicHandler)
+		v1.Post("/blog/public/{shareID}/report", s.blogReportHandler)
+		v1.Post("/blog/reports/{kind}/{contentID}", s.blogReportHandler)
+		v1.Get("/blog/notices", s.blogNoticesHandler)
+		v1.Post("/blog/notices/{caseID}/appeal", s.blogNoticesHandler)
+		v1.Get("/admin/moderation/blog", s.blogReviewHandler)
+		v1.Post("/admin/moderation/blog/{caseID}", s.blogReviewHandler)
+		v1.Get("/admin/moderation/blog/{caseID}/photos/{photoID}", s.blogReviewHandler)
+		v1.Get("/blog/posts", s.blogPostsHandler)
+		v1.Get("/blog/posts/{postID}", s.blogPostsHandler)
+		v1.Put("/blog/posts/{postID}", s.blogPostsHandler)
+		v1.Delete("/blog/posts/{postID}", s.blogPostsHandler)
+		v1.Get("/blog/posts/{postID}/photos/{photoID}", s.blogPhotoHandler)
+		v1.Put("/blog/posts/{postID}/photos/{photoID}", s.blogPhotoHandler)
+		v1.Delete("/blog/posts/{postID}/photos/{photoID}", s.blogPhotoHandler)
+		v1.Post("/blog/posts/{postID}/report", s.reportBlogPost)
+		// Likes, author-approved comments and Featured Stories (migration 108).
+		v1.Get("/blog/featured", s.blogFeaturedHandler)
+		v1.Get("/blog/topics", s.blogTopicsHandler)
+		v1.Get("/blog/subscriptions", s.blogWritersHandler)
+		v1.Put("/blog/authors/{authorID}/subscription", s.blogSubscriptionHandler)
+		v1.Delete("/blog/authors/{authorID}/subscription", s.blogSubscriptionHandler)
+		v1.Put("/blog/posts/{postID}/like", s.blogLikeHandler)
+		v1.Delete("/blog/posts/{postID}/like", s.blogLikeHandler)
+		v1.Get("/blog/posts/{postID}/comments", s.blogCommentsHandler)
+		v1.Put("/blog/posts/{postID}/comments/{commentID}", s.blogCommentsHandler)
+		v1.Delete("/blog/posts/{postID}/comments/{commentID}", s.blogCommentsHandler)
+		v1.Post("/blog/posts/{postID}/comments/{commentID}/decision", s.blogCommentDecisionHandler)
+		// Photo Themes (migration 107).
+		v1.Get("/themes", s.photoThemesHandler)
+		v1.Get("/themes/{themeID}/entries", s.photoThemeEntriesHandler)
+		v1.Put("/themes/{themeID}/entries/{entryID}", s.photoThemeEntryHandler)
+		v1.Delete("/themes/{themeID}/entries/{entryID}", s.photoThemeEntryHandler)
+		v1.Get("/themes/{themeID}/entries/{entryID}/photo", s.photoThemeEntryHandler)
+		v1.Get("/themes/wall", s.photoWallHandler)
+		v1.Get("/walls/celebrations", s.wallCelebrationsHandler)
+		v1.Get("/walls/today", s.todayWallHandler)
+		v1.Post("/walls/views", s.contentViewsHandler)
+		v1.Get("/themes/cover", s.coverOfWeekHandler)
+		v1.Post("/walls/celebrations/{celebrationID}/seen", s.wallCelebrationsHandler)
+		v1.Put("/themes/{themeID}/entries/{entryID}/like", s.photoEntryLikeHandler)
+		v1.Delete("/themes/{themeID}/entries/{entryID}/like", s.photoEntryLikeHandler)
+		v1.Post("/themes/{themeID}/entries/{entryID}/featuring", s.photoEntryFeaturingHandler)
+		v1.Get("/themes/{themeID}/entries/{entryID}/comments", s.photoEntryCommentsHandler)
+		v1.Put("/themes/{themeID}/entries/{entryID}/comments/{commentID}", s.photoEntryCommentsHandler)
+		v1.Delete("/themes/{themeID}/entries/{entryID}/comments/{commentID}", s.photoEntryCommentsHandler)
+		v1.Post("/themes/{themeID}/entries/{entryID}/comments/{commentID}/decision", s.photoEntryCommentDecisionHandler)
+		v1.Get("/admin/engagement/photo-themes", s.adminPhotoThemesHandler)
+		v1.Post("/admin/engagement/photo-themes", s.adminPhotoThemesHandler)
+		// Book & Film Clubs (migration 107). Static segments win over {clubID}.
+		v1.Get("/clubs", s.clubsHandler)
+		v1.Get("/clubs/titles", s.clubTitlesHandler)
+		v1.Get("/clubs/titles/{titleID}", s.clubTitleHandler)
+		v1.Put("/clubs/titles/{titleID}", s.clubTitleHandler)
+		v1.Put("/clubs/titles/{titleID}/reviews/{reviewID}", s.clubReviewHandler)
+		v1.Delete("/clubs/reviews/{reviewID}", s.clubReviewHandler)
+		v1.Get("/clubs/lists", s.clubListsHandler)
+		v1.Put("/clubs/lists/{listID}", s.clubListHandler)
+		v1.Delete("/clubs/lists/{listID}", s.clubListHandler)
+		v1.Put("/clubs/lists/{listID}/items/{titleID}", s.clubListItemHandler)
+		v1.Delete("/clubs/lists/{listID}/items/{titleID}", s.clubListItemHandler)
+		v1.Get("/clubs/{clubID}", s.clubHandler)
+		v1.Put("/clubs/{clubID}", s.clubHandler)
+		v1.Post("/clubs/{clubID}/membership", s.clubMembershipHandler)
+		v1.Get("/clubs/{clubID}/members", s.clubMembersHandler)
+		v1.Post("/clubs/{clubID}/members/{userID}", s.clubMembersHandler)
+		v1.Put("/clubs/{clubID}/selections/{weekStart}", s.clubSelectionHandler)
+		v1.Get("/clubs/{clubID}/posts", s.clubPostsHandler)
+		v1.Put("/clubs/{clubID}/posts/{postID}", s.clubPostHandler)
+		v1.Delete("/clubs/{clubID}/posts/{postID}", s.clubPostHandler)
+		v1.Post("/clubs/{clubID}/posts/{postID}/visibility", s.clubPostVisibilityHandler)
+		v1.Get("/chapters/public/{shareID}", s.chapterPublicHandler)
+		v1.Get("/chapters/publications", s.chapterPublicationHandler)
+		v1.Post("/chapters/publications", s.chapterPublicationHandler)
+		v1.Delete("/chapters/publications/{shareID}", s.chapterPublicationHandler)
+		v1.Get("/chapters/comfort", s.comfortHandler)
+		v1.Put("/chapters/comfort", s.comfortHandler)
+		v1.Get("/matches/{matchID}/chapter", s.chapterPairHandler)
+		v1.Post("/matches/{matchID}/chapter", s.chapterPairHandler)
+		v1.Put("/matches/{matchID}/chapter/green-light", s.chapterPairHandler)
+		v1.Post("/matches/{matchID}/moments", s.chemistryHandler)
+		v1.Post("/matches/{matchID}/moments/{momentID}/answer", s.chemistryHandler)
+		v1.Post("/matches/{matchID}/plans/{planID}/counter", s.counterDatePlan)
 		v1.Get("/settings/{userID}", s.getSettings)
 		v1.Patch("/settings/{userID}", s.patchSettings)
 		v1.Get("/emergency-contacts/{userID}", s.listEmergencyContacts)
@@ -433,9 +702,43 @@ func NewServer(cfg config.Config, log *zap.Logger, httpMetrics *observability.HT
 		v1.Post("/matches/{matchID}/gestures/{gestureID}/respond", s.withAliasDeprecation("/v1/matches/{matchID}/gestures/{gestureID}/decision", s.decideMatchGesture))
 		v1.Post("/matches/{matchID}/gestures/{gestureID}/decision", s.decideMatchGesture)
 		v1.Get("/matches/{matchID}/gestures/{gestureID}/score", s.getGestureScore)
+		v1.Get("/matches/{matchID}/voice-introductions", s.listVoiceIntroductions)
+		v1.Get("/profile/{userID}/stories", s.profileStoriesHandler)
+		v1.Put("/profile/{userID}/stories", s.profileStoriesHandler)
+		v1.Get("/matches/{matchID}/plans", s.getMatchDatePlans)
+		v1.Post("/matches/{matchID}/plans", s.proposeMatchDatePlan)
+		v1.Get("/matches/{matchID}/plans/{planID}/sharing", s.datePlanSharingHandler)
+		v1.Post("/matches/{matchID}/plans/{planID}/sharing", s.datePlanSharingHandler)
+		v1.Post("/matches/{matchID}/plans/{planID}/decision", s.decideMatchDatePlan)
+		v1.Post("/matches/{matchID}/plans/{planID}/cancel", s.cancelMatchDatePlan)
+		v1.Post("/matches/{matchID}/plans/{planID}/checkin", s.checkinMatchDatePlan)
+		v1.Post("/matches/{matchID}/plans/{planID}/debrief", s.debriefMatchDatePlan)
+		v1.Post("/matches/{matchID}/copilot/draft", s.draftWithCopilot)
+		v1.Get("/matches/{matchID}/trust", s.getConversationTrust)
+		v1.Get("/matches/{matchID}/graduation", s.getMatchGraduation)
+		v1.Post("/matches/{matchID}/graduation", s.proposeMatchGraduation)
+		v1.Post("/matches/{matchID}/graduation/{graduationID}/decision", s.decideMatchGraduation)
+		v1.Post("/matches/{matchID}/graduation/{graduationID}/withdraw", s.withdrawMatchGraduation)
+		v1.Get("/account/{userID}/discovery/pause", s.getDiscoveryPause)
+		v1.Post("/account/{userID}/discovery/pause", s.pauseDiscovery)
+		v1.Post("/account/{userID}/discovery/resume", s.resumeDiscovery)
+		v1.Get("/plans/{userID}", s.listMemberDatePlans)
 		v1.Get("/chat/{matchID}/messages", s.listMessages)
 		v1.Post("/chat/{matchID}/messages", s.sendMessage)
 		v1.Delete("/chat/{matchID}/messages/{messageID}", s.deleteMessage)
+		v1.Post("/chat/{matchID}/messages/{messageID}/gift/hide", s.hideReceivedGift)
+		v1.Post("/chat/{matchID}/messages/{messageID}/gift/report", s.reportReceivedGift)
+		v1.Get("/realtime/chat", s.streamChatEvents)
+		v1.Get("/realtime/notifications", s.streamNotificationEvents)
+		v1.Get("/notifications/{userID}", s.listNotifications)
+		v1.Get("/notifications/{userID}/unread-count", s.getNotificationUnreadCount)
+		v1.Get("/notifications/{userID}/preferences", s.getNotificationPreferences)
+		v1.Patch("/notifications/{userID}/preferences", s.patchNotificationPreferences)
+		v1.Post("/notifications/{userID}/devices", s.registerNotificationDevice)
+		v1.Delete("/notifications/{userID}/devices/{deviceID}", s.unregisterNotificationDevice)
+		v1.Post("/notifications/{userID}/read-all", s.markAllNotificationsRead)
+		v1.Post("/notifications/{userID}/{notificationID}/read", s.markNotificationRead)
+		v1.Delete("/notifications/{userID}/{notificationID}", s.dismissNotification)
 		v1.Get("/chat/gifts", s.listRoseGifts)
 		v1.Post("/chat/{matchID}/gifts/send", s.sendRoseGift)
 		v1.Post("/chat/{matchID}/gifts/events", s.recordRoseGiftTelemetryEvent)
@@ -462,6 +765,7 @@ func NewServer(cfg config.Config, log *zap.Logger, httpMetrics *observability.HT
 		v1.Post("/engagement/voice-icebreakers/start", s.startVoiceIcebreaker)
 		v1.Post("/engagement/voice-icebreakers/{icebreakerID}/send", s.sendVoiceIcebreaker)
 		v1.Post("/engagement/voice-icebreakers/{icebreakerID}/play", s.playVoiceIcebreaker)
+		v1.Get("/media/voice/{icebreakerID}", s.serveVoicePlayback)
 		v1.Post("/engagement/group-coffee-polls", s.createGroupCoffeePoll)
 		v1.Get("/engagement/group-coffee-polls", s.listGroupCoffeePolls)
 		v1.Get("/engagement/group-coffee-polls/{pollID}", s.getGroupCoffeePoll)
@@ -472,16 +776,67 @@ func NewServer(cfg config.Config, log *zap.Logger, httpMetrics *observability.HT
 		v1.Post("/engagement/groups/{groupID}/invites", s.inviteCommunityGroupMembers)
 		v1.Post("/engagement/groups/{groupID}/invites/respond", s.respondCommunityGroupInvite)
 		v1.Get("/engagement/group-invites", s.listCommunityGroupInvites)
+		// Lifestyle community groups and private friend groups (migration 118).
+		v1.Get("/engagement/group-categories", s.listGroupCategoriesHandler)
+		v1.Get("/engagement/group-friends", s.listGroupFriendsHandler)
+		v1.Get("/engagement/groups/{groupID}", s.communityGroupHandler)
+		v1.Patch("/engagement/groups/{groupID}", s.communityGroupHandler)
+		v1.Delete("/engagement/groups/{groupID}", s.communityGroupHandler)
+		v1.Post("/engagement/groups/{groupID}/join", s.joinCommunityGroupHandler)
+		v1.Post("/engagement/groups/{groupID}/leave", s.leaveCommunityGroupHandler)
+		v1.Get("/engagement/groups/{groupID}/members", s.communityGroupMembersHandler)
+		v1.Post("/engagement/groups/{groupID}/members/{userID}", s.manageCommunityGroupMemberHandler)
+		// Group cover photos (migration 121, group_covers.go).
+		v1.Get("/engagement/groups/{groupID}/cover", s.groupCoverHandler)
+		v1.Put("/engagement/groups/{groupID}/cover", s.groupCoverHandler)
+		v1.Delete("/engagement/groups/{groupID}/cover", s.groupCoverHandler)
 		v1.Get("/users/{userID}/trust-badges", s.getUserTrustBadges)
+		v1.Get("/users/{userID}/vouches", s.getPublicVouches)
 		v1.Get("/users/{userID}/trust-badges/history", s.listUserTrustBadgeHistory)
+		v1.Get("/introducer/connections", s.introducerHandler)
+		v1.Post("/introducer/invites", s.introducerHandler)
+		v1.Delete("/introducer/invites", s.introducerHandler)
+		v1.Post("/introducer/redeem", s.introducerHandler)
+		v1.Post("/introducer/connections/{consentID}/approve", s.introducerHandler)
+		v1.Delete("/introducer/connections/{consentID}", s.introducerHandler)
+		// Shared chat for friends, Conversation Rooms and groups (migration 115).
+		v1.Get("/social/channels", s.socialChannelsHandler)
+		v1.Get("/social/channels/{channelID}", s.socialChannelHandler)
+		v1.Get("/social/channels/{channelID}/messages", s.socialMessagesHandler)
+		v1.Post("/social/channels/{channelID}/messages", s.socialMessagesHandler)
+		v1.Delete("/social/channels/{channelID}/messages/{messageID}", s.socialMessageDeleteHandler)
+		v1.Post("/social/channels/{channelID}/read", s.socialReadHandler)
+		// Per-conversation notification mute (migration 119).
+		v1.Put("/social/channels/{channelID}/mute", s.socialMuteHandler)
+		v1.Delete("/social/channels/{channelID}/mute", s.socialMuteHandler)
+		v1.Post("/social/friends/{friendID}/channel", s.socialFriendChannelHandler)
 		v1.Get("/friends/{userID}", s.listFriends)
 		v1.Post("/friends/{userID}", s.addFriend)
+		v1.Post("/friends/{userID}/{friendUserID}/decision", s.decideFriendRequest)
 		v1.Delete("/friends/{userID}/{friendUserID}", s.removeFriend)
 		v1.Get("/friends/{userID}/activities", s.listFriendActivities)
+		// Add-friend member search (migration 116).
+		v1.Get("/friends/{userID}/search", s.searchFriendCandidates)
+		// "Let people find me in friend search" (migration 120).
+		v1.Get("/friends/{userID}/search-visibility", s.friendSearchVisibilityHandler)
+		v1.Put("/friends/{userID}/search-visibility", s.friendSearchVisibilityHandler)
+		v1.Get("/friends/{userID}/plans", s.listFriendDatePlans)
+		v1.Get("/friends/{userID}/vouches", s.listFriendVouches)
+		v1.Post("/friends/{userID}/vouches", s.writeFriendVouch)
+		v1.Post("/friends/{userID}/vouches/{vouchID}/decision", s.decideFriendVouch)
+		v1.Delete("/friends/{userID}/vouches/{vouchID}", s.withdrawFriendVouch)
+		v1.Get("/friends/{userID}/intros", s.listFriendIntros)
+		v1.Post("/friends/{userID}/intros", s.makeFriendIntro)
+		v1.Post("/friends/{userID}/intros/{introID}/decision", s.decideFriendIntro)
 		v1.Get("/rooms", s.listConversationRooms)
 		v1.Post("/rooms/{roomID}/join", s.joinConversationRoom)
 		v1.Post("/rooms/{roomID}/leave", s.leaveConversationRoom)
 		v1.Post("/rooms/{roomID}/moderate", s.moderateConversationRoom)
+		// Live chat rooms (migration 117, live_rooms.go).
+		v1.Post("/rooms", s.createRoomHandler)
+		v1.Get("/rooms/{roomID}", s.roomDetailHandler)
+		v1.Get("/rooms/{roomID}/members", s.roomMembersHandler)
+		v1.Post("/rooms/{roomID}/presence", s.roomPresenceHandler)
 		v1.Post("/calls/start", s.startCall)
 		v1.Post("/calls/{callID}/end", s.endCall)
 		v1.Get("/calls/history/{userID}", s.listCallHistory)
@@ -496,19 +851,98 @@ func NewServer(cfg config.Config, log *zap.Logger, httpMetrics *observability.HT
 		v1.Post("/safety/sos/{alertID}/resolve", s.resolveSOS)
 		v1.Get("/analytics/{userID}", s.userAnalytics)
 		v1.Get("/billing/plans", s.listBillingPlans)
+		v1.Get("/billing/account", s.getBillingAccount)
 		v1.Get("/billing/coexistence-matrix", s.getBillingCoexistenceMatrix)
 		v1.Get("/billing/subscription/{userID}", s.getBillingSubscription)
 		v1.Post("/billing/subscribe", s.subscribePlan)
 		v1.Get("/billing/payments/{userID}", s.listBillingPayments)
+		v1.Get("/billing/coin-packages", s.listCoinPackages)
+		v1.Post("/billing/checkout", s.createBillingCheckout)
+		v1.Get("/billing/checkout/return", s.billingCheckoutReturn)
+		v1.Get("/billing/checkout/{checkoutID}", s.getBillingCheckout)
+		v1.Post("/billing/subscription/{userID}/cancel", s.cancelBillingSubscription)
+		v1.Post("/billing/subscription/{userID}/resume", s.resumeBillingSubscription)
+		v1.Post("/billing/subscription/{userID}/change-plan", s.changeBillingPlan)
+		v1.Get("/billing/entitlements/{userID}", s.getBillingEntitlements)
+		v1.Post("/billing/webhooks/{provider}", s.billingWebhook)
+		v1.Get("/billing/sandbox/checkout/{sessionID}", s.sandboxCheckoutPage)
+		v1.Post("/billing/sandbox/checkout/{sessionID}", s.sandboxCheckoutSubmit)
+		v1.Post("/billing/sandbox/subscriptions/{userID}/simulate", s.sandboxSimulate)
+		v1.Get("/progression/{userID}", s.getProgression)
+		v1.Get("/progression/{userID}/ledger", s.listProgressionLedger)
+		v1.Post("/progression/{userID}/rewards/claim", s.claimProgressionReward)
+		// Deferred growth portfolio. The portfolio contract is always readable;
+		// each member capability is independently fail-closed by server flags.
+		v1.Get("/growth/portfolio", s.getGrowthPortfolio)
+		v1.Get("/support/tickets", s.listSupportTickets)
+		v1.Post("/support/tickets", s.createSupportTicket)
+		v1.Get("/support/tickets/{ticketID}", s.getSupportTicket)
+		v1.Post("/support/tickets/{ticketID}/messages", s.addSupportTicketMessage)
+		v1.Get("/city-pilot", s.memberCityPilot)
+		v1.Post("/city-pilot/membership", s.cityPilotMembership)
+		v1.Delete("/city-pilot/membership", s.cityPilotMembership)
+		v1.Post("/city-pilot/events/{eventID}/registration", s.cityPilotRegistration)
+		v1.Delete("/city-pilot/events/{eventID}/registration", s.cityPilotRegistration)
+		v1.Post("/city-pilot/events/{eventID}/feedback", s.cityPilotFeedback)
+		v1.Get("/admin/growth/city-pilot", s.adminCityPilot)
+		v1.Post("/admin/growth/city-pilot", s.adminSaveCityPilot)
+		v1.Post("/admin/growth/city-pilot/{pilotID}/stage", s.adminTransitionCityPilot)
+		v1.Get("/admin/growth/city-pilot/{pilotID}/experiences", s.adminPilotExperiences)
+		v1.Post("/admin/growth/city-pilot/{pilotID}/experiences", s.adminCreatePilotExperience)
+		v1.Post("/admin/growth/city-pilot/{pilotID}/experiences/{eventID}/cancel", s.adminCancelPilotExperience)
+		v1.Get("/growth/events", s.listGrowthEvents)
+		v1.Post("/growth/events/{eventID}/registration", s.registerGrowthEvent)
+		v1.Delete("/growth/events/{eventID}/registration", s.cancelGrowthEventRegistration)
+		v1.Get("/growth/referrals/me", s.getReferralCode)
+		v1.Post("/growth/referrals/me", s.createReferralCode)
+		v1.Post("/growth/referrals/redeem", s.redeemReferralCode)
+		v1.Get("/growth/partnerships", s.listGrowthPartnerships)
+		v1.Get("/growth/recommendations", s.listRecommendationEdges)
+		v1.Put("/growth/imports/consents", s.upsertSocialImportConsent)
+		v1.Delete("/growth/imports/consents/{provider}", s.revokeSocialImportConsent)
+		v1.Get("/growth/history", s.getMemberGrowthHistory)
+		v1.Post("/growth/history/preferences", s.capturePreferenceHistory)
+		v1.Post("/growth/history/location-checkins", s.createLocationCheckin)
+		v1.Delete("/growth/history", s.deleteMemberGrowthHistory)
+		v1.Post("/growth/admirer-gifts", growthUnavailableHandler("admirer_gifts"))
+		v1.Post("/growth/paid-xp", growthUnavailableHandler("paid_xp"))
 		v1.Get("/admin/activities", s.listAdminActivities)
+		v1.Get("/admin/audit-events", s.adminListAuditEvents)
+		v1.Get("/admin/events", s.adminListDomainEvents)
+		v1.Get("/admin/events/metrics", s.adminDomainEventMetrics)
 		v1.Get("/admin/verifications", s.listAdminVerifications)
 		v1.Post("/admin/verifications/{userID}/approve", s.approveVerification)
 		v1.Post("/admin/verifications/{userID}/reject", s.rejectVerification)
 		v1.Get("/admin/moderation/reports", s.listAdminReports)
 		v1.Post("/admin/moderation/reports/{reportID}/action", s.actionAdminReport)
+		v1.Get("/admin/moderation/media", s.listAdminMediaModeration)
+		v1.Post("/admin/moderation/media/{photoID}/decision", s.decideAdminMediaModeration)
+		v1.Get("/admin/moderation/media/{photoID}/content", s.serveAdminMediaModerationContent)
+		v1.Get("/admin/moderation/group-covers", s.adminGroupCoversHandler)
+		v1.Post("/admin/moderation/group-covers/{coverID}/decision", s.adminGroupCoverDecisionHandler)
+		v1.Get("/admin/moderation/group-covers/{coverID}/content", s.adminGroupCoverContentHandler)
 		v1.Get("/admin/moderation/appeals", s.listAdminModerationAppeals)
 		v1.Post("/admin/moderation/appeals/{appealID}/action", s.actionAdminModerationAppeal)
+		v1.Get("/admin/moderation/rooms", s.adminRoomsHandler)
+		v1.Post("/admin/moderation/rooms/{roomID}/actions", s.adminRoomActionHandler)
+		v1.Post("/admin/moderation/rooms/{roomID}/roles", s.adminRoomRoleHandler)
+		v1.Get("/admin/moderation/rooms/{roomID}/members", s.adminRoomMembersHandler)
 		v1.Get("/admin/analytics/overview", s.adminAnalyticsOverview)
+		// Durable product analytics reports (migration 123; analyst read-only).
+		v1.Get("/admin/analytics/kpis", s.adminAnalyticsKPIs)
+		v1.Get("/admin/analytics/trends", s.adminAnalyticsTrends)
+		v1.Get("/admin/analytics/funnel", s.adminAnalyticsFunnel)
+		v1.Get("/admin/analytics/retention", s.adminAnalyticsRetention)
+		v1.Get("/admin/analytics/engagement", s.adminAnalyticsEngagement)
+		v1.Get("/admin/analytics/liquidity", s.adminAnalyticsLiquidity)
+		v1.Get("/admin/analytics/safety", s.adminAnalyticsSafety)
+		v1.Get("/admin/analytics/definitions", s.adminAnalyticsDefinitions)
+		v1.Get("/admin/analytics/snapshots", s.adminAnalyticsSnapshots)
+		v1.Post("/admin/analytics/snapshots/rebuild", s.adminAnalyticsRebuild)
+		v1.Get("/admin/analytics/excluded-accounts", s.adminAnalyticsExcludedAccounts)
+		v1.Post("/admin/analytics/excluded-accounts", s.adminAnalyticsExcludeAccount)
+		v1.Delete("/admin/analytics/excluded-accounts/{memberID}", s.adminAnalyticsIncludeAccount)
+		v1.Get("/admin/notifications/queue/metrics", s.adminNotificationQueueMetrics)
 		// Gift catalog CRUD
 		v1.Get("/admin/catalog/gifts", s.adminListCatalogGifts)
 		v1.Post("/admin/catalog/gifts", s.adminCreateCatalogGift)
@@ -531,6 +965,7 @@ func NewServer(cfg config.Config, log *zap.Logger, httpMetrics *observability.HT
 		v1.Put("/admin/config/flags/{key}", s.adminUpdateConfigFlag)
 		// Engagement prompts
 		v1.Get("/admin/engagement/prompts", s.adminListEngagementPrompts)
+		v1.Get("/admin/engagement/nudges", s.adminListEngagementNudges)
 		v1.Post("/admin/engagement/prompts", s.adminCreateEngagementPrompt)
 		v1.Put("/admin/engagement/prompts/{promptID}", s.adminUpdateEngagementPrompt)
 		v1.Post("/admin/engagement/prompts/{promptID}/activate", s.adminActivateEngagementPrompt)
@@ -545,16 +980,177 @@ func NewServer(cfg config.Config, log *zap.Logger, httpMetrics *observability.HT
 		v1.Post("/admin/billing/grant-coins", s.adminGrantCoins)
 		v1.Get("/admin/billing/subscriptions", s.adminListSubscriptions)
 		v1.Get("/admin/billing/payments", s.adminListPayments)
+		v1.Get("/admin/billing/webhook-events", s.adminListBillingWebhookEvents)
+		v1.Get("/admin/billing/reconciliation", s.adminBillingReconciliation)
 		v1.Get("/admin/billing/revenue-analytics", s.adminRevenueAnalytics)
+		s.registerBusinessReportRoutes(v1)
 		// Wallet admin
 		v1.Get("/admin/users/{userID}/wallet", s.adminGetWalletBalance)
 		// Safety / SOS
 		v1.Get("/admin/safety/sos-alerts", s.adminListSOSAlerts)
 		v1.Post("/admin/safety/sos-alerts/{alertID}/resolve", s.adminResolveSOSAlert)
+		v1.Get("/admin/progression", s.adminProgressionOverview)
+		v1.Put("/admin/progression/policies/{source}", s.adminUpdateProgressionPolicy)
+		v1.Get("/admin/progression/fraud", s.adminListProgressionFraud)
+		v1.Put("/admin/progression/fraud-rules/{ruleCode}", s.adminUpdateProgressionFraudPolicy)
+		v1.Post("/admin/progression/fraud/{caseID}/resolve", s.adminResolveProgressionFraud)
+		v1.Post("/admin/progression/users/{userID}/adjust-xp", s.adminAdjustProgressionXP)
+		v1.Put("/admin/progression/users/{userID}/control", s.adminSetProgressionControl)
+		v1.Put("/admin/progression/experiments/{key}", s.adminUpdateProgressionExperiment)
+		v1.Get("/admin/safety/account-recovery", s.adminListAccountRecoveryRequests)
+		v1.Post("/admin/safety/gift-sends/{sendID}/reverse", s.adminReverseGiftSend)
+		v1.Post("/admin/billing/gift-sends/{sendID}/reverse", s.adminReverseGiftSend)
+		v1.Get("/admin/billing/wallets/frozen", s.adminListFrozenWallets)
+		v1.Post("/admin/billing/wallets/{userID}/review", s.adminReviewFrozenWallet)
+		v1.Get("/admin/billing/fraud/cases", s.adminListEconomyFraudCases)
+		v1.Post("/admin/billing/fraud/cases/{caseID}/resolve", s.adminResolveEconomyFraudCase)
+		v1.Get("/admin/billing/fraud/rules", s.adminListEconomyFraudRules)
+		v1.Put("/admin/billing/fraud/rules/{ruleCode}", s.adminUpdateEconomyFraudRule)
+		v1.Post("/admin/safety/account-recovery/{requestID}/resolve", s.adminResolveAccountRecoveryRequest)
+		v1.Get("/admin/support/tickets", s.adminListSupportTickets)
+		v1.Get("/admin/support/tickets/{ticketID}", s.adminGetSupportTicket)
+		v1.Put("/admin/support/tickets/{ticketID}", s.adminUpdateSupportTicket)
+		v1.Get("/admin/growth/fraud-graph", s.adminListFraudGraph)
+		v1.Post("/admin/growth/fraud-graph/{edgeID}/resolve", s.adminResolveFraudGraphEdge)
+		// Self-hosted client crash/error reporting (client_errors.go, migration
+		// 122). Ingestion is open to signed-out screens; see isPublicSecurityPath.
+		v1.Post("/client/errors", s.reportClientErrors)
+		v1.Get("/admin/client-errors", s.adminListClientErrors)
+		v1.Get("/admin/client-errors/{issueID}", s.adminGetClientError)
+		v1.Post("/admin/client-errors/{issueID}/status", s.adminSetClientErrorStatus)
 	})
 
 	s.router = r
+	s.startMediaLifecycleCleanup()
+	s.startIdempotencyCleanup()
+	if s.notificationWorker != nil {
+		s.notificationWorker.Start(context.Background())
+	}
+	if s.sosDeliveryWorker != nil {
+		s.sosDeliveryWorker.Start(context.Background())
+	}
+	if s.progressionWorker != nil {
+		s.progressionWorker.Start(context.Background())
+	}
+	if s.billing != nil {
+		s.billing.startSweep(context.Background())
+	}
+	// Scheduled deletions mature days after the request, so something has to
+	// come back for them; without this the journey stops at "scheduled".
+	if s.store != nil && s.store.profileRepo != nil && s.store.profileRepo.pg != nil {
+		s.accountErasureWorker = newAccountErasureWorker(
+			s.store.profileRepo, s.log, time.Hour, 25, s.deleteStoredMedia)
+		s.accountErasureWorker.Start(context.Background())
+	}
+	// Retention classes of the trust-operations contract (revoked sessions,
+	// identity evidence, SOS snapshots, 24-month audit history) and the SOS
+	// delivery gauges, which must publish even with no SOS provider configured.
+	if s.store != nil && s.store.profileRepo != nil && s.store.profileRepo.pg != nil {
+		s.trustRetentionWorker = newTrustRetentionWorker(
+			s.store.profileRepo.pg, s.log, s.httpMetrics, s.deleteStoredMedia, time.Hour)
+		s.trustRetentionWorker.Start(context.Background())
+	}
+	// Date plans: expire unanswered proposals, remind members to check in and
+	// escalate a missed check-in to the member's friends (migration 091).
+	if s.store != nil && s.store.profileRepo != nil && s.store.profileRepo.pg != nil {
+		s.datePlanSweepWorker = newDatePlanSweepWorker(s.store.profileRepo.pg, s.log, datePlanSweepInterval)
+		s.datePlanSweepWorker.Start(context.Background())
+	}
+	// Product analytics: nightly durable snapshots (migration 123).
+	if s.store != nil && s.store.profileRepo != nil && s.store.profileRepo.pg != nil {
+		s.analyticsSnapshotWorker = newAnalyticsSnapshotWorker(s.store.profileRepo.pg, s.log, analyticsSnapshotInterval)
+		s.analyticsSnapshotWorker.Start(context.Background())
+	}
+	// XP award intents that could not reach the database are spooled locally
+	// and replayed into the repair queue (PEN-22).
+	if s.progression != nil {
+		s.xpAwardSpool = newXPAwardSpool(defaultXPAwardSpoolPath(), s.log)
+		s.xpAwardSpool.Start(context.Background(), s.progression.enqueueAwardRepair)
+	}
+	constructed = true
 	return s, nil
+}
+
+func (s *Server) login(w http.ResponseWriter, r *http.Request) {
+	payload, ok := readJSON(w, r)
+	if !ok {
+		return
+	}
+	username := strings.TrimSpace(toString(payload["username"]))
+	password := toString(payload["password"])
+
+	ctx, cancel := s.withRequestTimeout(r.Context())
+	defer cancel()
+
+	respAny, err := s.mediator.Send(ctx, authapp.LoginCommandName, authapp.LoginCommand{Username: username, Password: password})
+	if err != nil {
+		if errors.Is(err, authapp.ErrValidation) {
+			writeError(w, http.StatusBadRequest, err)
+			return
+		}
+		writeError(w, http.StatusBadGateway, err)
+		return
+	}
+	resp, ok := respAny.(map[string]any)
+	if !ok {
+		writeError(w, http.StatusBadGateway, errors.New("unexpected login response payload"))
+		return
+	}
+	if success, _ := resp["success"].(bool); !success {
+		message := strings.TrimSpace(toString(resp["error"]))
+		if message == "" {
+			message = "invalid username or password"
+		}
+		writeError(w, http.StatusUnauthorized, errors.New(message))
+		return
+	}
+	writeJSON(w, http.StatusOK, resp)
+}
+
+func (s *Server) signup(w http.ResponseWriter, r *http.Request) {
+	payload, ok := readJSON(w, r)
+	if !ok {
+		return
+	}
+	if toString(payload["account_kind"]) == "introducer" {
+		enabled, err := s.runtimeFeatureEnabled(r.Context(), "friend_intros_enabled", false)
+		if err != nil || !enabled || s.cfg.IsReleaseExcluded("friend_intros_enabled") {
+			writeError(w, http.StatusForbidden, errors.New("friend introductions are unavailable"))
+			return
+		}
+	}
+	username := strings.TrimSpace(toString(payload["username"]))
+	password := toString(payload["password"])
+
+	ctx, cancel := s.withRequestTimeout(r.Context())
+	defer cancel()
+	respAny, err := s.mediator.Send(ctx, authapp.SignupCommandName, authapp.SignupCommand{Username: username, Password: password, AccountKind: toString(payload["account_kind"]), Name: toString(payload["name"]), DateOfBirth: toString(payload["date_of_birth"])})
+	if err != nil {
+		if errors.Is(err, authapp.ErrValidation) {
+			writeError(w, http.StatusBadRequest, err)
+			return
+		}
+		writeError(w, http.StatusBadGateway, err)
+		return
+	}
+	resp, ok := respAny.(map[string]any)
+	if !ok {
+		writeError(w, http.StatusBadGateway, errors.New("unexpected signup response payload"))
+		return
+	}
+	if success, _ := resp["success"].(bool); !success {
+		message := strings.TrimSpace(toString(resp["error"]))
+		if message == "" {
+			message = "signup request was rejected"
+		}
+		code := http.StatusBadRequest
+		if strings.Contains(strings.ToLower(message), "taken") {
+			code = http.StatusConflict
+		}
+		writeError(w, code, errors.New(message))
+		return
+	}
+	writeJSON(w, http.StatusOK, resp)
 }
 
 func (s *Server) Handler() http.Handler {
@@ -590,6 +1186,60 @@ func (s *Server) validateDurableEngagementReadiness() error {
 	return nil
 }
 
+func (s *Server) validateNativePostgresReadiness() error {
+	if !s.cfg.UseLocalDB {
+		return nil
+	}
+	if s.runtimeData == nil || s.runtimeData.Mode() != "postgres" {
+		return errors.New("native local mode requires the pgx runtime store")
+	}
+	missing := make([]string, 0)
+	checks := []struct {
+		name string
+		ok   bool
+	}{
+		{"profile", s.store.profileRepo != nil},
+		{"social", s.store.socialRepo != nil},
+		{"verification", s.store.verificationRepo != nil},
+		{"safety", s.store.safetyRepo != nil},
+		{"engagement", s.store.engagementRepo != nil},
+		{"quests", s.store.questRepo != nil},
+		{"prompts", s.dailyPrompts != nil},
+		{"activities", s.activities != nil},
+		{"groups", s.store.communityGroupRepo != nil},
+		{"gifts", s.store.giftsRepo != nil},
+		{"spotlight", s.spotlight != nil},
+		{"trust", s.trust != nil},
+		{"rooms", s.rooms != nil},
+		{"master_data", s.masterData != nil && s.masterData.db != nil},
+		{"terms", s.termsAgreements != nil},
+		{"admin", s.store.adminRepo != nil},
+		{"billing", s.store.billingRepo != nil},
+		{"chat_realtime", s.realtime != nil},
+		{"progression", s.progression != nil},
+	}
+	for _, check := range checks {
+		if !check.ok {
+			missing = append(missing, check.name)
+		}
+	}
+	if len(missing) > 0 {
+		return fmt.Errorf("native postgres repositories unavailable: %s", strings.Join(missing, ","))
+	}
+	var scaleSchemaReady bool
+	if err := s.store.profileRepo.pg.QueryRowContext(context.Background(), `
+		SELECT to_regclass('platform.idempotency_records') IS NOT NULL
+		   AND to_regclass('platform.idempotency_archive') IS NOT NULL
+		   AND to_regclass('progression.xp_ledger') IS NOT NULL
+		   AND to_regclass('progression.fraud_rule_policies') IS NOT NULL
+		   AND to_regclass('progression.rollout_stage_history') IS NOT NULL
+		   AND to_regclass('progression.production_health') IS NOT NULL
+	`).Scan(&scaleSchemaReady); err != nil || !scaleSchemaReady {
+		return errors.New("native postgres scale/progression schema unavailable: apply migrations through 079_progression_production_rollout")
+	}
+	return nil
+}
+
 func (s *Server) withAliasDeprecation(successorPath string, next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Deprecation", "true")
@@ -614,45 +1264,9 @@ func (s *Server) activityMiddleware(next http.Handler) http.Handler {
 		if !strings.HasPrefix(r.URL.Path, s.cfg.APIPrefix) {
 			return
 		}
-
-		userID := strings.TrimSpace(chi.URLParam(r, "userID"))
-		if userID == "" {
-			userID = strings.TrimSpace(chi.URLParam(r, "matchID"))
-		}
-		if userID == "" {
-			userID = strings.TrimSpace(r.URL.Query().Get("user_id"))
-		}
-
-		actor := strings.TrimSpace(r.Header.Get("X-Admin-User"))
-		if actor == "" {
-			actor = strings.TrimSpace(r.Header.Get("X-User-ID"))
-		}
-		if actor == "" {
-			actor = "system"
-		}
-
-		details := mergeDetails(
-			map[string]any{
-				"method":       r.Method,
-				"path":         r.URL.Path,
-				"query":        r.URL.RawQuery,
-				"status_code":  recorder.status,
-				"duration_ms":  time.Since(start).Milliseconds(),
-				"remote_addr":  r.RemoteAddr,
-				"content_type": r.Header.Get("Content-Type"),
-			},
-			s.engagementTelemetryDetails(r.URL.Path),
-		)
-		details = mergeDetails(details, s.billingPolicyTelemetryDetails(r.URL.Path))
-
-		s.enqueueNonCriticalActivity(activityEvent{
-			UserID:   userID,
-			Actor:    actor,
-			Action:   r.Method + " " + r.URL.Path,
-			Status:   statusLabel(recorder.status),
-			Resource: r.URL.Path,
-			Details:  details,
-		})
+		// Request telemetry is minimised: route template instead of the
+		// concrete path, no query string, no client IP (activity_repository.go).
+		s.enqueueNonCriticalActivity(s.apiRequestActivityEvent(r, recorder.status, time.Since(start)))
 	})
 }
 
@@ -661,6 +1275,45 @@ func (s *Server) withRequestTimeout(parent context.Context) (context.Context, co
 }
 
 func (s *Server) Close() {
+	if s.billing != nil {
+		s.billing.stop()
+	}
+	if s.progressionWorker != nil {
+		s.progressionWorker.Close()
+	}
+	if s.notificationWorker != nil {
+		s.notificationWorker.Close()
+	}
+	if s.sosDeliveryWorker != nil {
+		s.sosDeliveryWorker.Close()
+	}
+	if s.accountErasureWorker != nil {
+		s.accountErasureWorker.Stop()
+	}
+	if s.trustRetentionWorker != nil {
+		s.trustRetentionWorker.Stop()
+	}
+	if s.datePlanSweepWorker != nil {
+		s.datePlanSweepWorker.Stop()
+	}
+	if s.analyticsSnapshotWorker != nil {
+		s.analyticsSnapshotWorker.Stop()
+	}
+	if s.xpAwardSpool != nil {
+		s.xpAwardSpool.Stop()
+	}
+	if s.mediaCleanupCancel != nil {
+		s.mediaCleanupCancel()
+	}
+	if s.mediaCleanupDone != nil {
+		<-s.mediaCleanupDone
+	}
+	if s.idempotencyCleanupCancel != nil {
+		s.idempotencyCleanupCancel()
+	}
+	if s.idempotencyCleanupDone != nil {
+		<-s.idempotencyCleanupDone
+	}
 	if s.authConn != nil {
 		_ = s.authConn.Close()
 	}
@@ -676,19 +1329,36 @@ func (s *Server) Close() {
 	if s.fanout != nil {
 		s.fanout.Close()
 	}
+	if s.runtimeData != nil {
+		s.runtimeData.Close()
+	}
 }
 
 func (s *Server) healthz(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"service": "mobile-bff", "status": "ok"})
 }
 
-func (s *Server) readyz(w http.ResponseWriter, _ *http.Request) {
+func (s *Server) readyz(w http.ResponseWriter, r *http.Request) {
 	ready := true
 	deps := map[string]any{
 		"auth":     s.connState(s.authConn),
 		"profile":  s.connState(s.profileConn),
 		"matching": s.connState(s.matchingConn),
 		"chat":     s.connState(s.chatConn),
+	}
+	if s.runtimeData != nil {
+		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+		err := s.runtimeData.Ping(ctx)
+		cancel()
+		if err != nil {
+			deps["postgres"] = "unavailable"
+			ready = false
+		} else {
+			deps["postgres"] = "ready"
+		}
+	}
+	if state, ok := s.aggregateOwnershipState(r.Context()); ok {
+		deps["aggregate_ownership"] = state
 	}
 	for _, value := range deps {
 		if !isHealthyConnState(toString(value)) {
@@ -709,74 +1379,11 @@ func (s *Server) readyz(w http.ResponseWriter, _ *http.Request) {
 
 func isHealthyConnState(state string) bool {
 	switch state {
-	case connectivity.Ready.String(), connectivity.Idle.String(), connectivity.Connecting.String():
+	case connectivity.Ready.String(), connectivity.Idle.String(), connectivity.Connecting.String(), "ready":
 		return true
 	default:
 		return false
 	}
-}
-
-func (s *Server) sendOTP(w http.ResponseWriter, r *http.Request) {
-	payload, ok := readJSON(w, r)
-	if !ok {
-		return
-	}
-	email := strings.TrimSpace(toString(payload["email"]))
-	if email == "" {
-		email = strings.TrimSpace(toString(payload["phone"]))
-	}
-
-	ctx, cancel := s.withRequestTimeout(r.Context())
-	defer cancel()
-
-	respAny, err := s.mediator.Send(ctx, authapp.SendOTPCommandName, authapp.SendOTPCommand{Email: email})
-	if err != nil {
-		if errors.Is(err, authapp.ErrValidation) {
-			writeError(w, http.StatusBadRequest, err)
-			return
-		}
-		writeError(w, http.StatusBadGateway, err)
-		return
-	}
-
-	resp, ok := respAny.(map[string]any)
-	if !ok {
-		writeError(w, http.StatusBadGateway, errors.New("unexpected send otp response payload"))
-		return
-	}
-	writeJSON(w, http.StatusOK, resp)
-}
-
-func (s *Server) verifyOTP(w http.ResponseWriter, r *http.Request) {
-	payload, ok := readJSON(w, r)
-	if !ok {
-		return
-	}
-	email := strings.TrimSpace(toString(payload["email"]))
-	if email == "" {
-		email = strings.TrimSpace(toString(payload["phone"]))
-	}
-	otp := strings.TrimSpace(toString(payload["otp"]))
-
-	ctx, cancel := s.withRequestTimeout(r.Context())
-	defer cancel()
-
-	respAny, err := s.mediator.Send(ctx, authapp.VerifyOTPCommandName, authapp.VerifyOTPCommand{Email: email, OTP: otp})
-	if err != nil {
-		if errors.Is(err, authapp.ErrValidation) {
-			writeError(w, http.StatusBadRequest, err)
-			return
-		}
-		writeError(w, http.StatusBadGateway, err)
-		return
-	}
-
-	resp, ok := respAny.(map[string]any)
-	if !ok {
-		writeError(w, http.StatusBadGateway, errors.New("unexpected verify otp response payload"))
-		return
-	}
-	writeJSON(w, http.StatusOK, resp)
 }
 
 func (s *Server) bootstrapSignup(w http.ResponseWriter, r *http.Request) {
@@ -787,7 +1394,7 @@ func (s *Server) bootstrapSignup(w http.ResponseWriter, r *http.Request) {
 
 	input := signupBootstrapInput{
 		UserID:      strings.TrimSpace(toString(payload["user_id"])),
-		PhoneNumber: normalizeSignupPhone(toString(payload["phone"])),
+		Username:    strings.ToLower(strings.TrimSpace(toString(payload["username"]))),
 		Name:        strings.TrimSpace(toString(payload["name"])),
 		DateOfBirth: strings.TrimSpace(toString(payload["date_of_birth"])),
 		Gender:      normalizeSignupGender(toString(payload["gender"])),
@@ -796,10 +1403,17 @@ func (s *Server) bootstrapSignup(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, err)
 		return
 	}
+	if s.cfg.UseLocalDB {
+		authenticatedUserID, err := s.store.profileRepo.userIDForAccessToken(r.Context(), r.Header.Get("Authorization"))
+		if err != nil || authenticatedUserID != input.UserID {
+			writeError(w, http.StatusUnauthorized, errors.New("valid signup session is required"))
+			return
+		}
+	}
 
 	draft, created, err := s.store.bootstrapSignup(input)
 	if err != nil {
-		if errors.Is(err, errSignupPhoneAlreadyExists) {
+		if errors.Is(err, errSignupUsernameAlreadyExists) {
 			writeError(w, http.StatusConflict, err)
 			return
 		}
@@ -820,14 +1434,31 @@ func (s *Server) bootstrapSignup(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func normalizeSignupPhone(input string) string {
-	compact := strings.TrimSpace(input)
-	compact = strings.ReplaceAll(compact, " ", "")
-	compact = strings.ReplaceAll(compact, "-", "")
-	if strings.HasPrefix(compact, "+") {
-		return "+" + regexp.MustCompile(`[^0-9]`).ReplaceAllString(compact[1:], "")
+func (s *Server) getSignupWorkflow(w http.ResponseWriter, r *http.Request) {
+	userID := strings.TrimSpace(chi.URLParam(r, "userID"))
+	if userID == "" || s.store.profileRepo == nil || s.store.profileRepo.pg == nil {
+		writeError(w, http.StatusBadRequest, errors.New("local signup workflow is unavailable"))
+		return
 	}
-	return regexp.MustCompile(`[^0-9]`).ReplaceAllString(compact, "")
+	authenticatedUserID, err := s.store.profileRepo.userIDForAccessToken(r.Context(), r.Header.Get("Authorization"))
+	if err != nil || authenticatedUserID != userID {
+		writeError(w, http.StatusUnauthorized, errors.New("valid signup session is required"))
+		return
+	}
+	status, err := s.store.profileRepo.getSignupWorkflow(r.Context(), userID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"user_id":          status.UserID,
+		"username":         status.Username,
+		"state":            status.State,
+		"current_activity": status.CurrentActivity,
+		"lock_version":     status.LockVersion,
+		"signup_required":  status.SignupRequired,
+		"updated_at":       status.UpdatedAt,
+	})
 }
 
 func normalizeSignupGender(input string) string {
@@ -847,22 +1478,26 @@ func validateSignupBootstrapInput(input signupBootstrapInput) error {
 	if strings.TrimSpace(input.UserID) == "" {
 		return errors.New("user_id is required")
 	}
-	if !regexp.MustCompile(`^\+?[0-9]{10,15}$`).MatchString(input.PhoneNumber) {
-		return errors.New("valid phone is required")
+	if _, err := authdomain.NewUsername(input.Username); err != nil {
+		return errors.New("valid username is required")
 	}
-	if len([]rune(strings.TrimSpace(input.Name))) < 2 {
-		return errors.New("name must be at least 2 characters")
+	return validateProfileBasics(input.Name, input.DateOfBirth, input.Gender, time.Now().UTC())
+}
+
+func validateProfileBasics(name, dateOfBirth, gender string, now time.Time) error {
+	if n := len([]rune(strings.TrimSpace(name))); n < 2 || n > 50 {
+		return errors.New("name must be 2-50 characters")
 	}
-	if input.Gender != "M" && input.Gender != "F" && input.Gender != "Other" {
+	if gender != "M" && gender != "F" && gender != "Other" {
 		return errors.New("gender must be M, F, or Other")
 	}
-	dob, err := time.Parse("2006-01-02", strings.TrimSpace(input.DateOfBirth))
+	dob, err := time.Parse("2006-01-02", strings.TrimSpace(dateOfBirth))
 	if err != nil {
 		return errors.New("date_of_birth must use YYYY-MM-DD")
 	}
-	now := time.Now().UTC()
+	now = now.UTC()
 	age := now.Year() - dob.Year()
-	if now.YearDay() < dob.YearDay() {
+	if now.Month() < dob.Month() || (now.Month() == dob.Month() && now.Day() < dob.Day()) {
 		age--
 	}
 	if age < 18 {
@@ -875,26 +1510,34 @@ func validateSignupBootstrapInput(input signupBootstrapInput) error {
 }
 
 func (s *Server) getProfile(w http.ResponseWriter, r *http.Request) {
+	principal, ok := r.Context().Value(securityPrincipalContextKey{}).(securityPrincipal)
+	if !ok || principal.UserID == "" {
+		writeError(w, http.StatusUnauthorized, errors.New("valid bearer session is required"))
+		return
+	}
+	if s.store == nil || s.store.profileRepo == nil || s.store.profileRepo.pg == nil {
+		writeError(w, http.StatusServiceUnavailable, errors.New("public profile persistence is unavailable"))
+		return
+	}
 	userID := strings.TrimSpace(chi.URLParam(r, "userID"))
-
+	if _, err := uuid.Parse(userID); err != nil {
+		writeError(w, http.StatusBadRequest, errors.New("valid profile id is required"))
+		return
+	}
 	ctx, cancel := s.withRequestTimeout(r.Context())
 	defer cancel()
-
-	respAny, err := s.mediator.Send(ctx, profileapp.GetProfileCommandName, profileapp.GetProfileCommand{UserID: userID})
+	profile, found, err := loadPublicProfile(ctx, s.store.profileRepo.pg, principal.UserID, userID)
 	if err != nil {
-		if errors.Is(err, profileapp.ErrValidation) {
-			writeError(w, http.StatusBadRequest, err)
-			return
-		}
-		writeError(w, http.StatusBadGateway, err)
+		s.log.Error("public_profile_read_failed", zap.Error(err))
+		writeError(w, http.StatusServiceUnavailable, errors.New("profile is temporarily unavailable"))
 		return
 	}
-	resp, ok := respAny.(map[string]any)
-	if !ok {
-		writeError(w, http.StatusBadGateway, errors.New("unexpected get profile response payload"))
+	if !found {
+		// Do not distinguish nonexistent, blocked, restricted or unpublished users.
+		writeError(w, http.StatusNotFound, errors.New("profile is unavailable"))
 		return
 	}
-	writeJSON(w, http.StatusOK, resp)
+	writeJSON(w, http.StatusOK, map[string]any{"profile": profile, "found": true})
 }
 
 func (s *Server) getProfileSummary(w http.ResponseWriter, r *http.Request) {
@@ -902,7 +1545,6 @@ func (s *Server) getProfileSummary(w http.ResponseWriter, r *http.Request) {
 
 	ctx, cancel := s.withRequestTimeout(r.Context())
 	defer cancel()
-
 	respAny, err := s.mediator.Send(
 		ctx,
 		profileapp.GetProfileSummaryCommandName,
@@ -967,10 +1609,14 @@ func (s *Server) getDiscoveryCandidates(w http.ResponseWriter, r *http.Request) 
 
 	limit := 25
 	if raw := r.URL.Query().Get("limit"); raw != "" {
-		if parsed, err := strconv.Atoi(raw); err == nil {
+		if parsed, err := strconv.Atoi(raw); err == nil && parsed > 0 && parsed <= 300 {
 			limit = parsed
 		}
 	}
+	requestedLimit := limit
+	// Publication and blocking can remove candidates even without a manual
+	// filter. Fetch a larger pool before applying those mandatory gates.
+	limit = min(max(limit*6, 150), 300)
 
 	ctx, cancel := s.withRequestTimeout(r.Context())
 	defer cancel()
@@ -993,10 +1639,35 @@ func (s *Server) getDiscoveryCandidates(w http.ResponseWriter, r *http.Request) 
 		writeError(w, http.StatusBadGateway, errors.New("unexpected discovery candidates response payload"))
 		return
 	}
-	s.attachAdvancedFilteredDiscovery(resp, userID, r.URL.Query())
+	// Applied before trimming so the deck is filled to the requested limit
+	// from members the viewer may actually see, rather than trimmed first and
+	// then punched full of holes.
+	s.attachBlockedFilteredDiscovery(ctx, resp, userID)
+	if s.cfg.UseLocalDB || (s.store != nil && s.store.profileRepo != nil && s.store.profileRepo.pg != nil) {
+		if s.store == nil || s.store.profileRepo == nil || s.store.profileRepo.pg == nil {
+			writeError(w, http.StatusServiceUnavailable, errors.New("discovery publication persistence is unavailable"))
+			return
+		}
+		if err := filterPublishedDiscovery(ctx, s.store.profileRepo.pg, userID, resp, s.buildAdvancedCriteria(userID, s.discoveryPreferenceQuery(userID, r.URL.Query()))); err != nil {
+			s.log.Error("discovery_publication_failed", zap.Error(err))
+			writeError(w, http.StatusServiceUnavailable, errors.New("discovery is temporarily unavailable"))
+			return
+		}
+		// Graduated or manually paused members are dealt to nobody; a paused
+		// viewer gets an empty deck with discovery_paused explaining why.
+		s.attachPausedFilteredDiscovery(ctx, resp, userID)
+	}
+	if _, filtered := resp["advanced_filter"]; !filtered {
+		s.attachAdvancedFilteredDiscovery(resp, userID, r.URL.Query())
+	}
 	s.attachTrustFilteredDiscovery(resp, userID)
+	trimDiscoveryCandidates(resp, requestedLimit)
 	s.attachSpotlightDiscoveryWithContext(r.Context(), resp, userID)
+
 	applyDiscoveryMode(resp, mode)
+	// Explainability chips: every candidate carries `reasons` (possibly
+	// empty); today's curated set supplies them for its members.
+	attachDiscoveryReasons(resp, s.curatedReasonsForDeck(ctx, userID))
 	writeJSON(w, http.StatusOK, resp)
 }
 
@@ -1018,6 +1689,12 @@ func (s *Server) swipe(w http.ResponseWriter, r *http.Request) {
 	payload, ok := readJSON(w, r)
 	if !ok {
 		return
+	}
+
+	if like, _ := payload["is_like"].(bool); like {
+		if !s.enforceDailyQuota(w, r, s.requestUserID(r, toString(payload["user_id"])), "like") {
+			return
+		}
 	}
 
 	ctx, cancel := s.withRequestTimeout(r.Context())
@@ -1717,6 +2394,13 @@ func (s *Server) listMessages(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadGateway, errors.New("unexpected list messages response payload"))
 		return
 	}
+	if principal, authenticated := principalFromRequest(r); authenticated {
+		s.attachAssistMarks(ctx, matchID, resp)
+		if err = s.filterHiddenReceivedGiftMessages(ctx, principal, matchID, resp); err != nil {
+			writeError(w, http.StatusServiceUnavailable, errors.New("gift visibility controls are unavailable"))
+			return
+		}
+	}
 	writeJSON(w, http.StatusOK, resp)
 }
 
@@ -1764,6 +2448,10 @@ func (s *Server) sendMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !s.enforceDailyQuota(w, r, s.requestUserID(r, toString(payload["sender_id"])), "message") {
+		return
+	}
+
 	ctx, cancel := s.withRequestTimeout(r.Context())
 	defer cancel()
 
@@ -1785,6 +2473,8 @@ func (s *Server) sendMessage(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadGateway, errors.New("unexpected send message response payload"))
 		return
 	}
+	// A message that started as a copilot draft carries an honest mark.
+	s.markAssistedMessageSend(ctx, matchID, s.requestUserID(r, toString(payload["sender_id"])), payload, resp)
 	writeJSON(w, http.StatusOK, resp)
 }
 
@@ -2044,6 +2734,11 @@ func (s *Server) submitActivitySession(w http.ResponseWriter, r *http.Request) {
 				"responses_submitted": len(responses),
 			},
 		})
+		s.awardProgression(r.Context(), xpAwardInput{
+			UserID: userID, Source: "mini_activity_completed", SourceEventID: sessionID,
+			IdempotencyKey: "mini_activity_completed:" + sessionID + ":" + userID,
+			Metadata:       map[string]any{"activity_type": session.ActivityType, "match_id": session.MatchID},
+		})
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{
@@ -2249,6 +2944,23 @@ func (s *Server) submitDailyPromptAnswer(w http.ResponseWriter, r *http.Request)
 			},
 		})
 	}
+	if !isEdit {
+		promptDate := toString(prompt["prompt_date"])
+		s.awardProgression(r.Context(), xpAwardInput{
+			UserID: userID, Source: "daily_prompt_submitted", SourceEventID: toString(prompt["id"]) + ":" + promptDate,
+			IdempotencyKey: "daily_prompt_submitted:" + userID + ":" + promptDate,
+			Metadata:       map[string]any{"prompt_id": toString(prompt["id"]), "prompt_date": promptDate},
+		})
+		milestone := int(numericValue(streak["milestone_reached"]))
+		if milestone == 3 || milestone == 7 || milestone == 14 {
+			source := "streak_" + strconv.Itoa(milestone)
+			s.awardProgression(r.Context(), xpAwardInput{
+				UserID: userID, Source: source, SourceEventID: promptDate,
+				IdempotencyKey: source + ":" + userID + ":" + promptDate,
+				Metadata:       map[string]any{"streak_days": milestone},
+			})
+		}
+	}
 
 	writeJSON(w, http.StatusOK, map[string]any{
 		"daily_prompt": view,
@@ -2349,6 +3061,13 @@ func (s *Server) sendMatchNudge(w http.ResponseWriter, r *http.Request) {
 	nudgeType := strings.TrimSpace(toString(payload["nudge_type"]))
 	ctx, cancel := s.withRequestTimeout(r.Context())
 	defer cancel()
+	if enabled, err := s.runtimeFeatureEnabled(ctx, "match_nudges_enabled", true); err != nil {
+		writeError(w, http.StatusServiceUnavailable, errors.New("match nudge configuration unavailable"))
+		return
+	} else if !enabled {
+		writeError(w, http.StatusConflict, errors.New("match nudges are temporarily disabled"))
+		return
+	}
 
 	respAny, err := s.mediator.Send(
 		ctx,
@@ -2564,7 +3283,6 @@ func (s *Server) getCircleChallenge(w http.ResponseWriter, r *http.Request) {
 			"challenge_id": toString(challenge["id"]),
 		},
 	})
-
 	writeJSON(w, http.StatusOK, resp)
 }
 
@@ -2617,7 +3335,6 @@ func (s *Server) joinCircle(w http.ResponseWriter, r *http.Request) {
 			"joined_at": membership["joined_at"],
 		},
 	})
-
 	writeJSON(w, http.StatusOK, resp)
 }
 
@@ -2690,6 +3407,11 @@ func (s *Server) submitCircleChallenge(w http.ResponseWriter, r *http.Request) {
 			"participation_count": view["participation_count"],
 		},
 	})
+	s.awardProgression(r.Context(), xpAwardInput{
+		UserID: userID, Source: "circle_challenge_submitted", SourceEventID: toString(entry["id"]),
+		IdempotencyKey: "circle_challenge_submitted:" + toString(entry["id"]),
+		Metadata:       map[string]any{"circle_id": circleID, "challenge_id": challengeID},
+	})
 
 	writeJSON(w, http.StatusOK, resp)
 }
@@ -2721,6 +3443,9 @@ func (s *Server) startVoiceIcebreaker(w http.ResponseWriter, r *http.Request) {
 	senderUserID := strings.TrimSpace(toString(payload["sender_user_id"]))
 	receiverUserID := strings.TrimSpace(toString(payload["receiver_user_id"]))
 	promptID := strings.TrimSpace(toString(payload["prompt_id"]))
+	if !s.requireLocalSignupUser(w, r, senderUserID) {
+		return
+	}
 
 	ctx, cancel := s.withRequestTimeout(r.Context())
 	defer cancel()
@@ -2783,17 +3508,61 @@ func (s *Server) sendVoiceIcebreaker(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	payload, ok := readJSON(w, r)
-	if !ok {
+	if !strings.HasPrefix(strings.ToLower(strings.TrimSpace(r.Header.Get("Content-Type"))), "multipart/form-data") {
+		writeError(w, http.StatusUnsupportedMediaType, errors.New("voice messages must include multipart audio content"))
 		return
 	}
-
-	senderUserID := strings.TrimSpace(toString(payload["sender_user_id"]))
-	transcript := strings.TrimSpace(toString(payload["transcript"]))
-	durationSeconds, hasDuration := toInt(payload["duration_seconds"])
-	if !hasDuration {
+	if err := r.ParseMultipartForm(maxVoiceRecordingBytes + (1 << 20)); err != nil {
+		writeError(w, http.StatusRequestEntityTooLarge, errors.New("voice message exceeds the upload limit"))
+		return
+	}
+	senderUserID := strings.TrimSpace(r.FormValue("sender_user_id"))
+	transcript := strings.TrimSpace(r.FormValue("transcript"))
+	durationSeconds, durationErr := strconv.Atoi(strings.TrimSpace(r.FormValue("duration_seconds")))
+	if durationErr != nil {
 		writeError(w, http.StatusBadRequest, errors.New("duration_seconds is required"))
 		return
+	}
+	if durationSeconds < voiceIcebreakerMinDurationSec || durationSeconds > voiceIcebreakerMaxDurationSec {
+		writeError(w, http.StatusBadRequest, fmt.Errorf("duration_seconds must be between %d and %d", voiceIcebreakerMinDurationSec, voiceIcebreakerMaxDurationSec))
+		return
+	}
+	if !s.requireLocalSignupUser(w, r, senderUserID) {
+		return
+	}
+	recording, err := s.persistVoiceRecording(r, icebreakerID, senderUserID)
+	if err != nil {
+		writeError(w, mediaUploadHTTPStatus(err), err)
+		return
+	}
+	moderation, err := s.voiceModerator.Assess(r.Context(), icebreakerID, transcript, recording)
+	if err != nil {
+		_ = s.deleteStoredMedia(recording.StoragePath)
+		writeError(w, http.StatusServiceUnavailable, errors.New("voice moderation provider is temporarily unavailable"))
+		return
+	}
+	if recordErr := s.recordVoiceModeration(r.Context(), icebreakerID, senderUserID, recording, moderation); recordErr != nil {
+		_ = s.deleteStoredMedia(recording.StoragePath)
+		writeError(w, http.StatusBadGateway, errors.New("voice moderation result could not be recorded"))
+		return
+	}
+	if moderation.Decision != "approved" {
+		_ = s.deleteStoredMedia(recording.StoragePath)
+		message := "Voice recording requires review and was not sent."
+		if moderation.Decision == "rejected" {
+			message = "Voice recording did not pass moderation."
+		}
+		writeError(w, http.StatusUnprocessableEntity, errors.New(message))
+		return
+	}
+	if err := s.store.attachVoiceRecording(icebreakerID, senderUserID, recording); err != nil {
+		_ = s.deleteStoredMedia(recording.StoragePath)
+		writeError(w, http.StatusConflict, err)
+		return
+	}
+	cleanup := func() {
+		s.store.detachVoiceRecording(icebreakerID)
+		_ = s.deleteStoredMedia(recording.StoragePath)
 	}
 
 	ctx, cancel := s.withRequestTimeout(r.Context())
@@ -2810,6 +3579,7 @@ func (s *Server) sendVoiceIcebreaker(w http.ResponseWriter, r *http.Request) {
 		},
 	)
 	if err != nil {
+		cleanup()
 		if errors.Is(err, engagementapp.ErrValidation) {
 			writeError(w, http.StatusBadRequest, err)
 			return
@@ -2864,6 +3634,10 @@ func (s *Server) playVoiceIcebreaker(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userID := strings.TrimSpace(toString(payload["user_id"]))
+	if _, err := s.store.voiceIcebreakerForPlayback(icebreakerID, userID); err != nil {
+		writeError(w, http.StatusForbidden, err)
+		return
+	}
 	ctx, cancel := s.withRequestTimeout(r.Context())
 	defer cancel()
 
@@ -2896,6 +3670,17 @@ func (s *Server) playVoiceIcebreaker(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	item, _ := resp["voice_icebreaker"].(map[string]any)
+	audioURL, audioExpiresAt, audioErr := s.signedVoicePlaybackURL(r, icebreakerID, userID)
+	if audioErr != nil {
+		writeError(w, http.StatusServiceUnavailable, audioErr)
+		return
+	}
+	if _, playbackErr := s.store.voiceIcebreakerForPlayback(icebreakerID, userID); playbackErr != nil {
+		writeError(w, http.StatusForbidden, playbackErr)
+		return
+	}
+	item["audio_url"] = audioURL
+	item["audio_expires_at"] = audioExpiresAt.Format(time.RFC3339)
 
 	s.store.recordActivity(activityEvent{
 		UserID:   userID,
@@ -2908,6 +3693,12 @@ func (s *Server) playVoiceIcebreaker(w http.ResponseWriter, r *http.Request) {
 			"user_id":       userID,
 			"icebreaker_id": toString(item["id"]),
 		},
+	})
+	senderUserID := toString(item["sender_user_id"])
+	s.awardProgression(r.Context(), xpAwardInput{
+		UserID: senderUserID, Source: "voice_icebreaker_played", SourceEventID: icebreakerID,
+		IdempotencyKey: "voice_icebreaker_played:" + icebreakerID,
+		Metadata:       map[string]any{"played_by": userID, "match_id": toString(item["match_id"])},
 	})
 
 	writeJSON(w, http.StatusOK, resp)
@@ -3256,6 +4047,9 @@ func (s *Server) startCall(w http.ResponseWriter, r *http.Request) {
 	matchID := strings.TrimSpace(toString(payload["match_id"]))
 	initiatorID := strings.TrimSpace(toString(payload["initiator_user_id"]))
 	recipientID := strings.TrimSpace(toString(payload["recipient_user_id"]))
+	if !s.requireLocalSignupUser(w, r, initiatorID) {
+		return
+	}
 
 	ctx, cancel := s.withRequestTimeout(r.Context())
 	defer cancel()
@@ -3274,6 +4068,11 @@ func (s *Server) startCall(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusBadRequest, err)
 			return
 		}
+		if strings.Contains(strings.ToLower(err.Error()), "active match") ||
+			strings.Contains(strings.ToLower(err.Error()), "unavailable for this match") {
+			writeError(w, http.StatusConflict, err)
+			return
+		}
 		writeError(w, http.StatusBadGateway, err)
 		return
 	}
@@ -3283,6 +4082,7 @@ func (s *Server) startCall(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadGateway, errors.New("unexpected start call response payload"))
 		return
 	}
+	s.decorateCallResponse(resp, initiatorID)
 	writeJSON(w, http.StatusOK, resp)
 }
 
@@ -3298,6 +4098,9 @@ func (s *Server) endCall(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	endedBy := strings.TrimSpace(toString(payload["ended_by_user_id"]))
+	if !s.requireLocalSignupUser(w, r, endedBy) {
+		return
+	}
 	ctx, cancel := s.withRequestTimeout(r.Context())
 	defer cancel()
 
@@ -3313,6 +4116,10 @@ func (s *Server) endCall(w http.ResponseWriter, r *http.Request) {
 		}
 		if strings.Contains(strings.ToLower(err.Error()), "not found") {
 			writeError(w, http.StatusNotFound, err)
+			return
+		}
+		if strings.Contains(strings.ToLower(err.Error()), "call participant") {
+			writeError(w, http.StatusForbidden, err)
 			return
 		}
 		writeError(w, http.StatusBadGateway, err)
@@ -3331,6 +4138,9 @@ func (s *Server) listCallHistory(w http.ResponseWriter, r *http.Request) {
 	userID := strings.TrimSpace(chi.URLParam(r, "userID"))
 	if userID == "" {
 		writeError(w, http.StatusBadRequest, errors.New("user id is required"))
+		return
+	}
+	if !s.requireLocalSignupUser(w, r, userID) {
 		return
 	}
 	limit := 100
@@ -3362,6 +4172,7 @@ func (s *Server) listCallHistory(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadGateway, errors.New("unexpected call history response payload"))
 		return
 	}
+	s.decorateCallHistoryResponse(resp, userID)
 	writeJSON(w, http.StatusOK, resp)
 }
 
@@ -3496,6 +4307,14 @@ func (s *Server) userAnalytics(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, errors.New("user id is required"))
 		return
 	}
+	// A support view, not a member feature: it counts reports filed against
+	// the member. Only support operators may read it (server_security.go
+	// leaves "analytics" out of the self-owned roots for this reason).
+	if principal, ok := principalFromRequest(r); !ok ||
+		!(principal.Roles["admin"] || principal.Roles["trust_safety"] || principal.Roles["moderator"]) {
+		writeError(w, http.StatusForbidden, errors.New("member analytics are available to support operators only"))
+		return
+	}
 
 	ctx, cancel := s.withRequestTimeout(r.Context())
 	defer cancel()
@@ -3515,6 +4334,8 @@ func (s *Server) userAnalytics(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadGateway, errors.New("unexpected user analytics response payload"))
 		return
 	}
+	resp["data_source"] = "process_local_runtime_store"
+	resp["data_note"] = "Counted from this BFF instance's in-memory activity since it started; not durable and empty when Postgres is configured."
 	writeJSON(w, http.StatusOK, resp)
 }
 
@@ -3576,6 +4397,19 @@ func (s *Server) getBillingSubscription(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s *Server) subscribePlan(w http.ResponseWriter, r *http.Request) {
+	// With a payment provider configured, subscriptions come from settled
+	// card checkouts only. Local activation stays available solely for
+	// provider-less development stacks that opt in explicitly.
+	if s.billing != nil && !s.cfg.BillingLocalActivationEnabled {
+		writeError(w, http.StatusConflict, errCheckoutRequired)
+		return
+	}
+	// Provider-less activation grants a paid plan with no payment; only an
+	// explicitly local environment may do that.
+	if s.billing == nil && !config.IsLocalEnvironment(s.cfg.Environment) {
+		writeError(w, http.StatusConflict, errCheckoutRequired)
+		return
+	}
 	payload, ok := readJSON(w, r)
 	if !ok {
 		return
@@ -3649,6 +4483,9 @@ func (s *Server) getProfileDraft(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, errors.New("user id is required"))
 		return
 	}
+	if !s.requireLocalSignupUser(w, r, userID) {
+		return
+	}
 
 	ctx, cancel := s.withRequestTimeout(r.Context())
 	defer cancel()
@@ -3675,6 +4512,9 @@ func (s *Server) patchProfileDraft(w http.ResponseWriter, r *http.Request) {
 	userID := strings.TrimSpace(chi.URLParam(r, "userID"))
 	if userID == "" {
 		writeError(w, http.StatusBadRequest, errors.New("user id is required"))
+		return
+	}
+	if !s.requireLocalSignupUser(w, r, userID) {
 		return
 	}
 
@@ -3714,27 +4554,46 @@ func (s *Server) addProfilePhoto(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, errors.New("user id is required"))
 		return
 	}
-
-	var photoURL, storagePath string
-	contentType := strings.ToLower(strings.TrimSpace(r.Header.Get("Content-Type")))
-	if strings.HasPrefix(contentType, "multipart/form-data") {
-		uploadedURL, uploadedPath, err := s.persistUploadedPhoto(r, userID)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, err)
-			return
-		}
-		photoURL = uploadedURL
-		storagePath = uploadedPath
-	} else {
-		payload, ok := readJSON(w, r)
-		if !ok {
-			return
-		}
-		photoURL = strings.TrimSpace(toString(payload["photo_url"]))
-		storagePath = strings.TrimSpace(toString(payload["storage_path"]))
+	if !s.requireLocalSignupUser(w, r, userID) {
+		return
 	}
 
-	if photoURL == "" {
+	var upload profileapp.ProfilePhotoUploadInput
+	contentType := strings.ToLower(strings.TrimSpace(r.Header.Get("Content-Type")))
+	if strings.HasPrefix(contentType, "multipart/form-data") {
+		validated, err := s.persistUploadedPhoto(r, userID)
+		if err != nil {
+			writeError(w, mediaUploadHTTPStatus(err), err)
+			return
+		}
+		upload = profileapp.ProfilePhotoUploadInput{
+			ID:                     validated.ID,
+			PhotoURL:               validated.PhotoURL,
+			StoragePath:            validated.StoragePath,
+			OriginalFilename:       validated.OriginalFilename,
+			MimeType:               validated.MimeType,
+			WidthPx:                validated.WidthPx,
+			HeightPx:               validated.HeightPx,
+			SizeBytes:              validated.SizeBytes,
+			ContentSHA256:          validated.ContentSHA256,
+			ModerationStatus:       validated.Moderation.Status,
+			ModerationProvider:     validated.Moderation.Provider,
+			ModerationModelVersion: validated.Moderation.ModelVersion,
+			ModerationReason:       validated.Moderation.Reason,
+			ModerationLabelsJSON:   validated.ModerationLabels,
+			ModerationConfidence:   validated.MaxConfidence,
+			ModerationDurationMS:   validated.Moderation.DurationMS,
+		}
+	} else {
+		writeError(
+			w,
+			http.StatusUnsupportedMediaType,
+			errors.New("profile photos must be uploaded as multipart image content"),
+		)
+		return
+	}
+
+	if upload.PhotoURL == "" {
 		writeError(w, http.StatusBadRequest, errors.New("photo_url is required"))
 		return
 	}
@@ -3745,13 +4604,20 @@ func (s *Server) addProfilePhoto(w http.ResponseWriter, r *http.Request) {
 	respAny, err := s.mediator.Send(
 		ctx,
 		profileapp.AddProfilePhotoCommandName,
-		profileapp.AddProfilePhotoCommand{UserID: userID, PhotoURL: photoURL, StoragePath: storagePath},
+		profileapp.AddProfilePhotoCommand{UserID: userID, Photo: upload},
 	)
 	if err != nil {
 		if errors.Is(err, profileapp.ErrValidation) {
 			writeError(w, http.StatusBadRequest, err)
 			return
 		}
+		if strings.Contains(strings.ToLower(err.Error()), "photo quota") ||
+			strings.Contains(strings.ToLower(err.Error()), "storage quota") {
+			_ = s.deleteStoredMedia(upload.StoragePath)
+			writeError(w, http.StatusConflict, err)
+			return
+		}
+		_ = s.deleteStoredMedia(upload.StoragePath)
 		writeError(w, http.StatusBadGateway, err)
 		return
 	}
@@ -3770,125 +4636,101 @@ func (s *Server) serveUploadedMedia(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, errors.New("invalid media path"))
 		return
 	}
-	if s.usesAWSS3Storage() {
-		http.Redirect(w, r, s.resolveAWSS3ObjectURL(s.buildAWSS3ObjectKey(relativePath)), http.StatusTemporaryRedirect)
+	if s.store == nil || s.store.profileRepo == nil || s.store.profileRepo.pg == nil {
+		writeError(w, http.StatusServiceUnavailable, errors.New("media authorization is unavailable"))
 		return
 	}
-
-	rootDir := filepath.Clean(strings.TrimSpace(s.cfg.MediaUploadsDir))
-	if rootDir == "" {
-		rootDir = filepath.Clean(".run/uploads/profile_photos")
-	}
-
-	targetPath := filepath.Clean(filepath.Join(rootDir, filepath.FromSlash(relativePath)))
-	rootPrefix := rootDir + string(os.PathSeparator)
-	if targetPath != rootDir && !strings.HasPrefix(targetPath, rootPrefix) {
-		writeError(w, http.StatusForbidden, errors.New("forbidden media path"))
-		return
-	}
-
-	if _, err := os.Stat(targetPath); err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			writeError(w, http.StatusNotFound, errors.New("media not found"))
-			return
+	var record mediaAccessRecord
+	err := sql.ErrNoRows
+	for _, storagePath := range s.profileMediaStorageKeys(relativePath) {
+		record, err = s.store.profileRepo.mediaAccessByStoragePathPostgres(r.Context(), storagePath)
+		if err == nil {
+			break
 		}
-		writeError(w, http.StatusInternalServerError, err)
+	}
+	if err != nil || record.ModerationStatus != mediaModerationApproved {
+		writeError(w, http.StatusNotFound, errors.New("media not found"))
 		return
 	}
-
-	http.ServeFile(w, r, targetPath)
+	s.serveStoredMedia(w, r, record)
 }
 
-func (s *Server) persistUploadedPhoto(r *http.Request, userID string) (string, string, error) {
+func (s *Server) persistUploadedPhoto(r *http.Request, userID string) (validatedPhotoUpload, error) {
 	if err := r.ParseMultipartForm(12 << 20); err != nil {
-		return "", "", fmt.Errorf("invalid multipart payload: %w", err)
+		return validatedPhotoUpload{}, fmt.Errorf("invalid multipart payload: %w", err)
 	}
 
 	file, header, err := r.FormFile("image")
 	if err != nil {
 		file, header, err = r.FormFile("file")
 		if err != nil {
-			return "", "", errors.New("image file is required")
+			return validatedPhotoUpload{}, errors.New("image file is required")
 		}
 	}
 	defer file.Close()
 
-	ext := normalizeImageExtension(header.Filename)
-	filename := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext)
 	safeUserID := sanitizePathSegment(userID)
-	content, err := io.ReadAll(io.LimitReader(file, 10<<20+1))
+	content, err := io.ReadAll(io.LimitReader(file, maxProfilePhotoBytes+1))
 	if err != nil {
-		return "", "", fmt.Errorf("failed to read image payload: %w", err)
+		return validatedPhotoUpload{}, fmt.Errorf("failed to read image payload: %w", err)
 	}
-	if len(content) == 0 {
-		return "", "", errors.New("image file is empty")
-	}
-	if len(content) > 10<<20 {
-		return "", "", errors.New("image file exceeds 10MB limit")
-	}
-	contentType := detectUploadContentType(header.Header.Get("Content-Type"), header.Filename, content)
-
-	if s.usesAWSS3Storage() {
-		return s.persistUploadedPhotoToS3(r.Context(), safeUserID, filename, contentType, content)
-	}
-	return s.persistUploadedPhotoToLocalFS(r, safeUserID, filename, content)
-}
-
-func (s *Server) persistUploadedPhotoToLocalFS(r *http.Request, safeUserID, filename string, content []byte) (string, string, error) {
-
-	rootDir := filepath.Clean(strings.TrimSpace(s.cfg.MediaUploadsDir))
-	if rootDir == "" {
-		rootDir = filepath.Clean(".run/uploads/profile_photos")
-	}
-	userDir := filepath.Join(rootDir, safeUserID)
-	if err := os.MkdirAll(userDir, 0o755); err != nil {
-		return "", "", fmt.Errorf("failed to create upload directory: %w", err)
-	}
-
-	targetPath := filepath.Clean(filepath.Join(userDir, filename))
-	userPrefix := filepath.Clean(userDir) + string(os.PathSeparator)
-	if !strings.HasPrefix(targetPath, userPrefix) {
-		return "", "", errors.New("invalid upload target")
-	}
-
-	output, err := os.Create(targetPath)
+	upload, err := validateProfilePhoto(header.Filename, content)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to create upload file: %w", err)
+		return validatedPhotoUpload{}, err
 	}
-	defer output.Close()
-
-	if _, err := output.Write(content); err != nil {
-		return "", "", fmt.Errorf("failed to persist image: %w", err)
+	if s.mediaModerator == nil {
+		return validatedPhotoUpload{}, newMediaUploadError(
+			http.StatusServiceUnavailable,
+			"Photo moderation is temporarily unavailable.",
+		)
 	}
-
-	baseURL := s.resolveMediaPublicBaseURL(r)
-	storagePath := safeUserID + "/" + filename
-	relativeURL := fmt.Sprintf("%s/media/%s/%s", s.cfg.APIPrefix, url.PathEscape(safeUserID), url.PathEscape(filename))
-	return baseURL + relativeURL, storagePath, nil
-}
-
-func (s *Server) persistUploadedPhotoToS3(ctx context.Context, safeUserID, filename, contentType string, content []byte) (string, string, error) {
-	if s.s3Client == nil {
-		return "", "", errors.New("aws s3 storage is not configured")
-	}
-
-	bucket := strings.TrimSpace(s.cfg.AWSS3Bucket)
-	key := s.buildAWSS3ObjectKey(path.Join(safeUserID, filename))
-	cacheControl := "public, max-age=31536000, immutable"
-
-	_, err := s.s3Client.PutObject(ctx, &s3.PutObjectInput{
-		Bucket:        aws.String(bucket),
-		Key:           aws.String(key),
-		Body:          bytes.NewReader(content),
-		ContentLength: aws.Int64(int64(len(content))),
-		ContentType:   aws.String(contentType),
-		CacheControl:  aws.String(cacheControl),
-	})
+	moderation, err := s.mediaModerator.Moderate(r.Context(), upload)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to upload image to aws s3: %w", err)
+		s.log.Warn("profile photo moderation failed", zap.Error(err), zap.String("user_id", userID))
+		return validatedPhotoUpload{}, newMediaUploadError(
+			http.StatusServiceUnavailable,
+			"Photo moderation is temporarily unavailable. Please retry.",
+		)
 	}
+	upload.Moderation = moderation
+	upload.ModerationLabels, err = json.Marshal(moderation.Labels)
+	if err != nil {
+		return validatedPhotoUpload{}, fmt.Errorf("encode photo moderation labels: %w", err)
+	}
+	for _, label := range moderation.Labels {
+		if label.Confidence > upload.MaxConfidence {
+			upload.MaxConfidence = label.Confidence
+		}
+	}
+	if moderation.Status == mediaModerationRejected {
+		if s.store != nil && s.store.profileRepo != nil && s.store.profileRepo.pg != nil {
+			if auditErr := s.store.profileRepo.recordRejectedMediaModerationPostgres(
+				r.Context(), userID, upload,
+			); auditErr != nil {
+				s.log.Error("rejected photo moderation audit failed", zap.Error(auditErr), zap.String("user_id", userID))
+				return validatedPhotoUpload{}, newMediaUploadError(
+					http.StatusServiceUnavailable,
+					"Photo moderation is temporarily unavailable. Please retry.",
+				)
+			}
+		}
+		return validatedPhotoUpload{}, newMediaUploadError(
+			http.StatusUnprocessableEntity,
+			"This photo does not meet the profile media policy.",
+		)
+	}
+	filename := upload.ID + upload.Extension
+	storageNamespace := "approved"
+	if moderation.Status != mediaModerationApproved {
+		storageNamespace = "quarantine"
+	}
+	storageUserPath := path.Join(storageNamespace, safeUserID)
 
-	return s.resolveAWSS3ObjectURL(key), key, nil
+	upload.StoragePath, err = s.storeMedia(r.Context(), storageUserPath, filename, upload.MimeType, content)
+	if err == nil {
+		upload.PhotoURL = s.mediaURLForStoragePath(r, upload.StoragePath)
+	}
+	return upload, err
 }
 
 func (s *Server) resolveMediaPublicBaseURL(r *http.Request) string {
@@ -3899,40 +4741,6 @@ func (s *Server) resolveMediaPublicBaseURL(r *http.Request) string {
 	}
 
 	return requestBaseURL(r, defaultGatewayHost(s.cfg.APIGatewayAddr))
-}
-
-func (s *Server) usesAWSS3Storage() bool {
-	return strings.EqualFold(strings.TrimSpace(s.cfg.FileStorageBackend), "aws_s3") || s.cfg.UseAWSS3Storage
-}
-
-func (s *Server) buildAWSS3ObjectKey(relativePath string) string {
-	trimmedPath := strings.Trim(strings.ReplaceAll(strings.TrimSpace(relativePath), "\\", "/"), "/")
-	prefix := strings.Trim(strings.ReplaceAll(strings.TrimSpace(s.cfg.AWSS3ProfilePhotosPrefix), "\\", "/"), "/")
-	if prefix == "" {
-		return trimmedPath
-	}
-	if trimmedPath == "" {
-		return prefix
-	}
-	return prefix + "/" + trimmedPath
-}
-
-func (s *Server) resolveAWSS3ObjectURL(key string) string {
-	escapedKey := escapeURLPath(key)
-	if publicBaseURL := strings.TrimRight(strings.TrimSpace(s.cfg.AWSS3PublicBaseURL), "/"); publicBaseURL != "" {
-		return publicBaseURL + "/" + escapedKey
-	}
-
-	if endpoint := strings.TrimRight(strings.TrimSpace(s.cfg.AWSS3Endpoint), "/"); endpoint != "" {
-		return endpoint + "/" + escapeURLPath(strings.Trim(strings.TrimSpace(s.cfg.AWSS3Bucket), "/")) + "/" + escapedKey
-	}
-
-	bucket := strings.TrimSpace(s.cfg.AWSS3Bucket)
-	region := strings.TrimSpace(s.cfg.AWSS3Region)
-	if region == "" || strings.EqualFold(region, "us-east-1") {
-		return fmt.Sprintf("https://%s.s3.amazonaws.com/%s", bucket, escapedKey)
-	}
-	return fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", bucket, region, escapedKey)
 }
 
 func detectUploadContentType(headerContentType, filename string, content []byte) string {
@@ -4001,43 +4809,6 @@ func defaultGatewayHost(addr string) string {
 	return normalized
 }
 
-func newS3Client(cfg config.Config) (*s3.Client, error) {
-	region := strings.TrimSpace(cfg.AWSS3Region)
-	if region == "" {
-		region = "us-east-1"
-	}
-
-	options := []func(*awsconfig.LoadOptions) error{
-		awsconfig.WithRegion(region),
-	}
-	if accessKeyID := strings.TrimSpace(cfg.AWSS3AccessKeyID); accessKeyID != "" {
-		options = append(options, awsconfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(
-			accessKeyID,
-			strings.TrimSpace(cfg.AWSS3SecretAccessKey),
-			"",
-		)))
-	}
-	if endpoint := strings.TrimRight(strings.TrimSpace(cfg.AWSS3Endpoint), "/"); endpoint != "" {
-		options = append(options, awsconfig.WithEndpointResolverWithOptions(aws.EndpointResolverWithOptionsFunc(
-			func(service, region string, _ ...interface{}) (aws.Endpoint, error) {
-				if service != s3.ServiceID {
-					return aws.Endpoint{}, &aws.EndpointNotFoundError{}
-				}
-				return aws.Endpoint{URL: endpoint, HostnameImmutable: true}, nil
-			},
-		)))
-	}
-
-	awsCfg, err := awsconfig.LoadDefaultConfig(context.Background(), options...)
-	if err != nil {
-		return nil, err
-	}
-
-	return s3.NewFromConfig(awsCfg, func(options *s3.Options) {
-		options.UsePathStyle = cfg.AWSS3ForcePathStyle
-	}), nil
-}
-
 var disallowedSegmentChars = regexp.MustCompile(`[^a-zA-Z0-9_-]`)
 
 func sanitizePathSegment(value string) string {
@@ -4069,9 +4840,26 @@ func (s *Server) deleteProfilePhoto(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, errors.New("user id and photo id are required"))
 		return
 	}
+	if !s.requireLocalSignupUser(w, r, userID) {
+		return
+	}
 
 	ctx, cancel := s.withRequestTimeout(r.Context())
 	defer cancel()
+
+	storagePath := ""
+	if s.store != nil && s.store.profileRepo != nil && s.store.profileRepo.pg != nil {
+		path, err := s.store.profileRepo.profilePhotoStoragePathPostgres(ctx, userID, photoID)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				writeError(w, http.StatusNotFound, errors.New("profile photo not found"))
+				return
+			}
+			writeError(w, http.StatusBadGateway, err)
+			return
+		}
+		storagePath = path
+	}
 
 	respAny, err := s.mediator.Send(
 		ctx,
@@ -4092,6 +4880,13 @@ func (s *Server) deleteProfilePhoto(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadGateway, errors.New("unexpected delete profile photo response payload"))
 		return
 	}
+	if storagePath != "" && s.store != nil && s.store.profileRepo != nil {
+		if err := s.deleteStoredMedia(storagePath); err != nil {
+			s.log.Warn("profile photo object deletion deferred")
+		} else if s.store.profileRepo.pg != nil {
+			_ = ignoreMissingMediaRow(s.store.profileRepo.markMediaDeletedPostgres(ctx, photoID))
+		}
+	}
 	writeJSON(w, http.StatusOK, resp)
 }
 
@@ -4099,6 +4894,9 @@ func (s *Server) reorderProfilePhotos(w http.ResponseWriter, r *http.Request) {
 	userID := strings.TrimSpace(chi.URLParam(r, "userID"))
 	if userID == "" {
 		writeError(w, http.StatusBadRequest, errors.New("user id is required"))
+		return
+	}
+	if !s.requireLocalSignupUser(w, r, userID) {
 		return
 	}
 
@@ -4143,6 +4941,9 @@ func (s *Server) completeProfile(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, errors.New("user id is required"))
 		return
 	}
+	if !s.requireLocalSignupUser(w, r, userID) {
+		return
+	}
 
 	ctx, cancel := s.withRequestTimeout(r.Context())
 	defer cancel()
@@ -4176,6 +4977,11 @@ func (s *Server) completeProfile(w http.ResponseWriter, r *http.Request) {
 		Details: map[string]any{
 			"completion": 100,
 		},
+	})
+	s.awardProgression(r.Context(), xpAwardInput{
+		UserID: userID, Source: "profile_completed", SourceEventID: userID,
+		IdempotencyKey: "profile_completed:" + userID,
+		Metadata:       map[string]any{"completion": 100},
 	})
 	writeJSON(w, http.StatusOK, resp)
 }
@@ -4575,9 +5381,38 @@ func (s *Server) submitVerification(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, errors.New("user id is required"))
 		return
 	}
+	if !s.requireLocalSignupUser(w, r, userID) {
+		return
+	}
+	if !strings.HasPrefix(strings.ToLower(strings.TrimSpace(r.Header.Get("Content-Type"))), "multipart/form-data") {
+		writeError(w, http.StatusUnsupportedMediaType, errors.New("identity evidence must be uploaded as multipart image content"))
+		return
+	}
+	evidence, storedPaths, providerBundle, err := s.persistVerificationEvidence(r, userID)
+	if err != nil {
+		writeError(w, mediaUploadHTTPStatus(err), err)
+		return
+	}
+	cleanup := func() {
+		for _, storagePath := range storedPaths {
+			_ = s.deleteStoredMedia(storagePath)
+		}
+	}
 
 	ctx, cancel := s.withRequestTimeout(r.Context())
 	defer cancel()
+	assessment, err := s.identityVerifier.Assess(ctx, userID, providerBundle)
+	if err != nil {
+		cleanup()
+		writeError(w, http.StatusServiceUnavailable, errors.New("identity verification provider is temporarily unavailable"))
+		return
+	}
+	evidence["provider_assessment"] = map[string]any{
+		"decision": assessment.Decision, "reason": assessment.Reason,
+		"confidence": assessment.Confidence, "provider": assessment.Provider,
+		"provider_reference": assessment.ProviderRef, "model_version": assessment.ModelVersion,
+		"assessed_at": assessment.AssessedAtUTC,
+	}
 
 	respAny, err := s.mediator.Send(
 		ctx,
@@ -4585,10 +5420,17 @@ func (s *Server) submitVerification(w http.ResponseWriter, r *http.Request) {
 		verificationapp.SubmitVerificationCommand{UserID: userID},
 	)
 	if err != nil {
+		cleanup()
 		if errors.Is(err, verificationapp.ErrValidation) {
 			writeError(w, http.StatusBadRequest, err)
 			return
 		}
+		writeError(w, http.StatusBadGateway, err)
+		return
+	}
+	attached, err := s.store.attachVerificationEvidence(userID, evidence)
+	if err != nil {
+		cleanup()
 		writeError(w, http.StatusBadGateway, err)
 		return
 	}
@@ -4597,6 +5439,23 @@ func (s *Server) submitVerification(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		writeError(w, http.StatusBadGateway, errors.New("unexpected submit verification response payload"))
 		return
+	}
+	resp["evidence_received"] = attached.EvidenceReceived
+	resp["provider_decision"] = assessment.Decision
+	if assessment.Decision == "approved" || assessment.Decision == "rejected" {
+		reason := strings.TrimSpace(assessment.Reason)
+		if assessment.Decision == "rejected" && reason == "" {
+			reason = "Identity evidence could not be verified."
+		}
+		reviewed, reviewErr := s.store.reviewVerification(
+			userID, assessment.Decision, reason, s.cfg.IdentityVerificationActorID,
+		)
+		if reviewErr != nil {
+			writeError(w, http.StatusBadGateway, errors.New("provider decision could not be committed"))
+			return
+		}
+		resp["status"] = reviewed.Status
+		resp["rejection_reason"] = reviewed.RejectionReason
 	}
 	writeJSON(w, http.StatusOK, resp)
 }
@@ -5021,6 +5880,18 @@ func (s *Server) adminAnalyticsOverview(w http.ResponseWriter, r *http.Request) 
 			metrics["queue_metrics"] = s.fanout.QueueMetrics()
 			metrics["precomputed_aggregates"] = s.fanout.AggregateSnapshot()
 		}
+		metrics["member_activity"] = s.memberActivityKPIs(ctx)
+		// funnel_metrics and the other runtime counters come from this
+		// instance's in-memory activity: per process, reset on restart and
+		// empty when Postgres is configured. The durable reports live under
+		// /v1/admin/analytics/{kpis,trends,funnel,retention,engagement,liquidity,safety}.
+		metrics["runtime_metrics_scope"] = map[string]any{
+			"source":   "process_local_runtime_store",
+			"durable":  false,
+			"fields":   []string{"funnel_metrics"},
+			"use":      "/v1/admin/analytics/kpis",
+			"guidance": "Do not report these counters; they are per instance and reset on restart.",
+		}
 	}
 	writeJSON(w, http.StatusOK, resp)
 }
@@ -5186,6 +6057,14 @@ type responseStatusRecorder struct {
 func (s *responseStatusRecorder) WriteHeader(code int) {
 	s.status = code
 	s.ResponseWriter.WriteHeader(code)
+}
+
+func (s *responseStatusRecorder) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	hijacker, ok := s.ResponseWriter.(http.Hijacker)
+	if !ok {
+		return nil, nil, http.ErrNotSupported
+	}
+	return hijacker.Hijack()
 }
 
 func statusLabel(status int) string {

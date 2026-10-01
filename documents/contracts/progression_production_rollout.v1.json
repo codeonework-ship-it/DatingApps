@@ -1,0 +1,68 @@
+{
+  "contract_id": "connect.progression-production-rollout",
+  "contract_version": "1.0.0",
+  "effective_date": "2026-09-27",
+  "rollout_sequence": [
+    {"stage": "dogfood", "rollout_percent": 1, "minimum_exposed_members": 25, "minimum_observation_days": 7},
+    {"stage": "five_percent", "rollout_percent": 5, "minimum_exposed_members": 250, "minimum_observation_days": 7},
+    {"stage": "twenty_five_percent", "rollout_percent": 25, "minimum_exposed_members": 1000, "minimum_observation_days": 14},
+    {"stage": "general_availability", "rollout_percent": 100, "minimum_exposed_members": 5000, "minimum_observation_days": 14}
+  ],
+  "stage_entry_gates": {
+    "cohort_safety": "observed moderation-report rate is at or below the experiment safety_stop_report_rate with a nonzero denominator",
+    "retention": "day-7 retained-member rate does not regress by more than 2 absolute percentage points versus control",
+    "fraud": "at least 100 resolved review cases or all cases in the window, whichever is smaller; false-positive rate at or below 10 percent; no unresolved critical case beyond SLA",
+    "xp_economy": "mean earned XP per exposed member is no more than 5 percent above the approved variant projection after cohort mix adjustment",
+    "projection": "completion p95 at or below 2 seconds, oldest pending age at or below 30 seconds, zero dead letters",
+    "decision_record": "named safety-stop owner, evidence URI, decision note, approving operator and immutable stage history"
+  },
+  "stop_policy": {
+    "owners": {
+      "progression_runtime": "progression-oncall",
+      "member_safety": "trust-safety-oncall",
+      "product_decision": "product-progression-owner"
+    },
+    "page_ack_minutes": 5,
+    "pause_minutes": 15,
+    "action": "set experiment status to paused; assignments remain for analysis while runtime multipliers stop applying",
+    "resume": "repeat the current-stage gate with fresh evidence and a new immutable decision record"
+  },
+  "fraud_tuning": {
+    "rule": "repeated_source_cap",
+    "threshold_bounds": {"minimum": 2, "maximum": 20},
+    "window_seconds_bounds": {"minimum": 60, "maximum": 86400},
+    "response_action": "review_only",
+    "account_action": "attributed operator decision through progression controls",
+    "advanced_device_graph": "deferred"
+  },
+  "local_controls": [
+    {"id": "PROG-STAGED-TRANSITIONS", "status": "passed", "evidence": "backend/scripts/079_progression_production_rollout.sql"},
+    {"id": "PROG-ROLLOUT-AUDIT", "status": "passed", "evidence": "backend/internal/bff/mobile/level_progression.go"},
+    {"id": "PROG-FRAUD-TUNING", "status": "passed", "evidence": "backend/internal/bff/mobile/level_progression_load_test.go"},
+    {"id": "PROG-PROJECTION-LOAD", "status": "passed", "evidence": "documents/evidence/progression_projection_load_local_2026-09-27.json"},
+    {"id": "PROG-MONITORING", "status": "passed", "evidence": "backend/observability/grafana/dashboards/progression-production.json"},
+    {"id": "PROG-ALERTS", "status": "passed", "evidence": "backend/observability/prometheus/rules/progression-production.yml"},
+    {"id": "PROG-COHORT-REPORT", "status": "passed", "evidence": "backend/scripts/level_rollout_cohort_report.sh"},
+    {"id": "PROG-STAGE-EVIDENCE-GATE", "status": "passed", "evidence": "qa/progression/validate_stage_evidence.py"}
+  ],
+  "production_acceptance_matrix": [
+    {"id": "PROD-PROGRESSION-DOGFOOD", "status": "pending", "evidence": null},
+    {"id": "PROD-PROGRESSION-5-PERCENT", "status": "pending", "evidence": null},
+    {"id": "PROD-PROGRESSION-25-PERCENT", "status": "pending", "evidence": null},
+    {"id": "PROD-PROGRESSION-GA", "status": "pending", "evidence": null},
+    {"id": "PROD-PROGRESSION-FRAUD-CALIBRATION", "status": "pending", "evidence": null},
+    {"id": "PROD-PROGRESSION-TARGET-LOAD", "status": "pending", "evidence": null},
+    {"id": "PROD-PROGRESSION-PAGING-DRILL", "status": "pending", "evidence": null},
+    {"id": "PROD-PROGRESSION-SAFETY-STOP-DRILL", "status": "pending", "evidence": null}
+  ],
+  "production_acceptance": {
+    "decision": "NO_GO",
+    "rationale": "Local stage enforcement, review-only fraud tuning, projection load automation and monitoring assets are complete. Production remains blocked until real exposed cohorts, target-environment load, paging and safety-stop drills provide evidence."
+  },
+  "backlog_disposition": {
+    "PEN-45": "local_rollout_controls_complete_production_cohort_and_drill_evidence_pending",
+    "XP-005": "bounded_review_only_fraud_tuning_and_operator_controls_complete_local",
+    "XP-006": "ordered_stages_and_evidence_gate_complete_local_real_cohorts_pending",
+    "XP-007": "projection_repair_load_gate_and_monitoring_complete_local_target_evidence_pending"
+  }
+}

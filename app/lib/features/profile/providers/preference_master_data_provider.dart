@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
@@ -140,7 +139,7 @@ class PreferenceMasterData {
   }
 }
 
-const _masterDataCacheKey = 'preferences_master_data_cache_v1';
+const _masterDataCacheKey = 'preferences_master_data_cache_v2';
 PreferenceMasterData? _memoryCache;
 
 final preferenceMasterDataOfflineProvider = StateProvider<bool>((ref) => false);
@@ -201,27 +200,9 @@ Future<PreferenceMasterData> _fetchAndPersistMasterData(Ref ref) async {
   return parsed;
 }
 
-Future<void> _refreshMasterDataInBackground(Ref ref) async {
-  try {
-    await _fetchAndPersistMasterData(ref);
-  } on DioException catch (error) {
-    if (_isOfflineError(error)) {
-      ref.read(preferenceMasterDataOfflineProvider.notifier).state = true;
-    }
-  } catch (_) {
-    // Ignore background refresh errors; cached data remains available.
-  }
-}
-
 final preferenceMasterDataProvider = FutureProvider<PreferenceMasterData>((
   ref,
 ) async {
-  final cached = await _readCachedMasterData();
-  if (cached != null) {
-    unawaited(_refreshMasterDataInBackground(ref));
-    return cached;
-  }
-
   try {
     return await _fetchAndPersistMasterData(ref);
   } on DioException catch (error) {

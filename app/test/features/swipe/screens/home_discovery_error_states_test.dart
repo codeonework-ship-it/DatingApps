@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:verified_dating_app/core/providers/runtime_feature_flags_provider.dart';
 import 'package:verified_dating_app/features/engagement/providers/daily_prompt_provider.dart';
 import 'package:verified_dating_app/features/swipe/models/discovery_profile.dart';
 import 'package:verified_dating_app/features/swipe/providers/swipe_provider.dart';
@@ -109,8 +110,13 @@ Widget _buildApp<T extends SwipeNotifier>(T Function() createNotifier) =>
       overrides: [
         swipeNotifierProvider.overrideWith(createNotifier),
         dailyPromptProvider.overrideWith(_FakeDailyPromptNotifier.new),
+        // The screen reads runtime flags for the curated rail; keep the
+        // test offline so no request timer outlives the widget tree.
+        runtimeFeatureFlagsProvider.overrideWith(
+          (ref) => Stream.value(RuntimeFeatureFlags.defaults),
+        ),
       ],
-      child: const MaterialApp(home: HomeDiscoveryScreen()),
+      child: const MaterialApp(home: HomeDiscoveryScreen(browseOnly: true)),
     );
 
 void main() {
@@ -189,7 +195,10 @@ void main() {
       await tester.pump();
 
       expect(find.text('Discover Matches'), findsOneWidget);
-      expect(find.text('Find meaningful verified matches'), findsOneWidget);
+      expect(
+        find.text('A little curiosity. A real connection.'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('no overflow errors on compact viewport', (tester) async {

@@ -1,0 +1,20 @@
+{% extends "control_panel/base.html" %}
+{% block topbar_title %}Analytics · Retention{% endblock %}
+{% block content %}
+{% include "control_panel/analytics/_nav.html" with page_title="Retention" page_intro="Signup cohorts and how many came back. Optionally split by an experiment's variants to compare against its holdout." show_filters=True %}
+<section class="glass-card mb-4" aria-labelledby="ret-summary">
+  <div class="d-flex justify-content-between align-items-center mb-2"><h2 id="ret-summary" class="h5 mb-0">D1 / D7 / D30{% if experiment %} · experiment {{ experiment }}{% endif %}</h2>
+  <a class="btn btn-glass btn-sm" href="{% url 'analytics_export' 'retention' %}?{{ export_summary }}"><i class="bi bi-download me-1"></i>CSV</a></div>
+  {% include "control_panel/analytics/_table.html" with table=summary caption="Dn = active on exactly day n after signup, among members whose day n has been observed." %}
+</section>
+<section class="glass-card mb-4" aria-labelledby="ret-triangle">
+  <div class="d-flex justify-content-between align-items-center mb-2"><h2 id="ret-triangle" class="h5 mb-0">Weekly cohort triangle</h2>
+  <a class="btn btn-glass btn-sm" href="{% url 'analytics_export' 'retention' %}?{{ export_triangle }}"><i class="bi bi-download me-1"></i>CSV</a></div>
+  <div class="table-responsive"><table class="glass-table w-100">
+    <caption class="small text-muted">Share of each signup week active in week k after it. Darker = higher. Blank = week not complete yet.</caption>
+    <thead><tr>{% for c in triangle.columns %}<th scope="col"{% if c.kind != 'dimension' %} class="text-end"{% endif %}>{{ c.label }}</th>{% endfor %}</tr></thead>
+    <tbody>{% for row in triangle.rows %}<tr>{% for cell in row.cells %}<td class="{% if cell.numeric %}text-end{% endif %}"{% if cell.heat is not None %} style="background: rgba(57,135,229,{{ cell.heat }})"{% endif %}>{% if cell.suppressed %}&lt;5{% elif cell.text == '—' and cell.heat is None and cell.numeric %}{% else %}{{ cell.text }}{% endif %}</td>{% endfor %}</tr>{% empty %}<tr><td class="text-muted">No complete cohort weeks in this range.</td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% if range.definition %}<p class="small text-muted mt-2">{{ range.definition }}</p>{% endif %}
+</section>
+{% endblock %}

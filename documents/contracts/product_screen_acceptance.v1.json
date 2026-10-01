@@ -1,0 +1,193 @@
+{
+  "contract_id": "connect.product-rules-screen-acceptance",
+  "contract_version": "1.1.0",
+  "effective_date": "2026-09-27",
+  "product_rules": {
+    "activity": {
+      "allowed_types": ["co_op_prompt", "this_or_that", "value_match_round"],
+      "timeout_seconds": 120,
+      "replay_window_days": 7,
+      "this_or_that_max_per_match_per_window": 2,
+      "response_mutation": "latest response replaces the participant's earlier response while active; completed or timed-out sessions are immutable"
+    },
+    "discovery": {
+      "saved_preferences": "server-authoritative constraints applied before presentation",
+      "spotlight": "ranking occurs only after publication, preference and safety eligibility; paid status cannot bypass eligibility or the non-premium fairness allocation",
+      "filtered_match": "hidden from the filtered view without changing the match relationship",
+      "undo": "returns to the previous card in the current client session; a later decision is sent as a new idempotent swipe command",
+      "super_like": "presentation alias for like in this release, with no charge, priority or separate entitlement claim",
+      "profile_views": "recorded only for an authorized profile load; visible only to the viewed member and suppressed by safety enforcement"
+    },
+    "chat": {
+      "local_delete_cancel_seconds": 4,
+      "delete_for_everyone_hours": 24,
+      "delivery_definition": "the server handed the frame to an authenticated recipient socket; it does not assert human receipt",
+      "read_definition": "the recipient opened the conversation and advanced the durable read cursor",
+      "reconnect": "authoritative history and deletion state replace stale local presentation"
+    },
+    "prompts_and_nudges": {
+      "daily_prompt_edit_minutes": 10,
+      "streak_milestones_days": [3, 7],
+      "nudge_daily_cap": 2,
+      "safety_suppression_days": 14,
+      "resumption_measurement": "a conversation-resumed event references the triggering nudge and is counted once"
+    },
+    "groups_and_friends": {
+      "coffee_poll_total_participants": {"minimum": 2, "maximum": 4},
+      "coffee_poll_invitees": "creator plus one to three invitees",
+      "poll_vote": "participants only; the latest vote replaces that participant's prior vote before finalization",
+      "poll_finalize": "creator only, after the deadline or when all participants have voted",
+      "friend_consent": "an add creates an outgoing pending request; only the recipient may accept or decline; friendship is mutual only after acceptance",
+      "blocking": "either-direction blocking removes the friendship/request and prevents friend activity visibility"
+    },
+    "kpis": {
+      "dau": "unique authenticated members with qualifying activity in the trailing 24 hours",
+      "mau": "unique authenticated members with qualifying activity in the trailing 30 days",
+      "availability": "show unavailable, never zero, when a durable source cannot satisfy the named scope/window",
+      "rate_contract": "every rate names numerator, denominator, source, scope and window",
+      "safety_tolerance_unit": "absolute percentage points"
+    }
+  },
+  "local_acceptance_controls": [
+    {"id": "ACC-ACTIVITY-RULES", "status": "passed", "evidence": "backend/internal/bff/mobile/server_activity_session_test.go"},
+    {"id": "ACC-DISCOVERY-PREFERENCES", "status": "passed", "evidence": "backend/internal/bff/mobile/discovery_preferences_test.go"},
+    {"id": "ACC-CHAT-NEGATIVE-RECONCILE", "status": "passed", "evidence": "backend/internal/bff/mobile/server_chat_realtime_test.go"},
+    {"id": "ACC-DAILY-PROMPTS", "status": "passed", "evidence": "backend/internal/bff/mobile/server_daily_prompt_test.go"},
+    {"id": "ACC-NUDGE-SAFETY", "status": "passed", "evidence": "backend/internal/bff/mobile/server_match_nudge_test.go"},
+    {"id": "ACC-GROUP-POLL", "status": "passed", "evidence": "backend/internal/bff/mobile/server_group_coffee_poll_test.go"},
+    {"id": "ACC-FRIEND-CONSENT", "status": "passed", "evidence": "backend/internal/bff/mobile/server_social_filters_test.go"},
+    {"id": "ACC-ALL-SCREENS-LAYOUT", "status": "passed", "evidence": "app/test/features/responsive/screen_matrix_test.dart"},
+    {"id": "ACC-OFFLINE-PERMISSIONS", "status": "passed", "evidence": "app/test/features/backend_journeys/backend_journeys_provider_test.dart"},
+    {"id": "ACC-BACKGROUND-PROCESS-DEATH", "status": "passed", "evidence": "qa/appium/tests/test_10_resilience_edges.py"},
+    {"id": "ACC-KPI-SEMANTICS", "status": "passed", "evidence": "documents/COMMAND_CENTER_EPICS_COMPLETION_2026-09-27.md"}
+  ],
+  "representative_device_matrix": [
+    {"id": "DEVICE-ANDROID-SMALL", "profile": "Android small phone, 320dp width, font 1.3", "status": "pending", "evidence": null},
+    {"id": "DEVICE-ANDROID-REFERENCE", "profile": "Android reference phone, current and previous supported API", "status": "pending", "evidence": null},
+    {"id": "DEVICE-ANDROID-TABLET", "profile": "Android tablet, portrait and landscape", "status": "pending", "evidence": null},
+    {"id": "DEVICE-IOS-SMALL", "profile": "iOS small phone with larger accessibility text", "status": "pending", "evidence": null},
+    {"id": "DEVICE-IOS-REFERENCE", "profile": "iOS reference phone, current and previous supported OS", "status": "pending", "evidence": null},
+    {"id": "DEVICE-NETWORK-PERMISSIONS", "profile": "offline, reconnect, denied/revoked permissions, background and process death", "status": "pending", "evidence": null}
+  ],
+  "local_device_execution": {
+    "profile": "Android API 36 emulator, 1080x2400",
+    "status": "passed",
+    "cases": ["background_foreground", "process_death_session_restore", "font_scale_1_3_restart"],
+    "evidence": "documents/PRODUCT_RULES_COMPLETE_SCREEN_ACCEPTANCE_2026-09-27.md"
+  },
+  "differentiation_features_2026_09_27": {
+    "delivered": "2026-09-27",
+    "source": "documents/DIFFERENTIATION_FEATURES_DELIVERY_2026-09-27.md",
+    "frd_ids": ["PROF-017", "DISC-007", "DISC-008", "CHAT-006", "ENG-009", "ENG-010", "ENG-011", "SAFE-009", "NOTIF-007"],
+    "runtime_flags": {"default_on": ["date_plans_enabled", "graduation_enabled", "curated_daily_set_enabled", "friend_intros_enabled", "copilot_enabled"], "release_excluded": false},
+    "product_rules": {
+      "date_plans": {
+        "eligibility": "matched pair with an unlocked conversation; a locked conversation returns 423 CHAT_LOCKED_REQUIREMENT_PENDING",
+        "open_plans_per_match": 1,
+        "window_max_hours": 12,
+        "window_start_within_days": 90,
+        "venue_name_area_max_chars": 120,
+        "note_max_chars": 280,
+        "friend_groups_per_side_max": 10,
+        "decisions": "the invitee accepts or declines; either member cancels; an unanswered proposal expires when its window closes",
+        "friend_publication": "every status a member sets is published in the same transaction to that member's accepted friends and chosen friend groups: the proposer's circle at proposed, both circles at accepted, cancel-after-accept and completed, the member's own circle for check-ins; the other member always receives decisions",
+        "never_recipients": "blocked pairs, inactive or banned accounts and the date"
+      },
+      "check_in_and_debrief": {
+        "check_in_states": ["safe", "need_help"],
+        "check_in_note_max_chars": 200,
+        "reminder_hours_after_window": 1,
+        "friend_escalation_hours_after_window": 3,
+        "safety_category_priorities": {"need_help": 9, "checkin_missed": 8},
+        "debrief_fields": ["happened", "would_meet_again", "felt_safe", "note"],
+        "debrief_note_max_chars": 280,
+        "debrief_privacy": "private to its author",
+        "resolution": "both happened -> completed; both not -> did_not_happen; split -> disputed",
+        "felt_unsafe": "writes audit.security_events date_plan.felt_unsafe against the partner for operators; no auto-report",
+        "debrief_reminder_hours_after_window": 24,
+        "disclaimer": "a check-in or friend notification is not an emergency-services response"
+      },
+      "shows_up_badge": {
+        "min_confirmed_dates": 2,
+        "max_disputed_dates": 0,
+        "window_days": 180,
+        "confirmation_source": "both members' private debriefs only",
+        "removal": "held back while any date in the window is disputed; removed with the other badges on unsafe behaviour"
+      },
+      "graduation": {
+        "proposal": "either member of an active, unlocked match; note <= 200 chars; optional share-with-friends; one open proposal per match",
+        "decision": "only the other member confirms or declines; only the proposer withdraws; a decision is final",
+        "confirmation_effects": "ended_reason='graduated' without unmatching (the chat stays); both members paused in user_management.discovery_pauses and removed from decks; opted-in members' accepted friends told without naming the partner; a graduation_rewards row per member recorded as pending",
+        "manual_pause": "members can pause and resume discovery themselves"
+      },
+      "curated_today_set": {
+        "candidates_per_utc_day_max": 5,
+        "candidate_pool": "the member's ordinary eligible deck after every block, publication, preference, trust and pause filter",
+        "stability": "persisted in matching.daily_candidate_sets so the set is stable across reloads",
+        "model_version": "curated_daily_set.v1",
+        "weights": {"reply_rate_24h": 0.35, "active_trust_badges": 0.25, "activity_recency": 0.20, "shared_intent_language_tags": 0.20},
+        "fair_exposure": {"daily_like_cap": 30, "over_cap_multiplier": 0.6, "low_impression_threshold": 3, "low_impression_boost": 0.08, "rule": "reorders and never removes; paid spotlight is not consulted"},
+        "reasons_per_candidate_max": 3
+      },
+      "vouches_and_intros": {
+        "vouch_length_chars": {"minimum": 12, "maximum": 200},
+        "vouch_author": "an accepted friend; the subject approves or hides; the voucher may withdraw",
+        "vouches_on_public_profile_max": 3,
+        "vouch_hiding": "hidden across blocks and for inactive or banned vouchers",
+        "intro_pair": "two of the introducer's accepted friends who are published to each other, not blocked, not matched and preference-compatible",
+        "intro_decisions": "each invitee accepts or declines privately; both accepting creates the match and tells the introducer; a decline ends the intro without saying who declined",
+        "open_intros_per_pair": 1,
+        "intro_expiry_days": 14
+      },
+      "copilot": {
+        "kinds": ["opener", "reply", "plan_idea"],
+        "tones": ["warm", "playful", "direct"],
+        "context": "the partner's allowlisted public projection and the last six messages",
+        "never_sends": true,
+        "drafts_per_member_per_utc_day": 10,
+        "limit_error": "429 COPILOT_DAILY_LIMIT_REACHED",
+        "assisted_mark": "a message sent with assist_draft_id is recorded in matching.message_assist_marks and shown to both members as composed_with_assist (Drafted with help)",
+        "storage": "drafts store a context digest, never the other member's message bodies",
+        "provider": "deterministic template unless COPILOT_PROVIDER=claude and ANTHROPIC_API_KEY are set; COPILOT_MODEL defaults to claude-opus-5; a refusal or provider error returns no draft",
+        "conversation_trust": "GET /v1/matches/{matchID}/trust reports both members' verification, human_verified and the partner's active badges"
+      },
+      "friend_plan_notifications": {
+        "category": "friend_plan",
+        "preference": "notify_friend_plans (default on), independent of safety",
+        "dedupe": "fan-out runs inside the status-changing transaction with a dedupe key of plan, status and recipient; a retry never notifies twice",
+        "delivery": "in-app inbox only while production push is excluded by the release contract"
+      },
+      "language_settings": {
+        "storage": "user_settings.locale as a BCP 47 language[-REGION] tag (user_settings_locale_check); NULL follows the device; the client sends an empty string for that",
+        "shipped_locales": ["en-US", "en-GB", "de", "fr", "ru", "es", "it", "pt", "nl", "pl"],
+        "portability": "the choice follows the account to a second device like theme",
+        "completeness": "each ARB file carries the full template key set; the website generator refuses a locale that drifts from en",
+        "review": "native-speaker review not established"
+      }
+    },
+    "local_acceptance_controls": [
+      {"id": "ACC-DATE-PLAN-LIFECYCLE", "status": "passed", "evidence": "backend/internal/bff/mobile/date_plans_test.go", "tests": ["TestParseDatePlanProposalValidation", "TestDatePlanNextAction", "TestDatePlanLifecycleFansOutToFriendsAndGroupsPostgres"], "client_evidence": "app/test/features/plans/date_plan_card_test.dart"},
+      {"id": "ACC-DATE-PLAN-CHECKIN-DEBRIEF", "status": "passed", "evidence": "backend/internal/bff/mobile/date_plans_test.go", "tests": ["TestDatePlanSweepRemindsAndEscalatesPostgres", "TestDatePlanDebriefResolvesAndAwardsShowsUpPostgres"], "client_evidence": "app/test/features/plans/date_plan_card_test.dart"},
+      {"id": "ACC-GRADUATION", "status": "passed", "evidence": "backend/internal/bff/mobile/graduation_test.go", "tests": ["TestGraduationConfirmHidesBothAndTellsOptedInFriendsPostgres", "TestGraduationDeclineAndWithdrawPostgres", "TestGraduationRoutesMapToFlag"], "client_evidence": "app/test/features/graduation/graduation_banner_test.dart"},
+      {"id": "ACC-CURATED-TODAY-SET", "status": "passed", "evidence": "backend/internal/bff/mobile/curated_daily_set_test.go", "tests": ["TestCuratedFairExposureDownWeightsOverCapAndBoostsUnseen", "TestCuratedReasonsFollowThePriorityOrderAndCap", "TestCuratedDailySetIsStableWithinADayAndCountsImpressions", "TestCuratedDailySetRouteIsFlagGated"], "client_evidence": "app/test/features/swipe/screens/today_rail_test.dart"},
+      {"id": "ACC-FRIEND-VOUCH-INTRO", "status": "passed", "evidence": "backend/internal/bff/mobile/friend_social_test.go", "tests": ["TestFriendSocialValidation", "TestFriendVouchLifecyclePostgres", "TestFriendIntroLifecyclePostgres"], "client_evidence": "app/test/features/friends/friend_social_test.dart"},
+      {"id": "ACC-COPILOT-MARKS", "status": "passed", "evidence": "backend/internal/bff/mobile/copilot_test.go", "tests": ["TestTemplateCopilotDraftsFromProfileFacts", "TestCopilotDraftsMarksAndTrustPostgres"], "client_evidence": "app/test/features/messaging/widgets/copilot_sheet_test.dart"},
+      {"id": "ACC-LANGUAGE-SETTINGS", "status": "passed", "evidence": "app/test/core/i18n/app_localizations_test.dart", "tests": ["ARB files", "Settings hub", "locale tags"], "client_evidence": "app/test/core/i18n/app_localizations_test.dart"}
+    ],
+    "validator_note": "kept beside product_rules and local_acceptance_controls because validate_product_screen_acceptance.py pins those to six domains and eleven controls; every evidence path above was checked to exist on 2026-09-28"
+  },
+  "production_acceptance": {
+    "decision": "NO_GO",
+    "rationale": "Product semantics and local automated coverage are complete. Production exposure remains blocked until the current signed build passes the representative physical-device, OS, network and permission matrix."
+  },
+  "backlog_disposition": {
+    "PEN-28": "approved_and_enforced_locally",
+    "PEN-29": "approved_with_super_like_scoped_as_like_alias",
+    "PEN-30": "approved_and_locally_covered",
+    "PEN-31": "approved_and_locally_covered",
+    "PEN-32": "approved_friend_consent_implemented_group_rules_pinned",
+    "PEN-33": "member_screen_layout_and_negative_automation_complete_local",
+    "PEN-34": "kpi_semantics_approved_durable_dau_mau_source_still_required",
+    "PEN-44": "local_automation_complete_representative_physical_device_evidence_pending"
+  }
+}

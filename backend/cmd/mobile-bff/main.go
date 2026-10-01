@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
@@ -28,7 +29,8 @@ func main() {
 	defer func() { _ = log.Sync() }()
 
 	reg := prometheus.DefaultRegisterer
-	httpMetrics := observability.NewHTTPMetrics(reg)
+	httpMetrics := observability.NewBFFMetrics(reg)
+	observability.RegisterProcessMetrics(reg, "mobile-bff")
 
 	server, err := mobile.NewServer(cfg, log, httpMetrics)
 	if err != nil {
@@ -40,6 +42,8 @@ func main() {
 		Addr:              cfg.MobileBFFAddr,
 		Handler:           server.Handler(),
 		ReadHeaderTimeout: cfg.MobileBFFReadHeaderTimeout(),
+		IdleTimeout:       120 * time.Second,
+		MaxHeaderBytes:    1 << 20,
 	}
 
 	go func() {

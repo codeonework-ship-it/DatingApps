@@ -2,6 +2,7 @@ package mobile
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"net/url"
@@ -10,40 +11,52 @@ import (
 	"time"
 
 	"github.com/verified-dating/backend/internal/platform/config"
-	"github.com/verified-dating/backend/internal/platform/supabase"
+	"github.com/verified-dating/backend/internal/platform/postgresdata"
 )
 
 type profileRepository struct {
 	cfg config.Config
-	db  *supabase.Client
+	db  repositoryDB
+	pg  *sql.DB
 }
 
 type signupBootstrapInput struct {
 	UserID      string
+	Username    string
 	PhoneNumber string
 	Name        string
 	DateOfBirth string
 	Gender      string
 }
 
-var errSignupPhoneAlreadyExists = errors.New("mobile number already has an account")
+var errSignupUsernameAlreadyExists = errors.New("username already has an account")
 
-func newProfileRepository(cfg config.Config) *profileRepository {
-	apiKey := strings.TrimSpace(cfg.SupabaseServiceRole)
-	if apiKey == "" {
-		apiKey = strings.TrimSpace(cfg.SupabaseAnonKey)
+func newProfileRepository(cfg config.Config, supplied ...repositoryDB) *profileRepository {
+	direct := repositoryDBFor(cfg, supplied)
+
+	// Open the SQL pool whenever a database URL is configured, not only in
+	// local mode. Sessions, roles and account status all live in
+	// user_management.* and are read over this handle by
+	// principalForAccessToken. Leaving pg nil outside local mode is what forced
+	// securityMiddleware to be skipped there, which disabled authentication,
+	// the admin role check and the X-Admin-User strip on exactly the
+	// deployments that need them most. cfg.DatabaseURL is populated in both
+	// modes (LOCAL_DATABASE_URL locally, DATABASE_URL/PROD_DATABASE_URL or a
+	// URL built from SUPABASE_DB_* otherwise).
+	if strings.TrimSpace(cfg.DatabaseURL) != "" {
+		db, err := postgresdata.OpenSQL(cfg.DatabaseURL, postgresOptions(cfg, 16, 4))
+		if err == nil {
+			return &profileRepository{cfg: cfg, db: direct, pg: db}
+		}
+		if cfg.UseLocalDB {
+			// Local mode has no other persistence to fall back to.
+			return nil
+		}
 	}
-	if strings.TrimSpace(cfg.SupabaseURL) == "" || apiKey == "" {
+	if direct == nil {
 		return nil
 	}
-	client := supabase.NewClient(
-		cfg.SupabaseURL,
-		cfg.SupabaseAnonKey,
-		cfg.SupabaseServiceRole,
-		time.Duration(cfg.SupabaseHTTPTimeoutSec)*time.Second,
-	)
-	client.SetReadBaseURL(cfg.SupabaseReadReplicaURL)
-	return &profileRepository{cfg: cfg, db: client}
+	return &profileRepository{cfg: cfg, db: direct}
 }
 
 func isProfileRepoPersistenceUnavailable(err error) bool {
@@ -58,40 +71,288 @@ func isProfileRepoPersistenceUnavailable(err error) bool {
 }
 
 func (r *profileRepository) getDraft(ctx context.Context, userID string) (profileDraft, error) {
+	if r.pg != nil {
+		return r.getDraftPostgres(ctx, userID)
+	}
 	trimmedUserID := strings.TrimSpace(userID)
 	if trimmedUserID == "" {
 		return profileDraft{}, errors.New("user_id is required")
 	}
+	durableDraft, durableFound, durableErr := r.getDurableProfileDraft(ctx, trimmedUserID)
+	if durableErr != nil {
+		return profileDraft{}, durableErr
+	}
 	params := url.Values{}
 	params.Set("user_id", "eq."+trimmedUserID)
 	params.Set("limit", "1")
-	params.Set("select", "draft_payload")
+	params.Set("select", "draft_payload,completed_at")
 	rows, err := r.db.SelectRead(ctx, r.cfg.UserSchema, "profile_drafts", params)
 	if err != nil {
 		return profileDraft{}, err
 	}
 	if len(rows) == 0 {
+		if durableFound {
+			return copyDraft(durableDraft), nil
+		}
 		return defaultDraft(trimmedUserID), nil
 	}
 	payloadMap, _ := rows[0]["draft_payload"].(map[string]any)
 	if payloadMap == nil {
+		if durableFound {
+			return copyDraft(durableDraft), nil
+		}
 		return defaultDraft(trimmedUserID), nil
 	}
 	data, marshalErr := json.Marshal(payloadMap)
 	if marshalErr != nil {
+		if durableFound {
+			return copyDraft(durableDraft), nil
+		}
 		return defaultDraft(trimmedUserID), nil
 	}
 	draft := defaultDraft(trimmedUserID)
 	if unmarshalErr := json.Unmarshal(data, &draft); unmarshalErr != nil {
+		if durableFound {
+			return copyDraft(durableDraft), nil
+		}
 		return defaultDraft(trimmedUserID), nil
 	}
 	if strings.TrimSpace(draft.UserID) == "" {
 		draft.UserID = trimmedUserID
 	}
+	if durableFound {
+		draft = mergeProfileDraftWithDurable(draft, durableDraft)
+	}
 	return draft, nil
 }
 
+func (r *profileRepository) getDurableProfileDraft(ctx context.Context, userID string) (profileDraft, bool, error) {
+	usersTable := strings.TrimSpace(r.cfg.UsersTable)
+	if usersTable == "" {
+		usersTable = "users"
+	}
+	params := url.Values{}
+	params.Set("id", "eq."+userID)
+	params.Set("limit", "1")
+	userRows, err := r.db.SelectRead(ctx, r.cfg.UserSchema, usersTable, params)
+	if err != nil {
+		return profileDraft{}, false, err
+	}
+	if len(userRows) == 0 {
+		return profileDraft{}, false, nil
+	}
+
+	draft := defaultDraft(userID)
+	userRow := userRows[0]
+	draft.Username = strings.TrimSpace(toString(userRow["username"]))
+	draft.PhoneNumber = strings.TrimSpace(toString(userRow["phone_number"]))
+	draft.Name = strings.TrimSpace(toString(userRow["name"]))
+	draft.DateOfBirth = strings.TrimSpace(toString(userRow["date_of_birth"]))
+	draft.Gender = strings.TrimSpace(toString(userRow["gender"]))
+	draft.Bio = strings.TrimSpace(toString(userRow["bio"]))
+	if value, ok := toInt(userRow["height_cm"]); ok {
+		draft.HeightCm = &value
+	}
+	if value, ok := toOptionalString(userRow["education"]); ok {
+		draft.Education = value
+	}
+	if value, ok := toOptionalString(userRow["profession"]); ok {
+		draft.Profession = value
+	}
+	if value, ok := toOptionalString(userRow["income_range"]); ok {
+		draft.IncomeRange = value
+	}
+	if value, ok := toOptionalString(userRow["country"]); ok {
+		draft.Country = value
+	}
+	if value, ok := toOptionalString(userRow["state"]); ok {
+		draft.RegionState = value
+	}
+	if value, ok := toOptionalString(userRow["city"]); ok {
+		draft.City = value
+	}
+	if value, ok := toOptionalString(userRow["drinking"]); ok && value != nil {
+		draft.Drinking = *value
+	}
+	if value, ok := toOptionalString(userRow["smoking"]); ok && value != nil {
+		draft.Smoking = *value
+	}
+	if value, ok := toOptionalString(userRow["religion"]); ok {
+		draft.Religion = value
+	}
+	if value, ok := toOptionalString(userRow["mother_tongue"]); ok {
+		draft.MotherTongue = value
+	}
+	if value, ok := toOptionalString(userRow["relationship_status"]); ok {
+		draft.RelationshipStatus = value
+	}
+	if value, ok := toOptionalString(userRow["personality_type"]); ok {
+		draft.PersonalityType = value
+	}
+	if value, ok := toInt(userRow["profile_completion"]); ok {
+		draft.ProfileCompletion = value
+	}
+
+	prefParams := url.Values{}
+	prefParams.Set("user_id", "eq."+userID)
+	prefParams.Set("limit", "1")
+	if prefRows, prefErr := r.db.SelectRead(ctx, r.cfg.UserSchema, "preferences", prefParams); prefErr == nil && len(prefRows) > 0 {
+		prefRow := prefRows[0]
+		if value, ok := toStringSlice(prefRow["seeking_genders"]); ok && len(value) > 0 {
+			draft.SeekingGenders = value
+		}
+		if value, ok := toInt(prefRow["min_age_years"]); ok {
+			draft.MinAgeYears = value
+		}
+		if value, ok := toInt(prefRow["max_age_years"]); ok {
+			draft.MaxAgeYears = value
+		}
+		if value, ok := toInt(prefRow["max_distance_km"]); ok {
+			draft.MaxDistanceKm = value
+		}
+		if value, ok := toStringSlice(prefRow["education_filter"]); ok {
+			draft.EducationFilter = value
+		}
+		if value, ok := prefRow["serious_only"].(bool); ok {
+			draft.SeriousOnly = value
+		}
+		if value, ok := prefRow["verified_only"].(bool); ok {
+			draft.VerifiedOnly = value
+		}
+		if value, ok := toStringSlice(prefRow["intent_tags"]); ok {
+			draft.IntentTags = value
+		}
+		if value, ok := toStringSlice(prefRow["language_tags"]); ok {
+			draft.LanguageTags = value
+		}
+		if value, ok := toStringSlice(prefRow["deal_breaker_tags"]); ok {
+			draft.DealBreakerTags = value
+		}
+	}
+
+	photoParams := url.Values{}
+	photoParams.Set("user_id", "eq."+userID)
+	photoParams.Set("order", "ordering.asc")
+	if photoRows, photoErr := r.db.SelectRead(ctx, r.cfg.UserSchema, "photos", photoParams); photoErr == nil {
+		photos := make([]profilePhoto, 0, len(photoRows))
+		for i, row := range photoRows {
+			photoURL := strings.TrimSpace(toString(row["photo_url"]))
+			if photoURL == "" {
+				continue
+			}
+			ordering, ok := toInt(row["ordering"])
+			if !ok {
+				ordering = i
+			}
+			photos = append(photos, profilePhoto{
+				ID:          strings.TrimSpace(toString(row["id"])),
+				PhotoURL:    photoURL,
+				Ordering:    ordering,
+				StoragePath: strings.TrimSpace(toString(row["storage_path"])),
+			})
+		}
+		if len(photos) > 0 {
+			sort.SliceStable(photos, func(i, j int) bool { return photos[i].Ordering < photos[j].Ordering })
+			draft.Photos = photos
+		}
+	}
+
+	return draft, true, nil
+}
+
+func mergeProfileDraftWithDurable(draft, durable profileDraft) profileDraft {
+	if strings.TrimSpace(durable.Username) != "" {
+		draft.Username = durable.Username
+	}
+	if strings.TrimSpace(durable.PhoneNumber) != "" {
+		draft.PhoneNumber = durable.PhoneNumber
+	}
+	if strings.TrimSpace(durable.Name) != "" {
+		draft.Name = durable.Name
+	}
+	if strings.TrimSpace(durable.DateOfBirth) != "" {
+		draft.DateOfBirth = durable.DateOfBirth
+	}
+	if strings.TrimSpace(durable.Gender) != "" {
+		draft.Gender = durable.Gender
+	}
+	if len(durable.Photos) > 0 {
+		draft.Photos = append([]profilePhoto{}, durable.Photos...)
+	}
+	if strings.TrimSpace(durable.Bio) != "" {
+		draft.Bio = durable.Bio
+	}
+	if durable.HeightCm != nil {
+		draft.HeightCm = durable.HeightCm
+	}
+	if durable.Education != nil {
+		draft.Education = durable.Education
+	}
+	if durable.Profession != nil {
+		draft.Profession = durable.Profession
+	}
+	if durable.IncomeRange != nil {
+		draft.IncomeRange = durable.IncomeRange
+	}
+	if len(durable.SeekingGenders) > 0 {
+		draft.SeekingGenders = append([]string{}, durable.SeekingGenders...)
+	}
+	if durable.MinAgeYears > 0 {
+		draft.MinAgeYears = durable.MinAgeYears
+	}
+	if durable.MaxAgeYears > 0 {
+		draft.MaxAgeYears = durable.MaxAgeYears
+	}
+	if durable.MaxDistanceKm > 0 {
+		draft.MaxDistanceKm = durable.MaxDistanceKm
+	}
+	draft.EducationFilter = append([]string{}, durable.EducationFilter...)
+	draft.SeriousOnly = durable.SeriousOnly
+	draft.VerifiedOnly = durable.VerifiedOnly
+	if durable.Country != nil {
+		draft.Country = durable.Country
+	}
+	if durable.RegionState != nil {
+		draft.RegionState = durable.RegionState
+	}
+	if durable.City != nil {
+		draft.City = durable.City
+	}
+	if len(durable.IntentTags) > 0 {
+		draft.IntentTags = append([]string{}, durable.IntentTags...)
+	}
+	if len(durable.LanguageTags) > 0 {
+		draft.LanguageTags = append([]string{}, durable.LanguageTags...)
+	}
+	draft.DealBreakerTags = append([]string{}, durable.DealBreakerTags...)
+	if strings.TrimSpace(durable.Drinking) != "" {
+		draft.Drinking = durable.Drinking
+	}
+	if strings.TrimSpace(durable.Smoking) != "" {
+		draft.Smoking = durable.Smoking
+	}
+	if durable.Religion != nil {
+		draft.Religion = durable.Religion
+	}
+	if durable.MotherTongue != nil {
+		draft.MotherTongue = durable.MotherTongue
+	}
+	if durable.RelationshipStatus != nil {
+		draft.RelationshipStatus = durable.RelationshipStatus
+	}
+	if durable.PersonalityType != nil {
+		draft.PersonalityType = durable.PersonalityType
+	}
+	if durable.ProfileCompletion > 0 {
+		draft.ProfileCompletion = durable.ProfileCompletion
+	}
+	return draft
+}
+
 func (r *profileRepository) upsertDraft(ctx context.Context, draft profileDraft) error {
+	if r.pg != nil {
+		return r.upsertDraftPostgres(ctx, draft)
+	}
 	trimmedUserID := strings.TrimSpace(draft.UserID)
 	if trimmedUserID == "" {
 		return errors.New("user_id is required")
@@ -113,6 +374,9 @@ func (r *profileRepository) upsertDraft(ctx context.Context, draft profileDraft)
 }
 
 func (r *profileRepository) completeProfile(ctx context.Context, draft profileDraft) error {
+	if r.pg != nil {
+		return r.completeProfilePostgres(ctx, draft)
+	}
 	trimmedUserID := strings.TrimSpace(draft.UserID)
 	if trimmedUserID == "" {
 		return errors.New("user_id is required")
@@ -262,6 +526,9 @@ func storedGenderListValue(values []string) []string {
 }
 
 func (r *profileRepository) bootstrapSignup(ctx context.Context, input signupBootstrapInput) (profileDraft, bool, error) {
+	if r.pg != nil {
+		return r.bootstrapSignupPostgres(ctx, input)
+	}
 	trimmedUserID := strings.TrimSpace(input.UserID)
 	if trimmedUserID == "" {
 		return profileDraft{}, false, errors.New("user_id is required")
@@ -271,22 +538,22 @@ func (r *profileRepository) bootstrapSignup(ctx context.Context, input signupBoo
 		usersTable = "users"
 	}
 
-	phoneParams := url.Values{}
-	phoneParams.Set("phone_number", "eq."+strings.TrimSpace(input.PhoneNumber))
-	phoneParams.Set("limit", "1")
-	phoneParams.Set("select", "id,phone_number")
-	phoneRows, err := r.db.SelectRead(ctx, r.cfg.UserSchema, usersTable, phoneParams)
+	usernameParams := url.Values{}
+	usernameParams.Set("username", "eq."+strings.TrimSpace(input.Username))
+	usernameParams.Set("limit", "1")
+	usernameParams.Set("select", "id,username")
+	usernameRows, err := r.db.SelectRead(ctx, r.cfg.UserSchema, usersTable, usernameParams)
 	if err != nil {
 		return profileDraft{}, false, err
 	}
-	if len(phoneRows) > 0 && strings.TrimSpace(toString(phoneRows[0]["id"])) != trimmedUserID {
-		return profileDraft{}, false, errSignupPhoneAlreadyExists
+	if len(usernameRows) > 0 && strings.TrimSpace(toString(usernameRows[0]["id"])) != trimmedUserID {
+		return profileDraft{}, false, errSignupUsernameAlreadyExists
 	}
 
 	params := url.Values{}
 	params.Set("id", "eq."+trimmedUserID)
 	params.Set("limit", "1")
-	params.Set("select", "id,phone_number,name,date_of_birth,gender,profile_completion")
+	params.Set("select", "id,username,phone_number,name,date_of_birth,gender,profile_completion")
 	rows, err := r.db.SelectRead(ctx, r.cfg.UserSchema, usersTable, params)
 	if err != nil {
 		return profileDraft{}, false, err
@@ -297,7 +564,7 @@ func (r *profileRepository) bootstrapSignup(ctx context.Context, input signupBoo
 	if created {
 		_, err = r.db.Insert(ctx, r.cfg.UserSchema, usersTable, []map[string]any{{
 			"id":                 trimmedUserID,
-			"phone_number":       strings.TrimSpace(input.PhoneNumber),
+			"username":           strings.TrimSpace(input.Username),
 			"name":               strings.TrimSpace(input.Name),
 			"date_of_birth":      strings.TrimSpace(input.DateOfBirth),
 			"gender":             storedGenderValue(input.Gender),
@@ -312,8 +579,8 @@ func (r *profileRepository) bootstrapSignup(ctx context.Context, input signupBoo
 	} else {
 		row := rows[0]
 		patch := map[string]any{"updated_at": now}
-		if strings.TrimSpace(toString(row["phone_number"])) == "" {
-			patch["phone_number"] = strings.TrimSpace(input.PhoneNumber)
+		if strings.TrimSpace(toString(row["username"])) == "" {
+			patch["username"] = strings.TrimSpace(input.Username)
 		}
 		if strings.TrimSpace(toString(row["name"])) == "" {
 			patch["name"] = strings.TrimSpace(input.Name)
@@ -355,7 +622,7 @@ func (r *profileRepository) getSettings(ctx context.Context, userID string) (use
 	params := url.Values{}
 	params.Set("user_id", "eq."+trimmedUserID)
 	params.Set("limit", "1")
-	params.Set("select", "user_id,show_age,show_exact_distance,show_online_status,notify_new_match,notify_new_message,notify_likes,theme,updated_at")
+	params.Set("select", "user_id,show_age,show_exact_distance,show_online_status,notify_new_match,notify_new_message,notify_likes,theme,locale,updated_at")
 	rows, err := r.db.SelectRead(ctx, r.cfg.UserSchema, "user_settings", params)
 	if err != nil {
 		return userSettings{}, err
@@ -373,6 +640,7 @@ func (r *profileRepository) getSettings(ctx context.Context, userID string) (use
 		NotifyNewMessage:  toBoolValue(row["notify_new_message"]),
 		NotifyLikes:       toBoolValue(row["notify_likes"]),
 		Theme:             strings.TrimSpace(toString(row["theme"])),
+		Locale:            strings.TrimSpace(toString(row["locale"])),
 		UpdatedAt:         normalizeTimestampString(row["updated_at"]),
 	}, nil
 }
@@ -391,9 +659,20 @@ func (r *profileRepository) upsertSettings(ctx context.Context, settings userSet
 		"notify_new_message":  settings.NotifyNewMessage,
 		"notify_likes":        settings.NotifyLikes,
 		"theme":               strings.TrimSpace(settings.Theme),
+		"locale":              nullableTrimmedString(settings.Locale),
 		"updated_at":          time.Now().UTC().Format(time.RFC3339),
 	}}, "user_id")
 	return err
+}
+
+// nullableTrimmedString stores "" as SQL NULL so a cleared locale satisfies
+// user_settings_locale_check instead of tripping it with an empty string.
+func nullableTrimmedString(value string) any {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return nil
+	}
+	return trimmed
 }
 
 func (r *profileRepository) listEmergencyContacts(ctx context.Context, userID string) ([]emergencyContact, error) {
@@ -481,7 +760,7 @@ func (r *profileRepository) listBlockedUsers(ctx context.Context, userID string)
 	}
 	params := url.Values{}
 	params.Set("user_id", "eq."+trimmedUserID)
-	params.Set("order", "blocked_at.desc")
+	params.Set("order", "created_at.desc")
 	params.Set("select", "blocked_user_id")
 	rows, err := r.db.SelectRead(ctx, r.cfg.UserSchema, "blocked_users", params)
 	if err != nil {

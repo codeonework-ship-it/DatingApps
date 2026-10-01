@@ -1,8 +1,5 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_theme.dart';
 
 // =============================================================================
 // Shared widgets for the Crystal Gold profile setup flow.
@@ -25,58 +22,59 @@ class SetupHeader extends StatelessWidget {
   final VoidCallback onBack;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(8, 8, 20, 12),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            IconButton(
-              icon: const Icon(
-                Icons.arrow_back_ios_new_rounded,
-                color: Colors.white,
-                size: 20,
-              ),
-              onPressed: onBack,
-              tooltip: 'Back',
-            ),
-            const Spacer(),
-            Text(
-              'Step $currentStep of $totalSteps',
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: Colors.white.withValues(alpha: 0.72),
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            children: List.generate(totalSteps, (i) {
-              final active = i < currentStep;
-              return Expanded(
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  margin: EdgeInsets.only(right: i < totalSteps - 1 ? 6 : 0),
-                  height: 4,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(4),
-                    color: active
-                        ? AppTheme.crystalGoldSoft
-                        : Colors.white.withValues(alpha: 0.20),
-                  ),
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 8, 20, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              IconButton(
+                icon: Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  color: scheme.onSurface,
+                  size: 20,
                 ),
-              );
-            }),
+                onPressed: onBack,
+                tooltip: 'Back',
+              ),
+              const Spacer(),
+              Text(
+                'Step $currentStep of $totalSteps',
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
           ),
-        ),
-      ],
-    ),
-  );
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: List.generate(totalSteps, (i) {
+                final active = i < currentStep;
+                return Expanded(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    margin: EdgeInsets.only(right: i < totalSteps - 1 ? 8 : 0),
+                    height: 4,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(4),
+                      color: active ? scheme.primary : scheme.outlineVariant,
+                    ),
+                  ),
+                );
+              }),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // ── FormCard — frosted glassmorphic card with specular highlights ─────────────
@@ -86,94 +84,20 @@ class FormCard extends StatelessWidget {
   final Widget child;
 
   @override
-  Widget build(BuildContext context) => ClipRRect(
-    borderRadius: BorderRadius.circular(28),
-    child: BackdropFilter(
-      filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(28),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.22),
-            width: 1.0,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: AppTheme.crystalGoldDeep.withValues(alpha: 0.22),
-              blurRadius: 40,
-              offset: const Offset(0, 14),
-            ),
-            BoxShadow(
-              color: Colors.white.withValues(alpha: 0.06),
-              blurRadius: 12,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Stack(
-          children: [
-            // top-left specular crystal highlight
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              height: 72,
-              child: IgnorePointer(
-                child: ClipRRect(
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(28),
-                  ),
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          Colors.white.withValues(alpha: 0.22),
-                          Colors.white.withValues(alpha: 0.06),
-                          Colors.white.withValues(alpha: 0.0),
-                        ],
-                        stops: const [0.0, 0.45, 1.0],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            // golden top-edge shimmer beam
-            Positioned(
-              top: 0,
-              left: 32,
-              right: 32,
-              height: 1.5,
-              child: IgnorePointer(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Colors.transparent,
-                        AppTheme.crystalGoldSoft.withValues(alpha: 0.70),
-                        Colors.white.withValues(alpha: 0.90),
-                        AppTheme.crystalGoldSoft.withValues(alpha: 0.70),
-                        Colors.transparent,
-                      ],
-                      stops: const [0.0, 0.25, 0.5, 0.75, 1.0],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            // inner content
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
-              child: child,
-            ),
-          ],
-        ),
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: scheme.outlineVariant),
       ),
-    ),
-  );
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+        child: child,
+      ),
+    );
+  }
 }
 
 // ── GlassDropdown — glass-themed dropdown matching DOB dropdowns ─────────────
@@ -199,48 +123,18 @@ class GlassDropdown<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasValue = value != null;
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.09),
+        color: scheme.surface,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: hasValue
-              ? AppTheme.crystalGoldSoft.withValues(alpha: 0.60)
-              : Colors.white.withValues(alpha: 0.22),
+          color: hasValue ? scheme.primary : scheme.outlineVariant,
           width: hasValue ? 1.4 : 1.0,
         ),
-        boxShadow: hasValue
-            ? [
-                BoxShadow(
-                  color: AppTheme.crystalGoldSoft.withValues(alpha: 0.14),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ]
-            : null,
       ),
       child: Stack(
         children: [
-          if (hasValue)
-            Positioned(
-              top: 0,
-              left: 4,
-              right: 4,
-              height: 1.0,
-              child: IgnorePointer(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Colors.transparent,
-                        Colors.white.withValues(alpha: 0.55),
-                        Colors.transparent,
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
           DropdownButtonHideUnderline(
             child: DropdownButton<T>(
               value: value,
@@ -249,7 +143,7 @@ class GlassDropdown<T> extends StatelessWidget {
                 child: Text(
                   hint,
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.38),
+                    color: scheme.onSurfaceVariant,
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                   ),
@@ -259,15 +153,13 @@ class GlassDropdown<T> extends StatelessWidget {
               isExpanded: true,
               icon: Icon(
                 Icons.expand_more_rounded,
-                color: hasValue
-                    ? AppTheme.crystalGoldSoft
-                    : Colors.white.withValues(alpha: 0.38),
+                color: hasValue ? scheme.primary : scheme.onSurfaceVariant,
                 size: 18,
               ),
-              dropdownColor: const Color(0xFF3A2800),
+              dropdownColor: scheme.surface,
               borderRadius: BorderRadius.circular(16),
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.95),
+                color: scheme.onSurface,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),
@@ -281,7 +173,7 @@ class GlassDropdown<T> extends StatelessWidget {
                         child: Text(
                           labelBuilder(item),
                           style: TextStyle(
-                            color: AppTheme.crystalGoldSoft,
+                            color: scheme.primary,
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
                           ),
@@ -297,8 +189,8 @@ class GlassDropdown<T> extends StatelessWidget {
                       value: item,
                       child: Text(
                         labelBuilder(item),
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: scheme.onSurface,
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
                         ),
@@ -331,51 +223,41 @@ class GenderCard extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => GestureDetector(
-    onTap: onTap,
-    child: AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeOut,
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-      decoration: BoxDecoration(
-        color: selected
-            ? AppTheme.crystalGoldSoft.withValues(alpha: 0.22)
-            : Colors.white.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: selected
-              ? AppTheme.crystalGoldSoft.withValues(alpha: 0.70)
-              : Colors.white.withValues(alpha: 0.18),
-          width: selected ? 1.6 : 1.0,
-        ),
-        boxShadow: selected
-            ? [
-                BoxShadow(
-                  color: AppTheme.crystalGoldSoft.withValues(alpha: 0.25),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ]
-            : null,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(emoji, style: const TextStyle(fontSize: 26)),
-          const SizedBox(height: 6),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              fontWeight: FontWeight.w700,
-              color: selected
-                  ? AppTheme.crystalGoldSoft
-                  : Colors.white.withValues(alpha: 0.70),
-            ),
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+        decoration: BoxDecoration(
+          color: selected ? scheme.primaryContainer : scheme.surface,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: selected ? scheme.primary : scheme.outlineVariant,
+            width: selected ? 1.6 : 1.0,
           ),
-        ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(emoji, style: const TextStyle(fontSize: 26)),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: selected
+                    ? scheme.onPrimaryContainer
+                    : scheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 // ── InfoCard — frosted card with icon + title header ─────────────────────────
@@ -394,14 +276,13 @@ class InfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.10),
-        border: Border.all(
-          color: AppTheme.crystalGoldSoft.withValues(alpha: 0.25),
-        ),
+        color: scheme.surface,
+        border: Border.all(color: scheme.outlineVariant),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -409,13 +290,13 @@ class InfoCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, color: AppTheme.crystalGoldSoft, size: 18),
+              Icon(icon, color: scheme.primary, size: 18),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   title,
                   style: TextStyle(
-                    color: AppTheme.crystalGoldSoft,
+                    color: scheme.primary,
                     fontWeight: FontWeight.w600,
                     fontSize: 13,
                     letterSpacing: 0.2,
@@ -440,13 +321,11 @@ class TipBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: AppTheme.crystalGoldSoft.withValues(alpha: 0.12),
-        border: Border.all(
-          color: AppTheme.crystalGoldSoft.withValues(alpha: 0.30),
-        ),
+        color: scheme.primaryContainer,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -454,16 +333,13 @@ class TipBanner extends StatelessWidget {
           Icon(
             Icons.lightbulb_outline,
             size: 16,
-            color: AppTheme.crystalGoldSoft,
+            color: scheme.onPrimaryContainer,
           ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               text,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.85),
-                fontSize: 13,
-              ),
+              style: TextStyle(color: scheme.onPrimaryContainer, fontSize: 13),
             ),
           ),
         ],
@@ -481,12 +357,12 @@ class CompletionBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = percent >= 80
-        ? AppTheme.crystalGoldSoft
+        ? Theme.of(context).colorScheme.primary
         : percent >= 50
         ? Colors.orangeAccent
-        : Colors.redAccent;
+        : Theme.of(context).colorScheme.error;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.18),
         border: Border.all(color: color.withValues(alpha: 0.5)),
@@ -513,19 +389,17 @@ class CountBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: AppTheme.crystalGoldSoft.withValues(alpha: 0.18),
-        border: Border.all(
-          color: AppTheme.crystalGoldSoft.withValues(alpha: 0.4),
-        ),
+        color: scheme.primaryContainer,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
         '$current / $max',
-        style: const TextStyle(
-          color: Colors.white,
+        style: TextStyle(
+          color: scheme.onPrimaryContainer,
           fontWeight: FontWeight.w700,
           fontSize: 13,
         ),
@@ -543,26 +417,29 @@ class ProfileChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.10),
-        border: Border.all(
-          color: AppTheme.crystalGoldSoft.withValues(alpha: 0.3),
-        ),
+        color: scheme.surface,
+        border: Border.all(color: scheme.outlineVariant),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: AppTheme.crystalGoldSoft),
+          Icon(icon, size: 14, color: scheme.primary),
           const SizedBox(width: 5),
-          Text(
-            label,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: scheme.onSurface,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
         ],
@@ -583,59 +460,55 @@ class SetupErrorState extends StatelessWidget {
   final VoidCallback onRetry;
 
   @override
-  Widget build(BuildContext context) => Column(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      const Icon(
-        Icons.error_outline_rounded,
-        color: AppTheme.errorRed,
-        size: 40,
-      ),
-      const SizedBox(height: 12),
-      Text(
-        'Could not load profile data.',
-        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-          color: Colors.white,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-      const SizedBox(height: 6),
-      Text(
-        message,
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-          color: Colors.white.withValues(alpha: 0.60),
-        ),
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-      ),
-      const SizedBox(height: 16),
-      SizedBox(
-        width: 140,
-        height: 48,
-        child: TextButton.icon(
-          onPressed: onRetry,
-          icon: const Icon(
-            Icons.refresh_rounded,
-            color: AppTheme.crystalGoldSoft,
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.error_outline_rounded, color: scheme.error, size: 40),
+        const SizedBox(height: 12),
+        Text(
+          'Could not load profile data.',
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: scheme.onSurface,
+            fontWeight: FontWeight.w600,
           ),
-          label: Text(
-            'Retry',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppTheme.crystalGoldSoft,
-              fontWeight: FontWeight.w700,
+        ),
+        const SizedBox(height: 6),
+        Text(
+          message,
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          width: 140,
+          height: 48,
+          child: TextButton.icon(
+            onPressed: onRetry,
+            icon: Icon(Icons.refresh_rounded, color: scheme.primary),
+            label: Text(
+              'Retry',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: scheme.primary,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ),
-      ),
-    ],
-  );
+      ],
+    );
+  }
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 Widget setupFormLabel(BuildContext context, String text, IconData icon) => Row(
   children: [
-    Icon(icon, size: 16, color: AppTheme.crystalGoldSoft),
+    Icon(icon, size: 16, color: Theme.of(context).colorScheme.primary),
     const SizedBox(width: 7),
     Expanded(
       child: Text(
@@ -643,7 +516,7 @@ Widget setupFormLabel(BuildContext context, String text, IconData icon) => Row(
         overflow: TextOverflow.ellipsis,
         style: Theme.of(context).textTheme.labelLarge?.copyWith(
           fontWeight: FontWeight.w700,
-          color: Colors.white.withValues(alpha: 0.90),
+          color: Theme.of(context).colorScheme.onSurface,
           letterSpacing: 0.3,
         ),
       ),
@@ -651,42 +524,40 @@ Widget setupFormLabel(BuildContext context, String text, IconData icon) => Row(
   ],
 );
 
-Widget setupSectionDivider() => Container(
-  height: 1,
-  decoration: BoxDecoration(
-    gradient: LinearGradient(
-      colors: [
-        Colors.white.withValues(alpha: 0.0),
-        Colors.white.withValues(alpha: 0.12),
-        Colors.white.withValues(alpha: 0.0),
-      ],
-    ),
-  ),
-);
+Widget setupSectionDivider(BuildContext context) =>
+    Container(height: 1, color: Theme.of(context).colorScheme.outlineVariant);
 
-InputDecoration glassInputDecoration({required String hint}) => InputDecoration(
-  hintText: hint,
-  hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.38)),
-  filled: true,
-  fillColor: Colors.white.withValues(alpha: 0.09),
-  contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
-  border: OutlineInputBorder(
-    borderRadius: BorderRadius.circular(16),
-    borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.22)),
-  ),
-  enabledBorder: OutlineInputBorder(
-    borderRadius: BorderRadius.circular(16),
-    borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.22)),
-  ),
-  focusedBorder: OutlineInputBorder(
-    borderRadius: BorderRadius.circular(16),
-    borderSide: const BorderSide(color: AppTheme.crystalGoldSoft, width: 1.6),
-  ),
-  disabledBorder: OutlineInputBorder(
-    borderRadius: BorderRadius.circular(16),
-    borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.10)),
-  ),
-);
+InputDecoration glassInputDecoration(
+  BuildContext context, {
+  required String hint,
+}) {
+  final scheme = Theme.of(context).colorScheme;
+  return InputDecoration(
+    hintText: hint,
+    hintStyle: TextStyle(color: scheme.onSurfaceVariant),
+    filled: true,
+    fillColor: scheme.surface,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: BorderSide(color: scheme.outlineVariant),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: BorderSide(color: scheme.outlineVariant),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: BorderSide(color: scheme.primary, width: 1.6),
+    ),
+    disabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: BorderSide(
+        color: scheme.outlineVariant.withValues(alpha: 0.5),
+      ),
+    ),
+  );
+}
 
 /// Month names for DOB dropdowns.
 const kMonthNames = [

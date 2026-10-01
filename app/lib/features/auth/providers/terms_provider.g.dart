@@ -6,7 +6,7 @@ part of 'terms_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$termsAcceptanceHash() => r'df4748daa8a827d948fa420b772cd55a65085cf9';
+String _$termsAcceptanceHash() => r'76118ec277adceff61a45967f8039270234fd8a2';
 
 /// See also [TermsAcceptance].
 @ProviderFor(TermsAcceptance)

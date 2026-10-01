@@ -1,0 +1,207 @@
+# Per-route API SLOs (generated layout; edit by hand, keep the window set in sync).
+#
+# Availability SLO: 99.5% of non-infrastructure requests per route answer without
+#   a 5xx over 30 days (error budget 0.5%).
+# Latency SLO (mobile_bff, non-upload routes): 99% of requests finish within 1s
+#   (error budget 1%). Upload/media routes are covered by a separate p95 alert.
+# Multi-window, multi-burn-rate alerts (Google SRE workbook):
+#   page   : burn 14.4 over 1h AND 5m   (2% of the 30d budget in an hour)
+#   page   : burn 6    over 6h AND 30m  (5% of the budget in six hours)
+#   ticket : burn 3    over 1d AND 2h   (10% of the budget in a day)
+# le matches both "1" (Prometheus 2.x) and "1.0" (Prometheus 3.x normalisation).
+groups:
+  - name: verified-dating-api-slo-recording
+    interval: 30s
+    rules:
+      - record: verified_dating:http_requests:rate5m
+        expr: sum by (service, route) (rate(verified_dating_http_requests_total{route!~"/metrics|/healthz|/readyz|/debug/.*|/docs.*|/openapi.yaml|unmatched",status_class!="1xx"}[5m]))
+      - record: verified_dating:http_errors:rate5m
+        expr: sum by (service, route) (rate(verified_dating_http_requests_total{route!~"/metrics|/healthz|/readyz|/debug/.*|/docs.*|/openapi.yaml|unmatched",status_class="5xx"}[5m]))
+      - record: verified_dating:http_error_ratio:rate5m
+        expr: verified_dating:http_errors:rate5m / clamp_min(verified_dating:http_requests:rate5m, 1e-9)
+      - record: verified_dating:http_service_error_ratio:rate5m
+        expr: sum by (service) (verified_dating:http_errors:rate5m) / clamp_min(sum by (service) (verified_dating:http_requests:rate5m), 1e-9)
+      - record: verified_dating:http_latency_total:rate5m
+        expr: sum by (service, route) (rate(verified_dating_http_request_duration_seconds_count{route!~"/metrics|/healthz|/readyz|/debug/.*|/docs.*|/openapi.yaml|unmatched",route!~".*(/photos|/cover|/evidence|/selfie|/voice-icebreakers|/export|/verification).*"}[5m]))
+      - record: verified_dating:http_latency_slow:rate5m
+        expr: verified_dating:http_latency_total:rate5m - sum by (service, route) (rate(verified_dating_http_request_duration_seconds_bucket{route!~"/metrics|/healthz|/readyz|/debug/.*|/docs.*|/openapi.yaml|unmatched",route!~".*(/photos|/cover|/evidence|/selfie|/voice-icebreakers|/export|/verification).*",le=~"1|1\\.0"}[5m]))
+      - record: verified_dating:http_latency_slow_ratio:rate5m
+        expr: verified_dating:http_latency_slow:rate5m / clamp_min(verified_dating:http_latency_total:rate5m, 1e-9)
+      - record: verified_dating:http_requests:rate30m
+        expr: sum by (service, route) (rate(verified_dating_http_requests_total{route!~"/metrics|/healthz|/readyz|/debug/.*|/docs.*|/openapi.yaml|unmatched",status_class!="1xx"}[30m]))
+      - record: verified_dating:http_errors:rate30m
+        expr: sum by (service, route) (rate(verified_dating_http_requests_total{route!~"/metrics|/healthz|/readyz|/debug/.*|/docs.*|/openapi.yaml|unmatched",status_class="5xx"}[30m]))
+      - record: verified_dating:http_error_ratio:rate30m
+        expr: verified_dating:http_errors:rate30m / clamp_min(verified_dating:http_requests:rate30m, 1e-9)
+      - record: verified_dating:http_service_error_ratio:rate30m
+        expr: sum by (service) (verified_dating:http_errors:rate30m) / clamp_min(sum by (service) (verified_dating:http_requests:rate30m), 1e-9)
+      - record: verified_dating:http_latency_total:rate30m
+        expr: sum by (service, route) (rate(verified_dating_http_request_duration_seconds_count{route!~"/metrics|/healthz|/readyz|/debug/.*|/docs.*|/openapi.yaml|unmatched",route!~".*(/photos|/cover|/evidence|/selfie|/voice-icebreakers|/export|/verification).*"}[30m]))
+      - record: verified_dating:http_latency_slow:rate30m
+        expr: verified_dating:http_latency_total:rate30m - sum by (service, route) (rate(verified_dating_http_request_duration_seconds_bucket{route!~"/metrics|/healthz|/readyz|/debug/.*|/docs.*|/openapi.yaml|unmatched",route!~".*(/photos|/cover|/evidence|/selfie|/voice-icebreakers|/export|/verification).*",le=~"1|1\\.0"}[30m]))
+      - record: verified_dating:http_latency_slow_ratio:rate30m
+        expr: verified_dating:http_latency_slow:rate30m / clamp_min(verified_dating:http_latency_total:rate30m, 1e-9)
+      - record: verified_dating:http_requests:rate1h
+        expr: sum by (service, route) (rate(verified_dating_http_requests_total{route!~"/metrics|/healthz|/readyz|/debug/.*|/docs.*|/openapi.yaml|unmatched",status_class!="1xx"}[1h]))
+      - record: verified_dating:http_errors:rate1h
+        expr: sum by (service, route) (rate(verified_dating_http_requests_total{route!~"/metrics|/healthz|/readyz|/debug/.*|/docs.*|/openapi.yaml|unmatched",status_class="5xx"}[1h]))
+      - record: verified_dating:http_error_ratio:rate1h
+        expr: verified_dating:http_errors:rate1h / clamp_min(verified_dating:http_requests:rate1h, 1e-9)
+      - record: verified_dating:http_service_error_ratio:rate1h
+        expr: sum by (service) (verified_dating:http_errors:rate1h) / clamp_min(sum by (service) (verified_dating:http_requests:rate1h), 1e-9)
+      - record: verified_dating:http_latency_total:rate1h
+        expr: sum by (service, route) (rate(verified_dating_http_request_duration_seconds_count{route!~"/metrics|/healthz|/readyz|/debug/.*|/docs.*|/openapi.yaml|unmatched",route!~".*(/photos|/cover|/evidence|/selfie|/voice-icebreakers|/export|/verification).*"}[1h]))
+      - record: verified_dating:http_latency_slow:rate1h
+        expr: verified_dating:http_latency_total:rate1h - sum by (service, route) (rate(verified_dating_http_request_duration_seconds_bucket{route!~"/metrics|/healthz|/readyz|/debug/.*|/docs.*|/openapi.yaml|unmatched",route!~".*(/photos|/cover|/evidence|/selfie|/voice-icebreakers|/export|/verification).*",le=~"1|1\\.0"}[1h]))
+      - record: verified_dating:http_latency_slow_ratio:rate1h
+        expr: verified_dating:http_latency_slow:rate1h / clamp_min(verified_dating:http_latency_total:rate1h, 1e-9)
+      - record: verified_dating:http_requests:rate6h
+        expr: sum by (service, route) (rate(verified_dating_http_requests_total{route!~"/metrics|/healthz|/readyz|/debug/.*|/docs.*|/openapi.yaml|unmatched",status_class!="1xx"}[6h]))
+      - record: verified_dating:http_errors:rate6h
+        expr: sum by (service, route) (rate(verified_dating_http_requests_total{route!~"/metrics|/healthz|/readyz|/debug/.*|/docs.*|/openapi.yaml|unmatched",status_class="5xx"}[6h]))
+      - record: verified_dating:http_error_ratio:rate6h
+        expr: verified_dating:http_errors:rate6h / clamp_min(verified_dating:http_requests:rate6h, 1e-9)
+      - record: verified_dating:http_service_error_ratio:rate6h
+        expr: sum by (service) (verified_dating:http_errors:rate6h) / clamp_min(sum by (service) (verified_dating:http_requests:rate6h), 1e-9)
+      - record: verified_dating:http_latency_total:rate6h
+        expr: sum by (service, route) (rate(verified_dating_http_request_duration_seconds_count{route!~"/metrics|/healthz|/readyz|/debug/.*|/docs.*|/openapi.yaml|unmatched",route!~".*(/photos|/cover|/evidence|/selfie|/voice-icebreakers|/export|/verification).*"}[6h]))
+      - record: verified_dating:http_latency_slow:rate6h
+        expr: verified_dating:http_latency_total:rate6h - sum by (service, route) (rate(verified_dating_http_request_duration_seconds_bucket{route!~"/metrics|/healthz|/readyz|/debug/.*|/docs.*|/openapi.yaml|unmatched",route!~".*(/photos|/cover|/evidence|/selfie|/voice-icebreakers|/export|/verification).*",le=~"1|1\\.0"}[6h]))
+      - record: verified_dating:http_latency_slow_ratio:rate6h
+        expr: verified_dating:http_latency_slow:rate6h / clamp_min(verified_dating:http_latency_total:rate6h, 1e-9)
+
+  - name: verified-dating-api-slo-recording-long
+    interval: 2m
+    rules:
+      - record: verified_dating:http_requests:rate2h
+        expr: sum by (service, route) (rate(verified_dating_http_requests_total{route!~"/metrics|/healthz|/readyz|/debug/.*|/docs.*|/openapi.yaml|unmatched",status_class!="1xx"}[2h]))
+      - record: verified_dating:http_errors:rate2h
+        expr: sum by (service, route) (rate(verified_dating_http_requests_total{route!~"/metrics|/healthz|/readyz|/debug/.*|/docs.*|/openapi.yaml|unmatched",status_class="5xx"}[2h]))
+      - record: verified_dating:http_error_ratio:rate2h
+        expr: verified_dating:http_errors:rate2h / clamp_min(verified_dating:http_requests:rate2h, 1e-9)
+      - record: verified_dating:http_service_error_ratio:rate2h
+        expr: sum by (service) (verified_dating:http_errors:rate2h) / clamp_min(sum by (service) (verified_dating:http_requests:rate2h), 1e-9)
+      - record: verified_dating:http_latency_total:rate2h
+        expr: sum by (service, route) (rate(verified_dating_http_request_duration_seconds_count{route!~"/metrics|/healthz|/readyz|/debug/.*|/docs.*|/openapi.yaml|unmatched",route!~".*(/photos|/cover|/evidence|/selfie|/voice-icebreakers|/export|/verification).*"}[2h]))
+      - record: verified_dating:http_latency_slow:rate2h
+        expr: verified_dating:http_latency_total:rate2h - sum by (service, route) (rate(verified_dating_http_request_duration_seconds_bucket{route!~"/metrics|/healthz|/readyz|/debug/.*|/docs.*|/openapi.yaml|unmatched",route!~".*(/photos|/cover|/evidence|/selfie|/voice-icebreakers|/export|/verification).*",le=~"1|1\\.0"}[2h]))
+      - record: verified_dating:http_latency_slow_ratio:rate2h
+        expr: verified_dating:http_latency_slow:rate2h / clamp_min(verified_dating:http_latency_total:rate2h, 1e-9)
+      - record: verified_dating:http_requests:rate1d
+        expr: sum by (service, route) (rate(verified_dating_http_requests_total{route!~"/metrics|/healthz|/readyz|/debug/.*|/docs.*|/openapi.yaml|unmatched",status_class!="1xx"}[1d]))
+      - record: verified_dating:http_errors:rate1d
+        expr: sum by (service, route) (rate(verified_dating_http_requests_total{route!~"/metrics|/healthz|/readyz|/debug/.*|/docs.*|/openapi.yaml|unmatched",status_class="5xx"}[1d]))
+      - record: verified_dating:http_error_ratio:rate1d
+        expr: verified_dating:http_errors:rate1d / clamp_min(verified_dating:http_requests:rate1d, 1e-9)
+      - record: verified_dating:http_service_error_ratio:rate1d
+        expr: sum by (service) (verified_dating:http_errors:rate1d) / clamp_min(sum by (service) (verified_dating:http_requests:rate1d), 1e-9)
+      - record: verified_dating:http_latency_total:rate1d
+        expr: sum by (service, route) (rate(verified_dating_http_request_duration_seconds_count{route!~"/metrics|/healthz|/readyz|/debug/.*|/docs.*|/openapi.yaml|unmatched",route!~".*(/photos|/cover|/evidence|/selfie|/voice-icebreakers|/export|/verification).*"}[1d]))
+      - record: verified_dating:http_latency_slow:rate1d
+        expr: verified_dating:http_latency_total:rate1d - sum by (service, route) (rate(verified_dating_http_request_duration_seconds_bucket{route!~"/metrics|/healthz|/readyz|/debug/.*|/docs.*|/openapi.yaml|unmatched",route!~".*(/photos|/cover|/evidence|/selfie|/voice-icebreakers|/export|/verification).*",le=~"1|1\\.0"}[1d]))
+      - record: verified_dating:http_latency_slow_ratio:rate1d
+        expr: verified_dating:http_latency_slow:rate1d / clamp_min(verified_dating:http_latency_total:rate1d, 1e-9)
+
+  - name: verified-dating-api-slo-alerts
+    interval: 30s
+    rules:
+      - alert: VerifiedDatingRouteErrorBudgetFastBurn
+        expr: |
+          (
+            verified_dating:http_error_ratio:rate1h{service="mobile_bff"} > (14.4 * 0.005)
+            and verified_dating:http_error_ratio:rate5m{service="mobile_bff"} > (14.4 * 0.005)
+          )
+          and verified_dating:http_requests:rate1h{service="mobile_bff"} > 0.01
+          or
+          (
+            verified_dating:http_error_ratio:rate6h{service="mobile_bff"} > (6 * 0.005)
+            and verified_dating:http_error_ratio:rate30m{service="mobile_bff"} > (6 * 0.005)
+          )
+          and verified_dating:http_requests:rate6h{service="mobile_bff"} > 0.01
+        for: 2m
+        labels:
+          severity: page
+          owner: backend-oncall
+        annotations:
+          summary: "{{ $labels.method }} {{ $labels.route }} is burning its 99.5% availability budget fast"
+          description: "Route {{ $labels.route }} returned 5xx for {{ $value | humanizePercentage }} of requests; at this rate the 30-day error budget is gone within days."
+          runbook_url: /documents/MONITORING_RUNBOOKS_2026-10-01.md#verifieddatingrouteerrorbudgetfastburn
+      - alert: VerifiedDatingRouteErrorBudgetSlowBurn
+        expr: |
+          verified_dating:http_error_ratio:rate1d{service="mobile_bff"} > (3 * 0.005)
+          and verified_dating:http_error_ratio:rate2h{service="mobile_bff"} > (3 * 0.005)
+          and verified_dating:http_requests:rate1d{service="mobile_bff"} > 0.01
+        for: 15m
+        labels:
+          severity: ticket
+          owner: backend-oncall
+        annotations:
+          summary: "{{ $labels.route }} is steadily burning its availability budget"
+          description: "Route {{ $labels.route }} has a 5xx ratio of {{ $value | humanizePercentage }} over a day (3x the sustainable rate)."
+          runbook_url: /documents/MONITORING_RUNBOOKS_2026-10-01.md#verifieddatingrouteerrorbudgetslowburn
+      - alert: VerifiedDatingRouteLatencyBudgetFastBurn
+        expr: |
+          (
+            verified_dating:http_latency_slow_ratio:rate1h{service="mobile_bff"} > (14.4 * 0.01)
+            and verified_dating:http_latency_slow_ratio:rate5m{service="mobile_bff"} > (14.4 * 0.01)
+          )
+          and verified_dating:http_latency_total:rate1h{service="mobile_bff"} > 0.01
+          or
+          (
+            verified_dating:http_latency_slow_ratio:rate6h{service="mobile_bff"} > (6 * 0.01)
+            and verified_dating:http_latency_slow_ratio:rate30m{service="mobile_bff"} > (6 * 0.01)
+          )
+          and verified_dating:http_latency_total:rate6h{service="mobile_bff"} > 0.01
+        for: 2m
+        labels:
+          severity: page
+          owner: backend-oncall
+        annotations:
+          summary: "{{ $labels.route }} is burning its 1s latency budget fast"
+          description: "{{ $value | humanizePercentage }} of requests to {{ $labels.route }} take longer than 1s (SLO: at most 1%)."
+          runbook_url: /documents/MONITORING_RUNBOOKS_2026-10-01.md#verifieddatingroutelatencybudgetfastburn
+      - alert: VerifiedDatingRouteLatencyBudgetSlowBurn
+        expr: |
+          verified_dating:http_latency_slow_ratio:rate1d{service="mobile_bff"} > (3 * 0.01)
+          and verified_dating:http_latency_slow_ratio:rate2h{service="mobile_bff"} > (3 * 0.01)
+          and verified_dating:http_latency_total:rate1d{service="mobile_bff"} > 0.01
+        for: 15m
+        labels:
+          severity: ticket
+          owner: backend-oncall
+        annotations:
+          summary: "{{ $labels.route }} is steadily slower than its 1s latency SLO"
+          description: "{{ $value | humanizePercentage }} of requests to {{ $labels.route }} took longer than 1s over the last day."
+          runbook_url: /documents/MONITORING_RUNBOOKS_2026-10-01.md#verifieddatingroutelatencybudgetslowburn
+      - alert: VerifiedDatingEdgeAvailabilityBurn
+        expr: |
+          (
+            verified_dating:http_service_error_ratio:rate1h{service="api_gateway"} > (14.4 * 0.005)
+            and verified_dating:http_service_error_ratio:rate5m{service="api_gateway"} > (14.4 * 0.005)
+          )
+          or
+          (
+            verified_dating:http_service_error_ratio:rate6h{service="api_gateway"} > (6 * 0.005)
+            and verified_dating:http_service_error_ratio:rate30m{service="api_gateway"} > (6 * 0.005)
+          )
+        for: 2m
+        labels:
+          severity: page
+          owner: backend-oncall
+        annotations:
+          summary: "Public API (gateway) is burning its availability budget"
+          description: "{{ $value | humanizePercentage }} of API requests seen by the gateway end in 5xx, across all routes. Includes 502s when the BFF is unreachable."
+          runbook_url: /documents/MONITORING_RUNBOOKS_2026-10-01.md#verifieddatingedgeavailabilityburn
+      - alert: VerifiedDatingUploadLatencyHigh
+        expr: |
+          histogram_quantile(0.95,
+            sum by (route, le) (rate(verified_dating_http_request_duration_seconds_bucket{service="mobile_bff",route=~".*(/photos|/cover|/evidence|/selfie|/voice-icebreakers|/export|/verification).*"}[15m]))
+          ) > 10
+        for: 15m
+        labels:
+          severity: ticket
+          owner: backend-oncall
+        annotations:
+          summary: "Upload/media route {{ $labels.route }} p95 latency is above 10s"
+          description: "Media and verification uploads are excluded from the 1s SLO; this alert catches storage or moderation slowness on them (p95 {{ $value | humanizeDuration }})."
+          runbook_url: /documents/MONITORING_RUNBOOKS_2026-10-01.md#verifieddatinguploadlatencyhigh

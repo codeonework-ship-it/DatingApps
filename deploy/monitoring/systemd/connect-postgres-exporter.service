@@ -1,0 +1,44 @@
+# postgres_exporter for Connect, connecting as the least-privilege
+# connect_monitor role (pg_monitor). DSN in /etc/connect-monitoring/postgres_exporter.env.
+[Unit]
+Description=Connect monitoring - postgres_exporter
+Wants=network-online.target
+After=network-online.target postgresql.service
+PartOf=connect-monitoring.target
+
+[Service]
+Type=simple
+User=postgres_exporter
+Group=postgres_exporter
+EnvironmentFile=/etc/connect-monitoring/postgres_exporter.env
+ExecStart=/opt/connect-monitoring/postgres_exporter/postgres_exporter \
+  --web.listen-address=127.0.0.1:9187
+Restart=on-failure
+RestartSec=5
+UMask=0077
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+RestrictNamespaces=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RemoveIPC=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+
+[Install]
+WantedBy=connect-monitoring.target

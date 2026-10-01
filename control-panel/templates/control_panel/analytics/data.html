@@ -1,0 +1,39 @@
+{% extends "control_panel/base.html" %}
+{% block topbar_title %}Analytics · Data & exclusions{% endblock %}
+{% block content %}
+{% include "control_panel/analytics/_nav.html" with page_title="Data & exclusions" page_intro="Snapshot freshness, rebuilds and test accounts." show_filters=False %}
+<section class="glass-card mb-4" aria-labelledby="snap-heading">
+  <h2 id="snap-heading" class="h5">Snapshots</h2>
+  <p>Built days: <strong>{{ status.built_days|default:0 }}</strong> ({{ status.final_days|default:0 }} final) · {{ status.first_built_day|default:"—" }} → {{ status.last_built_day|default:"—" }} · reportable members now: <strong>{{ status.reportable_members|default:"—" }}</strong></p>
+  {% if status.missing_days %}<p class="text-warning">Missing in the last {{ status.window_days }} days: {{ status.missing_days|join:", " }}</p>{% else %}<p class="text-muted">No missing days in the last {{ status.window_days|default:35 }} days.</p>{% endif %}
+  <h3 class="h6 mt-3">Excluded from every report</h3>
+  <table class="glass-table w-auto"><thead><tr><th scope="col">Rule</th><th scope="col" class="text-end">Accounts</th></tr></thead>
+  <tbody>{% for reason, n in status.exclusions.items %}<tr><td>{{ reason }}</td><td class="text-end">{{ n }}</td></tr>{% empty %}<tr><td colspan="2" class="text-muted">None</td></tr>{% endfor %}</tbody></table>
+  <h3 class="h6 mt-3">Test-account rules</h3>
+  <ul class="small">{% for s in status.settings %}<li><code>{{ s.key }}</code> = <code>{{ s.value }}</code> — {{ s.description }}</li>{% endfor %}</ul>
+  <h3 class="h6 mt-3">Recent runs</h3>
+  <div class="table-responsive"><table class="glass-table w-100"><thead><tr><th scope="col">Started</th><th scope="col">Kind</th><th scope="col">Days</th><th scope="col">Status</th><th scope="col">By</th><th scope="col">Error</th></tr></thead>
+  <tbody>{% for r in status.runs %}<tr><td>{{ r.started_at }}</td><td>{{ r.kind }}</td><td>{{ r.from }} → {{ r.to }} ({{ r.days_built }})</td><td>{{ r.status }}</td><td>{{ r.requested_by }}</td><td>{{ r.error }}</td></tr>{% empty %}<tr><td colspan="6" class="text-muted">No runs yet.</td></tr>{% endfor %}</tbody></table></div>
+</section>
+<section class="glass-card mb-4" aria-labelledby="rebuild-heading">
+  <h2 id="rebuild-heading" class="h5">Rebuild days (admin)</h2>
+  <p class="small text-muted">Replaces whole days from today's source tables, in the background. Use it after flagging test accounts or fixing data. Room and group joins that were re-joined later cannot be recovered for old days.</p>
+  <form method="post" action="{% url 'analytics_rebuild' %}" class="row g-2 align-items-end">{% csrf_token %}
+    <div class="col-6 col-md-3"><label class="form-label small text-muted" for="rb-from">From (UTC)</label><input id="rb-from" type="date" name="from" required class="glass-input w-100"></div>
+    <div class="col-6 col-md-3"><label class="form-label small text-muted" for="rb-to">To (UTC, at most yesterday)</label><input id="rb-to" type="date" name="to" required class="glass-input w-100"></div>
+    <div class="col-12 col-md-auto"><button class="btn btn-glow" type="submit">Rebuild</button></div>
+  </form>
+</section>
+<section class="glass-card mb-4" aria-labelledby="flag-heading">
+  <h2 id="flag-heading" class="h5">Flagged test accounts (admin)</h2>
+  {% if accounts_error %}<p class="text-muted">{{ accounts_error }}</p>{% else %}
+  <form method="post" action="{% url 'analytics_exclude' %}" class="row g-2 align-items-end mb-3">{% csrf_token %}
+    <div class="col-12 col-md-4"><label class="form-label small text-muted" for="ex-id">Member id</label><input id="ex-id" name="member_id" required class="glass-input w-100" pattern="[0-9a-fA-F-]{36}"></div>
+    <div class="col-12 col-md-5"><label class="form-label small text-muted" for="ex-reason">Reason</label><input id="ex-reason" name="reason" required minlength="3" maxlength="200" class="glass-input w-100"></div>
+    <div class="col-12 col-md-auto"><button class="btn btn-glow" type="submit">Flag as test account</button></div>
+  </form>
+  <div class="table-responsive"><table class="glass-table w-100"><thead><tr><th scope="col">Username</th><th scope="col">Reason</th><th scope="col">By</th><th scope="col">When</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+  <tbody>{% for a in accounts %}<tr><td>{{ a.username }}</td><td>{{ a.reason }}</td><td>{{ a.created_by }}</td><td>{{ a.created_at }}</td><td><form method="post" action="{% url 'analytics_include' a.member_id %}">{% csrf_token %}<button class="btn btn-glass btn-sm" type="submit">Remove flag</button></form></td></tr>{% empty %}<tr><td colspan="5" class="text-muted">No flagged accounts.</td></tr>{% endfor %}</tbody></table></div>
+  {% endif %}
+</section>
+{% endblock %}

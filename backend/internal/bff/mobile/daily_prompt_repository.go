@@ -10,35 +10,19 @@ import (
 	"time"
 
 	"github.com/verified-dating/backend/internal/platform/config"
-	"github.com/verified-dating/backend/internal/platform/supabase"
 )
 
 type dailyPromptRepository struct {
 	cfg config.Config
-	db  *supabase.Client
+	db  repositoryDB
 }
 
-func newDailyPromptRepository(cfg config.Config) *dailyPromptRepository {
-	databaseURL := strings.ToLower(strings.TrimSpace(cfg.DatabaseURL))
-	if strings.Contains(databaseURL, "localhost") || strings.Contains(databaseURL, "127.0.0.1") {
+func newDailyPromptRepository(cfg config.Config, supplied ...repositoryDB) *dailyPromptRepository {
+	db := repositoryDBFor(cfg, supplied)
+	if db == nil {
 		return nil
 	}
-
-	apiKey := strings.TrimSpace(cfg.SupabaseServiceRole)
-	if apiKey == "" {
-		apiKey = strings.TrimSpace(cfg.SupabaseAnonKey)
-	}
-	if strings.TrimSpace(cfg.SupabaseURL) == "" || apiKey == "" {
-		return nil
-	}
-	client := supabase.NewClient(
-		cfg.SupabaseURL,
-		cfg.SupabaseAnonKey,
-		cfg.SupabaseServiceRole,
-		time.Duration(cfg.SupabaseHTTPTimeoutSec)*time.Second,
-	)
-	client.SetReadBaseURL(cfg.SupabaseReadReplicaURL)
-	return &dailyPromptRepository{cfg: cfg, db: client}
+	return &dailyPromptRepository{cfg: cfg, db: db}
 }
 
 func isDailyPromptRepoPersistenceUnavailable(err error) bool {
@@ -499,6 +483,8 @@ func (r *dailyPromptRepository) loadResponderProfiles(
 	photoParams := url.Values{}
 	photoParams.Set("user_id", "in."+buildInList(uniq))
 	photoParams.Set("select", "user_id,photo_url,ordering")
+	photoParams.Set("moderation_status", "eq.approved")
+	photoParams.Set("deleted_at", "is.null")
 	photoParams.Set("order", "user_id.asc,ordering.asc")
 	photos, err := r.db.SelectRead(ctx, r.cfg.UserSchema, r.cfg.PhotosTable, photoParams)
 	if err != nil {

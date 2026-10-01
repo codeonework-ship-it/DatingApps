@@ -1,0 +1,19 @@
+[
+  {
+    "name": "catalog-visible",
+    "kind": "gift_catalog",
+    "min_gifts": 1
+  },
+  {
+    "name": "wallet-visible",
+    "kind": "wallet_balance"
+  },
+  {
+    "name": "wallet-audit-visible",
+    "kind": "wallet_audit"
+  },
+  {
+    "name": "gift-telemetry-accepted",
+    "kind": "gift_telemetry"
+  }
+]

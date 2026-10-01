@@ -1,6 +1,24 @@
 /// Application-wide constants
 library;
 
+import 'package:flutter/foundation.dart' show kDebugMode;
+
+/// App version reported with crash reports. Pass
+/// `--dart-define=APP_VERSION=x.y.z --dart-define=APP_BUILD_NUMBER=n` in
+/// release builds; the defaults mirror `pubspec.yaml`.
+class AppVersion {
+  const AppVersion._();
+
+  static const String name = String.fromEnvironment(
+    'APP_VERSION',
+    defaultValue: '0.1.0',
+  );
+  static const String buildNumber = String.fromEnvironment(
+    'APP_BUILD_NUMBER',
+    defaultValue: '1',
+  );
+}
+
 /// API Configuration Constants
 class ApiConstants {
   /// Base URL for BFF + gateway entrypoint.
@@ -35,62 +53,11 @@ class ApiConstants {
   static const String messagingEndpoint = '/messaging';
 }
 
-/// Supabase configuration constants (storage + table references).
-class SupabaseConstants {
-  /// Storage buckets
-  static const String profilePhotosBucket = String.fromEnvironment(
-    'SUPABASE_PROFILE_PHOTOS_BUCKET',
-    defaultValue: 'profile_photos',
-  );
-  static const String verificationPhotosBucket = String.fromEnvironment(
-    'SUPABASE_VERIFICATION_PHOTOS_BUCKET',
-    defaultValue: 'verification_photos',
-  );
-
-  /// Phase 1 table references
-  static const String usersTable = String.fromEnvironment(
-    'SUPABASE_USERS_TABLE',
-    defaultValue: 'user_management.users',
-  );
-  static const String preferencesTable = String.fromEnvironment(
-    'SUPABASE_PREFERENCES_TABLE',
-    defaultValue: 'user_management.preferences',
-  );
-  static const String photosTable = String.fromEnvironment(
-    'SUPABASE_PHOTOS_TABLE',
-    defaultValue: 'user_management.photos',
-  );
-  static const String swipesTable = String.fromEnvironment(
-    'SUPABASE_SWIPES_TABLE',
-    defaultValue: 'matching.swipes',
-  );
-  static const String matchesTable = String.fromEnvironment(
-    'SUPABASE_MATCHES_TABLE',
-    defaultValue: 'matching.matches',
-  );
-  static const String messagesTable = String.fromEnvironment(
-    'SUPABASE_MESSAGES_TABLE',
-    defaultValue: 'matching.messages',
-  );
-  static const String verificationsTable = String.fromEnvironment(
-    'SUPABASE_VERIFICATIONS_TABLE',
-    defaultValue: 'safety.verifications',
-  );
-  static const String reportsTable = String.fromEnvironment(
-    'SUPABASE_REPORTS_TABLE',
-    defaultValue: 'safety.reports',
-  );
-  static const String userSettingsTable = String.fromEnvironment(
-    'SUPABASE_USER_SETTINGS_TABLE',
-    defaultValue: 'user_management.userSettings',
-  );
-}
-
 /// Validation Constants
 class ValidationConstants {
   /// Password validation
   static const int minPasswordLength = 8;
-  static const int maxPasswordLength = 128;
+  static const int maxPasswordBytes = 72;
 
   /// Name validation
   static const int minNameLength = 2;
@@ -166,13 +133,17 @@ class FeatureFlags {
     'ENABLE_BETA_FEATURES',
     defaultValue: false,
   );
-  static const bool enableAnalytics = bool.fromEnvironment(
-    'ENABLE_ANALYTICS',
-    defaultValue: true,
-  );
-  static const bool enableCrashlytics = bool.fromEnvironment(
-    'ENABLE_CRASHLYTICS',
-    defaultValue: true,
+  /// Self-hosted crash and error reporting (`POST /v1/client/errors`, see
+  /// `core/telemetry/client_error_reporter.dart`). There is no Firebase
+  /// Crashlytics or other third-party crash SDK. Product analytics is
+  /// computed server-side from API traffic, so the app has no analytics flag.
+  ///
+  /// Off in debug builds unless `--dart-define=CLIENT_ERROR_REPORTING=true`;
+  /// on in profile and release builds unless set to false. Members can still
+  /// switch it off in Privacy & Safety.
+  static const bool enableClientErrorReporting = bool.fromEnvironment(
+    'CLIENT_ERROR_REPORTING',
+    defaultValue: !kDebugMode,
   );
   static const bool enableSOS = bool.fromEnvironment(
     'ENABLE_SOS',

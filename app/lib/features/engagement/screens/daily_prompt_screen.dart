@@ -28,6 +28,7 @@ class _DailyPromptScreenState extends ConsumerState<DailyPromptScreen> {
     final notifier = ref.read(dailyPromptProvider.notifier);
     final view = state.view;
     final answer = view?.answer;
+    final scheme = Theme.of(context).colorScheme;
 
     if (answer != null && _syncedAnswer != answer.answerText) {
       _syncedAnswer = answer.answerText;
@@ -47,12 +48,12 @@ class _DailyPromptScreenState extends ConsumerState<DailyPromptScreen> {
               padding: const EdgeInsets.all(16),
               children: [
                 if (state.isLoading && view == null)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 80),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 80),
                     child: Center(
                       child: CircularProgressIndicator(
                         valueColor: AlwaysStoppedAnimation<Color>(
-                          AppTheme.trustBlue,
+                          scheme.primary,
                         ),
                       ),
                     ),
@@ -83,8 +84,8 @@ class _DailyPromptScreenState extends ConsumerState<DailyPromptScreen> {
                   ),
                   const SizedBox(height: 10),
                   GlassContainer(
-                    padding: const EdgeInsets.all(14),
-                    backgroundColor: Colors.white.withValues(alpha: 0.84),
+                    padding: const EdgeInsets.all(16),
+                    backgroundColor: scheme.surface,
                     blur: 8,
                     borderRadius: BorderRadius.circular(18),
                     child: Column(
@@ -94,7 +95,7 @@ class _DailyPromptScreenState extends ConsumerState<DailyPromptScreen> {
                           'Your answer',
                           style: Theme.of(context).textTheme.titleSmall
                               ?.copyWith(
-                                color: AppTheme.textDark,
+                                color: Theme.of(context).colorScheme.onSurface,
                                 fontWeight: FontWeight.w700,
                               ),
                         ),
@@ -108,7 +109,7 @@ class _DailyPromptScreenState extends ConsumerState<DailyPromptScreen> {
                           decoration: InputDecoration(
                             hintText: 'Type your response in under 60 seconds.',
                             filled: true,
-                            fillColor: Colors.white,
+                            fillColor: scheme.surface,
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -122,7 +123,7 @@ class _DailyPromptScreenState extends ConsumerState<DailyPromptScreen> {
                             style: Theme.of(context).textTheme.bodySmall
                                 ?.copyWith(
                                   color: answer.canEdit
-                                      ? AppTheme.textGrey
+                                      ? scheme.onSurfaceVariant
                                       : AppTheme.warningOrange,
                                 ),
                           ),
@@ -130,7 +131,7 @@ class _DailyPromptScreenState extends ConsumerState<DailyPromptScreen> {
                             Text(
                               'Edited',
                               style: Theme.of(context).textTheme.bodySmall
-                                  ?.copyWith(color: AppTheme.textHint),
+                                  ?.copyWith(color: scheme.onSurfaceVariant),
                             ),
                         ],
                         const SizedBox(height: 10),
@@ -145,13 +146,13 @@ class _DailyPromptScreenState extends ConsumerState<DailyPromptScreen> {
                                     _answerController.text,
                                   ),
                             child: state.isSubmitting
-                                ? const SizedBox(
+                                ? SizedBox(
                                     width: 18,
                                     height: 18,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
                                       valueColor: AlwaysStoppedAnimation<Color>(
-                                        Colors.white,
+                                        scheme.onPrimary,
                                       ),
                                     ),
                                   )
@@ -171,7 +172,7 @@ class _DailyPromptScreenState extends ConsumerState<DailyPromptScreen> {
                       state.error!,
                       style: Theme.of(
                         context,
-                      ).textTheme.bodySmall?.copyWith(color: AppTheme.errorRed),
+                      ).textTheme.bodySmall?.copyWith(color: scheme.error),
                     ),
                   ],
                 ],
@@ -203,8 +204,8 @@ class _StreakCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final streak = view.streak;
     return GlassContainer(
-      padding: const EdgeInsets.all(14),
-      backgroundColor: Colors.white.withValues(alpha: 0.85),
+      padding: const EdgeInsets.all(16),
+      backgroundColor: Theme.of(context).colorScheme.surface,
       blur: 8,
       borderRadius: BorderRadius.circular(18),
       child: Column(
@@ -213,7 +214,7 @@ class _StreakCard extends StatelessWidget {
           Text(
             'Streak Progress',
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              color: AppTheme.textDark,
+              color: Theme.of(context).colorScheme.onSurface,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -256,11 +257,11 @@ class _StatPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
     decoration: BoxDecoration(
       borderRadius: BorderRadius.circular(12),
-      color: Colors.white,
-      border: Border.all(color: AppTheme.textHint.withValues(alpha: 0.25)),
+      color: Theme.of(context).colorScheme.surface,
+      border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
     ),
     child: Text(
       '$label: $value',
@@ -284,8 +285,8 @@ class _InfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => GlassContainer(
-    padding: const EdgeInsets.all(14),
-    backgroundColor: Colors.white.withValues(alpha: 0.83),
+    padding: const EdgeInsets.all(16),
+    backgroundColor: Theme.of(context).colorScheme.surface,
     blur: 8,
     borderRadius: BorderRadius.circular(18),
     child: Row(
@@ -295,9 +296,13 @@ class _InfoCard extends StatelessWidget {
           height: 40,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            color: AppTheme.trustBlue.withValues(alpha: 0.14),
+            color: Theme.of(context).colorScheme.primaryContainer,
           ),
-          child: Icon(icon, color: AppTheme.trustBlue, size: 20),
+          child: Icon(
+            icon,
+            color: Theme.of(context).colorScheme.onPrimaryContainer,
+            size: 20,
+          ),
         ),
         const SizedBox(width: 10),
         Expanded(
@@ -307,16 +312,16 @@ class _InfoCard extends StatelessWidget {
               Text(
                 title,
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: AppTheme.textDark,
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontWeight: FontWeight.w700,
                 ),
               ),
               const SizedBox(height: 2),
               Text(
                 subtitle,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: AppTheme.textGrey),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
             ],
           ),
