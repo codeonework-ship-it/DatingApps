@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
+import '../../../l10n/app_localizations.dart';
 import '../providers/verification_provider.dart';
 
 class VerificationStatusScreen extends ConsumerWidget {
@@ -11,9 +12,10 @@ class VerificationStatusScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final verification = ref.watch(verificationNotifierProvider);
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Verification Status')),
+      appBar: AppBar(title: Text(l10n.verificationStatusTitle)),
       body: PostLoginBackdrop(
         child: SafeArea(
           child: Center(
@@ -34,7 +36,7 @@ class VerificationStatusScreen extends ConsumerWidget {
                       child: TextButton(
                         onPressed: () =>
                             ref.invalidate(verificationNotifierProvider),
-                        child: const Text('Retry'),
+                        child: Text(l10n.verificationRetry),
                       ),
                     ),
                     data: (v) {
@@ -43,31 +45,37 @@ class VerificationStatusScreen extends ConsumerWidget {
                         return _state(
                           context,
                           icon: Icons.verified,
-                          title: 'Verified',
-                          message: 'Your verification is complete.',
+                          qaId: 'Verified',
+                          title: l10n.verificationStatusVerified,
+                          message: l10n.verificationStatusVerifiedMessage,
                         );
                       }
                       if (status == 'rejected') {
                         return _state(
                           context,
                           icon: Icons.error,
-                          title: 'Rejected',
-                          message: v.rejectionReason ?? 'Please try again.',
+                          qaId: 'Rejected',
+                          title: l10n.verificationStatusRejected,
+                          message:
+                              v.rejectionReason ??
+                              l10n.verificationStatusRejectedFallback,
                         );
                       }
                       if (status == 'pending') {
                         return _state(
                           context,
                           icon: Icons.hourglass_top,
-                          title: 'Pending',
-                          message: 'Review in progress.',
+                          qaId: 'Pending',
+                          title: l10n.verificationStatusPending,
+                          message: l10n.verificationStatusPendingMessage,
                         );
                       }
                       return _state(
                         context,
                         icon: Icons.info,
-                        title: 'Not Started',
-                        message: 'Start verification from Settings.',
+                        qaId: 'Not Started',
+                        title: l10n.verificationStatusNotStarted,
+                        message: l10n.verificationStatusNotStartedMessage,
                       );
                     },
                   ),
@@ -83,6 +91,7 @@ class VerificationStatusScreen extends ConsumerWidget {
   Widget _state(
     BuildContext context, {
     required IconData icon,
+    required String qaId,
     required String title,
     required String message,
   }) => Column(
@@ -91,7 +100,7 @@ class VerificationStatusScreen extends ConsumerWidget {
       Icon(icon, size: 72, color: Theme.of(context).colorScheme.primary),
       const SizedBox(height: 12),
       Semantics(
-        label: 'qa.verification.status.$title',
+        label: 'qa.verification.status.$qaId',
         child: Text(title, style: Theme.of(context).textTheme.headlineSmall),
       ),
       const SizedBox(height: 8),

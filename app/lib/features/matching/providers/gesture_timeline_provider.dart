@@ -6,6 +6,17 @@ import '../../../core/providers/api_client_provider.dart';
 import '../../../core/utils/logger.dart';
 import '../../auth/providers/auth_provider.dart';
 
+// Client fallback messages. They double as codes for translation via
+// localizeGestureTimelineError (matching_l10n.dart); server errors pass
+// through.
+const kMatchingSessionUnavailableError = 'User session not available.';
+const kGestureLoadError = 'Failed to load timeline';
+const kGesturePendingError =
+    'Gestures unlock after this pending conversation '
+    'becomes a real match.';
+const kGestureSendError = 'Failed to send gesture.';
+const kGestureUpdateError = 'Failed to update gesture status.';
+
 class GestureTimelineItem {
   const GestureTimelineItem({
     required this.id,
@@ -180,16 +191,10 @@ class GestureTimelineNotifier extends StateNotifier<GestureTimelineState> {
       state = state.copyWith(isLoading: false, items: items, error: null);
     } on DioException catch (e, stackTrace) {
       log.error('Failed to load gesture timeline', e, stackTrace);
-      state = state.copyWith(
-        isLoading: false,
-        error: 'Failed to load timeline',
-      );
+      state = state.copyWith(isLoading: false, error: kGestureLoadError);
     } on Object catch (e, stackTrace) {
       log.error('Failed to load gesture timeline', e, stackTrace);
-      state = state.copyWith(
-        isLoading: false,
-        error: 'Failed to load timeline',
-      );
+      state = state.copyWith(isLoading: false, error: kGestureLoadError);
     }
   }
 
@@ -201,10 +206,10 @@ class GestureTimelineNotifier extends StateNotifier<GestureTimelineState> {
   }) async {
     final senderUserId = _ref.read(authNotifierProvider).userId;
     if (senderUserId == null || senderUserId.isEmpty) {
-      state = state.copyWith(error: 'User session not available.');
+      state = state.copyWith(error: kMatchingSessionUnavailableError);
       return const GestureCreateResult(
         success: false,
-        error: 'User session not available.',
+        error: kMatchingSessionUnavailableError,
       );
     }
 
@@ -236,9 +241,7 @@ class GestureTimelineNotifier extends StateNotifier<GestureTimelineState> {
     }
 
     if (_isPendingConversation) {
-      const pendingError =
-          'Gestures unlock after this pending conversation '
-          'becomes a real match.';
+      const pendingError = kGesturePendingError;
       state = state.copyWith(isLoading: false, error: pendingError);
       return const GestureCreateResult(success: false, error: pendingError);
     }
@@ -336,15 +339,11 @@ class GestureTimelineNotifier extends StateNotifier<GestureTimelineState> {
         items: state.items
             .where((item) => item.id != optimisticGestureId)
             .toList(),
-        error: apiMessage?.isNotEmpty == true
-            ? apiMessage
-            : 'Failed to send gesture.',
+        error: apiMessage?.isNotEmpty == true ? apiMessage : kGestureSendError,
       );
       return GestureCreateResult(
         success: false,
-        error: apiMessage?.isNotEmpty == true
-            ? apiMessage
-            : 'Failed to send gesture.',
+        error: apiMessage?.isNotEmpty == true ? apiMessage : kGestureSendError,
       );
     } on Object catch (e, stackTrace) {
       log.error('Failed to create gesture', e, stackTrace, {
@@ -357,11 +356,11 @@ class GestureTimelineNotifier extends StateNotifier<GestureTimelineState> {
         items: state.items
             .where((item) => item.id != optimisticGestureId)
             .toList(),
-        error: 'Failed to send gesture.',
+        error: kGestureSendError,
       );
       return const GestureCreateResult(
         success: false,
-        error: 'Failed to send gesture.',
+        error: kGestureSendError,
       );
     }
   }
@@ -418,7 +417,7 @@ class GestureTimelineNotifier extends StateNotifier<GestureTimelineState> {
 
     final reviewerUserId = _ref.read(authNotifierProvider).userId;
     if (reviewerUserId == null || reviewerUserId.isEmpty) {
-      state = state.copyWith(error: 'User session not available.');
+      state = state.copyWith(error: kMatchingSessionUnavailableError);
       return;
     }
 
@@ -435,10 +434,10 @@ class GestureTimelineNotifier extends StateNotifier<GestureTimelineState> {
       await loadTimeline();
     } on DioException catch (e, stackTrace) {
       log.error('Failed to decide gesture', e, stackTrace);
-      state = state.copyWith(error: 'Failed to update gesture status.');
+      state = state.copyWith(error: kGestureUpdateError);
     } on Object catch (e, stackTrace) {
       log.error('Failed to decide gesture', e, stackTrace);
-      state = state.copyWith(error: 'Failed to update gesture status.');
+      state = state.copyWith(error: kGestureUpdateError);
     }
   }
 }

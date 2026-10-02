@@ -55,9 +55,9 @@ class SettingsScreen extends ConsumerWidget {
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
                   child: ConnectPageHeader(
-                    eyebrow: 'SETTINGS',
+                    eyebrow: l10n.settingsEyebrow,
                     title: l10n.settingsTitle,
-                    subtitle: 'Your look, your privacy and your account.',
+                    subtitle: l10n.settingsHeaderSubtitle,
                   ),
                 ),
               ),
@@ -71,9 +71,9 @@ class SettingsScreen extends ConsumerWidget {
                     if (!ref.watch(webThemeLockedProvider)) ...[
                       _buildSectionHeader(
                         context,
-                        'Theme',
-                        title: 'Make it yours',
-                        caption: 'Every screen follows the look you choose.',
+                        l10n.settingsThemeSection,
+                        title: l10n.settingsThemeSectionTitle,
+                        caption: l10n.settingsThemeSectionCaption,
                       ),
                       _buildThemeSelector(context, ref),
                     ],
@@ -85,7 +85,10 @@ class SettingsScreen extends ConsumerWidget {
                               fallback: false,
                             ) ==
                         true)
-                      _buildSectionHeader(context, 'Your story'),
+                      _buildSectionHeader(
+                        context,
+                        l10n.settingsSectionYourStory,
+                      ),
                     if (ref
                             .watch(runtimeFeatureFlagsProvider)
                             .valueOrNull
@@ -97,9 +100,8 @@ class SettingsScreen extends ConsumerWidget {
                       _buildSettingsTile(
                         context,
                         icon: Icons.spa_outlined,
-                        title: 'Your dating rhythm',
-                        subtitle:
-                            'Intent, pace, availability and introduction privacy',
+                        title: l10n.settingsDatingRhythmTitle,
+                        subtitle: l10n.settingsDatingRhythmSubtitle,
                         onTap: () => openDatingRhythm(context),
                       ),
                     if (ref
@@ -113,8 +115,8 @@ class SettingsScreen extends ConsumerWidget {
                       _buildSettingsTile(
                         context,
                         icon: Icons.auto_stories_outlined,
-                        title: 'Your profile stories',
-                        subtitle: 'Small moments, your words, optional photos',
+                        title: l10n.settingsProfileStoriesTitle,
+                        subtitle: l10n.settingsProfileStoriesSubtitle,
                         onTap: () => openProfileStories(context),
                       ),
                     if (ref
@@ -128,9 +130,8 @@ class SettingsScreen extends ConsumerWidget {
                       _buildSettingsTile(
                         context,
                         icon: Icons.menu_book_outlined,
-                        title: 'Blog · Open Chapters',
-                        subtitle:
-                            'Your journal, your photos, your choice of audience',
+                        title: l10n.settingsBlogTitle,
+                        subtitle: l10n.settingsBlogSubtitle,
                         onTap: () => openBlog(context),
                       ),
                     // Profile Section
@@ -530,8 +531,8 @@ class SettingsScreen extends ConsumerWidget {
             const SizedBox(height: 4),
             Text(
               selection.isClassic
-                  ? l10n.settingsLooksClassicDescription
-                  : selection.preset!.tagline,
+                  ? l10n.themeLooksTodayDescription
+                  : localizedPresetTagline(l10n, selection.preset!),
               style: theme.textTheme.bodySmall?.copyWith(
                 color: scheme.onSurfaceVariant,
               ),
@@ -645,11 +646,11 @@ class _ThemePreviewCard extends StatelessWidget {
   final VoidCallback onTap;
 
   /// The miniature Today page drawn in the look's own colours.
-  static Widget _previewPage(ThemePreset p) => Column(
+  static Widget _previewPage(AppLocalizations l10n, ThemePreset p) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Text(
-        'TODAY',
+        l10n.settingsLookPreviewEyebrow,
         style: TextStyle(
           fontSize: 8,
           letterSpacing: 1.6,
@@ -659,7 +660,7 @@ class _ThemePreviewCard extends StatelessWidget {
       ),
       const SizedBox(height: 4),
       Text(
-        'Something real.',
+        l10n.settingsLookPreviewHeadline,
         maxLines: 1,
         overflow: TextOverflow.clip,
         style: TextStyle(
@@ -750,7 +751,7 @@ class _ThemePreviewCard extends StatelessWidget {
                       ),
                     Padding(
                       padding: const EdgeInsets.all(8),
-                      child: _previewPage(p),
+                      child: _previewPage(AppLocalizations.of(context), p),
                     ),
                   ],
                 ),

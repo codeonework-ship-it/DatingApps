@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import pytest
+
+pytestmark = pytest.mark.usefixtures("ensure_deck")
 from selenium.common.exceptions import TimeoutException
 
 
@@ -18,6 +20,9 @@ def _open_seeded_discovery_card(app) -> None:
         app.wait_for_qa("qa.discovery.card_root", timeout=20)
     except TimeoutException:
         pytest.skip("Seeded discovery deck card is not visible in current QA build/state")
+    # With a Spotlight row above the deck the card's action row sits below
+    # the fold; bring it into view before looking for the buttons.
+    app.scroll_into_middle("qa.discovery.pass_button")
 
 
 @pytest.mark.requires_appium

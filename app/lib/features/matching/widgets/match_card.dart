@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+
+import '../../../l10n/app_localizations.dart';
 import '../../messaging/widgets/chat_chrome.dart';
+import '../matching_l10n.dart';
 import '../providers/match_provider.dart';
 
 class MatchCard extends StatelessWidget {
@@ -17,17 +21,21 @@ class MatchCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final displayName = _cleanDisplayText(
-      match.userName,
-      fallback: 'Your match',
+    final l10n = AppLocalizations.of(context);
+    final displayName = localizedMatchName(
+      l10n,
+      _cleanDisplayText(match.userName, fallback: l10n.matchesFallbackName),
     );
-    final raw = _cleanDisplayText(
-      match.lastMessage,
-      fallback: 'Start your conversation',
+    final raw = localizedMatchPreview(
+      l10n,
+      _cleanDisplayText(
+        match.lastMessage,
+        fallback: l10n.matchesFallbackMessage,
+      ),
     );
     final displayMessage =
         raw.contains('[gift:') || raw.contains('[gesture_gift:')
-        ? 'A little gift in your conversation'
+        ? l10n.matchesGiftPreview
         : raw;
     final unread = match.unreadCount > 0;
     return Material(
@@ -79,7 +87,7 @@ class MatchCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          _formatTime(match.lastMessageTime),
+                          _formatTime(context, l10n, match.lastMessageTime),
                           style: theme.textTheme.labelSmall?.copyWith(
                             color: unread
                                 ? scheme.primary
@@ -121,7 +129,7 @@ class MatchCard extends StatelessWidget {
               ),
               if (onOptions != null)
                 IconButton(
-                  tooltip: 'Conversation options for $displayName',
+                  tooltip: l10n.matchesConversationOptionsTooltip(displayName),
                   onPressed: onOptions,
                   icon: Icon(
                     Icons.more_horiz_rounded,
@@ -150,7 +158,11 @@ class MatchCard extends StatelessWidget {
     return trimmed;
   }
 
-  String _formatTime(DateTime time) {
+  String _formatTime(
+    BuildContext context,
+    AppLocalizations l10n,
+    DateTime time,
+  ) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final yesterday = today.subtract(const Duration(days: 1));
@@ -158,17 +170,20 @@ class MatchCard extends StatelessWidget {
     final difference = now.difference(time);
 
     if (difference.inMinutes < 1) {
-      return 'Now';
+      return l10n.matchesTimeNow;
     } else if (difference.inMinutes < 60) {
-      return '${difference.inMinutes}m ago';
+      return l10n.matchesTimeMinutesAgo(difference.inMinutes);
     } else if (difference.inHours < 24) {
-      return '${difference.inHours}h ago';
+      return l10n.matchesTimeHoursAgo(difference.inHours);
     } else if (messageDate == today) {
-      return 'Today';
+      return l10n.matchesTimeToday;
     } else if (messageDate == yesterday) {
-      return 'Yesterday';
+      return l10n.matchesTimeYesterday;
     } else {
-      return '${time.month}/${time.day}';
+      // en: "10/2" as before; other locales use their own month/day order.
+      return DateFormat.Md(
+        Localizations.localeOf(context).toString(),
+      ).format(time);
     }
   }
 }

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../l10n/app_localizations.dart';
 import '../providers/verification_provider.dart';
 import 'verification_selfie_screen.dart';
 
@@ -23,9 +24,10 @@ class _VerificationUploadIdScreenState
   @override
   Widget build(BuildContext context) {
     final notifier = ref.read(verificationNotifierProvider.notifier);
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Upload ID')),
+      appBar: AppBar(title: Text(l10n.verificationUploadIdTitle)),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -42,9 +44,7 @@ class _VerificationUploadIdScreenState
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
-                    'Take or upload a clear photo of your government ID.',
-                  ),
+                  Text(l10n.verificationUploadIdInstruction),
                   const SizedBox(height: 12),
                   SizedBox(
                     height: 280,
@@ -73,7 +73,7 @@ class _VerificationUploadIdScreenState
                               }
                             },
                             icon: const Icon(Icons.photo_library),
-                            label: const Text('Gallery'),
+                            label: Text(l10n.verificationGallery),
                           ),
                         ),
                       ),
@@ -89,7 +89,7 @@ class _VerificationUploadIdScreenState
                             }
                           },
                           icon: const Icon(Icons.photo_camera),
-                          label: const Text('Camera'),
+                          label: Text(l10n.verificationCamera),
                         ),
                       ),
                     ],
@@ -109,7 +109,7 @@ class _VerificationUploadIdScreenState
                                 ),
                               );
                             },
-                      child: const Text('Next'),
+                      child: Text(l10n.verificationNext),
                     ),
                   ),
                 ],

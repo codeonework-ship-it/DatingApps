@@ -57,13 +57,11 @@ class DatePlanCard extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'A second yes, from both of you',
+                l10n.planSecondYesHeadline,
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 8),
-              const Text(
-                'You both chose to share that you would like to meet again.',
-              ),
+              Text(l10n.planSecondYesCardBody),
               if (state.snapshot.canPropose)
                 TextButton(
                   onPressed: () => showProposeDatePlanSheet(
@@ -71,7 +69,7 @@ class DatePlanCard extends ConsumerWidget {
                     matchId: matchId,
                     partnerName: partnerName,
                   ),
-                  child: const Text('Plan another hello'),
+                  child: Text(l10n.planAnotherHello),
                 ),
             ],
           ),
@@ -165,12 +163,12 @@ class DatePlanCard extends ConsumerWidget {
                       counterTo: plan,
                     ),
               icon: const Icon(Icons.edit_calendar_outlined),
-              label: const Text('Suggest a change'),
+              label: Text(l10n.planSuggestChange),
             ),
           if (plan.note.isNotEmpty) ...[
             const SizedBox(height: AppLayout.space1),
             Text(
-              '“${plan.note}”',
+              l10n.planQuotedNote(plan.note),
               style: Theme.of(
                 context,
               ).textTheme.bodySmall?.copyWith(fontStyle: FontStyle.italic),
@@ -179,7 +177,7 @@ class DatePlanCard extends ConsumerWidget {
           if (state.error != null) ...[
             const SizedBox(height: AppLayout.space2),
             Text(
-              state.error!,
+              localizedDatePlanError(l10n, state.error!, state.failure),
               key: const ValueKey('qa.plan.card_error'),
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Theme.of(context).colorScheme.error,
@@ -194,7 +192,7 @@ class DatePlanCard extends ConsumerWidget {
                 ? null
                 : () => showPlanSharingSheet(context, plan),
             icon: const Icon(Icons.shield_outlined),
-            label: const Text('Choose who gets your updates'),
+            label: Text(l10n.planChooseUpdates),
           ),
           _Actions(
             matchId: matchId,
@@ -296,11 +294,7 @@ class _StatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final label = switch (plan.status) {
-      'proposed' => l10n.planStatusProposed,
-      'accepted' => l10n.planStatusConfirmed,
-      _ => plan.status,
-    };
+    final label = datePlanStatusLabel(l10n, plan.status);
     final accent = plan.isAccepted
         ? AppTheme.successGreen
         : Theme.of(context).colorScheme.primary;

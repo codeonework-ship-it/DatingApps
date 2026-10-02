@@ -6,6 +6,11 @@ import '../../../core/providers/api_client_provider.dart';
 import '../../../core/utils/logger.dart';
 import '../../auth/providers/auth_provider.dart';
 
+// Client fallback messages. They double as codes for translation via
+// localizeTrustFilterError (matching_l10n.dart); server errors pass through.
+const kTrustFilterLoadError = 'Failed to load trust filters. Please try again.';
+const kTrustFilterSaveError = 'Failed to save trust filters. Please try again.';
+
 class TrustBadgeOption {
   const TrustBadgeOption({required this.code, required this.label});
   final String code;
@@ -123,17 +128,11 @@ class TrustFilterNotifier extends StateNotifier<TrustFilterState> {
       log.error('Failed to load trust filter', e, stackTrace);
       state = state.copyWith(
         isLoading: false,
-        error: _extractApiError(
-          e,
-          fallback: 'Failed to load trust filters. Please try again.',
-        ),
+        error: _extractApiError(e, fallback: kTrustFilterLoadError),
       );
     } catch (e, stackTrace) {
       log.error('Failed to load trust filter', e, stackTrace);
-      state = state.copyWith(
-        isLoading: false,
-        error: 'Failed to load trust filters. Please try again.',
-      );
+      state = state.copyWith(isLoading: false, error: kTrustFilterLoadError);
     }
   }
 
@@ -197,17 +196,11 @@ class TrustFilterNotifier extends StateNotifier<TrustFilterState> {
       log.error('Failed to save trust filter', e, stackTrace);
       state = state.copyWith(
         isSaving: false,
-        error: _extractApiError(
-          e,
-          fallback: 'Failed to save trust filters. Please try again.',
-        ),
+        error: _extractApiError(e, fallback: kTrustFilterSaveError),
       );
     } catch (e, stackTrace) {
       log.error('Failed to save trust filter', e, stackTrace);
-      state = state.copyWith(
-        isSaving: false,
-        error: 'Failed to save trust filters. Please try again.',
-      );
+      state = state.copyWith(isSaving: false, error: kTrustFilterSaveError);
     }
   }
 }

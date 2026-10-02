@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../l10n/app_localizations.dart';
 import '../providers/verification_provider.dart';
 import 'verification_status_screen.dart';
 
@@ -26,9 +27,10 @@ class _VerificationSelfieScreenState
   Widget build(BuildContext context) {
     final notifier = ref.read(verificationNotifierProvider.notifier);
     final state = ref.watch(verificationNotifierProvider);
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Selfie')),
+      appBar: AppBar(title: Text(l10n.verificationSelfieTitle)),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
@@ -40,7 +42,7 @@ class _VerificationSelfieScreenState
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text('Take a clear selfie.'),
+                  Text(l10n.verificationSelfieInstruction),
                   const SizedBox(height: 12),
                   SizedBox(
                     height: 280,
@@ -72,7 +74,7 @@ class _VerificationSelfieScreenState
                               }
                             },
                             icon: const Icon(Icons.photo_library),
-                            label: const Text('Gallery'),
+                            label: Text(l10n.verificationGallery),
                           ),
                         ),
                       ),
@@ -88,7 +90,7 @@ class _VerificationSelfieScreenState
                             }
                           },
                           icon: const Icon(Icons.photo_camera),
-                          label: const Text('Camera'),
+                          label: Text(l10n.verificationCamera),
                         ),
                       ),
                     ],
@@ -96,7 +98,7 @@ class _VerificationSelfieScreenState
                   const SizedBox(height: 12),
                   if (state.hasError) ...[
                     Text(
-                      'We could not upload your evidence. Check the files and try again.',
+                      l10n.verificationUploadFailed,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.error,
@@ -128,7 +130,7 @@ class _VerificationSelfieScreenState
                             },
                       child: state.isLoading
                           ? const CircularProgressIndicator()
-                          : const Text('Submit'),
+                          : Text(l10n.verificationSubmit),
                     ),
                   ),
                 ],

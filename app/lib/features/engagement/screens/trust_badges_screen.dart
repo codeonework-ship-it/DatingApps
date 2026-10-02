@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../matching/matching_l10n.dart';
+import '../../matching/providers/trust_filter_provider.dart';
+import '../engagement_l10n.dart';
 import '../providers/trust_badges_provider.dart';
 
 class TrustBadgesScreen extends ConsumerWidget {
@@ -8,10 +11,11 @@ class TrustBadgesScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = engagementL10n(context);
     final state = ref.watch(trustBadgesProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Trust Badges')),
+      appBar: AppBar(title: Text(l.settingsTrustBadgesTitle)),
       body: RefreshIndicator(
         onRefresh: () => ref.read(trustBadgesProvider.notifier).load(),
         child: ListView(
@@ -25,43 +29,59 @@ class TrustBadgesScreen extends ConsumerWidget {
             else ...[
               _MilestoneCard(state: state),
               const SizedBox(height: 16),
-              const Text(
-                'Earned Badges',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+              Text(
+                l.engagementTrustBadgesEarned,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const SizedBox(height: 12),
               if (state.badges.isEmpty)
-                const Card(
+                Card(
                   child: Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Text(
-                      'No badges yet. Complete activities to unlock trust badges.',
-                    ),
+                    padding: const EdgeInsets.all(16),
+                    child: Text(l.engagementTrustBadgesEmpty),
                   ),
                 )
               else
                 ...state.badges.map(
                   (badge) => Card(
                     child: ListTile(
-                      title: Text(badge.label),
+                      title: Text(
+                        localizedTrustBadgeLabel(
+                          l,
+                          TrustBadgeOption(
+                            code: badge.code,
+                            label: badge.label,
+                          ),
+                        ),
+                      ),
                       subtitle: Text(
-                        'Code: ${badge.code}\nStatus: ${badge.status} • Awarded ${badge.awardedAt}',
+                        l.engagementTrustBadgesDetails(
+                          badge.code,
+                          badge.status,
+                          badge.awardedAt,
+                        ),
                       ),
                       isThreeLine: true,
                     ),
                   ),
                 ),
               const SizedBox(height: 16),
-              const Text(
-                'Recent History',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+              Text(
+                l.engagementTrustBadgesHistory,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const SizedBox(height: 12),
               if (state.history.isEmpty)
-                const Card(
+                Card(
                   child: Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Text('No trust history available yet.'),
+                    padding: const EdgeInsets.all(16),
+                    child: Text(l.engagementTrustBadgesHistoryEmpty),
                   ),
                 )
               else
@@ -104,11 +124,12 @@ class _MilestoneCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = engagementL10n(context);
     if (state.milestones.isEmpty) {
-      return const Card(
+      return Card(
         child: Padding(
-          padding: EdgeInsets.all(16),
-          child: Text('Milestone status unavailable.'),
+          padding: const EdgeInsets.all(16),
+          child: Text(l.engagementTrustBadgesMilestoneUnavailable),
         ),
       );
     }
@@ -119,9 +140,9 @@ class _MilestoneCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Current Milestone',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+            Text(
+              l.engagementTrustBadgesCurrentMilestone,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 8),
             ...state.milestones.entries.map(

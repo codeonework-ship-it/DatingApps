@@ -9,6 +9,23 @@ def _open_discovery(app) -> None:
     app.open_discovery_deck()
 
 
+@pytest.fixture
+def reset_filters_after(app):
+    """Applied filters live in the app session and would empty the deck for
+    every later spec; clear them with the sheet's own Reset afterwards."""
+    yield
+    try:
+        app.go_today()
+        app.open_discovery_deck()
+        _open_filters(app)
+        app.scroll_sheet_to_text_or_fail("Reset")
+        app.tap_qa_coordinate("qa.filters.reset_button", timeout=5)
+        app.press_back()
+        app.maybe_tap_qa("qa.discovery.state_action_button", timeout=3)
+    except Exception as exc:  # noqa: BLE001 - cleanup must not mask the result
+        print(f"[filter reset failed] {exc!r}")
+
+
 def _open_filters(app) -> None:
     if not app.maybe_tap_qa("qa.discovery.filter_button", timeout=5):
         app.tap_first_visible_text(["Filters", "Filter"], timeout=15)
@@ -83,7 +100,7 @@ def _candidate_names(api_client, user_id: str) -> list[str]:
 @pytest.mark.discovery
 @pytest.mark.filters
 @pytest.mark.smoke
-def test_discover_and_filters(app, appium_config, api_client, qa_user_id):
+def test_discover_and_filters(app, appium_config, api_client, qa_user_id, reset_filters_after):
     expected_names = _candidate_names(api_client, qa_user_id)
 
     _open_discovery(app)
@@ -119,7 +136,7 @@ def test_discover_and_filters(app, appium_config, api_client, qa_user_id):
 @pytest.mark.requires_appium
 @pytest.mark.discovery
 @pytest.mark.filters
-def test_discovery_filters_reopen_after_save(app, appium_config):
+def test_discovery_filters_reopen_after_save(app, appium_config, reset_filters_after):
     _open_discovery(app)
     _open_filters(app)
     _apply_filters(app)

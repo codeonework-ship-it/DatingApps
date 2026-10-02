@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
+import '../../../l10n/app_localizations.dart';
+import '../engagement_l10n.dart';
 import '../providers/daily_prompt_provider.dart';
 
 class DailyPromptScreen extends ConsumerStatefulWidget {
@@ -24,6 +27,7 @@ class _DailyPromptScreenState extends ConsumerState<DailyPromptScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = engagementL10n(context);
     final state = ref.watch(dailyPromptProvider);
     final notifier = ref.read(dailyPromptProvider.notifier);
     final view = state.view;
@@ -39,7 +43,7 @@ class _DailyPromptScreenState extends ConsumerState<DailyPromptScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Daily Prompt Streak')),
+      appBar: AppBar(title: Text(l.engagementDailyPromptTitle)),
       body: PostLoginBackdrop(
         child: SafeArea(
           child: RefreshIndicator(
@@ -60,26 +64,26 @@ class _DailyPromptScreenState extends ConsumerState<DailyPromptScreen> {
                   )
                 else if (view == null)
                   _InfoCard(
-                    title: 'Daily prompt unavailable',
+                    title: l.engagementDailyPromptUnavailable,
                     subtitle:
-                        state.error ?? 'Pull to refresh or try again in a bit.',
+                        state.error ?? l.engagementDailyPromptPullToRefresh,
                     icon: Icons.error_outline_rounded,
                   )
                 else ...[
                   _StreakCard(view: view),
                   const SizedBox(height: 10),
                   _InfoCard(
-                    title: view.prompt.domain
-                        .replaceAll('_', ' ')
-                        .toUpperCase(),
+                    title: _domainLabel(l, view.prompt.domain),
                     subtitle: view.prompt.promptText,
                     icon: Icons.lightbulb_outline_rounded,
                   ),
                   const SizedBox(height: 10),
                   _InfoCard(
-                    title: 'Compatibility Spark',
-                    subtitle:
-                        '${view.spark.participantsToday} replied today · ${view.spark.similarAnswerCount} similar answers',
+                    title: l.engagementDailyPromptSparkTitle,
+                    subtitle: l.engagementDailyPromptSparkSummary(
+                      view.spark.participantsToday,
+                      view.spark.similarAnswerCount,
+                    ),
                     icon: Icons.people_alt_outlined,
                   ),
                   const SizedBox(height: 10),
@@ -92,7 +96,7 @@ class _DailyPromptScreenState extends ConsumerState<DailyPromptScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Your answer',
+                          l.engagementDailyPromptYourAnswer,
                           style: Theme.of(context).textTheme.titleSmall
                               ?.copyWith(
                                 color: Theme.of(context).colorScheme.onSurface,
@@ -107,7 +111,7 @@ class _DailyPromptScreenState extends ConsumerState<DailyPromptScreen> {
                           maxLength: view.prompt.maxChars,
                           enabled: answer == null || answer.canEdit,
                           decoration: InputDecoration(
-                            hintText: 'Type your response in under 60 seconds.',
+                            hintText: l.engagementDailyPromptHint,
                             filled: true,
                             fillColor: scheme.surface,
                             border: OutlineInputBorder(
@@ -117,9 +121,13 @@ class _DailyPromptScreenState extends ConsumerState<DailyPromptScreen> {
                         ),
                         if (answer != null) ...[
                           Text(
-                            answer.canEdit
-                                ? 'Edit window open until ${_formatTime(answer.editWindowUntil)}'
-                                : 'Edit window closed for today.',
+                            !answer.canEdit
+                                ? l.engagementDailyPromptEditClosed
+                                : answer.editWindowUntil == null
+                                ? l.engagementDailyPromptEditOpenSoon
+                                : l.engagementDailyPromptEditOpenUntil(
+                                    _formatTime(answer.editWindowUntil!),
+                                  ),
                             style: Theme.of(context).textTheme.bodySmall
                                 ?.copyWith(
                                   color: answer.canEdit
@@ -129,7 +137,7 @@ class _DailyPromptScreenState extends ConsumerState<DailyPromptScreen> {
                           ),
                           if (answer.isEdited)
                             Text(
-                              'Edited',
+                              l.engagementDailyPromptEdited,
                               style: Theme.of(context).textTheme.bodySmall
                                   ?.copyWith(color: scheme.onSurfaceVariant),
                             ),
@@ -158,8 +166,8 @@ class _DailyPromptScreenState extends ConsumerState<DailyPromptScreen> {
                                   )
                                 : Text(
                                     answer == null
-                                        ? 'Submit Daily Answer'
-                                        : 'Update Answer',
+                                        ? l.engagementDailyPromptSubmit
+                                        : l.engagementDailyPromptUpdate,
                                   ),
                           ),
                         ),
@@ -184,16 +192,20 @@ class _DailyPromptScreenState extends ConsumerState<DailyPromptScreen> {
     );
   }
 
-  String _formatTime(DateTime? value) {
-    if (value == null) {
-      return 'soon';
-    }
-    final local = value.toLocal();
-    final hh = local.hour.toString().padLeft(2, '0');
-    final mm = local.minute.toString().padLeft(2, '0');
-    return '$hh:$mm';
-  }
+  /// 24-hour local time (`HH:mm`) with the reader's digits.
+  String _formatTime(DateTime value) => DateFormat.Hm(
+    Localizations.localeOf(context).toString(),
+  ).format(value.toLocal());
 }
+
+/// A known prompt topic in the reader's language; others as the code in
+/// upper case.
+String _domainLabel(AppLocalizations l, String domain) => switch (domain) {
+  'values' => l.engagementDailyPromptDomainValues,
+  'lifestyle' => l.engagementDailyPromptDomainLifestyle,
+  'relationship_style' => l.engagementDailyPromptDomainRelationshipStyle,
+  _ => domain.replaceAll('_', ' ').toUpperCase(),
+};
 
 class _StreakCard extends StatelessWidget {
   const _StreakCard({required this.view});
@@ -202,6 +214,7 @@ class _StreakCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = engagementL10n(context);
     final streak = view.streak;
     return GlassContainer(
       padding: const EdgeInsets.all(16),
@@ -212,7 +225,7 @@ class _StreakCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Streak Progress',
+            l.engagementDailyPromptStreakProgress,
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
               color: Theme.of(context).colorScheme.onSurface,
               fontWeight: FontWeight.w700,
@@ -223,20 +236,29 @@ class _StreakCard extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: [
-              _StatPill(label: 'Current', value: '${streak.currentDays}d'),
-              _StatPill(label: 'Best', value: '${streak.longestDays}d'),
               _StatPill(
-                label: 'Next',
-                value: streak.nextMilestone > 0
-                    ? '${streak.nextMilestone}d'
-                    : 'Complete',
+                text: l.engagementDailyPromptStatCurrent(
+                  l.engagementDailyPromptDays(streak.currentDays),
+                ),
+              ),
+              _StatPill(
+                text: l.engagementDailyPromptStatBest(
+                  l.engagementDailyPromptDays(streak.longestDays),
+                ),
+              ),
+              _StatPill(
+                text: l.engagementDailyPromptStatNext(
+                  streak.nextMilestone > 0
+                      ? l.engagementDailyPromptDays(streak.nextMilestone)
+                      : l.engagementDailyPromptComplete,
+                ),
               ),
             ],
           ),
           if (streak.milestoneReached > 0) ...[
             const SizedBox(height: 8),
             Text(
-              'Milestone unlocked: ${streak.milestoneReached}-day streak',
+              l.engagementDailyPromptMilestone(streak.milestoneReached),
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: AppTheme.successGreen,
                 fontWeight: FontWeight.w600,
@@ -250,10 +272,9 @@ class _StreakCard extends StatelessWidget {
 }
 
 class _StatPill extends StatelessWidget {
-  const _StatPill({required this.label, required this.value});
+  const _StatPill({required this.text});
 
-  final String label;
-  final String value;
+  final String text;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -264,7 +285,7 @@ class _StatPill extends StatelessWidget {
       border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
     ),
     child: Text(
-      '$label: $value',
+      text,
       style: Theme.of(
         context,
       ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),

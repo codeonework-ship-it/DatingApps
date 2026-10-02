@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
+import '../../../l10n/app_localizations.dart';
 import '../providers/profile_setup_provider.dart';
 import 'setup/setup_about_screen.dart';
 import 'setup/setup_photos_screen.dart';
@@ -32,12 +34,16 @@ class EditProfileScreen extends ConsumerWidget {
                     backgroundColor: Colors.transparent,
                     foregroundColor: Theme.of(context).colorScheme.onSurface,
                     title: Semantics(
-                      label: 'Edit Profile',
-                      child: const Text('Edit Profile'),
+                      label: AppLocalizations.of(context).profileEditTitle,
+                      child: Text(
+                        AppLocalizations.of(context).profileEditTitle,
+                      ),
                     ),
                     actions: [
                       IconButton(
-                        tooltip: 'Refresh profile',
+                        tooltip: AppLocalizations.of(
+                          context,
+                        ).profileEditRefreshTooltip,
                         onPressed: () =>
                             ref.invalidate(profileSetupNotifierProvider),
                         icon: const Icon(Icons.refresh_rounded),
@@ -92,115 +98,162 @@ class _EditProfileContent extends StatelessWidget {
   final ProfileDraft draft;
 
   @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      _ProfileHero(draft: draft),
-      const SizedBox(height: 16),
-      _PhotoGallerySection(draft: draft),
-      const SizedBox(height: 16),
-      _InfoSection(
-        title: 'About you',
-        icon: Icons.person_outline_rounded,
-        actionLabel: 'Edit about',
-        onAction: () =>
-            _open(context, const SetupAboutScreen(isSetupFlow: false)),
-        rows: [
-          _InfoRow('Name', draft.name),
-          _InfoRow('Phone', draft.phoneNumber),
-          _InfoRow('Date of birth', _formatDate(draft.dateOfBirth)),
-          _InfoRow('Gender', _genderLabel(draft.gender)),
-          _InfoRow('Bio', draft.bio),
-          _InfoRow(
-            'Height',
-            draft.heightCm == null ? null : '${draft.heightCm} cm',
-          ),
-          _InfoRow('Education', draft.education),
-          _InfoRow('Profession', draft.profession),
-          _InfoRow('Income range', draft.incomeRange),
-        ],
-      ),
-      const SizedBox(height: 16),
-      _InfoSection(
-        title: 'Location & social',
-        icon: Icons.location_on_outlined,
-        actionLabel: 'Edit preferences',
-        onAction: () => _open(context, const SetupPreferencesScreen()),
-        rows: [
-          _InfoRow('Country', draft.country),
-          _InfoRow('State', draft.regionState),
-          _InfoRow('City', draft.city),
-          _InfoRow('Instagram', draft.instagramHandle),
-        ],
-      ),
-      const SizedBox(height: 16),
-      _InfoSection(
-        title: 'Dating preferences',
-        icon: Icons.favorite_border_rounded,
-        actionLabel: 'Edit preferences',
-        onAction: () => _open(context, const SetupPreferencesScreen()),
-        rows: [
-          _InfoRow('Seeking', _join(draft.seekingGenders.map(_genderLabel))),
-          _InfoRow('Age range', '${draft.minAgeYears}–${draft.maxAgeYears}'),
-          _InfoRow('Max distance', '${draft.maxDistanceKm} km'),
-          _InfoRow('Education filter', _join(draft.educationFilter)),
-          _InfoRow('Serious only', draft.seriousOnly ? 'Yes' : 'No'),
-          _InfoRow('Verified only', draft.verifiedOnly ? 'Yes' : 'No'),
-          _InfoRow('Hookup only', draft.hookupOnly ? 'Yes' : 'No'),
-          _InfoRow('Intent', _join(draft.intentTags)),
-          _InfoRow('Languages', _join(draft.languageTags)),
-          _InfoRow('Deal breakers', _join(draft.dealBreakerTags)),
-        ],
-      ),
-      const SizedBox(height: 16),
-      _InfoSection(
-        title: 'Lifestyle',
-        icon: Icons.spa_outlined,
-        actionLabel: 'Edit preferences',
-        onAction: () => _open(context, const SetupPreferencesScreen()),
-        rows: [
-          _InfoRow('Religion', draft.religion),
-          _InfoRow('Mother tongue', draft.motherTongue),
-          _InfoRow('Drinking', draft.drinking),
-          _InfoRow('Smoking', draft.smoking),
-          _InfoRow('Pets', draft.petPreference),
-          _InfoRow('Diet preference', draft.dietPreference),
-          _InfoRow('Diet type', draft.dietType),
-          _InfoRow('Workout', draft.workoutFrequency),
-          _InfoRow('Sleep schedule', draft.sleepSchedule),
-          _InfoRow('Travel style', draft.travelStyle),
-          _InfoRow('Politics comfort', draft.politicalComfortRange),
-        ],
-      ),
-      const SizedBox(height: 16),
-      _InfoSection(
-        title: 'Interests & details',
-        icon: Icons.auto_awesome_rounded,
-        actionLabel: 'Edit preferences',
-        onAction: () => _open(context, const SetupPreferencesScreen()),
-        rows: [
-          _InfoRow('Hobbies', _join(draft.hobbies)),
-          _InfoRow('Books', _join(draft.favoriteBooks)),
-          _InfoRow('Novels', _join(draft.favoriteNovels)),
-          _InfoRow('Songs', _join(draft.favoriteSongs)),
-          _InfoRow('Extra curriculars', _join(draft.extraCurriculars)),
-          _InfoRow('Additional info', draft.additionalInfo),
-        ],
-      ),
-    ],
-  );
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final yes = l10n.profileEditYes;
+    final no = l10n.profileEditNo;
+    String? option(String? value) =>
+        value == null ? null : localizedProfileOption(l10n, value);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _ProfileHero(draft: draft),
+        const SizedBox(height: 16),
+        _PhotoGallerySection(draft: draft),
+        const SizedBox(height: 16),
+        _InfoSection(
+          title: l10n.profileEditAboutYou,
+          icon: Icons.person_outline_rounded,
+          actionLabel: l10n.profileEditEditAbout,
+          onAction: () =>
+              _open(context, const SetupAboutScreen(isSetupFlow: false)),
+          rows: [
+            _InfoRow(l10n.profileEditName, draft.name),
+            _InfoRow(l10n.profileEditPhone, draft.phoneNumber),
+            _InfoRow(
+              l10n.profileEditDateOfBirth,
+              _formatDate(context, draft.dateOfBirth),
+            ),
+            _InfoRow(l10n.profileEditGender, _genderLabel(l10n, draft.gender)),
+            _InfoRow(l10n.profileSetupBioLabel, draft.bio),
+            _InfoRow(
+              l10n.profileEditHeight,
+              draft.heightCm == null
+                  ? null
+                  : l10n.profileSetupHeightValue(draft.heightCm!),
+            ),
+            _InfoRow(l10n.profileSetupEducationLabel, option(draft.education)),
+            _InfoRow(l10n.profileSetupProfessionLabel, draft.profession),
+            _InfoRow(l10n.profileEditIncomeRange, option(draft.incomeRange)),
+          ],
+        ),
+        const SizedBox(height: 16),
+        _InfoSection(
+          title: l10n.profileEditLocationSocial,
+          icon: Icons.location_on_outlined,
+          actionLabel: l10n.profileEditEditPreferences,
+          onAction: () => _open(context, const SetupPreferencesScreen()),
+          rows: [
+            _InfoRow(l10n.profileSetupCountry, draft.country),
+            _InfoRow(l10n.profileEditState, draft.regionState),
+            _InfoRow(l10n.profileSetupCity, draft.city),
+            _InfoRow(l10n.profileEditInstagram, draft.instagramHandle),
+          ],
+        ),
+        const SizedBox(height: 16),
+        _InfoSection(
+          title: l10n.profileEditDatingPreferences,
+          icon: Icons.favorite_border_rounded,
+          actionLabel: l10n.profileEditEditPreferences,
+          onAction: () => _open(context, const SetupPreferencesScreen()),
+          rows: [
+            _InfoRow(
+              l10n.profileEditSeeking,
+              _join(draft.seekingGenders.map((g) => _genderLabel(l10n, g))),
+            ),
+            _InfoRow(
+              l10n.profileEditAgeRange,
+              l10n.profileEditAgeRangeValue(
+                draft.minAgeYears,
+                draft.maxAgeYears,
+              ),
+            ),
+            _InfoRow(
+              l10n.profileEditMaxDistance,
+              l10n.profileSetupDistanceValue(draft.maxDistanceKm),
+            ),
+            _InfoRow(
+              l10n.profileEditEducationFilter,
+              _join(
+                draft.educationFilter.map(
+                  (v) => localizedProfileOption(l10n, v),
+                ),
+              ),
+            ),
+            _InfoRow(l10n.profileEditSeriousOnly, draft.seriousOnly ? yes : no),
+            _InfoRow(
+              l10n.profileEditVerifiedOnly,
+              draft.verifiedOnly ? yes : no,
+            ),
+            _InfoRow(l10n.profileEditHookupOnly, draft.hookupOnly ? yes : no),
+            _InfoRow(l10n.profileEditIntent, _join(draft.intentTags)),
+            _InfoRow(l10n.profileEditLanguages, _join(draft.languageTags)),
+            _InfoRow(
+              l10n.profileEditDealBreakers,
+              _join(draft.dealBreakerTags),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        _InfoSection(
+          title: l10n.profileSetupLifestyleTitle,
+          icon: Icons.spa_outlined,
+          actionLabel: l10n.profileEditEditPreferences,
+          onAction: () => _open(context, const SetupPreferencesScreen()),
+          rows: [
+            _InfoRow(l10n.profileEditReligion, draft.religion),
+            _InfoRow(l10n.profileSetupMotherTongue, draft.motherTongue),
+            _InfoRow(l10n.profileSetupDrinkingLabel, option(draft.drinking)),
+            _InfoRow(l10n.profileSetupSmokingLabel, option(draft.smoking)),
+            _InfoRow(l10n.profileEditPets, draft.petPreference),
+            _InfoRow(l10n.profileSetupDietPreference, draft.dietPreference),
+            _InfoRow(l10n.profileSetupDietType, draft.dietType),
+            _InfoRow(l10n.profileEditWorkout, draft.workoutFrequency),
+            _InfoRow(l10n.profileSetupSleepSchedule, draft.sleepSchedule),
+            _InfoRow(l10n.profileSetupTravelStyle, draft.travelStyle),
+            _InfoRow(
+              l10n.profileEditPoliticsComfort,
+              draft.politicalComfortRange,
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        _InfoSection(
+          title: l10n.profileEditInterestsDetails,
+          icon: Icons.auto_awesome_rounded,
+          actionLabel: l10n.profileEditEditPreferences,
+          onAction: () => _open(context, const SetupPreferencesScreen()),
+          rows: [
+            _InfoRow(l10n.profileEditHobbies, _join(draft.hobbies)),
+            _InfoRow(l10n.profileEditBooks, _join(draft.favoriteBooks)),
+            _InfoRow(l10n.profileEditNovels, _join(draft.favoriteNovels)),
+            _InfoRow(l10n.profileEditSongs, _join(draft.favoriteSongs)),
+            _InfoRow(
+              l10n.profileEditExtraCurriculars,
+              _join(draft.extraCurriculars),
+            ),
+            _InfoRow(l10n.profileEditAdditionalInfo, draft.additionalInfo),
+          ],
+        ),
+      ],
+    );
+  }
 
   static void _open(BuildContext context, Widget screen) {
     Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => screen));
   }
 
-  static String? _formatDate(DateTime? date) {
+  /// English keeps the long-standing dd/MM/yyyy; other locales use their
+  /// own numeric date order.
+  static String? _formatDate(BuildContext context, DateTime? date) {
     if (date == null) {
       return null;
     }
-    final day = date.day.toString().padLeft(2, '0');
-    final month = date.month.toString().padLeft(2, '0');
-    return '$day/$month/${date.year}';
+    final locale = Localizations.localeOf(context).toString();
+    final format = locale.startsWith('en')
+        ? DateFormat('dd/MM/yyyy', locale)
+        : DateFormat.yMd(locale);
+    return format.format(date);
   }
 
   static String? _join(Iterable<String> values) {
@@ -214,18 +267,20 @@ class _EditProfileContent extends StatelessWidget {
     return cleaned.join(', ');
   }
 
-  static String _genderLabel(String value) {
+  static String _genderLabel(AppLocalizations l10n, String value) {
     switch (value.trim().toUpperCase()) {
       case 'M':
       case 'MALE':
       case 'MAN':
-        return 'Man';
+        return l10n.profileSetupGenderMan;
       case 'F':
       case 'FEMALE':
       case 'WOMAN':
-        return 'Woman';
+        return l10n.profileSetupGenderWoman;
+      case 'OTHER':
+        return l10n.profileSetupGenderOther;
       default:
-        return value.trim().isEmpty ? 'Not set' : value;
+        return value.trim().isEmpty ? l10n.profileEditNotSet : value;
     }
   }
 }
@@ -256,7 +311,7 @@ class _ProfileLoadingState extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                'Loading your saved profile',
+                AppLocalizations.of(context).profileEditLoadingTitle,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: Theme.of(context).colorScheme.onSurface,
@@ -265,7 +320,7 @@ class _ProfileLoadingState extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               Text(
-                'Binding the information saved during account setup.',
+                AppLocalizations.of(context).profileEditLoadingBody,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -298,7 +353,9 @@ class _ProfileHero extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                draft.name.trim().isEmpty ? 'Your profile' : draft.name.trim(),
+                draft.name.trim().isEmpty
+                    ? AppLocalizations.of(context).profileEditYourProfile
+                    : draft.name.trim(),
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   color: Theme.of(context).colorScheme.onSurface,
                   fontWeight: FontWeight.w800,
@@ -329,7 +386,9 @@ class _ProfileHero extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               Text(
-                '${draft.profileCompletionPercent}% complete',
+                AppLocalizations.of(
+                  context,
+                ).profileEditPercentComplete(draft.profileCompletionPercent),
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
                   color: Theme.of(context).colorScheme.primary,
                   fontWeight: FontWeight.w700,
@@ -386,9 +445,9 @@ class _PhotoGallerySection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _SectionHeader(
-          title: 'Photo gallery',
+          title: AppLocalizations.of(context).profileEditPhotoGallery,
           icon: Icons.photo_library_outlined,
-          actionLabel: 'Manage photos',
+          actionLabel: AppLocalizations.of(context).profileEditManagePhotos,
           onAction: () => Navigator.of(context).push(
             MaterialPageRoute<void>(
               builder: (_) => const SetupPhotosScreen(isSetupFlow: false),
@@ -398,7 +457,7 @@ class _PhotoGallerySection extends StatelessWidget {
         const SizedBox(height: 12),
         if (draft.photos.isEmpty)
           Text(
-            'No photos uploaded yet.',
+            AppLocalizations.of(context).profileEditNoPhotos,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: Theme.of(
                 context,
@@ -448,7 +507,7 @@ class _PhotoGallerySection extends StatelessWidget {
                           borderRadius: BorderRadius.circular(999),
                         ),
                         child: Text(
-                          'Primary',
+                          AppLocalizations.of(context).profileEditPrimaryBadge,
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.onPrimary,
                             fontWeight: FontWeight.w800,
@@ -598,7 +657,9 @@ class _ProfileInfoRow extends StatelessWidget {
         const SizedBox(width: 12),
         Expanded(
           child: Text(
-            row.displayValue,
+            row.isEmpty
+                ? AppLocalizations.of(context).profileEditNotSet
+                : row.value!.trim(),
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: Theme.of(context).colorScheme.onSurface.withValues(
                 alpha: row.isEmpty ? 0.45 : 0.90,
@@ -619,6 +680,4 @@ class _InfoRow {
   final String? value;
 
   bool get isEmpty => value == null || value!.trim().isEmpty;
-
-  String get displayValue => isEmpty ? 'Not set' : value!.trim();
 }

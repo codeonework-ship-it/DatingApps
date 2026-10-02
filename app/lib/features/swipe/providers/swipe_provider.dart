@@ -8,6 +8,7 @@ import '../../../core/providers/api_client_provider.dart';
 import '../../../core/utils/logger.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../models/discovery_profile.dart';
+import '../discover_l10n.dart';
 
 part 'swipe_provider.g.dart';
 
@@ -193,7 +194,7 @@ class SwipeNotifier extends _$SwipeNotifier {
         state = state.copyWith(
           profiles: const [],
           isLoading: false,
-          error: 'Please login to discover profiles.',
+          error: DiscoverMessages.loginToDiscover,
         );
         return;
       }
@@ -254,13 +255,13 @@ class SwipeNotifier extends _$SwipeNotifier {
       final data = e.response?.data;
       final message = data is Map && data['error'] != null
           ? data['error'].toString()
-          : 'Failed to load profiles. Please try again.';
+          : DiscoverMessages.loadProfiles;
       state = state.copyWith(error: message, isLoading: false);
     } catch (e, stackTrace) {
       if (!isCurrent()) return;
       log.error('Failed to load profiles', e, stackTrace);
       state = state.copyWith(
-        error: 'Failed to load profiles. Please try again.',
+        error: DiscoverMessages.loadProfiles,
         isLoading: false,
       );
     }
@@ -298,7 +299,7 @@ class SwipeNotifier extends _$SwipeNotifier {
           currentIndex: previousIndex,
           likeCount: previousLikeCount,
           likedProfiles: previousLikedProfiles,
-          error: 'User session not available. Please login again.',
+          error: DiscoverMessages.sessionUnavailable,
         );
         return null;
       }
@@ -338,10 +339,10 @@ class SwipeNotifier extends _$SwipeNotifier {
           currentIndex: previousIndex,
           likeCount: previousLikeCount,
           likedProfiles: previousLikedProfiles,
-          error: 'Unable to like right now. Please try again.',
+          error: DiscoverMessages.likeRetry,
         );
       } else {
-        state = state.copyWith(error: 'Unable to like right now.');
+        state = state.copyWith(error: DiscoverMessages.like);
       }
       return null;
     } catch (e, stackTrace) {
@@ -353,10 +354,10 @@ class SwipeNotifier extends _$SwipeNotifier {
           currentIndex: previousIndex,
           likeCount: previousLikeCount,
           likedProfiles: previousLikedProfiles,
-          error: 'Unable to like right now. Please try again.',
+          error: DiscoverMessages.likeRetry,
         );
       } else {
-        state = state.copyWith(error: 'Unable to like right now.');
+        state = state.copyWith(error: DiscoverMessages.like);
       }
       return null;
     } finally {
@@ -399,7 +400,7 @@ class SwipeNotifier extends _$SwipeNotifier {
             currentIndex: previousIndex,
             passCount: previousPassCount,
             passedProfiles: previousPassedProfiles,
-            error: 'User session not available. Please login again.',
+            error: DiscoverMessages.sessionUnavailable,
           );
           return;
         }
@@ -416,7 +417,7 @@ class SwipeNotifier extends _$SwipeNotifier {
         currentIndex: previousIndex,
         passCount: previousPassCount,
         passedProfiles: previousPassedProfiles,
-        error: 'Unable to pass right now. Please try again.',
+        error: DiscoverMessages.passRetry,
       );
     } catch (e, stackTrace) {
       log.error('Failed to pass profile', e, stackTrace);
@@ -424,7 +425,7 @@ class SwipeNotifier extends _$SwipeNotifier {
         currentIndex: previousIndex,
         passCount: previousPassCount,
         passedProfiles: previousPassedProfiles,
-        error: 'Unable to pass right now. Please try again.',
+        error: DiscoverMessages.passRetry,
       );
     }
   }

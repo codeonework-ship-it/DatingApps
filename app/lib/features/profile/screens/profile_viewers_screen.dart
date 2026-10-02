@@ -1,19 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/widgets/glass_widgets.dart';
+import '../../../l10n/app_localizations.dart';
 import '../providers/profile_viewers_provider.dart';
 
 class ProfileViewersScreen extends ConsumerWidget {
   const ProfileViewersScreen({super.key});
 
+  /// The visit time in the member's locale; text the app cannot parse is
+  /// shown as the server sent it.
+  static String _visitTime(BuildContext context, String raw) {
+    final parsed = DateTime.tryParse(raw.trim());
+    if (parsed == null) {
+      return raw;
+    }
+    final locale = Localizations.localeOf(context).toString();
+    return DateFormat.yMMMd(locale).add_jm().format(parsed.toLocal());
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final viewersAsync = ref.watch(profileViewersProvider);
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Viewed My Profile'),
+        title: Text(l10n.profileViewersTitle),
         elevation: 0,
         backgroundColor: Colors.transparent,
         foregroundColor: Theme.of(context).colorScheme.onSurface,
@@ -27,11 +41,11 @@ class ProfileViewersScreen extends ConsumerWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text('Failed to load profile viewers.'),
+                  Text(l10n.profileViewersLoadFailed),
                   const SizedBox(height: 8),
                   ElevatedButton(
                     onPressed: () => ref.invalidate(profileViewersProvider),
-                    child: const Text('Retry'),
+                    child: Text(l10n.commonRetry),
                   ),
                 ],
               ),
@@ -39,10 +53,10 @@ class ProfileViewersScreen extends ConsumerWidget {
           ),
           data: (viewers) {
             if (viewers.isEmpty) {
-              return const Center(
+              return Center(
                 child: GlassContainer(
-                  padding: EdgeInsets.all(16),
-                  child: Text('No one has viewed your profile yet.'),
+                  padding: const EdgeInsets.all(16),
+                  child: Text(l10n.profileViewersEmpty),
                 ),
               );
             }
@@ -54,8 +68,10 @@ class ProfileViewersScreen extends ConsumerWidget {
               itemBuilder: (context, index) {
                 final item = viewers[index];
                 final subtitle = item.viewedAt.trim().isEmpty
-                    ? 'Viewed recently'
-                    : 'Viewed at ${item.viewedAt}';
+                    ? l10n.profileViewersViewedRecently
+                    : l10n.profileViewersViewedAt(
+                        _visitTime(context, item.viewedAt),
+                      );
 
                 return GlassContainer(
                   padding: const EdgeInsets.symmetric(

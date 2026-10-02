@@ -3,6 +3,20 @@
 /// `user_management.discovery_pauses`.
 library;
 
+/// Which graduation or discovery-pause request failed. Providers set it when
+/// the server sent no message of its own, so widgets can show the fallback in
+/// the member's language (see `graduation_labels.dart`).
+enum GraduationFailure {
+  load,
+  propose,
+  confirm,
+  decline,
+  withdraw,
+  pauseLoad,
+  pause,
+  resume,
+}
+
 class GraduationReward {
   const GraduationReward({
     required this.userId,

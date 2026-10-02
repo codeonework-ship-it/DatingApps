@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:verified_dating_app/features/profile/providers/profile_setup_provider.dart';
 import 'package:verified_dating_app/features/profile/screens/setup/setup_photos_screen.dart';
+import 'package:verified_dating_app/l10n/app_localizations.dart';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -429,7 +430,11 @@ void main() {
           overrides: [
             profileSetupNotifierProvider.overrideWith(() => notifier),
           ],
-          child: const MaterialApp(home: SetupPhotosScreen()),
+          child: const MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: SetupPhotosScreen(),
+          ),
         ),
       );
       await tester.pumpAndSettle();

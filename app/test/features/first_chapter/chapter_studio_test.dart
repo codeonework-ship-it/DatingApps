@@ -6,6 +6,7 @@ import 'package:verified_dating_app/core/providers/api_client_provider.dart';
 import 'package:verified_dating_app/features/first_chapter/chapter_studio_screen.dart';
 import 'package:verified_dating_app/features/first_chapter/comfort_cards_screen.dart';
 import 'package:verified_dating_app/features/first_chapter/chapter_provider.dart';
+import 'package:verified_dating_app/l10n/app_localizations.dart';
 
 const scene = <String, dynamic>{
   'id': 'rain',
@@ -33,6 +34,7 @@ class Harness {
     double width = 390,
     double scale = 1,
     Widget? screen,
+    Locale? locale,
   }) async {
     tester.view.physicalSize = Size(width, 1000);
     tester.view.devicePixelRatio = 1;
@@ -68,6 +70,9 @@ class Harness {
       ProviderScope(
         overrides: [apiClientProvider.overrideWithValue(dio)],
         child: MaterialApp(
+          locale: locale,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           builder: (context, child) => MediaQuery(
             data: MediaQuery.of(
               context,
@@ -100,6 +105,19 @@ class Harness {
 }
 
 void main() {
+  testWidgets('the studio follows the app language', (tester) async {
+    final h = Harness();
+    await h.show(tester, locale: const Locale('de'));
+    expect(find.text('First-Chapter-Studio'), findsOneWidget);
+    expect(find.text('01 / Wähle deine Szene'), findsOneWidget);
+    expect(
+      find.textContaining('Du und Alex. Ein Anfang, eine unerwartete Wendung'),
+      findsOneWidget,
+    );
+    // Scene text comes from the server and is not translated.
+    expect(find.text('A little rain'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
   testWidgets(
     'scene start retains the same command ID after an uncertain save',
     (tester) async {

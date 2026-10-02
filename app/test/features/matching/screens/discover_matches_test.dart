@@ -13,6 +13,7 @@ import 'package:verified_dating_app/features/swipe/models/discovery_profile.dart
 import 'package:verified_dating_app/features/swipe/providers/swipe_provider.dart';
 import 'package:verified_dating_app/features/swipe/screens/home_discovery_screen.dart';
 import 'package:verified_dating_app/features/swipe/widgets/swipe_card.dart';
+import 'package:verified_dating_app/l10n/app_localizations.dart';
 
 class _Auth extends AuthNotifier {
   _Auth(this.plan);
@@ -134,6 +135,8 @@ Future<ProviderContainer> _show(
         ),
       ],
       child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         builder: (_, child) => MediaQuery(
           data: MediaQueryData(
             size: Size(width, 920),

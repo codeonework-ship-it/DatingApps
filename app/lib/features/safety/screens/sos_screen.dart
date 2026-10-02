@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
+import '../../../l10n/app_localizations.dart';
 import '../providers/sos_provider.dart';
 
 class SosScreen extends ConsumerStatefulWidget {
@@ -13,10 +15,20 @@ class SosScreen extends ConsumerStatefulWidget {
 }
 
 class _SosScreenState extends ConsumerState<SosScreen> {
-  final _messageController = TextEditingController(
-    text: 'I need immediate assistance. Please check on me.',
-  );
+  final _messageController = TextEditingController();
+  bool _messagePrefilled = false;
   String _level = 'high';
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_messagePrefilled) {
+      _messagePrefilled = true;
+      _messageController.text = AppLocalizations.of(
+        context,
+      ).safetySosDefaultMessage;
+    }
+  }
 
   @override
   void initState() {
@@ -34,8 +46,10 @@ class _SosScreenState extends ConsumerState<SosScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(sosProvider);
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
+    final locale = Localizations.localeOf(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Emergency SOS')),
+      appBar: AppBar(title: Text(l10n.safetySosTitle)),
       body: PostLoginBackdrop(
         child: SafeArea(
           child: RefreshIndicator(
@@ -49,14 +63,10 @@ class _SosScreenState extends ConsumerState<SosScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Icon(
-                        Icons.sos_rounded,
-                        size: 54,
-                        color: scheme.error,
-                      ),
+                      Icon(Icons.sos_rounded, size: 54, color: scheme.error),
                       const SizedBox(height: 12),
                       Text(
-                        'Activate an emergency alert',
+                        l10n.safetySosHeadline,
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.w800,
@@ -64,8 +74,7 @@ class _SosScreenState extends ConsumerState<SosScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'If you are in immediate danger, contact local emergency '
-                        'services first. This alert is recorded for the safety team.',
+                        l10n.safetySosIntro,
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: scheme.onSurfaceVariant,
@@ -74,11 +83,14 @@ class _SosScreenState extends ConsumerState<SosScreen> {
                       ),
                       const SizedBox(height: 20),
                       SegmentedButton<String>(
-                        segments: const [
-                          ButtonSegment(value: 'high', label: Text('Urgent')),
+                        segments: [
+                          ButtonSegment(
+                            value: 'high',
+                            label: Text(l10n.safetySosLevelUrgent),
+                          ),
                           ButtonSegment(
                             value: 'critical',
-                            label: Text('Critical'),
+                            label: Text(l10n.safetySosLevelCritical),
                           ),
                         ],
                         selected: {_level},
@@ -91,9 +103,9 @@ class _SosScreenState extends ConsumerState<SosScreen> {
                         minLines: 2,
                         maxLines: 4,
                         maxLength: 500,
-                        decoration: const InputDecoration(
-                          labelText: 'Message for the safety team',
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          labelText: l10n.safetySosMessageLabel,
+                          border: const OutlineInputBorder(),
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -115,13 +127,14 @@ class _SosScreenState extends ConsumerState<SosScreen> {
                               )
                             : const Icon(Icons.warning_amber_rounded),
                         label: Text(
-                          state.isSending ? 'Activating…' : 'Activate SOS',
+                          state.isSending
+                              ? l10n.safetySosActivating
+                              : l10n.safetySosActivate,
                         ),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Location is requested only for this alert. You can continue '
-                        'if permission is denied.',
+                        l10n.safetySosLocationNote,
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: scheme.onSurfaceVariant,
@@ -134,14 +147,14 @@ class _SosScreenState extends ConsumerState<SosScreen> {
                 if (state.error != null) ...[
                   const SizedBox(height: 12),
                   Text(
-                    state.error!,
+                    localizedSosMessage(l10n, state.error!),
                     textAlign: TextAlign.center,
                     style: TextStyle(color: scheme.error),
                   ),
                 ],
                 const SizedBox(height: 24),
                 Text(
-                  'Alert history',
+                  l10n.safetySosHistoryTitle,
                   style: Theme.of(
                     context,
                   ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
@@ -151,7 +164,7 @@ class _SosScreenState extends ConsumerState<SosScreen> {
                   const Center(child: CircularProgressIndicator())
                 else if (state.alerts.isEmpty)
                   Text(
-                    'No SOS alerts recorded.',
+                    l10n.safetySosHistoryEmpty,
                     style: TextStyle(color: scheme.onSurfaceVariant),
                   )
                 else
@@ -177,7 +190,10 @@ class _SosScreenState extends ConsumerState<SosScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    '${alert.emergencyLevel.toUpperCase()} · ${alert.status}',
+                                    l10n.safetySosHistoryHeading(
+                                      _levelLabel(l10n, alert.emergencyLevel),
+                                      _statusLabel(l10n, alert.status),
+                                    ),
                                     style: const TextStyle(
                                       fontWeight: FontWeight.w800,
                                     ),
@@ -186,15 +202,30 @@ class _SosScreenState extends ConsumerState<SosScreen> {
                                     Text(alert.message!),
                                   const SizedBox(height: 4),
                                   Text(
-                                    '${_dateLabel(alert.triggeredAt)} · '
-                                    '${alert.hasLocation ? 'location included' : 'no location'}',
+                                    alert.hasLocation
+                                        ? l10n.safetySosHistoryMetaWithLocation(
+                                            _dateLabel(
+                                              alert.triggeredAt,
+                                              locale,
+                                            ),
+                                          )
+                                        : l10n.safetySosHistoryMetaNoLocation(
+                                            _dateLabel(
+                                              alert.triggeredAt,
+                                              locale,
+                                            ),
+                                          ),
                                     style: TextStyle(
                                       color: scheme.onSurfaceVariant,
                                       fontSize: 12,
                                     ),
                                   ),
                                   if (alert.resolutionNote != null)
-                                    Text('Resolution: ${alert.resolutionNote}'),
+                                    Text(
+                                      l10n.safetySosResolution(
+                                        alert.resolutionNote!,
+                                      ),
+                                    ),
                                 ],
                               ),
                             ),
@@ -211,18 +242,16 @@ class _SosScreenState extends ConsumerState<SosScreen> {
   }
 
   Future<void> _confirmAndActivate() async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Activate SOS now?'),
-        content: const Text(
-          'This creates an emergency alert for the safety team and attempts to '
-          'attach your current location.',
-        ),
+        title: Text(l10n.safetySosConfirmTitle),
+        content: Text(l10n.safetySosConfirmBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
+            child: Text(l10n.safetySosCancel),
           ),
           FilledButton(
             style: FilledButton.styleFrom(
@@ -230,7 +259,7 @@ class _SosScreenState extends ConsumerState<SosScreen> {
               foregroundColor: Theme.of(dialogContext).colorScheme.onError,
             ),
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Activate'),
+            child: Text(l10n.safetySosConfirmActivate),
           ),
         ],
       ),
@@ -245,17 +274,16 @@ class _SosScreenState extends ConsumerState<SosScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         icon: const Icon(Icons.check_circle, color: AppTheme.successGreen),
-        title: const Text('SOS alert activated'),
+        title: Text(l10n.safetySosActivatedTitle),
         content: Text(
           locationIncluded == true
-              ? 'Your alert and current location were recorded.'
-              : 'Your alert was recorded without location. Location permission '
-                    'was unavailable or declined.',
+              ? l10n.safetySosActivatedWithLocation
+              : l10n.safetySosActivatedWithoutLocation,
         ),
         actions: [
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Done'),
+            child: Text(l10n.safetySosDone),
           ),
         ],
       ),
@@ -263,8 +291,40 @@ class _SosScreenState extends ConsumerState<SosScreen> {
   }
 }
 
-String _dateLabel(DateTime value) {
+/// The provider's English message codes in the member's language; text from
+/// the server is shown as is.
+String localizedSosMessage(AppLocalizations l10n, String message) =>
+    switch (message) {
+      kSosSignInToViewMessage => l10n.safetySosSignInToView,
+      kSosLoadFailedMessage => l10n.safetySosLoadFailed,
+      kSosSignInToActivateMessage => l10n.safetySosSignInToActivate,
+      kSosActivateFailedMessage => l10n.safetySosActivateFailed,
+      _ => message,
+    };
+
+String _levelLabel(AppLocalizations l10n, String level) => switch (level) {
+  'low' => l10n.safetySosAlertLevelLow,
+  'medium' => l10n.safetySosAlertLevelMedium,
+  'high' => l10n.safetySosAlertLevelHigh,
+  'critical' => l10n.safetySosAlertLevelCritical,
+  _ => level.toUpperCase(),
+};
+
+String _statusLabel(AppLocalizations l10n, String status) => switch (status) {
+  'open' => l10n.safetySosAlertStatusOpen,
+  'active' => l10n.safetySosAlertStatusActive,
+  'acknowledged' => l10n.safetySosAlertStatusAcknowledged,
+  'resolved' => l10n.safetySosAlertStatusResolved,
+  _ => status,
+};
+
+/// English keeps its day/month/year 24-hour layout; other languages use
+/// their own short date and time.
+String _dateLabel(DateTime value, Locale locale) {
   final local = value.toLocal();
+  if (locale.languageCode != 'en') {
+    return DateFormat.yMd(locale.toString()).add_Hm().format(local);
+  }
   return '${local.day.toString().padLeft(2, '0')}/'
       '${local.month.toString().padLeft(2, '0')}/${local.year} '
       '${local.hour.toString().padLeft(2, '0')}:'

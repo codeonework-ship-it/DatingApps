@@ -136,15 +136,16 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
     }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Text('Report submitted.'),
+        content: Text(AppLocalizations.of(context).discoverReportSubmitted),
         action: SnackBarAction(
-          label: 'Appeal',
+          label: AppLocalizations.of(context).discoverAppeal,
           onPressed: () {
             Navigator.of(context).push(
               MaterialPageRoute<void>(
                 builder: (_) => ModerationAppealsScreen(
-                  initialReason:
-                      'Review moderation outcome for report on user $userId',
+                  initialReason: AppLocalizations.of(
+                    context,
+                  ).discoverAppealPrefill(userId),
                   initialReportId: reportId,
                 ),
               ),
@@ -362,6 +363,7 @@ class _UnavailablePanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.only(top: ConnectMetrics.sectionGap),
       child: ConnectPanel(
@@ -374,7 +376,7 @@ class _UnavailablePanel extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              'This profile is unavailable right now.',
+              l10n.discoverProfileUnavailable,
               textAlign: TextAlign.center,
               style: Theme.of(
                 context,
@@ -385,8 +387,8 @@ class _UnavailablePanel extends StatelessWidget {
               alignment: WrapAlignment.center,
               spacing: 8,
               children: [
-                TextButton(onPressed: onRetry, child: const Text('Retry')),
-                TextButton(onPressed: onBack, child: const Text('Go back')),
+                TextButton(onPressed: onRetry, child: Text(l10n.commonRetry)),
+                TextButton(onPressed: onBack, child: Text(l10n.discoverGoBack)),
               ],
             ),
           ],

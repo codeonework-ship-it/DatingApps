@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
+import '../../../l10n/app_localizations.dart';
 import '../models/discovery_profile.dart';
 
 class SwipeCard extends StatefulWidget {
@@ -112,10 +113,10 @@ class _SwipeCardState extends State<SwipeCard>
     return targetHeight.clamp(minimum, maxHeightByScreen).toDouble();
   }
 
-  String _formattedTierLabel(String raw) {
+  String _formattedTierLabel(BuildContext context, String raw) {
     final value = raw.trim().toLowerCase();
     if (value.isEmpty) {
-      return 'Spotlight';
+      return AppLocalizations.of(context).memberProfileSpotlight;
     }
     return '${value[0].toUpperCase()}${value.substring(1)}';
   }
@@ -237,6 +238,7 @@ class _SwipeCardState extends State<SwipeCard>
                               ),
                               child: Text(
                                 _formattedTierLabel(
+                                  context,
                                   profile.spotlightTier ?? '',
                                 ),
                                 style: Theme.of(context).textTheme.labelSmall
@@ -374,7 +376,9 @@ class _SwipeCardState extends State<SwipeCard>
                                       // row if something inside it will yield.
                                       Flexible(
                                         child: Text(
-                                          'View more',
+                                          AppLocalizations.of(
+                                            context,
+                                          ).discoverViewMore,
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                           style: Theme.of(context)
@@ -417,7 +421,9 @@ class _SwipeCardState extends State<SwipeCard>
                                       ),
                                       const SizedBox(width: 4),
                                       Text(
-                                        'Message',
+                                        AppLocalizations.of(
+                                          context,
+                                        ).memberProfileMessage,
                                         style: Theme.of(context)
                                             .textTheme
                                             .labelMedium

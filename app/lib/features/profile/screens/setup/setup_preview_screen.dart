@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/glass_widgets.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../../common/screens/main_navigation_screen.dart';
 import '../../providers/profile_completion_provider.dart';
 import '../../providers/profile_setup_provider.dart';
@@ -38,18 +39,18 @@ class _SetupPreviewScreenState extends ConsumerState<SetupPreviewScreen> {
   // Validation
   // ---------------------------------------------------------------------------
 
-  String? _validate(ProfileDraft draft) {
+  String? _validate(ProfileDraft draft, AppLocalizations l10n) {
     if (draft.name.trim().length < ValidationConstants.minNameLength) {
-      return 'Name is required.';
+      return l10n.profileSetupNameRequired;
     }
     if (draft.dateOfBirth == null) {
-      return 'Date of birth is required.';
+      return l10n.profileSetupDobRequired;
     }
     if (draft.photos.length < ValidationConstants.minPhotos) {
-      return 'At least ${ValidationConstants.minPhotos} photos are required.';
+      return l10n.profileSetupPhotosRequired(ValidationConstants.minPhotos);
     }
     if (draft.bio.trim().length < ValidationConstants.minBioLength) {
-      return 'Bio must be at least ${ValidationConstants.minBioLength} characters.';
+      return l10n.profileSetupBioTooShort(ValidationConstants.minBioLength);
     }
     return null;
   }
@@ -64,7 +65,7 @@ class _SetupPreviewScreenState extends ConsumerState<SetupPreviewScreen> {
       return;
     }
 
-    final error = _validate(draft);
+    final error = _validate(draft, AppLocalizations.of(context));
     if (error != null) {
       _snack(error);
       return;
@@ -92,16 +93,18 @@ class _SetupPreviewScreenState extends ConsumerState<SetupPreviewScreen> {
         return;
       }
       setState(() => _isCompleting = false);
+      final l10n = AppLocalizations.of(context);
       final msg = (e.response?.data is Map)
-          ? ((e.response!.data as Map)['message'] ?? 'Server error')
-          : 'Network error \u2014 please try again.';
+          ? ((e.response!.data as Map)['message'] ??
+                l10n.profileSetupServerError)
+          : l10n.profileSetupNetworkError;
       _snack(msg.toString());
     } on Exception catch (_) {
       if (!mounted) {
         return;
       }
       setState(() => _isCompleting = false);
-      _snack('Something went wrong. Please try again.');
+      _snack(AppLocalizations.of(context).profileSetupGenericError);
     }
   }
 
@@ -229,6 +232,7 @@ class _PreviewBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final bottomPad = MediaQuery.viewPaddingOf(context).bottom + 24;
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
 
     return SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(20, 8, 20, bottomPad),
@@ -239,7 +243,7 @@ class _PreviewBody extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'Preview your profile',
+                l10n.profileSetupPreviewTitle,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w800,
                   color: scheme.onSurface,
@@ -248,7 +252,7 @@ class _PreviewBody extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                'This is how others will see you.',
+                l10n.profileSetupPreviewSubtitle,
                 style: Theme.of(
                   context,
                 ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
@@ -292,7 +296,7 @@ class _PreviewBody extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '${draft.name.trim()}, $_age',
+                      l10n.profileSetupNameAge(draft.name.trim(), _age),
                       style: Theme.of(context).textTheme.headlineSmall
                           ?.copyWith(
                             fontWeight: FontWeight.w800,
@@ -323,12 +327,12 @@ class _PreviewBody extends StatelessWidget {
                     if (draft.heightCm != null)
                       ProfileChip(
                         icon: Icons.height_rounded,
-                        label: '${draft.heightCm} cm',
+                        label: l10n.profileSetupHeightValue(draft.heightCm!),
                       ),
                     if (draft.education != null)
                       ProfileChip(
                         icon: Icons.school_rounded,
-                        label: draft.education!,
+                        label: localizedProfileOption(l10n, draft.education!),
                       ),
                     if (draft.profession != null &&
                         draft.profession!.isNotEmpty)
@@ -339,15 +343,19 @@ class _PreviewBody extends StatelessWidget {
                     if (draft.incomeRange != null)
                       ProfileChip(
                         icon: Icons.attach_money_rounded,
-                        label: draft.incomeRange!,
+                        label: localizedProfileOption(l10n, draft.incomeRange!),
                       ),
                     ProfileChip(
                       icon: Icons.local_bar_rounded,
-                      label: 'Drinks: ${draft.drinking}',
+                      label: l10n.profileSetupDrinksChip(
+                        localizedProfileOption(l10n, draft.drinking),
+                      ),
                     ),
                     ProfileChip(
                       icon: Icons.smoking_rooms_rounded,
-                      label: 'Smokes: ${draft.smoking}',
+                      label: l10n.profileSetupSmokesChip(
+                        localizedProfileOption(l10n, draft.smoking),
+                      ),
                     ),
                     if (draft.religion != null)
                       ProfileChip(
@@ -372,7 +380,7 @@ class _PreviewBody extends StatelessWidget {
                   height: 54,
                   child: GlassButton(
                     key: const ValueKey('qa.setup.preview.complete_button'),
-                    label: 'Complete Profile',
+                    label: l10n.profileSetupCompleteProfile,
                     icon: Icons.check_circle_rounded,
                     shinyEffect: true,
                     isLoading: isCompleting,
@@ -441,7 +449,7 @@ class _CompletionBar extends StatelessWidget {
             const SizedBox(width: 6),
             Expanded(
               child: Text(
-                'Profile completion: $pct%',
+                AppLocalizations.of(context).profileSetupCompletionPercent(pct),
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: scheme.onSurfaceVariant,
                   fontWeight: FontWeight.w600,

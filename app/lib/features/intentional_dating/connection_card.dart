@@ -68,6 +68,7 @@ class DatingConnectionCard extends ConsumerWidget {
       data: (data) {
         final slow = data['partner_pace_status'] == 'slow_week';
         final colors = Theme.of(context).colorScheme;
+        final l10n = AppLocalizations.of(context);
         return Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
           child: Card(
@@ -83,18 +84,18 @@ class DatingConnectionCard extends ConsumerWidget {
                   ),
                   title: Text(
                     slow
-                        ? 'Taking replies slowly this week'
+                        ? l10n.datingConnectionSlowTitle
                         : switch (data['chapter_status']) {
-                            'your_turn' => 'Your turn: add a surprise',
-                            'complete' => 'Your first chapter is ready',
-                            'waiting' => 'Your chapter has a beginning',
-                            _ => 'Create your first chapter',
+                            'your_turn' => l10n.datingConnectionYourTurn,
+                            'complete' => l10n.datingConnectionComplete,
+                            'waiting' => l10n.datingConnectionWaiting,
+                            _ => l10n.datingConnectionCreate,
                           },
                   ),
                   subtitle: Text(
                     slow
-                        ? 'Your match is making room for a slower pace.'
-                        : 'A beginning, a surprise, and a story you shape together.',
+                        ? l10n.datingConnectionSlowBody
+                        : l10n.datingConnectionBody,
                   ),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => openChapterStudio(context, matchId: matchId),
@@ -112,9 +113,7 @@ class DatingConnectionCard extends ConsumerWidget {
                     onPressed: () =>
                         showChemistrySheet(context, matchId: matchId),
                     icon: const Icon(Icons.favorite_border_rounded),
-                    label: Text(
-                      AppLocalizations.of(context).chemistryCardEntry,
-                    ),
+                    label: Text(l10n.chemistryCardEntry),
                   ),
                 ),
               ],
@@ -151,6 +150,7 @@ class _ChemistrySheetState extends ConsumerState<ChemistrySheet> {
   String? pendingId;
   String? pendingPrompt;
   Future<void> send(String path, Map<String, dynamic> data) async {
+    final l10n = AppLocalizations.of(context);
     setState(() {
       busy = true;
       error = null;
@@ -164,10 +164,7 @@ class _ChemistrySheetState extends ConsumerState<ChemistrySheet> {
     } catch (e) {
       if (mounted)
         setState(
-          () => error = apiErrorMessage(
-            e,
-            fallback: 'Unable to save your choice. Please try again.',
-          ),
+          () => error = apiErrorMessage(e, fallback: l10n.chemistrySaveFailed),
         );
     } finally {
       if (mounted) setState(() => busy = false);
@@ -177,6 +174,7 @@ class _ChemistrySheetState extends ConsumerState<ChemistrySheet> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(datingConnectionProvider(widget.matchId));
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
       child: ConstrainedBox(
@@ -189,20 +187,18 @@ class _ChemistrySheetState extends ConsumerState<ChemistrySheet> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'A little chemistry',
+                l10n.chemistryTitle,
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Pick something that feels like you. There are no right answers, and this never controls access to chat.',
-              ),
+              Text(l10n.chemistryIntro),
               const SizedBox(height: 20),
               state.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (e, _) => TextButton(
                   onPressed: () =>
                       ref.invalidate(datingConnectionProvider(widget.matchId)),
-                  child: const Text('Try loading again'),
+                  child: Text(l10n.chemistryRetry),
                 ),
                 data: (data) {
                   final moment = data['moment'] as Map?;
@@ -227,15 +223,15 @@ class _ChemistrySheetState extends ConsumerState<ChemistrySheet> {
                         const SizedBox(height: 20),
                       ],
                       if (status == 'revealed') ...[
-                        const Text(
-                          'Both answers, together',
-                          style: TextStyle(fontWeight: FontWeight.bold),
+                        Text(
+                          l10n.chemistryRevealedTitle,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 12),
                         ListTile(
                           contentPadding: EdgeInsets.zero,
                           leading: const Icon(Icons.person_outline),
-                          title: const Text('You picked'),
+                          title: Text(l10n.chemistryYouPicked),
                           subtitle: Text(
                             options[moment?['my_answer']]?.toString() ?? '',
                           ),
@@ -243,31 +239,32 @@ class _ChemistrySheetState extends ConsumerState<ChemistrySheet> {
                         ListTile(
                           contentPadding: EdgeInsets.zero,
                           leading: const Icon(Icons.favorite_outline),
-                          title: const Text('Your match picked'),
+                          title: Text(l10n.chemistryMatchPicked),
                           subtitle: Text(
                             options[moment?['partner_answer']]?.toString() ??
                                 '',
                           ),
                         ),
-                        const Text(
-                          'A shared favourite or a happy difference—there’s something to talk about.',
-                        ),
+                        Text(l10n.chemistryRevealedBody),
                         const SizedBox(height: 20),
                       ],
                       if (status == 'waiting') ...[
                         const Icon(Icons.lock_outline, size: 32),
                         const SizedBox(height: 12),
-                        const Text(
-                          'Your answer is saved privately. Both answers appear here when you have both chosen.',
-                        ),
+                        Text(l10n.chemistryWaitingBody),
                         const SizedBox(height: 8),
                         Text(
-                          'Your choice: ${options[moment?['my_answer']] ?? ''}',
+                          l10n.chemistryYourChoice(
+                            '${options[moment?['my_answer']] ?? ''}',
+                          ),
                         ),
                       ],
                       if (status == 'open') ...[
                         Text(
-                          _promptLabel(moment?['prompt']?.toString() ?? ''),
+                          _promptLabel(
+                            l10n,
+                            moment?['prompt']?.toString() ?? '',
+                          ),
                           style: Theme.of(context).textTheme.titleLarge,
                         ),
                         const SizedBox(height: 12),
@@ -293,15 +290,15 @@ class _ChemistrySheetState extends ConsumerState<ChemistrySheet> {
                           status == 'revealed') ...[
                         Text(
                           status == 'revealed'
-                              ? 'Another moment, whenever you like'
-                              : 'Choose a moment',
+                              ? l10n.chemistryAnotherMoment
+                              : l10n.chemistryChooseMoment,
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
                         const SizedBox(height: 12),
-                        for (final prompt in const {
-                          'sunday': 'Build a Sunday',
-                          'adventure': 'Choose an adventure',
-                          'first_date': 'Your kind of first date',
+                        for (final prompt in {
+                          'sunday': l10n.chemistryPromptSunday,
+                          'adventure': l10n.chemistryPromptAdventure,
+                          'first_date': l10n.chemistryPromptFirstDate,
                         }.entries)
                           Padding(
                             padding: const EdgeInsets.only(bottom: 8),
@@ -349,9 +346,9 @@ class _ChemistrySheetState extends ConsumerState<ChemistrySheet> {
     );
   }
 
-  String _promptLabel(String prompt) => switch (prompt) {
-    'sunday' => 'Your ideal Sunday starts with…',
-    'adventure' => 'A small adventure together…',
-    _ => 'For a first hello, you’d choose…',
+  String _promptLabel(AppLocalizations l10n, String prompt) => switch (prompt) {
+    'sunday' => l10n.chemistryQuestionSunday,
+    'adventure' => l10n.chemistryQuestionAdventure,
+    _ => l10n.chemistryQuestionFirstDate,
   };
 }

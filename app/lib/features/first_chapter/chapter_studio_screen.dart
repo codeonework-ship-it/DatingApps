@@ -7,13 +7,14 @@ import '../../core/network/api_error_message.dart';
 import '../../core/providers/api_client_provider.dart';
 import '../matching/providers/match_provider.dart';
 import '../plans/screens/propose_date_plan_sheet.dart';
+import '../../l10n/app_localizations.dart';
 import 'chapter_provider.dart';
 import 'comfort_cards_screen.dart';
 
 void openChapterStudio(
   BuildContext context, {
   String? matchId,
-  String partnerName = 'your match',
+  String? partnerName,
 }) {
   Navigator.of(context).push<void>(
     MaterialPageRoute(
@@ -24,13 +25,11 @@ void openChapterStudio(
 }
 
 class ChapterStudioScreen extends ConsumerStatefulWidget {
-  const ChapterStudioScreen({
-    super.key,
-    this.matchId,
-    this.partnerName = 'your match',
-  });
+  const ChapterStudioScreen({super.key, this.matchId, this.partnerName});
   final String? matchId;
-  final String partnerName;
+
+  /// The match's name; null shows a localized "your match".
+  final String? partnerName;
   @override
   ConsumerState<ChapterStudioScreen> createState() => _ChapterStudioState();
 }
@@ -44,6 +43,8 @@ class _ChapterStudioState extends ConsumerState<ChapterStudioScreen> {
   final publicationIds = <String, String>{};
   late final Timer timer;
   String get pairPath => '/matches/${widget.matchId}/chapter';
+  AppLocalizations get l10n => AppLocalizations.of(context);
+  String get partnerName => widget.partnerName ?? l10n.firstChapterYourMatch;
   static const publicationsPath = '/chapters/publications';
   @override
   void initState() {
@@ -88,8 +89,7 @@ class _ChapterStudioState extends ConsumerState<ChapterStudioScreen> {
         setState(
           () => error = apiErrorMessage(
             e,
-            fallback:
-                'We could not confirm the save. Refresh to check before retrying.',
+            fallback: l10n.firstChapterSaveUnconfirmed,
           ),
         );
       return null;
@@ -132,7 +132,9 @@ class _ChapterStudioState extends ConsumerState<ChapterStudioScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text(
-          joint ? 'A story you both approve' : 'Preview your public chapter',
+          joint
+              ? l10n.firstChapterJointPreviewTitle
+              : l10n.firstChapterSoloPreviewTitle,
         ),
         content: SingleChildScrollView(
           child: Column(
@@ -145,12 +147,15 @@ class _ChapterStudioState extends ConsumerState<ChapterStudioScreen> {
               ),
               const SizedBox(height: 12),
               Text(start),
-              if (joint) Text('Then… ${chapter['surprise']}'),
+              if (joint)
+                Text(
+                  l10n.firstChapterThenSurprise(chapter['surprise'].toString()),
+                ),
               const SizedBox(height: 16),
               Text(
                 joint
-                    ? 'Your approval is one half. The link works only after your partner also approves this exact card. Either of you can revoke it.'
-                    : 'Only this scene and your selected beginning are public. No names, photos, private chat, location or partner contribution. You can revoke the link.',
+                    ? l10n.firstChapterJointPreviewBody
+                    : l10n.firstChapterSoloPreviewBody,
               ),
             ],
           ),
@@ -158,11 +163,15 @@ class _ChapterStudioState extends ConsumerState<ChapterStudioScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Keep private'),
+            child: Text(l10n.firstChapterKeepPrivate),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: Text(joint ? 'Approve my half' : 'Create share link'),
+            child: Text(
+              joint
+                  ? l10n.firstChapterApproveMyHalf
+                  : l10n.firstChapterCreateShareLink,
+            ),
           ),
         ],
       ),
@@ -190,10 +199,10 @@ class _ChapterStudioState extends ConsumerState<ChapterStudioScreen> {
     );
     return Scaffold(
       appBar: AppBar(
-        title: const Text('First Chapter Studio'),
+        title: Text(l10n.firstChapterStudioTitle),
         actions: [
           IconButton(
-            tooltip: 'Refresh chapter',
+            tooltip: l10n.firstChapterRefresh,
             onPressed: busy
                 ? null
                 : () {
@@ -223,7 +232,7 @@ class _ChapterStudioState extends ConsumerState<ChapterStudioScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'A SMALL ADVENTURE. TWO AUTHORS.',
+                      l10n.firstChapterHeroEyebrow,
                       style: theme.textTheme.labelSmall?.copyWith(
                         letterSpacing: 2,
                         color: colors.onPrimaryContainer,
@@ -231,7 +240,7 @@ class _ChapterStudioState extends ConsumerState<ChapterStudioScreen> {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'What happens\nnext is yours.',
+                      l10n.firstChapterHeroTitle,
                       style: theme.textTheme.displaySmall?.copyWith(
                         color: colors.onPrimaryContainer,
                       ),
@@ -239,15 +248,15 @@ class _ChapterStudioState extends ConsumerState<ChapterStudioScreen> {
                     const SizedBox(height: 16),
                     Text(
                       widget.matchId == null
-                          ? 'Make a scene. Pass it to a friend. Or create a first chapter with someone you have matched with.'
-                          : 'You and ${widget.partnerName}. One beginning, one unexpected turn, and a story you can make real.',
+                          ? l10n.firstChapterHeroSolo
+                          : l10n.firstChapterHeroPair(partnerName),
                       style: theme.textTheme.bodyLarge?.copyWith(
                         color: colors.onPrimaryContainer,
                       ),
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'Optional, at your pace. Chat is always a choice.',
+                      l10n.firstChapterHeroPace,
                       style: TextStyle(color: colors.onPrimaryContainer),
                     ),
                   ],
@@ -266,7 +275,7 @@ class _ChapterStudioState extends ConsumerState<ChapterStudioScreen> {
                 error: (e, _) => panel(
                   Column(
                     children: [
-                      const Text('Your chapter could not be loaded.'),
+                      Text(l10n.firstChapterLoadFailed),
                       TextButton(
                         onPressed: () => ref.invalidate(
                           chapterResourceProvider(
@@ -275,7 +284,7 @@ class _ChapterStudioState extends ConsumerState<ChapterStudioScreen> {
                                 : pairPath,
                           ),
                         ),
-                        child: const Text('Try again'),
+                        child: Text(l10n.firstChapterTryAgain),
                       ),
                     ],
                   ),
@@ -291,7 +300,7 @@ class _ChapterStudioState extends ConsumerState<ChapterStudioScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       if (chapter == null) ...[
-                        title('01 / Choose your scene'),
+                        title(l10n.firstChapterStepChooseScene),
                         for (final scene in scenes)
                           Padding(
                             padding: const EdgeInsets.only(bottom: 8),
@@ -331,7 +340,7 @@ class _ChapterStudioState extends ConsumerState<ChapterStudioScreen> {
                             ),
                           ),
                         if (selected != null) ...[
-                          title('02 / Write the beginning'),
+                          title(l10n.firstChapterStepWriteBeginning),
                           choices(
                             selected['beginnings'] as List,
                             beginning,
@@ -358,20 +367,20 @@ class _ChapterStudioState extends ConsumerState<ChapterStudioScreen> {
                                                 .v4();
                                         },
                                   icon: const Icon(Icons.auto_awesome),
-                                  label: const Text('Start our chapter'),
+                                  label: Text(l10n.firstChapterStartOurChapter),
                                 ),
                               OutlinedButton.icon(
                                 onPressed: busy || beginning == null
                                     ? null
                                     : () => previewShare(selected, beginning!),
                                 icon: const Icon(Icons.ios_share),
-                                label: const Text('Pass the Chapter'),
+                                label: Text(l10n.firstChapterPassTheChapter),
                               ),
                             ],
                           ),
                         ],
                       ] else if (selected != null) ...[
-                        title('Your first chapter'),
+                        title(l10n.firstChapterYourFirstChapter),
                         panel(
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -381,14 +390,14 @@ class _ChapterStudioState extends ConsumerState<ChapterStudioScreen> {
                                 style: theme.textTheme.headlineSmall,
                               ),
                               const SizedBox(height: 16),
-                              const Text('IT BEGINS WITH'),
+                              Text(l10n.firstChapterItBeginsWith),
                               Text(
                                 chapter['beginning'].toString(),
                                 style: theme.textTheme.titleLarge,
                               ),
                               const SizedBox(height: 20),
                               if (chapter['surprise'] != '') ...[
-                                const Text('AND THEN…'),
+                                Text(l10n.firstChapterAndThen),
                                 Text(
                                   chapter['surprise'].toString(),
                                   style: theme.textTheme.titleLarge,
@@ -400,21 +409,22 @@ class _ChapterStudioState extends ConsumerState<ChapterStudioScreen> {
                                       : () => showProposeDatePlanSheet(
                                           context: context,
                                           matchId: widget.matchId!,
-                                          partnerName: widget.partnerName,
-                                          initialNote:
-                                              '${chapter['beginning']}. Then ${chapter['surprise']}.',
+                                          partnerName: partnerName,
+                                          initialNote: l10n
+                                              .firstChapterDateIdeaNote(
+                                                chapter['beginning'].toString(),
+                                                chapter['surprise'].toString(),
+                                              ),
                                           initialVenueCategory:
                                               selected['venue'].toString(),
                                         ),
                                   icon: const Icon(Icons.event_available),
-                                  label: const Text('Make this a date idea'),
+                                  label: Text(l10n.firstChapterMakeDateIdea),
                                 ),
                                 const SizedBox(height: 8),
-                                const Text(
-                                  'A suggestion to shape together. No date is booked or accepted automatically.',
-                                ),
+                                Text(l10n.firstChapterDateIdeaHint),
                               ] else if (chapter['my_turn'] == true) ...[
-                                const Text('Your turn: add a surprise.'),
+                                Text(l10n.firstChapterYourTurn),
                                 const SizedBox(height: 12),
                                 for (final choice
                                     in selected['surprises'] as List)
@@ -433,9 +443,7 @@ class _ChapterStudioState extends ConsumerState<ChapterStudioScreen> {
                                     ),
                                   ),
                               ] else
-                                const Text(
-                                  'Your beginning is saved. Your match can add a surprise whenever they like. You can keep chatting.',
-                                ),
+                                Text(l10n.firstChapterBeginningSaved),
                               const SizedBox(height: 8),
                               TextButton(
                                 onPressed: busy
@@ -445,21 +453,19 @@ class _ChapterStudioState extends ConsumerState<ChapterStudioScreen> {
                                         'id': chapter['id'],
                                         'version': chapter['version'],
                                       }),
-                                child: const Text('Close this chapter'),
+                                child: Text(l10n.firstChapterClose),
                               ),
                             ],
                           ),
                         ),
                         if (data['can_give_back'] == true &&
                             chapter['surprise'] != '') ...[
-                          title('Stories that give back'),
+                          title(l10n.firstChapterGiveBackTitle),
                           panel(
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text(
-                                  'Your connection can inspire a new beginning. Share only this anonymous date idea, with both of your approvals.',
-                                ),
+                                Text(l10n.firstChapterGiveBackBody),
                                 const SizedBox(height: 12),
                                 OutlinedButton(
                                   onPressed: busy
@@ -469,8 +475,8 @@ class _ChapterStudioState extends ConsumerState<ChapterStudioScreen> {
                                           chapter['beginning'].toString(),
                                           chapter: chapter,
                                         ),
-                                  child: const Text(
-                                    'Preview our anonymous story',
+                                  child: Text(
+                                    l10n.firstChapterPreviewAnonymous,
                                   ),
                                 ),
                               ],
@@ -479,10 +485,10 @@ class _ChapterStudioState extends ConsumerState<ChapterStudioScreen> {
                         ],
                       ],
                       if (widget.matchId != null) ...[
-                        title('A private green light'),
+                        title(l10n.firstChapterGreenLightTitle),
                         panel(_greenLight(data)),
                         if ((data['comfort'] as List? ?? []).isNotEmpty) ...[
-                          title('In their words'),
+                          title(l10n.firstChapterInTheirWords),
                           for (final c in data['comfort'] as List)
                             panel(
                               ComfortCardText(
@@ -495,15 +501,13 @@ class _ChapterStudioState extends ConsumerState<ChapterStudioScreen> {
                   );
                 },
               ),
-              title('In my words'),
+              title(l10n.firstChapterInMyWords),
               panel(
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.chat_outlined),
-                  title: const Text('Make room for what matters to you'),
-                  subtitle: const Text(
-                    'Your pace, languages, dates and family expectations. Your words, shared only when you choose.',
-                  ),
+                  title: Text(l10n.firstChapterMakeRoomTitle),
+                  subtitle: Text(l10n.firstChapterMakeRoomSubtitle),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => Navigator.push<void>(
                     context,
@@ -514,7 +518,7 @@ class _ChapterStudioState extends ConsumerState<ChapterStudioScreen> {
                 ),
               ),
               if (widget.matchId == null) ...[
-                title('Create with a connection'),
+                title(l10n.firstChapterCreateWithConnection),
                 ...ref
                     .watch(matchNotifierProvider)
                     .matches
@@ -523,9 +527,7 @@ class _ChapterStudioState extends ConsumerState<ChapterStudioScreen> {
                         ListTile(
                           contentPadding: EdgeInsets.zero,
                           title: Text(m.userName),
-                          subtitle: const Text(
-                            'Create a first chapter together',
-                          ),
+                          subtitle: Text(l10n.firstChapterCreateTogether),
                           trailing: const Icon(Icons.arrow_forward),
                           onTap: () => openChapterStudio(
                             context,
@@ -536,11 +538,9 @@ class _ChapterStudioState extends ConsumerState<ChapterStudioScreen> {
                       ),
                     ),
                 if (ref.watch(matchNotifierProvider).matches.isEmpty)
-                  const Text(
-                    'Your mutual matches appear here. You can try and share a solo scene now.',
-                  ),
+                  Text(l10n.firstChapterMatchesAppearHere),
               ],
-              title('Your shared chapters'),
+              title(l10n.firstChapterSharedChapters),
               ref
                   .watch(chapterResourceProvider(publicationsPath))
                   .when(
@@ -549,14 +549,12 @@ class _ChapterStudioState extends ConsumerState<ChapterStudioScreen> {
                       onPressed: () => ref.invalidate(
                         chapterResourceProvider(publicationsPath),
                       ),
-                      child: const Text('Reload shared chapters'),
+                      child: Text(l10n.firstChapterReloadShared),
                     ),
                     data: (data) {
                       final publications = data['publications'] as List? ?? [];
                       if (publications.isEmpty)
-                        return const Text(
-                          'Nothing public until you choose to share.',
-                        );
+                        return Text(l10n.firstChapterNothingPublic);
                       return Column(
                         children: [
                           for (final raw in publications)
@@ -577,17 +575,15 @@ class _ChapterStudioState extends ConsumerState<ChapterStudioScreen> {
     final selected =
         greenDraft ?? (mine['choices'] as List? ?? []).cast<String>().toSet();
     final mutual = (data['mutual'] as List? ?? []).cast<String>();
-    const labels = {
-      'chat': 'Keep chatting',
-      'call': 'Try a call',
-      'date': 'Suggest a date',
+    final labels = {
+      'chat': l10n.firstChapterGreenChat,
+      'call': l10n.firstChapterGreenCall,
+      'date': l10n.firstChapterGreenDate,
     };
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Only a shared choice is revealed. Nobody sees an unanswered request. Choices expire after seven days; clear them to withdraw.',
-        ),
+        Text(l10n.firstChapterGreenLightIntro),
         const SizedBox(height: 16),
         Wrap(
           spacing: 8,
@@ -627,19 +623,19 @@ class _ChapterStudioState extends ConsumerState<ChapterStudioScreen> {
                       greenDraftVersion = null;
                     });
                 },
-          child: const Text('Save privately'),
+          child: Text(l10n.firstChapterSavePrivately),
         ),
         const SizedBox(height: 16),
         Text(
           mutual.isEmpty
-              ? 'Any shared next step will appear here.'
-              : 'You both feel comfortable with: ${mutual.map((v) => labels[v]).join(' · ')}',
+              ? l10n.firstChapterGreenLightNone
+              : l10n.firstChapterGreenLightMutual(
+                  mutual.map((v) => labels[v]).join(' · '),
+                ),
           style: Theme.of(context).textTheme.titleMedium,
         ),
         const SizedBox(height: 8),
-        const Text(
-          'A green light is permission to suggest. A call or date still needs a separate agreement.',
-        ),
+        Text(l10n.firstChapterGreenLightNote),
       ],
     );
   }
@@ -652,14 +648,15 @@ class _ChapterStudioState extends ConsumerState<ChapterStudioScreen> {
           p['beginning'].toString(),
           style: Theme.of(context).textTheme.titleMedium,
         ),
-        if (p['surprise'] != '') Text('Then… ${p['surprise']}'),
+        if (p['surprise'] != '')
+          Text(l10n.firstChapterThenSurprise(p['surprise'].toString())),
         const SizedBox(height: 10),
         Text(
           p['revoked'] == true
-              ? 'Link revoked'
+              ? l10n.firstChapterLinkRevoked
               : p['published'] == true
-              ? 'Public, anonymous scene'
-              : 'Private until both approve',
+              ? l10n.firstChapterPublicScene
+              : l10n.firstChapterPrivateUntilBoth,
         ),
         if (p['revoked'] != true)
           Wrap(
@@ -674,15 +671,11 @@ class _ChapterStudioState extends ConsumerState<ChapterStudioScreen> {
                     );
                     if (mounted)
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Chapter link copied. Share it wherever you choose.',
-                          ),
-                        ),
+                        SnackBar(content: Text(l10n.firstChapterLinkCopied)),
                       );
                   },
                   icon: const Icon(Icons.copy),
-                  label: const Text('Copy link'),
+                  label: Text(l10n.firstChapterCopyLink),
                 ),
               if (p['my_approval'] != true)
                 TextButton(
@@ -693,7 +686,7 @@ class _ChapterStudioState extends ConsumerState<ChapterStudioScreen> {
                           'id': p['id'],
                           'version': p['version'],
                         }),
-                  child: const Text('Approve this exact story'),
+                  child: Text(l10n.firstChapterApproveStory),
                 ),
               TextButton(
                 onPressed: busy
@@ -703,7 +696,7 @@ class _ChapterStudioState extends ConsumerState<ChapterStudioScreen> {
                         {},
                         delete: true,
                       ),
-                child: const Text('Revoke link'),
+                child: Text(l10n.firstChapterRevokeLink),
               ),
             ],
           ),

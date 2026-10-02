@@ -6,6 +6,7 @@ import 'package:verified_dating_app/features/engagement/providers/daily_prompt_p
 import 'package:verified_dating_app/features/swipe/models/discovery_profile.dart';
 import 'package:verified_dating_app/features/swipe/providers/swipe_provider.dart';
 import 'package:verified_dating_app/features/swipe/screens/home_discovery_screen.dart';
+import 'package:verified_dating_app/l10n/app_localizations.dart';
 
 DiscoveryProfile _buildSpotlightProfile() => DiscoveryProfile(
   id: 'rail-user',
@@ -72,7 +73,11 @@ void main() {
             (ref) => Stream.value(RuntimeFeatureFlags.defaults),
           ),
         ],
-        child: const MaterialApp(home: HomeDiscoveryScreen(browseOnly: true)),
+        child: const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: HomeDiscoveryScreen(browseOnly: true),
+        ),
       ),
     );
 

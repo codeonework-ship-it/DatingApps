@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/config/feature_flags.dart';
 import '../../../core/providers/api_client_provider.dart';
 import '../../../core/utils/logger.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../engagement_l10n.dart';
 
 class DailyPromptDefinition {
   const DailyPromptDefinition({
@@ -232,12 +234,14 @@ class DailyPromptNotifier extends StateNotifier<DailyPromptState> {
 
   final Ref _ref;
 
+  AppLocalizations get _l => engagementL10nFor(_ref);
+
   Future<void> load() async {
     final userId = _currentUserId();
     if (userId == null || userId.isEmpty) {
       state = state.copyWith(
         isLoading: false,
-        error: 'User session not available.',
+        error: _l.engagementSessionUnavailable,
       );
       return;
     }
@@ -316,14 +320,14 @@ class DailyPromptNotifier extends StateNotifier<DailyPromptState> {
         isLoading: false,
         error: _extractApiError(
           e,
-          fallback: 'Unable to load daily prompt right now.',
+          fallback: _l.engagementDailyPromptLoadFailed,
         ),
       );
     } catch (e, stackTrace) {
       log.error('Failed to load daily prompt', e, stackTrace);
       state = state.copyWith(
         isLoading: false,
-        error: 'Unable to load daily prompt right now.',
+        error: _l.engagementDailyPromptLoadFailed,
       );
     }
   }
@@ -333,15 +337,15 @@ class DailyPromptNotifier extends StateNotifier<DailyPromptState> {
     final view = state.view;
     final answerText = rawAnswer.trim();
     if (userId == null || userId.isEmpty) {
-      state = state.copyWith(error: 'User session not available.');
+      state = state.copyWith(error: _l.engagementSessionUnavailable);
       return;
     }
     if (view == null) {
-      state = state.copyWith(error: 'Daily prompt is not loaded yet.');
+      state = state.copyWith(error: _l.engagementDailyPromptNotLoaded);
       return;
     }
     if (answerText.isEmpty) {
-      state = state.copyWith(error: 'Please enter an answer first.');
+      state = state.copyWith(error: _l.engagementDailyPromptEnterAnswer);
       return;
     }
 
@@ -410,14 +414,14 @@ class DailyPromptNotifier extends StateNotifier<DailyPromptState> {
         isSubmitting: false,
         error: _extractApiError(
           e,
-          fallback: 'Unable to submit answer. Please try again.',
+          fallback: _l.engagementDailyPromptSubmitFailed,
         ),
       );
     } catch (e, stackTrace) {
       log.error('Failed to submit daily prompt answer', e, stackTrace);
       state = state.copyWith(
         isSubmitting: false,
-        error: 'Unable to submit answer. Please try again.',
+        error: _l.engagementDailyPromptSubmitFailed,
       );
     }
   }

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/widgets/glass_widgets.dart';
 import '../../matching/providers/match_provider.dart';
+import '../engagement_l10n.dart';
 import '../providers/match_nudge_provider.dart';
 
 class MatchNudgesScreen extends ConsumerWidget {
@@ -10,10 +11,11 @@ class MatchNudgesScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = engagementL10n(context);
     final matches = ref.watch(matchNotifierProvider);
     final nudges = ref.watch(matchNudgeProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Match nudges')),
+      appBar: AppBar(title: Text(l.engagementNudgesTitle)),
       body: PostLoginBackdrop(
         child: SafeArea(
           child: ListView(
@@ -30,11 +32,10 @@ class MatchNudgesScreen extends ConsumerWidget {
                       color: Theme.of(context).colorScheme.primary,
                     ),
                     const SizedBox(width: 12),
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        'Send a gentle reminder to restart a quiet conversation. '
-                        'Daily limits and safety rules are enforced by the server.',
-                        style: TextStyle(height: 1.4),
+                        l.engagementNudgesIntro,
+                        style: const TextStyle(height: 1.4),
                       ),
                     ),
                   ],
@@ -44,7 +45,7 @@ class MatchNudgesScreen extends ConsumerWidget {
               if (matches.isLoading)
                 const Center(child: CircularProgressIndicator())
               else if (matches.matches.isEmpty)
-                const Center(child: Text('No matches available to nudge.'))
+                Center(child: Text(l.engagementNudgesEmpty))
               else
                 for (final match in matches.matches)
                   Padding(
@@ -83,8 +84,8 @@ class MatchNudgesScreen extends ConsumerWidget {
                                       (nudges.sentByMatchId.containsKey(
                                             match.id,
                                           )
-                                          ? 'Nudge sent in this session'
-                                          : 'Ready to send'),
+                                          ? l.engagementNudgesSentInSession
+                                          : l.engagementNudgesReady),
                                   style: TextStyle(
                                     color:
                                         nudges.errorByMatchId[match.id] != null
@@ -117,7 +118,9 @@ class MatchNudgesScreen extends ConsumerWidget {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                         content: Text(
-                                          'Nudge sent to ${match.userName}.',
+                                          l.engagementNudgesSentTo(
+                                            match.userName,
+                                          ),
                                         ),
                                       ),
                                     );
@@ -130,7 +133,7 @@ class MatchNudgesScreen extends ConsumerWidget {
                                     ),
                                   )
                                 : const Icon(Icons.waving_hand_outlined),
-                            label: const Text('Nudge'),
+                            label: Text(l.engagementNudgesAction),
                           ),
                         ],
                       ),

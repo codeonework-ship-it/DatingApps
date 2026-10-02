@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/layout/app_layout.dart';
+import '../../../l10n/app_localizations.dart';
 import '../providers/friend_social_provider.dart';
 import '../providers/friends_provider.dart';
 
@@ -51,9 +52,10 @@ class _VouchSheetState extends ConsumerState<_VouchSheet> {
   }
 
   Future<void> _submit() async {
+    final l10n = AppLocalizations.of(context);
     final text = _text.text.trim();
     if (text.length < 12) {
-      setState(() => _error = 'Say a little more (at least 12 characters).');
+      setState(() => _error = l10n.friendsVouchTooShort(12));
       return;
     }
     setState(() {
@@ -70,8 +72,8 @@ class _VouchSheetState extends ConsumerState<_VouchSheet> {
       setState(() {
         _submitting = false;
         _error =
-            ref.read(friendSocialProvider).error ??
-            'Unable to send this vouch.';
+            ref.read(friendSocialProvider).errorText(l10n) ??
+            l10n.friendsVouchSendFailed;
       });
       return;
     }
@@ -81,6 +83,7 @@ class _VouchSheetState extends ConsumerState<_VouchSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
     return Padding(
       padding: EdgeInsets.only(bottom: bottomInset),
@@ -91,16 +94,14 @@ class _VouchSheetState extends ConsumerState<_VouchSheet> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'Vouch for ${widget.friend.friendName}',
+              l10n.friendsVouchTitle(widget.friend.friendName),
               style: theme.textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.w700,
               ),
             ),
             const SizedBox(height: AppLayout.space2),
             Text(
-              'A sentence or two about why someone would be lucky to meet '
-              'them. They approve it before it shows on their profile, with '
-              'your first name.',
+              l10n.friendsVouchBody,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -111,9 +112,9 @@ class _VouchSheetState extends ConsumerState<_VouchSheet> {
               controller: _text,
               maxLength: 200,
               maxLines: 3,
-              decoration: const InputDecoration(
-                labelText: 'Your vouch',
-                hintText: 'Kind, funny, and always shows up on time.',
+              decoration: InputDecoration(
+                labelText: l10n.friendsVouchLabel,
+                hintText: l10n.friendsVouchHint,
               ),
             ),
             if (_error != null) ...[
@@ -135,7 +136,7 @@ class _VouchSheetState extends ConsumerState<_VouchSheet> {
                 key: const ValueKey('qa.friends.vouch_submit'),
                 onPressed: _submitting ? null : _submit,
                 icon: const Icon(Icons.verified_outlined),
-                label: const Text('Send vouch'),
+                label: Text(l10n.friendsVouchSend),
               ),
             ),
           ],
@@ -178,10 +179,11 @@ class _IntroSheetState extends ConsumerState<_IntroSheet> {
       widget.friends.where((f) => f.status == 'accepted').toList();
 
   Future<void> _submit() async {
+    final l10n = AppLocalizations.of(context);
     final first = _first;
     final second = _second;
     if (first == null || second == null || first == second) {
-      setState(() => _error = 'Choose two different friends.');
+      setState(() => _error = l10n.friendsIntroChooseTwo);
       return;
     }
     setState(() {
@@ -202,8 +204,8 @@ class _IntroSheetState extends ConsumerState<_IntroSheet> {
       setState(() {
         _submitting = false;
         _error =
-            ref.read(friendSocialProvider).error ??
-            'Unable to make this intro.';
+            ref.read(friendSocialProvider).errorText(l10n) ??
+            l10n.friendsIntroMakeFailed;
       });
       return;
     }
@@ -213,6 +215,7 @@ class _IntroSheetState extends ConsumerState<_IntroSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
     final accepted = _accepted;
     return Padding(
@@ -224,30 +227,25 @@ class _IntroSheetState extends ConsumerState<_IntroSheet> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'Introduce two friends',
+              l10n.friendsIntroSheetTitle,
               style: theme.textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.w700,
               ),
             ),
             const SizedBox(height: AppLayout.space2),
             Text(
-              'Both friends must allow introductions. Each controls their '
-              'preview and decides privately. Share only a reason you have '
-              'permission to mention. Their decisions and match outcome stay private.',
+              l10n.friendsIntroSheetBody,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
             if (accepted.length < 2) ...[
               const SizedBox(height: AppLayout.space4),
-              Text(
-                'You need at least two accepted friends to make an intro.',
-                style: theme.textTheme.bodyMedium,
-              ),
+              Text(l10n.friendsIntroNeedTwo, style: theme.textTheme.bodyMedium),
             ] else ...[
               const SizedBox(height: AppLayout.space4),
               _FriendPicker(
-                label: 'First friend',
+                label: l10n.friendsFirstFriend,
                 keyPrefix: 'qa.friends.intro_first',
                 friends: accepted,
                 selected: _first,
@@ -256,7 +254,7 @@ class _IntroSheetState extends ConsumerState<_IntroSheet> {
               ),
               const SizedBox(height: AppLayout.space3),
               _FriendPicker(
-                label: 'Second friend',
+                label: l10n.friendsSecondFriend,
                 keyPrefix: 'qa.friends.intro_second',
                 friends: accepted,
                 selected: _second,
@@ -269,8 +267,8 @@ class _IntroSheetState extends ConsumerState<_IntroSheet> {
                 controller: _message,
                 maxLength: 200,
                 maxLines: 2,
-                decoration: const InputDecoration(
-                  labelText: 'Why they should meet (optional)',
+                decoration: InputDecoration(
+                  labelText: l10n.friendsIntroWhyLabel,
                 ),
               ),
             ],
@@ -293,7 +291,7 @@ class _IntroSheetState extends ConsumerState<_IntroSheet> {
                 key: const ValueKey('qa.friends.intro_submit'),
                 onPressed: _submitting || accepted.length < 2 ? null : _submit,
                 icon: const Icon(Icons.connect_without_contact_rounded),
-                label: const Text('Make the intro'),
+                label: Text(l10n.friendsIntroSubmit),
               ),
             ),
           ],

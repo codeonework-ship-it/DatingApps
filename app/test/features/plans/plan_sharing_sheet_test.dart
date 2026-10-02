@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:verified_dating_app/core/providers/api_client_provider.dart';
 import 'package:verified_dating_app/features/plans/models/date_plan.dart';
 import 'package:verified_dating_app/features/plans/screens/plan_sharing_sheet.dart';
+import 'package:verified_dating_app/l10n/app_localizations.dart';
 
 void main() {
   final plan = DatePlan.fromJson({'id': 'p', 'match_id': 'm'});
@@ -39,6 +40,8 @@ void main() {
         ProviderScope(
           overrides: [apiClientProvider.overrideWithValue(dio)],
           child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: Scaffold(body: PlanSharingSheet(plan: plan)),
           ),
         ),
@@ -106,6 +109,8 @@ void main() {
       ProviderScope(
         overrides: [apiClientProvider.overrideWithValue(dio)],
         child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(body: PlanSharingSheet(plan: plan)),
         ),
       ),

@@ -48,7 +48,23 @@ def _read_preferences(api_client, user_id: str) -> dict:
     return body.get("draft", body) if isinstance(body, dict) else {}
 
 
-def _open_filters(app) -> None:
+def _fresh_app_session(app) -> None:
+    """The sheet seeds from saved preferences once per app session, by design
+    (main_navigation_screen.dart: "Seed once. A cleared value must remain
+    clear"). A sheet opened or reset earlier in the session (test_03 resets
+    its filters) hides preferences seeded afterwards, so start a new process.
+    This ends an attached `flutter run` session; the installed build keeps
+    running.
+    """
+    package = app.config.app_package
+    app.driver.terminate_app(package)
+    app.driver.activate_app(package)
+    app.wait_for_authenticated_surface(timeout=45)
+
+
+def _open_filters(app, fresh: bool = False) -> None:
+    if fresh:
+        _fresh_app_session(app)
     app.open_discovery_deck()
     if not app.maybe_tap_qa("qa.discovery.filter_button", timeout=5):
         app.tap_first_visible_text(["Filters", "Filter"], timeout=15)
@@ -74,7 +90,7 @@ def test_filter_sheet_seeds_age_and_distance_from_saved_preferences(
         "seeding did not persist; the assertions below would be vacuous"
     )
 
-    _open_filters(app)
+    _open_filters(app, fresh=True)
 
     # The readouts render the live slider values. Before the fix the sheet
     # always opened on 20-50 and 50 km regardless of what was stored.
@@ -105,7 +121,7 @@ def test_filter_sheet_seeds_lifestyle_dropdowns_from_saved_preferences(
     """Smoking and Drinking open on the saved values rather than "Any"."""
     _seed_preferences(api_client, qa_user_id)
 
-    _open_filters(app)
+    _open_filters(app, fresh=True)
 
     for label, expected in (
         ("Smoking", SEEDED_SMOKING),

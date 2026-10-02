@@ -7,6 +7,7 @@ import 'package:verified_dating_app/features/swipe/models/discovery_profile.dart
 import 'package:verified_dating_app/features/swipe/providers/curated_daily_set_provider.dart';
 import 'package:verified_dating_app/features/swipe/providers/swipe_provider.dart';
 import 'package:verified_dating_app/features/swipe/screens/home_discovery_screen.dart';
+import 'package:verified_dating_app/l10n/app_localizations.dart';
 
 DiscoveryProfile _pick(String id, String name, List<String> reasons) =>
     DiscoveryProfile(
@@ -79,7 +80,11 @@ Widget _app({
       ),
     ),
   ],
-  child: const MaterialApp(home: HomeDiscoveryScreen()),
+  child: const MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
+    home: HomeDiscoveryScreen(),
+  ),
 );
 
 void main() {

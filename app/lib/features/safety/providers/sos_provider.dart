@@ -54,6 +54,13 @@ class SosAlert {
       (latitude!.abs() > .000001 || longitude!.abs() > .000001);
 }
 
+// The provider's own messages, kept as stable English codes; the SOS screen
+// shows them through `localizedSosMessage`. Server messages pass through.
+const kSosSignInToViewMessage = 'Please sign in to view SOS history.';
+const kSosLoadFailedMessage = 'Unable to load SOS history.';
+const kSosSignInToActivateMessage = 'Please sign in before activating SOS.';
+const kSosActivateFailedMessage = 'Unable to activate SOS.';
+
 String? _optionalText(Object? value) {
   final text = value?.toString().trim() ?? '';
   return text.isEmpty ? null : text;
@@ -103,7 +110,7 @@ class SosNotifier extends StateNotifier<SosState> {
   Future<void> loadAlerts() async {
     final userId = _userId;
     if (userId == null) {
-      state = state.copyWith(error: 'Please sign in to view SOS history.');
+      state = state.copyWith(error: kSosSignInToViewMessage);
       return;
     }
     state = state.copyWith(isLoading: true, error: null);
@@ -123,7 +130,7 @@ class SosNotifier extends StateNotifier<SosState> {
     } on Object catch (error) {
       state = state.copyWith(
         isLoading: false,
-        error: apiErrorMessage(error, fallback: 'Unable to load SOS history.'),
+        error: apiErrorMessage(error, fallback: kSosLoadFailedMessage),
       );
     }
   }
@@ -135,7 +142,7 @@ class SosNotifier extends StateNotifier<SosState> {
   }) async {
     final userId = _userId;
     if (userId == null) {
-      state = state.copyWith(error: 'Please sign in before activating SOS.');
+      state = state.copyWith(error: kSosSignInToActivateMessage);
       return null;
     }
     state = state.copyWith(
@@ -182,7 +189,7 @@ class SosNotifier extends StateNotifier<SosState> {
     } on Object catch (error) {
       state = state.copyWith(
         isSending: false,
-        error: apiErrorMessage(error, fallback: 'Unable to activate SOS.'),
+        error: apiErrorMessage(error, fallback: kSosActivateFailedMessage),
       );
       return null;
     }

@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/layout/app_layout.dart';
 import '../../../../core/widgets/glass_widgets.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../providers/profile_setup_provider.dart';
 import 'setup_about_screen.dart';
 import 'setup_shared_widgets.dart';
@@ -48,9 +49,11 @@ class _SetupPhotosScreenState extends ConsumerState<SetupPhotosScreen> {
           ),
         );
       } else if (kIsWeb && !Navigator.of(context).canPop()) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Photos saved.')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context).profileSetupPhotosSaved),
+          ),
+        );
       } else {
         Navigator.of(context).pop();
       }
@@ -70,6 +73,13 @@ class _SetupPhotosScreenState extends ConsumerState<SetupPhotosScreen> {
     );
   }
 
+  void _showMediaError(Object error) {
+    if (!mounted) {
+      return;
+    }
+    _showError(profileMediaErrorMessage(error, AppLocalizations.of(context)));
+  }
+
   Future<void> _pickFromGallery() async {
     if (_isPickingPhoto) {
       return;
@@ -77,7 +87,9 @@ class _SetupPhotosScreenState extends ConsumerState<SetupPhotosScreen> {
     final draft = ref.read(profileSetupNotifierProvider).valueOrNull;
     if (draft != null && draft.photos.length >= ValidationConstants.maxPhotos) {
       _showError(
-        'You can upload up to ${ValidationConstants.maxPhotos} photos only.',
+        AppLocalizations.of(
+          context,
+        ).profileSetupPhotosMaxReached(ValidationConstants.maxPhotos),
       );
       return;
     }
@@ -87,7 +99,7 @@ class _SetupPhotosScreenState extends ConsumerState<SetupPhotosScreen> {
           .read(profileSetupNotifierProvider.notifier)
           .addPhotoFromGallery();
     } on Object catch (error) {
-      _showError(profileMediaErrorMessage(error));
+      _showMediaError(error);
     } finally {
       if (mounted) {
         setState(() => _isPickingPhoto = false);
@@ -102,7 +114,9 @@ class _SetupPhotosScreenState extends ConsumerState<SetupPhotosScreen> {
     final draft = ref.read(profileSetupNotifierProvider).valueOrNull;
     if (draft != null && draft.photos.length >= ValidationConstants.maxPhotos) {
       _showError(
-        'You can upload up to ${ValidationConstants.maxPhotos} photos only.',
+        AppLocalizations.of(
+          context,
+        ).profileSetupPhotosMaxReached(ValidationConstants.maxPhotos),
       );
       return;
     }
@@ -112,7 +126,7 @@ class _SetupPhotosScreenState extends ConsumerState<SetupPhotosScreen> {
           .read(profileSetupNotifierProvider.notifier)
           .addPhotoFromCamera();
     } on Object catch (error) {
-      _showError(profileMediaErrorMessage(error));
+      _showMediaError(error);
     } finally {
       if (mounted) {
         setState(() => _isPickingPhoto = false);
@@ -124,22 +138,21 @@ class _SetupPhotosScreenState extends ConsumerState<SetupPhotosScreen> {
     if (_isPickingPhoto) {
       return;
     }
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Remove this photo?'),
-        content: const Text(
-          'It will be removed from your profile and deleted from storage.',
-        ),
+        title: Text(l10n.profileSetupRemovePhotoTitle),
+        content: Text(l10n.profileSetupRemovePhotoBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l10n.profileSetupCancel),
           ),
           FilledButton(
             key: const ValueKey('qa.setup.photos.confirm_delete'),
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Remove'),
+            child: Text(l10n.profileSetupRemove),
           ),
         ],
       ),
@@ -150,7 +163,7 @@ class _SetupPhotosScreenState extends ConsumerState<SetupPhotosScreen> {
     try {
       await ref.read(profileSetupNotifierProvider.notifier).deletePhoto(photo);
     } on Object catch (error) {
-      _showError(profileMediaErrorMessage(error));
+      _showMediaError(error);
     }
   }
 
@@ -163,7 +176,7 @@ class _SetupPhotosScreenState extends ConsumerState<SetupPhotosScreen> {
           .read(profileSetupNotifierProvider.notifier)
           .reorderPhotos(oldIndex, newIndex);
     } on Object catch (error) {
-      _showError(profileMediaErrorMessage(error));
+      _showMediaError(error);
     }
   }
 
@@ -231,10 +244,12 @@ class _SetupPhotosScreenState extends ConsumerState<SetupPhotosScreen> {
                       if (d.photos.length < ValidationConstants.minPhotos) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: const Text(
-                              'Please upload at least '
-                              '${ValidationConstants.minPhotos} photos '
-                              'to continue.',
+                            content: Text(
+                              AppLocalizations.of(
+                                context,
+                              ).profileSetupPhotosMinRequired(
+                                ValidationConstants.minPhotos,
+                              ),
                             ),
                             backgroundColor: Theme.of(
                               context,
@@ -288,139 +303,147 @@ class _PhotoListBody extends StatelessWidget {
   final VoidCallback onNext;
 
   @override
-  Widget build(BuildContext context) => ListView(
-    padding: const EdgeInsets.fromLTRB(20, 8, 20, 36),
-    children: [
-      // ── Title row ────────────────────────────────────────
-      Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Add your photos',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: Theme.of(context).colorScheme.onSurface,
-                    letterSpacing: -0.3,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Add at least ${ValidationConstants.minPhotos} photos '
-                  'to get matches',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          CountBadge(current: photoCount, max: ValidationConstants.maxPhotos),
-        ],
-      ),
-      const SizedBox(height: 16),
-
-      // ── Pick source ──────────────────────────────────────
-      InfoCard(
-        icon: Icons.add_a_photo_outlined,
-        title: 'Choose source',
-        child: Row(
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 36),
+      children: [
+        // ── Title row ────────────────────────────────────────
+        Row(
           children: [
             Expanded(
-              child: _PickerButton(
-                icon: Icons.photo_library_rounded,
-                label: 'Gallery',
-                isLoading: isPickingPhoto,
-                onTap: onPickGallery,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    l10n.profileSetupPhotosTitle,
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: Theme.of(context).colorScheme.onSurface,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    l10n.profileSetupPhotosSubtitle(
+                      ValidationConstants.minPhotos,
+                    ),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _PickerButton(
-                icon: Icons.photo_camera_rounded,
-                label: 'Camera',
-                isLoading: isPickingPhoto,
-                onTap: onPickCamera,
-              ),
-            ),
+            CountBadge(current: photoCount, max: ValidationConstants.maxPhotos),
           ],
         ),
-      ),
-      const SizedBox(height: 8),
-      Text(
-        'JPEG, PNG, WebP or HEIC · 300×300 minimum · 10 MB each · 50 MB total',
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
-        ),
-      ),
+        const SizedBox(height: 16),
 
-      // ── Tip banner ───────────────────────────────────────
-      const SizedBox(height: 14),
-      TipBanner(
-        text: draft.photos.isEmpty
-            ? 'Add at least ${ValidationConstants.minPhotos} photos '
-                  'to show different sides of you.'
-            : draft.photos.length < ValidationConstants.minPhotos
-            ? 'Add ${ValidationConstants.minPhotos - draft.photos.length}'
-                  ' more photo(s) to unlock full matching.'
-            : 'Great! You can reorder photos by dragging.',
-      ),
-
-      // ── Photo grid ───────────────────────────────────────
-      if (draft.photos.isNotEmpty) ...[
-        const SizedBox(height: 14),
+        // ── Pick source ──────────────────────────────────────
         InfoCard(
-          icon: Icons.collections_outlined,
-          title: 'Your photos  •  drag to reorder',
+          icon: Icons.add_a_photo_outlined,
+          title: l10n.profileSetupChooseSource,
+          child: Row(
+            children: [
+              Expanded(
+                child: _PickerButton(
+                  icon: Icons.photo_library_rounded,
+                  label: l10n.profileSetupGallery,
+                  qaId: 'gallery',
+                  isLoading: isPickingPhoto,
+                  onTap: onPickGallery,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _PickerButton(
+                  icon: Icons.photo_camera_rounded,
+                  label: l10n.profileSetupCamera,
+                  qaId: 'camera',
+                  isLoading: isPickingPhoto,
+                  onTap: onPickCamera,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          l10n.profileSetupPhotoRequirements,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+
+        // ── Tip banner ───────────────────────────────────────
+        const SizedBox(height: 14),
+        TipBanner(
+          text: draft.photos.isEmpty
+              ? l10n.profileSetupPhotosTipEmpty(ValidationConstants.minPhotos)
+              : draft.photos.length < ValidationConstants.minPhotos
+              ? l10n.profileSetupPhotosTipMore(
+                  ValidationConstants.minPhotos - draft.photos.length,
+                )
+              : l10n.profileSetupPhotosTipDone,
+        ),
+
+        // ── Photo grid ───────────────────────────────────────
+        if (draft.photos.isNotEmpty) ...[
+          const SizedBox(height: 14),
+          InfoCard(
+            icon: Icons.collections_outlined,
+            title: l10n.profileSetupYourPhotosHeading,
+            child: SizedBox(
+              height: (draft.photos.length * 92.0).clamp(92.0, 368.0),
+              child: ReorderableListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                buildDefaultDragHandles: false,
+                itemCount: draft.photos.length,
+                onReorder: isPickingPhoto ? (_, _) {} : onReorder,
+                itemBuilder: (context, index) {
+                  final photo = draft.photos[index];
+                  return _PhotoRow(
+                    key: ValueKey(photo.id),
+                    photo: photo,
+                    index: index,
+                    onDelete: () => onDeletePhoto(photo),
+                    onSetPrimary: () => onSetPrimary(index),
+                    enabled: !isPickingPhoto,
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
+
+        const SizedBox(height: 24),
+
+        // ── Next button ──────────────────────────────────────
+        Semantics(
+          label: 'qa.setup.photos.next_button',
+          button: true,
           child: SizedBox(
-            height: (draft.photos.length * 92.0).clamp(92.0, 368.0),
-            child: ReorderableListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              buildDefaultDragHandles: false,
-              itemCount: draft.photos.length,
-              onReorder: isPickingPhoto ? (_, _) {} : onReorder,
-              itemBuilder: (context, index) {
-                final photo = draft.photos[index];
-                return _PhotoRow(
-                  key: ValueKey(photo.id),
-                  photo: photo,
-                  index: index,
-                  onDelete: () => onDeletePhoto(photo),
-                  onSetPrimary: () => onSetPrimary(index),
-                  enabled: !isPickingPhoto,
-                );
-              },
+            height: 54,
+            width: double.infinity,
+            child: GlassButton(
+              key: const ValueKey('qa.setup.photos.next_button'),
+              label: isSetupFlow
+                  ? l10n.profileSetupContinueToAbout
+                  : l10n.profileSetupSavePhotos,
+              icon: Icons.arrow_forward_rounded,
+              shinyEffect: true,
+              textColor: Theme.of(context).colorScheme.onSurface,
+              fontWeight: FontWeight.w800,
+              onPressed: onNext,
             ),
           ),
         ),
       ],
-
-      const SizedBox(height: 24),
-
-      // ── Next button ──────────────────────────────────────
-      Semantics(
-        label: 'qa.setup.photos.next_button',
-        button: true,
-        child: SizedBox(
-          height: 54,
-          width: double.infinity,
-          child: GlassButton(
-            key: const ValueKey('qa.setup.photos.next_button'),
-            label: isSetupFlow ? 'Continue to About' : 'Save Photos',
-            icon: Icons.arrow_forward_rounded,
-            shinyEffect: true,
-            textColor: Theme.of(context).colorScheme.onSurface,
-            fontWeight: FontWeight.w800,
-            onPressed: onNext,
-          ),
-        ),
-      ),
-    ],
-  );
+    );
+  }
 }
 
 // ── Helper widgets ───────────────────────────────────────────────────────────
@@ -429,22 +452,27 @@ class _PickerButton extends StatelessWidget {
   const _PickerButton({
     required this.icon,
     required this.label,
+    required this.qaId,
     required this.onTap,
     this.isLoading = false,
   });
   final IconData icon;
   final String label;
+
+  /// Stable QA id segment ('gallery' / 'camera'), independent of the
+  /// translated [label].
+  final String qaId;
   final VoidCallback onTap;
   final bool isLoading;
 
   @override
   Widget build(BuildContext context) => Semantics(
-    label: 'qa.setup.photos.${label.toLowerCase()}_button',
+    label: 'qa.setup.photos.${qaId}_button',
     button: true,
     child: SizedBox(
       height: 58,
       child: GlassButton(
-        key: ValueKey<String>('qa.setup.photos.${label.toLowerCase()}_button'),
+        key: ValueKey<String>('qa.setup.photos.${qaId}_button'),
         label: label,
         icon: icon,
         isLoading: isLoading,
@@ -517,6 +545,7 @@ class _PhotoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
@@ -534,7 +563,9 @@ class _PhotoRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  index == 0 ? 'Primary photo' : 'Photo ${index + 1}',
+                  index == 0
+                      ? l10n.profileSetupPrimaryPhoto
+                      : l10n.profileSetupPhotoNumber(index + 1),
                   style: TextStyle(
                     color: scheme.onSurface,
                     fontWeight: FontWeight.w600,
@@ -543,8 +574,8 @@ class _PhotoRow extends StatelessWidget {
                 ),
                 Text(
                   index == 0
-                      ? 'Shown first on your profile'
-                      : 'Drag handle to reorder',
+                      ? l10n.profileSetupShownFirst
+                      : l10n.profileSetupDragHandleHint,
                   style: TextStyle(
                     color: scheme.onSurfaceVariant,
                     fontSize: 12,
@@ -564,8 +595,8 @@ class _PhotoRow extends StatelessWidget {
                         Expanded(
                           child: Text(
                             photo.moderationStatus == 'review_required'
-                                ? 'Awaiting safety review'
-                                : 'Safety check in progress',
+                                ? l10n.profileSetupAwaitingSafetyReview
+                                : l10n.profileSetupSafetyCheckInProgress,
                             style: TextStyle(
                               color: scheme.primary,
                               fontSize: 11,
@@ -582,7 +613,7 @@ class _PhotoRow extends StatelessWidget {
                     child: GestureDetector(
                       onTap: enabled ? onSetPrimary : null,
                       child: Text(
-                        'Set as profile picture',
+                        l10n.profileSetupSetAsProfilePicture,
                         style: TextStyle(
                           color: scheme.primary,
                           fontSize: 12,
@@ -595,7 +626,7 @@ class _PhotoRow extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.only(top: 8),
                     child: Text(
-                      'Profile picture selected',
+                      l10n.profileSetupProfilePictureSelected,
                       style: TextStyle(
                         color: scheme.primary,
                         fontSize: 12,
@@ -613,7 +644,7 @@ class _PhotoRow extends StatelessWidget {
               key: ValueKey<String>('qa.setup.photos.delete_${photo.id}'),
               icon: Icon(Icons.delete_outline, color: scheme.error),
               onPressed: enabled ? onDelete : null,
-              tooltip: 'Remove photo',
+              tooltip: l10n.profileSetupRemovePhotoTooltip,
             ),
           ),
           Semantics(

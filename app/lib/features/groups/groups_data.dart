@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../core/providers/api_client_provider.dart';
+import '../../l10n/app_localizations.dart';
 import '../auth/providers/auth_provider.dart';
 
 /// Lifestyle community groups and private friend groups
@@ -74,10 +75,13 @@ class GroupMember {
   final bool isMe, isFriend;
 }
 
-const groupRoleLabels = <String, String>{
-  'owner': 'Owner',
-  'moderator': 'Moderator',
-  'member': 'Member',
+/// The display label for a member role (owner, moderator or member); null
+/// for an unknown role.
+String? groupRoleLabel(AppLocalizations l10n, String role) => switch (role) {
+  'owner' => l10n.groupsRoleOwner,
+  'moderator' => l10n.groupsRoleModerator,
+  'member' => l10n.groupsRoleMember,
+  _ => null,
 };
 
 class Group {
@@ -201,9 +205,11 @@ class Group {
       ? categoryEmoji
       : (isCommunity ? '✨' : '🫶');
 
-  String get kindLabel => isCommunity ? 'Community group' : 'Private group';
+  String kindLabel(AppLocalizations l10n) =>
+      isCommunity ? l10n.groupsKindCommunity : l10n.groupsKindPrivate;
 
-  String get memberLabel => '$memberCount member${memberCount == 1 ? '' : 's'}';
+  String memberLabel(AppLocalizations l10n) =>
+      l10n.chatMemberCount(memberCount);
 }
 
 class GroupInvite {

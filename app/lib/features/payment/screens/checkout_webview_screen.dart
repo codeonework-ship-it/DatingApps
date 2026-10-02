@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../providers/subscription_provider.dart';
 
 /// Hosts the provider's card checkout page.
@@ -100,13 +101,14 @@ class _CheckoutWebViewScreenState extends State<CheckoutWebViewScreen> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final ground = Theme.of(context).scaffoldBackgroundColor;
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: ground,
       appBar: AppBar(
-        title: Text('Pay for ${widget.planName}'),
+        title: Text(l10n.paymentCheckoutPayFor(widget.planName)),
         leading: IconButton(
           icon: const Icon(Icons.close),
-          tooltip: 'Close checkout',
+          tooltip: l10n.paymentCheckoutClose,
           onPressed: () => Navigator.of(context).pop(null),
         ),
       ),
@@ -143,8 +145,7 @@ class _CheckoutWebViewScreenState extends State<CheckoutWebViewScreen> {
                     const SizedBox(width: 6),
                     Flexible(
                       child: Text(
-                        'Card details are entered on the payment provider\'s '
-                        'secure page.',
+                        l10n.paymentCheckoutSecureNote,
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 11,

@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/i18n/app_l10n.dart';
 import '../../core/providers/api_client_provider.dart';
 import '../auth/providers/auth_provider.dart';
 import '../blog/blog_data.dart';
@@ -117,7 +118,7 @@ class CoverOfTheWeek {
   final ThemeEntry entry;
 }
 
-StateError _signedOut() => StateError('Sign in to see your wall.');
+StateError _signedOut() => StateError(currentAppL10n().wallsSignInRequired);
 
 final todayWallProvider = FutureProvider.autoDispose<TodayWall>((ref) async {
   final user = ref.watch(authNotifierProvider.select((s) => s.userId));

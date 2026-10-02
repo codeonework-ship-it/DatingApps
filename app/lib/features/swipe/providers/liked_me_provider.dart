@@ -11,6 +11,7 @@ import '../../notifications/providers/notification_provider.dart';
 import '../../payment/providers/entitlements_provider.dart';
 import '../models/discovery_profile.dart';
 import 'swipe_provider.dart';
+import '../discover_l10n.dart';
 
 /// A member who liked the caller and is still waiting on an answer.
 class LikedMeEntry {
@@ -147,10 +148,7 @@ class LikedMeNotifier extends StateNotifier<LikedMeState> {
       log.error('Failed to load who liked me', e, stackTrace);
       state = state.copyWith(
         isLoading: false,
-        error: apiErrorMessage(
-          e,
-          fallback: 'Could not load who liked you. Please try again.',
-        ),
+        error: apiErrorMessage(e, fallback: DiscoverMessages.loadLikedMe),
       );
     }
   }
@@ -162,7 +160,7 @@ class LikedMeNotifier extends StateNotifier<LikedMeState> {
     required bool like,
   }) async {
     if (state.answering.contains(profile.id)) {
-      return const LikedMeAnswer(error: 'Already sending your answer.');
+      return const LikedMeAnswer(error: DiscoverMessages.answerInFlight);
     }
     state = state.copyWith(answering: {...state.answering, profile.id});
     try {
@@ -171,7 +169,7 @@ class LikedMeNotifier extends StateNotifier<LikedMeState> {
         final userId = ref.read(authNotifierProvider).userId;
         if (userId == null || userId.isEmpty) {
           return const LikedMeAnswer(
-            error: 'User session not available. Please login again.',
+            error: DiscoverMessages.sessionUnavailable,
           );
         }
         final response = await ref
@@ -210,16 +208,11 @@ class LikedMeNotifier extends StateNotifier<LikedMeState> {
         return LikedMeAnswer(dailyLimit: limit);
       }
       return LikedMeAnswer(
-        error: apiErrorMessage(
-          e,
-          fallback: 'Could not send your answer. Please try again.',
-        ),
+        error: apiErrorMessage(e, fallback: DiscoverMessages.answer),
       );
     } on Object catch (e, stackTrace) {
       log.error('Failed to answer a like', e, stackTrace);
-      return const LikedMeAnswer(
-        error: 'Could not send your answer. Please try again.',
-      );
+      return const LikedMeAnswer(error: DiscoverMessages.answer);
     } finally {
       if (!_disposed) {
         state = state.copyWith(

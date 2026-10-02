@@ -7,6 +7,7 @@ import '../../../../core/constants/preference_limits.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/widgets/glass_widgets.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../../common/screens/main_navigation_screen.dart';
 import '../../providers/preference_master_data_provider.dart';
 import '../../providers/profile_completion_provider.dart';
@@ -134,7 +135,9 @@ class _SetupPreferencesScreenState extends ConsumerState<SetupPreferencesScreen>
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Failed to load preferences',
+                  AppLocalizations.of(
+                    context,
+                  ).profileSetupPreferencesLoadFailed,
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                     fontSize: 16,
@@ -142,7 +145,7 @@ class _SetupPreferencesScreenState extends ConsumerState<SetupPreferencesScreen>
                 ),
                 const SizedBox(height: 12),
                 GlassButton(
-                  label: 'Retry',
+                  label: AppLocalizations.of(context).profileSetupRetry,
                   onPressed: () => ref.invalidate(profileSetupNotifierProvider),
                 ),
               ],
@@ -250,7 +253,7 @@ class _SetupPreferencesScreenState extends ConsumerState<SetupPreferencesScreen>
                   vertical: 8,
                 ),
                 child: Text(
-                  'Offline mode — some data may be outdated.',
+                  AppLocalizations.of(context).profileSetupOfflineBanner,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.onPrimary,
@@ -275,7 +278,13 @@ class _SetupPreferencesScreenState extends ConsumerState<SetupPreferencesScreen>
                   ),
                   Expanded(
                     child: Text(
-                      _isSetupFlow ? 'Your Preferences' : 'Edit Preferences',
+                      _isSetupFlow
+                          ? AppLocalizations.of(
+                              context,
+                            ).profileSetupYourPreferences
+                          : AppLocalizations.of(
+                              context,
+                            ).profileSetupEditPreferencesTitle,
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.onSurface,
                         fontSize: 24,
@@ -397,8 +406,12 @@ class _SetupPreferencesScreenState extends ConsumerState<SetupPreferencesScreen>
                         : 'qa.setup.preferences.save_button',
                   ),
                   label: _isSetupFlow
-                      ? 'Finish & Find Matches'
-                      : 'Save Preferences',
+                      ? AppLocalizations.of(
+                          context,
+                        ).profileSetupFinishAndFindMatches
+                      : AppLocalizations.of(
+                          context,
+                        ).profileSetupSavePreferences,
                   shinyEffect: _isSetupFlow,
                   isLoading: _isSaving,
                   onPressed: _isSaving
@@ -420,7 +433,11 @@ class _SetupPreferencesScreenState extends ConsumerState<SetupPreferencesScreen>
   Future<void> _handlePrimaryAction(ProfileDraft draft) async {
     if (_seeking.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Select at least one gender preference.')),
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context).profileSetupSelectGenderPreference,
+          ),
+        ),
       );
       return;
     }
@@ -441,9 +458,10 @@ class _SetupPreferencesScreenState extends ConsumerState<SetupPreferencesScreen>
           SnackBar(
             content: Text(
               _isSetupFlow
-                  ? 'Could not finish setup. Please check your photos and '
-                        'preferences, then try again.'
-                  : 'Some preferences could not be saved right now.',
+                  ? AppLocalizations.of(context).profileSetupFinishFailed
+                  : AppLocalizations.of(
+                      context,
+                    ).profileSetupPreferencesSaveFailed,
             ),
           ),
         );
@@ -463,8 +481,10 @@ class _SetupPreferencesScreenState extends ConsumerState<SetupPreferencesScreen>
       } on Exception {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Could not save your changes. Please try again.'),
+            SnackBar(
+              content: Text(
+                AppLocalizations.of(context).profileSetupCouldNotSaveChanges,
+              ),
             ),
           );
         }
@@ -540,9 +560,13 @@ class _SetupPreferencesScreenState extends ConsumerState<SetupPreferencesScreen>
       return;
     }
     if (kIsWeb && !_isSetupFlow && !Navigator.of(context).canPop()) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Preferences saved.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context).profileSetupPreferencesSaved,
+          ),
+        ),
+      );
       return;
     }
     if (_isSetupFlow) {
@@ -609,9 +633,9 @@ class _GlassTabBar extends StatelessWidget {
           fontSize: 14,
           letterSpacing: 0.4,
         ),
-        tabs: const [
-          Tab(text: 'Basic'),
-          Tab(text: 'Advanced'),
+        tabs: [
+          Tab(text: AppLocalizations.of(context).profileSetupTabBasic),
+          Tab(text: AppLocalizations.of(context).profileSetupTabAdvanced),
         ],
       ),
     );
@@ -652,148 +676,158 @@ class _BasicTab extends StatelessWidget {
   final ValueChanged<bool> onHookupChanged;
 
   @override
-  Widget build(BuildContext context) => SingleChildScrollView(
-    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // ── I'm looking for ───────────────────────────────────────────
-        _PrefCard(
-          icon: Icons.favorite_outline,
-          title: "I'm looking for",
-          child: Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              _GenderChip(
-                label: 'Men',
-                code: 'M',
-                icon: Icons.male,
-                selected: seeking.contains('M'),
-                onToggled: onSeekingToggled,
-              ),
-              _GenderChip(
-                label: 'Women',
-                code: 'F',
-                icon: Icons.female,
-                selected: seeking.contains('F'),
-                onToggled: onSeekingToggled,
-              ),
-              _GenderChip(
-                label: 'Other',
-                code: 'Other',
-                icon: Icons.transgender,
-                selected: seeking.contains('Other'),
-                onToggled: onSeekingToggled,
-              ),
-            ],
-          ),
-        ),
-
-        const SizedBox(height: 16),
-
-        // ── Age range ─────────────────────────────────────────────────
-        _PrefCard(
-          icon: Icons.cake_outlined,
-          title: 'Age range: ${age.start.round()} – ${age.end.round()}',
-          child: SliderTheme(
-            data: SliderTheme.of(context).copyWith(
-              activeTrackColor: Theme.of(context).colorScheme.primary,
-              thumbColor: Theme.of(context).colorScheme.primary,
-              overlayColor: Theme.of(
-                context,
-              ).colorScheme.primary.withValues(alpha: 0.2),
-              inactiveTrackColor: Theme.of(context).colorScheme.outlineVariant,
-            ),
-            child: RangeSlider(
-              values: age,
-              min: PreferenceLimits.minAge,
-              max: PreferenceLimits.maxAge,
-              divisions: PreferenceLimits.ageDivisions,
-              labels: RangeLabels(
-                age.start.round().toString(),
-                age.end.round().toString(),
-              ),
-              onChanged: onAgeChanged,
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── I'm looking for ───────────────────────────────────────────
+          _PrefCard(
+            icon: Icons.favorite_outline,
+            title: l10n.profileSetupLookingFor,
+            child: Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                _GenderChip(
+                  label: l10n.profileSetupSeekingMen,
+                  code: 'M',
+                  icon: Icons.male,
+                  selected: seeking.contains('M'),
+                  onToggled: onSeekingToggled,
+                ),
+                _GenderChip(
+                  label: l10n.profileSetupSeekingWomen,
+                  code: 'F',
+                  icon: Icons.female,
+                  selected: seeking.contains('F'),
+                  onToggled: onSeekingToggled,
+                ),
+                _GenderChip(
+                  label: l10n.profileSetupSeekingOther,
+                  code: 'Other',
+                  icon: Icons.transgender,
+                  selected: seeking.contains('Other'),
+                  onToggled: onSeekingToggled,
+                ),
+              ],
             ),
           ),
-        ),
 
-        const SizedBox(height: 16),
+          const SizedBox(height: 16),
 
-        // ── Max distance ──────────────────────────────────────────────
-        _PrefCard(
-          icon: Icons.location_on_outlined,
-          title: 'Max distance: ${distance.round()} km',
-          child: SliderTheme(
-            data: SliderTheme.of(context).copyWith(
-              activeTrackColor: Theme.of(context).colorScheme.primary,
-              thumbColor: Theme.of(context).colorScheme.primary,
-              overlayColor: Theme.of(
-                context,
-              ).colorScheme.primary.withValues(alpha: 0.2),
-              inactiveTrackColor: Theme.of(context).colorScheme.outlineVariant,
+          // ── Age range ─────────────────────────────────────────────────
+          _PrefCard(
+            icon: Icons.cake_outlined,
+            title: l10n.profileSetupAgeRangeTitle(
+              age.start.round(),
+              age.end.round(),
             ),
-            child: Slider(
-              value: distance,
-              min: PreferenceLimits.minDistanceKm,
-              max: PreferenceLimits.maxDistanceKm,
-              divisions: PreferenceLimits.distanceDivisions,
-              label: '${distance.round()} km',
-              onChanged: onDistanceChanged,
+            child: SliderTheme(
+              data: SliderTheme.of(context).copyWith(
+                activeTrackColor: Theme.of(context).colorScheme.primary,
+                thumbColor: Theme.of(context).colorScheme.primary,
+                overlayColor: Theme.of(
+                  context,
+                ).colorScheme.primary.withValues(alpha: 0.2),
+                inactiveTrackColor: Theme.of(
+                  context,
+                ).colorScheme.outlineVariant,
+              ),
+              child: RangeSlider(
+                values: age,
+                min: PreferenceLimits.minAge,
+                max: PreferenceLimits.maxAge,
+                divisions: PreferenceLimits.ageDivisions,
+                labels: RangeLabels(
+                  age.start.round().toString(),
+                  age.end.round().toString(),
+                ),
+                onChanged: onAgeChanged,
+              ),
             ),
           ),
-        ),
 
-        const SizedBox(height: 16),
+          const SizedBox(height: 16),
 
-        // ── Intent toggles ────────────────────────────────────────────
-        _PrefCard(
-          icon: Icons.tune_outlined,
-          title: 'Relationship intent',
-          child: Column(
-            children: [
-              _ToggleTile(
-                label: 'Serious relationship only',
-                semanticLabel: 'qa.setup.preferences.serious_only_toggle',
-                subtitle: 'Show only users seeking commitment',
-                value: seriousOnly,
-                onChanged: onSeriousChanged,
+          // ── Max distance ──────────────────────────────────────────────
+          _PrefCard(
+            icon: Icons.location_on_outlined,
+            title: l10n.profileSetupMaxDistanceTitle(distance.round()),
+            child: SliderTheme(
+              data: SliderTheme.of(context).copyWith(
+                activeTrackColor: Theme.of(context).colorScheme.primary,
+                thumbColor: Theme.of(context).colorScheme.primary,
+                overlayColor: Theme.of(
+                  context,
+                ).colorScheme.primary.withValues(alpha: 0.2),
+                inactiveTrackColor: Theme.of(
+                  context,
+                ).colorScheme.outlineVariant,
               ),
-              Divider(
-                height: 1,
-                color: Theme.of(context).colorScheme.outlineVariant,
-                indent: 4,
-                endIndent: 4,
+              child: Slider(
+                value: distance,
+                min: PreferenceLimits.minDistanceKm,
+                max: PreferenceLimits.maxDistanceKm,
+                divisions: PreferenceLimits.distanceDivisions,
+                label: l10n.profileSetupDistanceValue(distance.round()),
+                onChanged: onDistanceChanged,
               ),
-              _ToggleTile(
-                label: 'Verified profiles only',
-                semanticLabel: 'qa.setup.preferences.verified_only_toggle',
-                subtitle: 'Filter to ID-verified accounts',
-                value: verifiedOnly,
-                onChanged: onVerifiedChanged,
-              ),
-              Divider(
-                height: 1,
-                color: Theme.of(context).colorScheme.outlineVariant,
-                indent: 4,
-                endIndent: 4,
-              ),
-              _ToggleTile(
-                label: 'Hookups only',
-                semanticLabel: 'qa.setup.preferences.hookup_only_toggle',
-                subtitle: 'Show casual-only profiles',
-                value: hookupOnly,
-                onChanged: onHookupChanged,
-              ),
-            ],
+            ),
           ),
-        ),
 
-        const SizedBox(height: 24),
-      ],
-    ),
-  );
+          const SizedBox(height: 16),
+
+          // ── Intent toggles ────────────────────────────────────────────
+          _PrefCard(
+            icon: Icons.tune_outlined,
+            title: l10n.profileSetupRelationshipIntent,
+            child: Column(
+              children: [
+                _ToggleTile(
+                  label: l10n.profileSetupSeriousOnly,
+                  semanticLabel: 'qa.setup.preferences.serious_only_toggle',
+                  subtitle: l10n.profileSetupSeriousOnlySubtitle,
+                  value: seriousOnly,
+                  onChanged: onSeriousChanged,
+                ),
+                Divider(
+                  height: 1,
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                  indent: 4,
+                  endIndent: 4,
+                ),
+                _ToggleTile(
+                  label: l10n.profileSetupVerifiedOnly,
+                  semanticLabel: 'qa.setup.preferences.verified_only_toggle',
+                  subtitle: l10n.profileSetupVerifiedOnlySubtitle,
+                  value: verifiedOnly,
+                  onChanged: onVerifiedChanged,
+                ),
+                Divider(
+                  height: 1,
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                  indent: 4,
+                  endIndent: 4,
+                ),
+                _ToggleTile(
+                  label: l10n.profileSetupHookupsOnly,
+                  semanticLabel: 'qa.setup.preferences.hookup_only_toggle',
+                  subtitle: l10n.profileSetupHookupsOnlySubtitle,
+                  value: hookupOnly,
+                  onChanged: onHookupChanged,
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 24),
+        ],
+      ),
+    );
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -929,6 +963,7 @@ class _AdvancedTab extends StatelessWidget {
     final cities = masterData.citiesByState[selectedState] ?? const <String>[];
     final resolvedCity = cities.contains(selectedCity) ? selectedCity : null;
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -938,12 +973,12 @@ class _AdvancedTab extends StatelessWidget {
           // ── Location ──────────────────────────────────────────────────
           _PrefCard(
             icon: Icons.public_outlined,
-            title: 'Location',
+            title: l10n.profileSetupLocation,
             child: Column(
               children: [
                 _dropdown(
                   scheme: scheme,
-                  label: 'Country',
+                  label: l10n.profileSetupCountry,
                   value: selectedCountry,
                   options: masterData.countries,
                   onChanged: onCountryChanged,
@@ -951,7 +986,7 @@ class _AdvancedTab extends StatelessWidget {
                 const SizedBox(height: 10),
                 _dropdown(
                   scheme: scheme,
-                  label: 'State / Region',
+                  label: l10n.profileSetupStateRegion,
                   value: states.contains(selectedState) ? selectedState : null,
                   options: states,
                   onChanged: onStateChanged,
@@ -959,7 +994,7 @@ class _AdvancedTab extends StatelessWidget {
                 const SizedBox(height: 10),
                 _dropdown(
                   scheme: scheme,
-                  label: 'City',
+                  label: l10n.profileSetupCity,
                   value: resolvedCity,
                   options: cities,
                   onChanged: onCityChanged,
@@ -973,12 +1008,12 @@ class _AdvancedTab extends StatelessWidget {
           // ── Background & culture ──────────────────────────────────────
           _PrefCard(
             icon: Icons.diversity_3_outlined,
-            title: 'Background & culture',
+            title: l10n.profileSetupBackgroundCulture,
             child: Column(
               children: [
                 _dropdown(
                   scheme: scheme,
-                  label: 'Religion preference',
+                  label: l10n.profileSetupReligionPreference,
                   value: selectedReligion,
                   options: masterData.religions,
                   onChanged: onReligionChanged,
@@ -986,7 +1021,7 @@ class _AdvancedTab extends StatelessWidget {
                 const SizedBox(height: 10),
                 _dropdown(
                   scheme: scheme,
-                  label: 'Mother tongue',
+                  label: l10n.profileSetupMotherTongue,
                   value: selectedMotherTongue,
                   options: masterData.motherTongues,
                   onChanged: onMotherTongueChanged,
@@ -994,7 +1029,7 @@ class _AdvancedTab extends StatelessWidget {
                 const SizedBox(height: 10),
                 _dropdown(
                   scheme: scheme,
-                  label: 'Language',
+                  label: l10n.profileSetupLanguage,
                   value: selectedLanguage,
                   options: masterData.languages,
                   onChanged: onLanguageChanged,
@@ -1008,12 +1043,12 @@ class _AdvancedTab extends StatelessWidget {
           // ── Lifestyle ─────────────────────────────────────────────────
           _PrefCard(
             icon: Icons.self_improvement_outlined,
-            title: 'Lifestyle',
+            title: l10n.profileSetupLifestyleTitle,
             child: Column(
               children: [
                 _dropdown(
                   scheme: scheme,
-                  label: 'Diet preference',
+                  label: l10n.profileSetupDietPreference,
                   value: selectedDietPreference,
                   options: masterData.dietPreferences,
                   onChanged: onDietPreferenceChanged,
@@ -1021,7 +1056,7 @@ class _AdvancedTab extends StatelessWidget {
                 const SizedBox(height: 10),
                 _dropdown(
                   scheme: scheme,
-                  label: 'Workout frequency',
+                  label: l10n.profileSetupWorkoutFrequency,
                   value: selectedWorkoutFrequency,
                   options: masterData.workoutFrequencies,
                   onChanged: onWorkoutFrequencyChanged,
@@ -1029,7 +1064,7 @@ class _AdvancedTab extends StatelessWidget {
                 const SizedBox(height: 10),
                 _dropdown(
                   scheme: scheme,
-                  label: 'Diet type',
+                  label: l10n.profileSetupDietType,
                   value: selectedDietType,
                   options: masterData.dietTypes,
                   onChanged: onDietTypeChanged,
@@ -1037,7 +1072,7 @@ class _AdvancedTab extends StatelessWidget {
                 const SizedBox(height: 10),
                 _dropdown(
                   scheme: scheme,
-                  label: 'Sleep schedule',
+                  label: l10n.profileSetupSleepSchedule,
                   value: selectedSleepSchedule,
                   options: masterData.sleepSchedules,
                   onChanged: onSleepScheduleChanged,
@@ -1045,7 +1080,7 @@ class _AdvancedTab extends StatelessWidget {
                 const SizedBox(height: 10),
                 _dropdown(
                   scheme: scheme,
-                  label: 'Travel style',
+                  label: l10n.profileSetupTravelStyle,
                   value: selectedTravelStyle,
                   options: masterData.travelStyles,
                   onChanged: onTravelStyleChanged,
@@ -1053,7 +1088,7 @@ class _AdvancedTab extends StatelessWidget {
                 const SizedBox(height: 10),
                 _dropdown(
                   scheme: scheme,
-                  label: 'Political comfort range',
+                  label: l10n.profileSetupPoliticalComfortRange,
                   value: selectedPoliticalComfortRange,
                   options: masterData.politicalComfortRanges,
                   onChanged: onPoliticalComfortRangeChanged,
@@ -1067,7 +1102,7 @@ class _AdvancedTab extends StatelessWidget {
           // ── Interests & personality ───────────────────────────────────
           _PrefCard(
             icon: Icons.interests_outlined,
-            title: 'Interests & personality',
+            title: l10n.profileSetupInterestsPersonality,
             child: Column(
               children: [
                 TextField(
@@ -1075,23 +1110,23 @@ class _AdvancedTab extends StatelessWidget {
                   style: TextStyle(color: scheme.onSurface),
                   decoration: _fieldDecor(
                     scheme,
-                    'Instagram handle (without @)',
+                    l10n.profileSetupInstagramHandle,
                   ),
                 ),
                 const SizedBox(height: 10),
                 TextField(
                   controller: intentTagsController,
                   style: TextStyle(color: scheme.onSurface),
-                  decoration: _fieldDecor(
-                    scheme,
-                    'Intent tags (long-term, marriage, casual…)',
-                  ),
+                  decoration: _fieldDecor(scheme, l10n.profileSetupIntentTags),
                 ),
                 const SizedBox(height: 10),
                 TextField(
                   controller: hobbiesController,
                   style: TextStyle(color: scheme.onSurface),
-                  decoration: _fieldDecor(scheme, 'Hobbies (comma-separated)'),
+                  decoration: _fieldDecor(
+                    scheme,
+                    l10n.profileSetupHobbiesField,
+                  ),
                 ),
                 const SizedBox(height: 10),
                 TextField(
@@ -1099,7 +1134,7 @@ class _AdvancedTab extends StatelessWidget {
                   style: TextStyle(color: scheme.onSurface),
                   decoration: _fieldDecor(
                     scheme,
-                    'Favourite books (comma-separated)',
+                    l10n.profileSetupFavouriteBooksField,
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -1108,7 +1143,7 @@ class _AdvancedTab extends StatelessWidget {
                   style: TextStyle(color: scheme.onSurface),
                   decoration: _fieldDecor(
                     scheme,
-                    'Favourite novels (comma-separated)',
+                    l10n.profileSetupFavouriteNovelsField,
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -1117,7 +1152,7 @@ class _AdvancedTab extends StatelessWidget {
                   style: TextStyle(color: scheme.onSurface),
                   decoration: _fieldDecor(
                     scheme,
-                    'Favourite songs (comma-separated)',
+                    l10n.profileSetupFavouriteSongsField,
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -1126,7 +1161,7 @@ class _AdvancedTab extends StatelessWidget {
                   style: TextStyle(color: scheme.onSurface),
                   decoration: _fieldDecor(
                     scheme,
-                    'Extra-curricular activities (comma-separated)',
+                    l10n.profileSetupExtraCurricularField,
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -1135,13 +1170,19 @@ class _AdvancedTab extends StatelessWidget {
                   style: TextStyle(color: scheme.onSurface),
                   minLines: 2,
                   maxLines: 4,
-                  decoration: _fieldDecor(scheme, 'Additional information'),
+                  decoration: _fieldDecor(
+                    scheme,
+                    l10n.profileSetupAdditionalInformation,
+                  ),
                 ),
                 const SizedBox(height: 10),
                 TextField(
                   controller: petPreferenceController,
                   style: TextStyle(color: scheme.onSurface),
-                  decoration: _fieldDecor(scheme, 'Pet preference'),
+                  decoration: _fieldDecor(
+                    scheme,
+                    l10n.profileSetupPetPreference,
+                  ),
                 ),
               ],
             ),
@@ -1152,13 +1193,13 @@ class _AdvancedTab extends StatelessWidget {
           // ── Deal-breakers ────────────────────────────────────────────
           _PrefCard(
             icon: Icons.block_outlined,
-            title: 'Deal-breakers',
+            title: l10n.profileSetupDealBreakers,
             child: TextField(
               controller: dealBreakerTagsController,
               style: TextStyle(color: scheme.onSurface),
               minLines: 2,
               maxLines: 4,
-              decoration: _fieldDecor(scheme, 'Tags (comma-separated)'),
+              decoration: _fieldDecor(scheme, l10n.profileSetupTagsField),
             ),
           ),
 

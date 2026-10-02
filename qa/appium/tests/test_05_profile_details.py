@@ -2,13 +2,20 @@ from __future__ import annotations
 
 import pytest
 
+pytestmark = pytest.mark.usefixtures("ensure_deck")
+
 
 def _open_profile_detail(app) -> None:
     app.open_discovery_deck()
 
+    # A Spotlight row ("View more" of its own) can push the card down: bring
+    # the card's own View more into view; never fall back to a bare
+    # "View more", which opens Spotlight Matches instead.
+    try:
+        app.scroll_into_middle("qa.discovery.view_more_button", timeout=25)
+    except Exception:  # noqa: BLE001 - empty deck
+        pytest.skip("No visible discovery profile detail entry point in current deck")
     opened = app.maybe_tap_qa("qa.discovery.view_more_button", timeout=8)
-    if not opened:
-        opened = app.maybe_tap_contains("View more", timeout=8)
     if not opened:
         pytest.skip("No visible discovery profile detail entry point in current deck")
 

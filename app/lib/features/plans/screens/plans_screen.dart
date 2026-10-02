@@ -91,7 +91,10 @@ class _MyPlansTab extends StatelessWidget {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          if (state.error != null) _ErrorLine(state.error!),
+          if (state.error != null)
+            _ErrorLine(
+              localizedDatePlanError(l10n, state.error!, state.failure),
+            ),
           if (state.mine.isEmpty)
             _Empty(
               icon: Icons.event_available_rounded,
@@ -166,7 +169,7 @@ class _MyPlanTile extends StatelessWidget {
             key: ValueKey('qa.plans.sharing.${plan.id}'),
             onPressed: () => showPlanSharingSheet(context, plan),
             icon: const Icon(Icons.shield_outlined),
-            label: const Text('Manage your contact sharing'),
+            label: Text(l10n.plansManageSharing),
           ),
         ],
       ),
@@ -204,7 +207,10 @@ class _FriendPlansTab extends StatelessWidget {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          if (state.error != null) _ErrorLine(state.error!),
+          if (state.error != null)
+            _ErrorLine(
+              localizedDatePlanError(l10n, state.error!, state.failure),
+            ),
           if (state.friends.isEmpty)
             _Empty(
               icon: Icons.people_outline_rounded,
@@ -336,12 +342,7 @@ class _PlanStatusPill extends StatelessWidget {
       'cancelled' || 'declined' || 'expired' => scheme.onSurfaceVariant,
       _ => scheme.primary,
     };
-    final label = switch (status) {
-      'accepted' => l10n.planStatusConfirmed,
-      'proposed' => l10n.planStatusProposed,
-      'cancelled' => l10n.plansNextCancelled,
-      _ => status[0].toUpperCase() + status.substring(1).replaceAll('_', ' '),
-    };
+    final label = datePlanStatusLabel(l10n, status);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/network/api_error_message.dart';
 import '../../core/providers/api_client_provider.dart';
 import '../../core/widgets/glass_widgets.dart';
+import '../../l10n/app_localizations.dart';
 import '../auth/providers/auth_provider.dart';
 import '../common/widgets/activity_visuals.dart';
 import '../common/widgets/community_actions.dart';
@@ -20,19 +21,20 @@ class MyListsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authNotifierProvider.select((s) => s.userId));
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('My lists')),
+      appBar: AppBar(title: Text(l10n.clubsMyLists)),
       floatingActionButton: user == null
           ? null
           : FloatingActionButton.extended(
               onPressed: () => showListEditorSheet(context),
-              tooltip: 'Create a new list',
+              tooltip: l10n.clubsCreateNewListTooltip,
               icon: const Icon(Icons.playlist_add),
-              label: const Text('New list'),
+              label: Text(l10n.clubsNewList),
             ),
       body: PostLoginBackdrop(
         child: user == null
-            ? const Center(child: Text('Sign in to see your lists.'))
+            ? Center(child: Text(l10n.clubsSignInToSeeLists))
             : RefreshIndicator(
                 onRefresh: () async {
                   ref.invalidate(myListsProvider);
@@ -41,13 +43,11 @@ class MyListsScreen extends ConsumerWidget {
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 112),
                   children: [
-                    const ActivityHero(
+                    ActivityHero(
                       icon: Icons.bookmarks_outlined,
                       tone: 2,
-                      title: 'Your shelf',
-                      subtitle:
-                          'Keep track of what you loved and what is next. '
-                          'Share a list, or keep it just for you.',
+                      title: l10n.clubsShelfTitle,
+                      subtitle: l10n.clubsShelfSubtitle,
                     ),
                     const SizedBox(height: 16),
                     ref
@@ -60,22 +60,20 @@ class MyListsScreen extends ConsumerWidget {
                           ),
                           error: (e, _) => ActivityNotice(
                             icon: Icons.cloud_off_outlined,
-                            title: 'Your lists could not load',
+                            title: l10n.clubsListsLoadErrorTitle,
                             message: apiErrorMessage(
                               e,
-                              fallback: 'Please check your connection.',
+                              fallback: l10n.clubsCheckConnection,
                             ),
-                            actionLabel: 'Try again',
+                            actionLabel: l10n.chatTryAgain,
                             onAction: () => ref.invalidate(myListsProvider),
                           ),
                           data: (lists) => lists.isEmpty
                               ? ActivityNotice(
                                   icon: Icons.playlist_add,
-                                  title: 'Start your first list',
-                                  message:
-                                      'Favourite films, books to read next, '
-                                      'comfort rewatches: it is up to you.',
-                                  actionLabel: 'New list',
+                                  title: l10n.clubsFirstListTitle,
+                                  message: l10n.clubsFirstListMessage,
+                                  actionLabel: l10n.clubsNewList,
                                   onAction: () => showListEditorSheet(context),
                                 )
                               : Column(
@@ -128,6 +126,7 @@ class _MemberListCardState extends ConsumerState<MemberListCard> {
   Future<void> onMenu(String action) async {
     final list = widget.list;
     final api = ref.read(apiClientProvider);
+    final l10n = AppLocalizations.of(context);
     switch (action) {
       case 'edit':
         await showListEditorSheet(context, existing: list);
@@ -135,7 +134,7 @@ class _MemberListCardState extends ConsumerState<MemberListCard> {
         final title = await pickTitle(
           context,
           kind: list.kind,
-          heading: 'Add to ${list.name}',
+          heading: l10n.clubsAddToNamed(list.name),
         );
         if (title == null || !mounted) {
           return;
@@ -145,14 +144,14 @@ class _MemberListCardState extends ConsumerState<MemberListCard> {
             '/clubs/lists/${list.id}/items/${title.id}',
             data: {'note': ''},
           ),
-          failure: 'It could not be added to this list.',
+          failure: l10n.clubsAddToThisListFailed,
         );
       case 'delete':
         if (!await confirmCommunityAction(
           context,
-          title: 'Delete ${list.name}?',
-          message: 'The list and its notes are removed. This cannot be undone.',
-          action: 'Delete list',
+          title: l10n.clubsDeleteListTitle(list.name),
+          message: l10n.clubsDeleteListMessage,
+          action: l10n.clubsDeleteList,
         )) {
           return;
         }
@@ -161,7 +160,7 @@ class _MemberListCardState extends ConsumerState<MemberListCard> {
             '/clubs/lists/${list.id}',
             data: {'expected_version': list.version},
           ),
-          failure: 'The list could not be deleted. Reload and retry.',
+          failure: l10n.clubsListDeleteFailed,
         );
     }
   }
@@ -170,6 +169,7 @@ class _MemberListCardState extends ConsumerState<MemberListCard> {
     final list = widget.list;
     final api = ref.read(apiClientProvider);
     final path = '/clubs/lists/${list.id}/items/${item.title.id}';
+    final l10n = AppLocalizations.of(context);
     if (action == 'note') {
       final note = await askItemNote(context, item.note);
       if (note == null || !mounted) {
@@ -177,12 +177,12 @@ class _MemberListCardState extends ConsumerState<MemberListCard> {
       }
       await run(
         () => api.put<dynamic>(path, data: {'note': note}),
-        failure: 'Your note could not be saved.',
+        failure: l10n.clubsNoteNotSaved,
       );
     } else if (action == 'remove') {
       await run(
         () => api.delete<dynamic>(path),
-        failure: 'It could not be removed.',
+        failure: l10n.clubsRemoveFailed,
       );
     }
   }
@@ -192,6 +192,7 @@ class _MemberListCardState extends ConsumerState<MemberListCard> {
     final list = widget.list;
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
+    final l10n = AppLocalizations.of(context);
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       clipBehavior: Clip.antiAlias,
@@ -218,15 +219,21 @@ class _MemberListCardState extends ConsumerState<MemberListCard> {
                     ),
                   ),
                   PopupMenuButton<String>(
-                    tooltip: 'List options',
+                    tooltip: l10n.clubsListOptions,
                     enabled: !busy,
                     onSelected: onMenu,
-                    itemBuilder: (_) => const [
-                      PopupMenuItem(value: 'add', child: Text('Add a title')),
-                      PopupMenuItem(value: 'edit', child: Text('Edit list')),
+                    itemBuilder: (_) => [
+                      PopupMenuItem(
+                        value: 'add',
+                        child: Text(l10n.clubsAddATitle),
+                      ),
+                      PopupMenuItem(
+                        value: 'edit',
+                        child: Text(l10n.clubsEditList),
+                      ),
                       PopupMenuItem(
                         value: 'delete',
-                        child: Text('Delete list'),
+                        child: Text(l10n.clubsDeleteList),
                       ),
                     ],
                   ),
@@ -248,13 +255,11 @@ class _MemberListCardState extends ConsumerState<MemberListCard> {
                       : list.audience == 'friends'
                       ? Icons.people_outline
                       : Icons.public,
-                  label: clubAudiences[list.audience] ?? 'Only me',
+                  label: clubAudienceLabel(l10n, list.audience),
                 ),
                 CountPill(
                   icon: Icons.format_list_numbered,
-                  label:
-                      '${list.items.length} '
-                      'title${list.items.length == 1 ? '' : 's'}',
+                  label: l10n.clubsTitleCount(list.items.length),
                 ),
               ],
             ),
@@ -262,10 +267,7 @@ class _MemberListCardState extends ConsumerState<MemberListCard> {
           if (list.items.isEmpty)
             Padding(
               padding: const EdgeInsets.all(16),
-              child: Text(
-                'Nothing here yet. Use “Add a title” from the list menu.',
-                style: text.bodyMedium,
-              ),
+              child: Text(l10n.clubsListEmpty, style: text.bodyMedium),
             ),
           for (final item in list.items)
             ListTile(
@@ -275,7 +277,8 @@ class _MemberListCardState extends ConsumerState<MemberListCard> {
                   : Text(
                       [
                         if (item.title.byline.isNotEmpty) item.title.byline,
-                        if (item.note.isNotEmpty) '“${item.note}”',
+                        if (item.note.isNotEmpty)
+                          l10n.clubsQuotedNote(item.note),
                       ].join('\n'),
                     ),
               isThreeLine: item.note.isNotEmpty && item.title.byline.isNotEmpty,
@@ -285,17 +288,21 @@ class _MemberListCardState extends ConsumerState<MemberListCard> {
                 ),
               ),
               trailing: PopupMenuButton<String>(
-                tooltip: 'Options for ${item.title.title}',
+                tooltip: l10n.clubsItemOptions(item.title.title),
                 enabled: !busy,
                 onSelected: (action) => onItem(item, action),
                 itemBuilder: (_) => [
                   PopupMenuItem(
                     value: 'note',
-                    child: Text(item.note.isEmpty ? 'Add a note' : 'Edit note'),
+                    child: Text(
+                      item.note.isEmpty
+                          ? l10n.clubsAddNote
+                          : l10n.clubsEditNote,
+                    ),
                   ),
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: 'remove',
-                    child: Text('Remove from list'),
+                    child: Text(l10n.clubsRemoveFromList),
                   ),
                 ],
               ),

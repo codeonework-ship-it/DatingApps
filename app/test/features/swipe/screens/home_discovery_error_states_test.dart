@@ -7,6 +7,7 @@ import 'package:verified_dating_app/features/swipe/models/discovery_profile.dart
 import 'package:verified_dating_app/features/swipe/providers/swipe_provider.dart';
 import 'package:verified_dating_app/features/swipe/screens/home_discovery_screen.dart';
 import 'package:verified_dating_app/features/swipe/widgets/swipe_card.dart';
+import 'package:verified_dating_app/l10n/app_localizations.dart';
 
 // ---------------------------------------------------------------------------
 // Fake notifiers
@@ -116,7 +117,11 @@ Widget _buildApp<T extends SwipeNotifier>(T Function() createNotifier) =>
           (ref) => Stream.value(RuntimeFeatureFlags.defaults),
         ),
       ],
-      child: const MaterialApp(home: HomeDiscoveryScreen(browseOnly: true)),
+      child: const MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: HomeDiscoveryScreen(browseOnly: true),
+      ),
     );
 
 void main() {

@@ -115,6 +115,10 @@ def _open_member_profile(app) -> str:
     except Exception:  # noqa: BLE001 - no introductions today
         pass
     app.open_discovery_deck()
+    try:
+        app.scroll_into_middle("qa.discovery.view_more_button", timeout=25)
+    except Exception:  # noqa: BLE001 - empty deck
+        pass
     if not app.maybe_tap_qa("qa.discovery.view_more_button", timeout=10):
         pytest.skip("No introduction on Today and no profile in the Explore deck")
     return "deck"
@@ -135,6 +139,7 @@ def test_member_profile_introducing_dock_report_add_friend_and_back(app):
     app.save_artifact(f"profile_member_from_{origin}")
 
     # Report opens the report sheet; back closes it and keeps the profile.
+    app.dismiss_snackbars()  # one left by an earlier spec must not count
     app.tap_qa("qa.profile_detail.report_button", timeout=10)
     app.assert_any_text_visible("Submit report", "Add context", timeout=15)
     app.press_back()

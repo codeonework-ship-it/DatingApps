@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../../core/network/api_error_message.dart';
 import '../../core/providers/api_client_provider.dart';
+import '../../l10n/app_localizations.dart';
 import '../auth/providers/auth_provider.dart';
 import '../first_chapter/chapter_provider.dart';
 import 'blog_connections.dart';
@@ -15,20 +16,19 @@ String blogShareUrl(String id) => Uri.parse(
 ).replace(path: '/story.html', queryParameters: {'id': id}).toString();
 Future<void> copyBlogLink(BuildContext context, String id) async {
   final url = blogShareUrl(id);
+  final l10n = AppLocalizations.of(context);
   try {
     await Clipboard.setData(ClipboardData(text: url));
     if (context.mounted)
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Link copied. Share it wherever you choose.'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.blogLinkCopied)));
   } on Object {
     if (context.mounted)
       showDialog<void>(
         context: context,
         builder: (_) => AlertDialog(
-          title: const Text('Your public link'),
+          title: Text(l10n.blogYourPublicLink),
           content: SelectableText(url),
         ),
       );
@@ -70,6 +70,8 @@ class _BlogShareState extends ConsumerState<BlogShareScreen> {
     super.dispose();
   }
 
+  AppLocalizations get l10n => AppLocalizations.of(context);
+
   Future<void> share() async {
     if (!approved || busy || ref.read(authNotifierProvider).userId != user)
       return;
@@ -99,11 +101,7 @@ class _BlogShareState extends ConsumerState<BlogShareScreen> {
     } on Object catch (e) {
       if (mounted)
         setState(
-          () => error = apiErrorMessage(
-            e,
-            fallback:
-                'Could not confirm sharing. Check Shared links before retrying.',
-          ),
+          () => error = apiErrorMessage(e, fallback: l10n.blogShareUnconfirmed),
         );
     } finally {
       if (mounted) setState(() => busy = false);
@@ -114,12 +112,12 @@ class _BlogShareState extends ConsumerState<BlogShareScreen> {
   Widget build(BuildContext context) {
     if (user == null ||
         ref.watch(authNotifierProvider.select((s) => s.userId)) != user)
-      return const Scaffold(
-        body: Center(child: Text('Sign in again to continue.')),
-      );
+      return Scaffold(body: Center(child: Text(l10n.blogSignInAgain)));
     return Scaffold(
       appBar: AppBar(
-        title: Text(joint ? 'A shared journal page' : 'Your public preview'),
+        title: Text(
+          joint ? l10n.blogSharedJournalPage : l10n.blogYourPublicPreview,
+        ),
       ),
       body: Center(
         child: ConstrainedBox(
@@ -129,20 +127,14 @@ class _BlogShareState extends ConsumerState<BlogShareScreen> {
             children: [
               Text(
                 joint
-                    ? 'A story you both choose to share.'
-                    : 'A small window into your world.',
+                    ? l10n.blogShareJointHeadline
+                    : l10n.blogShareSoloHeadline,
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
               const SizedBox(height: 12),
-              Text(
-                joint
-                    ? 'Both authors must approve these exact words before the link works. Either person can withdraw it.'
-                    : 'Anyone with the link can read the selected words and photos, without an account. Your full chapter stays in Connect.',
-              ),
+              Text(joint ? l10n.blogShareJointBody : l10n.blogShareSoloBody),
               const SizedBox(height: 12),
-              const Text(
-                'No profile or account name is added. Your words and photos can still identify people or places. Publish only what you have permission to share.',
-              ),
+              Text(l10n.blogShareIdentityNote),
               const SizedBox(height: 24),
               Text(
                 widget.post.title,
@@ -159,8 +151,8 @@ class _BlogShareState extends ConsumerState<BlogShareScreen> {
                   minLines: 6,
                   maxLines: 14,
                   onChanged: (_) => setState(() => approved = false),
-                  decoration: const InputDecoration(
-                    labelText: 'Exact excerpt from your chapter',
+                  decoration: InputDecoration(
+                    labelText: l10n.blogExcerptLabel,
                     alignLabelWithHint: true,
                   ),
                 ),
@@ -173,7 +165,7 @@ class _BlogShareState extends ConsumerState<BlogShareScreen> {
                         children: [
                           BlogImage(post: widget.post, photo: photo),
                           CheckboxListTile(
-                            title: Text('Include: ${photo.alt}'),
+                            title: Text(l10n.blogIncludePhoto(photo.alt)),
                             value: selected.contains(photo.id),
                             onChanged: busy
                                 ? null
@@ -199,10 +191,8 @@ class _BlogShareState extends ConsumerState<BlogShareScreen> {
                 const SizedBox(height: 16),
                 CheckboxListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('I approve this exact public copy'),
-                  subtitle: const Text(
-                    'Editing or hiding the source chapter invalidates the link. Saved copies outside Connect cannot be recalled.',
-                  ),
+                  title: Text(l10n.blogApproveCopy),
+                  subtitle: Text(l10n.blogApproveCopyNote),
                   value: approved,
                   onChanged: busy
                       ? null
@@ -212,29 +202,29 @@ class _BlogShareState extends ConsumerState<BlogShareScreen> {
                   onPressed: approved && !busy ? share : null,
                   child: Text(
                     busy
-                        ? 'Saving…'
+                        ? l10n.blogSaving
                         : joint
-                        ? 'Request the other author’s approval'
-                        : 'Create public link',
+                        ? l10n.blogRequestOtherApproval
+                        : l10n.blogCreatePublicLink,
                   ),
                 ),
               ] else ...[
                 const SizedBox(height: 20),
                 Text(
                   joint
-                      ? 'Your approval is recorded. The link stays unavailable until the other author approves.'
-                      : 'Your public copy is ready.',
+                      ? l10n.blogJointApprovalRecorded
+                      : l10n.blogPublicCopyReady,
                 ),
                 if (!joint)
                   FilledButton.icon(
                     onPressed: () => copyBlogLink(context, id),
                     icon: const Icon(Icons.copy),
-                    label: const Text('Copy public link'),
+                    label: Text(l10n.blogCopyPublicLink),
                   ),
                 OutlinedButton(
                   onPressed: () =>
                       openBlogConnections(context, section: 'publications'),
-                  child: const Text('Manage shared links'),
+                  child: Text(l10n.blogManageSharedLinks),
                 ),
               ],
             ],

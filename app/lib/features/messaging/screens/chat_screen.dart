@@ -18,6 +18,8 @@ import '../../payment/providers/entitlements_provider.dart';
 import '../../payment/screens/subscription_screen.dart';
 import '../../payment/screens/wallet_payment_screen.dart';
 import '../../plans/widgets/date_plan_card.dart';
+import '../../social_chat/social_chat_l10n.dart';
+import '../chat_error_l10n.dart';
 import '../models/messaging_models.dart' as models;
 import '../models/rose_gift.dart';
 import '../providers/copilot_provider.dart';
@@ -173,7 +175,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         return;
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(next.error!)));
+        ..showSnackBar(
+          SnackBar(
+            content: Text(localizeChatError(chatL10n(context), next.error!)),
+          ),
+        );
     });
     final state = ref.watch(messageNotifierProvider(widget.matchId));
     final currentUserId = ref.watch(authNotifierProvider).userId;
@@ -203,6 +209,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         flags.enabled('voice_icebreakers_enabled') && canCompose && !pending;
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final l = chatL10n(context);
 
     return Scaffold(
       backgroundColor: scheme.surfaceContainerLow,
@@ -273,7 +280,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                       children: [
                                         if (!wide)
                                           IconButton(
-                                            tooltip: 'Back to conversations',
+                                            tooltip: l.chatBackToConversations,
                                             onPressed: _goBack,
                                             icon: const Icon(
                                               Icons.arrow_back_rounded,
@@ -343,7 +350,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                         vertical: 8,
                                       ),
                                       child: Text(
-                                        'You’re offline. Your draft will stay here while you reconnect.',
+                                        l.chatOfflineBanner,
                                         style: theme.textTheme.bodySmall
                                             ?.copyWith(
                                               color: scheme.onTertiaryContainer,
@@ -405,8 +412,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                             Icons
                                                                 .mic_none_rounded,
                                                           ),
-                                                          label: const Text(
-                                                            'Share a voice hello · read & listen',
+                                                          label: Text(
+                                                            l.chatVoiceHello,
                                                           ),
                                                         ),
                                                       if (intentionalEnabled)
@@ -465,7 +472,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                               height: 16,
                                                             ),
                                                             Text(
-                                                              'Let’s reconnect.',
+                                                              l.chatLoadFailedTitle,
                                                               style: theme
                                                                   .textTheme
                                                                   .titleLarge,
@@ -473,8 +480,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                             const SizedBox(
                                                               height: 8,
                                                             ),
-                                                            const Text(
-                                                              'Your conversation couldn’t load. Try again.',
+                                                            Text(
+                                                              l.chatLoadFailedBody,
                                                               textAlign:
                                                                   TextAlign
                                                                       .center,
@@ -493,8 +500,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                               icon: const Icon(
                                                                 Icons.refresh,
                                                               ),
-                                                              label: const Text(
-                                                                'Retry',
+                                                              label: Text(
+                                                                l.commonRetry,
                                                               ),
                                                             ),
                                                           ],
@@ -691,8 +698,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                           Expanded(
                                             child: Text(
                                               !state.isMatchActive
-                                                  ? 'This conversation has ended.'
-                                                  : 'Complete the current unlock step to continue this conversation.',
+                                                  ? l.chatConversationEnded
+                                                  : l.chatUnlockStepRequired,
                                               style: theme.textTheme.bodySmall
                                                   ?.copyWith(
                                                     color: scheme
@@ -829,6 +836,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   Widget _buildGiftTray(MessageState state) {
     final scheme = Theme.of(context).colorScheme;
+    final l = chatL10n(context);
     final visible = state.giftCatalog
         .where(
           (gift) =>
@@ -858,12 +866,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'A little something for them',
+                      l.chatGiftTrayTitle,
                       style: Theme.of(context).textTheme.titleSmall,
                     ),
                   ),
                   IconButton(
-                    tooltip: 'Close gifts',
+                    tooltip: l.chatCloseGifts,
                     onPressed: _toggleGiftTray,
                     icon: const Icon(Icons.close_rounded),
                   ),
@@ -883,7 +891,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                           child: ChoiceChip(
                             label: Text(
                               category == null
-                                  ? 'All gifts'
+                                  ? l.chatAllGifts
                                   : category.replaceAll('_', ' '),
                             ),
                             selected: _selectedGiftCategory == category,
@@ -897,9 +905,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 ),
               const SizedBox(height: 8),
               if (visible.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Text('No gifts available in this collection.'),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Text(l.chatNoGiftsInCollection),
                 )
               else
                 SizedBox(
@@ -953,10 +961,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                   const SizedBox(height: 4),
                                   Text(
                                     locked
-                                        ? 'Add coins'
+                                        ? l.chatAddCoins
                                         : gift.isFree
-                                        ? 'Free · 1 a day'
-                                        : _coinLabel(gift.priceCoins),
+                                        ? l.chatFreeGiftDaily
+                                        : l.chatCoinCount(gift.priceCoins),
                                     style: Theme.of(context)
                                         .textTheme
                                         .labelSmall
@@ -1012,7 +1020,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   ),
                   const SizedBox(width: 10),
                   Text(
-                    'Sending your gift…',
+                    chatL10n(context).chatSendingGift,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Theme.of(context).colorScheme.onSurface,
                       fontWeight: FontWeight.w800,
@@ -1037,11 +1045,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     if (ref.read(networkQualityProvider).status ==
         NetworkQualityStatus.offline) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            "You're offline. You can browse gifts and send once you reconnect.",
-          ),
-        ),
+        SnackBar(content: Text(chatL10n(context).chatOfflineGifts)),
       );
       return;
     }
@@ -1116,6 +1120,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       builder: (sheetContext) {
         final theme = Theme.of(sheetContext);
         final scheme = theme.colorScheme;
+        final l = chatL10n(sheetContext);
         return SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
@@ -1133,7 +1138,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Send ${gift.name} to ${widget.userName}?',
+                  l.chatGiftConfirmTitle(gift.name, widget.userName),
                   textAlign: TextAlign.center,
                   style: theme.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w700,
@@ -1148,7 +1153,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       borderRadius: BorderRadius.circular(AppTheme.radiusS),
                     ),
                     child: Text(
-                      '“$note”',
+                      l.chatGiftNoteQuote(note),
                       textAlign: TextAlign.center,
                       style: theme.textTheme.bodyMedium,
                     ),
@@ -1161,14 +1166,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        _coinLabel(gift.priceCoins),
+                        l.chatCoinCount(gift.priceCoins),
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        '·  $balance → ${balance - gift.priceCoins} left',
+                        l.chatGiftBalanceAfter(
+                          balance,
+                          balance - gift.priceCoins,
+                        ),
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: scheme.onSurfaceVariant,
                         ),
@@ -1178,7 +1186,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'A gift is a gesture, never an obligation to reply or meet.',
+                  l.chatGiftNoObligation,
                   textAlign: TextAlign.center,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: scheme.onSurfaceVariant,
@@ -1191,13 +1199,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   child: FilledButton(
                     key: const ValueKey('qa.chat.gift_confirm.send'),
                     onPressed: () => Navigator.of(sheetContext).pop(true),
-                    child: Text('Send for ${_coinLabel(gift.priceCoins)}'),
+                    child: Text(
+                      l.chatGiftSendFor(l.chatCoinCount(gift.priceCoins)),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 8),
                 TextButton(
                   onPressed: () => Navigator.of(sheetContext).pop(false),
-                  child: const Text('Not now'),
+                  child: Text(l.chatNotNow),
                 ),
               ],
             ),
@@ -1232,14 +1242,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Delete message?',
+                chatL10n(context).chatDeleteMessageTitle,
                 style: Theme.of(
                   context,
                 ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 8),
               Text(
-                'This removes the message from both chat inboxes.',
+                chatL10n(context).chatDeleteMessageBody,
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
               const SizedBox(height: 14),
@@ -1252,7 +1262,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     key: const ValueKey('qa.chat.delete_message_action'),
                     onPressed: () => Navigator.of(context).pop(true),
                     icon: const Icon(Icons.delete_outline),
-                    label: const Text('Delete for everyone'),
+                    label: Text(chatL10n(context).chatDeleteForEveryone),
                     style: Theme.of(context).elevatedButtonTheme.style
                         ?.copyWith(
                           foregroundColor:
@@ -1279,7 +1289,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               ),
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('Cancel'),
+                child: Text(chatL10n(context).commonCancel),
               ),
             ],
           ),
@@ -1306,10 +1316,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          content: const Text('Message deleted.'),
+          content: Text(chatL10n(context).chatMessageDeletedSnack),
           duration: _deleteUndoWindow,
           action: SnackBarAction(
-            label: 'Undo',
+            label: chatL10n(context).chatUndo,
             onPressed: () {
               final restored = ref
                   .read(messageNotifierProvider(widget.matchId).notifier)
@@ -1319,7 +1329,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               }
               ScaffoldMessenger.of(context)
                 ..hideCurrentSnackBar()
-                ..showSnackBar(const SnackBar(content: Text('Delete undone.')));
+                ..showSnackBar(
+                  SnackBar(content: Text(chatL10n(context).chatDeleteUndone)),
+                );
             },
           ),
         ),
@@ -1339,14 +1351,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  'Gift received from ${widget.userName}',
+                  chatL10n(sheetContext).chatGiftReceivedFrom(widget.userName),
                   style: Theme.of(
                     sheetContext,
                   ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'You decide what stays in your chat.',
+                  chatL10n(sheetContext).chatGiftReceiverIntro,
                   style: Theme.of(sheetContext).textTheme.bodyMedium?.copyWith(
                     color: Theme.of(sheetContext).colorScheme.onSurfaceVariant,
                   ),
@@ -1356,8 +1368,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   key: const ValueKey('qa.chat.gift_hide'),
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.visibility_off_outlined),
-                  title: const Text('Hide gift'),
-                  subtitle: const Text('Remove it from your chat only.'),
+                  title: Text(chatL10n(sheetContext).chatHideGift),
+                  subtitle: Text(chatL10n(sheetContext).chatHideGiftSubtitle),
                   onTap: () => Navigator.of(sheetContext).pop('hide'),
                 ),
                 ListTile(
@@ -1367,15 +1379,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     Icons.flag_outlined,
                     color: Theme.of(sheetContext).colorScheme.error,
                   ),
-                  title: const Text('Report and hide'),
-                  subtitle: const Text(
-                    'Send it to the safety team and remove it now.',
+                  title: Text(chatL10n(sheetContext).chatReportAndHide),
+                  subtitle: Text(
+                    chatL10n(sheetContext).chatReportAndHideSubtitle,
                   ),
                   onTap: () => Navigator.of(sheetContext).pop('report'),
                 ),
                 TextButton(
                   onPressed: () => Navigator.of(sheetContext).pop(),
-                  child: const Text('Cancel'),
+                  child: Text(chatL10n(sheetContext).commonCancel),
                 ),
               ],
             ),
@@ -1397,7 +1409,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
-          const SnackBar(content: Text('Gift hidden from your chat.')),
+          SnackBar(content: Text(chatL10n(context).chatGiftHidden)),
         );
     }
   }
@@ -1424,40 +1436,42 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    'Report this gift',
+                    chatL10n(context).chatReportGiftTitle,
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w800,
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Choose a reason. The gift will be hidden immediately.',
-                  ),
+                  Text(chatL10n(context).chatReportGiftIntro),
                   const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
                     key: const ValueKey('qa.chat.gift_report_reason'),
                     initialValue: selectedReason,
-                    decoration: const InputDecoration(labelText: 'Reason'),
-                    items: const [
+                    decoration: InputDecoration(
+                      labelText: chatL10n(context).chatReportReasonLabel,
+                    ),
+                    items: [
                       DropdownMenuItem(
                         value: 'unwanted',
-                        child: Text('Unwanted gift'),
+                        child: Text(chatL10n(context).chatReportReasonUnwanted),
                       ),
                       DropdownMenuItem(
                         value: 'harassment',
-                        child: Text('Harassment'),
+                        child: Text(
+                          chatL10n(context).chatReportReasonHarassment,
+                        ),
                       ),
                       DropdownMenuItem(
                         value: 'sexual_content',
-                        child: Text('Sexual content'),
+                        child: Text(chatL10n(context).chatReportReasonSexual),
                       ),
                       DropdownMenuItem(
                         value: 'scam',
-                        child: Text('Scam or fraud'),
+                        child: Text(chatL10n(context).chatReportReasonScam),
                       ),
                       DropdownMenuItem(
                         value: 'other',
-                        child: Text('Something else'),
+                        child: Text(chatL10n(context).chatReportReasonOther),
                       ),
                     ],
                     onChanged: (value) {
@@ -1471,8 +1485,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     key: const ValueKey('qa.chat.gift_report_details'),
                     maxLength: 500,
                     maxLines: 3,
-                    decoration: const InputDecoration(
-                      labelText: 'Add details (optional)',
+                    decoration: InputDecoration(
+                      labelText: chatL10n(context).chatReportDetailsLabel,
                       alignLabelWithHint: true,
                     ),
                     onChanged: (value) => details = value,
@@ -1484,12 +1498,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       context,
                     ).pop({'reason': selectedReason, 'details': details}),
                     icon: const Icon(Icons.shield_outlined),
-                    label: const Text('Submit report and hide'),
+                    label: Text(chatL10n(context).chatReportSubmit),
                   ),
                   const SizedBox(height: 8),
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Cancel'),
+                    child: Text(chatL10n(context).commonCancel),
                   ),
                 ],
               ),
@@ -1512,11 +1526,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Gift reported and hidden. Our safety team will review it.',
-            ),
-          ),
+          SnackBar(content: Text(chatL10n(context).chatGiftReported)),
         );
     }
   }
@@ -1533,7 +1543,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Quick emojis',
+                chatL10n(context).chatQuickEmojis,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w800,
                   color: Theme.of(context).colorScheme.onSurface,
@@ -1587,7 +1597,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   Widget _buildWalletHeaderChip(int walletCoins, {VoidCallback? onTap}) =>
       Tooltip(
-        message: 'Your wallet · $walletCoins coins',
+        message: chatL10n(context).chatWalletTooltip(walletCoins),
         child: TextButton.icon(
           onPressed: onTap,
           icon: const Icon(Icons.toll_outlined, size: 18),
@@ -1609,6 +1619,7 @@ class _DailyLimitBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final refusal = limit;
+    final l = chatL10n(context);
     return Semantics(
       label: 'qa.chat.daily_limit_banner',
       child: Container(
@@ -1624,7 +1635,7 @@ class _DailyLimitBanner extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    refusal?.headline ?? 'Daily message limit reached',
+                    refusal?.localizedHeadline(l) ?? l.chatDailyLimitReached,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w700,
                       color: scheme.onSurface,
@@ -1632,14 +1643,16 @@ class _DailyLimitBanner extends StatelessWidget {
                   ),
                   Text(
                     refusal == null
-                        ? 'Try again tomorrow or upgrade your plan.'
-                        : '${refusal.resetLabel} · upgrade for more.',
+                        ? l.chatDailyLimitFallback
+                        : l.chatDailyLimitReset(
+                            refusal.localizedResetLabel(l, l.localeName),
+                          ),
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ],
               ),
             ),
-            TextButton(onPressed: onSeePlans, child: const Text('See plans')),
+            TextButton(onPressed: onSeePlans, child: Text(l.chatSeePlans)),
           ],
         ),
       ),
@@ -1670,7 +1683,10 @@ class _QuotaHint extends ConsumerWidget {
           const SizedBox(width: 6),
           Expanded(
             child: Text(
-              '${quota.label('messages')} on ${entitlements.planName}',
+              chatL10n(context).chatQuotaOnPlan(
+                quota.messagesLabel(chatL10n(context)),
+                entitlements.planName,
+              ),
               style: Theme.of(context).textTheme.labelSmall,
             ),
           ),
@@ -1679,8 +1695,6 @@ class _QuotaHint extends ConsumerWidget {
     );
   }
 }
-
-String _coinLabel(int coins) => coins == 1 ? '1 coin' : '$coins coins';
 
 /// "Verified humans" when both members are verified, otherwise the usual
 /// presence line. Reads GET /matches/{id}/trust.
@@ -1699,7 +1713,7 @@ class _ConversationTrustLine extends ConsumerWidget {
     ).textTheme.bodySmall?.copyWith(color: AppTheme.successGreen);
     if (trust == null || !trust.humanVerified) {
       return Text(
-        'Your conversation',
+        chatL10n(context).chatYourConversation,
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
           color: Theme.of(context).colorScheme.onSurfaceVariant,
         ),
@@ -1718,8 +1732,8 @@ class _ConversationTrustLine extends ConsumerWidget {
         Flexible(
           child: Text(
             trust.partnerShowsUp
-                ? 'Verified humans · Shows up'
-                : 'Verified humans',
+                ? chatL10n(context).chatVerifiedHumansShowsUp
+                : chatL10n(context).chatVerifiedHumans,
             // Small text takes the surface's secondary ink (4.5:1); the green
             // stays on the icon only.
             style: style?.copyWith(

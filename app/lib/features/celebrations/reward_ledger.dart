@@ -4,6 +4,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../core/i18n/app_l10n.dart';
+import '../../l10n/app_localizations.dart';
 import '../engagement/providers/level_progression_provider.dart';
 import '../engagement/providers/trust_badges_provider.dart';
 
@@ -23,12 +25,22 @@ class RewardBurst {
   });
 
   /// A reward the member just claimed on the Level & XP screen.
-  factory RewardBurst.rewardClaimed(String name, {String description = ''}) =>
-      RewardBurst(
-        kind: RewardBurstKind.rewardClaimed,
-        title: 'Reward claimed',
-        subtitle: description.isEmpty ? name : '$name · $description',
-      );
+  ///
+  /// Wording follows [l10n], or the app's current language when omitted.
+  factory RewardBurst.rewardClaimed(
+    String name, {
+    String description = '',
+    AppLocalizations? l10n,
+  }) {
+    final strings = l10n ?? currentAppL10n();
+    return RewardBurst(
+      kind: RewardBurstKind.rewardClaimed,
+      title: strings.rewardClaimedTitle,
+      subtitle: description.isEmpty
+          ? name
+          : strings.rewardNameDescription(name, description),
+    );
+  }
 
   final RewardBurstKind kind;
   final String title;
@@ -39,10 +51,13 @@ class RewardBurst {
   final List<String> lines;
 
   /// One sentence for screen readers.
-  String get announcement => [
+  String get announcement => announcementIn(currentAppL10n());
+
+  /// [announcement] in the language of [l10n].
+  String announcementIn(AppLocalizations l10n) => [
     title,
     if (subtitle.isNotEmpty) subtitle,
-    if (xp > 0) 'plus $xp XP',
+    if (xp > 0) l10n.rewardPlusXpAnnouncement(xp),
     ...lines,
   ].join('. ');
 }
@@ -124,11 +139,15 @@ bool _celebratesHere(XPEntry e) =>
 
 /// Compares [snapshot] with what was already celebrated and returns the next
 /// seen state plus, at most, one burst that summarises everything new.
+///
+/// Wording follows [l10n], or the app's current language when omitted.
 RewardDiff diffRewards({
   required RewardSeenState seen,
   required RewardSnapshot snapshot,
   required DateTime now,
+  AppLocalizations? l10n,
 }) {
+  final strings = l10n ?? currentAppL10n();
   var xpSequence = seen.xpSequence;
   var level = seen.level;
   var badges = seen.badges;
@@ -188,10 +207,15 @@ RewardDiff diffRewards({
   final xp = fresh.fold<int>(0, (sum, e) => sum + e.awardedXp);
   final xpLines = [
     for (final e in fresh.take(3))
-      '${rewardSourceLabel(e.source)} +${e.awardedXp} XP',
-    if (fresh.length > 3) 'and ${fresh.length - 3} more',
+      strings.rewardSourceXpLine(
+        rewardSourceLabel(e.source, strings),
+        e.awardedXp,
+      ),
+    if (fresh.length > 3) strings.rewardAndMore(fresh.length - 3),
   ];
-  final badgeLines = [for (final b in newBadges) 'Badge: ${b.label}'];
+  final badgeLines = [
+    for (final b in newBadges) strings.rewardBadgeLine(b.label),
+  ];
 
   if (levelUp != null) {
     final name = snapshot.levelName?.trim() ?? '';
@@ -199,7 +223,7 @@ RewardDiff diffRewards({
       next: next,
       burst: RewardBurst(
         kind: RewardBurstKind.levelUp,
-        title: 'Level $levelUp reached',
+        title: strings.rewardLevelReached(levelUp),
         subtitle: name,
         xp: xp,
         lines: [...badgeLines, ...xpLines].take(4).toList(),
@@ -211,9 +235,7 @@ RewardDiff diffRewards({
       next: next,
       burst: RewardBurst(
         kind: RewardBurstKind.badge,
-        title: newBadges.length == 1
-            ? 'Badge earned'
-            : '${newBadges.length} badges earned',
+        title: strings.rewardBadgesEarned(newBadges.length),
         subtitle: newBadges.length == 1 ? newBadges.single.label : '',
         xp: xp,
         lines: [
@@ -232,8 +254,8 @@ RewardDiff diffRewards({
       next: next,
       burst: RewardBurst(
         kind: RewardBurstKind.xp,
-        title: rewardSourceLabel(only.source),
-        subtitle: rewardSourceLine(only.source),
+        title: rewardSourceLabel(only.source, strings),
+        subtitle: rewardSourceLine(only.source, strings),
         xp: only.awardedXp,
       ),
     );
@@ -242,43 +264,52 @@ RewardDiff diffRewards({
     next: next,
     burst: RewardBurst(
       kind: RewardBurstKind.xp,
-      title: firstLook ? 'Your rewards today' : '${fresh.length} new rewards',
+      title: firstLook
+          ? strings.rewardYourRewardsToday
+          : strings.rewardNewRewards(fresh.length),
       xp: xp,
       lines: xpLines,
     ),
   );
 }
 
-/// A friendly name for an XP ledger source.
-String rewardSourceLabel(String source) => switch (source) {
-  'story_published' => 'Chapter published',
-  'photo_shared' => 'Photo shared',
-  'like_received' => 'A member liked your work',
-  'comment_received' => 'New comment on your work',
-  'comment_approved' => 'Your comment was approved',
-  'subscriber_gained' => 'New subscriber',
-  'wall_tier_reached' => 'Wall tier reached',
-  'cover_of_week' => 'Cover of the Week',
-  'daily_prompt_submitted' => 'Daily prompt answered',
-  _ =>
-    source
-        .split('_')
-        .where((w) => w.isNotEmpty)
-        .map((w) => '${w[0].toUpperCase()}${w.substring(1)}')
-        .join(' '),
-};
+/// A friendly name for an XP ledger source, in the language of [l10n] (or
+/// the app's current language). Unknown sources are title-cased as is.
+String rewardSourceLabel(String source, [AppLocalizations? l10n]) {
+  final strings = l10n ?? currentAppL10n();
+  return switch (source) {
+    'story_published' => strings.rewardSourceStoryPublished,
+    'photo_shared' => strings.rewardSourcePhotoShared,
+    'like_received' => strings.rewardSourceLikeReceived,
+    'comment_received' => strings.rewardSourceCommentReceived,
+    'comment_approved' => strings.rewardSourceCommentApproved,
+    'subscriber_gained' => strings.rewardSourceSubscriberGained,
+    'wall_tier_reached' => strings.rewardSourceWallTierReached,
+    'cover_of_week' => strings.rewardSourceCoverOfWeek,
+    'daily_prompt_submitted' => strings.rewardSourceDailyPromptSubmitted,
+    _ =>
+      source
+          .split('_')
+          .where((w) => w.isNotEmpty)
+          .map((w) => '${w[0].toUpperCase()}${w.substring(1)}')
+          .join(' '),
+  };
+}
 
 /// The line under a single reward's headline.
-String rewardSourceLine(String source) => switch (source) {
-  'story_published' => 'Your chapter is out in the world.',
-  'photo_shared' => 'Your photo joined the theme.',
-  'like_received' => 'Someone loved what you shared.',
-  'comment_received' => 'A reader joined the conversation.',
-  'subscriber_gained' => 'Someone wants your next chapter.',
-  'wall_tier_reached' => 'Your work reached more walls.',
-  'cover_of_week' => 'Everyone sees it on Today this week.',
-  _ => 'Earned for meaningful activity.',
-};
+String rewardSourceLine(String source, [AppLocalizations? l10n]) {
+  final strings = l10n ?? currentAppL10n();
+  return switch (source) {
+    'story_published' => strings.rewardLineStoryPublished,
+    'photo_shared' => strings.rewardLinePhotoShared,
+    'like_received' => strings.rewardLineLikeReceived,
+    'comment_received' => strings.rewardLineCommentReceived,
+    'subscriber_gained' => strings.rewardLineSubscriberGained,
+    'wall_tier_reached' => strings.rewardLineWallTierReached,
+    'cover_of_week' => strings.rewardLineCoverOfWeek,
+    _ => strings.rewardLineOther,
+  };
+}
 
 /// Keeps [RewardSeenState] per signed-in member in shared preferences.
 class RewardSeenStore {
@@ -352,7 +383,9 @@ Future<RewardSnapshot> fetchRewardSnapshot(Dio api, String userId) async {
               final map = e.cast<String, dynamic>();
               return TrustBadgeItem(
                 code: map['badge_code']?.toString() ?? '',
-                label: map['badge_label']?.toString() ?? 'New badge',
+                label:
+                    map['badge_label']?.toString() ??
+                    currentAppL10n().rewardNewBadgeFallback,
                 status: map['status']?.toString() ?? 'inactive',
                 awardedAt: map['awarded_at']?.toString() ?? '',
               );

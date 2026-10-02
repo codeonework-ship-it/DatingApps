@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/widgets/glass_widgets.dart';
+import '../../../l10n/app_localizations.dart';
+import '../engagement_l10n.dart';
 import '../providers/group_coffee_poll_provider.dart';
 
 class GroupCoffeePollsScreen extends ConsumerStatefulWidget {
@@ -55,11 +57,12 @@ class _GroupCoffeePollsScreenState
 
   @override
   Widget build(BuildContext context) {
+    final l = engagementL10n(context);
     final state = ref.watch(groupCoffeePollProvider);
     final notifier = ref.read(groupCoffeePollProvider.notifier);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Group Coffee Polls')),
+      appBar: AppBar(title: Text(l.engagementCoffeeTitle)),
       body: PostLoginBackdrop(
         child: SafeArea(
           child: RefreshIndicator(
@@ -73,13 +76,13 @@ class _GroupCoffeePollsScreenState
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Create a lightweight group coffee poll',
+                        l.engagementCoffeeCreateHeading,
                         style: Theme.of(context).textTheme.titleMedium
                             ?.copyWith(fontWeight: FontWeight.w700),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Add up to 3 participant user IDs (comma-separated) and at least one option.',
+                        l.engagementCoffeeCreateHint,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
@@ -94,23 +97,23 @@ class _GroupCoffeePollsScreenState
                     children: [
                       TextField(
                         controller: _participantsController,
-                        decoration: const InputDecoration(
-                          labelText: 'Participant user IDs (comma-separated)',
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          labelText: l.engagementCoffeeParticipantsLabel,
+                          border: const OutlineInputBorder(),
                         ),
                       ),
                       const SizedBox(height: 10),
                       TextField(
                         controller: _deadlineController,
-                        decoration: const InputDecoration(
-                          labelText: 'Deadline ISO (optional)',
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          labelText: l.engagementCoffeeDeadlineLabel,
+                          border: const OutlineInputBorder(),
                         ),
                       ),
                       const SizedBox(height: 10),
                       _optionInputs(
                         context,
-                        title: 'Option 1',
+                        title: l.engagementCoffeeOptionNumber(1),
                         day: _dayOneController,
                         time: _timeOneController,
                         area: _areaOneController,
@@ -118,7 +121,7 @@ class _GroupCoffeePollsScreenState
                       const SizedBox(height: 10),
                       _optionInputs(
                         context,
-                        title: 'Option 2',
+                        title: l.engagementCoffeeOptionNumber(2),
                         day: _dayTwoController,
                         time: _timeTwoController,
                         area: _areaTwoController,
@@ -154,7 +157,7 @@ class _GroupCoffeePollsScreenState
                                     },
                                   ],
                                 ),
-                          child: const Text('Create Poll'),
+                          child: Text(l.engagementCoffeeCreate),
                         ),
                       ),
                     ],
@@ -165,9 +168,9 @@ class _GroupCoffeePollsScreenState
                   context,
                   child: TextField(
                     controller: _actorUserController,
-                    decoration: const InputDecoration(
-                      labelText: 'Action user ID override (optional)',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l.engagementCoffeeActorLabel,
+                      border: const OutlineInputBorder(),
                     ),
                   ),
                 ),
@@ -181,7 +184,7 @@ class _GroupCoffeePollsScreenState
                   _card(
                     context,
                     child: Text(
-                      'No polls found yet. Create one above.',
+                      l.engagementCoffeeEmpty,
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                   )
@@ -195,14 +198,20 @@ class _GroupCoffeePollsScreenState
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Poll ${poll.id}',
+                              l.engagementCoffeePollId(poll.id),
                               style: Theme.of(context).textTheme.titleSmall
                                   ?.copyWith(fontWeight: FontWeight.w700),
                             ),
                             const SizedBox(height: 4),
-                            Text('Status: ${poll.status}'),
                             Text(
-                              'Participants: ${poll.participantUserIds.join(', ')}',
+                              l.engagementCoffeeStatus(
+                                _statusLabel(l, poll.status),
+                              ),
+                            ),
+                            Text(
+                              l.engagementCoffeeParticipants(
+                                poll.participantUserIds.join(', '),
+                              ),
                             ),
                             const SizedBox(height: 8),
                             ...poll.options.map(
@@ -212,7 +221,12 @@ class _GroupCoffeePollsScreenState
                                   children: [
                                     Expanded(
                                       child: Text(
-                                        '${option.day} · ${option.timeWindow} · ${option.neighborhood} (${option.votesCount} votes)',
+                                        l.engagementCoffeeOptionSummary(
+                                          option.day,
+                                          option.timeWindow,
+                                          option.neighborhood,
+                                          option.votesCount,
+                                        ),
                                       ),
                                     ),
                                     OutlinedButton(
@@ -226,7 +240,7 @@ class _GroupCoffeePollsScreenState
                                               optionId: option.id,
                                               userId: _actorUserController.text,
                                             ),
-                                      child: const Text('Vote'),
+                                      child: Text(l.engagementCoffeeVote),
                                     ),
                                   ],
                                 ),
@@ -242,7 +256,7 @@ class _GroupCoffeePollsScreenState
                                           pollId: poll.id,
                                           userId: _actorUserController.text,
                                         ),
-                                  child: const Text('Finalize Poll'),
+                                  child: Text(l.engagementCoffeeFinalize),
                                 ),
                               ),
                           ],
@@ -273,41 +287,51 @@ class _GroupCoffeePollsScreenState
     required TextEditingController day,
     required TextEditingController time,
     required TextEditingController area,
-  }) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(
-        title,
-        style: Theme.of(
-          context,
-        ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700),
-      ),
-      const SizedBox(height: 6),
-      TextField(
-        controller: day,
-        decoration: const InputDecoration(
-          labelText: 'Day',
-          border: OutlineInputBorder(),
+  }) {
+    final l = engagementL10n(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700),
         ),
-      ),
-      const SizedBox(height: 8),
-      TextField(
-        controller: time,
-        decoration: const InputDecoration(
-          labelText: 'Time window',
-          border: OutlineInputBorder(),
+        const SizedBox(height: 6),
+        TextField(
+          controller: day,
+          decoration: InputDecoration(
+            labelText: l.engagementCoffeeDayLabel,
+            border: const OutlineInputBorder(),
+          ),
         ),
-      ),
-      const SizedBox(height: 8),
-      TextField(
-        controller: area,
-        decoration: const InputDecoration(
-          labelText: 'Neighborhood',
-          border: OutlineInputBorder(),
+        const SizedBox(height: 8),
+        TextField(
+          controller: time,
+          decoration: InputDecoration(
+            labelText: l.engagementCoffeeTimeLabel,
+            border: const OutlineInputBorder(),
+          ),
         ),
-      ),
-    ],
-  );
+        const SizedBox(height: 8),
+        TextField(
+          controller: area,
+          decoration: InputDecoration(
+            labelText: l.engagementCoffeeAreaLabel,
+            border: const OutlineInputBorder(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// A known poll status in the reader's language; other values as sent.
+  String _statusLabel(AppLocalizations l, String status) => switch (status) {
+    'open' => l.engagementCoffeeStatusOpen,
+    'finalized' => l.engagementCoffeeStatusFinalized,
+    _ => status,
+  };
 
   Widget _card(BuildContext context, {required Widget child}) => GlassContainer(
     padding: const EdgeInsets.all(16),

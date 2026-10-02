@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:verified_dating_app/core/providers/api_client_provider.dart';
 import 'package:verified_dating_app/features/auth/providers/auth_provider.dart';
 import 'package:verified_dating_app/features/intentional_dating/profile_stories.dart';
+import 'package:verified_dating_app/l10n/app_localizations.dart';
 
 class _Auth extends AuthNotifier {
   @override
@@ -63,6 +64,8 @@ Widget host(
     apiClientProvider.overrideWithValue(api.dio),
   ],
   child: MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
     builder: (context, child) => MediaQuery(
       data: MediaQuery.of(
         context,

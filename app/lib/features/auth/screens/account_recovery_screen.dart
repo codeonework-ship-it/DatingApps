@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/providers/api_client_provider.dart';
+import '../../../l10n/app_localizations.dart';
 
 /// "Can't sign in?" (PEN-06 / AUTH-009).
 ///
@@ -58,20 +59,18 @@ class _AccountRecoveryScreenState extends ConsumerState<AccountRecoveryScreen> {
 
   Future<void> _submit() async {
     final username = _username.text.trim().toLowerCase();
+    final l10n = AppLocalizations.of(context);
     if (username.isEmpty) {
-      setState(() => _error = 'Enter your username.');
+      setState(() => _error = l10n.authRecoveryEnterUsername);
       return;
     }
     if (_path == _RecoveryPath.haveCode) {
       if (_code.text.trim().isEmpty) {
-        setState(() => _error = 'Enter your recovery code.');
+        setState(() => _error = l10n.authRecoveryEnterCode);
         return;
       }
       if (!_strongPassword(_password.text)) {
-        setState(
-          () => _error =
-              'Use 8–72 characters with at least one letter and one number.',
-        );
+        setState(() => _error = l10n.authRecoveryPasswordRule);
         return;
       }
     }
@@ -90,9 +89,7 @@ class _AccountRecoveryScreenState extends ConsumerState<AccountRecoveryScreen> {
             'new_password': _password.text,
           },
         );
-        _done =
-            'Your password has been reset and every device has been signed '
-            'out. Sign in with your new password.';
+        _done = l10n.authRecoveryResetDone;
       } else {
         final response = await dio.post<Map<String, dynamic>>(
           '/auth/recovery/assistance',
@@ -100,16 +97,15 @@ class _AccountRecoveryScreenState extends ConsumerState<AccountRecoveryScreen> {
         );
         _done =
             response.data?['message']?.toString() ??
-            'If this username belongs to a Connect account, our safety team '
-                'will review the request.';
+            l10n.authRecoveryAssistanceDone;
       }
     } on DioException catch (error) {
       final data = error.response?.data;
       _error = _path == _RecoveryPath.haveCode
           ? (data is Map && data['error'] != null
-                ? 'That recovery code is not valid or has expired.'
-                : 'Could not reach Connect. Check your connection and try again.')
-          : 'Could not send your request. Check your connection and try again.';
+                ? l10n.authRecoveryInvalidCode
+                : l10n.authRecoveryOffline)
+          : l10n.authRecoverySendFailed;
     } finally {
       if (mounted) {
         setState(() => _busy = false);
@@ -121,8 +117,9 @@ class _AccountRecoveryScreenState extends ConsumerState<AccountRecoveryScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text("Can't sign in?")),
+      appBar: AppBar(title: Text(l10n.authCantSignIn)),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -144,18 +141,18 @@ class _AccountRecoveryScreenState extends ConsumerState<AccountRecoveryScreen> {
                   const SizedBox(height: 24),
                   FilledButton(
                     onPressed: () => Navigator.of(context).maybePop(),
-                    child: const Text('Back to sign in'),
+                    child: Text(l10n.authRecoveryBackToSignIn),
                   ),
                 ] else ...[
                   SegmentedButton<_RecoveryPath>(
-                    segments: const [
+                    segments: [
                       ButtonSegment(
                         value: _RecoveryPath.haveCode,
-                        label: Text('I have my code'),
+                        label: Text(l10n.authRecoveryHaveCode),
                       ),
                       ButtonSegment(
                         value: _RecoveryPath.lostCode,
-                        label: Text('I lost my code'),
+                        label: Text(l10n.authRecoveryLostCode),
                       ),
                     ],
                     selected: {_path},
@@ -168,11 +165,8 @@ class _AccountRecoveryScreenState extends ConsumerState<AccountRecoveryScreen> {
                   const SizedBox(height: 20),
                   Text(
                     _path == _RecoveryPath.haveCode
-                        ? 'Use the recovery code you saved when you created your '
-                              'account, or one issued by our safety team.'
-                        : "Tell us your username. We'll confirm your identity "
-                              'before issuing a recovery code. We never ask for '
-                              'your password.',
+                        ? l10n.authRecoveryHaveCodeIntro
+                        : l10n.authRecoveryLostCodeIntro,
                     style: theme.textTheme.bodyMedium,
                   ),
                   const SizedBox(height: 20),
@@ -181,7 +175,9 @@ class _AccountRecoveryScreenState extends ConsumerState<AccountRecoveryScreen> {
                     controller: _username,
                     autofillHints: const [AutofillHints.username],
                     textInputAction: TextInputAction.next,
-                    decoration: const InputDecoration(labelText: 'Username'),
+                    decoration: InputDecoration(
+                      labelText: l10n.authRecoveryUsernameLabel,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   if (_path == _RecoveryPath.haveCode) ...[
@@ -189,8 +185,8 @@ class _AccountRecoveryScreenState extends ConsumerState<AccountRecoveryScreen> {
                       key: const ValueKey('qa.recovery.code'),
                       controller: _code,
                       textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
-                        labelText: 'Recovery code',
+                      decoration: InputDecoration(
+                        labelText: l10n.authRecoveryCodeLabel,
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -200,9 +196,11 @@ class _AccountRecoveryScreenState extends ConsumerState<AccountRecoveryScreen> {
                       obscureText: _obscure,
                       autofillHints: const [AutofillHints.newPassword],
                       decoration: InputDecoration(
-                        labelText: 'New password',
+                        labelText: l10n.authRecoveryNewPasswordLabel,
                         suffixIcon: IconButton(
-                          tooltip: _obscure ? 'Show password' : 'Hide password',
+                          tooltip: _obscure
+                              ? l10n.authShowPassword
+                              : l10n.authHidePassword,
                           icon: Icon(
                             _obscure
                                 ? Icons.visibility_outlined
@@ -218,9 +216,9 @@ class _AccountRecoveryScreenState extends ConsumerState<AccountRecoveryScreen> {
                       controller: _message,
                       maxLength: 500,
                       maxLines: 3,
-                      decoration: const InputDecoration(
-                        labelText: 'Anything that helps us (optional)',
-                        hintText: 'For example, when you last signed in',
+                      decoration: InputDecoration(
+                        labelText: l10n.authRecoveryMessageLabel,
+                        hintText: l10n.authRecoveryMessageHint,
                       ),
                     ),
                   if (_error != null) ...[
@@ -241,10 +239,10 @@ class _AccountRecoveryScreenState extends ConsumerState<AccountRecoveryScreen> {
                     onPressed: _busy ? null : _submit,
                     child: Text(
                       _busy
-                          ? 'Sending…'
+                          ? l10n.authRecoverySending
                           : _path == _RecoveryPath.haveCode
-                          ? 'Reset password'
-                          : 'Ask for help',
+                          ? l10n.authRecoveryResetPassword
+                          : l10n.authRecoveryAskForHelp,
                     ),
                   ),
                 ],

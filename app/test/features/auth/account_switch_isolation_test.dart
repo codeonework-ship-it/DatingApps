@@ -19,6 +19,7 @@ import 'package:verified_dating_app/features/common/providers/app_theme_provider
 import 'package:verified_dating_app/features/friends/providers/friends_provider.dart';
 import 'package:verified_dating_app/features/friends/screens/friends_screen.dart';
 import 'package:verified_dating_app/features/notifications/providers/notification_provider.dart';
+import 'package:verified_dating_app/l10n/app_localizations.dart';
 
 class _SwitchableAuth extends AuthNotifier {
   @override
@@ -201,6 +202,8 @@ void main() {
           ),
         ],
         child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: Consumer(
             builder: (context, ref, _) {
               // Something else (an Add friend button) loaded the list first.

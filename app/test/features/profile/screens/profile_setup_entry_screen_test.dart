@@ -10,6 +10,7 @@ import 'package:verified_dating_app/features/profile/screens/setup/profile_setup
 import 'package:verified_dating_app/features/profile/screens/setup/setup_about_screen.dart';
 import 'package:verified_dating_app/features/profile/screens/setup/setup_photos_screen.dart';
 import 'package:verified_dating_app/features/profile/screens/setup/setup_preview_screen.dart';
+import 'package:verified_dating_app/l10n/app_localizations.dart';
 
 class _AuthenticatedUser extends AuthNotifier {
   @override
@@ -102,6 +103,8 @@ Widget _app(ProfileDraft draft) => ProviderScope(
     preferenceMasterDataOfflineProvider.overrideWith((ref) => false),
   ],
   child: MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
     theme: AppTheme.darkTheme,
     home: const ProfileSetupEntryScreen(),
   ),

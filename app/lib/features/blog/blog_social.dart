@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../../core/network/api_error_message.dart';
 import '../../core/providers/api_client_provider.dart';
+import '../../l10n/app_localizations.dart';
 import '../auth/providers/auth_provider.dart';
 import '../common/widgets/report_user_sheet.dart';
 import 'blog_data.dart';
@@ -16,9 +17,6 @@ void _snack(BuildContext context, String message) {
     ..hideCurrentSnackBar()
     ..showSnackBar(SnackBar(content: Text(message)));
 }
-
-String _plural(int n, String one, String many) =>
-    n == 1 ? '1 $one' : '$n $many';
 
 /// Heart toggle with the like count plus empathetic reactions, shared by
 /// chapters and Photo Theme photos. Tapping the heart likes or unlikes; the
@@ -59,7 +57,7 @@ class SocialLikeButton extends StatelessWidget {
           context,
           apiErrorMessage(
             e,
-            fallback: 'Your reaction didn’t go through. Please try again.',
+            fallback: AppLocalizations.of(context).blogReactionFailed,
           ),
         );
       }
@@ -83,6 +81,7 @@ class SocialLikeButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
     final active = enabled && !own;
     final mine = state.liked ? empathyReaction(state.reaction) : null;
     final heart = mine == null || mine.id == 'love';
@@ -91,10 +90,10 @@ class SocialLikeButton extends StatelessWidget {
       children: [
         Tooltip(
           message: own
-              ? 'You can’t like your own $noun'
+              ? l10n.blogCannotLikeOwn(noun)
               : mine != null
-              ? 'You reacted: ${mine.label}. Tap to take it back'
-              : 'Like this $noun',
+              ? l10n.blogYouReacted(mine.label)
+              : l10n.blogLikeThis(noun),
           child: TextButton.icon(
             key: buttonKey,
             style: TextButton.styleFrom(
@@ -117,9 +116,7 @@ class SocialLikeButton extends StatelessWidget {
         ),
         IconButton(
           key: ValueKey('${buttonKey.value}.react'),
-          tooltip: own
-              ? 'You can’t react to your own $noun'
-              : 'React: I hear you, Me too, Sending a hug…',
+          tooltip: own ? l10n.blogCannotReactOwn(noun) : l10n.blogReactTooltip,
           onPressed: active ? () => _pick(context) : null,
           color: colors.onSurfaceVariant,
           icon: const Icon(Icons.add_reaction_outlined),
@@ -203,6 +200,7 @@ class SocialEngagementRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
     return Wrap(
       spacing: 8,
       runSpacing: 4,
@@ -220,7 +218,7 @@ class SocialEngagementRow extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             Text(
-              _plural(comments, 'comment', 'comments'),
+              l10n.blogCommentCount(comments),
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: colors.onSurfaceVariant,
               ),
@@ -229,7 +227,7 @@ class SocialEngagementRow extends StatelessWidget {
         ),
         if (waiting > 0)
           Text(
-            '· $waiting waiting for you',
+            l10n.blogWaitingForYou(waiting),
             style: theme.textTheme.bodyMedium?.copyWith(
               color: colors.primary,
               fontWeight: FontWeight.w600,
@@ -253,7 +251,7 @@ class BlogFeaturedChip extends StatelessWidget {
         size: 16,
         color: colors.onTertiaryContainer,
       ),
-      label: const Text('Featured'),
+      label: Text(AppLocalizations.of(context).blogFeatured),
       labelStyle: TextStyle(color: colors.onTertiaryContainer),
       backgroundColor: colors.tertiaryContainer,
       side: BorderSide.none,
@@ -262,20 +260,16 @@ class BlogFeaturedChip extends StatelessWidget {
   }
 }
 
-String _wallText(int n) => n == 1 ? '1 wall' : '$n walls';
-
-/// What a tier still needs, e.g. "38 more likes and 4 more comments".
-String blogTierNeeds(BlogNextTier tier) {
-  final parts = [
-    if (tier.likesNeeded > 0)
-      '${tier.likesNeeded} more ${tier.likesNeeded == 1 ? 'like' : 'likes'}',
-    if (tier.commentsNeeded > 0)
-      '${tier.commentsNeeded} more '
-          '${tier.commentsNeeded == 1 ? 'comment' : 'comments'}',
-  ];
-  return parts.isEmpty
-      ? 'Almost there: ${_wallText(tier.reach)} are next'
-      : '${parts.join(' and ')} to reach ${_wallText(tier.reach)}';
+/// What a tier still needs, e.g. "38 more likes and 4 more comments to
+/// reach 50 walls".
+String blogTierNeeds(AppLocalizations l10n, BlogNextTier tier) {
+  final likes = tier.likesNeeded, comments = tier.commentsNeeded;
+  if (likes > 0 && comments > 0) {
+    return l10n.blogTierNeedsBoth(likes, comments, tier.reach);
+  }
+  if (likes > 0) return l10n.blogTierNeedsLikes(likes, tier.reach);
+  if (comments > 0) return l10n.blogTierNeedsComments(comments, tier.reach);
+  return l10n.blogTierAlmostThere(tier.reach);
 }
 
 /// Author-only: how far the chapter reaches and how close the next tier is.
@@ -287,13 +281,14 @@ class BlogReachCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authNotifierProvider.select((s) => s.userId));
+    final l10n = AppLocalizations.of(context);
     return WallReachCard(
       cardKey: ValueKey('blog.reach.${post.id}'),
       visible: post.authorId == user,
       wallReach: post.wallReach,
       nextTier: post.nextTier,
-      idleTitle: 'Readers can carry this chapter further',
-      liveCaption: 'Members who loved stories like yours are reading it now.',
+      idleTitle: l10n.blogReachIdle,
+      liveCaption: l10n.blogReachLive,
     );
   }
 }
@@ -331,6 +326,7 @@ class WallReachCard extends StatelessWidget {
     }
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
     final onCard = colors.onSecondaryContainer;
     return Card(
       key: cardKey,
@@ -347,7 +343,7 @@ class WallReachCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    wallReach > 0 ? 'On ${_wallText(wallReach)}' : idleTitle,
+                    wallReach > 0 ? l10n.blogOnWalls(wallReach) : idleTitle,
                     style: theme.textTheme.titleSmall?.copyWith(
                       color: onCard,
                       fontWeight: FontWeight.w700,
@@ -372,12 +368,12 @@ class WallReachCard extends StatelessWidget {
                   minHeight: 8,
                   color: colors.primary,
                   backgroundColor: colors.surface,
-                  semanticsLabel: 'Progress toward ${_wallText(tier.reach)}',
+                  semanticsLabel: l10n.blogProgressToward(tier.reach),
                 ),
               ),
               const SizedBox(height: 8),
               Text(
-                blogTierNeeds(tier),
+                blogTierNeeds(l10n, tier),
                 style: theme.textTheme.bodySmall?.copyWith(color: onCard),
               ),
             ],
@@ -394,13 +390,16 @@ class WallReachCard extends StatelessWidget {
 class BlogFeaturedRail extends ConsumerWidget {
   const BlogFeaturedRail({
     super.key,
-    this.title = 'Featured Stories',
-    this.caption = 'Stories other members loved, delivered to your wall.',
+    this.title,
+    this.caption,
     this.limit,
     this.compact = false,
     this.padding = EdgeInsets.zero,
   });
-  final String title, caption;
+
+  /// Rail title and caption; null uses "Featured Stories" and its default
+  /// caption in the app's language.
+  final String? title, caption;
   final int? limit;
   final bool compact;
   final EdgeInsetsGeometry padding;
@@ -414,6 +413,7 @@ class BlogFeaturedRail extends ConsumerWidget {
     if (shown.isEmpty) return const SizedBox.shrink();
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
     return Padding(
       key: const ValueKey('blog.featured_rail'),
       padding: padding,
@@ -426,7 +426,7 @@ class BlogFeaturedRail extends ConsumerWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  title,
+                  title ?? l10n.blogFeaturedStories,
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
@@ -436,7 +436,7 @@ class BlogFeaturedRail extends ConsumerWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            caption,
+            caption ?? l10n.blogFeaturedCaption,
             style: theme.textTheme.bodySmall?.copyWith(
               color: colors.onSurfaceVariant,
             ),
@@ -485,6 +485,7 @@ class BlogFeaturedCard extends ConsumerWidget {
     final muted = theme.textTheme.bodySmall?.copyWith(
       color: colors.onSurfaceVariant,
     );
+    final l10n = AppLocalizations.of(context);
     return Card(
       key: ValueKey('blog.featured.${post.id}'),
       margin: EdgeInsets.zero,
@@ -499,7 +500,7 @@ class BlogFeaturedCard extends ConsumerWidget {
               const BlogFeaturedChip(),
               const SizedBox(height: 8),
               Text(
-                post.title.isEmpty ? 'An untitled chapter' : post.title,
+                post.title.isEmpty ? l10n.blogUntitled : post.title,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.titleSmall?.copyWith(
@@ -508,7 +509,7 @@ class BlogFeaturedCard extends ConsumerWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                'by ${post.authorName}',
+                l10n.blogByAuthor(post.authorName),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: muted,
@@ -529,7 +530,7 @@ class BlogFeaturedCard extends ConsumerWidget {
                     Icons.favorite_rounded,
                     size: 16,
                     color: colors.primary,
-                    semanticLabel: 'Likes',
+                    semanticLabel: l10n.blogLikes,
                   ),
                   const SizedBox(width: 4),
                   Text('$likes', style: muted),
@@ -538,7 +539,7 @@ class BlogFeaturedCard extends ConsumerWidget {
                     Icons.chat_bubble_outline_rounded,
                     size: 16,
                     color: colors.onSurfaceVariant,
-                    semanticLabel: 'Comments',
+                    semanticLabel: l10n.blogComments,
                   ),
                   const SizedBox(width: 4),
                   Text('${post.commentCount}', style: muted),
@@ -568,9 +569,8 @@ class BlogCommentsSection extends ConsumerWidget {
       open: post.moderation == 'active' && post.audience != 'private',
       comments: blogCommentsProvider(post.id),
       reportKind: 'comment',
-      hint: 'What stayed with you?',
-      approvedNotice:
-          'Approved. Everyone who can read this chapter can see it now.',
+      hint: AppLocalizations.of(context).blogCommentHint,
+      approvedNotice: AppLocalizations.of(context).blogCommentApproved,
       create: (api, id, body) =>
           createBlogComment(api, postId: post.id, commentId: id, body: body),
       decide: (api, id, {required approve}) => decideBlogComment(
@@ -609,7 +609,7 @@ class CommentThread {
   /// Prefix for widget keys, e.g. `blog` gives `blog.comment.field`.
   final String keyPrefix;
 
-  /// What is commented on, e.g. "chapter" or "photo".
+  /// What is commented on: "chapter" or "photo" (selects the wording).
   final String noun;
 
   /// The member who approves comments.
@@ -670,6 +670,7 @@ class _CommentThreadSectionState extends ConsumerState<CommentThreadSection> {
   final deciding = <String>{};
 
   CommentThread get thread => widget.thread;
+  AppLocalizations get l10n => AppLocalizations.of(context);
   String get prefix => thread.keyPrefix;
 
   @override
@@ -701,16 +702,13 @@ class _CommentThreadSectionState extends ConsumerState<CommentThreadSection> {
       composer.clear();
       idFor = null;
       commentId = const Uuid().v4();
-      setState(() => notice = 'Sent to the author for approval');
+      setState(() => notice = l10n.blogCommentSent);
       refresh();
     } on Object catch (e) {
       if (mounted) {
         setState(
-          () => error = apiErrorMessage(
-            e,
-            fallback:
-                'Your comment didn’t send. Your words are still here, so you can try again.',
-          ),
+          () =>
+              error = apiErrorMessage(e, fallback: l10n.blogCommentSendFailed),
         );
       }
     } finally {
@@ -733,15 +731,12 @@ class _CommentThreadSectionState extends ConsumerState<CommentThreadSection> {
           context,
           approve
               ? thread.approvedNotice
-              : 'Declined. It won’t appear on your ${thread.noun}.',
+              : l10n.blogCommentDeclined(thread.noun),
         );
       }
     } on Object catch (e) {
       if (mounted) {
-        _snack(
-          context,
-          apiErrorMessage(e, fallback: 'That didn’t save. Please try again.'),
-        );
+        _snack(context, apiErrorMessage(e, fallback: l10n.blogSaveFailed));
       }
     } finally {
       deciding.remove(comment.id);
@@ -752,24 +747,21 @@ class _CommentThreadSectionState extends ConsumerState<CommentThreadSection> {
   Future<void> delete(BlogComment comment) async {
     if (!await confirmBlogAction(
       context,
-      'Delete this comment?',
-      'It will be removed for everyone. This can’t be undone.',
-      'Delete comment',
+      l10n.blogDeleteCommentTitle,
+      l10n.blogDeleteCommentMessage,
+      l10n.blogDeleteComment,
     )) {
       return;
     }
     try {
       await thread.delete(ref.read(apiClientProvider), comment.id);
       refresh();
-      if (mounted) _snack(context, 'Comment deleted.');
+      if (mounted) _snack(context, l10n.blogCommentDeleted);
     } on Object catch (e) {
       if (mounted) {
         _snack(
           context,
-          apiErrorMessage(
-            e,
-            fallback: 'The comment could not be deleted. Please try again.',
-          ),
+          apiErrorMessage(e, fallback: l10n.blogCommentDeleteFailed),
         );
       }
     }
@@ -787,9 +779,7 @@ class _CommentThreadSectionState extends ConsumerState<CommentThreadSection> {
             );
         return ((response.data as Map)['report'] as Map?)?['id']?.toString();
       } on Object catch (e) {
-        throw Exception(
-          apiErrorMessage(e, fallback: 'Report could not be submitted.'),
-        );
+        throw Exception(apiErrorMessage(e, fallback: l10n.blogReportFailed));
       }
     },
   );
@@ -807,12 +797,10 @@ class _CommentThreadSectionState extends ConsumerState<CommentThreadSection> {
       key: ValueKey('$prefix.comments'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Comments', style: theme.textTheme.titleLarge),
+        Text(l10n.blogComments, style: theme.textTheme.titleLarge),
         const SizedBox(height: 4),
         Text(
-          isAuthor
-              ? 'New comments wait for your approval before anyone else sees them.'
-              : 'The author reads every comment first and chooses what to share.',
+          isAuthor ? l10n.blogCommentsAuthorNote : l10n.blogCommentsReaderNote,
           style: theme.textTheme.bodySmall?.copyWith(
             color: colors.onSurfaceVariant,
           ),
@@ -832,7 +820,7 @@ class _CommentThreadSectionState extends ConsumerState<CommentThreadSection> {
               error = null;
             }),
             decoration: InputDecoration(
-              labelText: 'Leave a comment',
+              labelText: l10n.blogLeaveComment,
               hintText: thread.hint,
             ),
           ),
@@ -851,7 +839,7 @@ class _CommentThreadSectionState extends ConsumerState<CommentThreadSection> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.send_rounded),
-              label: const Text('Send to the author'),
+              label: Text(l10n.blogSendToAuthor),
             ),
           ),
           if (notice != null)
@@ -875,7 +863,7 @@ class _CommentThreadSectionState extends ConsumerState<CommentThreadSection> {
             child: Center(child: CircularProgressIndicator()),
           ),
           error: (e, _) => BlogError(
-            message: apiErrorMessage(e, fallback: 'Comments could not load.'),
+            message: apiErrorMessage(e, fallback: l10n.blogCommentsLoadFailed),
             retry: () => ref.invalidate(thread.comments),
           ),
           data: (list) {
@@ -886,7 +874,7 @@ class _CommentThreadSectionState extends ConsumerState<CommentThreadSection> {
               children: [
                 if (groups.awaitingMyApproval.isNotEmpty) ...[
                   Text(
-                    'Waiting for your approval',
+                    l10n.blogWaitingApproval,
                     key: ValueKey('$prefix.comments.awaiting'),
                     style: theme.textTheme.titleMedium,
                   ),
@@ -902,8 +890,8 @@ class _CommentThreadSectionState extends ConsumerState<CommentThreadSection> {
                     padding: const EdgeInsets.only(bottom: 12),
                     child: Text(
                       canComment
-                          ? 'No comments yet. Say something kind to start the conversation.'
-                          : 'No comments shared yet.',
+                          ? l10n.blogNoCommentsInvite
+                          : l10n.blogNoCommentsShared,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: colors.onSurfaceVariant,
                       ),
@@ -911,9 +899,9 @@ class _CommentThreadSectionState extends ConsumerState<CommentThreadSection> {
                   ),
                 for (final c in groups.approved) tile(c),
                 for (final c in groups.mineSent)
-                  tile(c, status: 'Sent to the author for approval'),
+                  tile(c, status: l10n.blogCommentSent),
                 for (final c in groups.mineDeclined)
-                  tile(c, status: 'The author chose not to share this one.'),
+                  tile(c, status: l10n.blogCommentNotShared),
               ],
             );
           },
@@ -963,6 +951,7 @@ class _BlogCommentTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
     return Card(
       key: ValueKey('$keyPrefix.comment.${comment.id}'),
       margin: const EdgeInsets.only(bottom: 12),
@@ -975,25 +964,25 @@ class _BlogCommentTile extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    comment.mine ? 'You' : comment.authorName,
+                    comment.mine ? l10n.blogYou : comment.authorName,
                     style: theme.textTheme.labelLarge,
                   ),
                 ),
                 if (canDelete || canReport)
                   PopupMenuButton<String>(
-                    tooltip: 'Comment options',
+                    tooltip: l10n.blogCommentOptions,
                     icon: const Icon(Icons.more_vert_rounded),
                     onSelected: (v) => v == 'delete' ? onDelete() : onReport(),
                     itemBuilder: (_) => [
                       if (canDelete)
-                        const PopupMenuItem(
+                        PopupMenuItem(
                           value: 'delete',
-                          child: Text('Delete comment'),
+                          child: Text(l10n.blogDeleteComment),
                         ),
                       if (canReport)
-                        const PopupMenuItem(
+                        PopupMenuItem(
                           value: 'report',
-                          child: Text('Report comment'),
+                          child: Text(l10n.blogReportComment),
                         ),
                     ],
                   )
@@ -1036,13 +1025,13 @@ class _BlogCommentTile extends StatelessWidget {
                     key: ValueKey('$keyPrefix.comment.approve.${comment.id}'),
                     onPressed: busy ? null : onApprove,
                     icon: const Icon(Icons.check_rounded),
-                    label: const Text('Approve'),
+                    label: Text(l10n.blogApprove),
                   ),
                   OutlinedButton.icon(
                     key: ValueKey('$keyPrefix.comment.decline.${comment.id}'),
                     onPressed: busy ? null : onDecline,
                     icon: const Icon(Icons.close_rounded),
-                    label: const Text('Decline'),
+                    label: Text(l10n.blogDecline),
                   ),
                 ],
               ),

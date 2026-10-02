@@ -31,6 +31,20 @@ const List<String> datePlanVenueOrder = <String>[
   'other',
 ];
 
+/// Which date plan request failed. Providers set it when the server sent no
+/// message of its own, so widgets can show the fallback in the member's
+/// language (`datePlanFailureMessage` in date_plan_labels.dart).
+enum DatePlanFailure {
+  load,
+  feed,
+  propose,
+  accept,
+  decline,
+  cancel,
+  checkin,
+  debrief,
+}
+
 class DatePlanCheckin {
   const DatePlanCheckin({
     required this.userId,

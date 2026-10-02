@@ -7,6 +7,7 @@ import 'package:verified_dating_app/core/providers/api_client_provider.dart';
 import 'package:verified_dating_app/features/auth/providers/auth_provider.dart';
 import 'package:verified_dating_app/features/auth/screens/signup_screen.dart';
 import 'package:verified_dating_app/features/friends/screens/introducer_screen.dart';
+import 'package:verified_dating_app/l10n/app_localizations.dart';
 
 class _Auth extends AuthNotifier {
   @override
@@ -91,6 +92,8 @@ Future<void> _show(
         apiClientProvider.overrideWithValue(api.client()),
       ],
       child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         theme: ThemeData(useMaterial3: true),
         builder: (_, child) => MediaQuery(
           data: MediaQueryData(
@@ -324,7 +327,11 @@ void main() {
   testWidgets('introducer onboarding does not ask for gender', (tester) async {
     await tester.pumpWidget(
       const ProviderScope(
-        child: MaterialApp(home: SignupScreen(introducer: true)),
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: SignupScreen(introducer: true),
+        ),
       ),
     );
     await tester.pumpAndSettle();

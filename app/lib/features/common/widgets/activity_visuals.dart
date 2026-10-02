@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 
 /// Shared look for member activities (Photo Themes, Book & Film Clubs).
 ///
@@ -240,7 +241,7 @@ class _SpoilerRevealState extends State<SpoilerReveal> {
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       child: Text(
-                        'Spoiler — tap to reveal',
+                        AppLocalizations.of(context).communitySpoiler,
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.labelLarge?.copyWith(
                           color: scheme.onSurface,

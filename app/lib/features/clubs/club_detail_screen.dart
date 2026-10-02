@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/network/api_error_message.dart';
 import '../../core/providers/api_client_provider.dart';
 import '../../core/widgets/glass_widgets.dart';
+import '../../l10n/app_localizations.dart';
 import '../auth/providers/auth_provider.dart';
 import '../common/widgets/activity_visuals.dart';
 import '../common/widgets/community_actions.dart';
@@ -33,12 +34,13 @@ class _ClubDetailScreenState extends ConsumerState<ClubDetailScreen> {
   bool busy = false;
 
   Future<void> membership(Club club, String action) async {
+    final l10n = AppLocalizations.of(context);
     if (action == 'leave' &&
         !await confirmCommunityAction(
           context,
-          title: 'Leave ${club.name}?',
-          message: 'You can rejoin later while the club is open.',
-          action: 'Leave club',
+          title: l10n.clubsLeaveTitle(club.name),
+          message: l10n.clubsLeaveMessage,
+          action: l10n.clubsLeaveClub,
         )) {
       return;
     }
@@ -55,13 +57,13 @@ class _ClubDetailScreenState extends ConsumerState<ClubDetailScreen> {
           );
       invalidateClub(ref, club.id);
       if (mounted && action == 'join') {
-        showCommunitySnack(context, 'Welcome to ${club.name}!');
+        showCommunitySnack(context, l10n.clubsWelcome(club.name));
       }
     } on Object catch (e) {
       if (mounted) {
         showCommunitySnack(
           context,
-          apiErrorMessage(e, fallback: 'That change could not be saved.'),
+          apiErrorMessage(e, fallback: l10n.clubsChangeNotSaved),
         );
       }
     } finally {
@@ -87,13 +89,14 @@ class _ClubDetailScreenState extends ConsumerState<ClubDetailScreen> {
         ? null
         : ref.watch(clubDetailProvider(widget.clubId));
     final club = detail?.valueOrNull?.club;
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text(club?.name ?? 'Club'),
+        title: Text(club?.name ?? l10n.clubsClub),
         actions: [
           if (club != null)
             PopupMenuButton<String>(
-              tooltip: 'Club options',
+              tooltip: l10n.clubsOptionsTooltip,
               onSelected: (value) {
                 if (value == 'members') {
                   showClubMembersSheet(context, club);
@@ -103,10 +106,13 @@ class _ClubDetailScreenState extends ConsumerState<ClubDetailScreen> {
               },
               itemBuilder: (_) => [
                 if (club.isMember)
-                  const PopupMenuItem(value: 'members', child: Text('Members')),
-                const PopupMenuItem(
+                  PopupMenuItem(
+                    value: 'members',
+                    child: Text(l10n.clubsMembers),
+                  ),
+                PopupMenuItem(
                   value: 'report',
-                  child: Text('Report club'),
+                  child: Text(l10n.clubsReportClub),
                 ),
               ],
             ),
@@ -114,7 +120,7 @@ class _ClubDetailScreenState extends ConsumerState<ClubDetailScreen> {
       ),
       body: PostLoginBackdrop(
         child: detail == null
-            ? const Center(child: Text('Sign in to see clubs.'))
+            ? Center(child: Text(l10n.clubsSignInToSee))
             : detail.when(
                 skipLoadingOnRefresh: false,
                 loading: () => const Center(child: CircularProgressIndicator()),
@@ -123,12 +129,12 @@ class _ClubDetailScreenState extends ConsumerState<ClubDetailScreen> {
                     padding: const EdgeInsets.all(16),
                     child: ActivityNotice(
                       icon: Icons.cloud_off_outlined,
-                      title: 'This club could not load',
+                      title: l10n.clubsDetailLoadErrorTitle,
                       message: apiErrorMessage(
                         e,
-                        fallback: 'It may have closed. Please try again.',
+                        fallback: l10n.clubsDetailLoadErrorMessage,
                       ),
-                      actionLabel: 'Try again',
+                      actionLabel: l10n.chatTryAgain,
                       onAction: () =>
                           ref.invalidate(clubDetailProvider(widget.clubId)),
                     ),
@@ -148,6 +154,7 @@ class _ClubDetailScreenState extends ConsumerState<ClubDetailScreen> {
         current ??
         data.selections.firstOrNull;
     final earlier = data.selections.where((s) => s.id != current?.id).toList();
+    final l10n = AppLocalizations.of(context);
     return RefreshIndicator(
       onRefresh: () async {
         invalidateClub(ref, club.id);
@@ -175,7 +182,7 @@ class _ClubDetailScreenState extends ConsumerState<ClubDetailScreen> {
           if (earlier.isNotEmpty) ...[
             const SizedBox(height: 24),
             Text(
-              'Earlier picks',
+              l10n.clubsEarlierPicks,
               style: Theme.of(
                 context,
               ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
@@ -188,14 +195,16 @@ class _ClubDetailScreenState extends ConsumerState<ClubDetailScreen> {
                   leading: KindDisc(kind: pick.title.kind, size: 40),
                   title: Text(pick.title.title),
                   subtitle: Text(
-                    '${weekLabel(pick.weekStart)} · ${pick.postCount} '
-                    'post${pick.postCount == 1 ? '' : 's'}',
+                    l10n.clubsPickSubtitle(
+                      weekLabel(l10n, pick.weekStart),
+                      pick.postCount,
+                    ),
                   ),
                   selected: pick.id == selected?.id,
                   onTap: () => _openTitle(context, pick.title),
                   trailing: club.isMember
                       ? IconButton(
-                          tooltip: 'Open the discussion',
+                          tooltip: l10n.clubsOpenDiscussion,
                           onPressed: () => setState(() => selectedId = pick.id),
                           icon: const Icon(Icons.forum_outlined),
                         )
@@ -205,12 +214,10 @@ class _ClubDetailScreenState extends ConsumerState<ClubDetailScreen> {
           ],
           const SizedBox(height: 24),
           if (!club.isMember)
-            const ActivityNotice(
+            ActivityNotice(
               icon: Icons.forum_outlined,
-              title: 'Join to see the discussion',
-              message:
-                  'Members talk about each pick together. Join the club to '
-                  'read along and add your thoughts.',
+              title: l10n.clubsJoinToSeeTitle,
+              message: l10n.clubsJoinToSeeMessage,
             )
           else if (selected != null)
             ClubDiscussion(
@@ -240,6 +247,7 @@ class _ClubHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
+    final l10n = AppLocalizations.of(context);
     return DecoratedBox(
       decoration: BoxDecoration(
         gradient: kindGradient(scheme, club.kind),
@@ -274,14 +282,12 @@ class _ClubHeader extends StatelessWidget {
                 KindBadge(kind: club.kind),
                 CountPill(
                   icon: Icons.people_outline,
-                  label:
-                      '${club.memberCount} '
-                      'member${club.memberCount == 1 ? '' : 's'}',
+                  label: l10n.clubsMemberCount(club.memberCount),
                 ),
                 if (club.isMember)
                   CountPill(
                     icon: Icons.verified_outlined,
-                    label: 'You: ${clubRoles[club.myRole] ?? 'Member'}',
+                    label: l10n.clubsYouRole(clubRoleLabel(l10n, club.myRole)),
                     emphasis: true,
                   ),
               ],
@@ -296,7 +302,7 @@ class _ClubHeader extends StatelessWidget {
             if (club.moderationState == 'removed') ...[
               const SizedBox(height: 12),
               Text(
-                'This club was removed by moderation.',
+                l10n.clubsRemovedByModeration,
                 style: text.bodyMedium?.copyWith(color: scheme.error),
               ),
             ],
@@ -309,18 +315,18 @@ class _ClubHeader extends StatelessWidget {
                   FilledButton.icon(
                     onPressed: busy ? null : onJoin,
                     icon: const Icon(Icons.group_add_outlined),
-                    label: const Text('Join club'),
+                    label: Text(l10n.clubsJoinClub),
                   )
                 else ...[
                   OutlinedButton.icon(
                     onPressed: onMembers,
                     icon: const Icon(Icons.people_outline),
-                    label: const Text('Members'),
+                    label: Text(l10n.clubsMembers),
                   ),
                   TextButton.icon(
                     onPressed: busy ? null : onLeave,
                     icon: const Icon(Icons.logout),
-                    label: const Text('Leave club'),
+                    label: Text(l10n.clubsLeaveClub),
                   ),
                 ],
               ],
@@ -349,6 +355,7 @@ class _PickCard extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     final scheme = Theme.of(context).colorScheme;
     final pick = this.pick;
+    final l10n = AppLocalizations.of(context);
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
@@ -356,13 +363,13 @@ class _PickCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const WeekPill(label: 'This week'),
+            WeekPill(label: l10n.clubsWeekThis),
             const SizedBox(height: 12),
             if (pick == null)
               Text(
                 club.canModerate
-                    ? 'No pick yet. Choose something great for everyone.'
-                    : 'No pick yet. Check back soon.',
+                    ? l10n.clubsNoPickModerator
+                    : l10n.clubsNoPickMember,
                 style: text.bodyLarge,
               )
             else ...[
@@ -393,12 +400,11 @@ class _PickCard extends StatelessWidget {
               RatingSummary(title: pick.title),
               if (pick.note.isNotEmpty) ...[
                 const SizedBox(height: 12),
-                Text('“${pick.note}”', style: text.bodyLarge),
+                Text(l10n.clubsQuotedNote(pick.note), style: text.bodyLarge),
               ],
               const SizedBox(height: 8),
               Text(
-                '${pick.postCount} post${pick.postCount == 1 ? '' : 's'} '
-                'in the discussion',
+                l10n.clubsPostsInDiscussion(pick.postCount),
                 style: text.bodyMedium,
               ),
             ],
@@ -412,13 +418,13 @@ class _PickCard extends StatelessWidget {
                     OutlinedButton.icon(
                       onPressed: onSetPick,
                       icon: const Icon(Icons.edit_calendar_outlined),
-                      label: const Text('Set this week’s pick'),
+                      label: Text(l10n.clubsSetThisWeeksPick),
                     ),
                   if (pick != null && club.isMember && onDiscuss != null)
                     TextButton.icon(
                       onPressed: onDiscuss,
                       icon: const Icon(Icons.forum_outlined),
-                      label: const Text('Discuss this pick'),
+                      label: Text(l10n.clubsDiscussThisPick),
                     ),
                 ],
               ),

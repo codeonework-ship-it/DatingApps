@@ -95,6 +95,18 @@ class AuthState {
 /// Shown on the sign-in screen after the server ended the session.
 const kSessionExpiredMessage = 'You were signed out. Please sign in again.';
 
+// The English texts below are the provider's message codes: screens show them
+// through `localizedAuthMessage`, and tests and automation match on them.
+const kAuthSignInFailedMessage = 'Unable to sign in. Try again.';
+const kAuthCreateAccountFailedMessage = 'Unable to create account. Try again.';
+const kAuthCreateAccountGenericMessage = 'Unable to create account.';
+const kAuthInvalidCredentialsMessage = 'Invalid username or password.';
+const kAuthUsernameFormatMessage =
+    'Username must be 3–30 characters using letters, numbers, _ or .';
+const kAuthEnterPasswordMessage = 'Please enter your password.';
+const kAuthPasswordFormatMessage =
+    'Password must be 8–72 bytes with letters and numbers.';
+
 @Riverpod(keepAlive: true)
 class AuthNotifier extends _$AuthNotifier {
   int _attempt = 0;
@@ -155,15 +167,12 @@ class AuthNotifier extends _$AuthNotifier {
     } on DioException catch (e, stackTrace) {
       if (attempt != _attempt) return;
       AuthSessionStore.instance.clear();
-      _fail(e, stackTrace, fallback: 'Unable to sign in. Try again.');
+      _fail(e, stackTrace, fallback: kAuthSignInFailedMessage);
     } on Object catch (e, stackTrace) {
       if (attempt != _attempt) return;
       AuthSessionStore.instance.clear();
       log.error('Username login failed', e, stackTrace);
-      state = state.copyWith(
-        isLoading: false,
-        error: 'Unable to sign in. Try again.',
-      );
+      state = state.copyWith(isLoading: false, error: kAuthSignInFailedMessage);
     }
   }
 
@@ -214,7 +223,7 @@ class AuthNotifier extends _$AuthNotifier {
       if (session == null) {
         state = state.copyWith(
           isLoading: false,
-          error: data['error']?.toString() ?? 'Unable to create account.',
+          error: data['error']?.toString() ?? kAuthCreateAccountGenericMessage,
         );
         return;
       }
@@ -239,14 +248,14 @@ class AuthNotifier extends _$AuthNotifier {
     } on DioException catch (e, stackTrace) {
       if (attempt != _attempt) return;
       AuthSessionStore.instance.clear();
-      _fail(e, stackTrace, fallback: 'Unable to create account. Try again.');
+      _fail(e, stackTrace, fallback: kAuthCreateAccountFailedMessage);
     } on Object catch (e, stackTrace) {
       if (attempt != _attempt) return;
       AuthSessionStore.instance.clear();
       log.error('Username signup failed', e, stackTrace);
       state = state.copyWith(
         isLoading: false,
-        error: 'Unable to create account. Try again.',
+        error: kAuthCreateAccountFailedMessage,
       );
     }
   }
@@ -312,22 +321,21 @@ class AuthNotifier extends _$AuthNotifier {
     if (!_isValidUsername(username)) {
       state = state.copyWith(
         isLoading: false,
-        error:
-            'Username must be 3–30 characters using letters, numbers, _ or .',
+        error: kAuthUsernameFormatMessage,
       );
       return false;
     }
     if (password.isEmpty) {
       state = state.copyWith(
         isLoading: false,
-        error: 'Please enter your password.',
+        error: kAuthEnterPasswordMessage,
       );
       return false;
     }
     if (requireStrongPassword && !_isStrongPassword(password)) {
       state = state.copyWith(
         isLoading: false,
-        error: 'Password must be 8–72 bytes with letters and numbers.',
+        error: kAuthPasswordFormatMessage,
       );
       return false;
     }
@@ -376,7 +384,7 @@ class AuthNotifier extends _$AuthNotifier {
     if (session == null) {
       state = state.copyWith(
         isLoading: false,
-        error: data['error']?.toString() ?? 'Invalid username or password.',
+        error: data['error']?.toString() ?? kAuthInvalidCredentialsMessage,
       );
       return;
     }

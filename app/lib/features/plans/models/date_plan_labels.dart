@@ -45,3 +45,40 @@ extension FriendPlanLabels on FriendPlan {
     return parts.join(' · ');
   }
 }
+
+/// A plan status in the member's language. Unknown statuses read as the wire
+/// value with a capital letter, as before.
+String datePlanStatusLabel(AppLocalizations l10n, String status) =>
+    switch (status) {
+      'proposed' => l10n.planStatusProposed,
+      'accepted' => l10n.planStatusConfirmed,
+      'cancelled' => l10n.plansNextCancelled,
+      'declined' => l10n.planStatusDeclined,
+      'expired' => l10n.planStatusExpired,
+      'completed' => l10n.planStatusCompleted,
+      'did_not_happen' => l10n.planStatusDidNotHappen,
+      'disputed' => l10n.planStatusDisputed,
+      '' => status,
+      _ => status[0].toUpperCase() + status.substring(1).replaceAll('_', ' '),
+    };
+
+/// The fallback message for a failed plan request, in the member's language.
+String datePlanFailureMessage(AppLocalizations l10n, DatePlanFailure failure) =>
+    switch (failure) {
+      DatePlanFailure.load => l10n.plansLoadFailed,
+      DatePlanFailure.feed => l10n.plansFeedLoadFailed,
+      DatePlanFailure.propose => l10n.planProposeFailed,
+      DatePlanFailure.accept => l10n.planAcceptFailed,
+      DatePlanFailure.decline => l10n.planDeclineFailed,
+      DatePlanFailure.cancel => l10n.planCancelFailed,
+      DatePlanFailure.checkin => l10n.planCheckinFailed,
+      DatePlanFailure.debrief => l10n.debriefSaveFailed,
+    };
+
+/// A provider error for display: the server's own message when it sent one,
+/// otherwise the request's fallback in the member's language.
+String localizedDatePlanError(
+  AppLocalizations l10n,
+  String error,
+  DatePlanFailure? failure,
+) => failure == null ? error : datePlanFailureMessage(l10n, failure);

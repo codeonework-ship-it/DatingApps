@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_error_message.dart';
 import '../../../core/providers/api_client_provider.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../common/screens/account_data_screen.dart';
 import '../../intentional_dating/dating_rhythm.dart';
@@ -35,6 +36,7 @@ class _IntroducerScreenState extends ConsumerState<IntroducerScreen> {
     String notice,
   ) async {
     if (_busy) return false;
+    final failed = AppLocalizations.of(context).friendsIntroducerSaveFailed;
     setState(() {
       _busy = true;
       _error = null;
@@ -53,13 +55,7 @@ class _IntroducerScreenState extends ConsumerState<IntroducerScreen> {
       return true;
     } on Object catch (e) {
       if (mounted)
-        setState(
-          () => _error = apiErrorMessage(
-            e,
-            fallback:
-                'We couldn’t save that. Refresh to check the latest permissions before trying again.',
-          ),
-        );
+        setState(() => _error = apiErrorMessage(e, fallback: failed));
       return false;
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -73,21 +69,20 @@ class _IntroducerScreenState extends ConsumerState<IntroducerScreen> {
   }
 
   Future<void> _revoke(IntroducerConnection c) async {
+    final l10n = AppLocalizations.of(context);
     final yes = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Remove permission for ${c.name}?'),
-        content: const Text(
-          'New and unanswered introductions will stop. An existing mutual match stays between the two people.',
-        ),
+        title: Text(l10n.friendsIntroducerRevokeTitle(c.name)),
+        content: Text(l10n.friendsIntroducerRevokeBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Keep permission'),
+            child: Text(l10n.friendsIntroducerKeepPermission),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Remove permission'),
+            child: Text(l10n.friendsIntroducerRemovePermission),
           ),
         ],
       ),
@@ -95,7 +90,7 @@ class _IntroducerScreenState extends ConsumerState<IntroducerScreen> {
     if (yes == true)
       await _run((dio) async {
         await dio.delete<dynamic>('/introducer/connections/${c.id}');
-      }, 'Permission removed.');
+      }, l10n.friendsIntroducerPermissionRemoved);
   }
 
   @override
@@ -103,13 +98,18 @@ class _IntroducerScreenState extends ConsumerState<IntroducerScreen> {
     final member = widget.memberControls;
     final connections = ref.watch(introducerConnectionsProvider);
     final colors = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
-        title: Text(member ? 'Your introducers' : 'Connect · Friends'),
+        title: Text(
+          member
+              ? l10n.friendsIntroducerMemberTitle
+              : l10n.friendsIntroducerAppTitle,
+        ),
         actions: [
           IconButton(
-            tooltip: 'Refresh permissions',
+            tooltip: l10n.friendsIntroducerRefresh,
             onPressed: _busy
                 ? null
                 : () async {
@@ -123,7 +123,7 @@ class _IntroducerScreenState extends ConsumerState<IntroducerScreen> {
           ),
           if (!member)
             PopupMenuButton<String>(
-              tooltip: 'Account',
+              tooltip: l10n.friendsIntroducerAccount,
               onSelected: (choice) {
                 if (choice == 'logout') {
                   ref.read(authNotifierProvider.notifier).logout();
@@ -135,9 +135,15 @@ class _IntroducerScreenState extends ConsumerState<IntroducerScreen> {
                   );
                 }
               },
-              itemBuilder: (_) => const [
-                PopupMenuItem(value: 'data', child: Text('Account & privacy')),
-                PopupMenuItem(value: 'logout', child: Text('Sign out')),
+              itemBuilder: (_) => [
+                PopupMenuItem(
+                  value: 'data',
+                  child: Text(l10n.friendsIntroducerAccountPrivacy),
+                ),
+                PopupMenuItem(
+                  value: 'logout',
+                  child: Text(l10n.friendsIntroducerSignOut),
+                ),
               ],
             ),
         ],
@@ -165,16 +171,16 @@ class _IntroducerScreenState extends ConsumerState<IntroducerScreen> {
                     const SizedBox(height: 18),
                     Text(
                       member
-                          ? 'Good friends. Your say.'
-                          : 'You know them.\nYou see the possibility.',
+                          ? l10n.friendsIntroducerMemberHeadline
+                          : l10n.friendsIntroducerHeadline,
                       style: Theme.of(context).textTheme.headlineMedium
                           ?.copyWith(color: colors.onPrimaryContainer),
                     ),
                     const SizedBox(height: 12),
                     Text(
                       member
-                          ? 'Invite someone you trust to introduce you. They can join without a dating profile. You decide who gets permission and what a preview shares.'
-                          : 'A little thoughtfulness can start something real. Bring together friends who have asked for your help.',
+                          ? l10n.friendsIntroducerMemberIntro
+                          : l10n.friendsIntroducerIntro,
                       style: TextStyle(
                         color: colors.onPrimaryContainer,
                         height: 1.5,
@@ -202,7 +208,9 @@ class _IntroducerScreenState extends ConsumerState<IntroducerScreen> {
               if (member) _memberInvitation(colors) else _redeemInvitation(),
               const SizedBox(height: 28),
               Text(
-                member ? 'People you choose' : 'Your small circle',
+                member
+                    ? l10n.friendsIntroducerMemberListTitle
+                    : l10n.friendsIntroducerListTitle,
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 10),
@@ -211,13 +219,11 @@ class _IntroducerScreenState extends ConsumerState<IntroducerScreen> {
                 error: (_, _) => Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'We couldn’t load permissions. Nothing has been changed.',
-                    ),
+                    Text(l10n.friendsIntroducerLoadFailed),
                     TextButton(
                       onPressed: () =>
                           ref.invalidate(introducerConnectionsProvider),
-                      child: const Text('Try again'),
+                      child: Text(l10n.chatTryAgain),
                     ),
                   ],
                 ),
@@ -227,8 +233,8 @@ class _IntroducerScreenState extends ConsumerState<IntroducerScreen> {
                     if (items.isEmpty)
                       Text(
                         member
-                            ? 'No introducers yet. Share an invitation with one trusted friend to get started.'
-                            : 'Your circle starts with permission. Ask a friend on Connect for their invitation code.',
+                            ? l10n.friendsIntroducerMemberEmpty
+                            : l10n.friendsIntroducerEmpty,
                       ),
                     for (final c in items)
                       Card(
@@ -243,25 +249,25 @@ class _IntroducerScreenState extends ConsumerState<IntroducerScreen> {
                                 style: Theme.of(context).textTheme.titleMedium,
                               ),
                               const SizedBox(height: 6),
-                              Text(
-                                c.status == 'pending'
-                                    ? (member
-                                          ? 'Wants your permission to introduce you.'
-                                          : 'Waiting for your friend’s approval.')
-                                    : c.status == 'paused'
-                                    ? 'Introductions are paused.'
-                                    : 'Permission to suggest introductions.',
-                              ),
+                              Text(_statusText(l10n, c)),
                               if (member) ...[
                                 const SizedBox(height: 6),
                                 Text(
-                                  'Preview shared with a suggested date: name and optional age${c.sharePhoto ? ', photo' : ''}${c.shareCity ? ', city' : ''}.',
+                                  l10n.friendsIntroducerPreview(
+                                    c.sharePhoto && c.shareCity
+                                        ? 'both'
+                                        : c.sharePhoto
+                                        ? 'photo'
+                                        : c.shareCity
+                                        ? 'city'
+                                        : 'none',
+                                  ),
                                 ),
                                 if (c.status == 'pending')
-                                  const Padding(
-                                    padding: EdgeInsets.only(top: 8),
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 8),
                                     child: Text(
-                                      'Approving also turns on friend introductions. You can pause all introductions in Dating rhythm.',
+                                      l10n.friendsIntroducerApproveNote,
                                     ),
                                   ),
                               ],
@@ -272,19 +278,24 @@ class _IntroducerScreenState extends ConsumerState<IntroducerScreen> {
                                     FilledButton(
                                       onPressed: _busy
                                           ? null
-                                          : () => _run((dio) async {
-                                              await dio.post<dynamic>(
-                                                '/introducer/connections/${c.id}/approve',
-                                              );
-                                            }, '${c.name} now has your permission.'),
-                                      child: const Text('Allow introductions'),
+                                          : () => _run(
+                                              (dio) async {
+                                                await dio.post<dynamic>(
+                                                  '/introducer/connections/${c.id}/approve',
+                                                );
+                                              },
+                                              l10n.friendsIntroducerAllowed(
+                                                c.name,
+                                              ),
+                                            ),
+                                      child: Text(l10n.friendsIntroducerAllow),
                                     ),
                                   TextButton(
                                     onPressed: _busy ? null : () => _revoke(c),
                                     child: Text(
                                       c.status == 'pending'
-                                          ? 'Decline request'
-                                          : 'Remove permission',
+                                          ? l10n.friendsIntroducerDecline
+                                          : _removeLabel(l10n),
                                     ),
                                   ),
                                 ],
@@ -303,13 +314,11 @@ class _IntroducerScreenState extends ConsumerState<IntroducerScreen> {
               if (!member) ...[
                 const SizedBox(height: 28),
                 Text(
-                  'Thoughtfully sent',
+                  l10n.friendsIntroducerSentTitle,
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'Their answers stay between them. Both people must say yes before a match is made.',
-                ),
+                Text(l10n.friendsIntroducerSentBody),
                 ref
                     .watch(introducerReceiptsProvider)
                     .when(
@@ -317,7 +326,7 @@ class _IntroducerScreenState extends ConsumerState<IntroducerScreen> {
                       error: (_, _) => TextButton(
                         onPressed: () =>
                             ref.invalidate(introducerReceiptsProvider),
-                        child: const Text('Reload sent introductions'),
+                        child: Text(l10n.friendsIntroducerReloadSent),
                       ),
                       data: (items) => Column(
                         children: [
@@ -330,8 +339,8 @@ class _IntroducerScreenState extends ConsumerState<IntroducerScreen> {
                               title: Text(
                                 '${intro.firstName} + ${intro.secondName}',
                               ),
-                              subtitle: const Text(
-                                'Sent · their decision is private',
+                              subtitle: Text(
+                                l10n.friendsIntroducerSentSubtitle,
                               ),
                             ),
                         ],
@@ -346,169 +355,174 @@ class _IntroducerScreenState extends ConsumerState<IntroducerScreen> {
     );
   }
 
-  Widget _memberInvitation(ColorScheme colors) => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      Text(
-        '1. Choose the preview',
-        style: Theme.of(context).textTheme.titleLarge,
-      ),
-      const SizedBox(height: 8),
-      const Text(
-        'A suggested date sees your name and age if you already show it. Your introducer sees only your name, never your profile or dating activity.',
-      ),
-      SwitchListTile(
-        contentPadding: EdgeInsets.zero,
-        title: const Text('Include my profile photo'),
-        value: _photo,
-        onChanged: _busy || _code != null
-            ? null
-            : (v) => setState(() {
-                _photo = v;
-                _code = null;
-              }),
-      ),
-      SwitchListTile(
-        contentPadding: EdgeInsets.zero,
-        title: const Text('Include my city'),
-        value: _city,
-        onChanged: _busy || _code != null
-            ? null
-            : (v) => setState(() {
-                _city = v;
-                _code = null;
-              }),
-      ),
-      const SizedBox(height: 12),
-      Text(
-        '2. Invite one trusted friend',
-        style: Theme.of(context).textTheme.titleLarge,
-      ),
-      const SizedBox(height: 8),
-      const Text(
-        'The code works once and expires in 48 hours. Your friend joins through “Just here to introduce friends” on the welcome screen. You’ll approve their name here before anything can be shared.',
-      ),
-      const SizedBox(height: 12),
-      FilledButton.icon(
-        onPressed: _busy
-            ? null
-            : () => _run((dio) async {
-                final response = await dio.post<dynamic>(
-                  '/introducer/invites',
-                  data: {'share_photo': _photo, 'share_city': _city},
-                );
-                if (mounted)
-                  setState(() => _code = response.data['code'] as String);
-              }, 'Invitation ready. Any previous unused code no longer works.'),
-        icon: const Icon(Icons.add_link),
-        label: const Text('Create invitation code'),
-      ),
-      if (_code != null)
-        Container(
-          margin: const EdgeInsets.only(top: 12),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            border: Border.all(color: colors.outlineVariant),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text(
-                'Share privately with your friend. To change this preview, cancel the unused invitation and create a new code.',
-              ),
-              const SizedBox(height: 8),
-              SelectableText(_code!),
-              TextButton.icon(
-                onPressed: () async {
-                  await Clipboard.setData(ClipboardData(text: _code!));
-                  if (mounted)
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Invitation code copied')),
-                    );
-                },
-                icon: const Icon(Icons.copy),
-                label: const Text('Copy code'),
-              ),
-            ],
-          ),
-        ),
-      TextButton(
-        onPressed: _busy
-            ? null
-            : () => _run((dio) async {
-                await dio.delete<dynamic>('/introducer/invites');
-                if (mounted) setState(() => _code = null);
-              }, 'Unused invitations cancelled.'),
-        child: const Text('Cancel unused invitations'),
-      ),
-      TextButton.icon(
-        onPressed: () async {
-          await openDatingRhythm(context);
-          if (mounted) ref.invalidate(introducerConnectionsProvider);
-        },
-        icon: const Icon(Icons.tune),
-        label: const Text('Manage all introduction preferences'),
-      ),
-    ],
-  );
+  String _statusText(AppLocalizations l10n, IntroducerConnection c) =>
+      switch (c.status) {
+        'pending' when widget.memberControls =>
+          l10n.friendsIntroducerStatusPendingMember,
+        'pending' => l10n.friendsIntroducerStatusPending,
+        'paused' => l10n.friendsIntroducerStatusPaused,
+        _ => l10n.friendsIntroducerStatusActive,
+      };
 
-  Widget _redeemInvitation() => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      Text(
-        'A friend invited you?',
-        style: Theme.of(context).textTheme.titleLarge,
-      ),
-      const SizedBox(height: 8),
-      const Text(
-        'Paste their private invitation code. They’ll confirm your name before you can introduce them.',
-      ),
-      const SizedBox(height: 14),
-      TextField(
-        controller: _codeInput,
-        enabled: !_busy,
-        autocorrect: false,
-        decoration: const InputDecoration(
-          labelText: 'Invitation code',
-          border: OutlineInputBorder(),
+  String _removeLabel(AppLocalizations l10n) =>
+      l10n.friendsIntroducerRemovePermission;
+
+  Widget _memberInvitation(ColorScheme colors) {
+    final l10n = AppLocalizations.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          l10n.friendsIntroducerStepPreview,
+          style: Theme.of(context).textTheme.titleLarge,
         ),
-      ),
-      const SizedBox(height: 10),
-      FilledButton(
-        onPressed: _busy
-            ? null
-            : () async {
-                if (_codeInput.text.trim().isEmpty) {
-                  setState(
-                    () => _error =
-                        'Enter the invitation code your friend shared.',
+        const SizedBox(height: 8),
+        Text(l10n.friendsIntroducerPreviewBody),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: Text(l10n.friendsIntroducerIncludePhoto),
+          value: _photo,
+          onChanged: _busy || _code != null
+              ? null
+              : (v) => setState(() {
+                  _photo = v;
+                  _code = null;
+                }),
+        ),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: Text(l10n.friendsIntroducerIncludeCity),
+          value: _city,
+          onChanged: _busy || _code != null
+              ? null
+              : (v) => setState(() {
+                  _city = v;
+                  _code = null;
+                }),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          l10n.friendsIntroducerStepInvite,
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
+        const SizedBox(height: 8),
+        Text(l10n.friendsIntroducerInviteBody),
+        const SizedBox(height: 12),
+        FilledButton.icon(
+          onPressed: _busy
+              ? null
+              : () => _run((dio) async {
+                  final response = await dio.post<dynamic>(
+                    '/introducer/invites',
+                    data: {'share_photo': _photo, 'share_city': _city},
                   );
-                  return;
-                }
-                if (await _run(
-                  (dio) async {
+                  if (mounted)
+                    setState(() => _code = response.data['code'] as String);
+                }, l10n.friendsIntroducerInviteReady),
+          icon: const Icon(Icons.add_link),
+          label: Text(l10n.friendsIntroducerCreateCode),
+        ),
+        if (_code != null)
+          Container(
+            margin: const EdgeInsets.only(top: 12),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              border: Border.all(color: colors.outlineVariant),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(l10n.friendsIntroducerShareCode),
+                const SizedBox(height: 8),
+                SelectableText(_code!),
+                TextButton.icon(
+                  onPressed: () async {
+                    await Clipboard.setData(ClipboardData(text: _code!));
+                    if (mounted)
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(l10n.friendsIntroducerCodeCopied),
+                        ),
+                      );
+                  },
+                  icon: const Icon(Icons.copy),
+                  label: Text(l10n.friendsIntroducerCopyCode),
+                ),
+              ],
+            ),
+          ),
+        TextButton(
+          onPressed: _busy
+              ? null
+              : () => _run((dio) async {
+                  await dio.delete<dynamic>('/introducer/invites');
+                  if (mounted) setState(() => _code = null);
+                }, l10n.friendsIntroducerInvitesCancelled),
+          child: Text(l10n.friendsIntroducerCancelInvites),
+        ),
+        TextButton.icon(
+          onPressed: () async {
+            await openDatingRhythm(context);
+            if (mounted) ref.invalidate(introducerConnectionsProvider);
+          },
+          icon: const Icon(Icons.tune),
+          label: Text(l10n.friendsIntroducerManagePrefs),
+        ),
+      ],
+    );
+  }
+
+  Widget _redeemInvitation() {
+    final l10n = AppLocalizations.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          l10n.friendsIntroducerRedeemTitle,
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
+        const SizedBox(height: 8),
+        Text(l10n.friendsIntroducerRedeemBody),
+        const SizedBox(height: 14),
+        TextField(
+          controller: _codeInput,
+          enabled: !_busy,
+          autocorrect: false,
+          decoration: InputDecoration(
+            labelText: l10n.friendsIntroducerCodeLabel,
+            border: const OutlineInputBorder(),
+          ),
+        ),
+        const SizedBox(height: 10),
+        FilledButton(
+          onPressed: _busy
+              ? null
+              : () async {
+                  if (_codeInput.text.trim().isEmpty) {
+                    setState(() => _error = l10n.friendsIntroducerCodeMissing);
+                    return;
+                  }
+                  if (await _run((dio) async {
                     await dio.post<dynamic>(
                       '/introducer/redeem',
                       data: {'code': _codeInput.text.trim()},
                     );
-                  },
-                  'Request sent. Your friend can now approve you in Your introducers.',
-                ))
-                  _codeInput.clear();
-              },
-        child: const Text('Ask for permission'),
-      ),
-    ],
-  );
+                  }, l10n.friendsIntroducerRequestSent))
+                    _codeInput.clear();
+                },
+          child: Text(l10n.friendsIntroducerAskPermission),
+        ),
+      ],
+    );
+  }
 
   Widget _composer(List<IntroducerConnection> people) {
+    final l10n = AppLocalizations.of(context);
     if (people.length < 2)
-      return const Padding(
-        padding: EdgeInsets.only(top: 24),
-        child: Text(
-          'Once two friends give permission, you can suggest an introduction here.',
-        ),
+      return Padding(
+        padding: const EdgeInsets.only(top: 24),
+        child: Text(l10n.friendsIntroducerNeedTwo),
       );
     final first = people.any((c) => c.userId == _first) ? _first : null;
     final second = people.any((c) => c.userId == _second && c.userId != first)
@@ -520,7 +534,7 @@ class _IntroducerScreenState extends ConsumerState<IntroducerScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'See a possibility?',
+            l10n.friendsIntroducerComposerTitle,
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: 12),
@@ -528,7 +542,7 @@ class _IntroducerScreenState extends ConsumerState<IntroducerScreen> {
             key: ValueKey('first-$first'),
             value: first,
             isExpanded: true,
-            decoration: const InputDecoration(labelText: 'First friend'),
+            decoration: InputDecoration(labelText: l10n.friendsFirstFriend),
             items: [
               for (final c in people)
                 DropdownMenuItem(value: c.userId, child: Text(c.name)),
@@ -545,7 +559,7 @@ class _IntroducerScreenState extends ConsumerState<IntroducerScreen> {
             key: ValueKey('second-$second'),
             value: second,
             isExpanded: true,
-            decoration: const InputDecoration(labelText: 'Second friend'),
+            decoration: InputDecoration(labelText: l10n.friendsSecondFriend),
             items: [
               for (final c in people.where((c) => c.userId != first))
                 DropdownMenuItem(value: c.userId, child: Text(c.name)),
@@ -559,11 +573,11 @@ class _IntroducerScreenState extends ConsumerState<IntroducerScreen> {
             maxLength: 200,
             minLines: 2,
             maxLines: 4,
-            decoration: const InputDecoration(
-              labelText: 'Why you thought of them (optional)',
-              helperText: 'Both will see this. Keep private details out.',
+            decoration: InputDecoration(
+              labelText: l10n.friendsIntroducerWhyLabel,
+              helperText: l10n.friendsIntroducerWhyHelper,
               helperMaxLines: 3,
-              border: OutlineInputBorder(),
+              border: const OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 12),
@@ -581,11 +595,11 @@ class _IntroducerScreenState extends ConsumerState<IntroducerScreen> {
                           'message': _note.text.trim(),
                         },
                       );
-                    }, 'Introduction sent. They can each decide in private.'))
+                    }, l10n.friendsIntroducerIntroSent))
                       _note.clear();
                   },
             icon: const Icon(Icons.favorite_border),
-            label: const Text('Suggest an introduction'),
+            label: Text(l10n.friendsIntroducerSuggest),
           ),
         ],
       ),
@@ -596,15 +610,15 @@ class _IntroducerScreenState extends ConsumerState<IntroducerScreen> {
 class _PrivacyNote extends StatelessWidget {
   const _PrivacyNote();
   @override
-  Widget build(BuildContext context) => const Row(
+  Widget build(BuildContext context) => Row(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Icon(Icons.lock_outline, size: 20),
-      SizedBox(width: 10),
+      const Icon(Icons.lock_outline, size: 20),
+      const SizedBox(width: 10),
       Expanded(
         child: Text(
-          'Permission first. No public dating activity. No updates on who said yes or no.',
-          style: TextStyle(height: 1.5),
+          AppLocalizations.of(context).friendsIntroducerPrivacyNote,
+          style: const TextStyle(height: 1.5),
         ),
       ),
     ],

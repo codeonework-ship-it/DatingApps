@@ -7,6 +7,7 @@ import '../../../core/providers/safety_actions_provider.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../common/widgets/report_user_sheet.dart';
 import '../models/date_plan.dart';
+import '../models/date_plan_labels.dart';
 import '../providers/plans_provider.dart';
 
 /// The ten-second post-date debrief. Answers stay private to the member; the
@@ -76,11 +77,12 @@ class _DebriefSheetState extends ConsumerState<_DebriefSheet> {
       return;
     }
     if (updated == null) {
+      final state = ref.read(matchPlansProvider(widget.matchId));
       setState(() {
         _submitting = false;
-        _error =
-            ref.read(matchPlansProvider(widget.matchId)).error ??
-            l10n.debriefSaveFailed;
+        _error = state.error == null
+            ? l10n.debriefSaveFailed
+            : localizedDatePlanError(l10n, state.error!, state.failure);
       });
       return;
     }
@@ -141,10 +143,8 @@ class _DebriefSheetState extends ConsumerState<_DebriefSheet> {
                 SwitchListTile.adaptive(
                   contentPadding: EdgeInsets.zero,
                   key: const ValueKey('qa.debrief.second_yes'),
-                  title: const Text('Share a second yes'),
-                  subtitle: const Text(
-                    'Reveal that you want to meet again only if your match also says yes and agrees to share. Your other answers stay private.',
-                  ),
+                  title: Text(l10n.planSecondYesTitle),
+                  subtitle: Text(l10n.planSecondYesBody),
                   value: _shareMutualInterest,
                   onChanged: (v) => setState(() => _shareMutualInterest = v),
                 ),

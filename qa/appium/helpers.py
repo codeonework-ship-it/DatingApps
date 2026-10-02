@@ -61,6 +61,8 @@ class DatingApp:
             self.ui_desc_contains(value),
             self.resource_id(value),
             (AppiumBy.XPATH, f'//*[@hint="{self._escape(value)}"]'),
+            # A labelled text field reports its hint as "<label>\n<hint>".
+            (AppiumBy.XPATH, f'//android.widget.EditText[starts-with(@hint, "{self._escape(value)}")]'),
         ]
 
     def wait_for_qa(self, value: str, timeout: int | None = None) -> WebElement:
@@ -253,14 +255,19 @@ class DatingApp:
         return self.scroll_to_text(text, timeout=timeout)
 
     def tap_scroll_text(self, text: str, timeout: int | None = None) -> WebElement:
-        element = self.scroll_to_text(text, timeout=timeout)
+        # scroll_to_text's swipes can leave the list flinging; clicking the
+        # element's old bounds then lands on whatever scrolled under it. In
+        # Settings that was the theme strip: a stray "Light" + "Forge" tap
+        # silently changed the shared QA account's look mid-suite. Settle,
+        # re-find, then tap.
+        self.scroll_to_text(text, timeout=timeout)
+        time.sleep(1.0)
+        element = self.wait_for_text(text, timeout=5)
         element.click()
         return element
 
     def tap_scroll_text_contains(self, text: str, timeout: int | None = None) -> WebElement:
-        element = self.scroll_to_text_contains(text, timeout=timeout)
-        element.click()
-        return element
+        return self.tap_scroll_text(text, timeout=timeout)
 
     def edit_texts(self) -> list[WebElement]:
         fields = self.driver.find_elements(*self.ui_class("android.widget.EditText"))
@@ -699,15 +706,16 @@ class DatingApp:
             return
         deadline = time.time() + 6
         while time.time() < deadline:
-            if self.selected_tab() is not None:
-                import pytest
-
-                pytest.skip("Device is signed in (APPIUM_NO_RESET=true); signed-out journey needs a reset session")
             if self.driver.find_elements(*self.ui_desc_contains("Already a member?")) or self.driver.find_elements(
                 *self.ui_text_contains("Already a member?")
             ):
                 return
             time.sleep(0.5)
+        # Not on the welcome screen: the signed-in shell, or a screen pushed
+        # on top of it by an earlier spec.
+        import pytest
+
+        pytest.skip("Device is signed in (APPIUM_NO_RESET=true); signed-out journey needs a reset session")
 
     def open_welcome_signup(self) -> None:
         self.skip_if_signed_in_session()
@@ -733,7 +741,6 @@ class DatingApp:
                 self.tap_text("Create Account")
 
     def open_welcome_signin(self) -> None:
-        self.skip_if_signed_in_session()
         if self.is_text_visible("Account credentials", timeout=2):
             return
         try:
@@ -741,6 +748,7 @@ class DatingApp:
             return
         except TimeoutException:
             pass
+        self.skip_if_signed_in_session()
         if self.maybe_tap_qa("qa.welcome.signin_button", timeout=6):
             return
         if self.is_text_visible("Sign in and continue your story", timeout=8):
@@ -875,6 +883,7 @@ class DatingApp:
         the app by design.
         """
         self.ensure_app_foreground()
+        self.dismiss_snackbars()
         for _ in range(max_backs):
             deadline = time.time() + 2.5
             while time.time() < deadline and self.selected_tab() is None:
@@ -912,6 +921,11 @@ class DatingApp:
             )
             self._tap_element_center(chip)
         self.assert_any_text_visible(*self.DECK_TITLES, timeout=25)
+        # An empty deck offers its own refresh; use it once so candidates
+        # added since the deck loaded (e.g. by the ensure_deck fixture) show.
+        if self.is_qa_visible("qa.discovery.empty_state", timeout=2):
+            if self.maybe_tap_qa("qa.discovery.state_action_button", timeout=3):
+                time.sleep(3)
 
     def open_matches_view(self, chip: str = "Your matches") -> None:
         """Matches tab, then one of its view chips: Discover / Your matches / Conversations."""
@@ -976,7 +990,7 @@ class DatingApp:
     def type_into_hint(self, hint: str, text: str, timeout: int = 10) -> WebElement:
         self.wait_for_snackbar_gone(timeout=4)
         field = self._wait_for_first_present(
-            [(AppiumBy.XPATH, f'//android.widget.EditText[@hint="{self._escape(hint)}"]')],
+            [(AppiumBy.XPATH, f'//android.widget.EditText[contains(@hint, "{self._escape(hint)}")]')],
             timeout=timeout,
         )
         field.click()
@@ -1010,11 +1024,39 @@ class DatingApp:
             time.sleep(0.5)
 
     def wait_for_field_hint(self, hint: str, timeout: int = 10) -> WebElement:
-        """An EditText whose hint is `hint` (Flutter exposes the hint attribute)."""
+        """An EditText whose hint contains `hint`.
+
+        Flutter exposes the hint attribute; a field wrapped in a labelled
+        Semantics (the chat composer) reports "<label>\n<hint>".
+        """
         return self._wait_for_first_present(
-            [(AppiumBy.XPATH, f'//android.widget.EditText[@hint="{self._escape(hint)}"]')],
+            [(AppiumBy.XPATH, f'//android.widget.EditText[contains(@hint, "{self._escape(hint)}")]')],
             timeout=timeout,
         )
+
+    def dismiss_snackbars(self) -> None:
+        """Swipe away any SnackBar still on screen.
+
+        With an accessibility service attached (UiAutomator2), Flutter keeps a
+        SnackBar that has an action (e.g. "Report submitted." / Appeal) until
+        it is used or dismissed, so one raised by an earlier spec can cover
+        the composer or bottom controls of the next. SnackBars are dismissed
+        by swiping down (their default dismiss direction).
+        """
+        locator = (AppiumBy.XPATH, '//*[@dismissable="true" and @live-region!="0"]')
+        size = self.driver.get_window_size()
+        for _ in range(3):
+            bars = self.driver.find_elements(*locator)
+            if not bars:
+                return
+            try:
+                rect = bars[0].rect
+            except Exception:  # noqa: BLE001 - it closed on its own meanwhile
+                continue
+            x = rect["x"] + rect["width"] // 2
+            y = rect["y"] + rect["height"] // 2
+            self.shell("input", ["swipe", str(x), str(y), str(x), str(min(size["height"] - 5, y + 400)), "250"])
+            time.sleep(1.0)
 
     def wait_for_text_gone(self, text: str, timeout: int = 15) -> None:
         deadline = time.time() + timeout

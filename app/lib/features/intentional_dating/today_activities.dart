@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers/runtime_feature_flags_provider.dart';
+import '../../l10n/app_localizations.dart';
 import '../blog/blog_screen.dart';
 import '../clubs/clubs_screen.dart';
 import '../first_chapter/chapter_studio_screen.dart';
@@ -24,6 +25,7 @@ class TodayActivities extends ConsumerWidget {
           orElse: () => RuntimeFeatureFlags.defaults,
         );
     final colors = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
     void push(Widget screen) => Navigator.of(
       context,
     ).push(MaterialPageRoute<void>(builder: (_) => screen));
@@ -33,16 +35,16 @@ class TodayActivities extends ConsumerWidget {
         _ActivityTile(
           key: const ValueKey('qa.today.book_clubs'),
           icon: Icons.menu_book_rounded,
-          title: 'Book clubs',
-          subtitle: 'One book a week, talked over together.',
+          title: l10n.todayBookClubsTitle,
+          subtitle: l10n.todayBookClubsSubtitle,
           tint: colors.primary,
           onTap: () => push(const ClubsScreen(initialKind: 'book')),
         ),
         _ActivityTile(
           key: const ValueKey('qa.today.film_clubs'),
           icon: Icons.movie_outlined,
-          title: 'Film clubs',
-          subtitle: 'Watch the pick, then swap takes.',
+          title: l10n.todayFilmClubsTitle,
+          subtitle: l10n.todayFilmClubsSubtitle,
           tint: colors.secondary,
           onTap: () => push(const ClubsScreen(initialKind: 'film')),
         ),
@@ -51,16 +53,16 @@ class TodayActivities extends ConsumerWidget {
         _ActivityTile(
           key: const ValueKey('qa.today.photo_themes'),
           icon: Icons.photo_library_outlined,
-          title: 'Photo Themes',
-          subtitle: 'One photo per prompt. See everyone’s.',
+          title: l10n.todayPhotoThemesTitle,
+          subtitle: l10n.todayPhotoThemesSubtitle,
           tint: colors.tertiary,
           onTap: () => push(const PhotoThemesScreen()),
         ),
       _ActivityTile(
         key: const ValueKey('qa.today.chapter_studio'),
         icon: Icons.auto_stories_outlined,
-        title: 'First Chapter Studio',
-        subtitle: 'Begin a story together.',
+        title: l10n.todayChapterStudioTitle,
+        subtitle: l10n.todayChapterStudioSubtitle,
         tint: colors.primary,
         onTap: () => openChapterStudio(context),
       ),
@@ -69,9 +71,9 @@ class TodayActivities extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const TodaySectionHeader(
-          label: 'SOMETHING TO TALK ABOUT',
-          caption: 'Stories, clubs and prompts that make a first hello easier.',
+        TodaySectionHeader(
+          label: l10n.todaySectionTalk,
+          caption: l10n.todayTalkCaption,
         ),
         const SizedBox(height: TodayMetrics.cardGap),
         _BlogFeature(onTap: () => openBlog(context)),
@@ -118,6 +120,7 @@ class _BlogFeature extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
     final radius = BorderRadius.circular(TodayMetrics.featureRadius);
     return Material(
       key: const ValueKey('qa.today.blog'),
@@ -146,14 +149,14 @@ class _BlogFeature extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Blog · Open Chapters',
+                        l10n.todayBlogTitle,
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Read members’ stories and write your own.',
+                        l10n.todayBlogSubtitle,
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: colors.onSurfaceVariant,
                         ),

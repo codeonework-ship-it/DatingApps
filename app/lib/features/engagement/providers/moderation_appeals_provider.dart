@@ -1,9 +1,12 @@
+import 'dart:ui' show Locale;
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/feature_flags.dart';
 import '../../../core/providers/api_client_provider.dart';
 import '../../../core/utils/logger.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../auth/providers/auth_provider.dart';
 
 class ModerationAppealItem {
@@ -49,16 +52,19 @@ class ModerationAppealItem {
   final String? reviewedAt;
 }
 
-String appealStatusLabel(String status) {
+/// The appeal status in the reader's language: pass [l] from the widget
+/// showing it (English when omitted). Unknown statuses are shown as sent.
+String appealStatusLabel(String status, [AppLocalizations? l]) {
+  final strings = l ?? lookupAppLocalizations(const Locale('en'));
   switch (status.trim()) {
     case 'submitted':
-      return 'Submitted';
+      return strings.engagementAppealStatusSubmitted;
     case 'under_review':
-      return 'Under review';
+      return strings.engagementAppealStatusUnderReview;
     case 'resolved_upheld':
-      return 'Resolved (upheld)';
+      return strings.engagementAppealStatusResolvedUpheld;
     case 'resolved_reversed':
-      return 'Resolved (reversed)';
+      return strings.engagementAppealStatusResolvedReversed;
     default:
       return status;
   }

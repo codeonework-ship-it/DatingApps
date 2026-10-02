@@ -4,8 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/config/feature_flags.dart';
 import '../../../core/providers/api_client_provider.dart';
 import '../../../core/utils/logger.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../celebrations/reward_ledger.dart';
+import '../engagement_l10n.dart';
 
 class LevelDefinition {
   const LevelDefinition({
@@ -177,10 +179,12 @@ class LevelProgressionNotifier extends StateNotifier<LevelProgressionState> {
 
   final Ref _ref;
 
+  AppLocalizations get _l => engagementL10nFor(_ref);
+
   Future<void> load() async {
     final userId = _currentUserId();
     if (userId == null) {
-      state = state.copyWith(error: 'Sign in to view your level progress.');
+      state = state.copyWith(error: _l.engagementLevelSignIn);
       return;
     }
     state = state.copyWith(isLoading: true, clearError: true);
@@ -233,13 +237,13 @@ class LevelProgressionNotifier extends StateNotifier<LevelProgressionState> {
       log.error('Failed to load level progression', error, stackTrace);
       state = state.copyWith(
         isLoading: false,
-        error: _apiError(error, 'Unable to load your progress right now.'),
+        error: _apiError(error, _l.engagementLevelLoadFailed),
       );
     } on Object catch (error, stackTrace) {
       log.error('Failed to load level progression', error, stackTrace);
       state = state.copyWith(
         isLoading: false,
-        error: 'Unable to load your progress right now.',
+        error: _l.engagementLevelLoadFailed,
       );
     }
   }
@@ -268,7 +272,7 @@ class LevelProgressionNotifier extends StateNotifier<LevelProgressionState> {
       log.error('Failed to claim level reward', error, stackTrace);
       state = state.copyWith(
         clearClaimingReward: true,
-        error: _apiError(error, 'Unable to claim this reward right now.'),
+        error: _apiError(error, _l.engagementLevelClaimFailed),
       );
       return false;
     }

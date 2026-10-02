@@ -10,6 +10,7 @@ import 'package:verified_dating_app/core/providers/api_client_provider.dart';
 import 'package:verified_dating_app/features/auth/providers/auth_provider.dart';
 import 'package:verified_dating_app/features/auth/providers/session_end_listener.dart';
 import 'package:verified_dating_app/features/notifications/providers/notification_provider.dart';
+import 'package:verified_dating_app/l10n/app_localizations.dart';
 
 /// A session the server stops accepting (revoked or expired): the API client
 /// refreshes once, replays the request, and only when renewal is impossible
@@ -244,6 +245,8 @@ void main() {
       ProviderScope(
         overrides: [notificationProvider.overrideWith(_IdleNotifications.new)],
         child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: Consumer(
             builder: (context, ref, _) {
               listenForSessionEnd(ref, context);

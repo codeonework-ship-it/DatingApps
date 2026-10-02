@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/config/feature_flags.dart';
 import '../../../core/providers/api_client_provider.dart';
 import '../../../core/utils/logger.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../engagement_l10n.dart';
 
 class CircleChallengeItem {
   const CircleChallengeItem({
@@ -82,6 +84,8 @@ class CircleChallengeNotifier extends StateNotifier<CircleChallengeState> {
 
   final Ref _ref;
 
+  AppLocalizations get _l => engagementL10nFor(_ref);
+
   static const List<String> _defaultCircleIds = <String>[
     'circle-blr-books',
     'circle-blr-fitness',
@@ -91,7 +95,7 @@ class CircleChallengeNotifier extends StateNotifier<CircleChallengeState> {
   Future<void> load() async {
     final userId = _currentUserId();
     if (userId == null || userId.isEmpty) {
-      state = state.copyWith(error: 'User session not available.');
+      state = state.copyWith(error: _l.engagementSessionUnavailable);
       return;
     }
 
@@ -158,7 +162,9 @@ class CircleChallengeNotifier extends StateNotifier<CircleChallengeState> {
           CircleChallengeItem(
             id: view['circle_id']?.toString() ?? circleId,
             city: challenge['city']?.toString() ?? 'Bengaluru',
-            topic: challenge['topic']?.toString() ?? 'Circle',
+            topic:
+                challenge['topic']?.toString() ??
+                _l.engagementCirclesTopicFallback,
             promptText: challenge['prompt_text']?.toString() ?? '',
             participationCount:
                 (view['participation_count'] as num?)?.toInt() ?? 0,
@@ -173,16 +179,13 @@ class CircleChallengeNotifier extends StateNotifier<CircleChallengeState> {
       log.error('Failed to load circles', e, stackTrace);
       state = state.copyWith(
         isLoading: false,
-        error: _extractApiError(
-          e,
-          fallback: 'Unable to load circles right now.',
-        ),
+        error: _extractApiError(e, fallback: _l.engagementCirclesLoadFailed),
       );
     } catch (e, stackTrace) {
       log.error('Failed to load circles', e, stackTrace);
       state = state.copyWith(
         isLoading: false,
-        error: 'Unable to load circles right now.',
+        error: _l.engagementCirclesLoadFailed,
       );
     }
   }
@@ -190,7 +193,7 @@ class CircleChallengeNotifier extends StateNotifier<CircleChallengeState> {
   Future<void> joinCircle(String circleId) async {
     final userId = _currentUserId();
     if (userId == null || userId.isEmpty) {
-      state = state.copyWith(error: 'User session not available.');
+      state = state.copyWith(error: _l.engagementSessionUnavailable);
       return;
     }
 
@@ -224,16 +227,13 @@ class CircleChallengeNotifier extends StateNotifier<CircleChallengeState> {
       log.error('Failed to join circle', e, stackTrace);
       state = state.copyWith(
         isSubmitting: false,
-        error: _extractApiError(
-          e,
-          fallback: 'Unable to join circle right now.',
-        ),
+        error: _extractApiError(e, fallback: _l.engagementCirclesJoinFailed),
       );
     } catch (e, stackTrace) {
       log.error('Failed to join circle', e, stackTrace);
       state = state.copyWith(
         isSubmitting: false,
-        error: 'Unable to join circle right now.',
+        error: _l.engagementCirclesJoinFailed,
       );
     }
   }
@@ -246,11 +246,11 @@ class CircleChallengeNotifier extends StateNotifier<CircleChallengeState> {
     final userId = _currentUserId();
     final trimmedEntry = entryText.trim();
     if (userId == null || userId.isEmpty) {
-      state = state.copyWith(error: 'User session not available.');
+      state = state.copyWith(error: _l.engagementSessionUnavailable);
       return;
     }
     if (trimmedEntry.isEmpty) {
-      state = state.copyWith(error: 'Please enter your challenge response.');
+      state = state.copyWith(error: _l.engagementCirclesEnterResponse);
       return;
     }
 
@@ -310,16 +310,13 @@ class CircleChallengeNotifier extends StateNotifier<CircleChallengeState> {
       log.error('Failed to submit circle challenge entry', e, stackTrace);
       state = state.copyWith(
         isSubmitting: false,
-        error: _extractApiError(
-          e,
-          fallback: 'Unable to submit challenge entry right now.',
-        ),
+        error: _extractApiError(e, fallback: _l.engagementCirclesSubmitFailed),
       );
     } catch (e, stackTrace) {
       log.error('Failed to submit circle challenge entry', e, stackTrace);
       state = state.copyWith(
         isSubmitting: false,
-        error: 'Unable to submit challenge entry right now.',
+        error: _l.engagementCirclesSubmitFailed,
       );
     }
   }

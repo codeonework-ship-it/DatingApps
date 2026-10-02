@@ -9,6 +9,7 @@ import 'package:verified_dating_app/features/auth/providers/auth_provider.dart';
 import 'package:verified_dating_app/features/blog/blog_data.dart';
 import 'package:verified_dating_app/features/blog/blog_screen.dart';
 import 'package:verified_dating_app/features/blog/blog_social.dart';
+import 'package:verified_dating_app/l10n/app_localizations.dart';
 
 class _Auth extends AuthNotifier {
   @override
@@ -99,6 +100,8 @@ Widget host(_Api api, Widget child) => ProviderScope(
     apiClientProvider.overrideWithValue(api.dio),
   ],
   child: MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
     home: Scaffold(body: ListView(children: [child])),
   ),
 );
@@ -183,12 +186,16 @@ void main() {
         likesNeeded: likes,
         commentsNeeded: comments,
       );
+      final l10n = lookupAppLocalizations(const Locale('en'));
       expect(
-        blogTierNeeds(tier(38, 4)),
+        blogTierNeeds(l10n, tier(38, 4)),
         '38 more likes and 4 more comments to reach 50 walls',
       );
-      expect(blogTierNeeds(tier(1, 0)), '1 more like to reach 50 walls');
-      expect(blogTierNeeds(tier(0, 1)), '1 more comment to reach 50 walls');
+      expect(blogTierNeeds(l10n, tier(1, 0)), '1 more like to reach 50 walls');
+      expect(
+        blogTierNeeds(l10n, tier(0, 1)),
+        '1 more comment to reach 50 walls',
+      );
     });
 
     test('comment JSON parses every contract field', () {
@@ -568,7 +575,11 @@ void main() {
           authNotifierProvider.overrideWith(_Auth.new),
           apiClientProvider.overrideWithValue(api.dio),
         ],
-        child: const MaterialApp(home: BlogScreen()),
+        child: const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: BlogScreen(),
+        ),
       ),
     );
     await t.pumpAndSettle();
@@ -600,6 +611,51 @@ void main() {
       scrollable: find.byType(Scrollable).last,
     );
     expect(find.text('Comments'), findsOneWidget);
+    expect(t.takeException(), isNull);
+  });
+
+  testWidgets('the feed, chips and rails follow the app language', (t) async {
+    final api = _Api((r) {
+      if (r.path == '/blog/featured') {
+        return {
+          'posts': [
+            postJson(id: 'f1', extra: {'featured': true}),
+          ],
+        };
+      }
+      if (r.path == '/blog/posts') {
+        return {
+          'posts': [postJson()],
+          'next_cursor': '',
+        };
+      }
+      return <String, dynamic>{};
+    });
+    await t.pumpWidget(
+      ProviderScope(
+        overrides: [
+          authNotifierProvider.overrideWith(_Auth.new),
+          apiClientProvider.overrideWithValue(api.dio),
+        ],
+        child: const MaterialApp(
+          locale: Locale('de'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: BlogScreen(),
+        ),
+      ),
+    );
+    await t.pumpAndSettle();
+    expect(find.text('Offene Kapitel'), findsOneWidget);
+    expect(find.text('Kapitel schreiben'), findsOneWidget);
+    expect(find.widgetWithText(ChoiceChip, 'Für dich'), findsOneWidget);
+    await t.scrollUntilVisible(
+      find.text('Ausgewählte Geschichten'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('Ausgewählte Geschichten'), findsOneWidget);
+    expect(find.text('Featured Stories'), findsNothing);
     expect(t.takeException(), isNull);
   });
 

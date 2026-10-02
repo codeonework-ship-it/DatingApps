@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../i18n/app_l10n.dart';
 import '../theme/app_theme.dart';
 import '../theme/cinematic_effects.dart';
 import '../theme/couture.dart';
@@ -236,7 +237,9 @@ class _GlassButtonState extends State<GlassButton>
     return Semantics(
       button: true,
       enabled: isEnabled,
-      label: widget.isLoading ? '${widget.label}, loading' : widget.label,
+      label: widget.isLoading
+          ? l10nOrEnglish(context).commonLoadingLabel(widget.label)
+          : widget.label,
       onTap: isEnabled ? widget.onPressed : null,
       child: AnimatedOpacity(
         duration: const Duration(milliseconds: 140),
@@ -265,7 +268,7 @@ class GoldBackButton extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Semantics(
       button: true,
-      label: tooltip ?? 'Back',
+      label: tooltip ?? l10nOrEnglish(context).commonBack,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onTap,

@@ -4,11 +4,14 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/config/feature_flags.dart';
 import '../../../core/platform/browser_context.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
+import '../../../l10n/app_localizations.dart';
+import '../auth_messages.dart';
 import '../providers/auth_provider.dart';
 import 'auth_screen.dart';
 
@@ -54,11 +57,12 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     final confirmation = _confirmPasswordController.text;
     final name = _nameController.text.trim();
     final dob = _dateOfBirth;
+    final l10n = AppLocalizations.of(context);
 
     if (!RegExp(
       r'^[A-Za-z0-9][A-Za-z0-9._]{1,28}[A-Za-z0-9]$',
     ).hasMatch(username)) {
-      _snack('Username must be 3–30 characters using letters, numbers, _ or .');
+      _snack(l10n.authErrorUsernameFormat);
       _usernameFocus.requestFocus();
       return;
     }
@@ -67,35 +71,35 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
         passwordBytes > 72 ||
         !RegExp('[A-Za-z]').hasMatch(password) ||
         !RegExp('[0-9]').hasMatch(password)) {
-      _snack('Password must be 8–72 bytes with letters and numbers.');
+      _snack(l10n.authErrorPasswordFormat);
       _passwordFocus.requestFocus();
       return;
     }
     if (password != confirmation) {
-      _snack('Passwords do not match.');
+      _snack(l10n.signupErrorPasswordMismatch);
       _confirmPasswordFocus.requestFocus();
       return;
     }
     if (name.length < 2) {
-      _snack('Please enter your full name.');
+      _snack(l10n.signupErrorFullName);
       _nameFocus.requestFocus();
       return;
     }
     if (dob == null) {
-      _snack('Please select your date of birth.');
+      _snack(l10n.signupErrorDobMissing);
       return;
     }
     if (_ageInYears(dob) < 18) {
-      _snack('You must be at least 18 years old.');
+      _snack(l10n.signupErrorUnderage);
       return;
     }
     if (_ageInYears(dob) > 80) {
-      _snack('Connect currently supports members aged 18–80.');
+      _snack(l10n.signupErrorAgeRange);
       return;
     }
     final gender = _gender;
     if (!widget.introducer && gender == null) {
-      _snack('Please choose how you identify.');
+      _snack(l10n.signupErrorGenderMissing);
       return;
     }
 
@@ -123,7 +127,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
       initialDate: _dateOfBirth ?? DateTime(now.year - 25),
       firstDate: DateTime(now.year - 80),
       lastDate: DateTime(now.year - 18, now.month, now.day),
-      helpText: 'Select date of birth',
+      helpText: AppLocalizations.of(context).signupDobPickerHelp,
     );
     if (selected != null && mounted) {
       setState(() => _dateOfBirth = selected);
@@ -140,6 +144,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authNotifierProvider);
     final notifier = ref.read(authNotifierProvider.notifier);
+    final l10n = AppLocalizations.of(context);
 
     ref.listen<AuthState>(authNotifierProvider, (previous, next) {
       if (!(previous?.isAuthenticated ?? false) && next.isAuthenticated) {
@@ -173,7 +178,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                     Align(
                       alignment: Alignment.centerLeft,
                       child: GoldBackButton(
-                        tooltip: 'Back',
+                        tooltip: l10n.signupBackTooltip,
                         onTap: () {
                           notifier.resetAuthFlow();
                           if (kIsWeb) {
@@ -190,13 +195,11 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                     const SizedBox(height: 8),
                     if (widget.introducer) ...[
                       Text(
-                        'Be the friend who brings people together.',
+                        l10n.signupIntroducerTitle,
                         style: Theme.of(context).textTheme.headlineMedium,
                       ),
                       const SizedBox(height: 12),
-                      const Text(
-                        'A friend-only account. No dating profile, photos or swiping. Your age stays private; Connect is for adults 18–80.',
-                      ),
+                      Text(l10n.signupIntroducerBody),
                     ] else
                       const _SignupHeader(),
                     const SizedBox(height: 24),
@@ -213,7 +216,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                               ),
                               const SizedBox(height: 16),
                             ],
-                            const _FieldLabel('Unique username'),
+                            _FieldLabel(l10n.signupUsernameLabel),
                             const SizedBox(height: 8),
                             _SignupTextField(
                               fieldKey: const ValueKey(
@@ -226,17 +229,14 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                               autofocus: true,
                               textInputAction: TextInputAction.next,
                               autofillHints: const [AutofillHints.newUsername],
-                              hint: 'your_username',
+                              hint: l10n.signupUsernameHint,
                               icon: Icons.person_outline_rounded,
                               onSubmitted: (_) => _passwordFocus.requestFocus(),
                             ),
                             const SizedBox(height: 6),
-                            const _FieldHelp(
-                              '3–30 characters. Letters, numbers, underscore '
-                              'and dot.',
-                            ),
+                            _FieldHelp(l10n.signupUsernameHelp),
                             const SizedBox(height: 18),
-                            const _FieldLabel('Password'),
+                            _FieldLabel(l10n.signupPasswordLabel),
                             const SizedBox(height: 8),
                             _SignupTextField(
                               fieldKey: const ValueKey(
@@ -251,7 +251,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                               autofillHints: kEnableQaAutomation
                                   ? null
                                   : const [AutofillHints.newPassword],
-                              hint: 'At least 8 characters',
+                              hint: l10n.signupPasswordHint,
                               icon: Icons.password_rounded,
                               suffixIcon: _VisibilityButton(
                                 obscure: _obscurePassword,
@@ -273,7 +273,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                               enabled: !authState.isLoading,
                               obscureText: _obscureConfirmation,
                               textInputAction: TextInputAction.next,
-                              hint: 'Confirm password',
+                              hint: l10n.signupConfirmPasswordHint,
                               icon: Icons.lock_outline_rounded,
                               suffixIcon: _VisibilityButton(
                                 obscure: _obscureConfirmation,
@@ -285,7 +285,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                               onSubmitted: (_) => _nameFocus.requestFocus(),
                             ),
                             const SizedBox(height: 18),
-                            const _FieldLabel('Full name'),
+                            _FieldLabel(l10n.signupNameLabel),
                             const SizedBox(height: 8),
                             _SignupTextField(
                               fieldKey: const ValueKey('qa.signup.name_field'),
@@ -295,11 +295,11 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                               enabled: !authState.isLoading,
                               textCapitalization: TextCapitalization.words,
                               textInputAction: TextInputAction.done,
-                              hint: 'Your name',
+                              hint: l10n.signupNameHint,
                               icon: Icons.badge_outlined,
                             ),
                             const SizedBox(height: 18),
-                            const _FieldLabel('Date of birth'),
+                            _FieldLabel(l10n.signupDobLabel),
                             const SizedBox(height: 8),
                             _DateOfBirthField(
                               value: _dateOfBirth,
@@ -308,7 +308,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                             ),
                             const SizedBox(height: 18),
                             if (!widget.introducer) ...[
-                              const _FieldLabel('I identify as'),
+                              _FieldLabel(l10n.signupGenderLabel),
                               const SizedBox(height: 10),
                               _GenderSelector(
                                 value: _gender,
@@ -320,7 +320,12 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                             ],
                             if (authState.error != null) ...[
                               const SizedBox(height: 16),
-                              _ErrorBanner(message: authState.error!),
+                              _ErrorBanner(
+                                message: localizedAuthMessage(
+                                  l10n,
+                                  authState.error!,
+                                ),
+                              ),
                             ],
                             const SizedBox(height: 22),
                             Semantics(
@@ -333,8 +338,8 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                                     'qa.signup.create_account_button',
                                   ),
                                   label: widget.introducer
-                                      ? 'Create friend account'
-                                      : 'Create account',
+                                      ? l10n.signupCreateFriendAccount
+                                      : l10n.welcomeCreateAccount,
                                   icon: Icons.person_add_alt_1_rounded,
                                   shinyEffect: true,
                                   isLoading: authState.isLoading,
@@ -401,7 +406,7 @@ class _SignupHeader extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         Text(
-          'Create your account',
+          AppLocalizations.of(context).signupTitle,
           style: Theme.of(context).textTheme.headlineMedium!.copyWith(
             fontWeight: FontWeight.w800,
             color: scheme.onSurface,
@@ -409,7 +414,7 @@ class _SignupHeader extends StatelessWidget {
         ),
         const SizedBox(height: 7),
         Text(
-          'Choose a unique username and secure password',
+          AppLocalizations.of(context).signupSubtitle,
           textAlign: TextAlign.center,
           style: Theme.of(
             context,
@@ -531,6 +536,7 @@ class _DateOfBirthField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
     return Semantics(
       label: 'qa.signup.dob_field',
       button: true,
@@ -554,7 +560,9 @@ class _DateOfBirthField extends StatelessWidget {
               // the "Select date" placeholder this was sized against.
               Expanded(
                 child: Text(
-                  value == null ? 'Select date' : _displayDate(value!),
+                  value == null
+                      ? l10n.signupDobPlaceholder
+                      : _displayDate(value!, Localizations.localeOf(context)),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -583,12 +591,13 @@ class _GenderSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
     return Row(
       children: [
-        for (final option in const [
-          ('M', 'Man'),
-          ('F', 'Woman'),
-          ('Other', 'Other'),
+        for (final option in [
+          ('M', l10n.signupGenderMan),
+          ('F', l10n.signupGenderWoman),
+          ('Other', l10n.signupGenderOther),
         ]) ...[
           Expanded(
             child: Semantics(
@@ -639,7 +648,9 @@ class _VisibilityButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => IconButton(
-    tooltip: obscure ? 'Show password' : 'Hide password',
+    tooltip: obscure
+        ? AppLocalizations.of(context).authShowPassword
+        : AppLocalizations.of(context).authHidePassword,
     onPressed: onPressed,
     icon: Icon(
       obscure ? Icons.visibility_rounded : Icons.visibility_off_rounded,
@@ -690,12 +701,12 @@ class _SigninLink extends StatelessWidget {
     crossAxisAlignment: WrapCrossAlignment.center,
     children: [
       Text(
-        'Already have an account?',
+        AppLocalizations.of(context).signupAlreadyHaveAccount,
         style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
       ),
       TextButton(
         onPressed: enabled ? onTap : null,
-        child: const Text('Sign in'),
+        child: Text(AppLocalizations.of(context).authSignIn),
       ),
     ],
   );
@@ -773,6 +784,10 @@ String _formatDate(DateTime value) =>
     '${value.month.toString().padLeft(2, '0')}-'
     '${value.day.toString().padLeft(2, '0')}';
 
-String _displayDate(DateTime value) =>
-    '${value.day.toString().padLeft(2, '0')}/'
-    '${value.month.toString().padLeft(2, '0')}/${value.year}';
+/// English keeps the day/month/year layout automation types against; other
+/// languages use their own short date.
+String _displayDate(DateTime value, Locale locale) =>
+    locale.languageCode == 'en'
+    ? '${value.day.toString().padLeft(2, '0')}/'
+          '${value.month.toString().padLeft(2, '0')}/${value.year}'
+    : DateFormat.yMd(locale.toString()).format(value);

@@ -11,6 +11,7 @@ import 'package:verified_dating_app/features/groups/group_detail_screen.dart';
 import 'package:verified_dating_app/features/groups/groups_data.dart';
 import 'package:verified_dating_app/features/groups/groups_screen.dart';
 import 'package:verified_dating_app/features/social_chat/social_chat_screen.dart';
+import 'package:verified_dating_app/l10n/app_localizations.dart';
 
 class _Auth extends AuthNotifier {
   @override
@@ -82,12 +83,17 @@ Map<String, Object?> groupJson({
     ],
 };
 
-Widget _app(_Api api, Widget home) => ProviderScope(
+Widget _app(_Api api, Widget home, {Locale? locale}) => ProviderScope(
   overrides: [
     authNotifierProvider.overrideWith(_Auth.new),
     apiClientProvider.overrideWithValue(api.dio),
   ],
-  child: MaterialApp(home: home),
+  child: MaterialApp(
+    locale: locale,
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
+    home: home,
+  ),
 );
 
 Future<void> _settle(WidgetTester tester) async {
@@ -292,6 +298,71 @@ void main() {
     expect(find.text('No groups yet'), findsNothing);
     expect(find.text('Koramangala readers'), findsOneWidget);
     expect(find.byKey(const ValueKey('groups.join.g1')), findsNothing);
+  });
+
+  testWidgets('groups home and detail follow the German locale', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(430, 2000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final api = _Api((r) {
+      switch (r.path) {
+        case '/engagement/group-categories':
+          return _categories;
+        case '/engagement/group-invites':
+          return {
+            'invites': [
+              {
+                'id': 'i1',
+                'group_id': 'p1',
+                'inviter_name': 'Asha',
+                'group': groupJson(
+                  id: 'p1',
+                  kind: 'private',
+                  name: 'Trek planners',
+                  inviteId: 'i1',
+                ),
+              },
+            ],
+          };
+        case '/engagement/groups':
+          return {'groups': <Object>[]};
+        case '/engagement/groups/g1':
+          return {
+            'group': groupJson(role: 'owner', channel: 'c1', canManage: true),
+          };
+      }
+      return <String, Object?>{};
+    });
+    const de = Locale('de');
+    await tester.pumpWidget(_app(api, const GroupsScreen(), locale: de));
+    await _settle(tester);
+    expect(find.text('Finde deine Leute.'), findsOneWidget);
+    expect(find.text('Gruppe gründen'), findsOneWidget);
+    expect(find.text('EINLADUNGEN'), findsOneWidget);
+    expect(
+      find.text('Asha hat dich eingeladen · Private Gruppe · 4 Mitglieder'),
+      findsOneWidget,
+    );
+    expect(find.text('Noch keine Gruppen'), findsOneWidget);
+    // Group names stay as their members wrote them.
+    expect(find.text('Trek planners'), findsOneWidget);
+    expect(find.text('Find your people.'), findsNothing);
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pumpWidget(
+      _app(api, const GroupDetailScreen(groupId: 'g1'), locale: de),
+    );
+    await _settle(tester);
+    expect(find.text('COMMUNITY-GRUPPE'), findsOneWidget);
+    expect(find.text('Offen für alle'), findsOneWidget);
+    expect(find.text('2 Mitglieder'), findsOneWidget);
+    expect(find.text('Du leitest sie'), findsOneWidget);
+    expect(find.text('WER DABEI IST'), findsOneWidget);
+    expect(find.text('Leitung'), findsOneWidget);
+    expect(find.text('Du'), findsOneWidget);
+    expect(find.byTooltip('Verwaltung'), findsOneWidget);
   });
 
   testWidgets('a member opens the group chat from the detail screen', (
@@ -532,9 +603,19 @@ void main() {
     expect(g.canModerate, isTrue);
     expect(g.emoji, '📚');
     expect(g.members, hasLength(2));
-    expect(g.memberLabel, '2 members');
+    final en = lookupAppLocalizations(const Locale('en'));
+    expect(g.memberLabel(en), '2 members');
     final p = Group.fromJson(groupJson(kind: 'private'));
-    expect(p.kindLabel, 'Private group');
+    expect(p.kindLabel(en), 'Private group');
+    expect(g.kindLabel(en), 'Community group');
+    expect(
+      Group.fromJson({...groupJson(), 'member_count': 1}).memberLabel(en),
+      '1 member',
+    );
+    expect(groupRoleLabel(en, 'owner'), 'Owner');
+    expect(groupRoleLabel(en, 'moderator'), 'Moderator');
+    expect(groupRoleLabel(en, 'member'), 'Member');
+    expect(groupRoleLabel(en, 'unknown'), isNull);
     expect(p.emoji, '🫶');
     expect(p.isMember, isFalse);
     expect(p.removed, isFalse);

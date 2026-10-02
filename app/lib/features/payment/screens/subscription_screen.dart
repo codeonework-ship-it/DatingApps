@@ -4,9 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
+import '../../../l10n/app_localizations.dart';
 import '../platform/checkout_launcher.dart';
 import '../providers/subscription_provider.dart';
 import 'payment_account_card.dart';
+import 'payment_l10n.dart';
 
 /// Membership: current plan, auto-renew control, plan catalog and payment
 /// history. Plans are bought with a card on the provider's hosted checkout
@@ -35,13 +37,14 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
     final state = ref.watch(subscriptionProvider);
     final subscription = state.subscription;
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
     final paidPlans = state.plans.where((plan) => !plan.isFree).toList();
     final popularId = paidPlans.length >= 3
         ? paidPlans[paidPlans.length ~/ 2].id
         : (paidPlans.isNotEmpty ? paidPlans.last.id : null);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Membership')),
+      appBar: AppBar(title: Text(l10n.membershipTitle)),
       body: PostLoginBackdrop(
         child: SafeArea(
           child: RefreshIndicator(
@@ -74,11 +77,17 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                 ),
                 if (state.error != null) ...[
                   const SizedBox(height: 12),
-                  _InlineError(message: state.error!),
+                  _InlineError(
+                    message: paymentErrorText(
+                      l10n,
+                      state.errorCode,
+                      state.error!,
+                    ),
+                  ),
                 ],
                 const SizedBox(height: 24),
                 _SectionTitle(
-                  title: 'Choose your plan',
+                  title: l10n.membershipChooseYourPlan,
                   trailing: _CycleToggle(
                     value: _billingCycle,
                     onChanged: (value) => setState(() => _billingCycle = value),
@@ -86,9 +95,9 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Pay by card. Renews automatically every '
-                  '${_billingCycle == 'yearly' ? 'year' : 'month'} until you '
-                  'turn it off.',
+                  _billingCycle == 'yearly'
+                      ? l10n.membershipCycleNoteYearly
+                      : l10n.membershipCycleNoteMonthly,
                   style: TextStyle(
                     fontSize: 12,
                     color: scheme.onSurfaceVariant,
@@ -103,7 +112,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                     ),
                   )
                 else if (paidPlans.isEmpty)
-                  const Text('No plans are on sale right now.')
+                  Text(l10n.membershipNoPlansOnSale)
                 else
                   for (final plan in paidPlans)
                     Padding(
@@ -141,11 +150,11 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                       ),
                     ),
                 const SizedBox(height: 16),
-                const _SectionTitle(title: 'Payments'),
+                _SectionTitle(title: l10n.membershipPaymentsTitle),
                 const SizedBox(height: 8),
                 if (state.payments.isEmpty)
                   Text(
-                    'No card payments yet.',
+                    l10n.membershipNoCardPayments,
                     style: TextStyle(color: scheme.onSurfaceVariant),
                   )
                 else
@@ -177,10 +186,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                 ],
                 const SizedBox(height: 20),
                 Text(
-                  'Your plan renews automatically at the end of each billing '
-                  'period. Turn off auto-renew at any time; you keep your '
-                  'benefits until the period ends. Card details are handled '
-                  'by the payment provider and never stored in the app.',
+                  l10n.membershipFooterNote,
                   style: TextStyle(
                     fontSize: 12,
                     height: 1.4,
@@ -200,8 +206,10 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
     if (current == null) {
       return;
     }
+    final l10n = AppLocalizations.of(context);
     final newPrice = plan.priceFor(_billingCycle);
-    final per = _billingCycle == 'yearly' ? 'year' : 'month';
+    final yearly = _billingCycle == 'yearly';
+    final price = paymentMoney(context, newPrice, 'INR');
     final perDayNew = newPrice / (_billingCycle == 'yearly' ? 365 : 30);
     final perDayOld =
         current.amount / (current.billingCycle == 'yearly' ? 365 : 30);
@@ -209,24 +217,32 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text('Switch to ${plan.name}?'),
+        title: Text(l10n.membershipSwitchTitle(plan.name)),
         content: Text(
           upgrade
-              ? 'Your card is charged now for the difference for the rest of '
-                    'this period, then ${_money(newPrice, 'INR')} per $per '
-                    'from the next renewal.'
-              : 'Your plan changes now. Unused time on ${current.planName} is '
-                    'credited against your next renewal, then you pay '
-                    '${_money(newPrice, 'INR')} per $per.',
+              ? (yearly
+                    ? l10n.membershipSwitchUpgradeBodyYearly(price)
+                    : l10n.membershipSwitchUpgradeBodyMonthly(price))
+              : (yearly
+                    ? l10n.membershipSwitchDowngradeBodyYearly(
+                        current.planName,
+                        price,
+                      )
+                    : l10n.membershipSwitchDowngradeBodyMonthly(
+                        current.planName,
+                        price,
+                      )),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Not now'),
+            child: Text(l10n.membershipNotNow),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: Text(upgrade ? 'Upgrade' : 'Switch plan'),
+            child: Text(
+              upgrade ? l10n.membershipUpgrade : l10n.membershipSwitchPlan,
+            ),
           ),
         ],
       ),
@@ -240,9 +256,9 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
     if (!mounted || !ok) {
       return;
     }
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text("You're on ${plan.name} now.")));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(l10n.membershipSwitchedSnack(plan.name))),
+    );
   }
 
   Future<void> _updateCard() async {
@@ -254,7 +270,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
     final done = await launchHostedCheckout(
       context,
       checkout: checkout,
-      title: 'your card',
+      title: AppLocalizations.of(context).membershipCheckoutTitleCard,
     );
     if (!mounted) {
       return;
@@ -269,16 +285,15 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
     if (!mounted) {
       return;
     }
+    final l10n = AppLocalizations.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
           outcome == CheckoutOutcome.completed
-              ? 'Your card has been updated.'
+              ? l10n.membershipCardUpdated
               : outcome == CheckoutOutcome.pending
-              ? 'Card update not confirmed yet. '
-                    'Check its status before trying again.'
-              : 'This card update session has ended. '
-                    'Refresh to see your current card.',
+              ? l10n.membershipCardUpdatePending
+              : l10n.membershipCardUpdateEnded,
         ),
       ),
     );
@@ -289,23 +304,27 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
     if (subscription == null) {
       return;
     }
+    final l10n = AppLocalizations.of(context);
     if (!enabled) {
-      final endLabel = subscription.currentPeriodEnd == null
-          ? 'the end of the current period'
-          : _dateLabel(subscription.currentPeriodEnd!);
+      final periodEnd = subscription.currentPeriodEnd;
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (dialogContext) => AlertDialog(
-          title: const Text('Turn off auto-renew?'),
+          title: Text(l10n.membershipAutoRenewOffTitle),
           content: Text(
-            'Your ${subscription.planName} benefits stay active until '
-            '$endLabel. After that you move to the Free plan and your card '
-            'is not charged again.',
+            periodEnd == null
+                ? l10n.membershipAutoRenewOffBodyPeriodEnd(
+                    subscription.planName,
+                  )
+                : l10n.membershipAutoRenewOffBodyDate(
+                    subscription.planName,
+                    paymentDate(context, periodEnd),
+                  ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Keep renewing'),
+              child: Text(l10n.membershipKeepRenewing),
             ),
             FilledButton(
               style: FilledButton.styleFrom(
@@ -313,7 +332,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                 foregroundColor: Theme.of(dialogContext).colorScheme.onError,
               ),
               onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('Turn off'),
+              child: Text(l10n.membershipTurnOff),
             ),
           ],
         ),
@@ -332,37 +351,38 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
       SnackBar(
         content: Text(
           enabled
-              ? 'Auto-renew is back on.'
-              : 'Auto-renew is off. Your benefits continue until the period '
-                    'ends.',
+              ? l10n.membershipAutoRenewBackOn
+              : l10n.membershipAutoRenewNowOff,
         ),
       ),
     );
   }
 
   Future<void> _subscribe(SubscriptionPlan plan) async {
+    final l10n = AppLocalizations.of(context);
     final testMode = ref.read(subscriptionProvider).account?.isTest == true;
-    final price = _money(plan.priceFor(_billingCycle), 'INR');
-    final per = _billingCycle == 'yearly' ? 'year' : 'month';
-    final chargeLabel = testMode ? 'simulated' : 'charged to your card';
+    final price = paymentMoney(context, plan.priceFor(_billingCycle), 'INR');
+    final yearly = _billingCycle == 'yearly';
+    final body = testMode
+        ? (yearly
+              ? l10n.membershipSubscribeBodyTestYearly(price)
+              : l10n.membershipSubscribeBodyTestMonthly(price))
+        : (yearly
+              ? l10n.membershipSubscribeBodyYearly(price)
+              : l10n.membershipSubscribeBodyMonthly(price));
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text('Subscribe to ${plan.name}'),
-        content: Text(
-          '${testMode ? 'Test checkout only — no real charge. ' : ''}'
-          '$price per $per, $chargeLabel and renewed automatically '
-          'until you turn auto-renew off. You will enter your card on the '
-          "payment provider's secure page.",
-        ),
+        title: Text(l10n.membershipSubscribeTitle(plan.name)),
+        content: Text(body),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Not now'),
+            child: Text(l10n.membershipNotNow),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Continue to card'),
+            child: Text(l10n.membershipContinueToCard),
           ),
         ],
       ),
@@ -401,23 +421,14 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
       case CheckoutOutcome.completed:
         await _celebrate(plan);
       case CheckoutOutcome.pending:
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Payment is still being confirmed. Pull to refresh in a moment.',
-            ),
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.paymentStillConfirming)));
       case CheckoutOutcome.cancelled:
       case CheckoutOutcome.failed:
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'This checkout session has ended. '
-              'Refresh your payment history before trying again.',
-            ),
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.membershipCheckoutEnded)));
     }
   }
 
@@ -437,6 +448,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
       if (!mounted) {
         return;
       }
+      final l10n = AppLocalizations.of(context);
       final account = ref.read(subscriptionProvider).account;
       final pending = account?.pendingCheckouts
           .where((item) => item.id == checkout.id)
@@ -446,9 +458,8 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
           SnackBar(
             content: Text(
               account == null
-                  ? 'Unable to check the payment account. Please retry.'
-                  : 'Payment account refreshed. '
-                        'This checkout is no longer open.',
+                  ? l10n.membershipRecoverAccountUnavailable
+                  : l10n.membershipRecoverCheckoutClosed,
             ),
           ),
         );
@@ -459,7 +470,9 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
         returned = await launchHostedCheckout(
           context,
           checkout: pending,
-          title: pending.kind == 'card_update' ? 'your card' : pending.planCode,
+          title: pending.kind == 'card_update'
+              ? l10n.membershipCheckoutTitleCard
+              : pending.planCode,
         );
         if (!mounted) {
           return;
@@ -476,11 +489,10 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
         SnackBar(
           content: Text(
             outcome == CheckoutOutcome.completed
-                ? 'Confirmed. Your payment account is up to date.'
+                ? l10n.membershipRecoverConfirmed
                 : outcome == CheckoutOutcome.pending
-                ? 'Confirmation is still pending. You can check again here.'
-                : 'This checkout session has ended. '
-                      'Review your payment history before starting another.',
+                ? l10n.membershipRecoverPending
+                : l10n.membershipRecoverEnded,
           ),
         ),
       );
@@ -517,7 +529,9 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              "You're ${plan.name} now",
+              AppLocalizations.of(
+                sheetContext,
+              ).membershipCelebrateTitle(plan.name),
               textAlign: TextAlign.center,
               style: Theme.of(
                 sheetContext,
@@ -526,17 +540,16 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
             const SizedBox(height: 8),
             Text(
               ref.read(subscriptionProvider).account?.isTest == true
-                  ? 'Test payment confirmed; no real money was charged. '
-                        'Your test plan renews automatically. '
-                        'Manage auto-renew any time from this screen.'
-                  : 'Payment confirmed. Your plan renews automatically. '
-                        'Manage auto-renew any time from this screen.',
+                  ? AppLocalizations.of(
+                      sheetContext,
+                    ).membershipCelebrateBodyTest
+                  : AppLocalizations.of(sheetContext).membershipCelebrateBody,
               textAlign: TextAlign.center,
               style: Theme.of(sheetContext).textTheme.bodyMedium,
             ),
             const SizedBox(height: 20),
             GlassButton(
-              label: 'Start exploring',
+              label: AppLocalizations.of(sheetContext).membershipStartExploring,
               onPressed: () => Navigator.of(sheetContext).pop(),
             ),
           ],
@@ -569,6 +582,7 @@ class _CurrentPlanHero extends StatelessWidget {
     final paid = sub != null && sub.isPaid && sub.isLive;
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
 
     return Padding(
       padding: const EdgeInsets.all(4),
@@ -582,7 +596,9 @@ class _CurrentPlanHero extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    paid ? 'Your membership' : 'Your plan',
+                    paid
+                        ? l10n.membershipYourMembership
+                        : l10n.membershipYourPlan,
                     style: TextStyle(
                       fontSize: 12,
                       letterSpacing: 1.2,
@@ -600,7 +616,7 @@ class _CurrentPlanHero extends StatelessWidget {
               children: [
                 Expanded(
                   child: GradientText(
-                    sub?.planName ?? 'Free',
+                    sub?.planName ?? l10n.membershipFreePlanName,
                     gradient: paid
                         ? LinearGradient(
                             colors: [scheme.primary, scheme.primary],
@@ -618,8 +634,13 @@ class _CurrentPlanHero extends StatelessWidget {
                 ),
                 if (paid)
                   Text(
-                    '${_money(sub.amount, sub.currency)}'
-                    '/${sub.billingCycle == 'yearly' ? 'yr' : 'mo'}',
+                    sub.billingCycle == 'yearly'
+                        ? l10n.membershipPricePerYearShort(
+                            paymentMoney(context, sub.amount, sub.currency),
+                          )
+                        : l10n.membershipPricePerMonthShort(
+                            paymentMoney(context, sub.amount, sub.currency),
+                          ),
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w800,
                     ),
@@ -634,9 +655,9 @@ class _CurrentPlanHero extends StatelessWidget {
                     child: _HeroLine(
                       icon: Icons.credit_card,
                       text: sub.hasCard
-                          ? '${_brandLabel(sub.cardBrand)} •••• '
+                          ? '${_brandLabel(l10n, sub.cardBrand)} •••• '
                                 '${sub.cardLast4}'
-                          : 'Card on file with the payment provider',
+                          : l10n.membershipCardOnFile,
                     ),
                   ),
                   if (sub.provider != 'local')
@@ -647,28 +668,32 @@ class _CurrentPlanHero extends StatelessWidget {
                         minimumSize: const Size(0, 32),
                         foregroundColor: scheme.primary,
                       ),
-                      child: Text(isUpdatingCard ? 'Opening…' : 'Update card'),
+                      child: Text(
+                        isUpdatingCard
+                            ? l10n.paymentOpening
+                            : l10n.membershipUpdateCard,
+                      ),
                     ),
                 ],
               ),
               const SizedBox(height: 4),
               _HeroLine(
                 icon: sub.autoRenew ? Icons.autorenew : Icons.event_busy,
-                text: _renewalLine(sub),
+                text: _renewalLine(context, l10n, sub),
                 emphasis: sub.isPastDue,
               ),
               const SizedBox(height: 12),
               Divider(height: 1, color: scheme.outlineVariant),
               SwitchListTile.adaptive(
                 contentPadding: EdgeInsets.zero,
-                title: const Text(
-                  'Auto-renew',
-                  style: TextStyle(fontWeight: FontWeight.w700),
+                title: Text(
+                  l10n.membershipAutoRenew,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
                 subtitle: Text(
                   sub.autoRenew
-                      ? 'Charged automatically each period.'
-                      : 'Off. Benefits end with the current period.',
+                      ? l10n.membershipAutoRenewOnSubtitle
+                      : l10n.membershipAutoRenewOffSubtitle,
                   style: const TextStyle(fontSize: 12),
                 ),
                 activeThumbColor: scheme.primary,
@@ -677,8 +702,7 @@ class _CurrentPlanHero extends StatelessWidget {
               ),
             ] else
               Text(
-                'Unlock more likes, messages and spotlight with a plan below. '
-                'Pay by card, cancel any time.',
+                l10n.membershipFreeHeroBody,
                 style: theme.textTheme.bodyMedium?.copyWith(height: 1.4),
               ),
           ],
@@ -687,17 +711,24 @@ class _CurrentPlanHero extends StatelessWidget {
     );
   }
 
-  String _renewalLine(UserSubscription sub) {
+  String _renewalLine(
+    BuildContext context,
+    AppLocalizations l10n,
+    UserSubscription sub,
+  ) {
     final end = sub.currentPeriodEnd ?? sub.nextBillingDate;
-    final when = end == null ? 'soon' : _dateLabel(end);
     if (sub.isPastDue) {
-      return 'Last payment failed. We will retry your card; benefits stay '
-          'active for a few days.';
+      return l10n.membershipLastPaymentFailed;
     }
-    if (sub.autoRenew) {
-      return 'Renews on $when';
+    if (end == null) {
+      return sub.autoRenew
+          ? l10n.membershipRenewsSoon
+          : l10n.membershipEndsSoon;
     }
-    return 'Ends on $when · auto-renew is off';
+    final when = paymentDate(context, end);
+    return sub.autoRenew
+        ? l10n.membershipRenewsOn(when)
+        : l10n.membershipEndsOn(when);
   }
 }
 
@@ -737,19 +768,20 @@ class _StatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final sub = subscription;
+    final l10n = AppLocalizations.of(context);
     late final String label;
     late final Color color;
     if (!sub.isPaid) {
-      label = 'Free';
+      label = l10n.membershipStatusFree;
       color = Theme.of(context).colorScheme.secondary;
     } else if (sub.isPastDue) {
-      label = 'Payment due';
+      label = l10n.membershipStatusPaymentDue;
       color = AppTheme.warning;
     } else if (sub.cancelAtPeriodEnd) {
-      label = 'Ending';
+      label = l10n.membershipStatusEnding;
       color = AppTheme.warning;
     } else {
-      label = 'Active';
+      label = l10n.membershipStatusActive;
       color = AppTheme.successGreen;
     }
     return Container(
@@ -831,7 +863,9 @@ class _CycleToggle extends StatelessWidget {
                   color: value == cycle ? scheme.primary : null,
                 ),
                 child: Text(
-                  cycle == 'yearly' ? 'Yearly' : 'Monthly',
+                  cycle == 'yearly'
+                      ? AppLocalizations.of(context).membershipCycleYearly
+                      : AppLocalizations.of(context).membershipCycleMonthly,
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
@@ -877,6 +911,7 @@ class _PlanCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
     final price = plan.priceFor(billingCycle);
     final yearlySaving = plan.monthlyPrice > 0 && plan.yearlyPrice > 0
         ? (1 - plan.yearlyPrice / (plan.monthlyPrice * 12)) * 100
@@ -916,7 +951,9 @@ class _PlanCard extends StatelessWidget {
                             ),
                           ),
                           child: Text(
-                            isCurrent ? 'YOUR PLAN' : 'MOST POPULAR',
+                            isCurrent
+                                ? l10n.membershipBadgeYourPlan
+                                : l10n.membershipBadgeMostPopular,
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w900,
@@ -941,14 +978,16 @@ class _PlanCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    _money(price, 'INR'),
+                    paymentMoney(context, price, 'INR'),
                     style: theme.textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.w900,
                       color: accent,
                     ),
                   ),
                   Text(
-                    billingCycle == 'yearly' ? 'per year' : 'per month',
+                    billingCycle == 'yearly'
+                        ? l10n.membershipPerYear
+                        : l10n.membershipPerMonth,
                     style: TextStyle(
                       fontSize: 12,
                       color: scheme.onSurfaceVariant,
@@ -956,7 +995,7 @@ class _PlanCard extends StatelessWidget {
                   ),
                   if (billingCycle == 'yearly' && yearlySaving >= 1)
                     Text(
-                      'Save ${yearlySaving.round()}%',
+                      l10n.membershipSavePercent(yearlySaving.round()),
                       style: const TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
@@ -974,11 +1013,15 @@ class _PlanCard extends StatelessWidget {
             children: [
               _QuotaPill(
                 icon: Icons.favorite,
-                label: _quotaLabel(plan.likesPerDay, 'likes'),
+                label: plan.likesPerDay < 0
+                    ? l10n.membershipQuotaUnlimitedLikes
+                    : l10n.membershipQuotaLikesPerDay(plan.likesPerDay),
               ),
               _QuotaPill(
                 icon: Icons.chat_bubble,
-                label: _quotaLabel(plan.messagesPerDay, 'messages'),
+                label: plan.messagesPerDay < 0
+                    ? l10n.membershipQuotaUnlimitedMessages
+                    : l10n.membershipQuotaMessagesPerDay(plan.messagesPerDay),
               ),
             ],
           ),
@@ -1004,12 +1047,14 @@ class _PlanCard extends StatelessWidget {
           const SizedBox(height: 16),
           GlassButton(
             label: isCurrent
-                ? 'Your current plan'
+                ? l10n.membershipYourCurrentPlan
                 : isBusy
-                ? (hasOtherLivePlan ? 'Switching…' : 'Opening secure checkout…')
+                ? (hasOtherLivePlan
+                      ? l10n.membershipSwitching
+                      : l10n.membershipOpeningSecureCheckout)
                 : hasOtherLivePlan
-                ? 'Switch to ${plan.name}'
-                : 'Subscribe with card',
+                ? l10n.membershipSwitchToPlan(plan.name)
+                : l10n.membershipSubscribeWithCard,
             icon: isCurrent
                 ? Icons.check
                 : hasOtherLivePlan
@@ -1026,8 +1071,7 @@ class _PlanCard extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: Text(
-                'Settle the outstanding payment on your current plan before '
-                'switching.',
+                l10n.membershipSettleBeforeSwitch,
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant),
               ),
@@ -1082,6 +1126,7 @@ class _PaymentRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
     final muted = scheme.onSurfaceVariant;
     late final Color color;
     late final IconData icon;
@@ -1089,38 +1134,43 @@ class _PaymentRow extends StatelessWidget {
     if (payment.chargedBack) {
       color = scheme.error;
       icon = Icons.gavel;
-      label = 'Chargeback';
+      label = l10n.membershipPaymentChargeback;
     } else if (payment.disputed) {
       color = AppTheme.warning;
       icon = Icons.gavel;
-      label = 'Disputed';
+      label = l10n.membershipPaymentDisputed;
     } else if (payment.refunded) {
       color = scheme.secondary;
       icon = Icons.undo;
-      label = payment.status == 'refunded' ? 'Refunded' : 'Partly refunded';
+      label = payment.status == 'refunded'
+          ? l10n.membershipPaymentRefunded
+          : l10n.membershipPaymentPartlyRefunded;
     } else if (payment.failed) {
       color = scheme.error;
       icon = Icons.error_outline;
-      label = 'Failed';
+      label = l10n.membershipPaymentFailed;
     } else if (payment.succeeded) {
       color = AppTheme.successGreen;
       icon = Icons.check_circle_outline;
-      label = 'Paid';
+      label = l10n.membershipPaymentPaid;
     } else {
       color = AppTheme.warning;
       icon = Icons.hourglass_bottom;
-      label = 'Pending';
+      label = l10n.membershipPaymentPending;
     }
     final reason = switch (payment.billingReason) {
-      'subscription_create' => 'First charge',
-      'subscription_cycle' => 'Renewal',
-      'subscription_update' => 'Plan change',
-      'coin_purchase' => 'Coins',
-      'local_activation' => 'Local activation',
-      _ => payment.paymentMethod == 'card' ? 'Card payment' : 'Payment',
+      'subscription_create' => l10n.membershipPaymentReasonFirstCharge,
+      'subscription_cycle' => l10n.membershipPaymentReasonRenewal,
+      'subscription_update' => l10n.membershipPaymentReasonPlanChange,
+      'coin_purchase' => l10n.membershipPaymentReasonCoins,
+      'local_activation' => l10n.membershipPaymentReasonLocalActivation,
+      _ =>
+        payment.paymentMethod == 'card'
+            ? l10n.membershipPaymentReasonCard
+            : l10n.membershipPaymentReasonOther,
     };
     final card = payment.cardLast4.isNotEmpty
-        ? ' · ${_brandLabel(payment.cardBrand)} •••• ${payment.cardLast4}'
+        ? ' · ${_brandLabel(l10n, payment.cardBrand)} •••• ${payment.cardLast4}'
         : '';
     return ListTile(
       dense: true,
@@ -1139,8 +1189,9 @@ class _PaymentRow extends StatelessWidget {
       ),
       subtitle: Text(
         payment.failed && payment.failureReason.isNotEmpty
-            ? '${_dateLabel(payment.createdAt)} · ${payment.failureReason}'
-            : _dateLabel(payment.createdAt),
+            ? '${paymentDate(context, payment.createdAt)} · '
+                  '${payment.failureReason}'
+            : paymentDate(context, payment.createdAt),
         style: TextStyle(fontSize: 12, color: muted),
       ),
       trailing: Column(
@@ -1148,7 +1199,7 @@ class _PaymentRow extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Text(
-            _money(payment.amount, payment.currency),
+            paymentMoney(context, payment.amount, payment.currency),
             style: TextStyle(
               fontWeight: FontWeight.w800,
               decoration: payment.refunded ? TextDecoration.lineThrough : null,
@@ -1239,52 +1290,18 @@ class _SandboxControls extends StatelessWidget {
 
 // ── Formatting ───────────────────────────────────────────────────────────────
 
-String _money(double amount, String currency) {
-  final symbol = switch (currency.toUpperCase()) {
-    'INR' => '₹',
-    'USD' => r'$',
-    'EUR' => '€',
-    'GBP' => '£',
-    _ => '${currency.toUpperCase()} ',
-  };
-  final text = amount == amount.roundToDouble()
-      ? amount.toStringAsFixed(0)
-      : amount.toStringAsFixed(2);
-  return '$symbol$text';
-}
-
-String _brandLabel(String brand) {
+String _brandLabel(AppLocalizations l10n, String brand) {
   final value = brand.trim();
   if (value.isEmpty) {
-    return 'Card';
+    return l10n.membershipCardBrandFallback;
   }
   return value[0].toUpperCase() + value.substring(1);
 }
 
+/// Feature codes come from the server (`profile_boost`) and are shown as-is
+/// in title case; they are catalog content, not app copy.
 String _featureLabel(String feature) => feature
     .split('_')
     .where((part) => part.isNotEmpty)
     .map((part) => part[0].toUpperCase() + part.substring(1))
     .join(' ');
-
-String _dateLabel(DateTime value) {
-  final local = value.toLocal();
-  const months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-  return '${local.day} ${months[local.month - 1]} ${local.year}';
-}
-
-String _quotaLabel(int value, String noun) =>
-    value < 0 ? 'Unlimited $noun' : '$value $noun/day';

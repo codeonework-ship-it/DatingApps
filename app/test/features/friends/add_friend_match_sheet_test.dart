@@ -7,6 +7,7 @@ import 'package:verified_dating_app/core/providers/runtime_feature_flags_provide
 import 'package:verified_dating_app/features/auth/providers/auth_provider.dart';
 import 'package:verified_dating_app/features/matching/providers/match_provider.dart';
 import 'package:verified_dating_app/features/matching/screens/matches_list_screen.dart';
+import 'package:verified_dating_app/l10n/app_localizations.dart';
 
 class _Auth extends AuthNotifier {
   @override
@@ -99,7 +100,11 @@ void main() {
             ),
           ),
         ],
-        child: const MaterialApp(home: MatchesListScreen()),
+        child: const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: MatchesListScreen(),
+        ),
       ),
     );
     await tester.pumpAndSettle();

@@ -206,11 +206,13 @@ class _ProposeDatePlanSheetState extends ConsumerState<_ProposeDatePlanSheet> {
         );
     if (!mounted) return;
     if (plan == null) {
+      final l10n = AppLocalizations.of(context);
+      final state = ref.read(matchPlansProvider(widget.matchId));
       setState(() {
         _submitting = false;
-        _error =
-            ref.read(matchPlansProvider(widget.matchId)).error ??
-            'Your plan could not be sent. Your choices are still here.';
+        _error = state.error == null
+            ? l10n.planProposeErrorKept
+            : localizedDatePlanError(l10n, state.error!, state.failure);
       });
       return;
     }
@@ -221,15 +223,15 @@ class _ProposeDatePlanSheetState extends ConsumerState<_ProposeDatePlanSheet> {
     setState(() => _submitting = true);
     await ref.read(matchPlansProvider(widget.matchId).notifier).load();
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
     final state = ref.read(matchPlansProvider(widget.matchId));
     final plan = state.plan;
     setState(() {
       _submitting = false;
       if (state.error != null) {
-        _error = state.error;
+        _error = localizedDatePlanError(l10n, state.error!, state.failure);
       } else if (plan == null || plan.nextAction != 'decide') {
-        _error =
-            'This plan has changed. Close this sheet to review the conversation.';
+        _error = l10n.planChangedError;
       } else {
         _applyPlan(plan);
         _error = null;
@@ -275,37 +277,29 @@ class _ProposeDatePlanSheetState extends ConsumerState<_ProposeDatePlanSheet> {
           children: [
             Text(
               _counterTo == null
-                  ? 'A plan you both look forward to.'
-                  : 'Shape this plan together',
+                  ? l10n.planProposeHeadline
+                  : l10n.planCounterHeadline,
               style: theme.textTheme.headlineSmall?.copyWith(
                 fontFamily: AppTheme.displayFamily,
               ),
             ),
             const SizedBox(height: 10),
-            Text(
-              'A suggestion for you and ${widget.partnerName}. Nothing is agreed until the other person accepts this version.',
-            ),
+            Text(l10n.planProposeLead(widget.partnerName)),
             const SizedBox(height: 20),
             _panel(
               context,
-              title: 'Find a little time together',
+              title: l10n.planFindTimeTitle,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Only overlapping times are shown when both of you choose to share availability. You can always suggest a time yourself.',
-                  ),
+                  Text(l10n.planFindTimeBody),
                   const SizedBox(height: 10),
                   if (connection.isLoading && !connection.hasValue)
                     const LinearProgressIndicator()
                   else if (connection.hasError)
-                    const Text(
-                      'Shared times couldn’t load. Your manual time is still available.',
-                    )
+                    Text(l10n.planSharedTimesFailed)
                   else if (windows.isEmpty)
-                    const Text(
-                      'No shared time suggestions right now. This does not mean either of you is unavailable.',
-                    ),
+                    Text(l10n.planSharedTimesEmpty),
                   if (windows.isNotEmpty) ...[
                     for (var i = 0; i < windows.length; i++)
                       Padding(
@@ -343,7 +337,7 @@ class _ProposeDatePlanSheetState extends ConsumerState<_ProposeDatePlanSheet> {
                             : () => ref.invalidate(
                                 datingConnectionProvider(widget.matchId),
                               ),
-                        child: const Text('Refresh shared times'),
+                        child: Text(l10n.planRefreshSharedTimes),
                       ),
                       TextButton(
                         onPressed: _submitting
@@ -355,7 +349,7 @@ class _ProposeDatePlanSheetState extends ConsumerState<_ProposeDatePlanSheet> {
                                     datingConnectionProvider(widget.matchId),
                                   );
                               },
-                        child: const Text('Set my availability'),
+                        child: Text(l10n.planSetAvailability),
                       ),
                     ],
                   ),
@@ -364,14 +358,14 @@ class _ProposeDatePlanSheetState extends ConsumerState<_ProposeDatePlanSheet> {
             ),
             _panel(
               context,
-              title: 'When would feel right?',
+              title: l10n.planWhenTitle,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     _sharedWindow == null
-                        ? 'A time you’re suggesting'
-                        : 'Selected from shared availability · checked again when sent',
+                        ? l10n.planTimeSourceManual
+                        : l10n.planTimeSourceShared,
                     key: const ValueKey('qa.plan.time_source'),
                   ),
                   const SizedBox(height: 10),
@@ -401,9 +395,7 @@ class _ProposeDatePlanSheetState extends ConsumerState<_ProposeDatePlanSheet> {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    'Your device’s local time (${_start.timeZoneName}). Duration: $duration minutes.',
-                  ),
+                  Text(l10n.planLocalTimeNote(duration, _start.timeZoneName)),
                   const SizedBox(height: 10),
                   Wrap(
                     spacing: 8,
@@ -412,7 +404,7 @@ class _ProposeDatePlanSheetState extends ConsumerState<_ProposeDatePlanSheet> {
                       for (final minutes in const [30, 60, 90, 120, 180])
                         ChoiceChip(
                           key: ValueKey('qa.plan.duration.$minutes'),
-                          label: Text('$minutes min'),
+                          label: Text(l10n.planDurationChip(minutes)),
                           selected: duration == minutes,
                           onSelected: _submitting
                               ? null
@@ -430,7 +422,7 @@ class _ProposeDatePlanSheetState extends ConsumerState<_ProposeDatePlanSheet> {
             ),
             _panel(
               context,
-              title: 'Something you would enjoy',
+              title: l10n.planEnjoyTitle,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -469,7 +461,7 @@ class _ProposeDatePlanSheetState extends ConsumerState<_ProposeDatePlanSheet> {
                     maxLength: 120,
                     decoration: InputDecoration(
                       labelText: l10n.planAreaLabel,
-                      hintText: 'A neighbourhood or public meeting area',
+                      hintText: l10n.planAreaHint,
                     ),
                   ),
                 ],
@@ -477,13 +469,11 @@ class _ProposeDatePlanSheetState extends ConsumerState<_ProposeDatePlanSheet> {
             ),
             _panel(
               context,
-              title: 'What budget feels comfortable?',
+              title: l10n.planBudgetTitle,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'A starting point to agree together, not a price quote or a promise about who pays.',
-                  ),
+                  Text(l10n.planBudgetBody),
                   const SizedBox(height: 10),
                   Wrap(
                     spacing: 8,
@@ -492,7 +482,7 @@ class _ProposeDatePlanSheetState extends ConsumerState<_ProposeDatePlanSheet> {
                       for (final b in datingBudgets.entries)
                         ChoiceChip(
                           key: ValueKey('qa.plan.budget.${b.key}'),
-                          label: Text(b.value),
+                          label: Text(datingBudgetLabel(l10n, b.key)),
                           selected: _budget == b.key,
                           onSelected: _submitting
                               ? null
@@ -505,13 +495,11 @@ class _ProposeDatePlanSheetState extends ConsumerState<_ProposeDatePlanSheet> {
             ),
             _panel(
               context,
-              title: 'Set the atmosphere',
+              title: l10n.planAtmosphereTitle,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Choose up to three settings you would enjoy. Optional.',
-                  ),
+                  Text(l10n.planAtmosphereBody),
                   const SizedBox(height: 10),
                   Wrap(
                     spacing: 8,
@@ -520,7 +508,9 @@ class _ProposeDatePlanSheetState extends ConsumerState<_ProposeDatePlanSheet> {
                       for (final a in planAtmospheres.entries)
                         FilterChip(
                           key: ValueKey('qa.plan.atmosphere.${a.key}'),
-                          label: Text(a.value),
+                          label: Text(
+                            planAtmosphereLabel(l10n, a.key) ?? a.value,
+                          ),
                           selected: _atmospheres.contains(a.key),
                           onSelected:
                               _submitting ||
@@ -540,20 +530,20 @@ class _ProposeDatePlanSheetState extends ConsumerState<_ProposeDatePlanSheet> {
             ),
             _panel(
               context,
-              title: 'Make it comfortable for both of you',
+              title: l10n.planComfortTitle,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Optional accessibility preferences. Selected choices are shared with your match when you send this plan. They are not added to your public profile or trusted-contact updates.',
-                  ),
+                  Text(l10n.planComfortBody),
                   const SizedBox(height: 12),
                   for (final a in planAccessibility.entries)
                     CheckboxListTile(
                       key: ValueKey('qa.plan.accessibility.${a.key}'),
                       contentPadding: EdgeInsets.zero,
                       controlAffinity: ListTileControlAffinity.leading,
-                      title: Text(a.value),
+                      title: Text(
+                        planAccessibilityLabel(l10n, a.key) ?? a.value,
+                      ),
                       value: _accessibility.contains(a.key),
                       onChanged: _submitting
                           ? null
@@ -563,9 +553,7 @@ class _ProposeDatePlanSheetState extends ConsumerState<_ProposeDatePlanSheet> {
                                   : _accessibility.remove(a.key);
                             }),
                     ),
-                  const Text(
-                    'You do not need to explain a diagnosis. These are requests to check with the venue or video service, not verified facilities.',
-                  ),
+                  Text(l10n.planComfortDisclaimer),
                 ],
               ),
             ),
@@ -578,13 +566,11 @@ class _ProposeDatePlanSheetState extends ConsumerState<_ProposeDatePlanSheet> {
               maxLines: 4,
               decoration: InputDecoration(
                 labelText: l10n.planNoteLabel,
-                hintText: 'Saturday afternoon, somewhere quieter?',
+                hintText: l10n.planNoteHint,
               ),
             ),
             const SizedBox(height: 12),
-            const Text(
-              'Before sending, review the time and choices above. The other person can accept, decline or suggest a change.',
-            ),
+            Text(l10n.planReviewBeforeSending),
             if (_error != null) ...[
               const SizedBox(height: 12),
               Text(
@@ -595,7 +581,7 @@ class _ProposeDatePlanSheetState extends ConsumerState<_ProposeDatePlanSheet> {
               if (_counterTo != null)
                 TextButton(
                   onPressed: _submitting ? null : _reloadPlan,
-                  child: const Text('Reload latest plan · discard edits'),
+                  child: Text(l10n.planReloadLatest),
                 ),
             ],
             const SizedBox(height: 20),
@@ -613,10 +599,10 @@ class _ProposeDatePlanSheetState extends ConsumerState<_ProposeDatePlanSheet> {
                     : const Icon(Icons.arrow_forward_rounded),
                 label: Text(
                   _submitting
-                      ? 'Sending…'
+                      ? l10n.planSending
                       : _counterTo == null
                       ? l10n.planSendButton
-                      : 'Send your suggestion',
+                      : l10n.planSendSuggestion,
                 ),
               ),
             ),

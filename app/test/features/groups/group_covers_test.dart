@@ -15,6 +15,7 @@ import 'package:verified_dating_app/features/groups/group_widgets.dart';
 import 'package:verified_dating_app/features/groups/groups_data.dart';
 import 'package:verified_dating_app/features/groups/groups_screen.dart';
 import 'package:verified_dating_app/features/social_chat/social_chat_data.dart';
+import 'package:verified_dating_app/l10n/app_localizations.dart';
 
 /// Group cover photos: owner actions, the under-review badge, the emoji
 /// fallback, uploads with progress, and the muted-notifications mark on
@@ -95,7 +96,11 @@ Widget _app(
     apiClientProvider.overrideWithValue(api.dio),
     if (picker != null) groupCoverPickerProvider.overrideWithValue(picker),
   ],
-  child: MaterialApp(home: home),
+  child: MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
+    home: home,
+  ),
 );
 
 Future<void> _settle(WidgetTester tester) async {

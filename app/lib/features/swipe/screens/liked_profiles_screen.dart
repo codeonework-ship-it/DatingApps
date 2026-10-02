@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/widgets/glass_widgets.dart';
+import '../../../l10n/app_localizations.dart';
 import '../providers/swipe_provider.dart';
 import 'profile_details_screen.dart';
 
@@ -13,16 +14,19 @@ class LikedProfilesScreen extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     final state = ref.watch(swipeNotifierProvider);
     final likedProfiles = state.likedProfiles;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: Text('Liked Profiles (${likedProfiles.length})')),
+      appBar: AppBar(
+        title: Text(l10n.discoverLikedProfilesTitle(likedProfiles.length)),
+      ),
       body: ColoredBox(
         color: Theme.of(context).scaffoldBackgroundColor,
         child: SafeArea(
           child: likedProfiles.isEmpty
               ? Center(
                   child: Text(
-                    'No liked profiles yet',
+                    l10n.discoverNoLikedProfiles,
                     style: TextStyle(color: scheme.onSurfaceVariant),
                   ),
                 )
@@ -85,7 +89,7 @@ class LikedProfilesScreen extends ConsumerWidget {
                                 const SizedBox(height: 4),
                                 Text(
                                   profile.subtitle.trim().isEmpty
-                                      ? 'Liked profile'
+                                      ? l10n.discoverLikedProfileFallback
                                       : profile.subtitle,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,

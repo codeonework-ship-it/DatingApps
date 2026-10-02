@@ -1,3 +1,6 @@
+import '../../../core/i18n/option_labels.dart';
+import '../../../l10n/app_localizations.dart';
+
 const String indiaCountry = 'India';
 
 const List<String> indiaStatesAndUTs = <String>[
@@ -188,3 +191,99 @@ const List<String> politicalComfortRangeOptions = <String>[
   'Prefer not to discuss',
   'No strong preference',
 ];
+
+/// Which option list a stored value comes from. Some English values mean
+/// different things in different lists ('Jain' is a religion and a diet).
+enum ProfileOptionList {
+  general,
+  workout,
+  dietPreference,
+  dietType,
+  sleepSchedule,
+  travelStyle,
+  politicalComfort,
+  intent,
+}
+
+/// Display label for a stored profile option value (the English word the
+/// API keeps, e.g. 'Night owl', or an intent code such as 'long_term').
+///
+/// Only what the member reads changes; the stored value never does. Values
+/// the app does not know (server master data, free text) are returned
+/// unchanged, apart from falling back to the shared option labels.
+String profileOptionLabel(
+  AppLocalizations l10n,
+  String value, {
+  ProfileOptionList list = ProfileOptionList.general,
+}) {
+  final own = switch (list) {
+    ProfileOptionList.workout => switch (value) {
+      '1-2 times a week' => l10n.profileMasterWorkout1to2,
+      '3-4 times a week' => l10n.profileMasterWorkout3to4,
+      '5+ times a week' => l10n.profileMasterWorkout5Plus,
+      'Daily' => l10n.profileMasterWorkoutDaily,
+      _ => null,
+    },
+    ProfileOptionList.dietPreference => switch (value) {
+      'No preference' => l10n.profileMasterDietNoPreference,
+      'Vegetarian' => l10n.profileMasterDietVegetarian,
+      'Eggetarian' => l10n.profileMasterDietEggetarian,
+      'Non-vegetarian' => l10n.profileMasterDietNonVegetarian,
+      'Vegan' => l10n.profileMasterDietVegan,
+      'Jain' => l10n.profileMasterDietJain,
+      _ => null,
+    },
+    ProfileOptionList.dietType => switch (value) {
+      'Balanced' => l10n.profileMasterDietTypeBalanced,
+      'High Protein' => l10n.profileMasterDietTypeHighProtein,
+      'Low Carb' => l10n.profileMasterDietTypeLowCarb,
+      'Keto' => l10n.profileMasterDietTypeKeto,
+      'Mediterranean' => l10n.profileMasterDietTypeMediterranean,
+      'Intermittent Fasting' => l10n.profileMasterDietTypeIntermittentFasting,
+      _ => null,
+    },
+    ProfileOptionList.sleepSchedule => switch (value) {
+      'Early bird' => l10n.profileMasterSleepEarlyBird,
+      'Night owl' => l10n.profileMasterSleepNightOwl,
+      'Flexible' => l10n.profileMasterSleepFlexible,
+      'Shift based' => l10n.profileMasterSleepShiftBased,
+      _ => null,
+    },
+    ProfileOptionList.travelStyle => switch (value) {
+      'Homebody' => l10n.profileMasterTravelHomebody,
+      'Occasional traveler' => l10n.profileMasterTravelOccasional,
+      'Frequent traveler' => l10n.profileMasterTravelFrequent,
+      'Adventure seeker' => l10n.profileMasterTravelAdventure,
+      'Luxury traveler' => l10n.profileMasterTravelLuxury,
+      'Backpacker' => l10n.profileMasterTravelBackpacker,
+      _ => null,
+    },
+    ProfileOptionList.politicalComfort => switch (value) {
+      'Similar views only' => l10n.profileMasterPoliticsSimilar,
+      'Open to differences' => l10n.profileMasterPoliticsOpen,
+      'Prefer not to discuss' => l10n.profileMasterPoliticsNotDiscuss,
+      'No strong preference' => l10n.profileMasterPoliticsNoStrong,
+      _ => null,
+    },
+    ProfileOptionList.intent => switch (value) {
+      'long_term' => l10n.profileMasterIntentLongTerm,
+      'marriage' => l10n.profileMasterIntentMarriage,
+      'new_friends' => l10n.profileMasterIntentNewFriends,
+      _ => null,
+    },
+    ProfileOptionList.general => switch (value) {
+      'Parsi' => l10n.profileMasterReligionParsi,
+      'Bahai' => l10n.profileMasterReligionBahai,
+      'Tribal / Indigenous' => l10n.profileMasterReligionTribal,
+      _ => null,
+    },
+  };
+  if (own != null) {
+    return own;
+  }
+  // Intent codes are not English words; the caller humanizes unknown ones.
+  if (list == ProfileOptionList.intent) {
+    return value;
+  }
+  return localizedProfileOption(l10n, value);
+}

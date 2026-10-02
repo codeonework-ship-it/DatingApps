@@ -7,6 +7,7 @@ import '../../core/network/api_error_message.dart';
 import '../../core/providers/api_client_provider.dart';
 import '../../core/widgets/glass_widgets.dart';
 import '../auth/providers/auth_provider.dart';
+import '../../l10n/app_localizations.dart';
 import '../common/widgets/activity_visuals.dart';
 import '../common/widgets/community_actions.dart';
 import 'photo_theme_widgets.dart';
@@ -42,6 +43,7 @@ class _PhotoThemeGalleryScreenState
   }
 
   Future<void> share() async {
+    final l10n = AppLocalizations.of(context);
     final file = await ImagePicker().pickImage(
       source: ImageSource.gallery,
       maxWidth: 2048,
@@ -75,17 +77,12 @@ class _PhotoThemeGalleryScreenState
         return;
       }
       reload();
-      showCommunitySnack(context, 'Your photo is shared. Nice one!');
+      showCommunitySnack(context, l10n.photoThemesSharedSnack);
     } on Object catch (e) {
       if (mounted) {
         showCommunitySnack(
           context,
-          apiErrorMessage(
-            e,
-            fallback:
-                'Your photo could not be shared. Use a JPEG or PNG up to '
-                '10 MB.',
-          ),
+          apiErrorMessage(e, fallback: l10n.photoThemesShareFailed),
         );
       }
     } finally {
@@ -98,6 +95,7 @@ class _PhotoThemeGalleryScreenState
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(authNotifierProvider.select((s) => s.userId));
+    final l10n = AppLocalizations.of(context);
     final list = ref.watch(photoThemesProvider).valueOrNull;
     final pages = [
       for (final cursor in cursors)
@@ -114,20 +112,22 @@ class _PhotoThemeGalleryScreenState
         ? null
         : !eligible
         ? (list.eligibilityMessage.isEmpty
-              ? 'Complete your profile with two approved photos to share.'
+              ? l10n.photoThemesEligibilityShare
               : list.eligibilityMessage)
         : shared
-        ? 'You have shared for this theme. Remove yours to share a new one.'
+        ? l10n.photoThemesAlreadyShared
         : null;
     final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(title: Text(theme?.title ?? 'Photo Theme')),
+      appBar: AppBar(
+        title: Text(theme?.title ?? l10n.photoThemesThemeFallback),
+      ),
       floatingActionButton: user == null
           ? null
           : FloatingActionButton.extended(
               onPressed: canShare ? share : null,
-              tooltip: blockedReason ?? 'Share a photo for this theme',
+              tooltip: blockedReason ?? l10n.photoThemesShareTooltip,
               backgroundColor: canShare
                   ? scheme.primary
                   : scheme.surfaceContainerHighest,
@@ -139,11 +139,15 @@ class _PhotoThemeGalleryScreenState
                     ? Icons.check_circle_outline
                     : Icons.add_a_photo_outlined,
               ),
-              label: Text(shared ? 'You shared ✓' : 'Share your photo'),
+              label: Text(
+                shared
+                    ? l10n.photoThemesYouShared
+                    : l10n.photoThemesShareYourPhoto,
+              ),
             ),
       body: PostLoginBackdrop(
         child: user == null
-            ? const Center(child: Text('Sign in to see photo themes.'))
+            ? Center(child: Text(l10n.photoThemesSignIn))
             : RefreshIndicator(
                 onRefresh: () async {
                   reload();
@@ -163,9 +167,8 @@ class _PhotoThemeGalleryScreenState
                       onRetry: reload,
                       onMore: (next) => setState(() => cursors.add(next)),
                       emptyTitle: theme == null
-                          ? 'No photos yet'
-                          : 'Be the first to share for '
-                                '“${theme.title}”',
+                          ? l10n.photoThemesNoPhotosYet
+                          : l10n.photoThemesBeFirstFor(theme.title),
                     ),
                   ],
                 ),
@@ -185,6 +188,7 @@ class _PromptBanner extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
     final theme = this.theme;
+    final l10n = AppLocalizations.of(context);
     return DecoratedBox(
       decoration: BoxDecoration(
         gradient: activityGradient(scheme, 0),
@@ -204,7 +208,7 @@ class _PromptBanner extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              theme?.prompt ?? 'Loading the prompt…',
+              theme?.prompt ?? l10n.photoThemesLoadingPrompt,
               style: text.titleLarge?.copyWith(
                 color: scheme.onSurface,
                 fontWeight: FontWeight.w700,
@@ -218,12 +222,12 @@ class _PromptBanner extends StatelessWidget {
                 children: [
                   CountPill(
                     icon: Icons.photo_outlined,
-                    label: '${theme.entryCount} shared',
+                    label: l10n.photoThemesSharedCount(theme.entryCount),
                   ),
                   if (theme.shared)
-                    const CountPill(
+                    CountPill(
                       icon: Icons.check_circle_outline,
-                      label: 'You shared ✓',
+                      label: l10n.photoThemesYouShared,
                       emphasis: true,
                     ),
                 ],
@@ -266,16 +270,17 @@ class _Grid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final failed = pages.where((p) => p.hasError && !p.isLoading).firstOrNull;
     if (failed != null && pages.first.hasError) {
       return ActivityNotice(
         icon: Icons.cloud_off_outlined,
-        title: 'Photos could not load',
+        title: l10n.photoThemesPhotosLoadFailed,
         message: apiErrorMessage(
           failed.error!,
-          fallback: 'Please check your connection.',
+          fallback: l10n.photoThemesCheckConnection,
         ),
-        actionLabel: 'Try again',
+        actionLabel: l10n.photoThemesTryAgain,
         onAction: onRetry,
       );
     }
@@ -291,7 +296,7 @@ class _Grid extends StatelessWidget {
       return ActivityNotice(
         icon: Icons.add_a_photo_outlined,
         title: emptyTitle,
-        message: 'Your photo could be the one that gets everyone talking.',
+        message: l10n.photoThemesEmptyMessage,
       );
     }
     return Column(
@@ -330,7 +335,7 @@ class _Grid extends StatelessWidget {
             child: TextButton.icon(
               onPressed: onRetry,
               icon: const Icon(Icons.refresh),
-              label: const Text('More photos could not load. Reload'),
+              label: Text(l10n.photoThemesMoreFailed),
             ),
           )
         else if (next.isNotEmpty)
@@ -338,7 +343,7 @@ class _Grid extends StatelessWidget {
             child: OutlinedButton.icon(
               onPressed: () => onMore(next),
               icon: const Icon(Icons.expand_more),
-              label: const Text('Load more'),
+              label: Text(l10n.photoThemesLoadMore),
             ),
           ),
       ],

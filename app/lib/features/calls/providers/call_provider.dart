@@ -50,6 +50,20 @@ class CallSession {
   final String? joinUrl;
 }
 
+/// Why a call action failed, so the screen can show the message in the
+/// reader's language. `null` with a non-null [CallState.error] means the
+/// server sent its own text.
+enum CallErrorKind {
+  signInForHistory,
+  signInToCall,
+  permissions,
+  loadHistory,
+  start,
+  end,
+  notConfigured,
+  openRoom,
+}
+
 class CallState {
   const CallState({
     this.history = const [],
@@ -58,6 +72,7 @@ class CallState {
     this.isStarting = false,
     this.isEnding = false,
     this.error,
+    this.errorKind,
     this.permissionDenied = false,
   });
 
@@ -67,6 +82,7 @@ class CallState {
   final bool isStarting;
   final bool isEnding;
   final String? error;
+  final CallErrorKind? errorKind;
   final bool permissionDenied;
 
   CallState copyWith({
@@ -76,6 +92,7 @@ class CallState {
     bool? isStarting,
     bool? isEnding,
     Object? error = _unset,
+    Object? errorKind = _unset,
     bool? permissionDenied,
   }) => CallState(
     history: history ?? this.history,
@@ -86,6 +103,13 @@ class CallState {
     isStarting: isStarting ?? this.isStarting,
     isEnding: isEnding ?? this.isEnding,
     error: identical(error, _unset) ? this.error : error as String?,
+    // A new error without a kind is server text; clearing the error clears
+    // its kind too.
+    errorKind: !identical(errorKind, _unset)
+        ? errorKind as CallErrorKind?
+        : identical(error, _unset)
+        ? this.errorKind
+        : null,
     permissionDenied: permissionDenied ?? this.permissionDenied,
   );
 
@@ -102,7 +126,10 @@ class CallNotifier extends StateNotifier<CallState> {
   Future<void> loadHistory() async {
     final userId = _userId;
     if (userId == null) {
-      state = state.copyWith(error: 'Please sign in to view call history.');
+      state = state.copyWith(
+        error: 'Please sign in to view call history.',
+        errorKind: CallErrorKind.signInForHistory,
+      );
       return;
     }
     state = state.copyWith(isLoading: true, error: null);
@@ -123,6 +150,7 @@ class CallNotifier extends StateNotifier<CallState> {
       state = state.copyWith(
         isLoading: false,
         error: apiErrorMessage(error, fallback: 'Unable to load call history.'),
+        errorKind: _fallbackKind(error, CallErrorKind.loadHistory),
       );
     }
   }
@@ -133,7 +161,10 @@ class CallNotifier extends StateNotifier<CallState> {
   }) async {
     final userId = _userId;
     if (userId == null) {
-      state = state.copyWith(error: 'Please sign in before starting a call.');
+      state = state.copyWith(
+        error: 'Please sign in before starting a call.',
+        errorKind: CallErrorKind.signInToCall,
+      );
       return null;
     }
 
@@ -151,6 +182,7 @@ class CallNotifier extends StateNotifier<CallState> {
           isStarting: false,
           permissionDenied: true,
           error: 'Camera and microphone permissions are required for calls.',
+          errorKind: CallErrorKind.permissions,
         );
         return null;
       }
@@ -182,6 +214,7 @@ class CallNotifier extends StateNotifier<CallState> {
           error,
           fallback: 'Unable to start the call session.',
         ),
+        errorKind: _fallbackKind(error, CallErrorKind.start),
       );
       return null;
     }
@@ -212,6 +245,7 @@ class CallNotifier extends StateNotifier<CallState> {
       state = state.copyWith(
         isEnding: false,
         error: apiErrorMessage(error, fallback: 'Unable to end the call.'),
+        errorKind: _fallbackKind(error, CallErrorKind.end),
       );
       return false;
     }
@@ -223,18 +257,27 @@ class CallNotifier extends StateNotifier<CallState> {
     if (uri == null || uri.scheme != 'https') {
       state = state.copyWith(
         error: 'Live call rooms are not configured for this environment.',
+        errorKind: CallErrorKind.notConfigured,
       );
       return false;
     }
     final opened = await launchUrl(uri, webOnlyWindowName: '_blank');
     if (!opened) {
-      state = state.copyWith(error: 'Unable to open the live call room.');
+      state = state.copyWith(
+        error: 'Unable to open the live call room.',
+        errorKind: CallErrorKind.openRoom,
+      );
     }
     return opened;
   }
 
   void clearError() => state = state.copyWith(error: null);
 }
+
+/// [kind] when [error] carries no server text of its own (the message is
+/// the local fallback), otherwise `null` so the server's text is shown.
+CallErrorKind? _fallbackKind(Object error, CallErrorKind kind) =>
+    apiErrorMessage(error, fallback: '').isEmpty ? kind : null;
 
 final callProvider = StateNotifierProvider<CallNotifier, CallState>(
   (ref) => CallNotifier(ref),

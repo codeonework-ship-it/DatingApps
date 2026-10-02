@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:verified_dating_app/features/profile/providers/profile_setup_provider.dart';
 import 'package:verified_dating_app/features/profile/screens/setup/setup_preview_screen.dart';
+import 'package:verified_dating_app/l10n/app_localizations.dart';
 // setup_shared_widgets.dart imported indirectly via the screen.
 
 // ---------------------------------------------------------------------------
@@ -124,7 +125,11 @@ Widget _app(
     profileSetupNotifierProvider.overrideWith(() => notifier),
     ...extraOverrides,
   ],
-  child: const MaterialApp(home: SetupPreviewScreen()),
+  child: const MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
+    home: SetupPreviewScreen(),
+  ),
 );
 
 Future<void> _pumpUntilSettled(WidgetTester tester) async {
@@ -192,7 +197,11 @@ void main() {
               ),
             ),
           ],
-          child: const MaterialApp(home: SetupPreviewScreen()),
+          child: const MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: SetupPreviewScreen(),
+          ),
         ),
       );
       // Only pump once — the Riverpod async build resolves on microtask;
@@ -336,6 +345,8 @@ void main() {
             profileSetupNotifierProvider.overrideWith(() => notifier),
           ],
           child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: Builder(
               builder: (context) => Scaffold(
                 body: Center(

@@ -1,3 +1,5 @@
+import '../../../core/config/feature_flags.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../social_chat/social_chat_data.dart';
 import '../../../core/providers/runtime_feature_flags_provider.dart';
 import 'package:flutter/material.dart';
@@ -6,13 +8,12 @@ import 'package:flutter/foundation.dart';
 import '../../../core/constants/preference_limits.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/config/feature_flags.dart';
+import '../../../core/i18n/option_labels.dart';
 import '../../../core/providers/network_quality_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/couture.dart';
 import '../../../core/theme/cinematic_motion.dart';
 import '../../../core/widgets/glass_widgets.dart';
-import '../../../l10n/app_localizations.dart';
 import '../../common/screens/settings_screen.dart';
 import '../../celebrations/reward_burst_host.dart';
 import '../../celebrations/rose_rain.dart';
@@ -142,12 +143,12 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
           ref.read(matchesViewProvider.notifier).state =
               MatchesView.conversations;
         },
-        activeFilterChips: _discoverActiveFilterChips,
+        activeFilterChips: _discoverActiveFilterChips(l10n),
       ),
       MatchesListScreen(
         isActive: selectedIndex == 1,
         onOpenFilters: () => _openFilterSheet(context),
-        activeFilterChips: _discoverActiveFilterChips,
+        activeFilterChips: _discoverActiveFilterChips(l10n),
       ),
       const EngagementHubScreen(),
       const ProfileViewScreen(),
@@ -178,12 +179,12 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                       horizontal: 12,
                       vertical: 8,
                     ),
-                    child: const SafeArea(
+                    child: SafeArea(
                       bottom: false,
                       child: Text(
-                        'Offline mode: Some data may be outdated.',
+                        l10n.navOfflineBanner,
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.w600,
                         ),
@@ -232,9 +233,8 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                               const SizedBox(width: 8),
                               Flexible(
                                 child: Text(
-                                  networkState.message ??
-                                      'Weak network detected. Use at least '
-                                          '5 Mbps for smoother app performance.',
+                                  networkState.localizedMessage(l10n) ??
+                                      l10n.navWeakNetworkBanner(5),
                                   textAlign: TextAlign.center,
                                   style: Theme.of(context).textTheme.bodySmall
                                       ?.copyWith(
@@ -376,7 +376,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                                             fallback: false,
                                           ) ==
                                       true
-                                  ? 'Today'
+                                  ? l10n.navToday
                                   : l10n.navDiscover,
                             ),
                             BottomNavigationBarItem(
@@ -518,7 +518,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                           Navigator.of(sheetContext).pop();
                         },
                         icon: const Icon(Icons.call_end_rounded),
-                        label: const Text('Dismiss'),
+                        label: Text(AppLocalizations.of(context).commonDismiss),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -536,7 +536,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                           );
                         },
                         icon: const Icon(Icons.notifications_rounded),
-                        label: const Text('View'),
+                        label: Text(AppLocalizations.of(context).commonView),
                       ),
                     ),
                   ],
@@ -553,7 +553,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
       SnackBar(
         content: Text('${notification.title}: ${notification.body}'),
         action: SnackBarAction(
-          label: 'Open',
+          label: AppLocalizations.of(context).commonOpen,
           onPressed: () {
             ref.read(notificationProvider.notifier).markRead(notification.id);
             Navigator.of(context).push(
@@ -642,14 +642,14 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                 ),
                 const SizedBox(height: 14),
                 Text(
-                  'Incoming call',
+                  AppLocalizations.of(sheetContext).navIncomingCallTitle,
                   style: Theme.of(
                     sheetContext,
                   ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: 6),
-                const Text(
-                  'A match is calling you.',
+                Text(
+                  AppLocalizations.of(sheetContext).navIncomingCallBody,
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 20),
@@ -663,7 +663,9 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                     );
                   },
                   icon: const Icon(Icons.notifications_rounded),
-                  label: const Text('View call details'),
+                  label: Text(
+                    AppLocalizations.of(sheetContext).navViewCallDetails,
+                  ),
                 ),
               ],
             ),
@@ -817,6 +819,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
   /// subtree lets it rebuild when the drafts and master data arrive.
   Widget _buildFilterSheet(BuildContext context) => Consumer(
     builder: (context, ref, _) {
+      final l10n = AppLocalizations.of(context);
       final trustState = ref.watch(trustFilterNotifierProvider);
       final trustNotifier = ref.read(trustFilterNotifierProvider.notifier);
       final masterData = ref
@@ -924,7 +927,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                         ),
                         const SizedBox(width: 10),
                         Text(
-                          'Filter Matches',
+                          l10n.filterSheetTitle,
                           style: Theme.of(context).textTheme.titleLarge
                               ?.copyWith(
                                 color: Theme.of(context).colorScheme.onSurface,
@@ -950,7 +953,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                           blur: 8,
                           child: _buildFilterSection(
                             context,
-                            'Age Range',
+                            l10n.filterAgeRange,
                             value:
                                 '${_filterAge.start.round()}'
                                 ' – '
@@ -985,11 +988,13 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                           blur: 8,
                           child: _buildFilterSection(
                             context,
-                            'Profile & Lifestyle Filters',
+                            l10n.filterProfileLifestyle,
                             child: Column(
                               children: [
                                 _buildDropdownFilterField(
-                                  label: 'Country',
+                                  l10n: l10n,
+                                  qaLabel: 'Country',
+                                  label: l10n.filterCountry,
                                   value: _filterCountry,
                                   options: masterData.countries,
                                   onChanged: (value) => setSheetState(() {
@@ -1000,7 +1005,9 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                                 ),
                                 const SizedBox(height: 10),
                                 _buildDropdownFilterField(
-                                  label: 'State',
+                                  l10n: l10n,
+                                  qaLabel: 'State',
+                                  label: l10n.filterState,
                                   value: _filterState,
                                   options:
                                       masterData
@@ -1013,7 +1020,9 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                                 ),
                                 const SizedBox(height: 10),
                                 _buildDropdownFilterField(
-                                  label: 'City',
+                                  l10n: l10n,
+                                  qaLabel: 'City',
+                                  label: l10n.filterCity,
                                   value: _filterCity,
                                   options:
                                       masterData.citiesByState[_filterState] ??
@@ -1023,7 +1032,9 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                                 ),
                                 const SizedBox(height: 10),
                                 _buildDropdownFilterField(
-                                  label: 'Mother Tongue',
+                                  l10n: l10n,
+                                  qaLabel: 'Mother Tongue',
+                                  label: l10n.filterMotherTongue,
                                   value: _filterMotherTongue,
                                   options: masterData.motherTongues,
                                   onChanged: (value) => setSheetState(
@@ -1032,7 +1043,9 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                                 ),
                                 const SizedBox(height: 10),
                                 _buildDropdownFilterField(
-                                  label: 'Religion',
+                                  l10n: l10n,
+                                  qaLabel: 'Religion',
+                                  label: l10n.filterReligion,
                                   value: _filterReligion,
                                   options: masterData.religions,
                                   onChanged: (value) => setSheetState(
@@ -1041,7 +1054,9 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                                 ),
                                 const SizedBox(height: 12),
                                 _buildDropdownFilterField(
-                                  label: 'Relationship Status',
+                                  l10n: l10n,
+                                  qaLabel: 'Relationship Status',
+                                  label: l10n.filterRelationshipStatus,
                                   value: _filterRelationshipStatus,
                                   options: const [
                                     'Single',
@@ -1056,7 +1071,9 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                                 ),
                                 const SizedBox(height: 12),
                                 _buildDropdownFilterField(
-                                  label: 'Smoking',
+                                  l10n: l10n,
+                                  qaLabel: 'Smoking',
+                                  label: l10n.filterSmoking,
                                   value: _filterSmoking,
                                   options: const [
                                     'Never',
@@ -1069,7 +1086,9 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                                 ),
                                 const SizedBox(height: 12),
                                 _buildDropdownFilterField(
-                                  label: 'Drinking',
+                                  l10n: l10n,
+                                  qaLabel: 'Drinking',
+                                  label: l10n.filterDrinking,
                                   value: _filterDrinking,
                                   options: const [
                                     'Never',
@@ -1083,7 +1102,9 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                                 ),
                                 const SizedBox(height: 12),
                                 _buildDropdownFilterField(
-                                  label: 'Personality Type',
+                                  l10n: l10n,
+                                  qaLabel: 'Personality Type',
+                                  label: l10n.filterPersonalityType,
                                   value: _filterPersonalityType,
                                   options: const [
                                     'Introvert',
@@ -1100,7 +1121,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                                       MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
-                                      'Party lover only',
+                                      l10n.filterPartyLoverOnly,
                                       style: Theme.of(
                                         context,
                                       ).textTheme.bodyMedium,
@@ -1132,7 +1153,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                                       MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
-                                      'Hookups only',
+                                      l10n.filterHookupsOnly,
                                       style: Theme.of(
                                         context,
                                       ).textTheme.bodyMedium,
@@ -1173,14 +1194,12 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                           blur: 8,
                           child: _buildFilterSection(
                             context,
-                            'Advanced Bio Filters',
+                            l10n.filterAdvancedBio,
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Books, novels, songs, hobbies, location and '
-                                  'extra-curricular tags can be managed in '
-                                  'Settings → Dating Preferences.',
+                                  l10n.filterAdvancedBioBody,
                                   style: Theme.of(context).textTheme.bodySmall,
                                 ),
                                 const SizedBox(height: 8),
@@ -1195,7 +1214,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                                     );
                                   },
                                   icon: const Icon(Icons.settings),
-                                  label: const Text('Open Dating Preferences'),
+                                  label: Text(l10n.filterOpenDatingPreferences),
                                 ),
                               ],
                             ),
@@ -1211,8 +1230,10 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                           blur: 8,
                           child: _buildFilterSection(
                             context,
-                            'Distance (km)',
-                            value: '${_filterDistance.round()} km',
+                            l10n.filterDistanceKm,
+                            value: l10n.commonDistanceKm(
+                              _filterDistance.round(),
+                            ),
                             child: Semantics(
                               label: 'qa.filters.distance_slider',
                               child: Slider(
@@ -1223,7 +1244,9 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                                 min: PreferenceLimits.minDistanceKm,
                                 max: PreferenceLimits.maxDistanceKm,
                                 divisions: PreferenceLimits.distanceDivisions,
-                                label: '${_filterDistance.round()} km',
+                                label: l10n.commonDistanceKm(
+                                  _filterDistance.round(),
+                                ),
                                 onChanged: (value) => setSheetState(
                                   () => _filterDistance = value,
                                 ),
@@ -1241,12 +1264,12 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                           blur: 8,
                           child: _buildFilterSection(
                             context,
-                            'Verified Only',
+                            l10n.filterVerifiedOnlyTitle,
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  'Show only verified profiles',
+                                  l10n.filterVerifiedOnlyBody,
                                   style: Theme.of(context).textTheme.bodyMedium,
                                 ),
                                 Semantics(
@@ -1283,7 +1306,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                           blur: 8,
                           child: _buildFilterSection(
                             context,
-                            'Trust Filters',
+                            l10n.settingsTrustFiltersTitle,
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -1292,7 +1315,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                                       MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
-                                      'Enable trust-based filtering',
+                                      l10n.filterEnableTrust,
                                       style: Theme.of(
                                         context,
                                       ).textTheme.bodyMedium,
@@ -1323,8 +1346,9 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
-                                  'Minimum active trust badges: '
-                                  '$minimumActiveBadges',
+                                  l10n.filterMinimumTrustBadges(
+                                    minimumActiveBadges,
+                                  ),
                                   style: Theme.of(context).textTheme.bodySmall,
                                 ),
                                 Semantics(
@@ -1437,7 +1461,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                                             requiredBadgeCodes.clear();
                                           });
                                         },
-                                  child: const Text('Reset'),
+                                  child: Text(l10n.commonReset),
                                 ),
                               ),
                             ),
@@ -1503,15 +1527,13 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                                           messenger.showSnackBar(
                                             SnackBar(
                                               content: Text(
-                                                'Filters saved: '
-                                                '${_filterAge.start.round()}-'
-                                                '${_filterAge.end.round()} yrs, '
-                                                '${_filterDistance.round()} km'
-                                                '${_filterVerifiedOnly ? ', '
-                                                          'verified only' : ''}'
-                                                '${trustEnabled ? ', trust '
-                                                          'filter on' : ', trust '
-                                                          'filter off'}',
+                                                l10n.filterSavedSnack(
+                                                  _filterAge.start.round(),
+                                                  _filterAge.end.round(),
+                                                  _filterDistance.round(),
+                                                  '$_filterVerifiedOnly',
+                                                  '$trustEnabled',
+                                                ),
                                               ),
                                             ),
                                           );
@@ -1525,7 +1547,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                                             color: Colors.white,
                                           ),
                                         )
-                                      : const Text('Apply'),
+                                      : Text(l10n.commonApply),
                                 ),
                               ),
                             ),
@@ -1617,11 +1639,11 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
     return payload;
   }
 
-  List<String> get _discoverActiveFilterChips {
+  List<String> _discoverActiveFilterChips(AppLocalizations l10n) {
     final chips = <String>[];
 
     if (_filterVerifiedOnly) {
-      chips.add('Verified only');
+      chips.add(l10n.filterVerifiedOnlyChip);
     }
 
     if (_filterAge != const RangeValues(20, 50)) {
@@ -1629,7 +1651,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
     }
 
     if (_filterDistance.round() != 50) {
-      chips.add('${_filterDistance.round()} km');
+      chips.add(l10n.commonDistanceKm(_filterDistance.round()));
     }
 
     void addIfSet(String? value) {
@@ -1646,23 +1668,28 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
     addIfSet(_filterCity);
 
     if (_filterPartyLoverOnly) {
-      chips.add('Party lover');
+      chips.add(l10n.filterPartyLoverChip);
     }
     if (_filterHookupOnly) {
-      chips.add('Hookup only');
+      chips.add(l10n.filterHookupChip);
     }
 
     return chips;
   }
 
+  /// [qaLabel] is the stable English name the QA id is derived from; [label]
+  /// is what the member reads. Option values stay as stored; only their
+  /// display text is translated.
   Widget _buildDropdownFilterField({
+    required AppLocalizations l10n,
+    required String qaLabel,
     required String label,
     required String? value,
     required List<String> options,
     required ValueChanged<String?> onChanged,
   }) {
     final resolvedValue = options.contains(value) ? value : null;
-    final qaId = 'qa.filters.${_qaIdForLabel(label)}_dropdown';
+    final qaId = 'qa.filters.${_qaIdForLabel(qaLabel)}_dropdown';
     return Semantics(
       label: qaId,
       button: true,
@@ -1677,13 +1704,16 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
             key: ValueKey<String>(qaId),
             value: resolvedValue,
             isExpanded: true,
-            hint: const Text('Any'),
+            hint: Text(l10n.commonAny),
             items: [
-              const DropdownMenuItem<String>(value: null, child: Text('Any')),
+              DropdownMenuItem<String>(
+                value: null,
+                child: Text(l10n.commonAny),
+              ),
               ...options.map(
                 (option) => DropdownMenuItem<String>(
                   value: option,
-                  child: Text(option),
+                  child: Text(localizedProfileOption(l10n, option)),
                 ),
               ),
             ],

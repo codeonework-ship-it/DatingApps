@@ -8,7 +8,9 @@ import 'package:just_audio/just_audio.dart';
 import '../../../core/config/feature_flags.dart';
 import '../../../core/providers/api_client_provider.dart';
 import '../../../core/utils/logger.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../engagement_l10n.dart';
 
 class VoiceIcebreakerPrompt {
   const VoiceIcebreakerPrompt({required this.id, required this.promptText});
@@ -113,6 +115,8 @@ class VoiceIcebreakerNotifier extends StateNotifier<VoiceIcebreakerState> {
   final Ref _ref;
   AudioPlayer? _player;
 
+  AppLocalizations get _l => engagementL10nFor(_ref);
+
   Future<void> loadPrompts() async {
     state = state.copyWith(isLoading: true, clearError: true);
 
@@ -162,7 +166,7 @@ class VoiceIcebreakerNotifier extends StateNotifier<VoiceIcebreakerState> {
         isLoading: false,
         error: _extractApiError(
           e,
-          fallback: 'Unable to load voice prompts right now.',
+          fallback: _l.engagementVoicePromptsLoadFailed,
         ),
       );
     } catch (e, stackTrace) {
@@ -170,7 +174,7 @@ class VoiceIcebreakerNotifier extends StateNotifier<VoiceIcebreakerState> {
       log.error('Failed to load voice icebreaker prompts', e, stackTrace);
       state = state.copyWith(
         isLoading: false,
-        error: 'Unable to load voice prompts right now.',
+        error: _l.engagementVoicePromptsLoadFailed,
       );
     }
   }
@@ -190,19 +194,19 @@ class VoiceIcebreakerNotifier extends StateNotifier<VoiceIcebreakerState> {
     final trimmedTranscript = transcript.trim();
 
     if (senderUserId == null || senderUserId.isEmpty) {
-      state = state.copyWith(error: 'User session not available.');
+      state = state.copyWith(error: _l.engagementSessionUnavailable);
       return;
     }
     if (trimmedMatchId.isEmpty || trimmedReceiver.isEmpty) {
-      state = state.copyWith(error: 'Choose a conversation first.');
+      state = state.copyWith(error: _l.engagementVoiceChooseConversation);
       return;
     }
     if (trimmedPromptId.isEmpty) {
-      state = state.copyWith(error: 'Please select a voice prompt.');
+      state = state.copyWith(error: _l.engagementVoiceSelectPrompt);
       return;
     }
     if (trimmedTranscript.isEmpty) {
-      state = state.copyWith(error: 'Please enter a transcript.');
+      state = state.copyWith(error: _l.engagementVoiceEnterTranscript);
       return;
     }
 
@@ -261,7 +265,7 @@ class VoiceIcebreakerNotifier extends StateNotifier<VoiceIcebreakerState> {
       if (icebreakerId.isEmpty) {
         state = state.copyWith(
           isSubmitting: false,
-          error: 'Unable to create voice icebreaker session.',
+          error: _l.engagementVoiceSessionFailed,
         );
         return;
       }
@@ -297,17 +301,14 @@ class VoiceIcebreakerNotifier extends StateNotifier<VoiceIcebreakerState> {
       log.error('Failed to send voice icebreaker', e, stackTrace);
       state = state.copyWith(
         isSubmitting: false,
-        error: _extractApiError(
-          e,
-          fallback: 'Unable to send voice icebreaker right now.',
-        ),
+        error: _extractApiError(e, fallback: _l.engagementVoiceSendFailed),
       );
     } catch (e, stackTrace) {
       if (!mounted) return;
       log.error('Failed to send voice icebreaker', e, stackTrace);
       state = state.copyWith(
         isSubmitting: false,
-        error: 'Unable to send voice icebreaker right now.',
+        error: _l.engagementVoiceSendFailed,
       );
     }
   }
@@ -321,7 +322,7 @@ class VoiceIcebreakerNotifier extends StateNotifier<VoiceIcebreakerState> {
 
     final userId = _currentUserId();
     if (userId == null || userId.isEmpty) {
-      state = state.copyWith(error: 'User ID is required to mark playback.');
+      state = state.copyWith(error: _l.engagementVoicePlaybackUserRequired);
       return;
     }
 
@@ -378,7 +379,7 @@ class VoiceIcebreakerNotifier extends StateNotifier<VoiceIcebreakerState> {
         isPlaying: false,
         error: _extractApiError(
           e,
-          fallback: 'Unable to mark playback right now.',
+          fallback: _l.engagementVoiceMarkPlaybackFailed,
         ),
       );
     } catch (e, stackTrace) {
@@ -386,7 +387,7 @@ class VoiceIcebreakerNotifier extends StateNotifier<VoiceIcebreakerState> {
       log.error('Failed to mark voice icebreaker play', e, stackTrace);
       state = state.copyWith(
         isPlaying: false,
-        error: 'Unable to play this recording right now.',
+        error: _l.engagementVoicePlayFailed,
       );
     }
   }

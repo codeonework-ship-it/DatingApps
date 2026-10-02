@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/auth/providers/auth_provider.dart';
 import '../config/feature_flags.dart';
+import '../i18n/app_l10n.dart';
 import 'api_client_provider.dart';
 
 final safetyActionsProvider = Provider<SafetyActions>(SafetyActions.new);
@@ -21,7 +22,7 @@ class SafetyActions {
 
     final currentUserId = _ref.read(authNotifierProvider).userId;
     if (currentUserId == null) {
-      throw StateError('Not authenticated');
+      throw StateError(appL10nOf(_ref).safetyNotAuthenticated);
     }
 
     try {
@@ -45,7 +46,7 @@ class SafetyActions {
       if (data is Map && data['error'] != null) {
         throw StateError(data['error'].toString());
       }
-      throw StateError('Failed to report user');
+      throw StateError(appL10nOf(_ref).safetyReportFailed);
     }
   }
 
@@ -54,7 +55,7 @@ class SafetyActions {
 
     final currentUserId = _ref.read(authNotifierProvider).userId;
     if (currentUserId == null) {
-      throw StateError('Not authenticated');
+      throw StateError(appL10nOf(_ref).safetyNotAuthenticated);
     }
 
     try {
@@ -64,7 +65,7 @@ class SafetyActions {
         data: {'user_id': currentUserId, 'blocked_user_id': blockedUserId},
       );
     } on DioException {
-      throw StateError('Failed to block user');
+      throw StateError(appL10nOf(_ref).safetyBlockFailed);
     }
   }
 
@@ -73,7 +74,7 @@ class SafetyActions {
 
     final currentUserId = _ref.read(authNotifierProvider).userId;
     if (currentUserId == null) {
-      throw StateError('Not authenticated');
+      throw StateError(appL10nOf(_ref).safetyNotAuthenticated);
     }
 
     try {
@@ -83,7 +84,7 @@ class SafetyActions {
         data: {'user_id': currentUserId, 'blocked_user_id': blockedUserId},
       );
     } on DioException {
-      throw StateError('Failed to unblock user');
+      throw StateError(appL10nOf(_ref).safetyUnblockFailed);
     }
   }
 }

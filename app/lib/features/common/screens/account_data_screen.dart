@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/layout/app_layout.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
+import '../../../l10n/app_localizations.dart';
 import '../providers/account_lifecycle_provider.dart';
 
 /// Pause, export and deletion, in one place.
@@ -20,10 +21,11 @@ class AccountDataScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final lifecycleAsync = ref.watch(accountLifecycleProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Account & Data')),
+      appBar: AppBar(title: Text(l10n.accountTitle)),
       body: PostLoginBackdrop(
         child: SafeArea(
           child: Center(
@@ -70,20 +72,23 @@ class _LoadFailure extends StatelessWidget {
   final VoidCallback onRetry;
 
   @override
-  Widget build(BuildContext context) => Center(
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          'Could not load your account status.',
-          style: Theme.of(context).textTheme.bodyMedium,
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: AppLayout.space3),
-        TextButton(onPressed: onRetry, child: const Text('Retry')),
-      ],
-    ),
-  );
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            l10n.accountLoadFailed,
+            style: Theme.of(context).textTheme.bodyMedium,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: AppLayout.space3),
+          TextButton(onPressed: onRetry, child: Text(l10n.commonRetry)),
+        ],
+      ),
+    );
+  }
 }
 
 /// Shown above everything else while a deletion is pending.
@@ -97,6 +102,7 @@ class _DeletionCountdown extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final days = lifecycle.daysUntilDeletion;
     final scheme = Theme.of(context).colorScheme;
 
@@ -115,8 +121,8 @@ class _DeletionCountdown extends ConsumerWidget {
                 Expanded(
                   child: Text(
                     days > 0
-                        ? 'Deletion in $days ${days == 1 ? 'day' : 'days'}'
-                        : 'Deletion is due',
+                        ? l10n.accountDeletionIn(days)
+                        : l10n.accountDeletionDue,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w700,
                       color: scheme.onSurface,
@@ -127,8 +133,7 @@ class _DeletionCountdown extends ConsumerWidget {
             ),
             const SizedBox(height: AppLayout.space2),
             Text(
-              'Your profile is hidden. You can still sign in and cancel until '
-              'then — after that your data cannot be recovered.',
+              l10n.accountDeletionCountdownBody,
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: AppLayout.space3),
@@ -141,7 +146,7 @@ class _DeletionCountdown extends ConsumerWidget {
                     ? () => _cancel(context, ref)
                     : null,
                 icon: const Icon(Icons.undo_rounded),
-                label: const Text('Keep my account'),
+                label: Text(l10n.accountKeepMyAccount),
               ),
             ),
           ],
@@ -151,16 +156,15 @@ class _DeletionCountdown extends ConsumerWidget {
   }
 
   Future<void> _cancel(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     try {
       await ref.read(accountLifecycleProvider.notifier).cancelDeletion();
       messenger.showSnackBar(
-        const SnackBar(content: Text('Your account will not be deleted.')),
+        SnackBar(content: Text(l10n.accountNotDeletedSnack)),
       );
     } on Object {
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Could not cancel. Please try again.')),
-      );
+      messenger.showSnackBar(SnackBar(content: Text(l10n.accountCancelFailed)));
     }
   }
 }
@@ -171,16 +175,13 @@ class _PauseCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final paused = lifecycle.deactivated;
     return _SectionCard(
       actionLabel: 'qa.account.pause_toggle_button',
       icon: paused ? Icons.visibility_off_outlined : Icons.pause_circle_outline,
-      title: paused ? 'Your profile is hidden' : 'Take a break',
-      body: paused
-          ? 'Nobody can see or match with you. Your matches and messages are '
-                'kept, and you can come back whenever you want.'
-          : 'Hide your profile from Discover without losing anything. You stay '
-                'signed in and can switch back at any time.',
+      title: paused ? l10n.accountHiddenTitle : l10n.accountTakeBreakTitle,
+      body: paused ? l10n.accountHiddenBody : l10n.accountTakeBreakBody,
       action: FilledButton.icon(
         key: const ValueKey('qa.account.pause_toggle_button'),
         // Deleting members are already hidden; offering a pause toggle there
@@ -189,7 +190,9 @@ class _PauseCard extends ConsumerWidget {
             ? null
             : () => _toggle(context, ref, paused),
         icon: Icon(paused ? Icons.play_arrow_rounded : Icons.pause_rounded),
-        label: Text(paused ? 'Unhide my profile' : 'Hide my profile'),
+        label: Text(
+          paused ? l10n.accountUnhideProfile : l10n.accountHideProfile,
+        ),
       ),
     );
   }
@@ -199,24 +202,23 @@ class _PauseCard extends ConsumerWidget {
     WidgetRef ref,
     bool currentlyPaused,
   ) async {
+    final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     final notifier = ref.read(accountLifecycleProvider.notifier);
     try {
       if (currentlyPaused) {
         await notifier.reactivate();
         messenger.showSnackBar(
-          const SnackBar(content: Text('Your profile is visible again.')),
+          SnackBar(content: Text(l10n.accountVisibleAgainSnack)),
         );
       } else {
         await notifier.deactivate();
         messenger.showSnackBar(
-          const SnackBar(content: Text('Your profile is now hidden.')),
+          SnackBar(content: Text(l10n.accountNowHiddenSnack)),
         );
       }
     } on Object {
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Could not update. Please try again.')),
-      );
+      messenger.showSnackBar(SnackBar(content: Text(l10n.accountUpdateFailed)));
     }
   }
 }
@@ -232,28 +234,30 @@ class _ExportCardState extends ConsumerState<_ExportCard> {
   bool _working = false;
 
   @override
-  Widget build(BuildContext context) => _SectionCard(
-    actionLabel: 'qa.account.export_button',
-    icon: Icons.download_outlined,
-    title: 'Download your data',
-    body:
-        'Get a copy of your profile, preferences, matches and the messages '
-        'you sent. Messages other people wrote are not included.',
-    action: FilledButton.icon(
-      key: const ValueKey('qa.account.export_button'),
-      onPressed: _working ? null : _export,
-      icon: _working
-          ? const SizedBox(
-              height: 16,
-              width: 16,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          : const Icon(Icons.download_rounded),
-      label: Text(_working ? 'Preparing…' : 'Prepare my data'),
-    ),
-  );
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return _SectionCard(
+      actionLabel: 'qa.account.export_button',
+      icon: Icons.download_outlined,
+      title: l10n.accountDownloadTitle,
+      body: l10n.accountDownloadBody,
+      action: FilledButton.icon(
+        key: const ValueKey('qa.account.export_button'),
+        onPressed: _working ? null : _export,
+        icon: _working
+            ? const SizedBox(
+                height: 16,
+                width: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.download_rounded),
+        label: Text(_working ? l10n.accountPreparing : l10n.accountPrepareData),
+      ),
+    );
+  }
 
   Future<void> _export() async {
+    final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     setState(() => _working = true);
     try {
@@ -269,9 +273,7 @@ class _ExportCardState extends ConsumerState<_ExportCard> {
       );
     } on Object {
       messenger.showSnackBar(
-        const SnackBar(
-          content: Text('Could not prepare your data. Please try again.'),
-        ),
+        SnackBar(content: Text(l10n.accountPrepareFailed)),
       );
     } finally {
       if (mounted) {
@@ -292,9 +294,10 @@ class _ExportDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final pretty = const JsonEncoder.withIndent('  ').convert(export);
     return AlertDialog(
-      title: const Text('Your data'),
+      title: Text(l10n.accountYourData),
       content: SizedBox(
         width: double.maxFinite,
         child: SingleChildScrollView(
@@ -312,11 +315,11 @@ class _ExportDialog extends StatelessWidget {
               Navigator.of(context).pop();
             }
           },
-          child: const Text('Copy'),
+          child: Text(l10n.commonCopy),
         ),
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Close'),
+          child: Text(l10n.commonClose),
         ),
       ],
     );
@@ -328,29 +331,29 @@ class _DeleteCard extends ConsumerWidget {
   final AccountLifecycle lifecycle;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) => _SectionCard(
-    actionLabel: 'qa.account.delete_button',
-    icon: Icons.delete_forever_outlined,
-    iconColor: AppTheme.danger,
-    title: 'Delete my account',
-    body:
-        'Your profile is hidden straight away and everything is erased after '
-        'a grace period. You can cancel during that time by signing in. '
-        'Afterwards nothing can be recovered.',
-    action: OutlinedButton.icon(
-      key: const ValueKey('qa.account.delete_button'),
-      onPressed: lifecycle.deletionScheduled
-          ? null
-          : () => _confirm(context, ref),
-      icon: const Icon(Icons.delete_outline_rounded),
-      label: Text(
-        lifecycle.deletionScheduled
-            ? 'Deletion already scheduled'
-            : 'Delete my account',
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    return _SectionCard(
+      actionLabel: 'qa.account.delete_button',
+      icon: Icons.delete_forever_outlined,
+      iconColor: AppTheme.danger,
+      title: l10n.accountDeleteTitle,
+      body: l10n.accountDeleteBody,
+      action: OutlinedButton.icon(
+        key: const ValueKey('qa.account.delete_button'),
+        onPressed: lifecycle.deletionScheduled
+            ? null
+            : () => _confirm(context, ref),
+        icon: const Icon(Icons.delete_outline_rounded),
+        label: Text(
+          lifecycle.deletionScheduled
+              ? l10n.accountDeletionAlreadyScheduled
+              : l10n.accountDeleteTitle,
+        ),
+        style: OutlinedButton.styleFrom(foregroundColor: AppTheme.danger),
       ),
-      style: OutlinedButton.styleFrom(foregroundColor: AppTheme.danger),
-    ),
-  );
+    );
+  }
 
   /// Deletion is confirmed in its own dialog rather than on a single tap.
   ///
@@ -358,27 +361,23 @@ class _DeleteCard extends ConsumerWidget {
   /// where the reversible alternative is offered — a member who wants to
   /// disappear usually wants to be hidden, not erased.
   Future<void> _confirm(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     final notifier = ref.read(accountLifecycleProvider.notifier);
 
     final choice = await showDialog<String>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Delete your account?'),
-        content: const Text(
-          'Your profile, photos, matches and messages will be erased and '
-          'cannot be recovered.\n\n'
-          'If you just want a break, hiding your profile keeps everything and '
-          'can be undone.',
-        ),
+        title: Text(l10n.accountDeleteConfirmTitle),
+        content: Text(l10n.accountDeleteConfirmBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop('cancel'),
-            child: const Text('Keep my account'),
+            child: Text(l10n.accountKeepMyAccount),
           ),
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop('hide'),
-            child: const Text('Hide instead'),
+            child: Text(l10n.accountHideInstead),
           ),
           Semantics(
             label: 'qa.account.delete_confirm_button',
@@ -387,7 +386,7 @@ class _DeleteCard extends ConsumerWidget {
               key: const ValueKey('qa.account.delete_confirm_button'),
               onPressed: () => Navigator.of(dialogContext).pop('delete'),
               style: FilledButton.styleFrom(backgroundColor: AppTheme.danger),
-              child: const Text('Delete'),
+              child: Text(l10n.commonDelete),
             ),
           ),
         ],
@@ -398,21 +397,17 @@ class _DeleteCard extends ConsumerWidget {
       if (choice == 'delete') {
         await notifier.requestDeletion();
         messenger.showSnackBar(
-          const SnackBar(
-            content: Text('Deletion scheduled. You can cancel until then.'),
-          ),
+          SnackBar(content: Text(l10n.accountDeletionScheduledSnack)),
         );
       } else if (choice == 'hide') {
         await notifier.deactivate();
         messenger.showSnackBar(
-          const SnackBar(content: Text('Your profile is now hidden.')),
+          SnackBar(content: Text(l10n.accountNowHiddenSnack)),
         );
       }
     } on Object {
       messenger.showSnackBar(
-        const SnackBar(
-          content: Text('Something went wrong. Please try again.'),
-        ),
+        SnackBar(content: Text(l10n.commonSomethingWentWrongTryAgain)),
       );
     }
   }

@@ -96,6 +96,8 @@ Widget _setupApp(ProfileDraft draft) => ProviderScope(
   ],
   child: MaterialApp(
     theme: AppTheme.lightTheme,
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
     home: const SetupAboutScreen(isSetupFlow: true),
   ),
 );
@@ -123,6 +125,8 @@ Widget _discoverApp() => ProviderScope(
   ],
   child: MaterialApp(
     theme: AppTheme.lightTheme,
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
     home: const HomeDiscoveryScreen(browseOnly: true),
   ),
 );

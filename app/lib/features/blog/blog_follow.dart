@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/network/api_error_message.dart';
+import '../../l10n/app_localizations.dart';
 import '../auth/providers/auth_provider.dart';
 import '../engagement/screens/level_progression_screen.dart';
 import 'blog_data.dart';
 
 /// "12 followers", "1 follower".
-String blogFollowerText(int n) => n == 1 ? '1 follower' : '$n followers';
+String blogFollowerText(AppLocalizations l10n, int n) =>
+    l10n.blogFollowerCount(n);
 
 /// Opens the member's Level & XP screen.
 Future<void> openMyLevel(BuildContext context) => Navigator.of(
@@ -35,6 +37,7 @@ class BlogFollowButton extends ConsumerWidget {
     }
     final follows = ref.watch(blogFollowsProvider);
     final following = (follows[authorId] ?? server).subscribed;
+    final l10n = AppLocalizations.of(context);
     Future<void> toggle() async {
       try {
         await ref.read(blogFollowsProvider.notifier).toggle(authorId, server);
@@ -48,8 +51,8 @@ class BlogFollowButton extends ConsumerWidget {
                   apiErrorMessage(
                     e,
                     fallback: following
-                        ? 'We couldn’t stop following just now. Please try again.'
-                        : 'We couldn’t follow this writer just now. Please try again.',
+                        ? l10n.blogUnfollowFailed
+                        : l10n.blogFollowFailed,
                   ),
                 ),
               ),
@@ -66,14 +69,14 @@ class BlogFollowButton extends ConsumerWidget {
             style: OutlinedButton.styleFrom(minimumSize: size),
             onPressed: toggle,
             icon: const Icon(Icons.check_rounded),
-            label: const Text('Following'),
+            label: Text(l10n.blogFollowingButton),
           )
         : FilledButton.tonalIcon(
             key: key,
             style: FilledButton.styleFrom(minimumSize: size),
             onPressed: toggle,
             icon: const Icon(Icons.add_rounded),
-            label: const Text('Follow their chapters'),
+            label: Text(l10n.blogFollowTheirChapters),
           );
   }
 }
@@ -104,7 +107,7 @@ class BlogAuthorRow extends ConsumerWidget {
           children: [
             Text(post.authorName, style: theme.textTheme.titleMedium),
             Text(
-              blogFollowerText(state.count),
+              blogFollowerText(AppLocalizations.of(context), state.count),
               key: ValueKey('blog.followers.${post.authorId}'),
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
@@ -142,77 +145,77 @@ class BlogTopicChip extends StatelessWidget {
 }
 
 /// Explains the creator rewards, with the values the server awards.
-Future<void> showBlogRewardsSheet(
-  BuildContext context,
-) => showModalBottomSheet<void>(
-  context: context,
-  isScrollControlled: true,
-  showDragHandle: true,
-  builder: (sheetContext) {
-    final theme = Theme.of(sheetContext);
-    final colors = theme.colorScheme;
-    return FractionallySizedBox(
-      heightFactor: .85,
-      child: ListView(
-        key: const ValueKey('blog.rewards_sheet'),
-        padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
-        children: [
-          Text('How rewards work', style: theme.textTheme.titleLarge),
-          const SizedBox(height: 8),
-          const Text(
-            'When what you share moves someone, it counts. Readers’ likes, '
-            'approved comments and new followers earn you XP toward your '
-            'level. Rewards come from what readers do, never from tapping, '
-            'and each one is given only once.',
-          ),
-          const SizedBox(height: 16),
-          for (final reward in blogRewards)
-            Padding(
-              key: ValueKey('blog.reward.${reward.source}'),
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(reward.title, style: theme.textTheme.titleSmall),
-                        Text(reward.who),
-                        Text(
-                          'Up to ${reward.dailyCap} XP a day',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: colors.onSurfaceVariant,
-                          ),
+Future<void> showBlogRewardsSheet(BuildContext context) =>
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        final theme = Theme.of(sheetContext);
+        final colors = theme.colorScheme;
+        final l10n = AppLocalizations.of(sheetContext);
+        return FractionallySizedBox(
+          heightFactor: .85,
+          child: ListView(
+            key: const ValueKey('blog.rewards_sheet'),
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
+            children: [
+              Text(l10n.blogRewardsTitle, style: theme.textTheme.titleLarge),
+              const SizedBox(height: 8),
+              Text(l10n.blogRewardsIntro),
+              const SizedBox(height: 16),
+              for (final reward in blogRewards)
+                Padding(
+                  key: ValueKey('blog.reward.${reward.source}'),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              blogRewardTitle(l10n, reward.source),
+                              style: theme.textTheme.titleSmall,
+                            ),
+                            Text(blogRewardWho(l10n, reward.source)),
+                            Text(
+                              l10n.blogRewardDailyCap(reward.dailyCap),
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: colors.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        l10n.blogRewardXp(reward.xp),
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          color: colors.primary,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 12),
-                  Text(
-                    '+${reward.xp} XP',
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      color: colors.primary,
-                    ),
+                ),
+              const SizedBox(height: 16),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(48, 48),
                   ),
-                ],
+                  onPressed: () {
+                    Navigator.of(sheetContext).pop();
+                    openMyLevel(context);
+                  },
+                  icon: const Icon(Icons.emoji_events_outlined),
+                  label: Text(l10n.blogSeeMyLevel),
+                ),
               ),
-            ),
-          const SizedBox(height: 16),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: FilledButton.icon(
-              style: FilledButton.styleFrom(minimumSize: const Size(48, 48)),
-              onPressed: () {
-                Navigator.of(sheetContext).pop();
-                openMyLevel(context);
-              },
-              icon: const Icon(Icons.emoji_events_outlined),
-              label: const Text('See my level'),
-            ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
-  },
-);

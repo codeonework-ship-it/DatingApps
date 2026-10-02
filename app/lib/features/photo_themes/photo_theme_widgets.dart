@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/api_error_message.dart';
 import '../../core/providers/api_client_provider.dart';
+import '../../l10n/app_localizations.dart';
 import '../auth/providers/auth_provider.dart';
 import '../blog/blog_data.dart';
 import '../blog/blog_social.dart';
@@ -48,7 +49,9 @@ class ThemeEntryPhoto extends ConsumerWidget {
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (_, _) => Center(
               child: IconButton(
-                tooltip: 'Photo unavailable. Retry',
+                tooltip: AppLocalizations.of(
+                  context,
+                ).photoThemesPhotoUnavailable,
                 onPressed: () => ref.invalidate(provider),
                 icon: const Icon(Icons.broken_image_outlined),
               ),
@@ -68,9 +71,10 @@ class ThemeEntryTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     final scrim = Theme.of(context).colorScheme.scrim;
+    final l10n = AppLocalizations.of(context);
     return Semantics(
       button: true,
-      label: 'Open ${entry.authorName}’s photo',
+      label: l10n.photoThemesOpenPhoto(entry.authorName),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(20),
         child: AspectRatio(
@@ -111,7 +115,7 @@ class ThemeEntryTile extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          entry.mine ? 'You' : entry.authorName,
+                          entry.mine ? l10n.photoThemesYou : entry.authorName,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: text.labelLarge?.copyWith(color: Colors.white),
@@ -148,13 +152,6 @@ Future<void> showThemeEntrySheet(
     builder: (_) => ThemeEntrySheet(entry: entry),
   );
 }
-
-/// How reach to other members' walls works, shown wherever a member turns it
-/// on or off.
-const photoWallHelp =
-    'If members love it, your photo can reach their Today walls: 50 likes '
-    'and 5 comments reach 50 walls, 100 likes and 10 comments reach 100. '
-    'You can turn this off any time.';
 
 /// Heart toggle for a photo. Optimistic, with rollback; disabled with a
 /// tooltip on the member's own photo.
@@ -196,14 +193,14 @@ class _ThemeEntrySheetState extends ConsumerState<ThemeEntrySheet> {
 
   ThemeEntryRef get thread => (theme: entry.themeId, entry: entry.id);
 
+  AppLocalizations get l10n => AppLocalizations.of(context);
+
   Future<void> remove() async {
     final confirmed = await confirmCommunityAction(
       context,
-      title: 'Remove your photo?',
-      message:
-          'It disappears from this theme for everyone. You can share a '
-          'new one afterwards.',
-      action: 'Remove photo',
+      title: l10n.photoThemesRemoveTitle,
+      message: l10n.photoThemesRemoveMessage,
+      action: l10n.photoThemesRemoveAction,
     );
     if (!confirmed || !mounted) {
       return;
@@ -221,7 +218,7 @@ class _ThemeEntrySheetState extends ConsumerState<ThemeEntrySheet> {
       if (mounted) {
         showCommunitySnack(
           context,
-          apiErrorMessage(e, fallback: 'Your photo could not be removed.'),
+          apiErrorMessage(e, fallback: l10n.photoThemesRemoveFailed),
         );
       }
     } finally {
@@ -260,15 +257,13 @@ class _ThemeEntrySheetState extends ConsumerState<ThemeEntrySheet> {
       invalidatePhotoThemes(ref);
       showCommunitySnack(
         context,
-        allow
-            ? 'Your photo can now reach members’ walls when they love it.'
-            : 'Your photo is off every wall.',
+        allow ? l10n.photoThemesReachOn : l10n.photoThemesReachOff,
       );
     } on Object catch (e) {
       if (mounted) {
         showCommunitySnack(
           context,
-          apiErrorMessage(e, fallback: 'That didn’t save. Please try again.'),
+          apiErrorMessage(e, fallback: l10n.photoThemesSaveFailed),
         );
       }
     } finally {
@@ -320,12 +315,17 @@ class _ThemeEntrySheetState extends ConsumerState<ThemeEntrySheet> {
           Text(entry.caption, style: text.titleMedium),
           const SizedBox(height: 8),
           Text(
-            entry.mine ? 'Shared by you' : 'Shared by ${entry.authorName}',
+            entry.mine
+                ? l10n.photoThemesSharedByYou
+                : l10n.photoThemesSharedBy(entry.authorName),
             style: text.bodyMedium,
           ),
           if (entry.altText.isNotEmpty) ...[
             const SizedBox(height: 8),
-            Text('Photo description: ${entry.altText}', style: text.bodyMedium),
+            Text(
+              l10n.photoThemesPhotoDescription(entry.altText),
+              style: text.bodyMedium,
+            ),
           ],
           const SizedBox(height: 8),
           Row(
@@ -351,8 +351,8 @@ class _ThemeEntrySheetState extends ConsumerState<ThemeEntrySheet> {
               contentPadding: EdgeInsets.zero,
               value: entry.allowFeaturing,
               onChanged: savingReach ? null : (allow) => setReach(allow: allow),
-              title: const Text('Let it reach other members’ walls'),
-              subtitle: const Text(photoWallHelp),
+              title: Text(l10n.photoThemesReachSwitch),
+              subtitle: Text(l10n.photoThemesWallHelp),
             ),
             const SizedBox(height: 8),
             WallReachCard(
@@ -360,8 +360,8 @@ class _ThemeEntrySheetState extends ConsumerState<ThemeEntrySheet> {
               visible: entry.allowFeaturing,
               wallReach: entry.wallReach,
               nextTier: entry.nextTier,
-              idleTitle: 'Members can carry this photo further',
-              liveCaption: 'Members are seeing it on their Today walls now.',
+              idleTitle: l10n.photoThemesReachIdle,
+              liveCaption: l10n.photoThemesReachLive,
             ),
           ],
           const SizedBox(height: 16),
@@ -374,7 +374,7 @@ class _ThemeEntrySheetState extends ConsumerState<ThemeEntrySheet> {
                     OutlinedButton.icon(
                       onPressed: busy ? null : remove,
                       icon: const Icon(Icons.delete_outline),
-                      label: const Text('Remove my photo'),
+                      label: Text(l10n.photoThemesRemoveMine),
                     ),
                   ]
                 : [
@@ -386,12 +386,12 @@ class _ThemeEntrySheetState extends ConsumerState<ThemeEntrySheet> {
                         id: entry.id,
                       ),
                       icon: const Icon(Icons.flag_outlined),
-                      label: const Text('Report'),
+                      label: Text(l10n.photoThemesReport),
                     ),
                     TextButton.icon(
                       onPressed: block,
                       icon: const Icon(Icons.block_outlined),
-                      label: Text('Block ${entry.authorName}'),
+                      label: Text(l10n.photoThemesBlock(entry.authorName)),
                     ),
                   ],
           ),
@@ -404,9 +404,8 @@ class _ThemeEntrySheetState extends ConsumerState<ThemeEntrySheet> {
               open: true,
               comments: themeEntryCommentsProvider(thread),
               reportKind: 'photo_comment',
-              hint: 'What does it make you think of?',
-              approvedNotice:
-                  'Approved. Everyone who can see this photo can see it now.',
+              hint: l10n.photoThemesCommentHint,
+              approvedNotice: l10n.photoThemesCommentApproved,
               create: (api, id, body) => createThemeEntryComment(
                 api,
                 entry: entry,
@@ -466,8 +465,9 @@ class _EntryDetailsDialogState extends State<_EntryDetailsDialog> {
   @override
   Widget build(BuildContext context) {
     final ready = caption.text.trim().isNotEmpty && alt.text.trim().isNotEmpty;
+    final l10n = AppLocalizations.of(context);
     return AlertDialog(
-      title: const Text('Tell us about it'),
+      title: Text(l10n.photoThemesDetailsTitle),
       scrollable: true,
       content: Column(
         mainAxisSize: MainAxisSize.min,
@@ -479,9 +479,9 @@ class _EntryDetailsDialogState extends State<_EntryDetailsDialog> {
             minLines: 1,
             textCapitalization: TextCapitalization.sentences,
             onChanged: (_) => setState(() {}),
-            decoration: const InputDecoration(
-              labelText: 'Caption',
-              hintText: 'Pancakes, then nowhere to be.',
+            decoration: InputDecoration(
+              labelText: l10n.photoThemesCaption,
+              hintText: l10n.photoThemesCaptionHint,
             ),
           ),
           const SizedBox(height: 8),
@@ -491,9 +491,9 @@ class _EntryDetailsDialogState extends State<_EntryDetailsDialog> {
             maxLines: 2,
             minLines: 1,
             onChanged: (_) => setState(() {}),
-            decoration: const InputDecoration(
-              labelText: 'Describe the photo',
-              helperText: 'Helps members who use a screen reader.',
+            decoration: InputDecoration(
+              labelText: l10n.photoThemesDescribe,
+              helperText: l10n.photoThemesDescribeHelper,
             ),
           ),
           const SizedBox(height: 8),
@@ -502,15 +502,15 @@ class _EntryDetailsDialogState extends State<_EntryDetailsDialog> {
             contentPadding: EdgeInsets.zero,
             value: allowFeaturing,
             onChanged: (value) => setState(() => allowFeaturing = value),
-            title: const Text('Let it reach other members’ walls'),
-            subtitle: const Text(photoWallHelp),
+            title: Text(l10n.photoThemesReachSwitch),
+            subtitle: Text(l10n.photoThemesWallHelp),
           ),
         ],
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
+          child: Text(l10n.photoThemesCancel),
         ),
         FilledButton(
           onPressed: ready
@@ -520,7 +520,7 @@ class _EntryDetailsDialogState extends State<_EntryDetailsDialog> {
                   allowFeaturing: allowFeaturing,
                 ))
               : null,
-          child: const Text('Share'),
+          child: Text(l10n.photoThemesShare),
         ),
       ],
     );

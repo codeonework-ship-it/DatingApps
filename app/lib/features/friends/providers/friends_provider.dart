@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/config/feature_flags.dart';
 import '../../../core/providers/api_client_provider.dart';
 import '../../../core/utils/logger.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../friend_actions.dart';
 
@@ -112,17 +113,27 @@ class FriendActivityItem {
   final String createdAt;
 }
 
+/// Why a friends request failed when the server sent no message of its own.
+/// Widgets show it in the member's language with [FriendsState.errorText].
+enum FriendsFailure { load, add, remove, respond }
+
 class FriendsState {
   const FriendsState({
     this.isLoading = false,
     this.isMutating = false,
     this.error,
+    this.failure,
     this.friends = const <FriendConnection>[],
     this.activities = const <FriendActivityItem>[],
   });
   final bool isLoading;
   final bool isMutating;
+
+  /// The server's own message for the last failure, if it sent one.
   final String? error;
+
+  /// The last failure when the server sent no message.
+  final FriendsFailure? failure;
   final List<FriendConnection> friends;
   final List<FriendActivityItem> activities;
 
@@ -132,6 +143,20 @@ class FriendsState {
       friends.where((f) => f.isIncoming).toList(growable: false);
   List<FriendConnection> get outgoing =>
       friends.where((f) => f.isOutgoing).toList(growable: false);
+
+  bool get hasError => error != null || failure != null;
+
+  /// The last failure for display: the server's message, or a localized
+  /// fallback.
+  String? errorText(AppLocalizations l10n) =>
+      error ??
+      switch (failure) {
+        FriendsFailure.load => l10n.friendsLoadFailed,
+        FriendsFailure.add => l10n.friendsAddFailed,
+        FriendsFailure.remove => l10n.friendsRemoveFailed,
+        FriendsFailure.respond => l10n.friendsRespondFailed,
+        null => null,
+      };
 
   /// My connection with [userId], if any.
   FriendConnection? connectionWith(String userId) {
@@ -147,16 +172,22 @@ class FriendsState {
     bool? isLoading,
     bool? isMutating,
     String? error,
+    FriendsFailure? failure,
     bool clearError = false,
     List<FriendConnection>? friends,
     List<FriendActivityItem>? activities,
-  }) => FriendsState(
-    isLoading: isLoading ?? this.isLoading,
-    isMutating: isMutating ?? this.isMutating,
-    error: clearError ? null : (error ?? this.error),
-    friends: friends ?? this.friends,
-    activities: activities ?? this.activities,
-  );
+  }) {
+    // A new failure replaces the previous one, message and fallback alike.
+    final keep = !clearError && error == null && failure == null;
+    return FriendsState(
+      isLoading: isLoading ?? this.isLoading,
+      isMutating: isMutating ?? this.isMutating,
+      error: keep ? this.error : error,
+      failure: keep ? this.failure : failure,
+      friends: friends ?? this.friends,
+      activities: activities ?? this.activities,
+    );
+  }
 }
 
 class FriendsNotifier extends StateNotifier<FriendsState> {
@@ -245,20 +276,15 @@ class FriendsNotifier extends StateNotifier<FriendsState> {
       }
       state = state.copyWith(
         isLoading: false,
-        error: _extractApiError(
-          e,
-          fallback: 'Failed to load friends. Please try again.',
-        ),
+        error: _apiError(e),
+        failure: FriendsFailure.load,
       );
     } on Object catch (e, stackTrace) {
       log.error('Failed to load friends', e, stackTrace);
       if (!mounted) {
         return;
       }
-      state = state.copyWith(
-        isLoading: false,
-        error: 'Failed to load friends. Please try again.',
-      );
+      state = state.copyWith(isLoading: false, failure: FriendsFailure.load);
     }
   }
 
@@ -303,11 +329,12 @@ class FriendsNotifier extends StateNotifier<FriendsState> {
       log.error('Failed to add friend', e, stackTrace);
       state = state.copyWith(
         isMutating: false,
-        error: _extractApiError(e, fallback: 'Failed to add friend.'),
+        error: _apiError(e),
+        failure: FriendsFailure.add,
       );
     } on Object catch (e, stackTrace) {
       log.error('Failed to add friend', e, stackTrace);
-      state = state.copyWith(isMutating: false, error: 'Failed to add friend.');
+      state = state.copyWith(isMutating: false, failure: FriendsFailure.add);
     }
   }
 
@@ -334,14 +361,12 @@ class FriendsNotifier extends StateNotifier<FriendsState> {
       log.error('Failed to remove friend', e, stackTrace);
       state = state.copyWith(
         isMutating: false,
-        error: _extractApiError(e, fallback: 'Failed to remove friend.'),
+        error: _apiError(e),
+        failure: FriendsFailure.remove,
       );
     } on Object catch (e, stackTrace) {
       log.error('Failed to remove friend', e, stackTrace);
-      state = state.copyWith(
-        isMutating: false,
-        error: 'Failed to remove friend.',
-      );
+      state = state.copyWith(isMutating: false, failure: FriendsFailure.remove);
     }
   }
 
@@ -371,10 +396,8 @@ class FriendsNotifier extends StateNotifier<FriendsState> {
       log.error('Failed to respond to friend request', e, stackTrace);
       state = state.copyWith(
         isMutating: false,
-        error: _extractApiError(
-          e,
-          fallback: 'Failed to respond to friend request.',
-        ),
+        error: _apiError(e),
+        failure: FriendsFailure.respond,
       );
     }
   }
@@ -389,12 +412,13 @@ final friendsProvider = StateNotifierProvider<FriendsNotifier, FriendsState>((
   return FriendsNotifier(ref);
 });
 
-String _extractApiError(DioException e, {required String fallback}) {
+/// The server's own error message, if it sent one.
+String? _apiError(DioException e) {
   final data = e.response?.data;
   if (data is Map && data['error'] != null) {
     return data['error'].toString();
   }
-  return fallback;
+  return null;
 }
 
 /// `GET /friends/{me}/search?q=`: members to add as friends. Queries under

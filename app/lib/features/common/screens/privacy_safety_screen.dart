@@ -8,7 +8,9 @@ import '../../../core/providers/runtime_feature_flags_provider.dart';
 import '../../../core/telemetry/client_error_reporter.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../friends/providers/friends_provider.dart';
+import '../../graduation/models/graduation_labels.dart';
 import '../../graduation/providers/graduation_provider.dart';
 import '../../profile/providers/user_settings_provider.dart';
 import '../../safety/screens/sos_screen.dart';
@@ -22,6 +24,7 @@ class PrivacySafetyScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final settingsAsync = ref.watch(userSettingsProvider);
     final runtimeFlags = ref
         .watch(runtimeFeatureFlagsProvider)
@@ -37,7 +40,7 @@ class PrivacySafetyScreen extends ConsumerWidget {
     );
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Privacy & Safety')),
+      appBar: AppBar(title: Text(l10n.privacyTitle)),
       body: PostLoginBackdrop(
         child: SafeArea(
           child: Center(
@@ -53,7 +56,7 @@ class PrivacySafetyScreen extends ConsumerWidget {
                   error: (_, _) => Center(
                     child: TextButton(
                       onPressed: () => ref.invalidate(userSettingsProvider),
-                      child: const Text('Retry'),
+                      child: Text(l10n.commonRetry),
                     ),
                   ),
                   data: (s) => GlassContainer(
@@ -64,30 +67,24 @@ class PrivacySafetyScreen extends ConsumerWidget {
                       child: Column(
                         children: [
                           SwitchListTile(
-                            title: const Text('Show age'),
-                            subtitle: const Text(
-                              'Control whether your age is visible',
-                            ),
+                            title: Text(l10n.privacyShowAge),
+                            subtitle: Text(l10n.privacyShowAgeSubtitle),
                             value: s.showAge,
                             onChanged: (v) => ref
                                 .read(userSettingsProvider.notifier)
                                 .patchSettings(showAge: v),
                           ),
                           SwitchListTile(
-                            title: const Text('Show exact distance'),
-                            subtitle: const Text(
-                              'Show precise distance on your profile',
-                            ),
+                            title: Text(l10n.privacyShowDistance),
+                            subtitle: Text(l10n.privacyShowDistanceSubtitle),
                             value: s.showExactDistance,
                             onChanged: (v) => ref
                                 .read(userSettingsProvider.notifier)
                                 .patchSettings(showExactDistance: v),
                           ),
                           SwitchListTile(
-                            title: const Text('Show online status'),
-                            subtitle: const Text(
-                              'Allow others to see if you are online',
-                            ),
+                            title: Text(l10n.privacyShowOnline),
+                            subtitle: Text(l10n.privacyShowOnlineSubtitle),
                             value: s.showOnlineStatus,
                             onChanged: (v) => ref
                                 .read(userSettingsProvider.notifier)
@@ -106,10 +103,8 @@ class PrivacySafetyScreen extends ConsumerWidget {
                                 Icons.sos_rounded,
                                 color: Theme.of(context).colorScheme.error,
                               ),
-                              title: const Text('Emergency SOS'),
-                              subtitle: const Text(
-                                'Activate an alert and review alert history',
-                              ),
+                              title: Text(l10n.privacyEmergencySos),
+                              subtitle: Text(l10n.privacyEmergencySosSubtitle),
                               trailing: const Icon(Icons.chevron_right),
                               onTap: () {
                                 Navigator.of(context).push(
@@ -122,9 +117,9 @@ class PrivacySafetyScreen extends ConsumerWidget {
                           ListTile(
                             contentPadding: EdgeInsets.zero,
                             leading: const Icon(Icons.contact_phone_outlined),
-                            title: const Text('Emergency Contacts'),
-                            subtitle: const Text(
-                              'Manage trusted emergency contacts',
+                            title: Text(l10n.privacyEmergencyContacts),
+                            subtitle: Text(
+                              l10n.privacyEmergencyContactsSubtitle,
                             ),
                             trailing: const Icon(Icons.chevron_right),
                             onTap: () {
@@ -139,8 +134,8 @@ class PrivacySafetyScreen extends ConsumerWidget {
                           ListTile(
                             contentPadding: EdgeInsets.zero,
                             leading: const Icon(Icons.block_outlined),
-                            title: const Text('Blocked Users'),
-                            subtitle: const Text('Review and unblock users'),
+                            title: Text(l10n.privacyBlockedUsers),
+                            subtitle: Text(l10n.privacyBlockedUsersSubtitle),
                             trailing: const Icon(Icons.chevron_right),
                             onTap: () {
                               Navigator.of(context).push(
@@ -153,9 +148,9 @@ class PrivacySafetyScreen extends ConsumerWidget {
                           ListTile(
                             contentPadding: EdgeInsets.zero,
                             leading: const Icon(Icons.gavel_outlined),
-                            title: const Text('Moderation Appeals'),
-                            subtitle: const Text(
-                              'Submit an appeal and track review status',
+                            title: Text(l10n.privacyModerationAppeals),
+                            subtitle: Text(
+                              l10n.privacyModerationAppealsSubtitle,
                             ),
                             trailing: const Icon(Icons.chevron_right),
                             onTap: () {
@@ -188,16 +183,15 @@ class _FriendSearchTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final setting = ref.watch(friendSearchVisibilityProvider);
     return SwitchListTile(
       key: const ValueKey('qa.privacy.friend_search'),
-      title: const Text('Let people find me in friend search'),
+      title: Text(l10n.privacyFriendSearch),
       subtitle: Text(
         setting.hasError
-            ? 'This setting could not load. Open this page again to retry.'
-            : 'Members can find you by name or @username in Add friend. '
-                  'People you match or meet in rooms and groups can still '
-                  'add you.',
+            ? l10n.privacySettingLoadFailed
+            : l10n.privacyFriendSearchSubtitle,
       ),
       value: setting.valueOrNull ?? true,
       onChanged: setting.hasValue
@@ -213,7 +207,7 @@ class _FriendSearchTile extends ConsumerWidget {
                       content: Text(
                         apiErrorMessage(
                           e,
-                          fallback: 'Your choice could not be saved.',
+                          fallback: l10n.privacyChoiceSaveFailed,
                         ),
                       ),
                     ),
@@ -234,16 +228,15 @@ class _ProfileShowcaseTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final setting = ref.watch(profileShowcaseConsentProvider);
     return SwitchListTile(
       key: const ValueKey('qa.privacy.profile_showcase'),
-      title: const Text('Show my public writing on my profile'),
+      title: Text(l10n.privacyShowcase),
       subtitle: Text(
         setting.hasError
-            ? 'This setting could not load. Open this page again to retry.'
-            : 'Members can see the chapters you share with the community '
-                  'and your photos on the wall on your profile. Private and '
-                  'friends-only chapters never appear.',
+            ? l10n.privacySettingLoadFailed
+            : l10n.privacyShowcaseSubtitle,
       ),
       value: setting.valueOrNull ?? false,
       onChanged: setting.hasValue
@@ -261,16 +254,14 @@ class _CrashReportsTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final reporter = ref.watch(clientErrorReporterProvider);
     return ValueListenableBuilder<bool>(
       valueListenable: reporter.optIn,
       builder: (context, enabled, _) => SwitchListTile(
         key: const ValueKey('qa.privacy.crash_reports'),
-        title: const Text('Share crash reports'),
-        subtitle: const Text(
-          'Anonymous crash and error reports help us fix problems. No '
-          'messages, photos or account details are included.',
-        ),
+        title: Text(l10n.privacyCrashReports),
+        subtitle: Text(l10n.privacyCrashReportsSubtitle),
         value: enabled,
         onChanged: (v) => reporter.setOptIn(enabled: v),
       ),
@@ -285,15 +276,16 @@ class _DiscoveryPauseTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final state = ref.watch(discoveryPauseProvider);
     final notifier = ref.read(discoveryPauseProvider.notifier);
     final theme = Theme.of(context);
     final paused = state.paused;
     final reason = state.pause?.isGraduation ?? false
-        ? 'You left Connect with your match. Nobody is dealt your card.'
+        ? l10n.privacyGraduatedReason
         : paused
-        ? 'Nobody is dealt your card until you resume.'
-        : 'You are shown to other members in discovery.';
+        ? l10n.privacyPausedReason
+        : l10n.privacyActiveReason;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -304,9 +296,13 @@ class _DiscoveryPauseTile extends ConsumerWidget {
             paused ? Icons.pause_circle_outline : Icons.explore_outlined,
             color: paused ? AppTheme.warningOrange : theme.colorScheme.primary,
           ),
-          title: Text(paused ? 'Discovery paused' : 'Discovery active'),
+          title: Text(
+            paused ? l10n.privacyDiscoveryPaused : l10n.privacyDiscoveryActive,
+          ),
           subtitle: Text(
-            state.error ?? reason,
+            state.error == null
+                ? reason
+                : localizedGraduationError(l10n, state.error!, state.failure),
             style: state.error != null
                 ? theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.error,
@@ -323,7 +319,7 @@ class _DiscoveryPauseTile extends ConsumerWidget {
                         onPressed: state.isMutating
                             ? null
                             : notifier.resumeDiscovery,
-                        child: const Text('Resume'),
+                        child: Text(l10n.privacyResume),
                       )
                     : OutlinedButton(
                         key: const ValueKey('qa.graduation.discovery_pause'),
@@ -333,7 +329,7 @@ class _DiscoveryPauseTile extends ConsumerWidget {
                         onPressed: state.isMutating
                             ? null
                             : notifier.pauseDiscovery,
-                        child: const Text('Pause'),
+                        child: Text(l10n.privacyPause),
                       )
               : const SizedBox(
                   width: AppLayout.space5,

@@ -3,18 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers/api_client_provider.dart';
 import '../auth/providers/auth_provider.dart';
 
-const clubKinds = {'book': 'Books', 'film': 'Films'};
-const clubKindSingular = {'book': 'Book', 'film': 'Film'};
-const clubAudiences = {
-  'private': 'Only me',
-  'friends': 'Friends',
-  'community': 'Connect community',
-};
-const clubRoles = {
-  'owner': 'Owner',
-  'moderator': 'Moderator',
-  'member': 'Member',
-};
+/// Club and list kinds as the API names them. Labels come from
+/// `clubKindLabel` in club_widgets.dart.
+const clubKinds = ['book', 'film'];
+
+/// Who can see a list or review, as the API names it. Labels come from
+/// `clubAudienceLabel` in club_widgets.dart.
+const clubAudiences = ['private', 'friends', 'community'];
 
 String _str(Object? value) => value is String ? value : '';
 int _int(Object? value) => value is num ? value.toInt() : 0;

@@ -36,10 +36,16 @@ class CopilotDraft {
   final int remainingToday;
 }
 
+/// A local copilot failure the sheet shows in the reader's language.
+enum CopilotFailure { empty, unavailable }
+
 class CopilotException implements Exception {
-  const CopilotException(this.message);
+  const CopilotException(this.message, {this.failure});
 
   final String message;
+
+  /// Set when [message] is the app's own fallback rather than server text.
+  final CopilotFailure? failure;
 
   @override
   String toString() => message;
@@ -84,7 +90,10 @@ class CopilotClient {
       final body = (response.data as Map?)?.cast<String, dynamic>() ?? {};
       final draft = body['draft'];
       if (draft is! Map<dynamic, dynamic>) {
-        throw const CopilotException('The copilot returned nothing.');
+        throw const CopilotException(
+          'The copilot returned nothing.',
+          failure: CopilotFailure.empty,
+        );
       }
       return CopilotDraft.fromJson(draft.cast<String, dynamic>());
     } on CopilotException {
@@ -93,6 +102,9 @@ class CopilotClient {
       log.error('Copilot draft failed', error);
       throw CopilotException(
         apiErrorMessage(error, fallback: 'The copilot is unavailable.'),
+        failure: apiErrorMessage(error, fallback: '').isEmpty
+            ? CopilotFailure.unavailable
+            : null,
       );
     }
   }

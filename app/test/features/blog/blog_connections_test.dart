@@ -7,6 +7,7 @@ import 'package:verified_dating_app/features/auth/providers/auth_provider.dart';
 import 'package:verified_dating_app/features/blog/blog_connections.dart';
 import 'package:verified_dating_app/features/blog/blog_data.dart';
 import 'package:verified_dating_app/features/blog/blog_sharing.dart';
+import 'package:verified_dating_app/l10n/app_localizations.dart';
 
 class Auth extends AuthNotifier {
   @override
@@ -90,6 +91,8 @@ Widget host(Api api, Widget screen, {double scale = 1}) => ProviderScope(
     apiClientProvider.overrideWithValue(api.dio),
   ],
   child: MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
     builder: (context, child) => MediaQuery(
       data: MediaQuery.of(
         context,

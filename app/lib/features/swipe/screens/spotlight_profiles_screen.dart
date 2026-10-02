@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
+import '../../../l10n/app_localizations.dart';
 import '../models/discovery_profile.dart';
 import '../widgets/swipe_buttons.dart';
 import '../widgets/swipe_card.dart';
@@ -91,6 +92,7 @@ class _SpotlightProfilesScreenState extends State<SpotlightProfilesScreen>
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
+            final l10n = AppLocalizations.of(context);
             return Container(
               decoration: BoxDecoration(
                 gradient: AppTheme.groundGradientOf(context),
@@ -119,7 +121,7 @@ class _SpotlightProfilesScreenState extends State<SpotlightProfilesScreen>
                     ),
                     const SizedBox(height: 14),
                     Text(
-                      'Spotlight Filters',
+                      l10n.discoverSpotlightFiltersTitle,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         color: Theme.of(context).colorScheme.onSurface,
                         fontWeight: FontWeight.w700,
@@ -128,7 +130,7 @@ class _SpotlightProfilesScreenState extends State<SpotlightProfilesScreen>
                     const SizedBox(height: 10),
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
-                      title: const Text('Verified only'),
+                      title: Text(l10n.discoverVerifiedOnly),
                       value: localVerifiedOnly,
                       onChanged: (value) {
                         setSheetState(() => localVerifiedOnly = value);
@@ -136,7 +138,10 @@ class _SpotlightProfilesScreenState extends State<SpotlightProfilesScreen>
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Age range: ${localAgeRange.start.round()} - ${localAgeRange.end.round()}',
+                      l10n.discoverAgeRange(
+                        localAgeRange.start.round(),
+                        localAgeRange.end.round(),
+                      ),
                     ),
                     RangeSlider(
                       values: localAgeRange,
@@ -158,7 +163,7 @@ class _SpotlightProfilesScreenState extends State<SpotlightProfilesScreen>
                                 localAgeRange = const RangeValues(20, 50);
                               });
                             },
-                            child: const Text('Reset'),
+                            child: Text(l10n.commonReset),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -175,7 +180,7 @@ class _SpotlightProfilesScreenState extends State<SpotlightProfilesScreen>
                               });
                               Navigator.of(context).pop();
                             },
-                            child: const Text('Apply'),
+                            child: Text(l10n.commonApply),
                           ),
                         ),
                       ],
@@ -347,6 +352,7 @@ class _SpotlightHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Container(
@@ -365,7 +371,7 @@ class _SpotlightHeader extends StatelessWidget {
                 Semantics(
                   container: true,
                   button: true,
-                  label: 'Back',
+                  label: l10n.commonBack,
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTap: onBack,
@@ -395,7 +401,7 @@ class _SpotlightHeader extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Spotlight Matches',
+                        l10n.discoverSpotlightTitle,
                         style: Theme.of(context).textTheme.titleMedium
                             ?.copyWith(
                               color: Theme.of(context).colorScheme.onSurface,
@@ -404,7 +410,7 @@ class _SpotlightHeader extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Curated premium connections',
+                        l10n.discoverSpotlightSubtitle,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
@@ -414,7 +420,8 @@ class _SpotlightHeader extends StatelessWidget {
                         spacing: 6,
                         runSpacing: 6,
                         children: [
-                          if (verifiedOnly) _chip(context, 'Verified only'),
+                          if (verifiedOnly)
+                            _chip(context, l10n.discoverVerifiedOnly),
                           _chip(
                             context,
                             '${ageRange.start.round()}–${ageRange.end.round()}',
@@ -435,7 +442,7 @@ class _SpotlightHeader extends StatelessWidget {
                   child: _actionButton(
                     context,
                     icon: Icons.history,
-                    label: 'Passed ($passedCount)',
+                    label: l10n.discoverPassedCount(passedCount),
                     onTap: () {},
                   ),
                 ),
@@ -444,11 +451,11 @@ class _SpotlightHeader extends StatelessWidget {
                   child: _actionButton(
                     context,
                     icon: Icons.chat_bubble_outline_rounded,
-                    label: 'Messages',
+                    label: l10n.discoverMessages,
                     onTap: () {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Open chats from Discover'),
+                        SnackBar(
+                          content: Text(l10n.discoverOpenChatsFromDiscover),
                         ),
                       );
                     },
@@ -459,7 +466,7 @@ class _SpotlightHeader extends StatelessWidget {
                   child: _actionButton(
                     context,
                     icon: Icons.tune_rounded,
-                    label: 'Filters',
+                    label: l10n.discoverFilters,
                     onTap: onFilters,
                   ),
                 ),
@@ -494,13 +501,17 @@ class _SpotlightHeader extends StatelessWidget {
     return Semantics(
       container: true,
       button: true,
-      label: 'Notifications',
+      label: AppLocalizations.of(context).notificationsTitle,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('No new notifications')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                AppLocalizations.of(context).discoverNoNewNotifications,
+              ),
+            ),
+          );
         },
         // The 44x36 pill sits inside a full 48pt tap target.
         child: ConstrainedBox(
@@ -729,8 +740,8 @@ class _SpotlightEmptyState extends StatelessWidget {
           const SizedBox(height: 16),
           Text(
             filteredCount == 0
-                ? 'No spotlight profiles match filters'
-                : 'All spotlight profiles reviewed!',
+                ? AppLocalizations.of(context).discoverNoSpotlightMatchFilters
+                : AppLocalizations.of(context).discoverAllSpotlightReviewed,
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
               color: Theme.of(context).colorScheme.onSurface,
@@ -738,7 +749,7 @@ class _SpotlightEmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Check back later for new spotlight profiles',
+            AppLocalizations.of(context).discoverSpotlightCheckBackLater,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),

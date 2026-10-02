@@ -7,6 +7,7 @@ import '../../../core/layout/app_layout.dart';
 import '../../../core/providers/runtime_feature_flags_provider.dart';
 import '../../../core/widgets/connect_page.dart';
 import '../../../core/widgets/glass_widgets.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../common/widgets/community_actions.dart';
 import '../../groups/group_launch.dart';
 import '../../intentional_dating/dating_rhythm.dart';
@@ -79,6 +80,7 @@ class FriendsScreen extends ConsumerWidget {
     };
     final byId = {for (final f in state.friends) f.friendUserId: f};
     final colors = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
 
     Future<void> refresh() async {
       ref.invalidate(socialChannelsProvider);
@@ -119,14 +121,12 @@ class FriendsScreen extends ConsumerWidget {
                   padding: EdgeInsets.fromLTRB(gutter, 12, gutter, 120),
                   children: [
                     ConnectPageHeader(
-                      eyebrow: 'FRIENDS',
-                      title: 'Your people',
-                      subtitle:
-                          'Friends can message, plan and make groups '
-                          'together. Requests need a yes from both sides.',
+                      eyebrow: l10n.friendsEyebrow,
+                      title: l10n.friendsTitle,
+                      subtitle: l10n.friendsSubtitle,
                       leading: Navigator.of(context).canPop()
                           ? IconButton(
-                              tooltip: 'Back',
+                              tooltip: l10n.friendsBack,
                               icon: const Icon(Icons.arrow_back_rounded),
                               onPressed: () => Navigator.of(context).maybePop(),
                             )
@@ -144,7 +144,7 @@ class FriendsScreen extends ConsumerWidget {
                           ),
                           onPressed: () => showAddFriendSheet(context),
                           icon: const Icon(Icons.person_add_alt_1_outlined),
-                          label: const Text('Add friend'),
+                          label: Text(l10n.friendsAddFriend),
                         ),
                         OutlinedButton.icon(
                           key: const ValueKey('qa.friends.create_group'),
@@ -155,24 +155,24 @@ class FriendsScreen extends ConsumerWidget {
                               ? null
                               : () => _createGroup(context, accepted),
                           icon: const Icon(Icons.group_add_outlined),
-                          label: const Text('Create a group'),
+                          label: Text(l10n.friendsCreateGroup),
                         ),
                       ],
                     ),
-                    if (state.error != null || social.error != null) ...[
+                    if (state.hasError || social.hasError) ...[
                       const SizedBox(height: AppLayout.space4),
                       Text(
-                        state.error ?? social.error!,
+                        state.errorText(l10n) ?? social.errorText(l10n)!,
                         style: TextStyle(color: colors.error),
                       ),
                     ],
                     if (incoming.isNotEmpty || outgoing.isNotEmpty)
                       ...section(
-                        'REQUESTS',
+                        l10n.friendsSectionRequests,
                         title: incoming.isEmpty
-                            ? 'Waiting on others'
-                            : 'Waiting on you',
-                        caption: 'Nothing is shared until both of you agree.',
+                            ? l10n.friendsRequestsWaitingOnOthers
+                            : l10n.friendsRequestsWaitingOnYou,
+                        caption: l10n.friendsRequestsCaption,
                         children: [
                           for (final f in incoming)
                             _RequestRow(
@@ -198,8 +198,8 @@ class FriendsScreen extends ConsumerWidget {
                       ),
                     if (friendChats.isNotEmpty)
                       ...section(
-                        'CHATS',
-                        title: 'Conversations',
+                        l10n.friendsSectionChats,
+                        title: l10n.friendsChatsTitle,
                         children: [
                           for (final c in friendChats)
                             _ChatRow(
@@ -210,7 +210,7 @@ class FriendsScreen extends ConsumerWidget {
                                   context,
                                   channelId: c.id,
                                   title: c.title,
-                                  subtitle: 'Friend',
+                                  subtitle: l10n.roomsStatusFriend,
                                 );
                                 ref.invalidate(socialChannelsProvider);
                               },
@@ -219,8 +219,8 @@ class FriendsScreen extends ConsumerWidget {
                       ),
                     if (introsEnabled && social.introsAwaitingMe.isNotEmpty)
                       ...section(
-                        'INTROS',
-                        title: 'Intros for you',
+                        l10n.friendsSectionIntros,
+                        title: l10n.friendsIntrosTitle,
                         children: [
                           for (final intro in social.introsAwaitingMe)
                             _IntroCard(
@@ -235,8 +235,8 @@ class FriendsScreen extends ConsumerWidget {
                       ),
                     if (introsEnabled && social.pendingVouches.isNotEmpty)
                       ...section(
-                        'VOUCHES',
-                        title: 'Vouches waiting for your approval',
+                        l10n.friendsSectionVouches,
+                        title: l10n.friendsVouchesPendingTitle,
                         children: [
                           for (final vouch in social.pendingVouches)
                             _VouchCard(
@@ -250,12 +250,8 @@ class FriendsScreen extends ConsumerWidget {
                         ],
                       ),
                     ...section(
-                      'FRIENDS',
-                      title: accepted.isEmpty
-                          ? 'No friends yet'
-                          : accepted.length == 1
-                          ? '1 friend'
-                          : '${accepted.length} friends',
+                      l10n.friendsEyebrow,
+                      title: l10n.friendsCountTitle(accepted.length),
                       trailing: introsEnabled && accepted.length >= 2
                           ? TextButton.icon(
                               key: const ValueKey('qa.friends.intro_action'),
@@ -271,7 +267,7 @@ class FriendsScreen extends ConsumerWidget {
                               icon: const Icon(
                                 Icons.connect_without_contact_rounded,
                               ),
-                              label: const Text('Introduce'),
+                              label: Text(l10n.friendsIntroduce),
                             )
                           : null,
                       children: [
@@ -280,8 +276,7 @@ class FriendsScreen extends ConsumerWidget {
                         else if (accepted.isEmpty)
                           ConnectPanel(
                             child: Text(
-                              'Find people you know by name or username, or '
-                              'add someone from a match, a room or a group.',
+                              l10n.friendsEmptyBody,
                               style: Theme.of(context).textTheme.bodyMedium
                                   ?.copyWith(color: colors.onSurfaceVariant),
                             ),
@@ -311,8 +306,8 @@ class FriendsScreen extends ConsumerWidget {
                     if (introsEnabled &&
                         social.vouchesAboutMe.any((v) => v.isApproved))
                       ...section(
-                        'ON YOUR PROFILE',
-                        title: 'Vouches on your profile',
+                        l10n.friendsSectionOnProfile,
+                        title: l10n.friendsVouchesOnProfileTitle,
                         children: [
                           for (final vouch in social.vouchesAboutMe.where(
                             (v) => v.isApproved,
@@ -333,11 +328,12 @@ class FriendsScreen extends ConsumerWidget {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        Text('“${vouch.text}”'),
+                                        Text(l10n.friendsQuoted(vouch.text)),
                                         const SizedBox(height: 4),
                                         Text(
-                                          '${vouch.voucherName} vouched '
-                                          'for you',
+                                          l10n.friendsVouchedForYou(
+                                            vouch.voucherName,
+                                          ),
                                           style: Theme.of(context)
                                               .textTheme
                                               .bodySmall
@@ -349,7 +345,7 @@ class FriendsScreen extends ConsumerWidget {
                                     ),
                                   ),
                                   IconButton(
-                                    tooltip: 'Hide from profile',
+                                    tooltip: l10n.friendsHideFromProfile,
                                     icon: const Icon(
                                       Icons.visibility_off_outlined,
                                     ),
@@ -366,16 +362,14 @@ class FriendsScreen extends ConsumerWidget {
                         ],
                       ),
                     ...section(
-                      'MORE',
-                      title: 'Plans and introductions',
+                      l10n.friendsSectionMore,
+                      title: l10n.friendsMoreTitle,
                       children: [
                         ConnectNavTile(
                           key: const ValueKey('qa.friends.plans_link'),
                           icon: Icons.event_available_rounded,
-                          title: 'Date plans shared with you',
-                          subtitle:
-                              'Friends tell you when they plan a date and '
-                              'when they check in afterwards.',
+                          title: l10n.friendsPlansLinkTitle,
+                          subtitle: l10n.friendsPlansLinkSubtitle,
                           onTap: () => Navigator.of(context).push(
                             MaterialPageRoute<void>(
                               builder: (_) => const PlansScreen(initialTab: 1),
@@ -385,10 +379,8 @@ class FriendsScreen extends ConsumerWidget {
                         if (introsEnabled) ...[
                           ConnectNavTile(
                             icon: Icons.diversity_1_outlined,
-                            title: 'Invite a friend who isn’t dating',
-                            subtitle:
-                                'Choose who can introduce you. Review or '
-                                'withdraw permission anytime.',
+                            title: l10n.friendsInviteIntroducerTitle,
+                            subtitle: l10n.friendsInviteIntroducerSubtitle,
                             tint: colors.secondary,
                             onTap: () => Navigator.of(context).push(
                               MaterialPageRoute<void>(
@@ -400,10 +392,8 @@ class FriendsScreen extends ConsumerWidget {
                           ),
                           ConnectNavTile(
                             icon: Icons.privacy_tip_outlined,
-                            title: 'Introductions, on your terms',
-                            subtitle:
-                                'Choose whether friends can introduce you and '
-                                'what a preview shares.',
+                            title: l10n.friendsIntroTermsTitle,
+                            subtitle: l10n.friendsIntroTermsSubtitle,
                             tint: colors.tertiary,
                             onTap: () => openDatingRhythm(context),
                           ),
@@ -412,8 +402,8 @@ class FriendsScreen extends ConsumerWidget {
                     ),
                     if (state.activities.isNotEmpty)
                       ...section(
-                        'ACTIVITY',
-                        title: 'With your friends',
+                        l10n.friendsSectionActivity,
+                        title: l10n.friendsActivityTitle,
                         children: [
                           for (final activity in state.activities.take(5))
                             ConnectPanel(
@@ -478,13 +468,14 @@ class FriendsScreen extends ConsumerWidget {
     List<FriendConnection> accepted,
   ) async {
     final notifier = ref.read(friendsProvider.notifier);
+    final l10n = AppLocalizations.of(context);
     switch (action) {
       case 'vouch':
         final sent = await showVouchSheet(context: context, friend: friend);
         if (sent == true && context.mounted) {
           showCommunitySnack(
             context,
-            'Vouch sent. ${friend.friendName} approves it before it shows.',
+            l10n.friendsVouchSentSnack(friend.friendName),
           );
         }
       case 'intro':
@@ -492,11 +483,9 @@ class FriendsScreen extends ConsumerWidget {
       case 'remove':
         final confirmed = await confirmCommunityAction(
           context,
-          title: 'Remove ${friend.friendName}?',
-          message:
-              'You’ll stop being friends and your friend chat closes. They '
-              'aren’t told.',
-          action: 'Remove friend',
+          title: l10n.friendsRemoveTitle(friend.friendName),
+          message: l10n.friendsRemoveBody,
+          action: l10n.friendsRemoveFriend,
         );
         if (confirmed) {
           await notifier.removeFriend(friend.friendUserId);
@@ -532,7 +521,7 @@ class FriendsScreen extends ConsumerWidget {
     if (made == true && context.mounted) {
       showCommunitySnack(
         context,
-        'Intro made. Both friends will hear from you.',
+        AppLocalizations.of(context).friendsIntroMadeSnack,
       );
     }
   }
@@ -631,6 +620,7 @@ class _AddFriendSheetState extends ConsumerState<_AddFriendSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
     final ready = _query.replaceFirst('@', '').length >= 3;
     final results = ready ? ref.watch(friendSearchProvider(_query)) : null;
     // A member who turned off "Let people find me in friend search" can still
@@ -648,18 +638,15 @@ class _AddFriendSheetState extends ConsumerState<_AddFriendSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const ConnectSectionHeader(
-            label: 'ADD FRIEND',
-            title: 'Find someone you know',
-            caption:
-                'Search by name or @username. They choose whether to '
-                'accept.',
+          ConnectSectionHeader(
+            label: l10n.friendsAddSheetLabel,
+            title: l10n.friendsAddSheetTitle,
+            caption: l10n.friendsAddSheetCaption,
           ),
           if (hidden) ...[
             const SizedBox(height: AppLayout.space3),
             Text(
-              'You’re hidden from friend search, so others can’t find you '
-              'here. Change this in Privacy & Safety.',
+              l10n.friendsSearchHiddenNote,
               key: const ValueKey('qa.friends.search_hidden_note'),
               style: theme.textTheme.bodySmall?.copyWith(
                 color: colors.onSurfaceVariant,
@@ -674,10 +661,10 @@ class _AddFriendSheetState extends ConsumerState<_AddFriendSheet> {
             textInputAction: TextInputAction.search,
             onChanged: _onChanged,
             onSubmitted: (v) => setState(() => _query = v.trim()),
-            decoration: const InputDecoration(
-              prefixIcon: Icon(Icons.search_rounded),
-              labelText: 'Name or @username',
-              helperText: 'Type at least 3 letters',
+            decoration: InputDecoration(
+              prefixIcon: const Icon(Icons.search_rounded),
+              labelText: l10n.friendsSearchLabel,
+              helperText: l10n.friendsSearchHelper,
             ),
           ),
           const SizedBox(height: AppLayout.space3),
@@ -695,7 +682,7 @@ class _AddFriendSheetState extends ConsumerState<_AddFriendSheet> {
                     error: (e, _) => Padding(
                       padding: const EdgeInsets.all(AppLayout.space4),
                       child: Text(
-                        'Search is unavailable right now. Try again.',
+                        l10n.friendsSearchFailed,
                         style: TextStyle(color: colors.error),
                       ),
                     ),
@@ -703,7 +690,7 @@ class _AddFriendSheetState extends ConsumerState<_AddFriendSheet> {
                         ? Padding(
                             padding: const EdgeInsets.all(AppLayout.space4),
                             child: Text(
-                              'No one found for “$_query”.',
+                              l10n.friendsSearchNoResults(_query),
                               style: theme.textTheme.bodyMedium?.copyWith(
                                 color: colors.onSurfaceVariant,
                               ),
@@ -752,63 +739,71 @@ class _CreateGroupSheetState extends State<_CreateGroupSheet> {
   final _selected = <String>{};
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const ConnectSectionHeader(
-          label: 'NEW GROUP',
-          title: 'Who’s in?',
-          caption: 'Choose friends to invite. You can add more later.',
-        ),
-        const SizedBox(height: AppLayout.space3),
-        Flexible(
-          child: ListView(
-            shrinkWrap: true,
-            children: [
-              for (final f in widget.friends)
-                CheckboxListTile(
-                  key: ValueKey('qa.friends.group_pick.${f.friendUserId}'),
-                  value: _selected.contains(f.friendUserId),
-                  onChanged: (on) => setState(
-                    () => on ?? false
-                        ? _selected.add(f.friendUserId)
-                        : _selected.remove(f.friendUserId),
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ConnectSectionHeader(
+            label: l10n.friendsNewGroupLabel,
+            title: l10n.friendsNewGroupTitle,
+            caption: l10n.friendsNewGroupCaption,
+          ),
+          const SizedBox(height: AppLayout.space3),
+          Flexible(
+            child: ListView(
+              shrinkWrap: true,
+              children: [
+                for (final f in widget.friends)
+                  CheckboxListTile(
+                    key: ValueKey('qa.friends.group_pick.${f.friendUserId}'),
+                    value: _selected.contains(f.friendUserId),
+                    onChanged: (on) => setState(
+                      () => on ?? false
+                          ? _selected.add(f.friendUserId)
+                          : _selected.remove(f.friendUserId),
+                    ),
+                    secondary: _Avatar(
+                      name: f.friendName,
+                      photoUrl: f.photoUrl,
+                    ),
+                    title: Text(f.friendName),
+                    subtitle: f.username.isEmpty
+                        ? null
+                        : Text('@${f.username}'),
                   ),
-                  secondary: _Avatar(name: f.friendName, photoUrl: f.photoUrl),
-                  title: Text(f.friendName),
-                  subtitle: f.username.isEmpty ? null : Text('@${f.username}'),
-                ),
-            ],
-          ),
-        ),
-        const SizedBox(height: AppLayout.space3),
-        SizedBox(
-          width: double.infinity,
-          child: FilledButton.icon(
-            key: const ValueKey('qa.friends.group_continue'),
-            style: FilledButton.styleFrom(
-              minimumSize: const Size(0, AppLayout.minTapTarget),
-            ),
-            onPressed: _selected.isEmpty
-                ? null
-                : () => Navigator.of(context).pop([
-                    for (final f in widget.friends)
-                      if (_selected.contains(f.friendUserId)) f,
-                  ]),
-            icon: const Icon(Icons.group_add_outlined),
-            label: Text(
-              _selected.isEmpty
-                  ? 'Choose friends'
-                  : 'Create a group with ${_selected.length}',
+              ],
             ),
           ),
-        ),
-      ],
-    ),
-  );
+          const SizedBox(height: AppLayout.space3),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              key: const ValueKey('qa.friends.group_continue'),
+              style: FilledButton.styleFrom(
+                minimumSize: const Size(0, AppLayout.minTapTarget),
+              ),
+              onPressed: _selected.isEmpty
+                  ? null
+                  : () => Navigator.of(context).pop([
+                      for (final f in widget.friends)
+                        if (_selected.contains(f.friendUserId)) f,
+                    ]),
+              icon: const Icon(Icons.group_add_outlined),
+              label: Text(
+                _selected.isEmpty
+                    ? l10n.friendsChooseFriends
+                    : l10n.friendsCreateGroupWith(_selected.length),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 /// A round photo, or the first letter of the name.
@@ -896,12 +891,12 @@ class _MemberLine extends StatelessWidget {
   }
 }
 
-String _sourceLabel(String source) => switch (source) {
-  'match' => 'From your matches',
-  'profile' => 'Saw your profile',
-  'room' => 'Met in a room',
-  'group' => 'From a group',
-  'search' => 'Found you by name',
+String _sourceLabel(AppLocalizations l10n, String source) => switch (source) {
+  'match' => l10n.friendsSourceMatch,
+  'profile' => l10n.friendsSourceProfile,
+  'room' => l10n.friendsSourceRoom,
+  'group' => l10n.friendsSourceGroup,
+  'search' => l10n.friendsSourceSearch,
   _ => '',
 };
 
@@ -924,9 +919,11 @@ class _RequestRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final id = friend.friendUserId;
     final incoming = friend.isIncoming;
+    final l10n = AppLocalizations.of(context);
+    final source = _sourceLabel(l10n, friend.source);
     final detail = [
-      if (incoming) 'Wants to be friends' else 'Request sent',
-      if (_sourceLabel(friend.source).isNotEmpty) _sourceLabel(friend.source),
+      if (incoming) l10n.friendsWantsToBeFriends else l10n.friendsRequestSent,
+      if (source.isNotEmpty) source,
     ].join(' · ');
     const tall = Size(0, AppLayout.minTapTarget);
     return ConnectPanel(
@@ -945,7 +942,7 @@ class _RequestRow extends StatelessWidget {
                     key: ValueKey('qa.friends.cancel.$id'),
                     style: OutlinedButton.styleFrom(minimumSize: tall),
                     onPressed: busy ? null : onCancel,
-                    child: const Text('Cancel'),
+                    child: Text(l10n.friendsCancel),
                   ),
           ),
           if (incoming) ...[
@@ -957,7 +954,7 @@ class _RequestRow extends StatelessWidget {
                     key: ValueKey('qa.friends.decline.$id'),
                     style: OutlinedButton.styleFrom(minimumSize: tall),
                     onPressed: busy ? null : onDecline,
-                    child: const Text('Decline'),
+                    child: Text(l10n.friendsDecline),
                   ),
                 ),
                 const SizedBox(width: AppLayout.space2),
@@ -966,7 +963,7 @@ class _RequestRow extends StatelessWidget {
                     key: ValueKey('qa.friends.accept.$id'),
                     style: FilledButton.styleFrom(minimumSize: tall),
                     onPressed: busy ? null : onAccept,
-                    child: const Text('Accept'),
+                    child: Text(l10n.friendsAccept),
                   ),
                 ),
               ],
@@ -996,6 +993,7 @@ class _FriendRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final id = friend.friendUserId;
+    final l10n = AppLocalizations.of(context);
     final detail = [
       if (friend.username.isNotEmpty) '@${friend.username}',
       if (friend.city.isNotEmpty) friend.city,
@@ -1013,8 +1011,8 @@ class _FriendRow extends StatelessWidget {
             IconButton(
               key: ValueKey('qa.friends.message.$id'),
               tooltip: unread > 0
-                  ? 'Message ${friend.friendName}, $unread unread'
-                  : 'Message ${friend.friendName}',
+                  ? l10n.friendsMessageTooltipUnread(friend.friendName, unread)
+                  : l10n.friendsMessageTooltip(friend.friendName),
               onPressed: onMessage,
               icon: Badge(
                 isLabelVisible: unread > 0,
@@ -1024,37 +1022,39 @@ class _FriendRow extends StatelessWidget {
             ),
             PopupMenuButton<String>(
               key: ValueKey('qa.friends.menu.$id'),
-              tooltip: 'More for ${friend.friendName}',
+              tooltip: l10n.friendsMoreFor(friend.friendName),
               onSelected: onAction,
               itemBuilder: (_) => [
-                if (introsEnabled) ...const [
+                if (introsEnabled) ...[
                   PopupMenuItem(
                     value: 'vouch',
                     child: ListTile(
-                      leading: Icon(Icons.verified_outlined),
-                      title: Text('Vouch for them'),
+                      leading: const Icon(Icons.verified_outlined),
+                      title: Text(l10n.friendsMenuVouch),
                     ),
                   ),
                   PopupMenuItem(
                     value: 'intro',
                     child: ListTile(
-                      leading: Icon(Icons.connect_without_contact_rounded),
-                      title: Text('Introduce to a friend'),
+                      leading: const Icon(
+                        Icons.connect_without_contact_rounded,
+                      ),
+                      title: Text(l10n.friendsMenuIntro),
                     ),
                   ),
                 ],
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'remove',
                   child: ListTile(
-                    leading: Icon(Icons.person_remove_outlined),
-                    title: Text('Remove friend'),
+                    leading: const Icon(Icons.person_remove_outlined),
+                    title: Text(l10n.friendsRemoveFriend),
                   ),
                 ),
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'block',
                   child: ListTile(
-                    leading: Icon(Icons.block_rounded),
-                    title: Text('Block'),
+                    leading: const Icon(Icons.block_rounded),
+                    title: Text(l10n.roomsBlock),
                   ),
                 ),
               ],
@@ -1083,13 +1083,12 @@ class _ChatRow extends StatelessWidget {
     final colors = theme.colorScheme;
     final unread = channel.unreadCount;
     final radius = BorderRadius.circular(ConnectMetrics.cardRadius);
+    final l10n = AppLocalizations.of(context);
     return Semantics(
       button: true,
-      label:
-          (unread > 0
-              ? 'Chat with ${channel.title}, $unread unread'
-              : 'Chat with ${channel.title}') +
-          (channel.muted ? ', notifications muted' : ''),
+      label: channel.muted
+          ? l10n.friendsChatSemanticsMuted(channel.title, unread)
+          : l10n.friendsChatSemantics(channel.title, unread),
       excludeSemantics: true,
       child: Material(
         color: Colors.transparent,
@@ -1185,11 +1184,15 @@ class _IntroCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final other = intro.other;
-    final who = other == null
-        ? 'someone'
-        : other.age == null
-        ? other.name
-        : '${other.name}, ${other.age}';
+    final l10n = AppLocalizations.of(context);
+    final headline = other == null
+        ? l10n.friendsIntroHeadlineSomeone(intro.introducerName)
+        : l10n.friendsIntroHeadline(
+            intro.introducerName,
+            other.age == null
+                ? other.name
+                : l10n.friendsNameAge(other.name, other.age!),
+          );
     return ConnectPanel(
       key: ValueKey('qa.friends.intro.${intro.id}'),
       padding: const EdgeInsets.all(ConnectMetrics.padding),
@@ -1210,7 +1213,7 @@ class _IntroCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '${intro.introducerName} thinks you should meet $who',
+                      headline,
                       style: theme.textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.w700,
                       ),
@@ -1232,7 +1235,7 @@ class _IntroCard extends StatelessWidget {
           if (intro.message.isNotEmpty) ...[
             const SizedBox(height: AppLayout.space2),
             Text(
-              '“${intro.message}”',
+              l10n.friendsQuoted(intro.message),
               style: theme.textTheme.bodyMedium?.copyWith(
                 fontStyle: FontStyle.italic,
               ),
@@ -1248,7 +1251,7 @@ class _IntroCard extends StatelessWidget {
                     minimumSize: const Size(0, AppLayout.minTapTarget),
                   ),
                   onPressed: busy ? null : () => onDecide(false),
-                  child: const Text('No thanks'),
+                  child: Text(l10n.friendsIntroNoThanks),
                 ),
               ),
               const SizedBox(width: AppLayout.space2),
@@ -1259,7 +1262,7 @@ class _IntroCard extends StatelessWidget {
                     minimumSize: const Size(0, AppLayout.minTapTarget),
                   ),
                   onPressed: busy ? null : () => onDecide(true),
-                  child: const Text("I'm in"),
+                  child: Text(l10n.friendsIntroImIn),
                 ),
               ),
             ],
@@ -1284,6 +1287,7 @@ class _VouchCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     return ConnectPanel(
       key: ValueKey('qa.friends.vouch.${vouch.id}'),
       padding: const EdgeInsets.all(ConnectMetrics.padding),
@@ -1291,13 +1295,16 @@ class _VouchCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '${vouch.voucherName} vouched for you',
+            l10n.friendsVouchedForYou(vouch.voucherName),
             style: theme.textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.w700,
             ),
           ),
           const SizedBox(height: AppLayout.space2),
-          Text('“${vouch.text}”', style: theme.textTheme.bodyMedium),
+          Text(
+            l10n.friendsQuoted(vouch.text),
+            style: theme.textTheme.bodyMedium,
+          ),
           const SizedBox(height: AppLayout.space3),
           Row(
             children: [
@@ -1308,7 +1315,7 @@ class _VouchCard extends StatelessWidget {
                     minimumSize: const Size(0, AppLayout.minTapTarget),
                   ),
                   onPressed: busy ? null : () => onDecide(false),
-                  child: const Text('Keep private'),
+                  child: Text(l10n.friendsVouchKeepPrivate),
                 ),
               ),
               const SizedBox(width: AppLayout.space2),
@@ -1319,7 +1326,7 @@ class _VouchCard extends StatelessWidget {
                     minimumSize: const Size(0, AppLayout.minTapTarget),
                   ),
                   onPressed: busy ? null : () => onDecide(true),
-                  child: const Text('Show on my profile'),
+                  child: Text(l10n.friendsVouchShowOnProfile),
                 ),
               ),
             ],

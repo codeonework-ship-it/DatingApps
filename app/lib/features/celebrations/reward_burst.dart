@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../core/i18n/app_l10n.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/cinematic_effects.dart';
 import '../../core/theme/cinematic_motion.dart';
@@ -275,6 +276,7 @@ class RewardBurstCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = l10nOrEnglish(context);
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     final card = ConstrainedBox(
@@ -320,7 +322,7 @@ class RewardBurstCard extends StatelessWidget {
                 child: Semantics(
                   container: true,
                   liveRegion: true,
-                  label: burst.announcement,
+                  label: burst.announcementIn(l10n),
                   child: ExcludeSemantics(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -351,7 +353,7 @@ class RewardBurstCard extends StatelessWidget {
                                     vertical: 4,
                                   ),
                                   child: Text(
-                                    '+${burst.xp} XP',
+                                    l10n.rewardXpPill(burst.xp),
                                     style: theme.textTheme.labelLarge?.copyWith(
                                       color: colors.onPrimaryContainer,
                                       fontWeight: FontWeight.w800,
@@ -387,7 +389,7 @@ class RewardBurstCard extends StatelessWidget {
               ),
               IconButton(
                 key: const ValueKey('qa.reward_burst.close'),
-                tooltip: 'Close',
+                tooltip: l10n.commonClose,
                 constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
                 onPressed: onClose,
                 icon: const Icon(Icons.close_rounded),

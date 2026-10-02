@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/api_error_message.dart';
 import '../../core/providers/api_client_provider.dart';
+import '../../l10n/app_localizations.dart';
 import '../auth/providers/auth_provider.dart';
 import '../common/widgets/community_actions.dart';
 import 'club_widgets.dart';
@@ -24,30 +25,33 @@ class _MembersSheet extends ConsumerStatefulWidget {
 class _MembersSheetState extends ConsumerState<_MembersSheet> {
   bool busy = false;
 
-  List<(String, String)> actionsFor(ClubMember member, String? me) {
+  List<(String, String)> actionsFor(
+    AppLocalizations l10n,
+    ClubMember member,
+    String? me,
+  ) {
     final club = widget.club;
     if (member.userId == me || member.role == 'owner') {
       return const [];
     }
     return [
       if (club.isOwner && member.role == 'member')
-        ('make_moderator', 'Make moderator'),
+        ('make_moderator', l10n.clubsMakeModerator),
       if (club.isOwner && member.role == 'moderator')
-        ('make_member', 'Make member'),
+        ('make_member', l10n.clubsMakeMember),
       if (club.isOwner || (club.canModerate && member.role == 'member'))
-        ('remove', 'Remove from club'),
+        ('remove', l10n.clubsRemoveFromClub),
     ];
   }
 
   Future<void> act(ClubMember member, String action) async {
+    final l10n = AppLocalizations.of(context);
     if (action == 'remove' &&
         !await confirmCommunityAction(
           context,
-          title: 'Remove ${member.name}?',
-          message:
-              'They leave the club and cannot rejoin. Their past posts stay '
-              'in the discussion.',
-          action: 'Remove',
+          title: l10n.clubsRemoveMemberTitle(member.name),
+          message: l10n.clubsRemoveMemberMessage,
+          action: l10n.clubsRemove,
         )) {
       return;
     }
@@ -70,7 +74,7 @@ class _MembersSheetState extends ConsumerState<_MembersSheet> {
       if (mounted) {
         showCommunitySnack(
           context,
-          apiErrorMessage(e, fallback: 'That change could not be saved.'),
+          apiErrorMessage(e, fallback: l10n.clubsChangeNotSaved),
         );
       }
     } finally {
@@ -84,8 +88,9 @@ class _MembersSheetState extends ConsumerState<_MembersSheet> {
   Widget build(BuildContext context) {
     final me = ref.watch(authNotifierProvider.select((s) => s.userId));
     final text = Theme.of(context).textTheme;
+    final l10n = AppLocalizations.of(context);
     return SheetFrame(
-      title: 'Members',
+      title: l10n.clubsMembers,
       children: [
         if (busy) const LinearProgressIndicator(),
         ref
@@ -95,14 +100,15 @@ class _MembersSheetState extends ConsumerState<_MembersSheet> {
                 padding: EdgeInsets.all(24),
                 child: Center(child: CircularProgressIndicator()),
               ),
-              error: (e, _) =>
-                  Text(apiErrorMessage(e, fallback: 'Members could not load.')),
+              error: (e, _) => Text(
+                apiErrorMessage(e, fallback: l10n.clubsMembersLoadError),
+              ),
               data: (members) => Column(
                 children: [
                   for (final member in members)
                     Builder(
                       builder: (context) {
-                        final actions = actionsFor(member, me);
+                        final actions = actionsFor(l10n, member, me);
                         return ListTile(
                           contentPadding: EdgeInsets.zero,
                           leading: CircleAvatar(
@@ -114,17 +120,17 @@ class _MembersSheetState extends ConsumerState<_MembersSheet> {
                           ),
                           title: Text(
                             member.userId == me
-                                ? '${member.name} (you)'
+                                ? l10n.clubsMemberYou(member.name)
                                 : member.name,
                           ),
                           subtitle: Text(
-                            clubRoles[member.role] ?? 'Member',
+                            clubRoleLabel(l10n, member.role),
                             style: text.bodyMedium,
                           ),
                           trailing: actions.isEmpty
                               ? null
                               : PopupMenuButton<String>(
-                                  tooltip: 'Actions for ${member.name}',
+                                  tooltip: l10n.clubsMemberActions(member.name),
                                   enabled: !busy,
                                   onSelected: (action) => act(member, action),
                                   itemBuilder: (_) => [

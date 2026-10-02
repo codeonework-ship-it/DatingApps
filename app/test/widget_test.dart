@@ -6,6 +6,7 @@ import 'package:verified_dating_app/features/profile/providers/profile_setup_pro
 import 'package:verified_dating_app/features/profile/screens/setup/setup_about_screen.dart';
 import 'package:verified_dating_app/features/profile/screens/setup/setup_photos_screen.dart';
 import 'package:verified_dating_app/features/profile/screens/setup/setup_preview_screen.dart';
+import 'package:verified_dating_app/l10n/app_localizations.dart';
 
 class _FakeProfileSetupNotifier extends ProfileSetupNotifier {
   _FakeProfileSetupNotifier(this.initialDraft);
@@ -68,7 +69,11 @@ Widget _app(Widget home) => ProviderScope(
       () => _FakeProfileSetupNotifier(_draft()),
     ),
   ],
-  child: MaterialApp(home: home),
+  child: MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
+    home: home,
+  ),
 );
 
 Future<void> _pumpUi(WidgetTester tester) async {

@@ -4,14 +4,28 @@ import '../../../core/config/feature_flags.dart';
 import '../../../core/network/api_error_message.dart';
 import '../../../core/providers/api_client_provider.dart';
 import '../../../core/utils/logger.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../models/friend_social.dart';
+
+/// Why a vouch or intro request failed when the server sent no message of
+/// its own. Widgets show it in the member's language with
+/// [FriendSocialState.errorText].
+enum FriendSocialFailure {
+  load,
+  sendVouch,
+  updateVouch,
+  withdrawVouch,
+  makeIntro,
+  answerIntro,
+}
 
 class FriendSocialState {
   const FriendSocialState({
     this.isLoading = false,
     this.isMutating = false,
     this.error,
+    this.failure,
     this.vouchesAboutMe = const <FriendVouch>[],
     this.vouchesWritten = const <FriendVouch>[],
     this.introsReceived = const <FriendIntro>[],
@@ -20,7 +34,12 @@ class FriendSocialState {
 
   final bool isLoading;
   final bool isMutating;
+
+  /// The server's own message for the last failure, if it sent one.
   final String? error;
+
+  /// The last failure when the server sent no message.
+  final FriendSocialFailure? failure;
   final List<FriendVouch> vouchesAboutMe;
   final List<FriendVouch> vouchesWritten;
   final List<FriendIntro> introsReceived;
@@ -31,24 +50,46 @@ class FriendSocialState {
   List<FriendVouch> get pendingVouches =>
       vouchesAboutMe.where((vouch) => vouch.isPending).toList();
 
+  bool get hasError => error != null || failure != null;
+
+  /// The last failure for display: the server's message, or a localized
+  /// fallback.
+  String? errorText(AppLocalizations l10n) =>
+      error ??
+      switch (failure) {
+        FriendSocialFailure.load => l10n.friendsSocialLoadFailed,
+        FriendSocialFailure.sendVouch => l10n.friendsVouchSendFailed,
+        FriendSocialFailure.updateVouch => l10n.friendsVouchUpdateFailed,
+        FriendSocialFailure.withdrawVouch => l10n.friendsVouchWithdrawFailed,
+        FriendSocialFailure.makeIntro => l10n.friendsIntroMakeFailed,
+        FriendSocialFailure.answerIntro => l10n.friendsIntroAnswerFailed,
+        null => null,
+      };
+
   FriendSocialState copyWith({
     bool? isLoading,
     bool? isMutating,
     String? error,
+    FriendSocialFailure? failure,
     bool clearError = false,
     List<FriendVouch>? vouchesAboutMe,
     List<FriendVouch>? vouchesWritten,
     List<FriendIntro>? introsReceived,
     List<FriendIntro>? introsMade,
-  }) => FriendSocialState(
-    isLoading: isLoading ?? this.isLoading,
-    isMutating: isMutating ?? this.isMutating,
-    error: clearError ? null : (error ?? this.error),
-    vouchesAboutMe: vouchesAboutMe ?? this.vouchesAboutMe,
-    vouchesWritten: vouchesWritten ?? this.vouchesWritten,
-    introsReceived: introsReceived ?? this.introsReceived,
-    introsMade: introsMade ?? this.introsMade,
-  );
+  }) {
+    // A new failure replaces the previous one, message and fallback alike.
+    final keep = !clearError && error == null && failure == null;
+    return FriendSocialState(
+      isLoading: isLoading ?? this.isLoading,
+      isMutating: isMutating ?? this.isMutating,
+      error: keep ? this.error : error,
+      failure: keep ? this.failure : failure,
+      vouchesAboutMe: vouchesAboutMe ?? this.vouchesAboutMe,
+      vouchesWritten: vouchesWritten ?? this.vouchesWritten,
+      introsReceived: introsReceived ?? this.introsReceived,
+      introsMade: introsMade ?? this.introsMade,
+    );
+  }
 }
 
 class FriendSocialNotifier extends StateNotifier<FriendSocialState> {
@@ -94,10 +135,8 @@ class FriendSocialNotifier extends StateNotifier<FriendSocialState> {
       log.error('Friend social load failed', error);
       state = state.copyWith(
         isLoading: false,
-        error: apiErrorMessage(
-          error,
-          fallback: 'Unable to load vouches and intros.',
-        ),
+        error: _serverMessage(error),
+        failure: FriendSocialFailure.load,
       );
     }
   }
@@ -107,7 +146,7 @@ class FriendSocialNotifier extends StateNotifier<FriendSocialState> {
         method: 'POST',
         path: '/friends/$_userId/vouches',
         data: <String, dynamic>{'for_user_id': forUserId, 'text': text.trim()},
-        fallback: 'Unable to send this vouch.',
+        failure: FriendSocialFailure.sendVouch,
       );
 
   Future<bool> decideVouch({required String vouchId, required bool approve}) =>
@@ -115,14 +154,14 @@ class FriendSocialNotifier extends StateNotifier<FriendSocialState> {
         method: 'POST',
         path: '/friends/$_userId/vouches/$vouchId/decision',
         data: <String, dynamic>{'decision': approve ? 'approve' : 'hide'},
-        fallback: 'Unable to update this vouch.',
+        failure: FriendSocialFailure.updateVouch,
       );
 
   Future<bool> withdrawVouch(String vouchId) => _mutate(
     method: 'DELETE',
     path: '/friends/$_userId/vouches/$vouchId',
     data: const <String, dynamic>{},
-    fallback: 'Unable to withdraw this vouch.',
+    failure: FriendSocialFailure.withdrawVouch,
   );
 
   Future<bool> makeIntro({
@@ -137,7 +176,7 @@ class FriendSocialNotifier extends StateNotifier<FriendSocialState> {
       'second_user_id': secondUserId,
       if (message.trim().isNotEmpty) 'message': message.trim(),
     },
-    fallback: 'Unable to make this intro.',
+    failure: FriendSocialFailure.makeIntro,
   );
 
   Future<bool> decideIntro({required String introId, required bool accept}) =>
@@ -145,14 +184,14 @@ class FriendSocialNotifier extends StateNotifier<FriendSocialState> {
         method: 'POST',
         path: '/friends/$_userId/intros/$introId/decision',
         data: <String, dynamic>{'decision': accept ? 'accept' : 'decline'},
-        fallback: 'Unable to answer this intro.',
+        failure: FriendSocialFailure.answerIntro,
       );
 
   Future<bool> _mutate({
     required String method,
     required String path,
     required Map<String, dynamic> data,
-    required String fallback,
+    required FriendSocialFailure failure,
   }) async {
     if (kUseMockAuth) {
       return true;
@@ -172,7 +211,8 @@ class FriendSocialNotifier extends StateNotifier<FriendSocialState> {
       log.error('Friend social mutation failed', error);
       state = state.copyWith(
         isMutating: false,
-        error: apiErrorMessage(error, fallback: fallback),
+        error: _serverMessage(error),
+        failure: failure,
       );
       return false;
     }
@@ -253,3 +293,10 @@ List<FriendVouch> _mockVouches() => const <FriendVouch>[
     createdAt: '2026-09-27T00:00:00Z',
   ),
 ];
+
+/// The server's (or network layer's) own message for [error], or null when
+/// there is none and the localized fallback should show.
+String? _serverMessage(Object error) {
+  final message = apiErrorMessage(error, fallback: '');
+  return message.isEmpty ? null : message;
+}

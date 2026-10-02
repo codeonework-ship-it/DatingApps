@@ -3,22 +3,35 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers/api_client_provider.dart';
 import '../../core/rich_text/rich_document.dart';
+import '../../l10n/app_localizations.dart';
 import '../auth/providers/auth_provider.dart';
 import '../walls/reactions.dart';
 
 export '../walls/reactions.dart' show BlogLikeState;
 
-const blogAudiences = {
-  'private': 'Only me',
-  'friends': 'Friends',
-  'community': 'Connect community',
-};
-const blogInvitations = {
-  '': 'No invitation',
-  'your_version': 'What would your version look like?',
-  'teach_me': 'What could you teach me about this?',
-  'what_next': 'What would you try next?',
-};
+/// Chapter audiences in the order they are offered.
+const blogAudiences = ['private', 'friends', 'community'];
+
+/// Closing invitations in the order they are offered; empty means none.
+const blogInvitations = ['', 'your_version', 'teach_me', 'what_next'];
+
+/// The display name of an audience id.
+String blogAudienceLabel(AppLocalizations l10n, String audience) =>
+    switch (audience) {
+      'private' => l10n.blogAudiencePrivate,
+      'friends' => l10n.blogAudienceFriends,
+      'community' => l10n.blogAudienceCommunity,
+      _ => audience,
+    };
+
+/// The question an invitation id stands for.
+String blogInvitationLabel(AppLocalizations l10n, String invitation) =>
+    switch (invitation) {
+      'your_version' => l10n.blogInvitationYourVersion,
+      'teach_me' => l10n.blogInvitationTeachMe,
+      'what_next' => l10n.blogInvitationWhatNext,
+      _ => l10n.blogInvitationNone,
+    };
 
 class BlogPhoto {
   factory BlogPhoto.fromJson(Map<dynamic, dynamic> json) =>
@@ -655,69 +668,43 @@ final blogFollowsProvider =
 
 /// One row of the creator rewards table. Values mirror the server's
 /// progression sources exactly; the server is the one that awards them.
-typedef BlogReward = ({
-  String source,
-  String title,
-  String who,
-  int xp,
-  int dailyCap,
-});
+/// [blogRewardTitle] and [blogRewardWho] describe each source.
+typedef BlogReward = ({String source, int xp, int dailyCap});
+
+/// What a reward source is for.
+String blogRewardTitle(AppLocalizations l10n, String source) =>
+    switch (source) {
+      'story_published' => l10n.blogRewardStoryPublishedTitle,
+      'photo_shared' => l10n.blogRewardPhotoSharedTitle,
+      'like_received' => l10n.blogRewardLikeReceivedTitle,
+      'comment_received' => l10n.blogRewardCommentReceivedTitle,
+      'comment_approved' => l10n.blogRewardCommentApprovedTitle,
+      'subscriber_gained' => l10n.blogRewardSubscriberGainedTitle,
+      'wall_tier_reached' => l10n.blogRewardWallTierTitle,
+      'cover_of_week' => l10n.blogRewardCoverOfWeekTitle,
+      _ => source,
+    };
+
+/// Who earns a reward source, and when.
+String blogRewardWho(AppLocalizations l10n, String source) => switch (source) {
+  'story_published' => l10n.blogRewardStoryPublishedWho,
+  'photo_shared' => l10n.blogRewardPhotoSharedWho,
+  'like_received' => l10n.blogRewardLikeReceivedWho,
+  'comment_received' => l10n.blogRewardCommentReceivedWho,
+  'comment_approved' => l10n.blogRewardCommentApprovedWho,
+  'subscriber_gained' => l10n.blogRewardSubscriberGainedWho,
+  'wall_tier_reached' => l10n.blogRewardWallTierWho,
+  'cover_of_week' => l10n.blogRewardCoverOfWeekWho,
+  _ => '',
+};
 
 const blogRewards = <BlogReward>[
-  (
-    source: 'story_published',
-    title: 'Sharing a chapter',
-    who: 'You, the first time a chapter is shared beyond Only me',
-    xp: 25,
-    dailyCap: 50,
-  ),
-  (
-    source: 'photo_shared',
-    title: 'Sharing a Photo Themes photo',
-    who: 'You, for a photo you share in Photo Themes',
-    xp: 20,
-    dailyCap: 40,
-  ),
-  (
-    source: 'like_received',
-    title: 'A like on your chapter or photo',
-    who: 'You, for each member who likes it',
-    xp: 2,
-    dailyCap: 40,
-  ),
-  (
-    source: 'comment_received',
-    title: 'A comment you approve',
-    who: 'You, when you approve a reader’s comment',
-    xp: 5,
-    dailyCap: 50,
-  ),
-  (
-    source: 'comment_approved',
-    title: 'Your comment is approved',
-    who: 'You, when an author approves your comment',
-    xp: 5,
-    dailyCap: 30,
-  ),
-  (
-    source: 'subscriber_gained',
-    title: 'A new follower',
-    who: 'You, for each new member who follows your chapters',
-    xp: 10,
-    dailyCap: 100,
-  ),
-  (
-    source: 'wall_tier_reached',
-    title: 'Reaching more walls',
-    who: 'You, each time a chapter reaches a new wall tier',
-    xp: 50,
-    dailyCap: 150,
-  ),
-  (
-    source: 'cover_of_week',
-    title: 'Cover of the Week',
-    who: 'You, when your work is chosen as Cover of the Week',
-    xp: 150,
-    dailyCap: 150,
-  ),
+  (source: 'story_published', xp: 25, dailyCap: 50),
+  (source: 'photo_shared', xp: 20, dailyCap: 40),
+  (source: 'like_received', xp: 2, dailyCap: 40),
+  (source: 'comment_received', xp: 5, dailyCap: 50),
+  (source: 'comment_approved', xp: 5, dailyCap: 30),
+  (source: 'subscriber_gained', xp: 10, dailyCap: 100),
+  (source: 'wall_tier_reached', xp: 50, dailyCap: 150),
+  (source: 'cover_of_week', xp: 150, dailyCap: 150),
 ];

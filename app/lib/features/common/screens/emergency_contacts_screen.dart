@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/widgets/glass_widgets.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../profile/models/profile_models.dart';
 import '../../profile/providers/emergency_contacts_provider.dart';
 
@@ -17,10 +18,11 @@ class _EmergencyContactsScreenState
     extends ConsumerState<EmergencyContactsScreen> {
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final contactsAsync = ref.watch(emergencyContactsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Emergency Contacts')),
+      appBar: AppBar(title: Text(l10n.privacyEmergencyContacts)),
       body: PostLoginBackdrop(
         child: SafeArea(
           child: Padding(
@@ -30,29 +32,25 @@ class _EmergencyContactsScreenState
               error: (_, _) => Center(
                 child: TextButton(
                   onPressed: () => ref.invalidate(emergencyContactsProvider),
-                  child: const Text('Retry'),
+                  child: Text(l10n.commonRetry),
                 ),
               ),
               data: (contacts) => Column(
                 children: [
-                  const GlassContainer(
+                  GlassContainer(
                     padding: EdgeInsets.all(16),
                     blur: 12,
                     borderRadius: BorderRadius.all(Radius.circular(24)),
-                    child: Text(
-                      'Add up to 3 trusted contacts. These contacts are used for safety workflows and SOS features in later phases.',
-                    ),
+                    child: Text(l10n.emergencyIntro),
                   ),
                   const SizedBox(height: 12),
                   Expanded(
                     child: contacts.isEmpty
-                        ? const GlassContainer(
+                        ? GlassContainer(
                             padding: EdgeInsets.all(16),
                             blur: 12,
                             borderRadius: BorderRadius.all(Radius.circular(24)),
-                            child: Center(
-                              child: Text('No emergency contacts added yet.'),
-                            ),
+                            child: Center(child: Text(l10n.emergencyEmpty)),
                           )
                         : ListView.separated(
                             itemCount: contacts.length,
@@ -67,8 +65,8 @@ class _EmergencyContactsScreenState
                   const SizedBox(height: 12),
                   GlassButton(
                     label: contacts.length >= 3
-                        ? 'Maximum contacts added'
-                        : 'Add Contact',
+                        ? l10n.emergencyMaxReached
+                        : l10n.emergencyAddContact,
                     onPressed: contacts.length >= 3
                         ? null
                         : () => _onAddContact(context),
@@ -134,11 +132,12 @@ class _EmergencyContactsScreenState
       );
 
   Future<void> _onAddContact(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
     final draft = await _showContactEditor(context: context);
     if (draft == null) return;
 
     if (!_isValidDraft(draft)) {
-      _showMessage('Enter a valid name and phone number.');
+      _showMessage(l10n.emergencyInvalidInput);
       return;
     }
 
@@ -146,9 +145,9 @@ class _EmergencyContactsScreenState
       await ref
           .read(emergencyContactsProvider.notifier)
           .addContact(name: draft.name, phoneNumber: draft.phoneNumber);
-      _showMessage('Emergency contact added.');
+      _showMessage(l10n.emergencyAdded);
     } catch (_) {
-      _showMessage('Failed to add contact. Please try again.');
+      _showMessage(l10n.emergencyAddFailed);
     }
   }
 
@@ -156,6 +155,7 @@ class _EmergencyContactsScreenState
     BuildContext context,
     EmergencyContact contact,
   ) async {
+    final l10n = AppLocalizations.of(context);
     final draft = await _showContactEditor(
       context: context,
       initialName: contact.name,
@@ -164,7 +164,7 @@ class _EmergencyContactsScreenState
     if (draft == null) return;
 
     if (!_isValidDraft(draft)) {
-      _showMessage('Enter a valid name and phone number.');
+      _showMessage(l10n.emergencyInvalidInput);
       return;
     }
 
@@ -176,9 +176,9 @@ class _EmergencyContactsScreenState
             name: draft.name,
             phoneNumber: draft.phoneNumber,
           );
-      _showMessage('Emergency contact updated.');
+      _showMessage(l10n.emergencyUpdated);
     } catch (_) {
-      _showMessage('Failed to update contact. Please try again.');
+      _showMessage(l10n.emergencyUpdateFailed);
     }
   }
 
@@ -186,19 +186,20 @@ class _EmergencyContactsScreenState
     BuildContext context,
     EmergencyContact contact,
   ) async {
+    final l10n = AppLocalizations.of(context);
     final shouldDelete = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Remove Contact'),
-        content: Text('Remove ${contact.name} from emergency contacts?'),
+        title: Text(l10n.emergencyRemoveTitle),
+        content: Text(l10n.emergencyRemoveBody(contact.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l10n.commonCancel),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Remove'),
+            child: Text(l10n.commonRemove),
           ),
         ],
       ),
@@ -210,9 +211,9 @@ class _EmergencyContactsScreenState
       await ref
           .read(emergencyContactsProvider.notifier)
           .removeContact(contact.id);
-      _showMessage('Emergency contact removed.');
+      _showMessage(l10n.emergencyRemoved);
     } catch (_) {
-      _showMessage('Failed to remove contact. Please try again.');
+      _showMessage(l10n.emergencyRemoveFailed);
     }
   }
 
@@ -221,33 +222,38 @@ class _EmergencyContactsScreenState
     String? initialName,
     String? initialPhone,
   }) {
+    final l10n = AppLocalizations.of(context);
     final nameController = TextEditingController(text: initialName ?? '');
     final phoneController = TextEditingController(text: initialPhone ?? '');
 
     return showDialog<_ContactDraft>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text(initialName == null ? 'Add Contact' : 'Edit Contact'),
+        title: Text(
+          initialName == null
+              ? l10n.emergencyAddContact
+              : l10n.emergencyEditContact,
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: nameController,
               textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(labelText: 'Name'),
+              decoration: InputDecoration(labelText: l10n.emergencyNameLabel),
             ),
             const SizedBox(height: 8),
             TextField(
               controller: phoneController,
               keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(labelText: 'Phone Number'),
+              decoration: InputDecoration(labelText: l10n.emergencyPhoneLabel),
             ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Cancel'),
+            child: Text(l10n.commonCancel),
           ),
           TextButton(
             onPressed: () {
@@ -258,7 +264,7 @@ class _EmergencyContactsScreenState
                 ),
               );
             },
-            child: const Text('Save'),
+            child: Text(l10n.commonSave),
           ),
         ],
       ),

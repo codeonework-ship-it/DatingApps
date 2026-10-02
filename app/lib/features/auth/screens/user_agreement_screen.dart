@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
+import '../../../l10n/app_localizations.dart';
 import '../providers/terms_provider.dart';
 
 class UserAgreementScreen extends ConsumerStatefulWidget {
@@ -21,6 +22,7 @@ class _UserAgreementScreenState extends ConsumerState<UserAgreementScreen> {
     final termsState = ref.watch(termsAcceptanceProvider);
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
@@ -51,35 +53,20 @@ class _UserAgreementScreenState extends ConsumerState<UserAgreementScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Please review and accept our Terms and '
-                            'Privacy Policy to continue.',
+                            l10n.authTermsIntro,
                             style: Theme.of(context).textTheme.bodyLarge,
                           ),
                           const SizedBox(height: 18),
                           Text(
-                            'Community expectations',
+                            l10n.authTermsCommunityTitle,
                             style: Theme.of(context).textTheme.titleMedium,
                           ),
                           const SizedBox(height: 12),
-                          _termPoint(context, 'Be respectful and authentic.'),
-                          _termPoint(
-                            context,
-                            'No harassment or fraudulent behavior.',
-                          ),
-                          _termPoint(
-                            context,
-                            'You control your privacy settings and '
-                            'profile visibility.',
-                          ),
-                          _termPoint(
-                            context,
-                            'Reports are reviewed to keep the community safe.',
-                          ),
-                          _termPoint(
-                            context,
-                            'Violations may result in suspension or '
-                            'account removal.',
-                          ),
+                          _termPoint(context, l10n.authTermsPointRespect),
+                          _termPoint(context, l10n.authTermsPointNoHarassment),
+                          _termPoint(context, l10n.authTermsPointPrivacy),
+                          _termPoint(context, l10n.authTermsPointReports),
+                          _termPoint(context, l10n.authTermsPointViolations),
                           const SizedBox(height: 18),
                           Container(
                             width: double.infinity,
@@ -89,9 +76,7 @@ class _UserAgreementScreenState extends ConsumerState<UserAgreementScreen> {
                               borderRadius: BorderRadius.circular(18),
                             ),
                             child: Text(
-                              'You can review the full policy details later '
-                              'from settings, but acceptance is required '
-                              'before using the app.',
+                              l10n.authTermsReviewLater,
                               style: Theme.of(context).textTheme.bodyMedium
                                   ?.copyWith(color: scheme.onPrimaryContainer),
                             ),
@@ -150,7 +135,7 @@ class _UserAgreementScreenState extends ConsumerState<UserAgreementScreen> {
                                           bottom: 4,
                                         ),
                                         child: Text(
-                                          'I agree to the Terms & Privacy Policy',
+                                          l10n.authTermsAgreeCheckbox,
                                           style: TextStyle(
                                             color: scheme.onSurface,
                                             fontWeight: FontWeight.w500,
@@ -169,7 +154,7 @@ class _UserAgreementScreenState extends ConsumerState<UserAgreementScreen> {
                             button: true,
                             child: GlassButton(
                               key: const ValueKey('qa.terms.continue_button'),
-                              label: 'I Accept and Continue',
+                              label: l10n.authTermsAcceptButton,
                               icon: Icons.check_circle_rounded,
                               shinyEffect: true,
                               isLoading: termsState.isLoading,
@@ -188,9 +173,9 @@ class _UserAgreementScreenState extends ConsumerState<UserAgreementScreen> {
                                         ScaffoldMessenger.of(
                                           context,
                                         ).showSnackBar(
-                                          const SnackBar(
+                                          SnackBar(
                                             content: Text(
-                                              'Could not save your agreement. Please check network and try again.',
+                                              l10n.authTermsSaveFailed,
                                             ),
                                           ),
                                         );
@@ -236,14 +221,14 @@ class _UserAgreementScreenState extends ConsumerState<UserAgreementScreen> {
         ),
         const SizedBox(height: 14),
         Text(
-          'Terms and Conditions',
+          AppLocalizations.of(context).authTermsTitle,
           style: Theme.of(
             context,
           ).textTheme.displaySmall!.copyWith(color: scheme.onSurface),
         ),
         const SizedBox(height: 8),
         Text(
-          'A quick review before you enter the app.',
+          AppLocalizations.of(context).authTermsSubtitle,
           textAlign: TextAlign.center,
           style: Theme.of(
             context,

@@ -1,9 +1,9 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/network/api_error_message.dart';
 import '../../../core/providers/api_client_provider.dart';
 import '../../auth/providers/auth_provider.dart';
+import 'payment_error.dart';
 import 'subscription_provider.dart';
 
 /// Coin packs are bought with a card through the provider's hosted checkout.
@@ -101,6 +101,7 @@ class WalletState {
     this.isLoading = false,
     this.buyingPackageId,
     this.error,
+    this.errorCode,
     this.paymentsAvailable = true,
     this.paymentMode = 'disabled',
   });
@@ -111,6 +112,10 @@ class WalletState {
   final bool isLoading;
   final String? buyingPackageId;
   final String? error;
+
+  /// Set when [error] is a client fallback the screen can translate; null
+  /// when [error] is the server's own message.
+  final PaymentErrorCode? errorCode;
   final bool paymentsAvailable;
   final String paymentMode;
 
@@ -121,6 +126,8 @@ class WalletState {
     bool? isLoading,
     Object? buyingPackageId = _unset,
     Object? error = _unset,
+    Object? errorCode = _unset,
+    PaymentFailure? failure,
     bool? paymentsAvailable,
     String? paymentMode,
   }) => WalletState(
@@ -131,7 +138,15 @@ class WalletState {
     buyingPackageId: identical(buyingPackageId, _unset)
         ? this.buyingPackageId
         : buyingPackageId as String?,
-    error: identical(error, _unset) ? this.error : error as String?,
+    error:
+        failure?.message ??
+        (identical(error, _unset) ? this.error : error as String?),
+    // A new error without a code is the server's wording.
+    errorCode: failure != null
+        ? failure.code
+        : identical(errorCode, _unset)
+        ? (identical(error, _unset) ? this.errorCode : null)
+        : errorCode as PaymentErrorCode?,
     paymentsAvailable: paymentsAvailable ?? this.paymentsAvailable,
     paymentMode: paymentMode ?? this.paymentMode,
   );
@@ -151,7 +166,10 @@ class WalletNotifier extends StateNotifier<WalletState> {
   Future<void> load() async {
     final userId = _userId;
     if (userId == null) {
-      state = state.copyWith(error: 'Please sign in to manage your wallet.');
+      state = state.copyWith(
+        error: PaymentErrorCode.signInWallet.english,
+        errorCode: PaymentErrorCode.signInWallet,
+      );
       return;
     }
     state = state.copyWith(isLoading: true, error: null);
@@ -216,7 +234,7 @@ class WalletNotifier extends StateNotifier<WalletState> {
     } on Object catch (error) {
       state = state.copyWith(
         isLoading: false,
-        error: apiErrorMessage(error, fallback: 'Unable to load your wallet.'),
+        failure: paymentFailure(error, PaymentErrorCode.loadWallet),
       );
     }
   }
@@ -255,7 +273,7 @@ class WalletNotifier extends StateNotifier<WalletState> {
     } on Object catch (error) {
       state = state.copyWith(
         buyingPackageId: null,
-        error: apiErrorMessage(error, fallback: 'Unable to start checkout.'),
+        failure: paymentFailure(error, PaymentErrorCode.startCheckout),
       );
       return null;
     }
@@ -297,10 +315,7 @@ class WalletNotifier extends StateNotifier<WalletState> {
       }
     } on Object catch (error) {
       state = state.copyWith(
-        error: apiErrorMessage(
-          error,
-          fallback: 'Unable to confirm the payment yet.',
-        ),
+        failure: paymentFailure(error, PaymentErrorCode.confirmPayment),
       );
       outcome = CheckoutOutcome.pending;
     }

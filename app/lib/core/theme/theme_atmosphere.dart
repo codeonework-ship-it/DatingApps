@@ -6,6 +6,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../i18n/app_l10n.dart';
 import 'app_theme.dart';
 import 'cinematic_clock.dart';
 import 'cinematic_motion.dart';
@@ -1978,7 +1979,7 @@ Future<void> showThemeTitleCard(BuildContext context, ThemePreset preset) {
   return showGeneralDialog<void>(
     context: context,
     barrierDismissible: true,
-    barrierLabel: 'Theme preview',
+    barrierLabel: l10nOrEnglish(context).themePreviewBarrier,
     barrierColor: Colors.transparent,
     transitionDuration: still
         ? Duration.zero
@@ -2121,7 +2122,7 @@ class _ThemeTitleCardState extends State<ThemeTitleCard>
                             Opacity(
                               opacity: title,
                               child: Text(
-                                'NOW SHOWING',
+                                l10nOrEnglish(context).themeNowShowing,
                                 style: TextStyle(
                                   fontSize: 11,
                                   letterSpacing: 4,
@@ -2155,7 +2156,10 @@ class _ThemeTitleCardState extends State<ThemeTitleCard>
                             Opacity(
                               opacity: tagline,
                               child: Text(
-                                preset.tagline,
+                                localizedPresetTagline(
+                                  l10nOrEnglish(context),
+                                  preset,
+                                ),
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontSize: 14,

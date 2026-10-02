@@ -4,7 +4,9 @@ import 'package:intl/intl.dart';
 
 import '../../core/providers/api_client_provider.dart';
 import '../../core/network/api_error_message.dart';
+import '../../l10n/app_localizations.dart';
 import '../auth/providers/auth_provider.dart';
+import '../graduation/models/graduation_labels.dart';
 import '../graduation/providers/graduation_provider.dart';
 import '../swipe/providers/curated_daily_set_provider.dart';
 import '../friends/providers/friend_social_provider.dart';
@@ -24,6 +26,29 @@ const datingBudgets = <String, String>{
   'free': 'Keep it free',
   'modest': 'Keep it modest',
   'treat': 'A little treat',
+};
+
+/// The localized label for a first-date activity id ([datingActivities]
+/// keys); an unknown id is shown as is.
+String datingActivityLabel(AppLocalizations l10n, String id) => switch (id) {
+  'coffee' => l10n.todayActivityCoffee,
+  'walk' => l10n.todayActivityWalk,
+  'meal' => l10n.todayActivityMeal,
+  'activity' => l10n.todayActivityPlayful,
+  'event' => l10n.todayActivityEvent,
+  'video_call' => l10n.todayActivityVideoCall,
+  'drinks' => l10n.todayActivityDrinks,
+  'other' => l10n.todayActivityOther,
+  _ => id,
+};
+
+/// The localized label for a date budget id ([datingBudgets] keys); an
+/// unknown id falls back to "Let’s decide together".
+String datingBudgetLabel(AppLocalizations l10n, String? id) => switch (id) {
+  'free' => l10n.todayBudgetFree,
+  'modest' => l10n.todayBudgetModest,
+  'treat' => l10n.todayBudgetTreat,
+  _ => l10n.todayBudgetFlexible,
 };
 
 final datingRhythmProvider = FutureProvider.autoDispose<Map<String, dynamic>>((
@@ -47,7 +72,7 @@ class DatingRhythmScreen extends ConsumerWidget {
   const DatingRhythmScreen({super.key});
   @override
   Widget build(BuildContext context, WidgetRef ref) => Scaffold(
-    appBar: AppBar(title: const Text('Your dating rhythm')),
+    appBar: AppBar(title: Text(AppLocalizations.of(context).todayRhythmTitle)),
     body: ref
         .watch(datingRhythmProvider)
         .when(
@@ -56,10 +81,10 @@ class DatingRhythmScreen extends ConsumerWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('Unable to load your preferences.'),
+                Text(AppLocalizations.of(context).todayRhythmLoadFailed),
                 TextButton(
                   onPressed: () => ref.invalidate(datingRhythmProvider),
-                  child: const Text('Try again'),
+                  child: Text(AppLocalizations.of(context).todayTryAgain),
                 ),
               ],
             ),
@@ -103,6 +128,7 @@ class _RhythmEditorState extends ConsumerState<_RhythmEditor> {
 
   bool flag(String key) => draft[key] == true;
   Future<void> save() async {
+    final l10n = AppLocalizations.of(context);
     setState(() {
       saving = true;
       error = null;
@@ -125,16 +151,14 @@ class _RhythmEditorState extends ConsumerState<_RhythmEditor> {
       ref.invalidate(curatedDailySetProvider);
       ref.invalidate(friendSocialProvider);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Your dating rhythm is saved.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.todayRhythmSaved)));
     } catch (e) {
       if (mounted)
         setState(
-          () => error = apiErrorMessage(
-            e,
-            fallback: 'Unable to save. Your choices are still here.',
-          ),
+          () =>
+              error = apiErrorMessage(e, fallback: l10n.todayRhythmSaveFailed),
         );
     } finally {
       if (mounted) setState(() => saving = false);
@@ -144,6 +168,8 @@ class _RhythmEditorState extends ConsumerState<_RhythmEditor> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
+    final locale = Localizations.localeOf(context);
     final now = DateTime.now();
     final pause = ref.watch(discoveryPauseProvider);
     return Center(
@@ -153,31 +179,29 @@ class _RhythmEditorState extends ConsumerState<_RhythmEditor> {
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
           children: [
             Text(
-              'Make room for the way you date.',
+              l10n.todayRhythmHeadline,
               style: theme.textTheme.headlineMedium,
             ),
             const SizedBox(height: 12),
-            const Text(
-              'Choose what fits your life. Availability and introductions are optional, and you can change your mind.',
-            ),
-            section('What are you open to?'),
+            Text(l10n.todayRhythmIntro),
+            section(l10n.todayRhythmOpenTo),
             choices('intent', {
-              '': 'Prefer not to say',
-              'relationship': 'A relationship',
-              'exploring': 'Finding my direction',
-              'casual': 'Something casual',
+              '': l10n.todayRhythmIntentNone,
+              'relationship': l10n.todayRhythmIntentRelationship,
+              'exploring': l10n.todayRhythmIntentExploring,
+              'casual': l10n.todayRhythmIntentCasual,
             }),
-            section('Your conversation pace'),
+            section(l10n.todayRhythmPaceSection),
             choices('pace', {
-              '': 'No preference',
-              'slow': 'A little slower',
-              'steady': 'A steady conversation',
-              'frequent': 'Frequent conversation',
+              '': l10n.todayRhythmPaceNone,
+              'slow': l10n.todayRhythmPaceSlow,
+              'steady': l10n.todayRhythmPaceSteady,
+              'frequent': l10n.todayRhythmPaceFrequent,
             }),
             SwitchListTile.adaptive(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Slow replies this week'),
-              subtitle: const Text('This status clears after seven days.'),
+              title: Text(l10n.todayRhythmSlowWeek),
+              subtitle: Text(l10n.todayRhythmSlowWeekHint),
               value: draft['pace_status'] == 'slow_week',
               onChanged: saving
                   ? null
@@ -187,17 +211,17 @@ class _RhythmEditorState extends ConsumerState<_RhythmEditor> {
             ),
             toggle(
               'share_pace',
-              'Share this status with my matches',
-              'Only current matches can see your temporary status.',
+              l10n.todayRhythmSharePace,
+              l10n.todayRhythmSharePaceHint,
             ),
-            section('Your kind of first date'),
+            section(l10n.todayRhythmFirstDate),
             Wrap(
               spacing: 8,
               runSpacing: 8,
               children: [
                 for (final entry in datingActivities.entries)
                   FilterChip(
-                    label: Text(entry.value),
+                    label: Text(datingActivityLabel(l10n, entry.key)),
                     selected: activities.contains(entry.key),
                     onSelected: saving
                         ? null
@@ -212,26 +236,23 @@ class _RhythmEditorState extends ConsumerState<_RhythmEditor> {
               ],
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Choose up to five. Shared preferences help explain your introductions.',
-            ),
-            section('A little room in your week'),
+            Text(l10n.todayRhythmChooseFive),
+            section(l10n.todayRhythmWeekSection),
             toggle(
               'share_availability',
-              'Use my broad availability',
-              'Only genuine overlap is shown. Your full schedule is private. Turning this off deletes saved windows.',
+              l10n.todayRhythmShareAvailability,
+              l10n.todayRhythmShareAvailabilityHint,
             ),
             if (flag('share_availability')) ...[
-              const Text(
-                'Tap any morning, afternoon or evening that suits you. Times use this device’s local time and expire automatically.',
-              ),
+              Text(l10n.todayRhythmAvailabilityHint),
               for (var day = 0; day < 7; day++) ...[
                 Padding(
                   padding: const EdgeInsets.only(top: 16, bottom: 4),
                   child: Text(
-                    DateFormat(
-                      'EEE, d MMM',
-                    ).format(DateTime(now.year, now.month, now.day + day)),
+                    _dayLabel(
+                      locale,
+                      DateTime(now.year, now.month, now.day + day),
+                    ),
                     style: theme.textTheme.titleSmall,
                   ),
                 ),
@@ -239,46 +260,46 @@ class _RhythmEditorState extends ConsumerState<_RhythmEditor> {
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    for (final slot in const {
-                      'Morning': 9,
-                      'Afternoon': 14,
-                      'Evening': 18,
-                    }.entries)
+                    for (final slot in [
+                      (label: l10n.todayRhythmMorning, hour: 9),
+                      (label: l10n.todayRhythmAfternoon, hour: 14),
+                      (label: l10n.todayRhythmEvening, hour: 18),
+                    ])
                       if (DateTime(
                         now.year,
                         now.month,
                         now.day + day,
-                        slot.value + 3,
+                        slot.hour + 3,
                       ).isAfter(now))
                         windowChip(
                           DateTime(
                             now.year,
                             now.month,
                             now.day + day,
-                            slot.value,
+                            slot.hour,
                           ),
-                          slot.key,
+                          slot.label,
                         ),
                   ],
                 ),
               ],
             ],
-            section('Introductions with your permission'),
+            section(l10n.todayRhythmIntrosSection),
             toggle(
               'allow_friend_intros',
-              'Allow introductions from accepted friends',
-              'Both people must opt in. Your friend receives no match or decline updates. A preview includes your name and age.',
+              l10n.todayRhythmFriendIntros,
+              l10n.todayRhythmFriendIntrosHint,
             ),
             if (flag('allow_friend_intros')) ...[
               toggle(
                 'intro_share_photo',
-                'Include my profile photos',
-                'Only the person receiving an introduction can see them.',
+                l10n.todayRhythmIntroPhoto,
+                l10n.todayRhythmIntroPhotoHint,
               ),
               toggle(
                 'intro_share_city',
-                'Include my city',
-                'Your exact location is never included.',
+                l10n.todayRhythmIntroCity,
+                l10n.todayRhythmIntroCityHint,
               ),
             ],
             if (error != null)
@@ -294,21 +315,21 @@ class _RhythmEditorState extends ConsumerState<_RhythmEditor> {
                 onPressed: saving
                     ? null
                     : () => ref.invalidate(datingRhythmProvider),
-                child: const Text('Reload saved choices'),
+                child: Text(l10n.todayRhythmReload),
               ),
             const SizedBox(height: 24),
             FilledButton.icon(
               key: const ValueKey('qa.rhythm.save'),
               onPressed: saving ? null : save,
               icon: Icon(saving ? Icons.hourglass_top : Icons.check),
-              label: Text(saving ? 'Saving…' : 'Save my rhythm'),
+              label: Text(
+                saving ? l10n.todayRhythmSaving : l10n.todayRhythmSave,
+              ),
             ),
             const Divider(height: 48),
-            Text('A break is always okay.', style: theme.textTheme.titleLarge),
+            Text(l10n.todayRhythmBreakTitle, style: theme.textTheme.titleLarge),
             const SizedBox(height: 8),
-            const Text(
-              'Pause new introductions whenever you need. Your existing conversations stay available.',
-            ),
+            Text(l10n.todayRhythmBreakBody),
             const SizedBox(height: 12),
             OutlinedButton.icon(
               onPressed: pause.isMutating
@@ -320,25 +341,46 @@ class _RhythmEditorState extends ConsumerState<_RhythmEditor> {
                       final ok = pause.paused
                           ? await notifier.resumeDiscovery()
                           : await notifier.pauseDiscovery();
-                      if (context.mounted && !ok)
+                      if (context.mounted && !ok) {
+                        final failed = ref.read(discoveryPauseProvider);
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(
-                              ref.read(discoveryPauseProvider).error ??
-                                  'Unable to update your pause.',
+                              failed.error == null
+                                  ? l10n.todayRhythmPauseFailed
+                                  : localizedGraduationError(
+                                      l10n,
+                                      failed.error!,
+                                      failed.failure,
+                                    ),
                             ),
                           ),
                         );
+                      }
                     },
               icon: Icon(pause.paused ? Icons.play_arrow : Icons.pause),
               label: Text(
-                pause.paused ? 'Resume introductions' : 'Pause introductions',
+                pause.paused ? l10n.todayRhythmResume : l10n.todayRhythmPause,
               ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  /// "Fri, 2 Oct" in English and the locale's own short form elsewhere
+  /// ("Fr., 2. Okt."), falling back to English when date symbols for that
+  /// locale are not loaded.
+  static String _dayLabel(Locale locale, DateTime day) {
+    try {
+      if (locale.languageCode == 'en') {
+        return DateFormat('EEE, d MMM', locale.toLanguageTag()).format(day);
+      }
+      return DateFormat.MMMEd(locale.toLanguageTag()).format(day);
+    } on Object {
+      return DateFormat('EEE, d MMM', 'en').format(day);
+    }
   }
 
   Widget section(String text) => Padding(

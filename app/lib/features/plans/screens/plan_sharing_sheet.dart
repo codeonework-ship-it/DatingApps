@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/providers/api_client_provider.dart';
 import '../../../core/network/api_error_message.dart';
+import '../../../l10n/app_localizations.dart';
 import '../models/date_plan.dart';
 
 Future<void> showPlanSharingSheet(BuildContext context, DatePlan plan) =>
@@ -59,7 +60,7 @@ class _PlanSharingSheetState extends ConsumerState<PlanSharingSheet> {
         setState(
           () => error = apiErrorMessage(
             e,
-            fallback: 'Unable to load sharing choices.',
+            fallback: AppLocalizations.of(context).planSharingLoadFailed,
           ),
         );
     } finally {
@@ -83,12 +84,13 @@ class _PlanSharingSheetState extends ConsumerState<PlanSharingSheet> {
             },
           );
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             selected.isEmpty
-                ? 'Your contact sharing is off.'
-                : 'Your selected contacts can now see this plan.',
+                ? l10n.planSharingOffSnack
+                : l10n.planSharingSavedSnack,
           ),
         ),
       );
@@ -98,7 +100,7 @@ class _PlanSharingSheetState extends ConsumerState<PlanSharingSheet> {
         setState(
           () => error = apiErrorMessage(
             e,
-            fallback: 'Unable to save. Reload choices before trying again.',
+            fallback: AppLocalizations.of(context).planSharingSaveFailed,
           ),
         );
     } finally {
@@ -107,132 +109,132 @@ class _PlanSharingSheetState extends ConsumerState<PlanSharingSheet> {
   }
 
   @override
-  Widget build(BuildContext context) => ConstrainedBox(
-    constraints: BoxConstraints(
-      maxHeight: MediaQuery.sizeOf(context).height * .9,
-    ),
-    child: SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(
-        24,
-        24,
-        24,
-        24 + MediaQuery.viewInsetsOf(context).bottom,
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * .9,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Your plan. Your people.',
-                  style: Theme.of(context).textTheme.headlineSmall,
+      child: SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(
+          24,
+          24,
+          24,
+          24 + MediaQuery.viewInsetsOf(context).bottom,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    l10n.planSharingTitle,
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
                 ),
-              ),
-              IconButton(
-                tooltip: 'Close sharing',
-                onPressed: saving ? null : () => Navigator.of(context).pop(),
-                icon: const Icon(Icons.close_rounded),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          const Text(
-            'Sharing with contacts starts off. Choose up to 10 trusted friends for this plan. Your date chooses their own contacts.',
-          ),
-          const SizedBox(height: 20),
-          if (loading)
-            const Center(child: CircularProgressIndicator())
-          else ...[
-            if (contacts.isEmpty && error == null)
-              const Text(
-                'No eligible friends yet. Your plan is still available to you and your date.',
-              ),
-            for (final contact in contacts)
-              CheckboxListTile(
-                contentPadding: EdgeInsets.zero,
-                key: ValueKey('qa.plan.contact.${contact['id']}'),
-                title: Text(contact['name'] as String? ?? 'A friend'),
-                value: selected.contains(contact['id']),
-                onChanged: saving
-                    ? null
-                    : (value) => setState(() {
-                        if (value == true && selected.length < 10) {
-                          selected.add(contact['id'] as String);
-                        } else {
-                          selected.remove(contact['id']);
-                        }
-                      }),
-              ),
-            const SizedBox(height: 16),
-            DecoratedBox(
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primaryContainer,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      selected.isEmpty
-                          ? 'Preview · no contacts selected'
-                          : 'Preview · ${selected.length} selected',
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      selected.isEmpty
-                          ? 'Your friends will receive no plan or check-in updates from you.'
-                          : 'These contacts can see your date’s name, the time and place, plan status, and your check-in updates. They receive the current plan when you save.',
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Messages and private post-date feedback stay private. Removing a contact stops future updates and removes their in-app plan access. Updates already delivered to a device cannot be recalled.',
-                    ),
-                  ],
+                IconButton(
+                  tooltip: l10n.planSharingCloseTooltip,
+                  onPressed: saving ? null : () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close_rounded),
                 ),
-              ),
+              ],
             ),
-            const SizedBox(height: 16),
-            if (error != null) ...[
-              Text(
-                error!,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
-              TextButton(
-                onPressed: saving ? null : load,
-                child: const Text('Reload sharing choices'),
-              ),
-            ],
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                key: const ValueKey('qa.plan.sharing.save'),
-                onPressed: saving || (contacts.isEmpty && error != null)
-                    ? null
-                    : save,
-                child: Text(
-                  saving
-                      ? 'Saving…'
-                      : selected.isEmpty
-                      ? 'Keep contact sharing off'
-                      : 'Share with selected contacts',
+            const SizedBox(height: 12),
+            Text(l10n.planSharingIntro),
+            const SizedBox(height: 20),
+            if (loading)
+              const Center(child: CircularProgressIndicator())
+            else ...[
+              if (contacts.isEmpty && error == null)
+                Text(l10n.planSharingNoContacts),
+              for (final contact in contacts)
+                CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  key: ValueKey('qa.plan.contact.${contact['id']}'),
+                  title: Text(
+                    contact['name'] as String? ??
+                        l10n.planSharingFriendFallback,
+                  ),
+                  value: selected.contains(contact['id']),
+                  onChanged: saving
+                      ? null
+                      : (value) => setState(() {
+                          if (value == true && selected.length < 10) {
+                            selected.add(contact['id'] as String);
+                          } else {
+                            selected.remove(contact['id']);
+                          }
+                        }),
+                ),
+              const SizedBox(height: 16),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        selected.isEmpty
+                            ? l10n.planSharingPreviewNone
+                            : l10n.planSharingPreviewCount(selected.length),
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        selected.isEmpty
+                            ? l10n.planSharingPreviewOffBody
+                            : l10n.planSharingPreviewOnBody,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(l10n.planSharingPrivacyNote),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            if (selected.isNotEmpty)
-              TextButton(
-                onPressed: saving
-                    ? null
-                    : () => setState(() => selected.clear()),
-                child: const Text('Deselect everyone'),
+              const SizedBox(height: 16),
+              if (error != null) ...[
+                Text(
+                  error!,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+                TextButton(
+                  onPressed: saving ? null : load,
+                  child: Text(l10n.planSharingReload),
+                ),
+              ],
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  key: const ValueKey('qa.plan.sharing.save'),
+                  onPressed: saving || (contacts.isEmpty && error != null)
+                      ? null
+                      : save,
+                  child: Text(
+                    saving
+                        ? l10n.planSharingSaving
+                        : selected.isEmpty
+                        ? l10n.planSharingKeepOff
+                        : l10n.planSharingShareSelected,
+                  ),
+                ),
               ),
+              if (selected.isNotEmpty)
+                TextButton(
+                  onPressed: saving
+                      ? null
+                      : () => setState(() => selected.clear()),
+                  child: Text(l10n.planSharingDeselectAll),
+                ),
+            ],
           ],
-        ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }

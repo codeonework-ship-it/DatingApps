@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/widgets/glass_widgets.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../messaging/screens/chat_screen.dart';
 
 class MatchNotificationScreen extends StatelessWidget {
@@ -19,73 +20,77 @@ class MatchNotificationScreen extends StatelessWidget {
   final String? currentUserPhotoUrl;
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('New Match')),
-    body: PostLoginBackdrop(
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Center(
-            child: GlassContainer(
-              padding: const EdgeInsets.all(20),
-              backgroundColor: Theme.of(context).colorScheme.surface.withValues(alpha: 0.9),
-              blur: 12,
-              borderRadius: const BorderRadius.all(Radius.circular(28)),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    "It's a match!",
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Scaffold(
+      appBar: AppBar(title: Text(l10n.matchesNewMatchTitle)),
+      body: PostLoginBackdrop(
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Center(
+              child: GlassContainer(
+                padding: const EdgeInsets.all(20),
+                backgroundColor: Theme.of(
+                  context,
+                ).colorScheme.surface.withValues(alpha: 0.9),
+                blur: 12,
+                borderRadius: const BorderRadius.all(Radius.circular(28)),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      l10n.matchesItsAMatch,
+                      style: Theme.of(context).textTheme.headlineMedium
+                          ?.copyWith(fontWeight: FontWeight.bold),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _avatar(currentUserPhotoUrl),
-                      const SizedBox(width: 12),
-                      _avatar(otherUserPhotoUrl),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'You and $otherUserName liked each other',
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
-                    child: GlassButton(
-                      label: 'Send Message',
-                      onPressed: () {
-                        Navigator.of(context).pushReplacement(
-                          MaterialPageRoute<void>(
-                            builder: (_) => ChatScreen(
-                              matchId: matchId,
-                              otherUserId: otherUserId,
-                              userName: otherUserName,
-                              userPhotoUrl: otherUserPhotoUrl,
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _avatar(currentUserPhotoUrl),
+                        const SizedBox(width: 12),
+                        _avatar(otherUserPhotoUrl),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      l10n.matchesLikedEachOther(otherUserName),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      child: GlassButton(
+                        label: l10n.matchesSendMessage,
+                        onPressed: () {
+                          Navigator.of(context).pushReplacement(
+                            MaterialPageRoute<void>(
+                              builder: (_) => ChatScreen(
+                                matchId: matchId,
+                                otherUserId: otherUserId,
+                                userName: otherUserName,
+                                userPhotoUrl: otherUserPhotoUrl,
+                              ),
                             ),
-                          ),
-                        );
-                      },
+                          );
+                        },
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Keep Swiping'),
-                  ),
-                ],
+                    const SizedBox(height: 10),
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: Text(l10n.matchesKeepSwiping),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
         ),
       ),
-    ),
-  );
+    );
+  }
 
   Widget _avatar(String? url) => CircleAvatar(
     radius: 34,

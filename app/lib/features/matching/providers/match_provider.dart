@@ -9,6 +9,15 @@ import '../../auth/providers/auth_provider.dart';
 
 part 'match_provider.g.dart';
 
+// Client fallback values. They double as codes: widgets translate them via
+// matching_l10n.dart; server-provided text passes through untouched.
+const kMatchesLoginRequiredError = 'Please login to see matches.';
+const kMatchesLoadError = 'Failed to load matches. Please try again.';
+const kMatchesUnmatchError = 'Failed to unmatch.';
+const kMatchesMarkReadError = 'Failed to mark as read.';
+const kMatchUnknownName = 'Unknown';
+const kMatchEmptyLastMessage = 'Say hi 👋';
+
 /// Match Model
 class Match {
   const Match({
@@ -98,7 +107,7 @@ class MatchNotifier extends _$MatchNotifier {
         state = state.copyWith(
           matches: const [],
           isLoading: false,
-          error: 'Please login to see matches.',
+          error: kMatchesLoginRequiredError,
         );
         return;
       }
@@ -146,11 +155,13 @@ class MatchNotifier extends _$MatchNotifier {
             return Match(
               id: _pickText(map, const ['id', 'match_id']),
               userId: userId,
-              userName: userName.isEmpty ? 'Unknown' : userName,
+              userName: userName.isEmpty ? kMatchUnknownName : userName,
               userPhoto: userPhoto.isEmpty
                   ? AppRuntimeConfig.placeholderAvatarImageUrl
                   : userPhoto,
-              lastMessage: lastMessage.isEmpty ? 'Say hi 👋' : lastMessage,
+              lastMessage: lastMessage.isEmpty
+                  ? kMatchEmptyLastMessage
+                  : lastMessage,
               lastMessageTime: lastMessageAt,
               unreadCount: (map['unreadCount'] as num?)?.toInt() ?? 0,
               isOnline: map['isOnline'] == true,
@@ -176,14 +187,11 @@ class MatchNotifier extends _$MatchNotifier {
       final data = e.response?.data;
       final message = data is Map && data['error'] != null
           ? data['error'].toString()
-          : 'Failed to load matches. Please try again.';
+          : kMatchesLoadError;
       state = state.copyWith(error: message, isLoading: false);
     } catch (e, stackTrace) {
       log.error('Failed to load matches', e, stackTrace);
-      state = state.copyWith(
-        error: 'Failed to load matches. Please try again.',
-        isLoading: false,
-      );
+      state = state.copyWith(error: kMatchesLoadError, isLoading: false);
     }
   }
 
@@ -206,10 +214,10 @@ class MatchNotifier extends _$MatchNotifier {
       );
     } on DioException catch (e, stackTrace) {
       log.error('Failed to unmatch', e, stackTrace);
-      state = state.copyWith(error: 'Failed to unmatch.');
+      state = state.copyWith(error: kMatchesUnmatchError);
     } catch (e, stackTrace) {
       log.error('Failed to unmatch', e, stackTrace);
-      state = state.copyWith(error: 'Failed to unmatch.');
+      state = state.copyWith(error: kMatchesUnmatchError);
     }
   }
 
@@ -243,10 +251,10 @@ class MatchNotifier extends _$MatchNotifier {
       state = state.copyWith(matches: updated);
     } on DioException catch (e, stackTrace) {
       log.error('Failed to mark messages as read', e, stackTrace);
-      state = state.copyWith(error: 'Failed to mark as read.');
+      state = state.copyWith(error: kMatchesMarkReadError);
     } catch (e, stackTrace) {
       log.error('Failed to mark messages as read', e, stackTrace);
-      state = state.copyWith(error: 'Failed to mark as read.');
+      state = state.copyWith(error: kMatchesMarkReadError);
     }
   }
 

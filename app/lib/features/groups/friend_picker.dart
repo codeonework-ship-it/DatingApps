@@ -2,19 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/api_error_message.dart';
+import '../../l10n/app_localizations.dart';
 import 'group_launch.dart';
 import 'group_widgets.dart';
 import 'groups_data.dart';
 
 /// Multi-selects friends. With [groupId], friends already in the group or
 /// already invited are shown but cannot be picked. Returns the chosen friends,
-/// or null when dismissed.
+/// or null when dismissed. [title] defaults to "Choose friends" and
+/// [confirmLabel] to "Done".
 Future<List<GroupInvitee>?> pickGroupFriends(
   BuildContext context, {
   String groupId = '',
   List<GroupInvitee> selected = const [],
-  String title = 'Choose friends',
-  String confirmLabel = 'Done',
+  String? title,
+  String? confirmLabel,
 }) => showGroupSheet<List<GroupInvitee>>(
   context,
   GroupFriendPicker(
@@ -30,13 +32,17 @@ class GroupFriendPicker extends ConsumerStatefulWidget {
     super.key,
     this.groupId = '',
     this.initial = const [],
-    this.title = 'Choose friends',
-    this.confirmLabel = 'Done',
+    this.title,
+    this.confirmLabel,
   });
   final String groupId;
   final List<GroupInvitee> initial;
-  final String title;
-  final String confirmLabel;
+
+  /// Defaults to "Choose friends".
+  final String? title;
+
+  /// Defaults to "Done".
+  final String? confirmLabel;
 
   @override
   ConsumerState<GroupFriendPicker> createState() => _GroupFriendPickerState();
@@ -52,24 +58,24 @@ class _GroupFriendPickerState extends ConsumerState<GroupFriendPicker> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
     final friends = ref.watch(groupFriendsProvider(widget.groupId));
+    final confirmLabel = widget.confirmLabel ?? l10n.groupsDone;
     return GroupSheetFrame(
-      title: widget.title,
-      subtitle: 'Only friends you’re connected with can be invited.',
+      title: widget.title ?? l10n.groupsChooseFriends,
+      subtitle: l10n.groupsPickerSubtitle,
       footer: FilledButton(
         onPressed: () => Navigator.of(context).pop(chosen.values.toList()),
         style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
         child: Text(
-          chosen.isEmpty
-              ? widget.confirmLabel
-              : '${widget.confirmLabel} (${chosen.length})',
+          chosen.isEmpty ? confirmLabel : '$confirmLabel (${chosen.length})',
         ),
       ),
       children: [
         TextField(
-          decoration: const InputDecoration(
-            prefixIcon: Icon(Icons.search_rounded),
-            labelText: 'Search friends',
+          decoration: InputDecoration(
+            prefixIcon: const Icon(Icons.search_rounded),
+            labelText: l10n.groupsSearchFriends,
           ),
           onChanged: (value) =>
               setState(() => filter = value.trim().toLowerCase()),
@@ -82,20 +88,18 @@ class _GroupFriendPickerState extends ConsumerState<GroupFriendPicker> {
           ),
           error: (e, _) => GroupNotice(
             icon: Icons.cloud_off_outlined,
-            title: 'Friends could not load',
-            message: apiErrorMessage(e, fallback: 'Please try again.'),
-            actionLabel: 'Try again',
+            title: l10n.groupsFriendsFailed,
+            message: apiErrorMessage(e, fallback: l10n.groupsPleaseTryAgain),
+            actionLabel: l10n.chatTryAgain,
             onAction: () =>
                 ref.invalidate(groupFriendsProvider(widget.groupId)),
           ),
           data: (list) {
             if (list.isEmpty) {
-              return const GroupNotice(
+              return GroupNotice(
                 icon: Icons.people_outline_rounded,
-                title: 'No friends yet',
-                message:
-                    'Add friends from Matches, profiles or rooms, then bring '
-                    'them into a group.',
+                title: l10n.groupsNoFriendsTitle,
+                message: l10n.groupsNoFriendsBody,
               );
             }
             final shown = [
@@ -109,13 +113,15 @@ class _GroupFriendPickerState extends ConsumerState<GroupFriendPicker> {
                     contentPadding: EdgeInsets.zero,
                     controlAffinity: ListTileControlAffinity.trailing,
                     secondary: GroupAvatar(name: f.name, photoUrl: f.photoUrl),
-                    title: Text(f.name.isEmpty ? 'Friend' : f.name),
+                    title: Text(
+                      f.name.isEmpty ? l10n.groupsFriendFallback : f.name,
+                    ),
                     subtitle: f.available
                         ? null
                         : Text(
                             f.status == 'member'
-                                ? 'Already in this group'
-                                : 'Invitation sent',
+                                ? l10n.groupsAlreadyMember
+                                : l10n.groupsInvitationSent,
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: colors.onSurfaceVariant,
                             ),

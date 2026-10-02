@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:verified_dating_app/core/widgets/glass_widgets.dart';
 import 'package:verified_dating_app/features/swipe/models/discovery_profile.dart';
 import 'package:verified_dating_app/features/swipe/widgets/swipe_card.dart';
+import 'package:verified_dating_app/l10n/app_localizations.dart';
 
 void main() {
   DiscoveryProfile buildProfile({required List<String> photoUrls}) =>
@@ -33,6 +34,8 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: Center(
             child: SwipeCard(
@@ -57,6 +60,8 @@ void main() {
   ) async {
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: SwipeCard(profile: buildProfile(photoUrls: <String>[])),
         ),
@@ -71,6 +76,8 @@ void main() {
   ) async {
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: SwipeCard(
             profile: buildProfile(
@@ -89,6 +96,8 @@ void main() {
   ) async {
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: SwipeCard(
             profile:

@@ -16,11 +16,18 @@ class MatchPlansState {
     this.error,
     this.snapshot = const MatchPlansSnapshot(),
     this.loaded = false,
+    this.failure,
   });
 
   final bool isLoading;
   final bool isMutating;
+
+  /// The server's message, or the request's en-US fallback.
   final String? error;
+
+  /// Set with [error] when the server sent no message: widgets show this
+  /// request's fallback in the member's language (`localizedDatePlanError`).
+  final DatePlanFailure? failure;
   final MatchPlansSnapshot snapshot;
   final bool loaded;
 
@@ -30,6 +37,7 @@ class MatchPlansState {
     bool? isLoading,
     bool? isMutating,
     String? error,
+    DatePlanFailure? failure,
     bool clearError = false,
     MatchPlansSnapshot? snapshot,
     bool? loaded,
@@ -37,6 +45,7 @@ class MatchPlansState {
     isLoading: isLoading ?? this.isLoading,
     isMutating: isMutating ?? this.isMutating,
     error: clearError ? null : (error ?? this.error),
+    failure: clearError ? null : (error != null ? failure : this.failure),
     snapshot: snapshot ?? this.snapshot,
     loaded: loaded ?? this.loaded,
   );
@@ -75,10 +84,12 @@ class MatchPlansNotifier extends StateNotifier<MatchPlansState> {
       );
     } on Object catch (error) {
       log.error('Date plans load failed', error);
+      final failure = _planError(error, DatePlanFailure.load);
       state = state.copyWith(
         isLoading: false,
         loaded: true,
-        error: apiErrorMessage(error, fallback: 'Unable to load date plans.'),
+        error: failure.message,
+        failure: failure.kind,
       );
     }
   }
@@ -117,7 +128,7 @@ class MatchPlansNotifier extends StateNotifier<MatchPlansState> {
       if (note.trim().isNotEmpty) 'note': note.trim(),
       'group_ids': groupIds,
     },
-    fallback: 'Unable to propose this plan.',
+    failure: DatePlanFailure.propose,
   );
 
   Future<DatePlan?> decide({
@@ -132,9 +143,7 @@ class MatchPlansNotifier extends StateNotifier<MatchPlansState> {
       'decision': accept ? 'accept' : 'decline',
       'group_ids': groupIds,
     },
-    fallback: accept
-        ? 'Unable to accept this plan.'
-        : 'Unable to decline this plan.',
+    failure: accept ? DatePlanFailure.accept : DatePlanFailure.decline,
   );
 
   Future<DatePlan?> cancel({required String planId, String reason = ''}) =>
@@ -143,7 +152,7 @@ class MatchPlansNotifier extends StateNotifier<MatchPlansState> {
         data: <String, dynamic>{
           if (reason.trim().isNotEmpty) 'reason': reason.trim(),
         },
-        fallback: 'Unable to cancel this plan.',
+        failure: DatePlanFailure.cancel,
       );
 
   Future<DatePlan?> checkin({
@@ -156,7 +165,7 @@ class MatchPlansNotifier extends StateNotifier<MatchPlansState> {
       'status': safe ? 'safe' : 'need_help',
       if (note.trim().isNotEmpty) 'note': note.trim(),
     },
-    fallback: 'Unable to check in right now.',
+    failure: DatePlanFailure.checkin,
   );
 
   Future<DatePlan?> debrief({
@@ -175,13 +184,13 @@ class MatchPlansNotifier extends StateNotifier<MatchPlansState> {
       'felt_safe': ?feltSafe,
       if (note.trim().isNotEmpty) 'note': note.trim(),
     },
-    fallback: 'Unable to save your debrief.',
+    failure: DatePlanFailure.debrief,
   );
 
   Future<DatePlan?> _mutate({
     required String path,
     required Map<String, dynamic> data,
-    required String fallback,
+    required DatePlanFailure failure,
   }) async {
     if (kUseMockAuth) {
       return state.plan;
@@ -201,9 +210,11 @@ class MatchPlansNotifier extends StateNotifier<MatchPlansState> {
       return plan;
     } on Object catch (error) {
       log.error('Date plan mutation failed', error);
+      final result = _planError(error, failure);
       state = state.copyWith(
         isMutating: false,
-        error: apiErrorMessage(error, fallback: fallback),
+        error: result.message,
+        failure: result.kind,
       );
       return null;
     }
@@ -221,24 +232,32 @@ class PlansFeedState {
   const PlansFeedState({
     this.isLoading = false,
     this.error,
+    this.failure,
     this.mine = const <DatePlan>[],
     this.friends = const <FriendPlan>[],
   });
 
   final bool isLoading;
+
+  /// The server's message, or the en-US fallback; see [failure].
   final String? error;
+
+  /// Set with [error] when the server sent no message (see MatchPlansState).
+  final DatePlanFailure? failure;
   final List<DatePlan> mine;
   final List<FriendPlan> friends;
 
   PlansFeedState copyWith({
     bool? isLoading,
     String? error,
+    DatePlanFailure? failure,
     bool clearError = false,
     List<DatePlan>? mine,
     List<FriendPlan>? friends,
   }) => PlansFeedState(
     isLoading: isLoading ?? this.isLoading,
     error: clearError ? null : (error ?? this.error),
+    failure: clearError ? null : (error != null ? failure : this.failure),
     mine: mine ?? this.mine,
     friends: friends ?? this.friends,
   );
@@ -287,9 +306,11 @@ class PlansFeedNotifier extends StateNotifier<PlansFeedState> {
       );
     } on Object catch (error) {
       log.error('Plans feed load failed', error);
+      final failure = _planError(error, DatePlanFailure.feed);
       state = state.copyWith(
         isLoading: false,
-        error: apiErrorMessage(error, fallback: 'Unable to load plans.'),
+        error: failure.message,
+        failure: failure.kind,
       );
     }
   }
@@ -299,6 +320,33 @@ final plansFeedProvider =
     StateNotifierProvider<PlansFeedNotifier, PlansFeedState>(
       PlansFeedNotifier.new,
     );
+
+// ── Errors ───────────────────────────────────────────────────────────────────
+
+/// en-US fallbacks kept in provider state (logs, tests); widgets show
+/// `datePlanFailureMessage` in the member's language instead.
+const Map<DatePlanFailure, String> _fallbacks = <DatePlanFailure, String>{
+  DatePlanFailure.load: 'Unable to load date plans.',
+  DatePlanFailure.feed: 'Unable to load plans.',
+  DatePlanFailure.propose: 'Unable to propose this plan.',
+  DatePlanFailure.accept: 'Unable to accept this plan.',
+  DatePlanFailure.decline: 'Unable to decline this plan.',
+  DatePlanFailure.cancel: 'Unable to cancel this plan.',
+  DatePlanFailure.checkin: 'Unable to check in right now.',
+  DatePlanFailure.debrief: 'Unable to save your debrief.',
+};
+
+/// The server's message when it sent one (kind null), else the en-US
+/// fallback with the failed request's kind.
+({String message, DatePlanFailure? kind}) _planError(
+  Object error,
+  DatePlanFailure failure,
+) {
+  final server = apiErrorMessage(error, fallback: '');
+  return server.isEmpty
+      ? (message: _fallbacks[failure]!, kind: failure)
+      : (message: server, kind: null);
+}
 
 // ── Mock data for QA fixtures and the screen matrix ──────────────────────────
 

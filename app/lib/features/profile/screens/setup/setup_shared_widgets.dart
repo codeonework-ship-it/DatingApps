@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../l10n/app_localizations.dart';
+
 // =============================================================================
 // Shared widgets for the Crystal Gold profile setup flow.
 //
@@ -37,11 +39,13 @@ class SetupHeader extends StatelessWidget {
                   size: 20,
                 ),
                 onPressed: onBack,
-                tooltip: 'Back',
+                tooltip: AppLocalizations.of(context).profileSetupBackTooltip,
               ),
               const Spacer(),
               Text(
-                'Step $currentStep of $totalSteps',
+                AppLocalizations.of(
+                  context,
+                ).profileSetupStepCounter(currentStep, totalSteps),
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
                   color: scheme.onSurfaceVariant,
                   fontWeight: FontWeight.w600,
@@ -467,7 +471,7 @@ class SetupErrorState extends StatelessWidget {
         Icon(Icons.error_outline_rounded, color: scheme.error, size: 40),
         const SizedBox(height: 12),
         Text(
-          'Could not load profile data.',
+          AppLocalizations.of(context).profileSetupLoadErrorTitle,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
             color: scheme.onSurface,
             fontWeight: FontWeight.w600,
@@ -490,7 +494,7 @@ class SetupErrorState extends StatelessWidget {
             onPressed: onRetry,
             icon: Icon(Icons.refresh_rounded, color: scheme.primary),
             label: Text(
-              'Retry',
+              AppLocalizations.of(context).profileSetupRetry,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: scheme.primary,
                 fontWeight: FontWeight.w700,
@@ -556,6 +560,40 @@ InputDecoration glassInputDecoration(
       ),
     ),
   );
+}
+
+/// Localised label for a profile option whose English value is stored on the
+/// server (`ProfileOptionsConstants` education, income, drinking and smoking
+/// values). The value itself is never translated; unknown values (e.g. from
+/// the server's master data) are shown unchanged.
+String localizedProfileOption(AppLocalizations l10n, String value) {
+  switch (value) {
+    case 'High School':
+      return l10n.profileSetupEducationHighSchool;
+    case "Bachelor's":
+      return l10n.profileSetupEducationBachelors;
+    case "Master's":
+      return l10n.profileSetupEducationMasters;
+    case 'PhD':
+      return l10n.profileSetupEducationPhd;
+    case 'Other':
+      return l10n.profileSetupEducationOther;
+    case 'Prefer not to say':
+      return l10n.profileSetupPreferNotToSay;
+    case 'Never':
+      return l10n.profileSetupFrequencyNever;
+    case 'Socially':
+      return l10n.profileSetupFrequencySocially;
+    case 'Occasionally':
+      return l10n.profileSetupFrequencyOccasionally;
+    case 'Regularly':
+      return l10n.profileSetupFrequencyRegularly;
+  }
+  const below = 'Below ';
+  if (value.startsWith(below)) {
+    return l10n.profileSetupIncomeBelow(value.substring(below.length));
+  }
+  return value;
 }
 
 /// Month names for DOB dropdowns.

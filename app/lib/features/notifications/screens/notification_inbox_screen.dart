@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../friends/screens/friends_screen.dart';
 import '../../support/support_routes.dart';
 import '../../swipe/screens/liked_me_screen.dart';
@@ -13,17 +14,18 @@ class NotificationInboxScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final state = ref.watch(notificationProvider);
     final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Notifications'),
+        title: Text(l10n.notificationsTitle),
         actions: [
           if (state.unreadCount > 0)
             TextButton(
               onPressed: () =>
                   ref.read(notificationProvider.notifier).markAllRead(),
-              child: const Text('Read all'),
+              child: Text(l10n.notificationsReadAll),
             ),
         ],
       ),
@@ -37,12 +39,12 @@ class NotificationInboxScreen extends ConsumerWidget {
                 : state.items.isEmpty
                 ? ListView(
                     padding: const EdgeInsets.all(24),
-                    children: const [
+                    children: [
                       SizedBox(height: 120),
                       Icon(Icons.notifications_none_rounded, size: 56),
                       SizedBox(height: 16),
                       Text(
-                        'You are all caught up',
+                        l10n.notificationsInboxCaughtUp,
                         textAlign: TextAlign.center,
                         style: TextStyle(fontWeight: FontWeight.w800),
                       ),
@@ -143,7 +145,7 @@ class NotificationInboxScreen extends ConsumerWidget {
                                       ],
                                       const SizedBox(height: 8),
                                       Text(
-                                        _relativeTime(item.createdAt),
+                                        _relativeTime(l10n, item.createdAt),
                                         style: Theme.of(context)
                                             .textTheme
                                             .bodySmall
@@ -187,14 +189,13 @@ IconData _categoryIcon(String category) => switch (category) {
   _ => Icons.notifications_rounded,
 };
 
-Color _categoryColor(String category, ColorScheme scheme) =>
-    switch (category) {
-      'call' => AppTheme.successGreen,
-      'safety' => scheme.error,
-      'nudge' => AppTheme.marigold,
-      'friend_plan' => AppTheme.successGreen,
-      _ => scheme.primary,
-    };
+Color _categoryColor(String category, ColorScheme scheme) => switch (category) {
+  'call' => AppTheme.successGreen,
+  'safety' => scheme.error,
+  'nudge' => AppTheme.marigold,
+  'friend_plan' => AppTheme.successGreen,
+  _ => scheme.primary,
+};
 
 Color _categoryForeground(String category, ColorScheme scheme) =>
     switch (category) {
@@ -203,16 +204,16 @@ Color _categoryForeground(String category, ColorScheme scheme) =>
       _ => scheme.onPrimary,
     };
 
-String _relativeTime(DateTime value) {
+String _relativeTime(AppLocalizations l10n, DateTime value) {
   final difference = DateTime.now().difference(value.toLocal());
   if (difference.inMinutes < 1) {
-    return 'Just now';
+    return l10n.timeAgoJustNow;
   }
   if (difference.inHours < 1) {
-    return '${difference.inMinutes}m ago';
+    return l10n.notificationsAgoMinutes(difference.inMinutes);
   }
   if (difference.inDays < 1) {
-    return '${difference.inHours}h ago';
+    return l10n.notificationsAgoHours(difference.inHours);
   }
-  return '${difference.inDays}d ago';
+  return l10n.notificationsAgoDays(difference.inDays);
 }

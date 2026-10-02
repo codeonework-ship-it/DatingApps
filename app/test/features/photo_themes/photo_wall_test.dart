@@ -12,6 +12,7 @@ import 'package:verified_dating_app/features/blog/blog_data.dart';
 import 'package:verified_dating_app/features/photo_themes/photo_theme_widgets.dart';
 import 'package:verified_dating_app/features/photo_themes/photo_themes_data.dart';
 import 'package:verified_dating_app/features/photo_themes/photo_wall.dart';
+import 'package:verified_dating_app/l10n/app_localizations.dart';
 
 class _Auth extends AuthNotifier {
   @override
@@ -119,6 +120,8 @@ List<Override> _overrides(_Api api, {bool photoThemes = true}) => [
 Widget _sheet(_Api api, ThemeEntry entry) => ProviderScope(
   overrides: _overrides(api),
   child: MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
     home: Scaffold(body: ThemeEntrySheet(entry: entry)),
   ),
 );
@@ -128,6 +131,8 @@ Widget _sheet(_Api api, ThemeEntry entry) => ProviderScope(
 Widget _today(_Api api) => ProviderScope(
   overrides: _overrides(api),
   child: const MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
     home: Scaffold(
       body: SingleChildScrollView(
         padding: EdgeInsets.all(16),
@@ -241,6 +246,8 @@ void main() {
       Future<void> run({required bool flip}) async {
         await t.pumpWidget(
           MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: Builder(
               builder: (context) => TextButton(
                 onPressed: () async => result = await askEntryDetails(context),

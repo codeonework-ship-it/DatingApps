@@ -4,12 +4,14 @@ import 'package:verified_dating_app/features/auth/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/intl.dart';
 import 'package:verified_dating_app/core/theme/theme_presets.dart';
 import 'package:verified_dating_app/features/graduation/providers/graduation_provider.dart';
 import 'package:verified_dating_app/features/intentional_dating/dating_rhythm.dart';
 import 'package:verified_dating_app/features/intentional_dating/today_introductions.dart';
 import 'package:verified_dating_app/features/swipe/models/discovery_profile.dart';
 import 'package:verified_dating_app/features/swipe/providers/curated_daily_set_provider.dart';
+import 'package:verified_dating_app/l10n/app_localizations.dart';
 
 class _Daily extends CuratedDailySetNotifier {
   _Daily(super.ref, this.initial);
@@ -56,6 +58,7 @@ Widget host({
   double scale = 1,
   ValueChanged<DiscoveryProfile>? open,
   VoidCallback? browse,
+  Locale? locale,
 }) => ProviderScope(
   overrides: [
     curatedDailySetProvider.overrideWith(
@@ -71,6 +74,9 @@ Widget host({
     discoveryPauseProvider.overrideWith((ref) => _Pause(ref, paused)),
   ],
   child: MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
+    locale: locale,
     theme: ThemePresets.themeFor(ThemePresets.realLife),
     builder: (context, child) => MediaQuery(
       data: MediaQuery.of(
@@ -194,6 +200,36 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Try again'), findsOneWidget);
     expect(find.byKey(const ValueKey('qa.today.profile.Maya')), findsNothing);
+  });
+  testWidgets('Today speaks German for a German member', (tester) async {
+    tester.view.physicalSize = const Size(390, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(host(locale: const Locale('de')));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.text('HEUTE'), findsOneWidget);
+    expect(
+      find.text(DateFormat.MMMMEEEEd('de').format(DateTime.now())),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Ein kleines Hallo.\nRaum für etwas Echtes.'),
+      findsOneWidget,
+    );
+    expect(find.text('DEIN TEMPO'), findsOneWidget);
+    expect(find.text('Deinen Rhythmus festlegen'), findsOneWidget);
+    expect(find.text('HEUTIGE VORSTELLUNGEN'), findsOneWidget);
+    expect(find.text('Alle Vorstellungen'), findsOneWidget);
+    expect(find.text('Kaffee'), findsOneWidget);
+    expect(find.text('Maya kennenlernen'), findsOneWidget);
+    expect(
+      find.text('Ein erstes Hallo könnte ein gemeinsamer Kaffee sein.'),
+      findsOneWidget,
+    );
+    expect(find.text('TODAY'), findsNothing);
+    expect(find.text('Meet Maya'), findsNothing);
   });
   testWidgets('Empty pool gives a useful next step', (tester) async {
     bool browsed = false;

@@ -91,6 +91,7 @@ void main() {
     required Size size,
     RuntimeFeatureFlags initialFlags = _allOn,
     ThemeData? theme,
+    Locale? locale,
   }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
@@ -125,6 +126,7 @@ void main() {
         ],
         child: MaterialApp(
           theme: theme ?? AppTheme.lightTheme,
+          locale: locale,
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: const WebMemberWorkspace(),
@@ -379,6 +381,22 @@ void main() {
       tester.element(find.byType(WebMemberWorkspace)),
     );
     expect(container.read(mainNavigationIndexProvider), 0);
+    expectCleanLayout(tester);
+  });
+
+  testWidgets('sidebar and directory follow the member\'s language (German)', (
+    tester,
+  ) async {
+    await mount(tester, size: desktop, locale: const Locale('de'));
+    expect(inSidebar('Alle Funktionen'), findsOneWidget);
+    expect(inSidebar('Privatsphäre & Sicherheit'), findsOneWidget);
+    expect(inSidebar('Abmelden'), findsOneWidget);
+    expect(find.text('Dein Tempo. Deine Wahl.'), findsOneWidget);
+    expect(inSidebar('All features'), findsNothing);
+
+    await tapAndSettle(tester, inSidebar('Alle Funktionen'));
+    expect(find.text('Mach diesen Ort zu deinem.'), findsOneWidget);
+    expect(directoryCard('Anrufverlauf'), findsOneWidget);
     expectCleanLayout(tester);
   });
 }

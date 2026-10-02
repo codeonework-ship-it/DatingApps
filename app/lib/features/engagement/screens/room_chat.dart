@@ -450,6 +450,9 @@ class _RoomMembersSheet extends ConsumerWidget {
                 itemCount: list.length,
                 itemBuilder: (context, i) {
                   final m = list[i];
+                  final name = m.name.trim().isEmpty
+                      ? l.chatMember
+                      : m.displayName;
                   final role = roomRoleLabel(l, m.role);
                   final status = [
                     if (role.isNotEmpty) role,
@@ -465,19 +468,19 @@ class _RoomMembersSheet extends ConsumerWidget {
                     key: ValueKey('room.member.${m.userId}'),
                     minTileHeight: AppLayout.minTapTarget + AppLayout.space4,
                     leading: RoomAvatar(
-                      name: m.displayName,
+                      name: name,
                       photoUrl: m.photoUrl,
                       here: m.hereNow,
                     ),
                     title: Text(
-                      m.isMe ? l.roomsYouSuffix(m.displayName) : m.displayName,
+                      m.isMe ? l.roomsYouSuffix(name) : name,
                     ),
                     subtitle: Text(status),
                     trailing: m.isMe
                         ? null
                         : AddFriendButton(
                             userId: m.userId,
-                            name: m.displayName,
+                            name: name,
                             source: FriendRequestSource.room,
                             style: AddFriendStyle.icon,
                           ),
@@ -487,7 +490,7 @@ class _RoomMembersSheet extends ConsumerWidget {
                             context,
                             room: room,
                             userId: m.userId,
-                            name: m.displayName,
+                            name: name,
                             photoUrl: m.photoUrl,
                           ),
                   );
@@ -788,7 +791,7 @@ class _RoomMemberCardState extends ConsumerState<_RoomMemberCard> {
     final members = ref.watch(roomMembersProvider(widget.room.id));
     final l = chatL10n(context);
     final member = _member(members.valueOrNull);
-    final name = (member?.displayName.isNotEmpty ?? false)
+    final name = (member?.name.trim().isNotEmpty ?? false)
         ? member!.displayName
         : (widget.name.trim().isEmpty ? l.chatMember : widget.name.trim());
     final photo = member?.photoUrl.isNotEmpty ?? false

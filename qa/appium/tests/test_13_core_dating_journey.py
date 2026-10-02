@@ -5,6 +5,7 @@ import time
 import pytest
 
 from api_client import extract_items, first_id
+from tests.test_04_matches_chat import require_message_quota
 
 
 def _first_match_id(api_client, user_id: str) -> str:
@@ -42,6 +43,7 @@ def test_username_login_discovery_match_and_chat_restart_resume(
     qa_user_id,
 ):
     match_id = _first_match_id(api_client, qa_user_id)
+    require_message_quota(api_client, qa_user_id)
     message = f"Appium core journey {time.time_ns()}"
 
     app.open_discovery_deck()

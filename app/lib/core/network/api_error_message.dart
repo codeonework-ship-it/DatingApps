@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
 
+import '../i18n/app_l10n.dart';
+
 String apiErrorMessage(Object error, {required String fallback}) {
   if (error is DioException) {
     final data = error.response?.data;
@@ -12,7 +14,7 @@ String apiErrorMessage(Object error, {required String fallback}) {
     if (error.type == DioExceptionType.connectionError ||
         error.type == DioExceptionType.connectionTimeout ||
         error.type == DioExceptionType.receiveTimeout) {
-      return 'Cannot reach the local service. Check that the API is running.';
+      return currentAppL10n().networkCannotReachService;
     }
   }
   return fallback;

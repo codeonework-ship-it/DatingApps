@@ -46,6 +46,25 @@ def _match_display_name(match: dict) -> str | None:
 UNLOCKED_STATE = "conversation_unlocked"
 
 
+def require_message_quota(api_client, user_id: str, needed: int = 1) -> None:
+    """Free members get 5 messages a day (GET /billing/entitlements/{id}).
+
+    Sending specs share one QA account, so repeated runs on the same UTC day
+    use the allowance up; the app then (correctly) refuses with "You've used
+    today's 5 messages on Free". Skip with that reason instead of failing.
+    """
+    body = api_client.get(f"/billing/entitlements/{user_id}").require_status(200).body
+    messages = body.get("messages") or {}
+    if messages.get("unlimited") or not body.get("enforced", True):
+        return
+    remaining = int(messages.get("remaining", 0))
+    if remaining < needed:
+        pytest.skip(
+            f"Free daily message allowance used up ({messages.get('used')}/{messages.get('limit')}); "
+            f"resets at {messages.get('resets_at')}"
+        )
+
+
 def _chat_is_unlocked(api_client, match_id: str) -> tuple[bool, str]:
     """Ask the backend whether this match may exchange messages yet.
 
@@ -105,7 +124,18 @@ def _open_first_chat(app, match_name: str | None = None, match_id: str | None = 
     if not opened and match_name:
         opened = app.maybe_tap_contains(match_name, timeout=5)
     assert opened, f"Could not open the chat row for match {match_id or match_name!r}"
-    app.assert_any_text_visible("Write a message…", "qa.chat.composer", "qa.chat.locked_banner", timeout=20)
+    # The composer's hint is "Write a message…" (chat_chrome.dart); a locked
+    # chat shows its banner instead.
+    deadline = time.time() + 20
+    while time.time() < deadline:
+        if app.driver.find_elements(
+            "xpath", '//android.widget.EditText[contains(@hint, "Write a message")]'
+        ) or app.is_qa_visible("qa.chat.locked_banner", timeout=1):
+            break
+        time.sleep(0.5)
+    else:
+        raise AssertionError("chat screen did not show a composer or a locked banner")
+    app.dismiss_snackbars()
 
 
 def _send_from_composer(app, text: str) -> None:
@@ -134,6 +164,8 @@ def test_matches_and_chat_message(app, appium_config, api_client, qa_user_id):
     match = _first_match(api_client, qa_user_id)
     match_id = _first_match_id(api_client, qa_user_id)
     unlocked, unlock_state = _chat_is_unlocked(api_client, match_id)
+    if unlocked:
+        require_message_quota(api_client, qa_user_id)
 
     _open_first_chat(app, _match_display_name(match), match_id)
 
@@ -204,7 +236,8 @@ def fresh_match(api_client, qa_user_id, counterpart_factory):
 @pytest.mark.matches
 @pytest.mark.chat
 @pytest.mark.chat_matrix
-def test_chat_message_persists_after_reopen(app, api_client, fresh_match):
+def test_chat_message_persists_after_reopen(app, api_client, qa_user_id, fresh_match):
+    require_message_quota(api_client, qa_user_id)
     match_id = fresh_match["id"]
     unlocked, state = _chat_is_unlocked(api_client, match_id)
     assert unlocked, f"a fresh match must be open for chat by default, got {state!r}"

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/network/api_error_message.dart';
 import '../../core/widgets/glass_widgets.dart';
 import '../auth/providers/auth_provider.dart';
+import '../../l10n/app_localizations.dart';
 import '../common/widgets/activity_visuals.dart';
 import 'photo_theme_gallery_screen.dart';
 import 'photo_themes_data.dart';
@@ -32,14 +33,15 @@ class PhotoThemesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authNotifierProvider.select((s) => s.userId));
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Photo Themes')),
+      appBar: AppBar(title: Text(l10n.photoThemesTitle)),
       body: PostLoginBackdrop(
         child: user == null
-            ? const Center(
+            ? Center(
                 child: Padding(
-                  padding: EdgeInsets.all(24),
-                  child: Text('Sign in to see photo themes.'),
+                  padding: const EdgeInsets.all(24),
+                  child: Text(l10n.photoThemesSignIn),
                 ),
               )
             : RefreshIndicator(
@@ -50,13 +52,10 @@ class PhotoThemesScreen extends ConsumerWidget {
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 48),
                   children: [
-                    const ActivityHero(
+                    ActivityHero(
                       icon: Icons.photo_library_outlined,
-                      title: 'Show a little of your world',
-                      subtitle:
-                          'Pick a prompt, share one photo, and see how '
-                          'everyone else answered. It is an easy way to '
-                          'start a conversation.',
+                      title: l10n.photoThemesHeroTitle,
+                      subtitle: l10n.photoThemesHeroSubtitle,
                     ),
                     const SizedBox(height: 16),
                     ref
@@ -69,12 +68,12 @@ class PhotoThemesScreen extends ConsumerWidget {
                           ),
                           error: (e, _) => ActivityNotice(
                             icon: Icons.cloud_off_outlined,
-                            title: 'Themes could not load',
+                            title: l10n.photoThemesLoadFailed,
                             message: apiErrorMessage(
                               e,
-                              fallback: 'Please check your connection.',
+                              fallback: l10n.photoThemesCheckConnection,
                             ),
-                            actionLabel: 'Try again',
+                            actionLabel: l10n.photoThemesTryAgain,
                             onAction: () => ref.invalidate(photoThemesProvider),
                           ),
                           data: (list) => _ThemeList(list: list),
@@ -92,46 +91,49 @@ class _ThemeList extends StatelessWidget {
   final PhotoThemeList list;
 
   @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      if (!list.eligible) ...[
-        ActivityNotice(
-          icon: Icons.lock_outline,
-          title: 'You can look around',
-          message: list.eligibilityMessage.isEmpty
-              ? 'Complete your profile with two approved photos to share '
-                    'your own.'
-              : list.eligibilityMessage,
-        ),
-        const SizedBox(height: 16),
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (!list.eligible) ...[
+          ActivityNotice(
+            icon: Icons.lock_outline,
+            title: l10n.photoThemesLookAround,
+            message: list.eligibilityMessage.isEmpty
+                ? l10n.photoThemesEligibilityShareOwn
+                : list.eligibilityMessage,
+          ),
+          const SizedBox(height: 16),
+        ],
+        if (list.themes.isEmpty)
+          ActivityNotice(
+            icon: Icons.photo_camera_outlined,
+            title: l10n.photoThemesNewPromptsTitle,
+            message: l10n.photoThemesNewPromptsBody,
+          )
+        else
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final columns = constraints.maxWidth >= 640 ? 2 : 1;
+              final width =
+                  (constraints.maxWidth - 16 * (columns - 1)) / columns;
+              return Wrap(
+                spacing: 16,
+                runSpacing: 16,
+                children: [
+                  for (final (index, theme) in list.themes.indexed)
+                    SizedBox(
+                      width: width,
+                      child: PhotoThemeCard(theme: theme, tone: index),
+                    ),
+                ],
+              );
+            },
+          ),
       ],
-      if (list.themes.isEmpty)
-        const ActivityNotice(
-          icon: Icons.photo_camera_outlined,
-          title: 'New prompts are on the way',
-          message: 'Check back soon for something to share.',
-        )
-      else
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final columns = constraints.maxWidth >= 640 ? 2 : 1;
-            final width = (constraints.maxWidth - 16 * (columns - 1)) / columns;
-            return Wrap(
-              spacing: 16,
-              runSpacing: 16,
-              children: [
-                for (final (index, theme) in list.themes.indexed)
-                  SizedBox(
-                    width: width,
-                    child: PhotoThemeCard(theme: theme, tone: index),
-                  ),
-              ],
-            );
-          },
-        ),
-    ],
-  );
+    );
+  }
 }
 
 class PhotoThemeCard extends StatelessWidget {
@@ -143,6 +145,7 @@ class PhotoThemeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
+    final l10n = AppLocalizations.of(context);
     return Card(
       clipBehavior: Clip.antiAlias,
       margin: EdgeInsets.zero,
@@ -197,12 +200,12 @@ class PhotoThemeCard extends StatelessWidget {
                     children: [
                       CountPill(
                         icon: Icons.photo_outlined,
-                        label: '${theme.entryCount} shared',
+                        label: l10n.photoThemesSharedCount(theme.entryCount),
                       ),
                       if (theme.shared)
-                        const CountPill(
+                        CountPill(
                           icon: Icons.check_circle_outline,
-                          label: 'You shared ✓',
+                          label: l10n.photoThemesYouShared,
                           emphasis: true,
                         ),
                     ],
@@ -210,8 +213,8 @@ class PhotoThemeCard extends StatelessWidget {
                   const SizedBox(height: 12),
                   Text(
                     theme.entryCount == 0
-                        ? 'Be the first to share →'
-                        : 'See everyone’s photos →',
+                        ? l10n.photoThemesBeFirst
+                        : l10n.photoThemesSeeEveryone,
                     style: text.labelLarge?.copyWith(
                       color: scheme.primary,
                       fontWeight: FontWeight.w700,

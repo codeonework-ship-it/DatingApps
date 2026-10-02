@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/api_error_message.dart';
 import '../../core/providers/api_client_provider.dart';
+import '../../l10n/app_localizations.dart';
 import 'club_widgets.dart';
 import 'clubs_data.dart';
 import 'title_picker.dart';
@@ -22,11 +23,13 @@ class _SetPickSheet extends ConsumerStatefulWidget {
 
 class _SetPickSheetState extends ConsumerState<_SetPickSheet> {
   final note = TextEditingController();
-  late final weeks = {
-    mondayOf(DateTime.now()): 'This week',
-    mondayOf(DateTime.now().add(const Duration(days: 7))): 'Next week',
-  };
-  late String week = weeks.keys.first;
+
+  /// This week's and next week's Mondays.
+  late final weeks = [
+    mondayOf(DateTime.now()),
+    mondayOf(DateTime.now().add(const Duration(days: 7))),
+  ];
+  late String week = weeks.first;
   Title? title;
   bool busy = false;
   String? error;
@@ -37,11 +40,14 @@ class _SetPickSheetState extends ConsumerState<_SetPickSheet> {
     super.dispose();
   }
 
+  String chooseLabel(AppLocalizations l10n) =>
+      widget.club.kind == 'film' ? l10n.clubsChooseFilm : l10n.clubsChooseBook;
+
   Future<void> choose() async {
     final picked = await pickTitle(
       context,
       kind: widget.club.kind,
-      heading: widget.club.kind == 'film' ? 'Choose a film' : 'Choose a book',
+      heading: chooseLabel(AppLocalizations.of(context)),
     );
     if (picked != null && mounted) {
       setState(() => title = picked);
@@ -50,8 +56,9 @@ class _SetPickSheetState extends ConsumerState<_SetPickSheet> {
 
   Future<void> save() async {
     final chosen = title;
+    final l10n = AppLocalizations.of(context);
     if (chosen == null) {
-      setState(() => error = 'Choose a title first.');
+      setState(() => error = l10n.clubsChooseTitleFirst);
       return;
     }
     setState(() {
@@ -74,10 +81,7 @@ class _SetPickSheetState extends ConsumerState<_SetPickSheet> {
     } on Object catch (e) {
       if (mounted) {
         setState(
-          () => error = apiErrorMessage(
-            e,
-            fallback: 'The pick could not be saved.',
-          ),
+          () => error = apiErrorMessage(e, fallback: l10n.clubsPickNotSaved),
         );
       }
     } finally {
@@ -90,18 +94,21 @@ class _SetPickSheetState extends ConsumerState<_SetPickSheet> {
   @override
   Widget build(BuildContext context) {
     final chosen = title;
+    final l10n = AppLocalizations.of(context);
     return SheetFrame(
-      title: 'Set the weekly pick',
+      title: l10n.clubsSetWeeklyPick,
       children: [
         Wrap(
           spacing: 8,
           runSpacing: 8,
           children: [
-            for (final entry in weeks.entries)
+            for (final (index, monday) in weeks.indexed)
               ChoiceChip(
-                label: Text(entry.value),
-                selected: week == entry.key,
-                onSelected: (_) => setState(() => week = entry.key),
+                label: Text(
+                  index == 0 ? l10n.clubsWeekThis : l10n.clubsWeekNext,
+                ),
+                selected: week == monday,
+                onSelected: (_) => setState(() => week = monday),
               ),
           ],
         ),
@@ -110,9 +117,7 @@ class _SetPickSheetState extends ConsumerState<_SetPickSheet> {
           OutlinedButton.icon(
             onPressed: choose,
             icon: const Icon(Icons.search),
-            label: Text(
-              widget.club.kind == 'film' ? 'Choose a film' : 'Choose a book',
-            ),
+            label: Text(chooseLabel(l10n)),
           )
         else
           ListTile(
@@ -122,7 +127,7 @@ class _SetPickSheetState extends ConsumerState<_SetPickSheet> {
             subtitle: chosen.byline.isEmpty ? null : Text(chosen.byline),
             trailing: TextButton(
               onPressed: choose,
-              child: const Text('Change'),
+              child: Text(l10n.clubsChange),
             ),
           ),
         const SizedBox(height: 12),
@@ -132,9 +137,9 @@ class _SetPickSheetState extends ConsumerState<_SetPickSheet> {
           maxLines: 3,
           minLines: 1,
           textCapitalization: TextCapitalization.sentences,
-          decoration: const InputDecoration(
-            labelText: 'A note for the club (optional)',
-            hintText: 'Why this one? Where to start?',
+          decoration: InputDecoration(
+            labelText: l10n.clubsPickNoteLabel,
+            hintText: l10n.clubsPickNoteHint,
           ),
         ),
         if (error != null)
@@ -147,7 +152,7 @@ class _SetPickSheetState extends ConsumerState<_SetPickSheet> {
           ),
         FilledButton(
           onPressed: busy ? null : save,
-          child: Text(busy ? 'Saving…' : 'Save pick'),
+          child: Text(busy ? l10n.clubsSaving : l10n.clubsSavePick),
         ),
       ],
     );

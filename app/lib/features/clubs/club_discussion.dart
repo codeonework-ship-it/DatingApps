@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../core/network/api_error_message.dart';
 import '../../core/providers/api_client_provider.dart';
+import '../../l10n/app_localizations.dart';
 import '../common/widgets/activity_visuals.dart';
 import '../common/widgets/community_actions.dart';
 import 'clubs_data.dart';
@@ -63,6 +64,7 @@ class _ClubDiscussionState extends ConsumerState<ClubDiscussion> {
     if (text.isEmpty) {
       return;
     }
+    final l10n = AppLocalizations.of(context);
     setState(() => busy = true);
     try {
       await ref
@@ -83,7 +85,7 @@ class _ClubDiscussionState extends ConsumerState<ClubDiscussion> {
       if (mounted) {
         showCommunitySnack(
           context,
-          apiErrorMessage(e, fallback: 'Your post could not be sent.'),
+          apiErrorMessage(e, fallback: l10n.clubsPostNotSent),
         );
       }
     } finally {
@@ -108,33 +110,32 @@ class _ClubDiscussionState extends ConsumerState<ClubDiscussion> {
     final failed = pages.where((p) => p.hasError).firstOrNull;
     final next = pages.last.valueOrNull?.next ?? '';
     final text = Theme.of(context).textTheme;
+    final l10n = AppLocalizations.of(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          'Discussion · ${widget.selection.title.title}',
+          l10n.clubsDiscussionHeading(widget.selection.title.title),
           style: text.titleLarge?.copyWith(fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 12),
         if (failed != null && posts.isEmpty)
           ActivityNotice(
             icon: Icons.forum_outlined,
-            title: 'The discussion could not load',
+            title: l10n.clubsDiscussionLoadError,
             message: apiErrorMessage(
               failed.error!,
-              fallback: 'Please check your connection.',
+              fallback: l10n.clubsCheckConnection,
             ),
-            actionLabel: 'Try again',
+            actionLabel: l10n.chatTryAgain,
             onAction: reload,
           )
         else if (posts.isEmpty && !loading)
-          const ActivityNotice(
+          ActivityNotice(
             icon: Icons.forum_outlined,
-            title: 'Start the conversation',
-            message:
-                'What did you think so far? Your post could be the one '
-                'that gets everyone talking.',
+            title: l10n.clubsStartConversationTitle,
+            message: l10n.clubsStartConversationMessage,
           ),
         for (final post in posts)
           ClubPostTile(club: widget.club, post: post, onChanged: reload),
@@ -148,7 +149,7 @@ class _ClubDiscussionState extends ConsumerState<ClubDiscussion> {
             child: OutlinedButton.icon(
               onPressed: () => setState(() => cursors.add(next)),
               icon: const Icon(Icons.expand_more),
-              label: const Text('Load more posts'),
+              label: Text(l10n.clubsLoadMorePosts),
             ),
           ),
         const SizedBox(height: 16),
@@ -186,43 +187,46 @@ class _Composer extends StatelessWidget {
   final VoidCallback onSend;
 
   @override
-  Widget build(BuildContext context) => Card(
-    margin: EdgeInsets.zero,
-    child: Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          TextField(
-            controller: controller,
-            maxLength: 2000,
-            maxLines: 5,
-            minLines: 2,
-            textCapitalization: TextCapitalization.sentences,
-            decoration: const InputDecoration(
-              labelText: 'Add to the discussion',
-              hintText: 'Favourite moment? Biggest surprise?',
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextField(
+              controller: controller,
+              maxLength: 2000,
+              maxLines: 5,
+              minLines: 2,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: InputDecoration(
+                labelText: l10n.clubsComposerLabel,
+                hintText: l10n.clubsComposerHint,
+              ),
             ),
-          ),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            value: spoilers,
-            onChanged: busy ? null : onSpoilers,
-            title: const Text('Contains spoilers'),
-            subtitle: const Text('Others tap to reveal it.'),
-          ),
-          Align(
-            alignment: Alignment.centerRight,
-            child: FilledButton.icon(
-              onPressed: busy ? null : onSend,
-              icon: const Icon(Icons.send_rounded),
-              label: Text(busy ? 'Posting…' : 'Post'),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              value: spoilers,
+              onChanged: busy ? null : onSpoilers,
+              title: Text(l10n.clubsContainsSpoilers),
+              subtitle: Text(l10n.clubsSpoilersSubtitle),
             ),
-          ),
-        ],
+            Align(
+              alignment: Alignment.centerRight,
+              child: FilledButton.icon(
+                onPressed: busy ? null : onSend,
+                icon: const Icon(Icons.send_rounded),
+                label: Text(busy ? l10n.clubsPosting : l10n.clubsPost),
+              ),
+            ),
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 /// One discussion post with the actions the viewer is allowed to take.
@@ -239,14 +243,15 @@ class ClubPostTile extends ConsumerWidget {
 
   Future<void> act(BuildContext context, WidgetRef ref, String action) async {
     final api = ref.read(apiClientProvider);
+    final l10n = AppLocalizations.of(context);
     try {
       switch (action) {
         case 'delete':
           if (!await confirmCommunityAction(
             context,
-            title: 'Delete your post?',
-            message: 'It is removed from the discussion for everyone.',
-            action: 'Delete',
+            title: l10n.clubsDeletePostTitle,
+            message: l10n.clubsDeletePostMessage,
+            action: l10n.commonDelete,
           )) {
             return;
           }
@@ -270,7 +275,7 @@ class ClubPostTile extends ConsumerWidget {
       if (context.mounted) {
         showCommunitySnack(
           context,
-          apiErrorMessage(e, fallback: 'That action could not be completed.'),
+          apiErrorMessage(e, fallback: l10n.clubsActionFailed),
         );
       }
     }
@@ -280,11 +285,12 @@ class ClubPostTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final text = Theme.of(context).textTheme;
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
     final actions = [
-      if (post.mine) ('delete', 'Delete'),
-      if (club.canModerate && !post.hidden) ('hide', 'Hide from members'),
-      if (club.canModerate && post.hidden) ('unhide', 'Show to members'),
-      if (!post.mine) ('report', 'Report'),
+      if (post.mine) ('delete', l10n.commonDelete),
+      if (club.canModerate && !post.hidden) ('hide', l10n.clubsHideFromMembers),
+      if (club.canModerate && post.hidden) ('unhide', l10n.clubsShowToMembers),
+      if (!post.mine) ('report', l10n.clubsReport),
     ];
     final created = post.createdAt?.toLocal();
     return Card(
@@ -303,7 +309,7 @@ class ClubPostTile extends ConsumerWidget {
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       Text(
-                        post.mine ? 'You' : post.authorName,
+                        post.mine ? l10n.clubsYou : post.authorName,
                         style: text.titleSmall?.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
@@ -318,16 +324,16 @@ class ClubPostTile extends ConsumerWidget {
                           ),
                         ),
                       if (post.hidden)
-                        const CountPill(
+                        CountPill(
                           icon: Icons.visibility_off_outlined,
-                          label: 'Hidden',
+                          label: l10n.clubsHidden,
                         ),
                     ],
                   ),
                 ),
                 if (actions.isNotEmpty)
                   PopupMenuButton<String>(
-                    tooltip: 'Post actions',
+                    tooltip: l10n.clubsPostActions,
                     onSelected: (action) => act(context, ref, action),
                     itemBuilder: (_) => [
                       for (final (value, label) in actions)

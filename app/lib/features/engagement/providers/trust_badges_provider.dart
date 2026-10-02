@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/config/feature_flags.dart';
 import '../../../core/providers/api_client_provider.dart';
 import '../../../core/utils/logger.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../engagement_l10n.dart';
 
 class TrustBadgeItem {
   const TrustBadgeItem({
@@ -68,6 +70,8 @@ class TrustBadgesNotifier extends StateNotifier<TrustBadgesState> {
   }
 
   final Ref _ref;
+
+  AppLocalizations get _l => engagementL10nFor(_ref);
 
   Future<void> load() async {
     final userId = _ref.read(authNotifierProvider).userId;
@@ -163,14 +167,14 @@ class TrustBadgesNotifier extends StateNotifier<TrustBadgesState> {
         isLoading: false,
         error: _extractApiError(
           e,
-          fallback: 'Failed to load trust badges. Please try again.',
+          fallback: _l.engagementTrustBadgesLoadFailed,
         ),
       );
     } catch (e, stackTrace) {
       log.error('Failed to load trust badges', e, stackTrace);
       state = state.copyWith(
         isLoading: false,
-        error: 'Failed to load trust badges. Please try again.',
+        error: _l.engagementTrustBadgesLoadFailed,
       );
     }
   }

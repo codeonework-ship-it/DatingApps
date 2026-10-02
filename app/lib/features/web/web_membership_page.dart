@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../payment/providers/subscription_provider.dart';
 
 /// Read-only browser surface while the separately owned native checkout is
@@ -25,10 +26,11 @@ class _WebMembershipPageState extends ConsumerState<WebMembershipPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final state = ref.watch(subscriptionProvider);
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Membership')),
+      appBar: AppBar(title: Text(l10n.webDestMembership)),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 720),
@@ -36,26 +38,30 @@ class _WebMembershipPageState extends ConsumerState<WebMembershipPage> {
             padding: const EdgeInsets.all(24),
             children: [
               Text(
-                'A little more possibility.',
+                l10n.webMembershipHeadline,
                 style: theme.textTheme.headlineMedium,
               ),
               const SizedBox(height: 16),
-              const Text(
-                'Explore the current plans. Browser checkout is not available yet. No purchase or charge can be made from this page.',
-              ),
+              Text(l10n.webMembershipIntro),
               const SizedBox(height: 24),
               if (state.subscription != null) ...[
                 Text(
-                  'Your membership: ${state.subscription!.planName}',
+                  l10n.webMembershipCurrent(state.subscription!.planName),
                   style: theme.textTheme.titleMedium,
                 ),
-                Text('Status: ${state.subscription!.status}'),
+                Text(l10n.webMembershipStatus(state.subscription!.status)),
                 const SizedBox(height: 24),
               ],
               SegmentedButton<String>(
-                segments: const [
-                  ButtonSegment(value: 'monthly', label: Text('Monthly')),
-                  ButtonSegment(value: 'yearly', label: Text('Yearly')),
+                segments: [
+                  ButtonSegment(
+                    value: 'monthly',
+                    label: Text(l10n.webMembershipMonthly),
+                  ),
+                  ButtonSegment(
+                    value: 'yearly',
+                    label: Text(l10n.webMembershipYearly),
+                  ),
                 ],
                 selected: {_cycle},
                 onSelectionChanged: (value) =>
@@ -68,7 +74,7 @@ class _WebMembershipPageState extends ConsumerState<WebMembershipPage> {
                 TextButton(
                   onPressed: () =>
                       ref.read(subscriptionProvider.notifier).load(),
-                  child: const Text('Retry'),
+                  child: Text(l10n.commonRetry),
                 ),
               ],
               for (final plan in state.plans)
@@ -82,8 +88,11 @@ class _WebMembershipPageState extends ConsumerState<WebMembershipPage> {
                         const SizedBox(height: 8),
                         Text(
                           plan.isFree
-                              ? 'Free'
-                              : '₹${plan.priceFor(_cycle).toStringAsFixed(2)} / ${_cycle == 'yearly' ? 'year' : 'month'}',
+                              ? l10n.webMembershipFree
+                              : l10n.webMembershipPrice(
+                                  '₹${plan.priceFor(_cycle).toStringAsFixed(2)}',
+                                  _cycle,
+                                ),
                         ),
                         const SizedBox(height: 16),
                         for (final feature in plan.features)
@@ -96,9 +105,7 @@ class _WebMembershipPageState extends ConsumerState<WebMembershipPage> {
                   ),
                 ),
               const SizedBox(height: 16),
-              const Text(
-                'Catalogue prices are a preview. Membership never bypasses another person’s boundaries or conversation eligibility.',
-              ),
+              Text(l10n.webMembershipFootnote),
             ],
           ),
         ),

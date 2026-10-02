@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/providers/api_client_provider.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../auth/providers/auth_provider.dart';
 
 /// Today's like and message allowance for the member's plan.
@@ -37,6 +39,16 @@ class DailyQuota {
 
   String label(String noun) =>
       unlimited ? 'Unlimited $noun' : '$remaining of $limit $noun left today';
+
+  /// Translated [label] for the like allowance.
+  String likesLabel(AppLocalizations l10n) => unlimited
+      ? l10n.membershipQuotaUnlimitedLikes
+      : l10n.membershipQuotaLikesLeftToday(remaining, limit);
+
+  /// Translated [label] for the message allowance.
+  String messagesLabel(AppLocalizations l10n) => unlimited
+      ? l10n.membershipQuotaUnlimitedMessages
+      : l10n.membershipQuotaMessagesLeftToday(remaining, limit);
 }
 
 class Entitlements {
@@ -116,6 +128,18 @@ class DailyLimit {
     final m = local.minute.toString().padLeft(2, '0');
     return 'Resets at $h:$m';
   }
+
+  /// Translated [headline].
+  String localizedHeadline(AppLocalizations l10n) => kind == 'like'
+      ? l10n.membershipLikeLimitHeadline(limit, planName)
+      : l10n.membershipMessageLimitHeadline(limit, planName);
+
+  /// Translated [resetLabel]; [localeName] is
+  /// `Localizations.localeOf(context).toString()`.
+  String localizedResetLabel(AppLocalizations l10n, String localeName) =>
+      l10n.membershipQuotaResetsAt(
+        DateFormat.Hm(localeName).format(resetsAt.toLocal()),
+      );
 }
 
 final entitlementsProvider = FutureProvider.autoDispose<Entitlements?>((

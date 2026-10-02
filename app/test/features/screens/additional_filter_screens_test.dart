@@ -8,6 +8,7 @@ import 'package:verified_dating_app/features/engagement/screens/trust_filter_scr
 import 'package:verified_dating_app/features/swipe/models/discovery_profile.dart';
 import 'package:verified_dating_app/features/swipe/screens/spotlight_profiles_screen.dart';
 import 'package:verified_dating_app/features/swipe/widgets/swipe_card.dart';
+import 'package:verified_dating_app/l10n/app_localizations.dart';
 
 class _Auth extends AuthNotifier {
   @override
@@ -105,7 +106,11 @@ void main() {
           apiClientProvider.overrideWithValue(dio),
           authNotifierProvider.overrideWith(_Auth.new),
         ],
-        child: MaterialApp(home: screen),
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: screen,
+        ),
       ),
     );
     await tester.pumpAndSettle();

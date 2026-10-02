@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../social_chat/social_chat_l10n.dart';
+import '../call_l10n.dart';
 import '../providers/call_provider.dart';
 
 class CallSessionScreen extends ConsumerStatefulWidget {
@@ -37,6 +39,8 @@ class _CallSessionScreenState extends ConsumerState<CallSessionScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(callProvider);
     final scheme = Theme.of(context).colorScheme;
+    final l = chatL10n(context);
+    final error = callErrorText(l, state);
     return PopScope(
       canPop: state.activeSession == null,
       onPopInvokedWithResult: (didPop, _) async {
@@ -50,7 +54,7 @@ class _CallSessionScreenState extends ConsumerState<CallSessionScreen> {
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           foregroundColor: Colors.white,
-          title: const Text('Call session'),
+          title: Text(l.callsSessionTitle),
         ),
         body: SafeArea(
           child: LayoutBuilder(
@@ -91,25 +95,28 @@ class _CallSessionScreenState extends ConsumerState<CallSessionScreen> {
                         const SizedBox(height: 8),
                         Text(
                           state.isStarting
-                              ? 'Starting secure session…'
+                              ? l.callsStarting
                               : state.activeSession != null
-                              ? 'Session active'
-                              : 'Session unavailable',
+                              ? l.callsSessionActive
+                              : l.callsSessionUnavailable,
                           style: const TextStyle(color: Colors.white70),
                         ),
-                        if (state.error != null) ...[
+                        if (error != null) ...[
                           const SizedBox(height: 20),
                           Text(
-                            state.error!,
+                            error,
                             textAlign: TextAlign.center,
                             style: const TextStyle(color: Color(0xFFFFA9B1)),
                           ),
                         ],
                         const SizedBox(height: 20),
-                        const Text(
-                          'The live room opens in a secure provider window. Use that room’s microphone, camera, and leave controls during the call.',
+                        Text(
+                          l.callsLiveRoomNote,
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.white54, height: 1.4),
+                          style: const TextStyle(
+                            color: Colors.white54,
+                            height: 1.4,
+                          ),
                         ),
                         const Spacer(),
                         if (state.activeSession != null)
@@ -118,7 +125,7 @@ class _CallSessionScreenState extends ConsumerState<CallSessionScreen> {
                             children: [
                               _ControlButton(
                                 icon: Icons.open_in_new_rounded,
-                                label: 'Join live room',
+                                label: l.callsJoinLiveRoom,
                                 color: scheme.primary,
                                 foregroundColor: scheme.onPrimary,
                                 onPressed: state.activeSession!.joinUrl == null
@@ -129,7 +136,7 @@ class _CallSessionScreenState extends ConsumerState<CallSessionScreen> {
                               ),
                               _ControlButton(
                                 icon: Icons.call_end,
-                                label: 'End',
+                                label: l.callsEnd,
                                 color: scheme.error,
                                 foregroundColor: scheme.onError,
                                 onPressed: state.isEnding ? null : _endAndClose,
@@ -145,7 +152,7 @@ class _CallSessionScreenState extends ConsumerState<CallSessionScreen> {
                                   recipientUserId: widget.recipientUserId,
                                 ),
                             icon: const Icon(Icons.refresh),
-                            label: const Text('Try again'),
+                            label: Text(l.chatTryAgain),
                           ),
                         const SizedBox(height: 24),
                       ],

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/i18n/app_l10n.dart';
 import '../../core/providers/api_client_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/cinematic_effects.dart';
@@ -108,7 +109,7 @@ Future<bool> showRoseRain(
   final result = await showGeneralDialog<bool>(
     context: context,
     barrierDismissible: true,
-    barrierLabel: 'Celebration',
+    barrierLabel: l10nOrEnglish(context).celebrationBarrier,
     barrierColor: Colors.black.withValues(alpha: 0.55),
     transitionDuration: const Duration(milliseconds: 280),
     pageBuilder: (_, _, _) => RoseRainOverlay(celebration: celebration),
@@ -275,6 +276,7 @@ class _TierCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = l10nOrEnglish(context);
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     final card = ConstrainedBox(
@@ -311,14 +313,14 @@ class _TierCard extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                celebration.headline,
+                celebration.headlineIn(l10n),
                 textAlign: TextAlign.center,
                 style: theme.textTheme.headlineSmall,
               ),
               if (celebration.title.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 Text(
-                  '“${celebration.title}”',
+                  l10n.celebrationQuotedTitle(celebration.title),
                   textAlign: TextAlign.center,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -329,7 +331,7 @@ class _TierCard extends StatelessWidget {
               ],
               const SizedBox(height: 8),
               Text(
-                celebration.message,
+                celebration.messageIn(l10n),
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodyMedium,
               ),
@@ -340,7 +342,7 @@ class _TierCard extends StatelessWidget {
                     child: TextButton(
                       key: const ValueKey('qa.rose_rain.close'),
                       onPressed: () => Navigator.of(context).pop(false),
-                      child: const Text('Lovely'),
+                      child: Text(l10n.celebrationLovely),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -349,7 +351,9 @@ class _TierCard extends StatelessWidget {
                       key: const ValueKey('qa.rose_rain.open'),
                       onPressed: () => Navigator.of(context).pop(true),
                       child: Text(
-                        celebration.isPhoto ? 'See photo' : 'See chapter',
+                        celebration.isPhoto
+                            ? l10n.celebrationSeePhoto
+                            : l10n.celebrationSeeChapter,
                       ),
                     ),
                   ),

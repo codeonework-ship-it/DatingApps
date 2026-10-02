@@ -7,6 +7,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/providers/api_client_provider.dart';
 import '../../../core/utils/logger.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../auth/providers/auth_provider.dart';
 
 part 'profile_setup_provider.g.dart';
@@ -56,9 +57,28 @@ class ProfilePhotoItem {
   );
 }
 
-String profileMediaErrorMessage(Object error) {
+// English messages of the photo-limit errors thrown by the notifier; the
+// screen maps them to translations through [profileMediaErrorMessage].
+const _photoTooLargeMessage = 'This photo is larger than the 10 MB limit.';
+const _photoMaxAllowedMessage =
+    'Maximum ${ValidationConstants.maxPhotos} photos are allowed.';
+
+/// User-facing message for a failed photo upload, delete or reorder.
+///
+/// A message sent by the server is shown as-is; the built-in fallbacks are
+/// translated when [l10n] is given and stay English otherwise.
+String profileMediaErrorMessage(Object error, [AppLocalizations? l10n]) {
   if (error is StateError) {
-    return error.message.toString();
+    final message = error.message.toString();
+    if (l10n != null) {
+      if (message == _photoTooLargeMessage) {
+        return l10n.profileSetupPhotoTooLarge;
+      }
+      if (message == _photoMaxAllowedMessage) {
+        return l10n.profileSetupPhotoMaxAllowed(ValidationConstants.maxPhotos);
+      }
+    }
+    return message;
   }
   if (error is DioException) {
     final data = error.response?.data;
@@ -70,18 +90,23 @@ String profileMediaErrorMessage(Object error) {
     }
     switch (error.response?.statusCode) {
       case 413:
-        return 'This photo is larger than the 10 MB limit.';
+        return l10n?.profileSetupPhotoTooLarge ?? _photoTooLargeMessage;
       case 415:
-        return 'Use a JPEG, PNG, WebP, or HEIC photo.';
+        return l10n?.profileSetupPhotoUnsupportedType ??
+            'Use a JPEG, PNG, WebP, or HEIC photo.';
       case 422:
-        return 'Photo dimensions must be between 300×300 and 4096×4096.';
+        return l10n?.profileSetupPhotoBadDimensions ??
+            'Photo dimensions must be between 300×300 and 4096×4096.';
       case 409:
-        return 'Your profile photo quota has been reached.';
+        return l10n?.profileSetupPhotoQuotaReached ??
+            'Your profile photo quota has been reached.';
       case 507:
-        return 'Photo storage is temporarily full. Please try again later.';
+        return l10n?.profileSetupPhotoStorageFull ??
+            'Photo storage is temporarily full. Please try again later.';
     }
   }
-  return 'Photo update failed. Please try again.';
+  return l10n?.profileSetupPhotoUpdateFailed ??
+      'Photo update failed. Please try again.';
 }
 
 class ProfileDraft {
@@ -549,12 +574,10 @@ class ProfileSetupNotifier extends _$ProfileSetupNotifier {
   Future<void> _uploadAndInsertPhoto(XFile file) async {
     final current = await future;
     if (current.photos.length >= ValidationConstants.maxPhotos) {
-      throw StateError(
-        'Maximum ${ValidationConstants.maxPhotos} photos are allowed.',
-      );
+      throw StateError(_photoMaxAllowedMessage);
     }
     if (await file.length() > 10 * 1024 * 1024) {
-      throw StateError('This photo is larger than the 10 MB limit.');
+      throw StateError(_photoTooLargeMessage);
     }
 
     final ts = DateTime.now().millisecondsSinceEpoch;

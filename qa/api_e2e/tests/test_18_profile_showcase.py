@@ -187,11 +187,7 @@ def test_a_block_either_way_hides_everything(cast, make_member, direction):
 
 
 @pytest.mark.safety
-@pytest.mark.known_defect("API-22")
-@pytest.mark.xfail(reason="API-22 fixed in code (readProfileShowcase reachability check); live after BFF "
-                          "restart. Before: the blocked side still saw enabled:true and could watch the "
-                          "blocker's consent change while the blocker's profile was already a 404",
-                   strict=False)
+# Regression guard: API-22 (the blocked side could read the owner's consent).
 @pytest.mark.parametrize("direction", ["owner_blocks_viewer", "viewer_blocks_owner"])
 def test_blocked_side_cannot_read_the_owners_consent(cast, make_member, direction):
     owner = cast["owner"]

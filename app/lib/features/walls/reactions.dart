@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 
+import '../../l10n/app_localizations.dart';
+
 /// One empathetic reaction a member can leave on a chapter or a photo.
 /// Every reaction counts as one like for wall reach, ranking and rewards.
 class EmpathyReaction {
@@ -22,6 +24,18 @@ const empathyReactions = <EmpathyReaction>[
   EmpathyReaction('hug', '🫂', 'Sending a hug'),
   EmpathyReaction('proud', '🌟', 'Proud of you'),
 ];
+
+/// [EmpathyReaction.label] in the member's language.
+String localizedEmpathyLabel(AppLocalizations l10n, EmpathyReaction reaction) =>
+    switch (reaction.id) {
+      'love' => l10n.wallsReactionLove,
+      'hear_you' => l10n.wallsReactionHearYou,
+      'me_too' => l10n.wallsReactionMeToo,
+      'with_you' => l10n.wallsReactionWithYou,
+      'hug' => l10n.wallsReactionHug,
+      'proud' => l10n.wallsReactionProud,
+      _ => reaction.label,
+    };
 
 /// The reaction for [id], falling back to the plain like.
 EmpathyReaction empathyReaction(String id) => empathyReactions.firstWhere(

@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../core/network/api_error_message.dart';
 import '../../core/providers/api_client_provider.dart';
+import '../../l10n/app_localizations.dart';
 import '../common/widgets/community_actions.dart';
 import 'club_widgets.dart';
 import 'clubs_data.dart';
@@ -44,8 +45,9 @@ class _ReviewSheetState extends ConsumerState<_ReviewSheet> {
   }
 
   Future<void> save() async {
+    final l10n = AppLocalizations.of(context);
     if (rating < 1) {
-      setState(() => error = 'Tap a star to rate it.');
+      setState(() => error = l10n.clubsTapStarError);
       return;
     }
     setState(() {
@@ -74,10 +76,7 @@ class _ReviewSheetState extends ConsumerState<_ReviewSheet> {
     } on Object catch (e) {
       if (mounted) {
         setState(
-          () => error = apiErrorMessage(
-            e,
-            fallback: 'Your review could not be saved.',
-          ),
+          () => error = apiErrorMessage(e, fallback: l10n.clubsReviewNotSaved),
         );
       }
     } finally {
@@ -88,66 +87,77 @@ class _ReviewSheetState extends ConsumerState<_ReviewSheet> {
   }
 
   @override
-  Widget build(BuildContext context) => SheetFrame(
-    title: widget.existing == null ? 'Write a review' : 'Edit your review',
-    children: [
-      Text(widget.title.title, style: Theme.of(context).textTheme.titleMedium),
-      const SizedBox(height: 8),
-      StarRating(
-        rating: rating.toDouble(),
-        onChanged: (value) => setState(() => rating = value),
-      ),
-      Text(
-        rating == 0 ? 'Tap a star to rate' : '$rating out of 5',
-        style: Theme.of(context).textTheme.bodyMedium,
-      ),
-      const SizedBox(height: 12),
-      TextField(
-        controller: body,
-        maxLength: 4000,
-        maxLines: 6,
-        minLines: 3,
-        textCapitalization: TextCapitalization.sentences,
-        decoration: const InputDecoration(
-          labelText: 'What did you think? (optional)',
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return SheetFrame(
+      title: widget.existing == null
+          ? l10n.clubsWriteReview
+          : l10n.clubsEditYourReview,
+      children: [
+        Text(
+          widget.title.title,
+          style: Theme.of(context).textTheme.titleMedium,
         ),
-      ),
-      SwitchListTile(
-        contentPadding: EdgeInsets.zero,
-        value: spoilers,
-        onChanged: (value) => setState(() => spoilers = value),
-        title: const Text('Contains spoilers'),
-      ),
-      const SizedBox(height: 8),
-      Text('Who can see it', style: Theme.of(context).textTheme.titleSmall),
-      const SizedBox(height: 8),
-      Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: [
-          for (final entry in clubAudiences.entries)
-            ChoiceChip(
-              label: Text(entry.value),
-              selected: audience == entry.key,
-              onSelected: (_) => setState(() => audience = entry.key),
+        const SizedBox(height: 8),
+        StarRating(
+          rating: rating.toDouble(),
+          onChanged: (value) => setState(() => rating = value),
+        ),
+        Text(
+          rating == 0
+              ? l10n.clubsTapStarToRate
+              : l10n.clubsRatingOutOfFive(rating),
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: body,
+          maxLength: 4000,
+          maxLines: 6,
+          minLines: 3,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: InputDecoration(labelText: l10n.clubsReviewBodyLabel),
+        ),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          value: spoilers,
+          onChanged: (value) => setState(() => spoilers = value),
+          title: Text(l10n.clubsContainsSpoilers),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          l10n.clubsWhoCanSee,
+          style: Theme.of(context).textTheme.titleSmall,
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final value in clubAudiences)
+              ChoiceChip(
+                label: Text(clubAudienceLabel(l10n, value)),
+                selected: audience == value,
+                onSelected: (_) => setState(() => audience = value),
+              ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        if (error != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text(
+              error!,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
-        ],
-      ),
-      const SizedBox(height: 16),
-      if (error != null)
-        Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: Text(
-            error!,
-            style: TextStyle(color: Theme.of(context).colorScheme.error),
           ),
+        FilledButton(
+          onPressed: busy ? null : save,
+          child: Text(busy ? l10n.clubsSaving : l10n.clubsSaveReview),
         ),
-      FilledButton(
-        onPressed: busy ? null : save,
-        child: Text(busy ? 'Saving…' : 'Save review'),
-      ),
-    ],
-  );
+      ],
+    );
+  }
 }
 
 /// Adds [title] to one of the member's lists of the same kind.
@@ -166,6 +176,7 @@ class _AddToListSheetState extends ConsumerState<_AddToListSheet> {
   bool busy = false;
 
   Future<void> add(MemberList list) async {
+    final l10n = AppLocalizations.of(context);
     setState(() => busy = true);
     try {
       await ref
@@ -176,14 +187,14 @@ class _AddToListSheetState extends ConsumerState<_AddToListSheet> {
           );
       ref.invalidate(myListsProvider);
       if (mounted) {
-        showCommunitySnack(context, 'Added to ${list.name}.');
+        showCommunitySnack(context, l10n.clubsAddedToList(list.name));
         Navigator.of(context).pop();
       }
     } on Object catch (e) {
       if (mounted) {
         showCommunitySnack(
           context,
-          apiErrorMessage(e, fallback: 'It could not be added to that list.'),
+          apiErrorMessage(e, fallback: l10n.clubsAddToThatListFailed),
         );
       }
     } finally {
@@ -194,67 +205,64 @@ class _AddToListSheetState extends ConsumerState<_AddToListSheet> {
   }
 
   @override
-  Widget build(BuildContext context) => SheetFrame(
-    title: 'Add to a list',
-    children: [
-      if (busy) const LinearProgressIndicator(),
-      ref
-          .watch(myListsProvider)
-          .when(
-            loading: () => const Padding(
-              padding: EdgeInsets.all(24),
-              child: Center(child: CircularProgressIndicator()),
-            ),
-            error: (e, _) => Text(
-              apiErrorMessage(e, fallback: 'Your lists could not load.'),
-            ),
-            data: (lists) {
-              final matching = lists
-                  .where((l) => l.kind == widget.title.kind)
-                  .toList();
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (matching.isEmpty)
-                    Text(
-                      widget.title.kind == 'film'
-                          ? 'You have no film lists yet. Create one to start '
-                                'collecting.'
-                          : 'You have no book lists yet. Create one to start '
-                                'collecting.',
-                    ),
-                  for (final list in matching)
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: KindDisc(kind: list.kind, size: 40),
-                      title: Text(list.name),
-                      subtitle: Text(
-                        '${list.items.length} '
-                        'title${list.items.length == 1 ? '' : 's'}',
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return SheetFrame(
+      title: l10n.clubsAddToAList,
+      children: [
+        if (busy) const LinearProgressIndicator(),
+        ref
+            .watch(myListsProvider)
+            .when(
+              loading: () => const Padding(
+                padding: EdgeInsets.all(24),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+              error: (e, _) =>
+                  Text(apiErrorMessage(e, fallback: l10n.clubsListsLoadError)),
+              data: (lists) {
+                final matching = lists
+                    .where((l) => l.kind == widget.title.kind)
+                    .toList();
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (matching.isEmpty)
+                      Text(
+                        widget.title.kind == 'film'
+                            ? l10n.clubsNoFilmLists
+                            : l10n.clubsNoBookLists,
                       ),
-                      enabled: !busy,
-                      onTap: () => add(list),
+                    for (final list in matching)
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: KindDisc(kind: list.kind, size: 40),
+                        title: Text(list.name),
+                        subtitle: Text(l10n.clubsTitleCount(list.items.length)),
+                        enabled: !busy,
+                        onTap: () => add(list),
+                      ),
+                    const SizedBox(height: 8),
+                    OutlinedButton.icon(
+                      onPressed: busy
+                          ? null
+                          : () async {
+                              final created = await showListEditorSheet(
+                                context,
+                                kind: widget.title.kind,
+                              );
+                              if (created != null) {
+                                await add(created);
+                              }
+                            },
+                      icon: const Icon(Icons.playlist_add),
+                      label: Text(l10n.clubsNewList),
                     ),
-                  const SizedBox(height: 8),
-                  OutlinedButton.icon(
-                    onPressed: busy
-                        ? null
-                        : () async {
-                            final created = await showListEditorSheet(
-                              context,
-                              kind: widget.title.kind,
-                            );
-                            if (created != null) {
-                              await add(created);
-                            }
-                          },
-                    icon: const Icon(Icons.playlist_add),
-                    label: const Text('New list'),
-                  ),
-                ],
-              );
-            },
-          ),
-    ],
-  );
+                  ],
+                );
+              },
+            ),
+      ],
+    );
+  }
 }

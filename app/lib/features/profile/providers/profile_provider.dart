@@ -10,12 +10,18 @@ import '../models/profile_models.dart';
 
 part 'profile_provider.g.dart';
 
+/// Why the profile could not be shown, so the screen can word it in the
+/// member's language. [server] means [ProfileState.error] carries the
+/// server's own message.
+enum ProfileLoadIssue { notSignedIn, noProfile, loadFailed, server }
+
 class ProfileState {
   const ProfileState({
     this.user,
     this.preferences,
     this.isLoading = false,
     this.error,
+    this.issue,
     this.likesCount = 0,
     this.matchesCount = 0,
     this.messagesCount = 0,
@@ -24,6 +30,9 @@ class ProfileState {
   final Preferences? preferences;
   final bool isLoading;
   final String? error;
+
+  /// Set together with [error]; null when there is no error.
+  final ProfileLoadIssue? issue;
   final int likesCount;
   final int matchesCount;
   final int messagesCount;
@@ -33,6 +42,7 @@ class ProfileState {
     Preferences? preferences,
     bool? isLoading,
     String? error,
+    ProfileLoadIssue? issue,
     int? likesCount,
     int? matchesCount,
     int? messagesCount,
@@ -41,6 +51,7 @@ class ProfileState {
     preferences: preferences ?? this.preferences,
     isLoading: isLoading ?? this.isLoading,
     error: error,
+    issue: error == null ? null : issue,
     likesCount: likesCount ?? this.likesCount,
     matchesCount: matchesCount ?? this.matchesCount,
     messagesCount: messagesCount ?? this.messagesCount,
@@ -119,6 +130,7 @@ class ProfileNotifier extends _$ProfileNotifier {
         state = state.copyWith(
           isLoading: false,
           error: 'Please login to view your profile.',
+          issue: ProfileLoadIssue.notSignedIn,
         );
         return;
       }
@@ -219,6 +231,7 @@ class ProfileNotifier extends _$ProfileNotifier {
         state = state.copyWith(
           isLoading: false,
           error: 'No profile data found.',
+          issue: ProfileLoadIssue.noProfile,
         );
         return;
       }
@@ -247,10 +260,17 @@ class ProfileNotifier extends _$ProfileNotifier {
     } on DioException catch (e, stackTrace) {
       log.error('Failed to load profile', e, stackTrace);
       final data = e.response?.data;
-      final message = data is Map && data['error'] != null
+      final fromServer = data is Map && data['error'] != null;
+      final message = fromServer
           ? data['error'].toString()
           : 'Failed to load profile. Please try again.';
-      state = state.copyWith(isLoading: false, error: message);
+      state = state.copyWith(
+        isLoading: false,
+        error: message,
+        issue: fromServer
+            ? ProfileLoadIssue.server
+            : ProfileLoadIssue.loadFailed,
+      );
     } catch (e, stackTrace) {
       log.error('Failed to load profile', e, stackTrace);
       final authState = ref.read(authNotifierProvider);
@@ -288,6 +308,7 @@ class ProfileNotifier extends _$ProfileNotifier {
       state = state.copyWith(
         isLoading: false,
         error: 'Failed to load profile. Please try again.',
+        issue: ProfileLoadIssue.loadFailed,
       );
     }
   }

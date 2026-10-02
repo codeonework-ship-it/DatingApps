@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/widgets/glass_widgets.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../profile/providers/blocked_users_provider.dart';
 
 class BlockedUsersScreen extends ConsumerWidget {
@@ -9,10 +10,11 @@ class BlockedUsersScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
     final blockedAsync = ref.watch(blockedUsersProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Blocked Users')),
+      appBar: AppBar(title: Text(l10n.privacyBlockedUsers)),
       body: PostLoginBackdrop(
         child: SafeArea(
           child: Padding(
@@ -22,7 +24,7 @@ class BlockedUsersScreen extends ConsumerWidget {
               error: (_, _) => Center(
                 child: TextButton(
                   onPressed: () => ref.invalidate(blockedUsersProvider),
-                  child: const Text('Retry'),
+                  child: Text(l10n.commonRetry),
                 ),
               ),
               data: (users) {
@@ -34,9 +36,7 @@ class BlockedUsersScreen extends ConsumerWidget {
                     ).colorScheme.surface.withValues(alpha: 0.9),
                     blur: 12,
                     borderRadius: const BorderRadius.all(Radius.circular(24)),
-                    child: const Center(
-                      child: Text('You have not blocked any users.'),
-                    ),
+                    child: Center(child: Text(l10n.blockedEmpty)),
                   );
                 }
 
@@ -45,6 +45,12 @@ class BlockedUsersScreen extends ConsumerWidget {
                   separatorBuilder: (_, _) => const SizedBox(height: 8),
                   itemBuilder: (context, index) {
                     final user = users[index];
+                    // The provider falls back to an English placeholder when
+                    // the server sends no name; show it in the member's
+                    // language instead.
+                    final name = user.name == 'Unknown User'
+                        ? l10n.blockedUnknownUser
+                        : user.name;
                     return GlassContainer(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 12,
@@ -69,7 +75,7 @@ class BlockedUsersScreen extends ConsumerWidget {
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
-                              user.name,
+                              name,
                               style: Theme.of(context).textTheme.titleMedium,
                             ),
                           ),
@@ -78,9 +84,9 @@ class BlockedUsersScreen extends ConsumerWidget {
                               context: context,
                               ref: ref,
                               userId: user.id,
-                              name: user.name,
+                              name: name,
                             ),
-                            child: const Text('Unblock'),
+                            child: Text(l10n.blockedUnblock),
                           ),
                         ],
                       ),
@@ -101,19 +107,20 @@ class BlockedUsersScreen extends ConsumerWidget {
     required String userId,
     required String name,
   }) async {
+    final l10n = AppLocalizations.of(context);
     final shouldUnblock = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Unblock User'),
-        content: Text('Unblock $name?'),
+        title: Text(l10n.blockedUnblockTitle),
+        content: Text(l10n.blockedUnblockBody(name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l10n.commonCancel),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Unblock'),
+            child: Text(l10n.blockedUnblock),
           ),
         ],
       ),
@@ -130,16 +137,14 @@ class BlockedUsersScreen extends ConsumerWidget {
       }
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('$name has been unblocked.')));
+      ).showSnackBar(SnackBar(content: Text(l10n.blockedUnblockedSnack(name))));
     } catch (_) {
       if (!context.mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to unblock user. Please try again.'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.blockedUnblockFailed)));
     }
   }
 }

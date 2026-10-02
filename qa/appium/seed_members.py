@@ -86,6 +86,20 @@ def create_member(role: str, display_name: str | None = None) -> Member:
     return Member(username=username, user_id=user_id, name=name, api=api)
 
 
+def create_deck_candidate(display_name: str) -> Member:
+    """A completed male member seeking women, so he is a discovery candidate
+    for the device member (a woman seeking men; the signup script itself
+    always creates women)."""
+    member = create_member("dk")
+    member.api.patch(
+        f"/profile/{member.user_id}/draft",
+        {"gender": "M", "seeking_genders": ["F"], "name": display_name},
+    ).require_status(200)
+    member.api.post(f"/profile/{member.user_id}/complete", {}).require_status(200)
+    member.name = display_name
+    return member
+
+
 def login_member(username: str) -> Member:
     api = ApiClient(CONFIG.api_base_url)
     api.authenticate(username, signup_script_password())

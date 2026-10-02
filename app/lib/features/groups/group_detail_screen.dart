@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/network/api_error_message.dart';
 import '../../core/widgets/connect_page.dart';
 import '../../core/widgets/glass_widgets.dart';
+import '../../l10n/app_localizations.dart';
 import '../common/widgets/community_actions.dart';
 import '../friends/friend_actions.dart';
 import '../social_chat/social_chat_data.dart';
@@ -60,22 +61,23 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
   }
 
   Future<void> openChat(Group group) async {
+    final l10n = AppLocalizations.of(context);
+    final kind = group.kindLabel(l10n);
     await openSocialChat(
       context,
       channelId: group.channelId,
       title: group.name,
-      subtitle: '${group.kindLabel} · ${group.memberLabel}',
+      subtitle: '$kind · ${group.memberLabel(l10n)}',
       subtitleFor: (channel) =>
-          '${group.kindLabel} · ${channel.memberCount} '
-          '${channel.memberCount == 1 ? 'member' : 'members'}',
-      emptyText:
-          'Say hello to the group. Everyone in ${group.name} can see '
-          'messages here.',
+          '$kind · ${l10n.chatMemberCount(channel.memberCount)}',
+      emptyText: l10n.groupsChatEmpty(group.name),
       header: group.description.isEmpty ? null : _ChatHeader(group: group),
       onSenderTap: (context, message) => showGroupSheet<void>(
         context,
         GroupSheetFrame(
-          title: message.senderName.isEmpty ? 'Member' : message.senderName,
+          title: message.senderName.isEmpty
+              ? AppLocalizations.of(context).chatMember
+              : message.senderName,
           children: [
             AddFriendButton(
               userId: message.senderId,
@@ -93,21 +95,22 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
   }
 
   Future<void> inviteFriends(Group group) async {
+    final l10n = AppLocalizations.of(context);
     final picked = await pickGroupFriends(
       context,
       groupId: group.id,
-      title: 'Invite friends to ${group.name}',
-      confirmLabel: 'Send invitations',
+      title: l10n.groupsInviteFriendsTo(group.name),
+      confirmLabel: l10n.groupsSendInvitations,
     );
     if (picked == null || picked.isEmpty || !mounted) {
       return;
     }
     await run(
       () => groupsApi(ref).invite(group.id, [for (final f in picked) f.userId]),
-      failure: 'Invitations could not be sent.',
+      failure: l10n.groupsInvitationsFailed,
       success: picked.length == 1
-          ? 'Invitation sent to ${picked.first.name}.'
-          : '${picked.length} invitations sent.',
+          ? l10n.groupsInvitationSentTo(picked.first.name)
+          : l10n.groupsInvitationsSent(picked.length),
     );
   }
 
@@ -125,21 +128,18 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
       return;
     }
     final alone = group.myRole == 'owner' && group.memberCount <= 1;
+    final l10n = AppLocalizations.of(context);
     final ok = await confirmCommunityAction(
       context,
-      title: 'Leave ${group.name}?',
+      title: l10n.groupsLeaveTitle(group.name),
       message: alone
-          ? 'You are the only member, so the group and its chat will be '
-                'deleted.'
+          ? l10n.groupsLeaveBodyAlone
           : group.myRole == 'owner'
-          ? 'Ownership passes to your longest-standing moderator, or else '
-                'member. You will lose access to the chat.'
+          ? l10n.groupsLeaveBodyOwner
           : group.isCommunity
-          ? 'You will lose access to the group chat. You can join again '
-                'later.'
-          : 'You will lose access to the group chat. You will need a new '
-                'invitation to come back.',
-      action: 'Leave',
+          ? l10n.groupsLeaveBodyCommunity
+          : l10n.groupsLeaveBodyPrivate,
+      action: l10n.groupsLeave,
     );
     if (!ok || !mounted) {
       return;
@@ -155,7 +155,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
       if (mounted) {
         showCommunitySnack(
           context,
-          apiErrorMessage(e, fallback: 'You could not leave just now.'),
+          apiErrorMessage(e, fallback: l10n.groupsLeaveFailed),
         );
         setState(() => busy = false);
       }
@@ -166,6 +166,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
     if (busy) {
       return;
     }
+    final l10n = AppLocalizations.of(context);
     final picked = await pickGroupCover(context, ref);
     if (picked == null || !mounted) {
       return;
@@ -188,18 +189,13 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
       );
       invalidateGroups(ref, id);
       if (mounted) {
-        showCommunitySnack(context, groupCoverUploadedMessage(updated));
+        showCommunitySnack(context, groupCoverUploadedMessage(l10n, updated));
       }
     } on Object catch (e) {
       if (mounted) {
         showCommunitySnack(
           context,
-          apiErrorMessage(
-            e,
-            fallback:
-                'Your cover photo could not be uploaded. Use a JPEG or PNG '
-                'up to 10 MB.',
-          ),
+          apiErrorMessage(e, fallback: l10n.groupsCoverUploadFailed),
         );
       }
     } finally {
@@ -214,30 +210,30 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
   }
 
   Future<void> removeCover(Group group) async {
+    final l10n = AppLocalizations.of(context);
     final ok = await confirmCommunityAction(
       context,
-      title: 'Remove the cover photo?',
-      message: '${group.name} will show its emoji cover again.',
-      action: 'Remove',
+      title: l10n.groupsRemoveCoverTitle,
+      message: l10n.groupsRemoveCoverBody(group.name),
+      action: l10n.groupsRemove,
     );
     if (!ok || !mounted) {
       return;
     }
     await run(
       () => groupsApi(ref).removeCover(group.id),
-      failure: 'The cover photo could not be removed.',
-      success: 'Cover photo removed.',
+      failure: l10n.groupsRemoveCoverFailed,
+      success: l10n.groupsCoverRemoved,
     );
   }
 
   Future<void> deleteGroup(Group group) async {
+    final l10n = AppLocalizations.of(context);
     final ok = await confirmCommunityAction(
       context,
-      title: 'Delete ${group.name}?',
-      message:
-          'The group, its invitations and its chat are removed for everyone. '
-          'This cannot be undone.',
-      action: 'Delete group',
+      title: l10n.groupsDeleteTitle(group.name),
+      message: l10n.groupsDeleteBody,
+      action: l10n.groupsDeleteGroup,
     );
     if (!ok || !mounted) {
       return;
@@ -253,7 +249,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
       if (mounted) {
         showCommunitySnack(
           context,
-          apiErrorMessage(e, fallback: 'The group could not be deleted.'),
+          apiErrorMessage(e, fallback: l10n.groupsDeleteFailed),
         );
         setState(() => busy = false);
       }
@@ -262,6 +258,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final detail = ref.watch(groupDetailProvider(id));
     final group = detail.valueOrNull;
     return Scaffold(
@@ -284,13 +281,13 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
                         ConnectPageHeader(
                           leading: const BackButton(),
                           eyebrow: group == null
-                              ? 'GROUP'
-                              : group.kindLabel.toUpperCase(),
-                          title: group?.name ?? 'Group',
+                              ? l10n.groupsDetailEyebrow
+                              : group.kindLabel(l10n).toUpperCase(),
+                          title: group?.name ?? l10n.groupsDetailTitleFallback,
                           actions: [
                             if (group != null && group.canManage)
                               PopupMenuButton<String>(
-                                tooltip: 'Owner tools',
+                                tooltip: l10n.groupsOwnerTools,
                                 enabled: !busy,
                                 onSelected: (value) => switch (value) {
                                   'edit' => showGroupSheet<void>(
@@ -305,9 +302,9 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
                                   // A removed group stays as reviewed until
                                   // the trust team restores it.
                                   if (!group.removed)
-                                    const PopupMenuItem(
+                                    PopupMenuItem(
                                       value: 'edit',
-                                      child: Text('Edit group'),
+                                      child: Text(l10n.groupsEditGroup),
                                     ),
                                   if (group.canChangeCover)
                                     PopupMenuItem(
@@ -315,26 +312,26 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
                                       child: Text(
                                         group.coverPhotoStatus.isEmpty ||
                                                 group.coverRejected
-                                            ? 'Add cover photo'
-                                            : 'Change cover photo',
+                                            ? l10n.groupsAddCoverPhoto
+                                            : l10n.groupsChangeCoverPhoto,
                                       ),
                                     ),
                                   if (group.canChangeCover &&
                                       group.hasCoverPhoto)
-                                    const PopupMenuItem(
+                                    PopupMenuItem(
                                       value: 'remove_cover',
-                                      child: Text('Remove cover photo'),
+                                      child: Text(l10n.groupsRemoveCoverPhoto),
                                     ),
-                                  const PopupMenuItem(
+                                  PopupMenuItem(
                                     value: 'delete',
-                                    child: Text('Delete group'),
+                                    child: Text(l10n.groupsDeleteGroup),
                                   ),
                                 ],
                               )
                             else if (group != null)
                               PopupMenuButton<String>(
                                 key: const ValueKey('groups.detail.more'),
-                                tooltip: 'More options',
+                                tooltip: l10n.groupsMoreOptions,
                                 enabled: !busy,
                                 onSelected: (_) => reportCommunityItem(
                                   context,
@@ -342,10 +339,10 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
                                   kind: 'group',
                                   id: group.id,
                                 ),
-                                itemBuilder: (_) => const [
+                                itemBuilder: (_) => [
                                   PopupMenuItem(
                                     value: 'report',
-                                    child: Text('Report group'),
+                                    child: Text(l10n.groupsReportGroup),
                                   ),
                                 ],
                               ),
@@ -361,14 +358,12 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
                           ),
                           error: (e, _) => GroupNotice(
                             icon: Icons.cloud_off_outlined,
-                            title: 'This group is unavailable',
+                            title: l10n.groupsUnavailableTitle,
                             message: apiErrorMessage(
                               e,
-                              fallback:
-                                  'It may have been deleted, or you may no '
-                                  'longer have access.',
+                              fallback: l10n.groupsUnavailableBody,
                             ),
-                            actionLabel: 'Try again',
+                            actionLabel: l10n.chatTryAgain,
                             onAction: () =>
                                 ref.invalidate(groupDetailProvider(id)),
                           ),
@@ -387,17 +382,17 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
                             ),
                             onJoin: () => run(
                               () => groupsApi(ref).join(group.id),
-                              failure: 'You could not join just now.',
-                              success: 'Welcome to ${group.name}!',
+                              failure: l10n.groupsJoinFailed,
+                              success: l10n.groupsWelcome(group.name),
                             ),
                             onRespond: ({required accept}) => run(
                               () => groupsApi(
                                 ref,
                               ).respond(group.id, accept: accept),
-                              failure: 'Your answer could not be saved.',
+                              failure: l10n.groupsAnswerFailed,
                               success: accept
-                                  ? 'Welcome to ${group.name}!'
-                                  : 'Invitation declined.',
+                                  ? l10n.groupsWelcome(group.name)
+                                  : l10n.groupsInvitationDeclined,
                             ),
                             onLeave: () => leave(group),
                           ),
@@ -470,6 +465,7 @@ class _GroupBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
     const tall = Size(48, 48);
     final pills = Wrap(
       spacing: 8,
@@ -480,20 +476,23 @@ class _GroupBody extends StatelessWidget {
             label: '${group.categoryEmoji} ${group.categoryTitle}',
             emphasis: true,
           ),
-        GroupPill(label: group.isCommunity ? 'Open to all' : 'Private'),
-        GroupPill(label: group.memberLabel),
+        GroupPill(
+          label: group.isCommunity ? l10n.groupsOpenToAll : l10n.groupsPrivate,
+        ),
+        GroupPill(label: group.memberLabel(l10n)),
         if (group.city.isNotEmpty) GroupPill(label: group.city),
         if (group.isMember && group.myRole != 'member')
           GroupPill(
-            label: group.myRole == 'owner' ? 'You run it' : 'You moderate',
+            label: group.myRole == 'owner'
+                ? l10n.groupsYouRunIt
+                : l10n.groupsYouModerate,
           ),
       ],
     );
     final coverNote = group.coverUnderReview
-        ? 'Only you can see this photo until it’s approved. Members see the '
-              'emoji cover meanwhile.'
+        ? l10n.groupsCoverNotePending
         : group.coverRejected && !group.hasCoverPhoto
-        ? 'Your last cover photo wasn’t approved. Choose a different one.'
+        ? l10n.groupsCoverNoteRejected
         : null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -506,11 +505,11 @@ class _GroupBody extends StatelessWidget {
                 GroupCoverBanner(
                   key: const ValueKey('groups.detail.cover'),
                   group: group,
-                  caption: '${group.emoji}  ${group.kindLabel}',
+                  caption: '${group.emoji}  ${group.kindLabel(l10n)}',
                   badge: group.coverUnderReview
-                      ? const GroupCoverBadge(
-                          key: ValueKey('groups.cover.review'),
-                          label: 'Under review',
+                      ? GroupCoverBadge(
+                          key: const ValueKey('groups.cover.review'),
+                          label: l10n.groupsCoverUnderReview,
                           icon: Icons.hourglass_top_rounded,
                         )
                       : null,
@@ -555,8 +554,8 @@ class _GroupBody extends StatelessWidget {
                         icon: const Icon(Icons.add_photo_alternate_outlined),
                         label: Text(
                           group.hasCoverPhoto
-                              ? 'Change cover'
-                              : 'Add cover photo',
+                              ? l10n.groupsChangeCover
+                              : l10n.groupsAddCoverPhoto,
                         ),
                       ),
                       if (group.hasCoverPhoto)
@@ -565,7 +564,7 @@ class _GroupBody extends StatelessWidget {
                           onPressed: busy ? null : onRemoveCover,
                           style: TextButton.styleFrom(minimumSize: tall),
                           icon: const Icon(Icons.hide_image_outlined),
-                          label: const Text('Remove cover'),
+                          label: Text(l10n.groupsRemoveCover),
                         ),
                     ],
                   ),
@@ -587,13 +586,10 @@ class _GroupBody extends StatelessWidget {
           GroupNotice(
             key: const ValueKey('groups.detail.removed'),
             icon: Icons.gpp_maybe_outlined,
-            title: 'This group was removed after a review',
+            title: l10n.groupsRemovedTitle,
             message: group.myRole == 'owner'
-                ? 'Members can’t chat, join or invite while it is removed. '
-                      'Your review notices explain the decision and let you '
-                      'appeal.'
-                : 'Members can’t chat, join or invite while it is removed. '
-                      'You can leave the group at any time.',
+                ? l10n.groupsRemovedBodyOwner
+                : l10n.groupsRemovedBodyMember,
           ),
           const SizedBox(height: ConnectMetrics.cardGap),
           Wrap(
@@ -604,13 +600,13 @@ class _GroupBody extends StatelessWidget {
                 onPressed: busy ? null : onMembers,
                 style: OutlinedButton.styleFrom(minimumSize: tall),
                 icon: const Icon(Icons.groups_2_outlined),
-                label: const Text('Members'),
+                label: Text(l10n.groupsMembers),
               ),
               TextButton.icon(
                 onPressed: busy ? null : onLeave,
                 style: TextButton.styleFrom(minimumSize: tall),
                 icon: const Icon(Icons.logout_rounded),
-                label: const Text('Leave'),
+                label: Text(l10n.groupsLeave),
               ),
             ],
           ),
@@ -623,8 +619,8 @@ class _GroupBody extends StatelessWidget {
             icon: const Icon(Icons.forum_outlined),
             label: Text(
               group.unreadCount > 0
-                  ? 'Group chat · ${group.unreadCount} new'
-                  : 'Group chat',
+                  ? l10n.groupsChatButtonUnread(group.unreadCount)
+                  : l10n.groupsChatButton,
             ),
           ),
           const SizedBox(height: ConnectMetrics.cardGap),
@@ -637,29 +633,29 @@ class _GroupBody extends StatelessWidget {
                   onPressed: busy ? null : onInvite,
                   style: OutlinedButton.styleFrom(minimumSize: tall),
                   icon: const Icon(Icons.person_add_alt_rounded),
-                  label: const Text('Invite friends'),
+                  label: Text(l10n.groupsInviteFriends),
                 ),
               OutlinedButton.icon(
                 onPressed: busy ? null : onMembers,
                 style: OutlinedButton.styleFrom(minimumSize: tall),
                 icon: const Icon(Icons.groups_2_outlined),
-                label: const Text('Members'),
+                label: Text(l10n.groupsMembers),
               ),
               TextButton.icon(
                 onPressed: busy ? null : onLeave,
                 style: TextButton.styleFrom(minimumSize: tall),
                 icon: const Icon(Icons.logout_rounded),
-                label: const Text('Leave'),
+                label: Text(l10n.groupsLeave),
               ),
             ],
           ),
           const SizedBox(height: ConnectMetrics.sectionGap),
           ConnectSectionHeader(
-            label: 'WHO’S HERE',
+            label: l10n.groupsWhosHere,
             trailing: TextButton(
               onPressed: onMembers,
               style: TextButton.styleFrom(minimumSize: tall),
-              child: const Text('See all'),
+              child: Text(l10n.groupsSeeAll),
             ),
           ),
           const SizedBox(height: ConnectMetrics.cardGap),
@@ -671,10 +667,11 @@ class _GroupBody extends StatelessWidget {
               separatorBuilder: (_, _) => const SizedBox(width: 12),
               itemBuilder: (context, i) {
                 final m = group.members[i];
+                final shownName = m.isMe ? l10n.groupsYou : m.name;
+                final role =
+                    groupRoleLabel(l10n, m.role) ?? l10n.groupsRoleMember;
                 return Semantics(
-                  label:
-                      '${m.isMe ? 'You' : m.name}, '
-                      '${groupRoleLabels[m.role] ?? 'Member'}',
+                  label: '$shownName, $role',
                   child: ExcludeSemantics(
                     child: SizedBox(
                       width: 64,
@@ -687,7 +684,7 @@ class _GroupBody extends StatelessWidget {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            m.isMe ? 'You' : m.name,
+                            shownName,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: theme.textTheme.labelMedium?.copyWith(
@@ -696,7 +693,7 @@ class _GroupBody extends StatelessWidget {
                           ),
                           if (m.role != 'member')
                             Text(
-                              groupRoleLabels[m.role] ?? '',
+                              groupRoleLabel(l10n, m.role) ?? '',
                               maxLines: 1,
                               style: theme.textTheme.labelSmall?.copyWith(
                                 color: colors.primary,
@@ -717,7 +714,7 @@ class _GroupBody extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  'You’re invited to join ${group.name}.',
+                  l10n.groupsInvitedToJoin(group.name),
                   style: theme.textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w700,
                     color: colors.onSurface,
@@ -730,7 +727,7 @@ class _GroupBody extends StatelessWidget {
                       child: OutlinedButton(
                         onPressed: busy ? null : () => onRespond(accept: false),
                         style: OutlinedButton.styleFrom(minimumSize: tall),
-                        child: const Text('Decline'),
+                        child: Text(l10n.groupsDecline),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -738,7 +735,7 @@ class _GroupBody extends StatelessWidget {
                       child: FilledButton(
                         onPressed: busy ? null : () => onRespond(accept: true),
                         style: FilledButton.styleFrom(minimumSize: tall),
-                        child: const Text('Join group'),
+                        child: Text(l10n.groupsJoinGroup),
                       ),
                     ),
                   ],
@@ -753,11 +750,11 @@ class _GroupBody extends StatelessWidget {
               minimumSize: const Size.fromHeight(52),
             ),
             icon: const Icon(Icons.group_add_outlined),
-            label: const Text('Join group'),
+            label: Text(l10n.groupsJoinGroup),
           ),
           const SizedBox(height: 8),
           Text(
-            'Members see who’s here and chat together.',
+            l10n.groupsJoinHint,
             style: theme.textTheme.bodySmall?.copyWith(
               color: colors.onSurfaceVariant,
             ),
@@ -766,11 +763,11 @@ class _GroupBody extends StatelessWidget {
           GroupNotice(
             icon: Icons.lock_outline_rounded,
             title: group.isCommunity
-                ? 'You can’t join this group'
-                : 'Invitation only',
+                ? l10n.groupsCantJoinTitle
+                : l10n.groupsInvitationOnly,
             message: group.isCommunity
-                ? 'It may be full, or a moderator removed you.'
-                : 'A member can invite you to this private group.',
+                ? l10n.groupsCantJoinBody
+                : l10n.groupsInvitationOnlyBody,
           ),
       ],
     );
@@ -791,31 +788,31 @@ class GroupMembersSheet extends ConsumerStatefulWidget {
 class _GroupMembersSheetState extends ConsumerState<GroupMembersSheet> {
   bool busy = false;
 
-  List<(String, String)> actionsFor(GroupMember member) {
+  List<(String, String)> actionsFor(AppLocalizations l10n, GroupMember member) {
     final mine = widget.group.myRole;
     if (member.isMe || member.role == 'owner') {
       return const [];
     }
     return [
       if (mine == 'owner' && member.role == 'member')
-        ('make_moderator', 'Make moderator'),
+        ('make_moderator', l10n.groupsMakeModerator),
       if (mine == 'owner' && member.role == 'moderator')
-        ('make_member', 'Make member'),
+        ('make_member', l10n.groupsMakeMember),
       if (mine == 'owner' || (mine == 'moderator' && member.role == 'member'))
-        ('remove', 'Remove from group'),
+        ('remove', l10n.groupsRemoveFromGroup),
     ];
   }
 
   Future<void> act(GroupMember member, String action) async {
+    final l10n = AppLocalizations.of(context);
     if (action == 'remove' &&
         !await confirmCommunityAction(
           context,
-          title: 'Remove ${member.name}?',
+          title: l10n.groupsRemoveMemberTitle(member.name),
           message: widget.group.isCommunity
-              ? 'They leave the group and its chat, and cannot rejoin by '
-                    'themselves.'
-              : 'They leave the group and its chat.',
-          action: 'Remove',
+              ? l10n.groupsRemoveMemberBodyCommunity
+              : l10n.groupsRemoveMemberBodyPrivate,
+          action: l10n.groupsRemove,
         )) {
       return;
     }
@@ -830,7 +827,7 @@ class _GroupMembersSheetState extends ConsumerState<GroupMembersSheet> {
       if (mounted) {
         showCommunitySnack(
           context,
-          apiErrorMessage(e, fallback: 'That change could not be saved.'),
+          apiErrorMessage(e, fallback: l10n.groupsChangeFailed),
         );
       }
     } finally {
@@ -843,8 +840,9 @@ class _GroupMembersSheetState extends ConsumerState<GroupMembersSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     return GroupSheetFrame(
-      title: 'Members',
+      title: l10n.groupsMembers,
       subtitle: widget.group.name,
       children: [
         if (busy) const LinearProgressIndicator(),
@@ -857,15 +855,18 @@ class _GroupMembersSheetState extends ConsumerState<GroupMembersSheet> {
               ),
               error: (e, _) => GroupNotice(
                 icon: Icons.cloud_off_outlined,
-                title: 'Members could not load',
-                message: apiErrorMessage(e, fallback: 'Please try again.'),
+                title: l10n.groupsMembersFailed,
+                message: apiErrorMessage(
+                  e,
+                  fallback: l10n.groupsPleaseTryAgain,
+                ),
               ),
               data: (members) => Column(
                 children: [
                   for (final member in members)
                     Builder(
                       builder: (context) {
-                        final actions = actionsFor(member);
+                        final actions = actionsFor(l10n, member);
                         return ListTile(
                           contentPadding: EdgeInsets.zero,
                           minTileHeight: 56,
@@ -874,12 +875,15 @@ class _GroupMembersSheetState extends ConsumerState<GroupMembersSheet> {
                             photoUrl: member.photoUrl,
                           ),
                           title: Text(
-                            member.isMe ? '${member.name} (you)' : member.name,
+                            member.isMe
+                                ? l10n.groupsMemberYou(member.name)
+                                : member.name,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                           subtitle: Text(
-                            groupRoleLabels[member.role] ?? 'Member',
+                            groupRoleLabel(l10n, member.role) ??
+                                l10n.groupsRoleMember,
                             style: theme.textTheme.bodySmall,
                           ),
                           trailing: Row(
@@ -894,7 +898,9 @@ class _GroupMembersSheetState extends ConsumerState<GroupMembersSheet> {
                                 ),
                               if (actions.isNotEmpty)
                                 PopupMenuButton<String>(
-                                  tooltip: 'Options for ${member.name}',
+                                  tooltip: l10n.groupsMemberOptions(
+                                    member.name,
+                                  ),
                                   enabled: !busy,
                                   onSelected: (action) => act(member, action),
                                   itemBuilder: (_) => [
@@ -950,6 +956,7 @@ class _EditGroupSheetState extends ConsumerState<_EditGroupSheet> {
   }
 
   Future<void> save() async {
+    final l10n = AppLocalizations.of(context);
     setState(() {
       busy = true;
       error = null;
@@ -969,10 +976,7 @@ class _EditGroupSheetState extends ConsumerState<_EditGroupSheet> {
     } on Object catch (e) {
       if (mounted) {
         setState(
-          () => error = apiErrorMessage(
-            e,
-            fallback: 'Your changes could not be saved.',
-          ),
+          () => error = apiErrorMessage(e, fallback: l10n.groupsEditFailed),
         );
       }
     } finally {
@@ -984,38 +988,39 @@ class _EditGroupSheetState extends ConsumerState<_EditGroupSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final categories = ref.watch(groupCategoriesProvider).valueOrNull ?? [];
     return GroupSheetFrame(
-      title: 'Edit group',
+      title: l10n.groupsEditGroup,
       footer: FilledButton(
         onPressed: busy ? null : save,
         style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-        child: Text(busy ? 'Saving…' : 'Save changes'),
+        child: Text(busy ? l10n.groupsSaving : l10n.groupsSaveChanges),
       ),
       children: [
         TextField(
           controller: name,
           maxLength: 60,
-          decoration: const InputDecoration(labelText: 'Group name'),
+          decoration: InputDecoration(labelText: l10n.groupsNameLabel),
         ),
         TextField(
           controller: description,
           maxLength: 500,
           minLines: 2,
           maxLines: 5,
-          decoration: const InputDecoration(labelText: 'What is it about?'),
+          decoration: InputDecoration(labelText: l10n.groupsAboutLabel),
         ),
         TextField(
           controller: city,
           maxLength: 60,
-          decoration: const InputDecoration(labelText: 'City (optional)'),
+          decoration: InputDecoration(labelText: l10n.groupsCityLabel),
         ),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
           runSpacing: 8,
           children: [
-            for (final entry in groupCoverColors.entries)
+            for (final entry in groupCoverColors(l10n).entries)
               ChoiceChip(
                 label: Text(entry.value),
                 selected: coverColor == entry.key,
@@ -1025,7 +1030,10 @@ class _EditGroupSheetState extends ConsumerState<_EditGroupSheet> {
         ),
         if (widget.group.isCommunity && categories.isNotEmpty) ...[
           const SizedBox(height: 16),
-          Text('Lifestyle', style: Theme.of(context).textTheme.titleSmall),
+          Text(
+            l10n.groupsLifestyleLabel,
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,

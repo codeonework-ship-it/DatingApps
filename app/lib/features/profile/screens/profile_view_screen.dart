@@ -294,16 +294,16 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
                               if (profileState.error != null)
                                 statusCard(
                                   icon: Icons.error_outline_rounded,
-                                  message: profileState.error!,
+                                  message: _errorMessage(l10n, profileState),
                                   action: GlassButton(
-                                    label: 'Retry',
+                                    label: l10n.commonRetry,
                                     onPressed: () => _refresh(userId),
                                   ),
                                 )
                               else
                                 statusCard(
                                   icon: Icons.person_outline_rounded,
-                                  message: 'No profile data found.',
+                                  message: l10n.memberProfileNoData,
                                 ),
                             ],
                             const SizedBox(height: ConnectMetrics.sectionGap),
@@ -312,9 +312,10 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
                               caption: l10n.memberProfileOnlyYou,
                             ),
                             const SizedBox(height: ConnectMetrics.sectionGap),
-                            const ConnectSectionHeader(
-                              label: 'YOUR CONNECTIONS',
-                              caption: 'People you liked, matched and talk to.',
+                            ConnectSectionHeader(
+                              label: l10n.memberProfileConnectionsTitle
+                                  .toUpperCase(),
+                              caption: l10n.memberProfileConnectionsCaption,
                             ),
                             const SizedBox(height: ConnectMetrics.cardGap),
                             Row(
@@ -328,7 +329,7 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
                                       icon: Icons.favorite_rounded,
                                       tint: colors.secondary,
                                       value: '${profileState.likesCount}',
-                                      label: 'You liked',
+                                      label: l10n.memberProfileStatLiked,
                                       onTap: () {
                                         Navigator.of(context).push(
                                           MaterialPageRoute<void>(
@@ -349,7 +350,7 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
                                       icon: Icons.done_rounded,
                                       tint: colors.primary,
                                       value: '${profileState.matchesCount}',
-                                      label: 'Matches',
+                                      label: l10n.memberProfileStatMatches,
                                       onTap: () =>
                                           _openMatchesTab(MatchesView.people),
                                     ),
@@ -364,7 +365,7 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
                                       icon: Icons.chat_bubble_outline_rounded,
                                       tint: colors.tertiary,
                                       value: '${profileState.messagesCount}',
-                                      label: 'Messages',
+                                      label: l10n.memberProfileStatMessages,
                                       onTap: () => _openMatchesTab(
                                         MatchesView.conversations,
                                       ),
@@ -374,9 +375,10 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
                               ],
                             ),
                             const SizedBox(height: ConnectMetrics.sectionGap),
-                            const ConnectSectionHeader(
-                              label: 'WHO HAS NOTICED',
-                              caption: 'Likes and views from members near you.',
+                            ConnectSectionHeader(
+                              label: l10n.memberProfileNoticedTitle
+                                  .toUpperCase(),
+                              caption: l10n.memberProfileNoticedCaption,
                             ),
                             const SizedBox(height: ConnectMetrics.cardGap),
                             ConnectNavTile(
@@ -384,9 +386,11 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
                               icon: Icons.favorite_border_rounded,
                               tint: colors.secondary,
                               title: likedMeCount > 0
-                                  ? 'Who Liked Me ($likedMeCount)'
-                                  : 'Who Liked Me',
-                              subtitle: 'Members who liked your profile.',
+                                  ? l10n.memberProfileWhoLikedMeCount(
+                                      likedMeCount,
+                                    )
+                                  : l10n.memberProfileWhoLikedMe,
+                              subtitle: l10n.memberProfileWhoLikedMeSubtitle,
                               onTap: () async {
                                 await Navigator.of(context).push(
                                   MaterialPageRoute<void>(
@@ -398,14 +402,15 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
                             const SizedBox(height: ConnectMetrics.cardGap),
                             ConnectNavTile(
                               icon: Icons.remove_red_eye_outlined,
-                              title: 'Who Viewed My Profile',
-                              subtitle: 'Recent visits to your profile.',
+                              title: l10n.memberProfileWhoViewedTitle,
+                              subtitle: l10n.memberProfileWhoViewedSubtitle,
                               onTap: openViewers,
                             ),
                             if (user != null) ...[
                               const SizedBox(height: ConnectMetrics.sectionGap),
-                              const ConnectSectionHeader(
-                                label: 'YOUR PREFERENCES',
+                              ConnectSectionHeader(
+                                label: l10n.memberProfilePreferencesTitle
+                                    .toUpperCase(),
                               ),
                               const SizedBox(height: ConnectMetrics.cardGap),
                               ConnectPanel(
@@ -414,7 +419,7 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
                                   children: [
                                     _buildProfileRow(
                                       context,
-                                      'Seeking',
+                                      l10n.memberProfilePrefSeeking,
                                       prefs == null
                                           ? '—'
                                           : prefs.seekingGenders.join(', '),
@@ -422,7 +427,7 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
                                     const SizedBox(height: 12),
                                     _buildProfileRow(
                                       context,
-                                      'Age Range',
+                                      l10n.filterAgeRange,
                                       prefs == null
                                           ? '—'
                                           : '${prefs.minAgeYears}-'
@@ -431,10 +436,12 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
                                     const SizedBox(height: 12),
                                     _buildProfileRow(
                                       context,
-                                      'Distance',
+                                      l10n.memberProfilePrefDistance,
                                       prefs == null
                                           ? '—'
-                                          : 'Within ${prefs.maxDistanceKm} km',
+                                          : l10n.memberProfileWithinKm(
+                                              prefs.maxDistanceKm,
+                                            ),
                                     ),
                                   ],
                                 ),
@@ -458,12 +465,12 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
                     actions: [
                       ProfileBarButton(
                         icon: Icons.remove_red_eye_outlined,
-                        tooltip: 'Who viewed my profile',
+                        tooltip: l10n.memberProfileWhoViewedTooltip,
                         onPressed: openViewers,
                       ),
                       ProfileBarButton(
                         icon: Icons.refresh_rounded,
-                        tooltip: 'Refresh profile',
+                        tooltip: l10n.memberProfileRefreshTooltip,
                         onPressed: () => _refresh(userId),
                       ),
                     ],
@@ -476,6 +483,16 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
       ),
     );
   }
+
+  /// The load error in the member's language; a message from the server is
+  /// shown as sent.
+  static String _errorMessage(AppLocalizations l10n, ProfileState state) =>
+      switch (state.issue) {
+        ProfileLoadIssue.notSignedIn => l10n.memberProfileSignInToView,
+        ProfileLoadIssue.noProfile => l10n.memberProfileNoData,
+        ProfileLoadIssue.loadFailed => l10n.memberProfileLoadFailed,
+        ProfileLoadIssue.server || null => state.error ?? '',
+      };
 
   /// Matches and conversations live on the Matches tab, so these tiles switch
   /// tabs instead of pushing a duplicate screen. The sub-view is set first so
@@ -520,7 +537,9 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
     VoidCallback? onTap,
   }) => Semantics(
     button: onTap != null,
-    label: onTap == null ? null : 'Open $label',
+    label: onTap == null
+        ? null
+        : AppLocalizations.of(context).memberProfileOpenStat(label),
     child: GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,

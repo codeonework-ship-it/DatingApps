@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/layout/app_layout.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
+import '../../../l10n/app_localizations.dart';
+import '../models/graduation_labels.dart';
 import '../providers/graduation_provider.dart';
 
 /// Full-screen "You found each other".
@@ -58,11 +60,13 @@ class _GraduationCelebrationScreenState
       return;
     }
     if (graduation == null) {
+      final l10n = AppLocalizations.of(context);
+      final state = ref.read(matchGraduationProvider(widget.matchId));
       setState(() {
         _submitting = false;
-        _error =
-            ref.read(matchGraduationProvider(widget.matchId)).error ??
-            'Unable to confirm right now.';
+        _error = state.error == null
+            ? l10n.graduationConfirmFailed
+            : localizedGraduationError(l10n, state.error!, state.failure);
       });
       return;
     }
@@ -72,6 +76,7 @@ class _GraduationCelebrationScreenState
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final state = ref.watch(matchGraduationProvider(widget.matchId));
     final graduation = state.graduation;
     final recordedShare = graduation?.shareWithFriends ?? false;
@@ -82,7 +87,7 @@ class _GraduationCelebrationScreenState
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.transparent,
-        title: const Text('Graduation'),
+        title: Text(l10n.graduationTitle),
       ),
       body: PostLoginBackdrop(
         child: SafeArea(
@@ -120,7 +125,7 @@ class _GraduationCelebrationScreenState
                       ),
                       const SizedBox(height: AppLayout.space5),
                       Text(
-                        'You found each other',
+                        l10n.graduationFoundEachOther,
                         key: const ValueKey('qa.graduation.celebration'),
                         textAlign: TextAlign.center,
                         style: theme.textTheme.headlineMedium?.copyWith(
@@ -129,9 +134,7 @@ class _GraduationCelebrationScreenState
                       ),
                       const SizedBox(height: AppLayout.space3),
                       Text(
-                        'You and ${widget.partnerName} are leaving Connect '
-                        'together. You are both hidden from discovery, and '
-                        'this chat stays open for as long as you like.',
+                        l10n.graduationCelebrationBody(widget.partnerName),
                         textAlign: TextAlign.center,
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
@@ -141,16 +144,15 @@ class _GraduationCelebrationScreenState
                       SwitchListTile(
                         key: const ValueKey('qa.graduation.celebration.share'),
                         contentPadding: EdgeInsets.zero,
-                        title: const Text('Tell my friends'),
+                        title: Text(l10n.graduationTellFriends),
                         subtitle: Text(
                           _pending
-                              ? 'Your accepted friends hear you found '
-                                    'someone. They are not told who.'
+                              ? l10n.graduationTellFriendsBody
                               : friendsTold
-                              ? 'Your friends have been told.'
+                              ? l10n.graduationFriendsHaveBeenTold
                               : recordedShare
-                              ? 'Your friends are told.'
-                              : 'Only the two of you know.',
+                              ? l10n.graduationFriendsAreTold
+                              : l10n.graduationOnlyTwoOfYou,
                         ),
                         value: shareValue,
                         onChanged: _pending && !_submitting
@@ -189,8 +191,8 @@ class _GraduationCelebrationScreenState
                               : const Icon(Icons.arrow_back_rounded),
                           label: Text(
                             _pending
-                                ? 'Confirm and go back'
-                                : 'Back to Connect',
+                                ? l10n.graduationConfirmAndBack
+                                : l10n.graduationBackToConnect,
                           ),
                         ),
                       ),

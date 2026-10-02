@@ -7,6 +7,7 @@ import 'package:verified_dating_app/core/providers/runtime_feature_flags_provide
 import 'package:verified_dating_app/features/auth/providers/auth_provider.dart';
 import 'package:verified_dating_app/features/friends/models/friend_social.dart';
 import 'package:verified_dating_app/features/friends/screens/friends_screen.dart';
+import 'package:verified_dating_app/l10n/app_localizations.dart';
 
 class _Auth extends AuthNotifier {
   @override
@@ -148,7 +149,11 @@ Widget _host(_FakeFriendsApi api) => ProviderScope(
       (ref) => Stream.value(RuntimeFeatureFlags.defaults),
     ),
   ],
-  child: const MaterialApp(home: FriendsScreen()),
+  child: const MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
+    home: FriendsScreen(),
+  ),
 );
 
 void main() {

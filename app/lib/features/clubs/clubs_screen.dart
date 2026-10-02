@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 import '../../core/network/api_error_message.dart';
 import '../../core/providers/api_client_provider.dart';
 import '../../core/widgets/glass_widgets.dart';
+import '../../l10n/app_localizations.dart';
 import '../auth/providers/auth_provider.dart';
 import '../common/widgets/activity_visuals.dart';
 import 'club_detail_screen.dart';
@@ -49,12 +50,13 @@ class _ClubsScreenState extends ConsumerState<ClubsScreen> {
     final user = ref.watch(authNotifierProvider.select((s) => s.userId));
     final page = user == null ? null : ref.watch(clubsProvider(query));
     final eligible = page?.valueOrNull?.eligible ?? false;
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Book & Film Clubs'),
+        title: Text(l10n.clubsTitle),
         actions: [
           IconButton(
-            tooltip: 'My lists',
+            tooltip: l10n.clubsMyLists,
             onPressed: () => Navigator.of(context).push<void>(
               MaterialPageRoute(builder: (_) => const MyListsScreen()),
             ),
@@ -65,14 +67,14 @@ class _ClubsScreenState extends ConsumerState<ClubsScreen> {
       floatingActionButton: eligible
           ? FloatingActionButton.extended(
               onPressed: startClub,
-              tooltip: 'Start a book or film club',
+              tooltip: l10n.clubsStartClubTooltip,
               icon: const Icon(Icons.add),
-              label: const Text('Start a club'),
+              label: Text(l10n.clubsStartClub),
             )
           : null,
       body: PostLoginBackdrop(
         child: user == null || page == null
-            ? const Center(child: Text('Sign in to see clubs.'))
+            ? Center(child: Text(l10n.clubsSignInToSee))
             : RefreshIndicator(
                 onRefresh: () async {
                   ref.invalidate(clubsProvider(query));
@@ -81,27 +83,24 @@ class _ClubsScreenState extends ConsumerState<ClubsScreen> {
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 112),
                   children: [
-                    const ActivityHero(
+                    ActivityHero(
                       icon: Icons.local_library_outlined,
                       tone: 1,
-                      title: 'Read it. Watch it. Talk about it.',
-                      subtitle:
-                          'Join a club, follow one pick a week and share '
-                          'what you thought. Great taste is a great '
-                          'conversation starter.',
+                      title: l10n.clubsHeroTitle,
+                      subtitle: l10n.clubsHeroSubtitle,
                     ),
                     const SizedBox(height: 16),
                     SegmentedButton<String>(
-                      segments: const [
+                      segments: [
                         ButtonSegment(
                           value: 'mine',
-                          icon: Icon(Icons.groups_outlined),
-                          label: Text('My clubs'),
+                          icon: const Icon(Icons.groups_outlined),
+                          label: Text(l10n.clubsScopeMine),
                         ),
                         ButtonSegment(
                           value: 'discover',
-                          icon: Icon(Icons.explore_outlined),
-                          label: Text('Discover'),
+                          icon: const Icon(Icons.explore_outlined),
+                          label: Text(l10n.clubsScopeDiscover),
                         ),
                       ],
                       selected: {scope},
@@ -114,9 +113,9 @@ class _ClubsScreenState extends ConsumerState<ClubsScreen> {
                       runSpacing: 8,
                       children: [
                         for (final entry in {
-                          '': 'All',
-                          'book': 'Books',
-                          'film': 'Films',
+                          '': l10n.clubsFilterAll,
+                          'book': l10n.clubsKindBooks,
+                          'film': l10n.clubsKindFilms,
                         }.entries)
                           ChoiceChip(
                             avatar: entry.key.isEmpty
@@ -137,12 +136,12 @@ class _ClubsScreenState extends ConsumerState<ClubsScreen> {
                       ),
                       error: (e, _) => ActivityNotice(
                         icon: Icons.cloud_off_outlined,
-                        title: 'Clubs could not load',
+                        title: l10n.clubsLoadErrorTitle,
                         message: apiErrorMessage(
                           e,
-                          fallback: 'Please check your connection.',
+                          fallback: l10n.clubsCheckConnection,
                         ),
-                        actionLabel: 'Try again',
+                        actionLabel: l10n.chatTryAgain,
                         onAction: () => ref.invalidate(clubsProvider(query)),
                       ),
                       data: (data) => _ClubList(
@@ -170,53 +169,53 @@ class _ClubList extends StatelessWidget {
   final VoidCallback onDiscover;
 
   @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      if (!page.eligible) ...[
-        const ActivityNotice(
-          icon: Icons.lock_outline,
-          title: 'You can look around',
-          message:
-              'Complete your profile with two approved photos to start or '
-              'join a club.',
-        ),
-        const SizedBox(height: 16),
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (!page.eligible) ...[
+          ActivityNotice(
+            icon: Icons.lock_outline,
+            title: l10n.clubsLookAroundTitle,
+            message: l10n.clubsLookAroundMessage,
+          ),
+          const SizedBox(height: 16),
+        ],
+        if (page.clubs.isEmpty)
+          ActivityNotice(
+            icon: Icons.local_library_outlined,
+            title: scope == 'mine'
+                ? l10n.clubsEmptyMineTitle
+                : l10n.clubsEmptyDiscoverTitle,
+            message: scope == 'mine'
+                ? l10n.clubsEmptyMineMessage
+                : l10n.clubsEmptyDiscoverMessage,
+            actionLabel: scope == 'mine' ? l10n.clubsDiscoverClubs : null,
+            onAction: scope == 'mine' ? onDiscover : null,
+          )
+        else
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final columns = constraints.maxWidth >= 640 ? 2 : 1;
+              final width =
+                  (constraints.maxWidth - 16 * (columns - 1)) / columns;
+              return Wrap(
+                spacing: 16,
+                runSpacing: 16,
+                children: [
+                  for (final club in page.clubs)
+                    SizedBox(
+                      width: width,
+                      child: ClubCard(club: club),
+                    ),
+                ],
+              );
+            },
+          ),
       ],
-      if (page.clubs.isEmpty)
-        ActivityNotice(
-          icon: Icons.local_library_outlined,
-          title: scope == 'mine'
-              ? 'Your first club is waiting'
-              : 'No clubs here yet',
-          message: scope == 'mine'
-              ? 'Find a club that reads or watches what you love, or start '
-                    'your own.'
-              : 'Be the first: start a club and pick something great for '
-                    'this week.',
-          actionLabel: scope == 'mine' ? 'Discover clubs' : null,
-          onAction: scope == 'mine' ? onDiscover : null,
-        )
-      else
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final columns = constraints.maxWidth >= 640 ? 2 : 1;
-            final width = (constraints.maxWidth - 16 * (columns - 1)) / columns;
-            return Wrap(
-              spacing: 16,
-              runSpacing: 16,
-              children: [
-                for (final club in page.clubs)
-                  SizedBox(
-                    width: width,
-                    child: ClubCard(club: club),
-                  ),
-              ],
-            );
-          },
-        ),
-    ],
-  );
+    );
+  }
 }
 
 class ClubCard extends StatelessWidget {
@@ -228,6 +227,7 @@ class ClubCard extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
     final pick = club.currentSelection;
+    final l10n = AppLocalizations.of(context);
     return Card(
       margin: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
@@ -273,18 +273,16 @@ class ClubCard extends StatelessWidget {
                       KindBadge(kind: club.kind),
                       CountPill(
                         icon: Icons.people_outline,
-                        label:
-                            '${club.memberCount} '
-                            'member${club.memberCount == 1 ? '' : 's'}',
+                        label: l10n.clubsMemberCount(club.memberCount),
                       ),
                       if (club.isMember)
                         CountPill(
                           icon: Icons.check_circle_outline,
                           label: club.isOwner
-                              ? 'You run it'
+                              ? l10n.clubsYouRunIt
                               : club.myRole == 'moderator'
-                              ? 'You moderate'
-                              : 'Joined ✓',
+                              ? l10n.clubsYouModerate
+                              : l10n.clubsJoined,
                           emphasis: true,
                         ),
                     ],
@@ -301,7 +299,7 @@ class ClubCard extends StatelessWidget {
                   const SizedBox(height: 12),
                   if (pick == null)
                     Text(
-                      'No pick yet this week',
+                      l10n.clubsNoPickThisWeek,
                       style: text.bodyMedium?.copyWith(
                         color: scheme.onSurfaceVariant,
                       ),
@@ -312,7 +310,7 @@ class ClubCard extends StatelessWidget {
                       runSpacing: 8,
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        WeekPill(label: weekLabel(pick.weekStart)),
+                        WeekPill(label: weekLabel(l10n, pick.weekStart)),
                         Text(
                           pick.title.title,
                           style: text.titleMedium?.copyWith(
@@ -354,8 +352,9 @@ class _StartClubSheetState extends ConsumerState<_StartClubSheet> {
   }
 
   Future<void> create() async {
+    final l10n = AppLocalizations.of(context);
     if (name.text.trim().length < 3) {
-      setState(() => error = 'Give your club a name of at least 3 letters.');
+      setState(() => error = l10n.clubsNameTooShort);
       return;
     }
     setState(() {
@@ -381,10 +380,7 @@ class _StartClubSheetState extends ConsumerState<_StartClubSheet> {
     } on Object catch (e) {
       if (mounted) {
         setState(
-          () => error = apiErrorMessage(
-            e,
-            fallback: 'Your club could not be created.',
-          ),
+          () => error = apiErrorMessage(e, fallback: l10n.clubsCreateFailed),
         );
       }
     } finally {
@@ -395,54 +391,55 @@ class _StartClubSheetState extends ConsumerState<_StartClubSheet> {
   }
 
   @override
-  Widget build(BuildContext context) => SheetFrame(
-    title: 'Start a club',
-    children: [
-      SegmentedButton<String>(
-        segments: [
-          for (final entry in clubKinds.entries)
-            ButtonSegment(
-              value: entry.key,
-              icon: Icon(kindIcon(entry.key)),
-              label: Text(entry.value),
-            ),
-        ],
-        selected: {kind},
-        onSelectionChanged: (value) => setState(() => kind = value.first),
-      ),
-      const SizedBox(height: 16),
-      TextField(
-        controller: name,
-        maxLength: 60,
-        textCapitalization: TextCapitalization.words,
-        decoration: const InputDecoration(
-          labelText: 'Club name',
-          hintText: 'Sunday Slow Reads',
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return SheetFrame(
+      title: l10n.clubsStartClub,
+      children: [
+        SegmentedButton<String>(
+          segments: [
+            for (final kind in clubKinds)
+              ButtonSegment(
+                value: kind,
+                icon: Icon(kindIcon(kind)),
+                label: Text(clubKindLabel(l10n, kind)),
+              ),
+          ],
+          selected: {kind},
+          onSelectionChanged: (value) => setState(() => kind = value.first),
         ),
-      ),
-      TextField(
-        controller: description,
-        maxLength: 500,
-        maxLines: 4,
-        minLines: 2,
-        textCapitalization: TextCapitalization.sentences,
-        decoration: const InputDecoration(
-          labelText: 'What is your club about? (optional)',
-        ),
-      ),
-      if (error != null)
-        Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: Text(
-            error!,
-            style: TextStyle(color: Theme.of(context).colorScheme.error),
+        const SizedBox(height: 16),
+        TextField(
+          controller: name,
+          maxLength: 60,
+          textCapitalization: TextCapitalization.words,
+          decoration: InputDecoration(
+            labelText: l10n.clubsNameLabel,
+            hintText: l10n.clubsNameHint,
           ),
         ),
-      FilledButton.icon(
-        onPressed: busy ? null : create,
-        icon: const Icon(Icons.celebration_outlined),
-        label: Text(busy ? 'Creating…' : 'Create club'),
-      ),
-    ],
-  );
+        TextField(
+          controller: description,
+          maxLength: 500,
+          maxLines: 4,
+          minLines: 2,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: InputDecoration(labelText: l10n.clubsDescriptionLabel),
+        ),
+        if (error != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text(
+              error!,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ),
+        FilledButton.icon(
+          onPressed: busy ? null : create,
+          icon: const Icon(Icons.celebration_outlined),
+          label: Text(busy ? l10n.clubsCreating : l10n.clubsCreateClub),
+        ),
+      ],
+    );
+  }
 }

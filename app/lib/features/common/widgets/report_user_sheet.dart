@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../l10n/app_localizations.dart';
 
 Future<String?> showReportUserSheet({
   required BuildContext context,
@@ -36,6 +37,7 @@ class _ReportUserSheetState extends State<_ReportUserSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final padding = MediaQuery.of(context).viewInsets;
 
     return Padding(
@@ -64,41 +66,46 @@ class _ReportUserSheetState extends State<_ReportUserSheet> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                Text('Report', style: Theme.of(context).textTheme.titleLarge),
+                Text(
+                  l10n.reportSheetTitle,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   initialValue: _reason,
-                  items: const [
+                  items: [
                     DropdownMenuItem(
                       value: 'harassment',
-                      child: Text('Harassment'),
+                      child: Text(l10n.reportReasonHarassment),
                     ),
                     DropdownMenuItem(
                       value: 'inappropriate',
-                      child: Text('Inappropriate content'),
+                      child: Text(l10n.reportReasonInappropriate),
                     ),
                     DropdownMenuItem(
                       value: 'fraud',
-                      child: Text('Fraud / scam'),
+                      child: Text(l10n.reportReasonFraud),
                     ),
                     DropdownMenuItem(
                       value: 'fake',
-                      child: Text('Fake profile'),
+                      child: Text(l10n.reportReasonFake),
                     ),
                   ],
                   onChanged: _isSubmitting
                       ? null
                       : (v) => setState(() => _reason = v ?? 'inappropriate'),
-                  decoration: const InputDecoration(labelText: 'Reason'),
+                  decoration: InputDecoration(
+                    labelText: l10n.reportReasonLabel,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: _controller,
                   enabled: !_isSubmitting,
                   maxLines: 3,
-                  decoration: const InputDecoration(
-                    labelText: 'Description (optional)',
-                    hintText: 'Add context to help review your report',
+                  decoration: InputDecoration(
+                    labelText: l10n.reportDescriptionLabel,
+                    hintText: l10n.reportDescriptionHint,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -119,10 +126,8 @@ class _ReportUserSheetState extends State<_ReportUserSheet> {
                             } catch (e) {
                               if (!mounted) return;
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Failed to submit report. Please try again.',
-                                  ),
+                                SnackBar(
+                                  content: Text(l10n.reportSubmitFailed),
                                 ),
                               );
                             } finally {
@@ -137,7 +142,7 @@ class _ReportUserSheetState extends State<_ReportUserSheet> {
                             width: 20,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Text('Submit report'),
+                        : Text(l10n.reportSubmit),
                   ),
                 ),
               ],

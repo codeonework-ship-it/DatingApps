@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:verified_dating_app/core/providers/api_client_provider.dart';
 import 'package:verified_dating_app/features/auth/providers/auth_provider.dart';
 import 'package:verified_dating_app/features/city_pilot/city_pilot_screen.dart';
+import 'package:verified_dating_app/l10n/app_localizations.dart';
 
 class _Auth extends AuthNotifier {
   @override
@@ -57,12 +58,17 @@ class _Api {
       },
       'membership': 'none',
       'can_join': true,
-      'experiences': [],
+      'experiences': <Map<String, dynamic>>[],
     };
   }
 }
 
-Future<void> _show(WidgetTester tester, _Api api, {double scale = 1}) async {
+Future<void> _show(
+  WidgetTester tester,
+  _Api api, {
+  double scale = 1,
+  Locale? locale,
+}) async {
   tester.view.physicalSize = const Size(390, 844);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
@@ -74,6 +80,9 @@ Future<void> _show(WidgetTester tester, _Api api, {double scale = 1}) async {
         apiClientProvider.overrideWithValue(api.client()),
       ],
       child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        locale: locale,
         builder: (_, child) => MediaQuery(
           data: MediaQueryData(textScaler: TextScaler.linear(scale)),
           child: child!,
@@ -150,6 +159,24 @@ void main() {
     await t.pumpAndSettle();
     expect(find.text('Coming to a city near you'), findsOneWidget);
     expect(api.writes, isEmpty);
+  });
+  testWidgets('pilot speaks German with a German date', (t) async {
+    final api = _Api()..recruit();
+    await _show(t, api, locale: const Locale('de'));
+    expect(find.text('Das Stadt-Pilotprojekt'), findsOneWidget);
+    expect(find.text('Mit einem Gespräch beginnen'), findsOneWidget);
+    await _reveal(t, find.text('Am Stadt-Pilotprojekt teilnehmen'));
+    expect(find.text('Pilot City · Stadt-Pilotprojekt'), findsOneWidget);
+    // Server city name stays as sent; the date uses German day/month names.
+    // (Local time zone decides whether it is still 31 December.)
+    expect(
+      find.textContaining(
+        RegExp(r'^Anmeldeschluss: \w+\., \d+\. (Jan|Dez)\. · \d'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Recruitment closes'), findsNothing);
+    expect(t.takeException(), isNull);
   });
   testWidgets('cancelled experience offers no reservation', (t) async {
     final api = _Api()..recruit();

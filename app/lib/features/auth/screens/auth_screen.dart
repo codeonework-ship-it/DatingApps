@@ -10,6 +10,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
 import '../../../core/widgets/connect_brand.dart';
 import '../../../l10n/app_localizations.dart';
+import '../auth_messages.dart';
 import '../../common/screens/main_navigation_screen.dart';
 import '../providers/auth_provider.dart';
 import 'account_recovery_screen.dart';
@@ -403,7 +404,7 @@ class _CredentialForm extends StatelessWidget {
           ),
           if (authState.error != null) ...[
             const SizedBox(height: 14),
-            _ErrorBanner(message: authState.error!),
+            _ErrorBanner(message: localizedAuthMessage(l10n, authState.error!)),
           ],
         ],
       ),

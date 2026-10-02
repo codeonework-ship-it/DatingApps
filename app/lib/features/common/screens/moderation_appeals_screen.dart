@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/widgets/glass_widgets.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../engagement/providers/moderation_appeals_provider.dart';
 
 class ModerationAppealsScreen extends ConsumerStatefulWidget {
@@ -43,10 +44,11 @@ class _ModerationAppealsScreenState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final appealsAsync = ref.watch(moderationAppealsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Moderation Appeals')),
+      appBar: AppBar(title: Text(l10n.privacyModerationAppeals)),
       body: PostLoginBackdrop(
         child: SafeArea(
           child: Padding(
@@ -64,25 +66,24 @@ class _ModerationAppealsScreenState
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Submit an appeal',
+                        l10n.appealsSubmitTitle,
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       const SizedBox(height: 12),
                       TextField(
                         controller: _reasonController,
                         enabled: !_submitting,
-                        decoration: const InputDecoration(
-                          labelText: 'Reason',
-                          hintText:
-                              'Why should this moderation decision be reviewed?',
+                        decoration: InputDecoration(
+                          labelText: l10n.appealsReasonLabel,
+                          hintText: l10n.appealsReasonHint,
                         ),
                       ),
                       const SizedBox(height: 10),
                       TextField(
                         controller: _reportIdController,
                         enabled: !_submitting,
-                        decoration: const InputDecoration(
-                          labelText: 'Report ID (optional)',
+                        decoration: InputDecoration(
+                          labelText: l10n.appealsReportIdLabel,
                         ),
                       ),
                       const SizedBox(height: 10),
@@ -90,8 +91,8 @@ class _ModerationAppealsScreenState
                         controller: _descriptionController,
                         enabled: !_submitting,
                         maxLines: 3,
-                        decoration: const InputDecoration(
-                          labelText: 'Additional context (optional)',
+                        decoration: InputDecoration(
+                          labelText: l10n.appealsContextLabel,
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -107,7 +108,7 @@ class _ModerationAppealsScreenState
                                     strokeWidth: 2,
                                   ),
                                 )
-                              : const Text('Submit appeal'),
+                              : Text(l10n.appealsSubmit),
                         ),
                       ),
                     ],
@@ -122,7 +123,7 @@ class _ModerationAppealsScreenState
                       child: TextButton(
                         onPressed: () =>
                             ref.invalidate(moderationAppealsProvider),
-                        child: const Text('Retry'),
+                        child: Text(l10n.commonRetry),
                       ),
                     ),
                     data: (appeals) {
@@ -136,9 +137,9 @@ class _ModerationAppealsScreenState
                           borderRadius: const BorderRadius.all(
                             Radius.circular(24),
                           ),
-                          child: const Center(
+                          child: Center(
                             child: Text(
-                              'No appeals submitted yet. Your submitted appeals will appear here with status updates.',
+                              l10n.appealsEmpty,
                               textAlign: TextAlign.center,
                             ),
                           ),
@@ -167,7 +168,7 @@ class _ModerationAppealsScreenState
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    appealStatusLabel(item.status),
+                                    appealStatusLabel(item.status, l10n),
                                     style: Theme.of(context)
                                         .textTheme
                                         .titleSmall
@@ -188,20 +189,26 @@ class _ModerationAppealsScreenState
                                   ],
                                   const SizedBox(height: 8),
                                   Text(
-                                    'Appeal ID: ${item.id}',
+                                    l10n.appealsIdLine(item.id),
                                     style: Theme.of(
                                       context,
                                     ).textTheme.labelSmall,
                                   ),
                                   Text(
-                                    'SLA deadline: ${item.slaDeadlineAt.isEmpty ? '-' : item.slaDeadlineAt}',
+                                    l10n.appealsSlaLine(
+                                      item.slaDeadlineAt.isEmpty
+                                          ? '-'
+                                          : item.slaDeadlineAt,
+                                    ),
                                     style: Theme.of(
                                       context,
                                     ).textTheme.labelSmall,
                                   ),
                                   if ((item.reviewedBy ?? '').trim().isNotEmpty)
                                     Text(
-                                      'Reviewed by: ${item.reviewedBy}',
+                                      l10n.appealsReviewedBy(
+                                        item.reviewedBy ?? '',
+                                      ),
                                       style: Theme.of(
                                         context,
                                       ).textTheme.labelSmall,
@@ -224,11 +231,12 @@ class _ModerationAppealsScreenState
   }
 
   Future<void> _onSubmitAppeal() async {
+    final l10n = AppLocalizations.of(context);
     final reason = _reasonController.text.trim();
     if (reason.isEmpty) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Reason is required.')));
+      ).showSnackBar(SnackBar(content: Text(l10n.appealsReasonRequired)));
       return;
     }
 
@@ -247,18 +255,16 @@ class _ModerationAppealsScreenState
       _reasonController.clear();
       _reportIdController.clear();
       _descriptionController.clear();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Appeal submitted successfully.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.appealsSubmitted)));
     } catch (_) {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to submit appeal. Please try again.'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.appealsSubmitFailed)));
     } finally {
       if (mounted) {
         setState(() => _submitting = false);

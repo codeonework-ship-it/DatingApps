@@ -7,6 +7,7 @@ import 'package:verified_dating_app/features/auth/providers/auth_provider.dart';
 import 'package:verified_dating_app/features/clubs/club_detail_screen.dart';
 import 'package:verified_dating_app/features/clubs/clubs_data.dart';
 import 'package:verified_dating_app/features/clubs/clubs_screen.dart';
+import 'package:verified_dating_app/l10n/app_localizations.dart';
 
 class _Auth extends AuthNotifier {
   @override
@@ -90,7 +91,11 @@ Widget _host(_FakeApi api, Widget child) => ProviderScope(
     authNotifierProvider.overrideWith(_Auth.new),
     apiClientProvider.overrideWithValue(api.dio),
   ],
-  child: MaterialApp(home: child),
+  child: MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
+    home: child,
+  ),
 );
 
 void main() {

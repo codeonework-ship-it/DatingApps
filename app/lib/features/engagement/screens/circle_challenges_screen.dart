@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
+import '../engagement_l10n.dart';
 import '../providers/circle_challenge_provider.dart';
 
 class CircleChallengesScreen extends ConsumerStatefulWidget {
@@ -28,11 +29,12 @@ class _CircleChallengesScreenState
 
   @override
   Widget build(BuildContext context) {
+    final l = engagementL10n(context);
     final state = ref.watch(circleChallengeProvider);
     final notifier = ref.read(circleChallengeProvider.notifier);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Local Circle Challenges')),
+      appBar: AppBar(title: Text(l.engagementCirclesTitle)),
       body: PostLoginBackdrop(
         child: SafeArea(
           child: RefreshIndicator(
@@ -54,8 +56,8 @@ class _CircleChallengesScreenState
                 else if (state.items.isEmpty)
                   _infoCard(
                     context,
-                    title: 'No circles available',
-                    subtitle: state.error ?? 'Please pull to refresh.',
+                    title: l.engagementCirclesEmptyTitle,
+                    subtitle: state.error ?? l.engagementCirclesPullToRefresh,
                   )
                 else ...[
                   ...state.items.map((item) {
@@ -92,7 +94,9 @@ class _CircleChallengesScreenState
                                 ),
                                 _pill(
                                   context,
-                                  item.isJoined ? 'Joined' : 'Not joined',
+                                  item.isJoined
+                                      ? l.engagementCirclesJoined
+                                      : l.engagementCirclesNotJoined,
                                   item.isJoined
                                       ? AppTheme.successGreen
                                       : AppTheme.warningOrange,
@@ -106,7 +110,9 @@ class _CircleChallengesScreenState
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              '${item.participationCount} participants this week',
+                              l.engagementCirclesParticipants(
+                                item.participationCount,
+                              ),
                               style: Theme.of(context).textTheme.bodySmall
                                   ?.copyWith(
                                     color: Theme.of(
@@ -122,7 +128,7 @@ class _CircleChallengesScreenState
                                   onPressed: state.isSubmitting
                                       ? null
                                       : () => notifier.joinCircle(item.id),
-                                  child: const Text('Join Circle'),
+                                  child: Text(l.engagementCirclesJoin),
                                 ),
                               ),
                             const SizedBox(height: 8),
@@ -130,9 +136,9 @@ class _CircleChallengesScreenState
                               controller: controller,
                               minLines: 2,
                               maxLines: 3,
-                              decoration: const InputDecoration(
-                                labelText: 'Weekly challenge response',
-                                border: OutlineInputBorder(),
+                              decoration: InputDecoration(
+                                labelText: l.engagementCirclesResponseLabel,
+                                border: const OutlineInputBorder(),
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -146,7 +152,7 @@ class _CircleChallengesScreenState
                                         challengeId: item.challengeId,
                                         entryText: controller.text,
                                       ),
-                                child: const Text('Submit Entry'),
+                                child: Text(l.engagementCirclesSubmit),
                               ),
                             ),
                           ],

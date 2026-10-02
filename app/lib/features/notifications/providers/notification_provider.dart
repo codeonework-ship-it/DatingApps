@@ -6,6 +6,7 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../../../core/auth/auth_session_store.dart';
 import '../../../core/config/app_runtime_config.dart';
+import '../../../core/i18n/app_l10n.dart';
 import '../../../core/network/api_error_message.dart';
 import '../../../core/notifications/push_notification_service.dart';
 import '../../../core/providers/api_client_provider.dart';
@@ -33,7 +34,9 @@ class AppNotification {
         sequence: (json['sequence'] as num?)?.toInt() ?? 0,
         eventType: json['event_type']?.toString() ?? '',
         category: json['category']?.toString() ?? 'system',
-        title: json['title']?.toString() ?? 'Notification',
+        title:
+            json['title']?.toString() ??
+            currentAppL10n().notificationsFallbackTitle,
         body: json['body']?.toString() ?? '',
         payload:
             (json['payload'] as Map?)?.cast<String, dynamic>() ??
@@ -302,7 +305,7 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
         isLoading: false,
         error: apiErrorMessage(
           error,
-          fallback: 'Unable to load notifications.',
+          fallback: currentAppL10n().notificationsLoadFailed,
         ),
       );
       return false;
@@ -496,7 +499,7 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
         preferences: previous,
         error: apiErrorMessage(
           error,
-          fallback: 'Unable to update notification preferences.',
+          fallback: currentAppL10n().notificationsPrefsUpdateFailed,
         ),
       );
     }

@@ -8,6 +8,7 @@ import 'package:verified_dating_app/features/graduation/models/graduation.dart';
 import 'package:verified_dating_app/features/graduation/screens/graduation_celebration_screen.dart';
 import 'package:verified_dating_app/features/graduation/screens/propose_graduation_sheet.dart';
 import 'package:verified_dating_app/features/graduation/widgets/graduation_banner.dart';
+import 'package:verified_dating_app/l10n/app_localizations.dart';
 
 class _Auth extends AuthNotifier {
   @override
@@ -133,19 +134,23 @@ Map<String, dynamic> _snapshot({Map<String, dynamic>? graduation}) => {
   'discovery_paused': false,
 };
 
-Widget _host(_FakeGraduationApi api, {Widget? body}) => ProviderScope(
-  overrides: [
-    authNotifierProvider.overrideWith(_Auth.new),
-    apiClientProvider.overrideWithValue(api.build()),
-  ],
-  child: MaterialApp(
-    home: Scaffold(
-      body:
-          body ??
-          const GraduationBanner(matchId: 'match-1', partnerName: 'Arjun'),
-    ),
-  ),
-);
+Widget _host(_FakeGraduationApi api, {Widget? body, Locale? locale}) =>
+    ProviderScope(
+      overrides: [
+        authNotifierProvider.overrideWith(_Auth.new),
+        apiClientProvider.overrideWithValue(api.build()),
+      ],
+      child: MaterialApp(
+        locale: locale,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body:
+              body ??
+              const GraduationBanner(matchId: 'match-1', partnerName: 'Arjun'),
+        ),
+      ),
+    );
 
 void main() {
   testWidgets('the banner stays hidden while nothing is proposed', (
@@ -200,6 +205,27 @@ void main() {
     expect(api.commands.single.body['share_with_friends'], isTrue);
     // The sheet closed on success.
     expect(find.text('Leave Connect with Arjun?'), findsNothing);
+  });
+
+  testWidgets('the banner and celebration follow the member language', (
+    tester,
+  ) async {
+    final api = _FakeGraduationApi(
+      snapshot: _snapshot(graduation: _graduation()),
+    );
+    await tester.pumpWidget(_host(api, locale: const Locale('de')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Arjun möchte Connect gemeinsam mit dir verlassen'),
+      findsOneWidget,
+    );
+    expect(find.text('„I think we found each other.“'), findsOneWidget);
+    expect(find.text('Noch nicht'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('qa.graduation.confirm')));
+    await tester.pumpAndSettle();
+    expect(find.text('Ihr habt euch gefunden'), findsOneWidget);
+    expect(find.text('Bestätigen und zurück'), findsOneWidget);
   });
 
   testWidgets('the partner confirms through the celebration screen', (

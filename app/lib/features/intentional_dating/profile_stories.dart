@@ -9,6 +9,7 @@ import '../../core/rich_text/rich_document_view.dart';
 import '../../core/rich_text/rich_text_controller.dart';
 import '../../core/rich_text/rich_text_editor.dart';
 import '../../core/theme/app_theme.dart';
+import '../../l10n/app_localizations.dart';
 import '../auth/providers/auth_provider.dart';
 
 const storyPrompts = <String, String>{
@@ -17,6 +18,22 @@ const storyPrompts = <String, String>{
   'first_hello': 'A first hello I would love',
   'learning': 'Something I am learning, just for me',
   'care': 'A small way I show I care',
+};
+
+/// The story prompts in [storyPrompts] order, labelled in the member's
+/// language. The ids are what the server stores and must not change.
+Map<String, String> localizedStoryPrompts(AppLocalizations l10n) => {
+  for (final id in storyPrompts.keys) id: storyPromptLabel(l10n, id)!,
+};
+
+/// The localized label for a story prompt id, or null for an unknown id.
+String? storyPromptLabel(AppLocalizations l10n, Object? id) => switch (id) {
+  'little_joy' => l10n.storiesPromptLittleJoy,
+  'weekend' => l10n.storiesPromptWeekend,
+  'first_hello' => l10n.storiesPromptFirstHello,
+  'learning' => l10n.storiesPromptLearning,
+  'care' => l10n.storiesPromptCare,
+  _ => null,
 };
 final profileStoriesProvider = FutureProvider.autoDispose
     .family<Map<String, dynamic>, String>((ref, user) async {
@@ -36,10 +53,11 @@ class ProfileStoriesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authNotifierProvider).userId;
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('A little more you')),
+      appBar: AppBar(title: Text(l10n.storiesScreenTitle)),
       body: user == null
-          ? const Center(child: Text('Sign in to edit your stories.'))
+          ? Center(child: Text(l10n.storiesSignIn))
           : ref
                 .watch(profileStoriesProvider(user))
                 .when(
@@ -49,11 +67,11 @@ class ProfileStoriesScreen extends ConsumerWidget {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Text('Your stories couldn’t load.'),
+                        Text(l10n.storiesLoadFailed),
                         TextButton(
                           onPressed: () =>
                               ref.invalidate(profileStoriesProvider(user)),
-                          child: const Text('Try again'),
+                          child: Text(l10n.storiesTryAgain),
                         ),
                       ],
                     ),
@@ -134,6 +152,7 @@ class _StoryEditorState extends ConsumerState<_StoryEditor> {
   }
 
   Future<void> save() async {
+    final l10n = AppLocalizations.of(context);
     final invalid = stories.any(
       (s) =>
           editorFor(s).text.trim().isEmpty ||
@@ -143,8 +162,7 @@ class _StoryEditorState extends ConsumerState<_StoryEditor> {
     if (invalid || !form.currentState!.validate()) {
       setState(() {
         preview = false;
-        error =
-            'Add words to each story and a description for each photo, or remove the unfinished story.';
+        error = l10n.storiesIncomplete;
       });
       return;
     }
@@ -182,8 +200,8 @@ class _StoryEditorState extends ConsumerState<_StoryEditor> {
         SnackBar(
           content: Text(
             published && stories.isNotEmpty
-                ? 'Your profile stories are published.'
-                : 'Saved privately. Your stories are hidden from other members.',
+                ? l10n.storiesPublished
+                : l10n.storiesSavedPrivately,
           ),
         ),
       );
@@ -191,11 +209,8 @@ class _StoryEditorState extends ConsumerState<_StoryEditor> {
     } on Object catch (e) {
       if (mounted)
         setState(
-          () => error = apiErrorMessage(
-            e,
-            fallback:
-                'We couldn’t confirm the save. Your edits are still here; reload saved stories to check.',
-          ),
+          () =>
+              error = apiErrorMessage(e, fallback: l10n.storiesSaveUnconfirmed),
         );
     } finally {
       if (mounted) setState(() => saving = false);
@@ -203,219 +218,218 @@ class _StoryEditorState extends ConsumerState<_StoryEditor> {
   }
 
   @override
-  Widget build(BuildContext context) => Center(
-    child: ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 760),
-      child: Form(
-        key: form,
-        child: ListView(
-          padding: const EdgeInsets.all(24),
-          children: [
-            Text(
-              'Let someone meet\nthe everyday you.',
-              style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                fontFamily: AppTheme.displayFamily,
-              ),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'A small ritual, a story behind a photo, a first hello you would enjoy. Share up to three moments, in your own words.',
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Optional, with no score or completion requirement. Avoid contact details or precise locations you do not want to share.',
-            ),
-            const SizedBox(height: 20),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              key: const ValueKey('qa.stories.publish'),
-              title: const Text('Show these stories on my profile'),
-              subtitle: const Text(
-                'Starts off. Visible to eligible members when your profile is published and available. You can hide them at any time.',
-              ),
-              value: published,
-              onChanged: saving ? null : (v) => setState(() => published = v),
-            ),
-            if (stories.isNotEmpty)
-              TextButton.icon(
-                onPressed: saving
-                    ? null
-                    : () => setState(() => preview = !preview),
-                icon: Icon(
-                  preview ? Icons.edit_outlined : Icons.visibility_outlined,
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 760),
+        child: Form(
+          key: form,
+          child: ListView(
+            padding: const EdgeInsets.all(24),
+            children: [
+              Text(
+                l10n.storiesHeadline,
+                style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                  fontFamily: AppTheme.displayFamily,
                 ),
-                label: Text(preview ? 'Back to editing' : 'Preview my stories'),
               ),
-            if (preview) ...[
-              const Text('PREVIEW · THIS DOES NOT PUBLISH'),
               const SizedBox(height: 12),
-              for (final story in stories)
-                StoryMomentCard(story: current(story)),
-            ] else ...[
-              for (var i = 0; i < stories.length; i++) _editor(stories[i], i),
-              if (stories.length < 3)
-                OutlinedButton.icon(
-                  key: const ValueKey('qa.stories.add'),
+              Text(l10n.storiesIntro),
+              const SizedBox(height: 12),
+              Text(l10n.storiesOptionalNote),
+              const SizedBox(height: 20),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                key: const ValueKey('qa.stories.publish'),
+                title: Text(l10n.storiesPublishSwitch),
+                subtitle: Text(l10n.storiesPublishSwitchHint),
+                value: published,
+                onChanged: saving ? null : (v) => setState(() => published = v),
+              ),
+              if (stories.isNotEmpty)
+                TextButton.icon(
+                  onPressed: saving
+                      ? null
+                      : () => setState(() => preview = !preview),
+                  icon: Icon(
+                    preview ? Icons.edit_outlined : Icons.visibility_outlined,
+                  ),
+                  label: Text(
+                    preview ? l10n.storiesBackToEditing : l10n.storiesPreview,
+                  ),
+                ),
+              if (preview) ...[
+                Text(l10n.storiesPreviewBanner),
+                const SizedBox(height: 12),
+                for (final story in stories)
+                  StoryMomentCard(story: current(story)),
+              ] else ...[
+                for (var i = 0; i < stories.length; i++) _editor(stories[i], i),
+                if (stories.length < 3)
+                  OutlinedButton.icon(
+                    key: const ValueKey('qa.stories.add'),
+                    onPressed: saving
+                        ? null
+                        : () => setState(() {
+                            stories.add({
+                              '_key': sequence++,
+                              'prompt_id': storyPrompts.keys.firstWhere(
+                                (p) => !stories.any((s) => s['prompt_id'] == p),
+                              ),
+                              'text': '',
+                            });
+                          }),
+                    icon: const Icon(Icons.add_rounded),
+                    label: Text(l10n.storiesAdd),
+                  ),
+              ],
+              const SizedBox(height: 20),
+              if (error != null) ...[
+                Text(
+                  error!,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+                TextButton(
+                  onPressed: saving
+                      ? null
+                      : () =>
+                            ref.invalidate(profileStoriesProvider(widget.user)),
+                  child: Text(l10n.storiesReloadDiscard),
+                ),
+              ],
+              FilledButton(
+                key: const ValueKey('qa.stories.save'),
+                onPressed: saving ? null : save,
+                child: Text(
+                  saving
+                      ? l10n.storiesSaving
+                      : published && stories.isNotEmpty
+                      ? l10n.storiesPublishButton
+                      : l10n.storiesSavePrivatelyButton,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(l10n.storiesPolicyNote),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _editor(Map<String, dynamic> story, int index) {
+    final l10n = AppLocalizations.of(context);
+    return Card(
+      key: ValueKey(story['_key']),
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    l10n.storiesMomentLabel(index + 1),
+                    style: Theme.of(context).textTheme.labelLarge,
+                  ),
+                ),
+                IconButton(
+                  tooltip: l10n.storiesRemoveTooltip(index + 1),
                   onPressed: saving
                       ? null
                       : () => setState(() {
-                          stories.add({
-                            '_key': sequence++,
-                            'prompt_id': storyPrompts.keys.firstWhere(
-                              (p) => !stories.any((s) => s['prompt_id'] == p),
-                            ),
-                            'text': '',
-                          });
+                          stories.remove(story);
+                          editors.remove(story['_key'])?.dispose();
                         }),
-                  icon: const Icon(Icons.add_rounded),
-                  label: const Text('Add a story'),
+                  icon: const Icon(Icons.close_rounded),
                 ),
-            ],
-            const SizedBox(height: 20),
-            if (error != null) ...[
-              Text(
-                error!,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
-              TextButton(
-                onPressed: saving
-                    ? null
-                    : () => ref.invalidate(profileStoriesProvider(widget.user)),
-                child: const Text('Reload saved stories · discard edits'),
-              ),
-            ],
-            FilledButton(
-              key: const ValueKey('qa.stories.save'),
-              onPressed: saving ? null : save,
-              child: Text(
-                saving
-                    ? 'Saving…'
-                    : published && stories.isNotEmpty
-                    ? 'Publish stories'
-                    : 'Save privately',
-              ),
+              ],
             ),
-            const SizedBox(height: 12),
-            const Text(
-              'Photos come from your approved profile gallery. Stories and photos remain subject to member reporting and safety policies.',
+            DropdownButtonFormField<String>(
+              initialValue: story['prompt_id'] as String,
+              isExpanded: true,
+              decoration: InputDecoration(labelText: l10n.storiesPromptLabel),
+              items: localizedStoryPrompts(l10n).entries
+                  .where(
+                    (e) =>
+                        e.key == story['prompt_id'] ||
+                        !stories.any((s) => s['prompt_id'] == e.key),
+                  )
+                  .map(
+                    (e) => DropdownMenuItem(
+                      value: e.key,
+                      child: Text(
+                        e.value,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  )
+                  .toList(),
+              onChanged: saving
+                  ? null
+                  : (v) => setState(() => story['prompt_id'] = v),
             ),
+            const SizedBox(height: 16),
+            RichTextEditor(
+              controller: editorFor(story),
+              fieldKey: ValueKey('qa.stories.text.${story['_key']}'),
+              keyPrefix: 'stories.editor.${story['_key']}',
+              minLines: 3,
+              maxLines: 7,
+              maxLength: 400,
+              enabled: !saving,
+              label: l10n.storiesTextLabel,
+              hint: l10n.storiesTextHint,
+              validator: (v) =>
+                  (v ?? '').trim().isEmpty ? l10n.storiesTextRequired : null,
+            ),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<String>(
+              initialValue: story['photo_id'] as String? ?? '',
+              isExpanded: true,
+              decoration: InputDecoration(labelText: l10n.storiesPhotoLabel),
+              items: [
+                DropdownMenuItem(value: '', child: Text(l10n.storiesWordsOnly)),
+                for (var p = 0; p < photos.length; p++)
+                  DropdownMenuItem(
+                    value: photos[p]['id'] as String,
+                    child: Text(l10n.storiesProfilePhoto(p + 1)),
+                  ),
+              ],
+              onChanged: saving
+                  ? null
+                  : (id) => setState(() {
+                      story['photo_id'] = id;
+                      story['photo_url'] = id == ''
+                          ? ''
+                          : photos.firstWhere((p) => p['id'] == id)['url'];
+                    }),
+            ),
+            if ((story['photo_id'] as String? ?? '').isNotEmpty) ...[
+              const SizedBox(height: 12),
+              TextFormField(
+                initialValue: story['photo_description'] as String? ?? '',
+                maxLength: 160,
+                enabled: !saving,
+                decoration: InputDecoration(
+                  labelText: l10n.storiesPhotoDescriptionLabel,
+                  helperText: l10n.storiesPhotoDescriptionHelper,
+                ),
+                validator: (v) => (v ?? '').trim().isEmpty
+                    ? l10n.storiesPhotoDescriptionRequired
+                    : null,
+                onChanged: (v) => story['photo_description'] = v,
+              ),
+            ],
           ],
         ),
       ),
-    ),
-  );
-  Widget _editor(Map<String, dynamic> story, int index) => Card(
-    key: ValueKey(story['_key']),
-    margin: const EdgeInsets.only(bottom: 16),
-    child: Padding(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'MOMENT ${index + 1}',
-                  style: Theme.of(context).textTheme.labelLarge,
-                ),
-              ),
-              IconButton(
-                tooltip: 'Remove story ${index + 1}',
-                onPressed: saving
-                    ? null
-                    : () => setState(() {
-                        stories.remove(story);
-                        editors.remove(story['_key'])?.dispose();
-                      }),
-                icon: const Icon(Icons.close_rounded),
-              ),
-            ],
-          ),
-          DropdownButtonFormField<String>(
-            initialValue: story['prompt_id'] as String,
-            isExpanded: true,
-            decoration: const InputDecoration(labelText: 'A starting point'),
-            items: storyPrompts.entries
-                .where(
-                  (e) =>
-                      e.key == story['prompt_id'] ||
-                      !stories.any((s) => s['prompt_id'] == e.key),
-                )
-                .map(
-                  (e) => DropdownMenuItem(
-                    value: e.key,
-                    child: Text(
-                      e.value,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                )
-                .toList(),
-            onChanged: saving
-                ? null
-                : (v) => setState(() => story['prompt_id'] = v),
-          ),
-          const SizedBox(height: 16),
-          RichTextEditor(
-            controller: editorFor(story),
-            fieldKey: ValueKey('qa.stories.text.${story['_key']}'),
-            keyPrefix: 'stories.editor.${story['_key']}',
-            minLines: 3,
-            maxLines: 7,
-            maxLength: 400,
-            enabled: !saving,
-            label: 'In your words',
-            hint: 'A real detail makes it yours.',
-            validator: (v) => (v ?? '').trim().isEmpty
-                ? 'Add a few words, or remove this story.'
-                : null,
-          ),
-          const SizedBox(height: 8),
-          DropdownButtonFormField<String>(
-            initialValue: story['photo_id'] as String? ?? '',
-            isExpanded: true,
-            decoration: const InputDecoration(
-              labelText: 'A photo, if you like',
-            ),
-            items: [
-              const DropdownMenuItem(value: '', child: Text('Words only')),
-              for (var p = 0; p < photos.length; p++)
-                DropdownMenuItem(
-                  value: photos[p]['id'] as String,
-                  child: Text('Profile photo ${p + 1}'),
-                ),
-            ],
-            onChanged: saving
-                ? null
-                : (id) => setState(() {
-                    story['photo_id'] = id;
-                    story['photo_url'] = id == ''
-                        ? ''
-                        : photos.firstWhere((p) => p['id'] == id)['url'];
-                  }),
-          ),
-          if ((story['photo_id'] as String? ?? '').isNotEmpty) ...[
-            const SizedBox(height: 12),
-            TextFormField(
-              initialValue: story['photo_description'] as String? ?? '',
-              maxLength: 160,
-              enabled: !saving,
-              decoration: const InputDecoration(
-                labelText: 'Describe this photo',
-                helperText: 'Helps people using screen readers.',
-              ),
-              validator: (v) => (v ?? '').trim().isEmpty
-                  ? 'Add a short photo description.'
-                  : null,
-              onChanged: (v) => story['photo_description'] = v,
-            ),
-          ],
-        ],
-      ),
-    ),
-  );
+    );
+  }
 }
 
 /// A story's formatting. With [plainFallback], plain-text stories open as
@@ -444,6 +458,7 @@ class StoryMomentCard extends StatelessWidget {
     final scheme = theme.colorScheme;
     final photo = story['photo_url'] as String? ?? '';
     final description = (story['photo_description'] as String? ?? '').trim();
+    final l10n = AppLocalizations.of(context);
     return Container(
       clipBehavior: Clip.antiAlias,
       margin: const EdgeInsets.only(bottom: 16),
@@ -458,7 +473,9 @@ class StoryMomentCard extends StatelessWidget {
           if (photo.isNotEmpty)
             Semantics(
               image: true,
-              label: description.isEmpty ? 'Profile story photo' : description,
+              label: description.isEmpty
+                  ? l10n.storiesPhotoSemantics
+                  : description,
               child: ExcludeSemantics(
                 child: AspectRatio(
                   // A widescreen still, like a frame from the member's day.
@@ -509,7 +526,8 @@ class StoryMomentCard extends StatelessWidget {
                     ),
                     Expanded(
                       child: Text(
-                        storyPrompts[story['prompt_id']] ?? 'A little more me',
+                        storyPromptLabel(l10n, story['prompt_id']) ??
+                            l10n.storiesSectionTitle,
                         style: theme.textTheme.titleSmall?.copyWith(
                           color: scheme.primary,
                           fontWeight: FontWeight.w700,
@@ -560,7 +578,7 @@ class ProfileStoriesSection extends ConsumerWidget {
             ? const SizedBox.shrink()
             : TextButton(
                 onPressed: () => ref.invalidate(profileStoriesProvider(userId)),
-                child: const Text('Try loading stories again'),
+                child: Text(AppLocalizations.of(context).storiesRetryLoad),
               ),
         data: (data) {
           final stories = (data['stories'] as List? ?? [])
@@ -585,7 +603,7 @@ class ProfileStoriesSection extends ConsumerWidget {
             children: [
               const SizedBox(height: 24),
               Text(
-                'A little more me',
+                AppLocalizations.of(context).storiesSectionTitle,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontFamily: AppTheme.displayFamily,
                 ),

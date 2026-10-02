@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:verified_dating_app/core/providers/api_client_provider.dart';
 import 'package:verified_dating_app/features/auth/screens/account_recovery_screen.dart';
+import 'package:verified_dating_app/l10n/app_localizations.dart';
 
 void main() {
   late List<RequestOptions> requests;
@@ -66,6 +67,8 @@ void main() {
       ProviderScope(
         overrides: [apiClientProvider.overrideWithValue(fakeClient())],
         child: const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: AccountRecoveryScreen(initialUsername: 'Member_One'),
         ),
       ),

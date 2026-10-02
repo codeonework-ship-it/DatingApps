@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/network/api_error_message.dart';
+import '../../l10n/app_localizations.dart';
 import '../auth/providers/auth_provider.dart';
 import 'blog_data.dart';
 import 'blog_follow.dart';
@@ -19,10 +20,11 @@ class BlogWritersScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authNotifierProvider.select((s) => s.userId));
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Writers you follow')),
+      appBar: AppBar(title: Text(l10n.blogWritersTitle)),
       body: user == null
-          ? const Center(child: Text('Sign in to see writers you follow.'))
+          ? Center(child: Text(l10n.blogSignInWriters))
           : ref
                 .watch(blogSubscriptionsProvider)
                 .when(
@@ -32,7 +34,7 @@ class BlogWritersScreen extends ConsumerWidget {
                     child: BlogError(
                       message: apiErrorMessage(
                         e,
-                        fallback: 'Writers you follow could not load.',
+                        fallback: l10n.blogWritersLoadFailed,
                       ),
                       retry: () => ref.invalidate(blogSubscriptionsProvider),
                     ),
@@ -62,12 +64,12 @@ class BlogWritersScreen extends ConsumerWidget {
                                       ),
                                       const SizedBox(height: 16),
                                       Text(
-                                        'No writers yet.',
+                                        l10n.blogNoWriters,
                                         style: theme.textTheme.titleLarge,
                                       ),
                                       const SizedBox(height: 8),
-                                      const Text(
-                                        'When a chapter speaks to you, tap Follow their chapters on it. Their new chapters will gather in Following.',
+                                      Text(
+                                        l10n.blogNoWritersBody,
                                         textAlign: TextAlign.center,
                                       ),
                                     ],
@@ -90,6 +92,7 @@ class BlogWritersScreen extends ConsumerWidget {
                                       ),
                                       Text(
                                         blogFollowerText(
+                                          l10n,
                                           (ref.watch(
                                                     blogFollowsProvider,
                                                   )[writer.authorId] ??
@@ -119,7 +122,11 @@ class BlogWritersScreen extends ConsumerWidget {
                                             writer.latestPostId,
                                           ),
                                           child: Text(
-                                            'Latest: ${writer.latestTitle.isEmpty ? 'An untitled chapter' : writer.latestTitle}',
+                                            l10n.blogLatest(
+                                              writer.latestTitle.isEmpty
+                                                  ? l10n.blogUntitled
+                                                  : writer.latestTitle,
+                                            ),
                                             maxLines: 2,
                                             overflow: TextOverflow.ellipsis,
                                           ),

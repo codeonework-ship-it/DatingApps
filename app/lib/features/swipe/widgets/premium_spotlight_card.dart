@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/widgets/glass_widgets.dart';
+import '../../../l10n/app_localizations.dart';
 import '../models/discovery_profile.dart';
 
 class PremiumSpotlightCard extends StatefulWidget {
@@ -41,7 +42,7 @@ class _PremiumSpotlightCardState extends State<PremiumSpotlightCard>
   String _tierLabel(String raw) {
     final value = raw.trim().toLowerCase();
     if (value.isEmpty) {
-      return 'Premium';
+      return AppLocalizations.of(context).discoverPremium;
     }
     return '${value[0].toUpperCase()}${value.substring(1)}';
   }
@@ -118,7 +119,7 @@ class _PremiumSpotlightCardState extends State<PremiumSpotlightCard>
                     Icon(Icons.auto_awesome, size: 12, color: scheme.onPrimary),
                     const SizedBox(width: 4),
                     Text(
-                      _tierLabel(widget.profile.spotlightTier ?? 'premium'),
+                      _tierLabel(widget.profile.spotlightTier ?? ''),
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
                         color: scheme.onPrimary,
                         fontWeight: FontWeight.w700,
@@ -194,7 +195,7 @@ class _PremiumShineButton extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'Premium view',
+                    AppLocalizations.of(context).discoverPremiumView,
                     style: Theme.of(context).textTheme.labelMedium?.copyWith(
                       color: scheme.onPrimary,
                       fontWeight: FontWeight.w700,

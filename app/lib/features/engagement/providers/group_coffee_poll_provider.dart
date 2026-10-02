@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/config/feature_flags.dart';
 import '../../../core/providers/api_client_provider.dart';
 import '../../../core/utils/logger.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../engagement_l10n.dart';
 
 class GroupCoffeePollOption {
   const GroupCoffeePollOption({
@@ -105,10 +107,12 @@ class GroupCoffeePollNotifier extends StateNotifier<GroupCoffeePollState> {
 
   final Ref _ref;
 
+  AppLocalizations get _l => engagementL10nFor(_ref);
+
   Future<void> load({String status = ''}) async {
     final userId = _currentUserId();
     if (userId == null || userId.isEmpty) {
-      state = state.copyWith(error: 'User session not available.');
+      state = state.copyWith(error: _l.engagementSessionUnavailable);
       return;
     }
 
@@ -174,16 +178,13 @@ class GroupCoffeePollNotifier extends StateNotifier<GroupCoffeePollState> {
       log.error('Failed to load group coffee polls', e, stackTrace);
       state = state.copyWith(
         isLoading: false,
-        error: _extractApiError(
-          e,
-          fallback: 'Unable to load group polls right now.',
-        ),
+        error: _extractApiError(e, fallback: _l.engagementCoffeeLoadFailed),
       );
     } catch (e, stackTrace) {
       log.error('Failed to load group coffee polls', e, stackTrace);
       state = state.copyWith(
         isLoading: false,
-        error: 'Unable to load group polls right now.',
+        error: _l.engagementCoffeeLoadFailed,
       );
     }
   }
@@ -195,7 +196,7 @@ class GroupCoffeePollNotifier extends StateNotifier<GroupCoffeePollState> {
   }) async {
     final creatorUserId = _currentUserId();
     if (creatorUserId == null || creatorUserId.isEmpty) {
-      state = state.copyWith(error: 'User session not available.');
+      state = state.copyWith(error: _l.engagementSessionUnavailable);
       return;
     }
 
@@ -224,16 +225,13 @@ class GroupCoffeePollNotifier extends StateNotifier<GroupCoffeePollState> {
       log.error('Failed to create group coffee poll', e, stackTrace);
       state = state.copyWith(
         isSubmitting: false,
-        error: _extractApiError(
-          e,
-          fallback: 'Unable to create group poll right now.',
-        ),
+        error: _extractApiError(e, fallback: _l.engagementCoffeeCreateFailed),
       );
     } catch (e, stackTrace) {
       log.error('Failed to create group coffee poll', e, stackTrace);
       state = state.copyWith(
         isSubmitting: false,
-        error: 'Unable to create group poll right now.',
+        error: _l.engagementCoffeeCreateFailed,
       );
     }
   }
@@ -247,7 +245,7 @@ class GroupCoffeePollNotifier extends StateNotifier<GroupCoffeePollState> {
         ? userId!.trim()
         : _currentUserId();
     if (actorId == null || actorId.isEmpty) {
-      state = state.copyWith(error: 'User ID is required to vote.');
+      state = state.copyWith(error: _l.engagementCoffeeVoteUserRequired);
       return;
     }
 
@@ -271,13 +269,13 @@ class GroupCoffeePollNotifier extends StateNotifier<GroupCoffeePollState> {
       log.error('Failed to vote on group coffee poll', e, stackTrace);
       state = state.copyWith(
         isSubmitting: false,
-        error: _extractApiError(e, fallback: 'Unable to vote right now.'),
+        error: _extractApiError(e, fallback: _l.engagementCoffeeVoteFailed),
       );
     } catch (e, stackTrace) {
       log.error('Failed to vote on group coffee poll', e, stackTrace);
       state = state.copyWith(
         isSubmitting: false,
-        error: 'Unable to vote right now.',
+        error: _l.engagementCoffeeVoteFailed,
       );
     }
   }
@@ -287,7 +285,7 @@ class GroupCoffeePollNotifier extends StateNotifier<GroupCoffeePollState> {
         ? userId!.trim()
         : _currentUserId();
     if (actorId == null || actorId.isEmpty) {
-      state = state.copyWith(error: 'User ID is required to finalize.');
+      state = state.copyWith(error: _l.engagementCoffeeFinalizeUserRequired);
       return;
     }
 
@@ -311,16 +309,13 @@ class GroupCoffeePollNotifier extends StateNotifier<GroupCoffeePollState> {
       log.error('Failed to finalize group coffee poll', e, stackTrace);
       state = state.copyWith(
         isSubmitting: false,
-        error: _extractApiError(
-          e,
-          fallback: 'Unable to finalize poll right now.',
-        ),
+        error: _extractApiError(e, fallback: _l.engagementCoffeeFinalizeFailed),
       );
     } catch (e, stackTrace) {
       log.error('Failed to finalize group coffee poll', e, stackTrace);
       state = state.copyWith(
         isSubmitting: false,
-        error: 'Unable to finalize poll right now.',
+        error: _l.engagementCoffeeFinalizeFailed,
       );
     }
   }

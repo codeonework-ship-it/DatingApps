@@ -181,12 +181,8 @@ Future<void> _mount(
       child: MaterialApp(
         theme: theme,
         locale: locale,
-        localizationsDelegates: locale == null
-            ? null
-            : AppLocalizations.localizationsDelegates,
-        supportedLocales: locale == null
-            ? const [Locale('en', 'US')]
-            : AppLocalizations.supportedLocales,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: const ConversationRoomsScreen(),
       ),
     ),

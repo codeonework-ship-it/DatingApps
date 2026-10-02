@@ -10,6 +10,7 @@ import '../../core/rich_text/rich_document_view.dart';
 import '../../core/rich_text/rich_text_controller.dart';
 import '../../core/rich_text/rich_text_editor.dart';
 import '../../core/theme/app_theme.dart';
+import '../../l10n/app_localizations.dart';
 import '../auth/providers/auth_provider.dart';
 import 'blog_data.dart';
 import 'blog_follow.dart';
@@ -60,6 +61,8 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
       post?.content ??
       RichDocument.fromPlainText(post?.body ?? '', style: defaultChapterStyle);
 
+  AppLocalizations get l10n => AppLocalizations.of(context);
+
   void changed() {
     if (mounted) {
       setState(() {
@@ -82,7 +85,7 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
         (title.text.trim().isEmpty || body.text.trim().isEmpty)) {
       setState(() {
         preview = false;
-        error = 'Add a title and story before publishing.';
+        error = l10n.blogEditorMissingFields;
       });
       return null;
     }
@@ -90,11 +93,11 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
         target != 'private' &&
         !await confirmBlogAction(
           context,
-          'Publish to ${blogAudiences[target]}?',
+          l10n.blogPublishConfirmTitle(target),
           target == 'friends'
-              ? 'Your accepted Connect friends can read the words and photos in this chapter. You can change the audience later.'
-              : 'Eligible, signed-in Connect members can read this chapter. It will not appear on the public web. You can change the audience later.',
-          'Publish chapter',
+              ? l10n.blogPublishFriendsBody
+              : l10n.blogPublishCommunityBody,
+          l10n.blogPublishChapter,
         )) {
       return null;
     }
@@ -134,8 +137,8 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
         dirty = false;
         uncertain = false;
         notice = target == 'private'
-            ? 'Saved. Only you can read this chapter.'
-            : 'Published to ${blogAudiences[target]}.';
+            ? l10n.blogSavedOnlyMe
+            : l10n.blogPublishedTo(target);
       });
       if (firstShare) {
         ScaffoldMessenger.of(context)
@@ -143,11 +146,9 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
           ..showSnackBar(
             SnackBar(
               key: const ValueKey('blog.shared_snack'),
-              content: const Text(
-                'Shared. Readers’ likes and comments earn you XP.',
-              ),
+              content: Text(l10n.blogSharedSnack),
               action: SnackBarAction(
-                label: 'See my level',
+                label: l10n.blogSeeMyLevel,
                 onPressed: () => openMyLevel(context),
               ),
             ),
@@ -158,8 +159,9 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
       if (mounted) {
         setState(() {
           uncertain = true;
-          error =
-              '${apiErrorMessage(e, fallback: 'We could not confirm the save.')} Your edits are still here. Check the saved version before continuing.';
+          error = l10n.blogEditsStillHere(
+            apiErrorMessage(e, fallback: l10n.blogSaveUnconfirmed),
+          );
         });
       }
       return null;
@@ -191,7 +193,9 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
             padding: const EdgeInsets.all(24),
             children: [
               Text(
-                'Saved version · ${blogAudiences[remote.audience]}',
+                l10n.blogSavedVersionTitle(
+                  blogAudienceLabel(l10n, remote.audience),
+                ),
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 16),
@@ -208,9 +212,7 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
                   child: BlogImage(post: remote, photo: photo),
                 ),
               const SizedBox(height: 20),
-              const Text(
-                'Your current edits remain in the editor. Close this sheet to keep them, or replace them with this saved version.',
-              ),
+              Text(l10n.blogSavedVersionNote),
               const SizedBox(height: 16),
               OutlinedButton(
                 onPressed: () {
@@ -221,7 +223,7 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
                     uncertain = false;
                   });
                 },
-                child: const Text('Keep my edits for the next save'),
+                child: Text(l10n.blogKeepMyEdits),
               ),
               OutlinedButton(
                 onPressed: () {
@@ -238,7 +240,7 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
                     uncertain = false;
                   });
                 },
-                child: const Text('Use saved version'),
+                child: Text(l10n.blogUseSavedVersion),
               ),
             ],
           ),
@@ -249,8 +251,7 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
         setState(
           () => error = apiErrorMessage(
             e,
-            fallback:
-                'The saved version could not load. Your edits remain here.',
+            fallback: l10n.blogSavedVersionLoadFailed,
           ),
         );
       }
@@ -272,19 +273,17 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
     final alt = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Describe your photo'),
+        title: Text(l10n.blogDescribePhotoTitle),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'A short description makes your chapter accessible. Adding the photo saves your words as an Only me draft.',
-            ),
+            Text(l10n.blogDescribePhotoBody),
             const SizedBox(height: 12),
             TextField(
               onChanged: (value) => altText = value,
               maxLength: 160,
-              decoration: const InputDecoration(
-                labelText: 'What is in this photo?',
+              decoration: InputDecoration(
+                labelText: l10n.blogDescribePhotoLabel,
               ),
             ),
           ],
@@ -292,7 +291,7 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(l10n.blogCancel),
           ),
           FilledButton(
             onPressed: () {
@@ -300,7 +299,7 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
                 Navigator.pop(context, altText.trim());
               }
             },
-            child: const Text('Add to private draft'),
+            child: Text(l10n.blogAddToPrivateDraft),
           ),
         ],
       ),
@@ -331,15 +330,16 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
       if (!mounted) return;
       setState(() {
         saved = BlogPost.fromJson((response.data as Map)['post'] as Map);
-        notice = 'Photo added to your private draft.';
+        notice = l10n.blogPhotoAdded;
       });
       invalidateBlog(ref, id);
     } on Object catch (e) {
       if (mounted) {
         setState(() {
           uncertain = true;
-          error =
-              '${apiErrorMessage(e, fallback: 'The photo could not be added. Use a JPEG or PNG up to 10 MB.')} Check the saved version before retrying.';
+          error = l10n.blogCheckSavedBeforeRetrying(
+            apiErrorMessage(e, fallback: l10n.blogPhotoAddFailed),
+          );
         });
       }
     } finally {
@@ -368,10 +368,7 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
       if (mounted) {
         setState(() {
           uncertain = true;
-          error = apiErrorMessage(
-            e,
-            fallback: 'Could not confirm removal. Check the saved version.',
-          );
+          error = apiErrorMessage(e, fallback: l10n.blogRemoveUnconfirmed);
         });
       }
     } finally {
@@ -385,11 +382,7 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
     if (currentUser == null ||
         currentUser != user ||
         (saved != null && saved!.authorId != user)) {
-      return const Scaffold(
-        body: Center(
-          child: Text('Sign in as the author to edit this chapter.'),
-        ),
-      );
+      return Scaffold(body: Center(child: Text(l10n.blogSignInAsAuthor)));
     }
     return PopScope(
       canPop: !busy && !dirty,
@@ -397,9 +390,9 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
         if (didPop || busy) return;
         if (await confirmBlogAction(
               context,
-              'Leave without saving?',
-              'Your unsaved edits will be lost. Your last saved chapter will remain.',
-              'Leave editor',
+              l10n.blogLeaveEditorTitle,
+              l10n.blogLeaveEditorMessage,
+              l10n.blogLeaveEditor,
             ) &&
             context.mounted) {
           setState(() => dirty = false);
@@ -410,7 +403,9 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: Text(preview ? 'Chapter preview' : 'Your next chapter'),
+          title: Text(
+            preview ? l10n.blogEditorPreviewTitle : l10n.blogEditorTitle,
+          ),
         ),
         body: Center(
           child: ConstrainedBox(
@@ -419,15 +414,13 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
               padding: const EdgeInsets.fromLTRB(24, 16, 24, 64),
               children: [
                 Text(
-                  'A little more you.',
+                  l10n.blogEditorHeadline,
                   style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                     fontFamily: AppTheme.displayFamily,
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'Small stories are welcome. A meal you made. A place that changed your mind. The photo with a story behind it.',
-                ),
+                Text(l10n.blogEditorIntro),
                 const SizedBox(height: 16),
                 Wrap(
                   spacing: 8,
@@ -438,8 +431,8 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
                       avatar: const Icon(Icons.visibility_outlined, size: 16),
                       label: Text(
                         saved == null
-                            ? 'Not saved · Only me by default'
-                            : 'Saved for ${blogAudiences[saved!.audience]}',
+                            ? l10n.blogNotSavedDefault
+                            : l10n.blogSavedFor(saved!.audience),
                       ),
                     ),
                     TextButton.icon(
@@ -451,7 +444,9 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
                             ? Icons.edit_outlined
                             : Icons.visibility_outlined,
                       ),
-                      label: Text(preview ? 'Keep writing' : 'Preview'),
+                      label: Text(
+                        preview ? l10n.blogKeepWriting : l10n.blogPreview,
+                      ),
                     ),
                   ],
                 ),
@@ -478,24 +473,24 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
                     alignment: Alignment.centerLeft,
                     child: OutlinedButton(
                       onPressed: busy ? null : checkSaved,
-                      child: const Text('Check saved version'),
+                      child: Text(l10n.blogCheckSavedVersion),
                     ),
                   ),
                 const SizedBox(height: 16),
                 if (preview) ...[
                   Text(
-                    'Preview · ${blogAudiences[audience]} · Not yet saved',
+                    l10n.blogPreviewNotSaved(blogAudienceLabel(l10n, audience)),
                     style: Theme.of(context).textTheme.labelLarge,
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    title.text.isEmpty ? 'An untitled chapter' : title.text,
+                    title.text.isEmpty ? l10n.blogUntitled : title.text,
                     style: Theme.of(context).textTheme.headlineMedium,
                   ),
                   const SizedBox(height: 16),
                   if (body.text.trim().isEmpty)
                     Text(
-                      'Your story will appear here.',
+                      l10n.blogStoryPlaceholder,
                       style: Theme.of(
                         context,
                       ).textTheme.bodyLarge?.copyWith(height: 1.65),
@@ -508,7 +503,7 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
                   if (invitation.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(top: 24),
-                      child: Text(blogInvitations[invitation]!),
+                      child: Text(blogInvitationLabel(l10n, invitation)),
                     ),
                 ] else ...[
                   TextField(
@@ -516,9 +511,9 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
                     enabled: !busy,
                     maxLength: 100,
                     textCapitalization: TextCapitalization.sentences,
-                    decoration: const InputDecoration(
-                      labelText: 'Chapter title',
-                      hintText: 'The Sunday I learned to slow down',
+                    decoration: InputDecoration(
+                      labelText: l10n.blogChapterTitleLabel,
+                      hintText: l10n.blogChapterTitleHint,
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -527,23 +522,23 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
                     enabled: !busy,
                     maxLength: 8000,
                     keyPrefix: 'blog.editor',
-                    label: 'Your story',
-                    hint: 'Start anywhere. Make it yours.',
+                    label: l10n.blogStoryLabel,
+                    hint: l10n.blogStoryHint,
                   ),
                   const SizedBox(height: 20),
                   DropdownButtonFormField<String>(
                     key: ValueKey(invitation),
                     initialValue: invitation,
                     isExpanded: true,
-                    decoration: const InputDecoration(
-                      labelText: 'End with an invitation (optional)',
+                    decoration: InputDecoration(
+                      labelText: l10n.blogInvitationLabel,
                     ),
                     items: [
-                      for (final e in blogInvitations.entries)
+                      for (final id in blogInvitations)
                         DropdownMenuItem(
-                          value: e.key,
+                          value: id,
                           child: Text(
-                            e.value,
+                            blogInvitationLabel(l10n, id),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -557,9 +552,7 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
                           }),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Leave a question that helps someone get to know you.',
-                  ),
+                  Text(l10n.blogInvitationHelp),
                   _TopicPicker(
                     selected: topic,
                     enabled: !busy,
@@ -582,7 +575,7 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
                                 ? null
                                 : () => removePhoto(photo),
                             icon: const Icon(Icons.delete_outline),
-                            label: const Text('Remove photo'),
+                            label: Text(l10n.blogRemovePhoto),
                           ),
                       ],
                     ),
@@ -598,15 +591,13 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
                         ? null
                         : addPhoto,
                     icon: const Icon(Icons.add_photo_alternate_outlined),
-                    label: const Text('Add a photo'),
+                    label: Text(l10n.blogAddPhoto),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Up to 6 JPEG or PNG photos, 10 MB each. Photos need approval. Save as Only me before changing photos on a published chapter.',
-                  ),
+                  Text(l10n.blogPhotoRules),
                   const SizedBox(height: 24),
                   Text(
-                    'Who is this chapter for?',
+                    l10n.blogWhoFor,
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                   const SizedBox(height: 12),
@@ -614,14 +605,14 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      for (final e in blogAudiences.entries)
+                      for (final id in blogAudiences)
                         ChoiceChip(
-                          label: Text(e.value),
-                          selected: audience == e.key,
+                          label: Text(blogAudienceLabel(l10n, id)),
+                          selected: audience == id,
                           onSelected: busy
                               ? null
                               : (_) => setState(() {
-                                  audience = e.key;
+                                  audience = id;
                                   dirty = true;
                                 }),
                         ),
@@ -630,10 +621,10 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
                   const SizedBox(height: 12),
                   Text(
                     audience == 'private'
-                        ? 'Only you can read this chapter. Friends and matches cannot see it.'
+                        ? l10n.blogAudiencePrivateHelp
                         : audience == 'friends'
-                        ? 'Only accepted Connect friends can read it. A match alone does not give access.'
-                        : 'Eligible signed-in members can read it. Complete your profile with two approved profile photos to publish here. This is not public web sharing.',
+                        ? l10n.blogAudienceFriendsHelp
+                        : l10n.blogAudienceCommunityHelp,
                   ),
                   if (audience == 'community') ...[
                     const SizedBox(height: 8),
@@ -647,10 +638,8 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
                               allowFeaturing = v;
                               dirty = true;
                             }),
-                      title: const Text('Allow featuring'),
-                      subtitle: const Text(
-                        'If readers love it, your chapter can reach other members’ walls: 50 likes and 5 comments reach 50 walls, 100 likes and 10 comments reach 100. You can turn this off any time.',
-                      ),
+                      title: Text(l10n.blogAllowFeaturing),
+                      subtitle: Text(l10n.blogAllowFeaturingHelp),
                     ),
                   ],
                 ],
@@ -675,21 +664,19 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
                             ),
                       label: Text(
                         audience == 'private'
-                            ? 'Save only for me'
-                            : 'Publish to ${blogAudiences[audience]}',
+                            ? l10n.blogSaveOnlyForMe
+                            : l10n.blogPublishTo(audience),
                       ),
                     ),
                     if (audience != 'private')
                       OutlinedButton(
                         onPressed: busy ? null : () => save(target: 'private'),
-                        child: const Text('Save as Only me'),
+                        child: Text(l10n.blogSaveAsOnlyMe),
                       ),
                   ],
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'Your words are saved when you choose Save or Publish. Preview does not publish anything.',
-                ),
+                Text(l10n.blogSaveNote),
               ],
             ),
           ),
@@ -718,6 +705,7 @@ class _TopicPicker extends ConsumerWidget {
         .watch(blogTopicsProvider)
         .maybeWhen(data: (t) => t, orElse: () => const <BlogTopic>[]);
     if (topics.isEmpty) return const SizedBox.shrink();
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.only(top: 24),
       child: Column(
@@ -725,11 +713,11 @@ class _TopicPicker extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Topic (optional)',
+            l10n.blogTopicOptional,
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 4),
-          const Text('Help readers who care about this find your chapter.'),
+          Text(l10n.blogTopicHelp),
           const SizedBox(height: 12),
           Wrap(
             spacing: 8,

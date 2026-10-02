@@ -1,27 +1,53 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../l10n/app_localizations.dart';
+import '../i18n/app_l10n.dart';
+
 enum NetworkQualityStatus { healthy, unstable, offline }
+
+/// Which advisory a non-healthy [NetworkQualityState] carries, so widgets
+/// can show it in the member's language
+/// ([NetworkQualityState.localizedMessage]).
+enum NetworkQualityNotice { slowResponses, offline, weakNetwork }
 
 class NetworkQualityState {
   const NetworkQualityState({
     this.status = NetworkQualityStatus.healthy,
     this.message,
     this.lastLatencyMs,
+    this.notice,
   });
 
   final NetworkQualityStatus status;
+
+  /// The advisory in the language current when it was raised. Widgets should
+  /// prefer [localizedMessage].
   final String? message;
   final int? lastLatencyMs;
+  final NetworkQualityNotice? notice;
+
+  /// [message] in the language of [l10n], or null when there is no advisory.
+  String? localizedMessage(AppLocalizations l10n) {
+    const mbps = NetworkQualityNotifier.minimumSmoothBandwidthMbps;
+    return switch (notice) {
+      NetworkQualityNotice.slowResponses => l10n.networkSlowResponse(mbps),
+      NetworkQualityNotice.offline => l10n.networkOffline,
+      NetworkQualityNotice.weakNetwork => l10n.networkWeak(mbps),
+      null => message,
+    };
+  }
 
   NetworkQualityState copyWith({
     NetworkQualityStatus? status,
     String? message,
     int? lastLatencyMs,
+    NetworkQualityNotice? notice,
   }) => NetworkQualityState(
     status: status ?? this.status,
     message: message,
     lastLatencyMs: lastLatencyMs ?? this.lastLatencyMs,
+    notice: notice,
   );
 }
 
@@ -36,10 +62,10 @@ class NetworkQualityNotifier extends StateNotifier<NetworkQualityState> {
       state = NetworkQualityState(
         status: NetworkQualityStatus.unstable,
         lastLatencyMs: durationMs,
-        message:
-            'Weak network detected. Use at least '
-            '$minimumSmoothBandwidthMbps Mbps for smoother '
-            'chat, gifts, and gestures.',
+        notice: NetworkQualityNotice.slowResponses,
+        message: currentAppL10n().networkSlowResponse(
+          minimumSmoothBandwidthMbps,
+        ),
       );
       return;
     }
@@ -64,11 +90,12 @@ class NetworkQualityNotifier extends StateNotifier<NetworkQualityState> {
       status: offline
           ? NetworkQualityStatus.offline
           : NetworkQualityStatus.unstable,
+      notice: offline
+          ? NetworkQualityNotice.offline
+          : NetworkQualityNotice.weakNetwork,
       message: offline
-          ? 'No stable network connection. Reconnect to continue using the app.'
-          : 'Network is weak. Use at least '
-                '$minimumSmoothBandwidthMbps Mbps for a '
-                'smoother experience.',
+          ? currentAppL10n().networkOffline
+          : currentAppL10n().networkWeak(minimumSmoothBandwidthMbps),
     );
   }
 

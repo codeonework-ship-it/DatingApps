@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/i18n/app_l10n.dart';
 import '../../core/providers/api_client_provider.dart';
 import '../auth/providers/auth_provider.dart';
 import 'reward_burst.dart';
@@ -117,6 +118,8 @@ class _RewardBurstHostState extends ConsumerState<RewardBurstHost>
       seen: seen,
       snapshot: snapshot,
       now: widget.clock(),
+      // The member's language as shown, so the card matches the app.
+      l10n: mounted ? l10nOrEnglish(context) : null,
     );
     _cachedUser = userId;
     _cached = diff.next;

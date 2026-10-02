@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import 'app_theme.dart';
 import 'couture.dart';
 
@@ -883,3 +884,27 @@ abstract final class ThemePresets {
     );
   }
 }
+
+/// [ThemePreset.tagline] in the member's language. The look's name
+/// ([ThemePreset.label]) is a product name and stays untranslated.
+String localizedPresetTagline(AppLocalizations l10n, ThemePreset preset) =>
+    switch (preset.id) {
+      'real-life' => l10n.themeTaglineRealLife,
+      'real-life-night' => l10n.themeTaglineRealLifeNight,
+      'daylight' => l10n.themeTaglineDaylight,
+      'ember' => l10n.themeTaglineEmber,
+      'forge' => l10n.themeTaglineForge,
+      'neongrid' => l10n.themeTaglineNeongrid,
+      'crimsonalloy' => l10n.themeTaglineCrimsonalloy,
+      'circuit' => l10n.themeTaglineCircuit,
+      'deepfield' => l10n.themeTaglineDeepfield,
+      'love' => l10n.themeTaglineLove,
+      'rose' => l10n.themeTaglineRose,
+      'bluerose' => l10n.themeTaglineBluerose,
+      'bluelotus' => l10n.themeTaglineBluelotus,
+      'petal' => l10n.themeTaglinePetal,
+      'snow' => l10n.themeTaglineSnow,
+      'gothic' => l10n.themeTaglineGothic,
+      'calm' => l10n.themeTaglineCalm,
+      _ => preset.tagline,
+    };

@@ -2,7 +2,9 @@ import '../../swipe/providers/curated_daily_set_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../matching/matching_l10n.dart';
 import '../../matching/providers/trust_filter_provider.dart';
+import '../engagement_l10n.dart';
 
 class TrustFilterScreen extends ConsumerStatefulWidget {
   const TrustFilterScreen({super.key});
@@ -18,6 +20,7 @@ class _TrustFilterScreenState extends ConsumerState<TrustFilterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l = engagementL10n(context);
     final state = ref.watch(trustFilterNotifierProvider);
     final notifier = ref.read(trustFilterNotifierProvider.notifier);
 
@@ -27,7 +30,7 @@ class _TrustFilterScreenState extends ConsumerState<TrustFilterScreen> {
         _requiredBadgeCodes ?? state.requiredBadgeCodes.toSet();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Trust Filters')),
+      appBar: AppBar(title: Text(l.settingsTrustFiltersTitle)),
       body: RefreshIndicator(
         onRefresh: notifier.load,
         child: ListView(
@@ -41,16 +44,14 @@ class _TrustFilterScreenState extends ConsumerState<TrustFilterScreen> {
             else ...[
               SwitchListTile(
                 value: enabled,
-                title: const Text('Enable trust filters'),
-                subtitle: const Text(
-                  'Hide profiles that do not meet your trust requirements',
-                ),
+                title: Text(l.engagementTrustFiltersEnable),
+                subtitle: Text(l.engagementTrustFiltersEnableSubtitle),
                 onChanged: state.isSaving
                     ? null
                     : (value) => setState(() => _enabled = value),
               ),
               const SizedBox(height: 12),
-              Text('Minimum active badges: $minimumBadges'),
+              Text(l.engagementTrustFiltersMinimum(minimumBadges)),
               Slider(
                 min: 0,
                 max: 4,
@@ -61,15 +62,18 @@ class _TrustFilterScreenState extends ConsumerState<TrustFilterScreen> {
                     : (value) => setState(() => _minimumBadges = value.toInt()),
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Required badges',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+              Text(
+                l.engagementTrustFiltersRequired,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const SizedBox(height: 8),
               ...state.availableBadges.map(
                 (badge) => CheckboxListTile(
                   value: requiredBadgeCodes.contains(badge.code),
-                  title: Text(badge.label),
+                  title: Text(localizedTrustBadgeLabel(l, badge)),
                   subtitle: Text(badge.code),
                   onChanged: state.isSaving
                       ? null
@@ -103,8 +107,8 @@ class _TrustFilterScreenState extends ConsumerState<TrustFilterScreen> {
                               ref.read(trustFilterNotifierProvider).error ==
                                   null) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Trust filters saved.'),
+                              SnackBar(
+                                content: Text(l.engagementTrustFiltersSaved),
                               ),
                             );
                           }
@@ -115,14 +119,14 @@ class _TrustFilterScreenState extends ConsumerState<TrustFilterScreen> {
                           height: 16,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text('Save Trust Filters'),
+                      : Text(l.engagementTrustFiltersSave),
                 ),
               ),
             ],
             if (state.error != null) ...[
               const SizedBox(height: 12),
               Text(
-                state.error!,
+                localizeTrustFilterError(l, state.error)!,
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
             ],

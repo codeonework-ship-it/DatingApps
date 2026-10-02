@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../auth/providers/auth_provider.dart';
 import 'photo_theme_widgets.dart';
 import 'photo_themes_data.dart';
@@ -13,11 +14,14 @@ import 'photo_themes_data.dart';
 class PhotoWallRail extends ConsumerWidget {
   const PhotoWallRail({
     super.key,
-    this.title = 'Covers on your wall',
-    this.caption = 'Photos other members loved',
+    this.title,
+    this.caption,
     this.padding = EdgeInsets.zero,
   });
-  final String title, caption;
+
+  /// Rail title and caption; null uses "Covers on your wall" and
+  /// "Photos other members loved" in the app's language.
+  final String? title, caption;
   final EdgeInsetsGeometry padding;
 
   /// Cover width; the height follows the 4:5 portrait ratio.
@@ -33,6 +37,7 @@ class PhotoWallRail extends ConsumerWidget {
     }
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
     return Padding(
       key: const ValueKey('photo.wall_rail'),
       padding: padding,
@@ -45,7 +50,7 @@ class PhotoWallRail extends ConsumerWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  title,
+                  title ?? l10n.photoThemesWallTitle,
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
@@ -55,7 +60,7 @@ class PhotoWallRail extends ConsumerWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            caption,
+            caption ?? l10n.photoThemesWallCaption,
             style: theme.textTheme.bodySmall?.copyWith(
               color: colors.onSurfaceVariant,
             ),
@@ -97,6 +102,7 @@ class PhotoCoverCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final scrim = theme.colorScheme.scrim;
     final display = theme.textTheme.displaySmall;
     final serif = TextStyle(
@@ -108,7 +114,7 @@ class PhotoCoverCard extends ConsumerWidget {
     final likes =
         ref.watch(photoLikesProvider)[entry.id]?.count ?? entry.likeCount;
     final masthead = entry.themeTitle.isEmpty
-        ? 'PHOTO THEMES'
+        ? l10n.photoThemesMasthead
         : entry.themeTitle.toUpperCase();
     final small = theme.textTheme.labelSmall?.copyWith(
       color: Colors.white,
@@ -119,7 +125,7 @@ class PhotoCoverCard extends ConsumerWidget {
 
     return Semantics(
       button: true,
-      label: 'Open ${entry.firstName}’s photo',
+      label: l10n.photoThemesOpenPhoto(entry.firstName),
       child: ClipRRect(
         key: ValueKey('photo.cover.${entry.id}'),
         borderRadius: BorderRadius.circular(radius),
@@ -195,28 +201,30 @@ class PhotoCoverCard extends ConsumerWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            'BY ${entry.firstName.toUpperCase()}',
+                            l10n.photoThemesByline(
+                              entry.firstName.toUpperCase(),
+                            ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: small,
                           ),
                         ),
-                        const Icon(
+                        Icon(
                           Icons.favorite_rounded,
                           size: 14,
                           color: Colors.white,
                           shadows: _shadows,
-                          semanticLabel: 'Likes',
+                          semanticLabel: l10n.photoThemesLikes,
                         ),
                         const SizedBox(width: 4),
                         Text('$likes', style: small),
                         const SizedBox(width: 8),
-                        const Icon(
+                        Icon(
                           Icons.chat_bubble_rounded,
                           size: 14,
                           color: Colors.white,
                           shadows: _shadows,
-                          semanticLabel: 'Comments',
+                          semanticLabel: l10n.photoThemesComments,
                         ),
                         const SizedBox(width: 4),
                         Text('${entry.commentCount}', style: small),

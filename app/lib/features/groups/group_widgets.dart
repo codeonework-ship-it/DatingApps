@@ -2,15 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/widgets/connect_page.dart';
+import '../../l10n/app_localizations.dart';
 import '../auth/providers/auth_provider.dart';
 import 'groups_data.dart';
 
-/// Cover colour roles a group may pick; resolved from the member's theme so
-/// every theme keeps its contrast.
-const groupCoverColors = <String, String>{
-  'primary': 'Theme',
-  'secondary': 'Accent',
-  'tertiary': 'Warm',
+/// Cover colour roles a group may pick, with their display labels; resolved
+/// from the member's theme so every theme keeps its contrast.
+Map<String, String> groupCoverColors(AppLocalizations l10n) => {
+  'primary': l10n.groupsCoverColorTheme,
+  'secondary': l10n.groupsCoverColorAccent,
+  'tertiary': l10n.groupsCoverColorWarm,
 };
 
 /// The background and foreground for a cover colour role.
@@ -324,21 +325,22 @@ class GroupCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
     final radius = BorderRadius.circular(ConnectMetrics.cardRadius);
     final caption = [
-      if (group.removed) 'Removed after a review',
+      if (group.removed) l10n.groupsCardRemoved,
       if (group.isCommunity && group.categoryTitle.isNotEmpty)
         group.categoryTitle
       else
-        group.kindLabel,
-      group.memberLabel,
+        group.kindLabel(l10n),
+      group.memberLabel(l10n),
       if (group.city.isNotEmpty) group.city,
     ].join(' · ');
     return Semantics(
       button: true,
-      label:
-          '${group.name}, $caption'
-          '${muted ? ', notifications muted' : ''}',
+      label: muted
+          ? l10n.groupsCardSemanticsMuted(group.name, caption)
+          : '${group.name}, $caption',
       excludeSemantics: trailing == null,
       child: Material(
         color: Colors.transparent,
@@ -384,7 +386,7 @@ class GroupCard extends StatelessWidget {
                                   key: ValueKey('groups.muted.${group.id}'),
                                   size: 16,
                                   color: colors.onSurfaceVariant,
-                                  semanticLabel: 'Notifications muted',
+                                  semanticLabel: l10n.groupsNotificationsMuted,
                                 ),
                               ],
                             ],
@@ -427,7 +429,7 @@ class GroupUnreadBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return Semantics(
-      label: '$count unread message${count == 1 ? '' : 's'}',
+      label: AppLocalizations.of(context).groupsUnreadMessages(count),
       child: ExcludeSemantics(
         child: Container(
           constraints: const BoxConstraints(minWidth: 28, minHeight: 28),

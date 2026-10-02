@@ -10,6 +10,7 @@ import 'package:verified_dating_app/features/friends/providers/friends_provider.
 import 'package:verified_dating_app/features/friends/screens/friends_screen.dart';
 import 'package:verified_dating_app/features/groups/group_launch.dart';
 import 'package:verified_dating_app/features/social_chat/social_chat_screen.dart';
+import 'package:verified_dating_app/l10n/app_localizations.dart';
 
 class _Auth extends AuthNotifier {
   @override
@@ -184,6 +185,7 @@ Widget _host(
   _FakeFriendsApi api, {
   Future<void> Function(BuildContext, {List<GroupInvitee> invitees})?
   createGroup,
+  Locale? locale,
 }) => ProviderScope(
   overrides: [
     authNotifierProvider.overrideWith(_Auth.new),
@@ -193,6 +195,9 @@ Widget _host(
     ),
   ],
   child: MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
+    locale: locale,
     home: createGroup == null
         ? const FriendsScreen()
         : FriendsScreen(createGroup: createGroup),
@@ -209,6 +214,24 @@ Future<void> _scrollTo(WidgetTester tester, Finder finder) async {
 }
 
 void main() {
+  testWidgets('shows the friends screen in German', (tester) async {
+    final api = _FakeFriendsApi();
+    await tester.pumpWidget(_host(api, locale: const Locale('de')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Deine Leute'), findsOneWidget);
+    expect(find.text('Freund hinzufügen'), findsOneWidget);
+    expect(find.text('Warten auf dich'), findsOneWidget);
+    expect(find.textContaining('In einem Raum kennengelernt'), findsOneWidget);
+    expect(find.text('Your people'), findsNothing);
+    await tester.dragUntilVisible(
+      find.text('2 Freunde'),
+      find.byType(Scrollable).first,
+      const Offset(0, -120),
+    );
+    expect(find.text('2 Freunde'), findsOneWidget);
+  });
+
   testWidgets('shows requests, chats and friends with names, not ids', (
     tester,
   ) async {

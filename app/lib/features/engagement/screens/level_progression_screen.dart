@@ -5,7 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../celebrations/reward_burst.dart';
+import '../engagement_l10n.dart';
 import '../providers/level_progression_provider.dart';
 
 class LevelProgressionScreen extends ConsumerWidget {
@@ -13,10 +15,11 @@ class LevelProgressionScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l = engagementL10n(context);
     final state = ref.watch(levelProgressionProvider);
     final view = state.view;
     return Scaffold(
-      appBar: AppBar(title: const Text('Level & XP')),
+      appBar: AppBar(title: Text(l.engagementLevelTitle)),
       body: PostLoginBackdrop(
         child: SafeArea(
           top: false,
@@ -34,25 +37,19 @@ class LevelProgressionScreen extends ConsumerWidget {
                 else if (view != null) ...[
                   _LevelHero(view: view),
                   if (view.frozen)
-                    const _Notice(
+                    _Notice(
                       icon: Icons.shield_outlined,
-                      text:
-                          'Progression is paused while an account safety '
-                          'review is active.',
+                      text: l.engagementLevelFrozen,
                     ),
                   if (!view.trustGateSatisfied && view.currentLevel >= 4)
-                    const _Notice(
+                    _Notice(
                       icon: Icons.verified_user_outlined,
-                      text:
-                          'Verify your profile and maintain a healthy account '
-                          'to unlock trust-gated levels.',
+                      text: l.engagementLevelTrustGate,
                     ),
                   const SizedBox(height: 16),
-                  const _SectionTitle(
-                    title: 'Level path',
-                    subtitle:
-                        'XP comes from meaningful activity. Purchases never '
-                        'increase your level.',
+                  _SectionTitle(
+                    title: l.engagementLevelPathTitle,
+                    subtitle: l.engagementLevelPathSubtitle,
                   ),
                   ...view.levels.map(
                     (item) => _LevelRow(
@@ -61,11 +58,9 @@ class LevelProgressionScreen extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const _SectionTitle(
-                    title: 'Rewards',
-                    subtitle:
-                        'Earned rewards are cosmetic, convenience, or bounded '
-                        'visibility benefits.',
+                  _SectionTitle(
+                    title: l.engagementLevelRewardsTitle,
+                    subtitle: l.engagementLevelRewardsSubtitle,
                   ),
                   ...view.rewards.map(
                     (reward) => _RewardCard(
@@ -93,10 +88,9 @@ class LevelProgressionScreen extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const _SectionTitle(
-                    title: 'Recent XP',
-                    subtitle:
-                        'Your activity ledger is permanent and auditable.',
+                  _SectionTitle(
+                    title: l.engagementLevelRecentTitle,
+                    subtitle: l.engagementLevelRecentSubtitle,
                   ),
                   if (state.ledger.isEmpty)
                     const _EmptyLedger()
@@ -125,6 +119,7 @@ class _LevelHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = engagementL10n(context);
     final scheme = Theme.of(context).colorScheme;
     return GlassContainer(
       padding: const EdgeInsets.all(20),
@@ -154,7 +149,7 @@ class _LevelHero extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Level ${view.currentLevel}',
+                      l.engagementLevelNumber(view.currentLevel),
                       style: TextStyle(color: scheme.primary),
                     ),
                     Text(
@@ -168,7 +163,7 @@ class _LevelHero extends StatelessWidget {
                 ),
               ),
               Text(
-                '${view.totalXp} XP',
+                l.engagementLevelXp('${view.totalXp}'),
                 style: TextStyle(
                   color: scheme.onSurface,
                   fontWeight: FontWeight.w800,
@@ -189,9 +184,11 @@ class _LevelHero extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             view.nextLevelXp == null
-                ? 'Highest level reached'
-                : '${view.currentLevelXp} XP in this level · '
-                      '${view.progressPercent.toStringAsFixed(0)}%',
+                ? l.engagementLevelHighest
+                : l.engagementLevelProgress(
+                    view.currentLevelXp,
+                    view.progressPercent.toStringAsFixed(0),
+                  ),
             style: TextStyle(color: scheme.onSurfaceVariant),
           ),
         ],
@@ -286,17 +283,19 @@ class _LevelRow extends StatelessWidget {
                     style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
                   Text(
-                    '${definition.thresholdXp} XP · '
-                    '${definition.rewardSummary}',
+                    engagementL10n(context).engagementLevelThreshold(
+                      definition.thresholdXp,
+                      definition.rewardSummary,
+                    ),
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ],
               ),
             ),
             if (definition.trustGate)
-              const Tooltip(
-                message: 'Trust-gated',
-                child: Icon(Icons.verified_user_outlined, size: 20),
+              Tooltip(
+                message: engagementL10n(context).engagementLevelTrustGated,
+                child: const Icon(Icons.verified_user_outlined, size: 20),
               ),
           ],
         ),
@@ -323,6 +322,7 @@ class _RewardCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = engagementL10n(context);
     final canClaim =
         unlocked &&
         (!reward.trustRequired || trustSatisfied) &&
@@ -347,7 +347,7 @@ class _RewardCard extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  'Level ${reward.level}',
+                  l.engagementLevelNumber(reward.level),
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.primary,
                     fontWeight: FontWeight.w700,
@@ -376,10 +376,10 @@ class _RewardCard extends StatelessWidget {
                       ),
                 label: Text(
                   reward.claimed
-                      ? 'Claimed'
+                      ? l.engagementLevelClaimed
                       : unlocked
-                      ? 'Claim'
-                      : 'Locked',
+                      ? l.engagementLevelClaim
+                      : l.engagementLevelLocked,
                 ),
               ),
             ),
@@ -394,39 +394,46 @@ class _XPRow extends StatelessWidget {
   const _XPRow(this.entry);
   final XPEntry entry;
   @override
-  Widget build(BuildContext context) => ListTile(
-    contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-    leading: CircleAvatar(
-      backgroundColor: entry.awardedXp >= 0
-          ? Theme.of(context).colorScheme.primaryContainer
-          : Theme.of(context).colorScheme.errorContainer,
-      child: Icon(
-        entry.awardedXp >= 0 ? Icons.add_rounded : Icons.remove_rounded,
-        color: entry.awardedXp >= 0
-            ? Theme.of(context).colorScheme.onPrimaryContainer
-            : Theme.of(context).colorScheme.onErrorContainer,
+  Widget build(BuildContext context) {
+    final l = engagementL10n(context);
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+      leading: CircleAvatar(
+        backgroundColor: entry.awardedXp >= 0
+            ? Theme.of(context).colorScheme.primaryContainer
+            : Theme.of(context).colorScheme.errorContainer,
+        child: Icon(
+          entry.awardedXp >= 0 ? Icons.add_rounded : Icons.remove_rounded,
+          color: entry.awardedXp >= 0
+              ? Theme.of(context).colorScheme.onPrimaryContainer
+              : Theme.of(context).colorScheme.onErrorContainer,
+        ),
       ),
-    ),
-    title: Text(_sourceLabel(entry.source)),
-    subtitle: Text(
-      entry.multiplier == 1
-          ? 'Standard award'
-          : '${entry.multiplier.toStringAsFixed(2)}× quality weighting',
-    ),
-    trailing: Text(
-      '${entry.awardedXp >= 0 ? '+' : ''}${entry.awardedXp} XP',
-      style: const TextStyle(fontWeight: FontWeight.w800),
-    ),
-  );
+      title: Text(_sourceLabel(l, entry.source)),
+      subtitle: Text(
+        entry.multiplier == 1
+            ? l.engagementLevelStandardAward
+            : l.engagementLevelQualityWeighting(
+                entry.multiplier.toStringAsFixed(2),
+              ),
+      ),
+      trailing: Text(
+        l.engagementLevelXp(
+          '${entry.awardedXp >= 0 ? '+' : ''}${entry.awardedXp}',
+        ),
+        style: const TextStyle(fontWeight: FontWeight.w800),
+      ),
+    );
+  }
 }
 
 class _EmptyLedger extends StatelessWidget {
   const _EmptyLedger();
   @override
-  Widget build(BuildContext context) => const Padding(
-    padding: EdgeInsets.symmetric(vertical: 20),
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 20),
     child: Center(
-      child: Text('Complete meaningful activities to earn your first XP.'),
+      child: Text(engagementL10n(context).engagementLevelEmptyLedger),
     ),
   );
 }
@@ -441,15 +448,33 @@ class _ErrorCard extends StatelessWidget {
     child: ListTile(
       leading: const Icon(Icons.error_outline_rounded),
       title: Text(message),
-      trailing: TextButton(onPressed: onRetry, child: const Text('Retry')),
+      trailing: TextButton(
+        onPressed: onRetry,
+        child: Text(engagementL10n(context).commonRetry),
+      ),
     ),
   );
 }
 
-String _sourceLabel(String source) => source
-    .split('_')
-    .map(
-      (word) =>
-          word.isEmpty ? word : '${word[0].toUpperCase()}${word.substring(1)}',
-    )
-    .join(' ');
+/// A friendly name for a known XP ledger source; unknown sources are shown
+/// as their code in title case.
+String _sourceLabel(AppLocalizations l, String source) => switch (source) {
+  'profile_completed' => l.engagementXpSourceProfileCompleted,
+  'daily_prompt_submitted' => l.engagementXpSourceDailyPromptSubmitted,
+  'mini_activity_completed' => l.engagementXpSourceMiniActivityCompleted,
+  'circle_challenge_submitted' => l.engagementXpSourceCircleChallengeSubmitted,
+  'voice_icebreaker_played' => l.engagementXpSourceVoiceIcebreakerPlayed,
+  'streak_3' => l.engagementXpSourceStreak3,
+  'streak_7' => l.engagementXpSourceStreak7,
+  'streak_14' => l.engagementXpSourceStreak14,
+  'admin_adjustment' => l.engagementXpSourceAdminAdjustment,
+  _ =>
+    source
+        .split('_')
+        .map(
+          (word) => word.isEmpty
+              ? word
+              : '${word[0].toUpperCase()}${word.substring(1)}',
+        )
+        .join(' '),
+};

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:verified_dating_app/features/payment/providers/subscription_provider.dart';
 import 'package:verified_dating_app/features/payment/screens/payment_account_card.dart';
+import 'package:verified_dating_app/l10n/app_localizations.dart';
 
 void main() {
   for (final mode in ['sandbox', 'test', 'live', 'disabled']) {
@@ -15,6 +16,8 @@ void main() {
       var checked = 0;
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: MediaQuery(
             data: const MediaQueryData(textScaler: TextScaler.linear(1.6)),
             child: Scaffold(

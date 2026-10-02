@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/glass_widgets.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../providers/preference_master_data_provider.dart';
 import '../../providers/profile_setup_provider.dart';
 import 'setup_preview_screen.dart';
@@ -65,7 +66,9 @@ class _SetupAboutScreenState extends ConsumerState<SetupAboutScreen> {
     final bio = _bioController.text.trim();
     if (bio.length < ValidationConstants.minBioLength) {
       _snack(
-        'Bio must be at least ${ValidationConstants.minBioLength} characters.',
+        AppLocalizations.of(
+          context,
+        ).profileSetupBioTooShort(ValidationConstants.minBioLength),
       );
       return;
     }
@@ -101,7 +104,7 @@ class _SetupAboutScreenState extends ConsumerState<SetupAboutScreen> {
     } on Exception catch (_) {
       if (!mounted) return;
       setState(() => _isSaving = false);
-      _snack('Failed to save \u2014 please try again.');
+      _snack(AppLocalizations.of(context).profileSetupSaveFailed);
     }
   }
 
@@ -133,7 +136,12 @@ class _SetupAboutScreenState extends ConsumerState<SetupAboutScreen> {
             incomeRange: _income,
           )
           .catchError((Object error) {
-            _snack('Could not save your changes. Please try again.');
+            if (!mounted) {
+              return;
+            }
+            _snack(
+              AppLocalizations.of(context).profileSetupCouldNotSaveChanges,
+            );
           });
       // ignore: discarded_futures
       notifier
@@ -143,13 +151,19 @@ class _SetupAboutScreenState extends ConsumerState<SetupAboutScreen> {
             religion: _religion,
           )
           .catchError((Object error) {
-            _snack('Could not save your changes. Please try again.');
+            if (!mounted) {
+              return;
+            }
+            _snack(
+              AppLocalizations.of(context).profileSetupCouldNotSaveChanges,
+            );
           });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final draftAsync = ref.watch(profileSetupNotifierProvider);
     final masterData = ref
         .watch(preferenceMasterDataProvider)
@@ -198,7 +212,7 @@ class _SetupAboutScreenState extends ConsumerState<SetupAboutScreen> {
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             Text(
-                              'Make your profile shine',
+                              l10n.profileSetupAboutTitle,
                               style: Theme.of(context).textTheme.headlineSmall
                                   ?.copyWith(
                                     fontWeight: FontWeight.w800,
@@ -210,7 +224,7 @@ class _SetupAboutScreenState extends ConsumerState<SetupAboutScreen> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'These details help find better matches.',
+                              l10n.profileSetupAboutSubtitle,
                               style: Theme.of(context).textTheme.bodySmall
                                   ?.copyWith(
                                     color: Theme.of(
@@ -328,224 +342,258 @@ class _AboutForm extends StatelessWidget {
   final bool isSetupFlow;
 
   @override
-  Widget build(BuildContext context) => Column(
-    mainAxisSize: MainAxisSize.min,
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      // -- Bio
-      setupFormLabel(context, 'Bio', Icons.auto_stories_rounded),
-      const SizedBox(height: 8),
-      Semantics(
-        label: 'qa.setup.about.bio_field',
-        textField: true,
-        child: TextField(
-          key: const ValueKey('qa.setup.about.bio_field'),
-          controller: bioController,
-          maxLength: ValidationConstants.maxBioLength,
-          maxLines: 5,
-          minLines: 3,
-          textCapitalization: TextCapitalization.sentences,
-          enabled: !isSaving,
-          onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: Theme.of(context).colorScheme.onSurface,
-            fontWeight: FontWeight.w400,
-          ),
-          decoration:
-              glassInputDecoration(
-                context,
-                hint:
-                    'Tell people about you (min ${ValidationConstants.minBioLength} chars)',
-              ).copyWith(
-                counterStyle: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  fontSize: 11,
-                ),
-              ),
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // -- Bio
+        setupFormLabel(
+          context,
+          l10n.profileSetupBioLabel,
+          Icons.auto_stories_rounded,
         ),
-      ),
-
-      const SizedBox(height: 20),
-      setupSectionDivider(context),
-      const SizedBox(height: 20),
-
-      // -- Height
-      setupFormLabel(context, 'Height (cm)', Icons.height_rounded),
-      const SizedBox(height: 8),
-      Semantics(
-        label: 'qa.setup.about.height_dropdown',
-        button: true,
-        child: GlassDropdown<int>(
-          key: const ValueKey('qa.setup.about.height_dropdown'),
-          hint: 'Select height',
-          value: height,
-          enabled: !isSaving,
-          items: List.generate(
-            ValidationConstants.maxHeightCm -
-                ValidationConstants.minHeightCm +
-                1,
-            (i) => ValidationConstants.minHeightCm + i,
-          ),
-          labelBuilder: (v) => '$v cm',
-          onChanged: onHeightChanged,
-        ),
-      ),
-
-      const SizedBox(height: 20),
-
-      // -- Education
-      setupFormLabel(context, 'Education', Icons.school_rounded),
-      const SizedBox(height: 8),
-      Semantics(
-        label: 'qa.setup.about.education_dropdown',
-        button: true,
-        child: GlassDropdown<String>(
-          key: const ValueKey('qa.setup.about.education_dropdown'),
-          hint: 'Select education',
-          value: education,
-          enabled: !isSaving,
-          items: ProfileOptionsConstants.educationLevels,
-          labelBuilder: (v) => v,
-          onChanged: onEducationChanged,
-        ),
-      ),
-
-      const SizedBox(height: 20),
-
-      // -- Profession
-      setupFormLabel(context, 'Profession', Icons.work_outline_rounded),
-      const SizedBox(height: 8),
-      Semantics(
-        label: 'qa.setup.about.profession_field',
-        textField: true,
-        child: TextField(
-          key: const ValueKey('qa.setup.about.profession_field'),
-          controller: professionController,
-          textCapitalization: TextCapitalization.words,
-          textInputAction: TextInputAction.next,
-          enabled: !isSaving,
-          onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-            color: Theme.of(context).colorScheme.onSurface,
-            fontWeight: FontWeight.w500,
-          ),
-          decoration: glassInputDecoration(
-            context,
-            hint: 'e.g. Software Engineer',
-          ),
-        ),
-      ),
-
-      const SizedBox(height: 20),
-
-      // -- Income
-      setupFormLabel(context, 'Income (optional)', Icons.attach_money_rounded),
-      const SizedBox(height: 8),
-      GlassDropdown<String>(
-        hint: 'Prefer not to say',
-        value: income,
-        enabled: !isSaving,
-        items: ProfileOptionsConstants.incomeRanges,
-        labelBuilder: (v) => v,
-        onChanged: onIncomeChanged,
-      ),
-
-      const SizedBox(height: 24),
-      setupSectionDivider(context),
-      const SizedBox(height: 20),
-
-      // -- Lifestyle section
-      Text(
-        'Lifestyle',
-        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-          fontWeight: FontWeight.w800,
-          color: Theme.of(context).colorScheme.primary,
-          letterSpacing: 0.3,
-        ),
-      ),
-      const SizedBox(height: 16),
-
-      // -- Drinking
-      setupFormLabel(context, 'Drinking', Icons.local_bar_rounded),
-      const SizedBox(height: 8),
-      Semantics(
-        label: 'qa.setup.about.drinking_dropdown',
-        button: true,
-        child: GlassDropdown<String>(
-          key: const ValueKey('qa.setup.about.drinking_dropdown'),
-          hint: 'Select',
-          value: drinking,
-          enabled: !isSaving,
-          items: ProfileOptionsConstants.drinkingOptions,
-          labelBuilder: (v) => v,
-          onChanged: onDrinkingChanged,
-        ),
-      ),
-
-      const SizedBox(height: 20),
-
-      // -- Smoking
-      setupFormLabel(context, 'Smoking', Icons.smoking_rooms_rounded),
-      const SizedBox(height: 8),
-      Semantics(
-        label: 'qa.setup.about.smoking_dropdown',
-        button: true,
-        child: GlassDropdown<String>(
-          key: const ValueKey('qa.setup.about.smoking_dropdown'),
-          hint: 'Select',
-          value: smoking,
-          enabled: !isSaving,
-          items: ProfileOptionsConstants.smokingOptions,
-          labelBuilder: (v) => v,
-          onChanged: onSmokingChanged,
-        ),
-      ),
-
-      const SizedBox(height: 20),
-
-      // -- Religion
-      setupFormLabel(
-        context,
-        'Religion (optional)',
-        Icons.auto_awesome_rounded,
-      ),
-      const SizedBox(height: 8),
-      GlassDropdown<String>(
-        hint: 'Prefer not to say',
-        value: religion,
-        enabled: !isSaving,
-        items: religionOptions,
-        labelBuilder: (v) => v,
-        onChanged: onReligionChanged,
-      ),
-
-      const SizedBox(height: 32),
-
-      // -- Next
-      SizedBox(
-        width: double.infinity,
-        height: 54,
-        child: Semantics(
-          label: isSetupFlow
-              ? 'qa.setup.about.continue_button'
-              : 'qa.setup.about.save_button',
-          button: true,
-          child: GlassButton(
-            key: ValueKey<String>(
-              isSetupFlow
-                  ? 'qa.setup.about.continue_button'
-                  : 'qa.setup.about.save_button',
+        const SizedBox(height: 8),
+        Semantics(
+          label: 'qa.setup.about.bio_field',
+          textField: true,
+          child: TextField(
+            key: const ValueKey('qa.setup.about.bio_field'),
+            controller: bioController,
+            maxLength: ValidationConstants.maxBioLength,
+            maxLines: 5,
+            minLines: 3,
+            textCapitalization: TextCapitalization.sentences,
+            enabled: !isSaving,
+            onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurface,
+              fontWeight: FontWeight.w400,
             ),
-            label: isSetupFlow ? 'Continue' : 'Save About',
-            icon: isSetupFlow
-                ? Icons.arrow_forward_rounded
-                : Icons.save_outlined,
-            shinyEffect: isSetupFlow,
-            isLoading: isSaving,
-            onPressed: isSaving ? null : onSave,
+            decoration:
+                glassInputDecoration(
+                  context,
+                  hint: l10n.profileSetupBioHint(
+                    ValidationConstants.minBioLength,
+                  ),
+                ).copyWith(
+                  counterStyle: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontSize: 11,
+                  ),
+                ),
           ),
         ),
-      ),
-    ],
-  );
+
+        const SizedBox(height: 20),
+        setupSectionDivider(context),
+        const SizedBox(height: 20),
+
+        // -- Height
+        setupFormLabel(
+          context,
+          l10n.profileSetupHeightLabel,
+          Icons.height_rounded,
+        ),
+        const SizedBox(height: 8),
+        Semantics(
+          label: 'qa.setup.about.height_dropdown',
+          button: true,
+          child: GlassDropdown<int>(
+            key: const ValueKey('qa.setup.about.height_dropdown'),
+            hint: l10n.profileSetupHeightHint,
+            value: height,
+            enabled: !isSaving,
+            items: List.generate(
+              ValidationConstants.maxHeightCm -
+                  ValidationConstants.minHeightCm +
+                  1,
+              (i) => ValidationConstants.minHeightCm + i,
+            ),
+            labelBuilder: l10n.profileSetupHeightValue,
+            onChanged: onHeightChanged,
+          ),
+        ),
+
+        const SizedBox(height: 20),
+
+        // -- Education
+        setupFormLabel(
+          context,
+          l10n.profileSetupEducationLabel,
+          Icons.school_rounded,
+        ),
+        const SizedBox(height: 8),
+        Semantics(
+          label: 'qa.setup.about.education_dropdown',
+          button: true,
+          child: GlassDropdown<String>(
+            key: const ValueKey('qa.setup.about.education_dropdown'),
+            hint: l10n.profileSetupEducationHint,
+            value: education,
+            enabled: !isSaving,
+            items: ProfileOptionsConstants.educationLevels,
+            labelBuilder: (v) => localizedProfileOption(l10n, v),
+            onChanged: onEducationChanged,
+          ),
+        ),
+
+        const SizedBox(height: 20),
+
+        // -- Profession
+        setupFormLabel(
+          context,
+          l10n.profileSetupProfessionLabel,
+          Icons.work_outline_rounded,
+        ),
+        const SizedBox(height: 8),
+        Semantics(
+          label: 'qa.setup.about.profession_field',
+          textField: true,
+          child: TextField(
+            key: const ValueKey('qa.setup.about.profession_field'),
+            controller: professionController,
+            textCapitalization: TextCapitalization.words,
+            textInputAction: TextInputAction.next,
+            enabled: !isSaving,
+            onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+              color: Theme.of(context).colorScheme.onSurface,
+              fontWeight: FontWeight.w500,
+            ),
+            decoration: glassInputDecoration(
+              context,
+              hint: l10n.profileSetupProfessionHint,
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 20),
+
+        // -- Income
+        setupFormLabel(
+          context,
+          l10n.profileSetupIncomeLabel,
+          Icons.attach_money_rounded,
+        ),
+        const SizedBox(height: 8),
+        GlassDropdown<String>(
+          hint: l10n.profileSetupPreferNotToSay,
+          value: income,
+          enabled: !isSaving,
+          items: ProfileOptionsConstants.incomeRanges,
+          labelBuilder: (v) => localizedProfileOption(l10n, v),
+          onChanged: onIncomeChanged,
+        ),
+
+        const SizedBox(height: 24),
+        setupSectionDivider(context),
+        const SizedBox(height: 20),
+
+        // -- Lifestyle section
+        Text(
+          l10n.profileSetupLifestyleTitle,
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w800,
+            color: Theme.of(context).colorScheme.primary,
+            letterSpacing: 0.3,
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // -- Drinking
+        setupFormLabel(
+          context,
+          l10n.profileSetupDrinkingLabel,
+          Icons.local_bar_rounded,
+        ),
+        const SizedBox(height: 8),
+        Semantics(
+          label: 'qa.setup.about.drinking_dropdown',
+          button: true,
+          child: GlassDropdown<String>(
+            key: const ValueKey('qa.setup.about.drinking_dropdown'),
+            hint: l10n.profileSetupSelectHint,
+            value: drinking,
+            enabled: !isSaving,
+            items: ProfileOptionsConstants.drinkingOptions,
+            labelBuilder: (v) => localizedProfileOption(l10n, v),
+            onChanged: onDrinkingChanged,
+          ),
+        ),
+
+        const SizedBox(height: 20),
+
+        // -- Smoking
+        setupFormLabel(
+          context,
+          l10n.profileSetupSmokingLabel,
+          Icons.smoking_rooms_rounded,
+        ),
+        const SizedBox(height: 8),
+        Semantics(
+          label: 'qa.setup.about.smoking_dropdown',
+          button: true,
+          child: GlassDropdown<String>(
+            key: const ValueKey('qa.setup.about.smoking_dropdown'),
+            hint: l10n.profileSetupSelectHint,
+            value: smoking,
+            enabled: !isSaving,
+            items: ProfileOptionsConstants.smokingOptions,
+            labelBuilder: (v) => localizedProfileOption(l10n, v),
+            onChanged: onSmokingChanged,
+          ),
+        ),
+
+        const SizedBox(height: 20),
+
+        // -- Religion
+        setupFormLabel(
+          context,
+          l10n.profileSetupReligionOptionalLabel,
+          Icons.auto_awesome_rounded,
+        ),
+        const SizedBox(height: 8),
+        GlassDropdown<String>(
+          hint: l10n.profileSetupPreferNotToSay,
+          value: religion,
+          enabled: !isSaving,
+          items: religionOptions,
+          labelBuilder: (v) => v,
+          onChanged: onReligionChanged,
+        ),
+
+        const SizedBox(height: 32),
+
+        // -- Next
+        SizedBox(
+          width: double.infinity,
+          height: 54,
+          child: Semantics(
+            label: isSetupFlow
+                ? 'qa.setup.about.continue_button'
+                : 'qa.setup.about.save_button',
+            button: true,
+            child: GlassButton(
+              key: ValueKey<String>(
+                isSetupFlow
+                    ? 'qa.setup.about.continue_button'
+                    : 'qa.setup.about.save_button',
+              ),
+              label: isSetupFlow
+                  ? l10n.profileSetupContinue
+                  : l10n.profileSetupSaveAbout,
+              icon: isSetupFlow
+                  ? Icons.arrow_forward_rounded
+                  : Icons.save_outlined,
+              shinyEffect: isSetupFlow,
+              isLoading: isSaving,
+              onPressed: isSaving ? null : onSave,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 }

@@ -8,6 +8,7 @@ import 'package:verified_dating_app/features/auth/providers/auth_provider.dart';
 import 'package:verified_dating_app/features/groups/create_group_screen.dart';
 import 'package:verified_dating_app/features/groups/group_detail_screen.dart';
 import 'package:verified_dating_app/features/groups/groups_screen.dart';
+import 'package:verified_dating_app/l10n/app_localizations.dart';
 
 /// The Groups screens with data loaded (the screen matrix only sees their
 /// empty and error states) against Flutter's tap-target, label and contrast
@@ -123,7 +124,12 @@ void main() {
               authNotifierProvider.overrideWith(_Auth.new),
               apiClientProvider.overrideWithValue(dio),
             ],
-            child: MaterialApp(theme: theme, home: build()),
+            child: MaterialApp(
+              theme: theme,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: build(),
+            ),
           ),
         );
         for (var i = 0; i < 6; i++) {

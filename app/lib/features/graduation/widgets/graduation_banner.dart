@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/layout/app_layout.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
+import '../../../l10n/app_localizations.dart';
 import '../models/graduation.dart';
+import '../models/graduation_labels.dart';
 import '../providers/graduation_provider.dart';
 import '../screens/graduation_celebration_screen.dart';
 
@@ -35,6 +37,7 @@ class GraduationBanner extends ConsumerWidget {
       return const SizedBox.shrink();
     }
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final notifier = ref.read(matchGraduationProvider(matchId).notifier);
     return Semantics(
       label: 'qa.graduation.banner.${graduation.status}',
@@ -66,7 +69,7 @@ class GraduationBanner extends ConsumerWidget {
                   const SizedBox(width: AppLayout.space3),
                   Expanded(
                     child: Text(
-                      _headline(graduation),
+                      _headline(l10n, graduation),
                       style: theme.textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.w700,
                       ),
@@ -76,7 +79,7 @@ class GraduationBanner extends ConsumerWidget {
               ),
               const SizedBox(height: AppLayout.space2),
               Text(
-                _body(graduation),
+                _body(l10n, graduation),
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -84,7 +87,7 @@ class GraduationBanner extends ConsumerWidget {
               if (graduation.note.isNotEmpty && graduation.isOpen) ...[
                 const SizedBox(height: AppLayout.space1),
                 Text(
-                  '“${graduation.note}”',
+                  l10n.planQuotedNote(graduation.note),
                   style: theme.textTheme.bodySmall?.copyWith(
                     fontStyle: FontStyle.italic,
                   ),
@@ -93,7 +96,7 @@ class GraduationBanner extends ConsumerWidget {
               if (state.error != null) ...[
                 const SizedBox(height: AppLayout.space2),
                 Text(
-                  state.error!,
+                  localizedGraduationError(l10n, state.error!, state.failure),
                   key: const ValueKey('qa.graduation.banner_error'),
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.error,
@@ -116,22 +119,22 @@ class GraduationBanner extends ConsumerWidget {
     );
   }
 
-  String _headline(Graduation graduation) {
+  String _headline(AppLocalizations l10n, Graduation graduation) {
     if (graduation.isConfirmed) {
-      return 'You found each other';
+      return l10n.graduationFoundEachOther;
     }
     return graduation.viewerDecides
-        ? '$partnerName wants to leave Connect together'
-        : 'Waiting for $partnerName';
+        ? l10n.graduationHeadlineDecide(partnerName)
+        : l10n.graduationHeadlineWaiting(partnerName);
   }
 
-  String _body(Graduation graduation) {
+  String _body(AppLocalizations l10n, Graduation graduation) {
     if (graduation.isConfirmed) {
-      return 'You are both hidden from discovery. This chat stays open.';
+      return l10n.graduationBodyConfirmed;
     }
     return graduation.viewerDecides
-        ? 'Confirm and you both leave discovery. Your chat stays.'
-        : 'You asked to leave together. They can confirm or decline.';
+        ? l10n.graduationBodyDecide
+        : l10n.graduationBodyWaiting;
   }
 }
 
@@ -152,6 +155,7 @@ class _Actions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     if (graduation.isConfirmed) {
       return SizedBox(
         width: double.infinity,
@@ -167,7 +171,7 @@ class _Actions extends StatelessWidget {
             ),
           ),
           icon: const Icon(Icons.celebration_rounded),
-          label: const Text('Celebrate'),
+          label: Text(l10n.graduationCelebrate),
         ),
       );
     }
@@ -184,7 +188,7 @@ class _Actions extends StatelessWidget {
                       graduationId: graduation.id,
                       confirm: false,
                     ),
-              child: const Text('Not yet'),
+              child: Text(l10n.graduationNotYet),
             ),
           ),
           const SizedBox(width: AppLayout.space2),
@@ -203,7 +207,7 @@ class _Actions extends StatelessWidget {
                         ),
                       ),
                     ),
-              child: const Text('Confirm'),
+              child: Text(l10n.graduationConfirm),
             ),
           ),
         ],
@@ -214,8 +218,8 @@ class _Actions extends StatelessWidget {
         Expanded(
           child: Text(
             graduation.shareWithFriends
-                ? 'Your friends are told once they confirm.'
-                : 'Only the two of you know for now.',
+                ? l10n.graduationFriendsToldOnConfirm
+                : l10n.graduationOnlyTwoOfYouForNow,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
@@ -227,7 +231,7 @@ class _Actions extends StatelessWidget {
           onPressed: busy
               ? null
               : () => notifier.withdraw(graduationId: graduation.id),
-          child: const Text('Withdraw'),
+          child: Text(l10n.graduationWithdraw),
         ),
       ],
     );

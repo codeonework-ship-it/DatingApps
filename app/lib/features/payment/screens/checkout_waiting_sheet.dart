@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/widgets/glass_widgets.dart';
+import '../../../l10n/app_localizations.dart';
 
 /// Shown on the web while the hosted checkout runs in another tab.
 /// Resolves `true` when the member says they have paid, `false` if they
@@ -26,7 +27,9 @@ Future<bool?> showCheckoutWaitingSheet(
           ),
           const SizedBox(height: 16),
           Text(
-            'Complete the checkout for $title in the new tab',
+            AppLocalizations.of(
+              sheetContext,
+            ).paymentCheckoutCompleteInNewTab(title),
             textAlign: TextAlign.center,
             style: Theme.of(
               sheetContext,
@@ -34,20 +37,23 @@ Future<bool?> showCheckoutWaitingSheet(
           ),
           const SizedBox(height: 8),
           Text(
-            'Your card details are entered on the payment provider\'s secure '
-            'page. Come back here when it says the payment is complete.',
+            AppLocalizations.of(sheetContext).paymentCheckoutWaitingBody,
             textAlign: TextAlign.center,
             style: Theme.of(sheetContext).textTheme.bodyMedium,
           ),
           const SizedBox(height: 20),
           GlassButton(
-            label: 'Check confirmation',
+            label: AppLocalizations.of(
+              sheetContext,
+            ).paymentCheckoutCheckConfirmation,
             icon: Icons.check,
             onPressed: () => Navigator.of(sheetContext).pop(true),
           ),
           TextButton(
             onPressed: () => Navigator.of(sheetContext).pop(false),
-            child: const Text('Back to account'),
+            child: Text(
+              AppLocalizations.of(sheetContext).paymentCheckoutBackToAccount,
+            ),
           ),
         ],
       ),

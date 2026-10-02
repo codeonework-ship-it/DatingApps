@@ -7,6 +7,7 @@ import 'package:verified_dating_app/core/rich_text/rich_document.dart';
 import 'package:verified_dating_app/core/rich_text/rich_document_view.dart';
 import 'package:verified_dating_app/features/auth/providers/auth_provider.dart';
 import 'package:verified_dating_app/features/intentional_dating/profile_stories.dart';
+import 'package:verified_dating_app/l10n/app_localizations.dart';
 
 class _Auth extends AuthNotifier {
   @override
@@ -46,7 +47,11 @@ Widget host(_Api api, Widget child) => ProviderScope(
     authNotifierProvider.overrideWith(_Auth.new),
     apiClientProvider.overrideWithValue(api.dio),
   ],
-  child: MaterialApp(home: Scaffold(body: child)),
+  child: MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
+    home: Scaffold(body: child),
+  ),
 );
 
 Future<void> tapVisible(WidgetTester t, Finder finder) async {

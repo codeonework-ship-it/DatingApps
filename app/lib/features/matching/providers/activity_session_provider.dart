@@ -8,6 +8,18 @@ import '../../../core/providers/api_client_provider.dart';
 import '../../../core/utils/logger.dart';
 import '../../auth/providers/auth_provider.dart';
 
+// Client fallback messages. They double as codes: the screen maps them to
+// translated text (see matching_l10n.dart); server errors pass through.
+const kActivityStartError =
+    'Unable to start activity right now. Please try again.';
+const kActivitySessionUnavailableError = 'User session not available.';
+const kActivityNotReadyError = 'Session is not ready yet.';
+const kActivityAnswerAllError = 'Please answer all prompts before submitting.';
+const kActivityTimeUpNotice = 'Time is up. Loading activity summary...';
+const kActivitySubmitError =
+    'Failed to submit activity responses. Please try again.';
+const kActivitySummaryError = 'Unable to fetch summary yet. Please try again.';
+
 enum ActivityQuestionType { thisOrThat, valueMatch, scenarioChoice }
 
 class ActivityQuestion {
@@ -139,7 +151,7 @@ class ActivitySessionNotifier extends StateNotifier<ActivitySessionState> {
   Future<void> startSession({String activityType = 'this_or_that'}) async {
     final currentUserId = _currentUserId();
     if (currentUserId == null || currentUserId.isEmpty) {
-      state = state.copyWith(error: 'User session not available.');
+      state = state.copyWith(error: kActivitySessionUnavailableError);
       return;
     }
 
@@ -199,17 +211,11 @@ class ActivitySessionNotifier extends StateNotifier<ActivitySessionState> {
       log.error('Failed to start activity session', e, stackTrace);
       state = state.copyWith(
         isLoading: false,
-        error: _extractError(
-          e,
-          fallback: 'Unable to start activity right now. Please try again.',
-        ),
+        error: _extractError(e, fallback: kActivityStartError),
       );
     } catch (e, stackTrace) {
       log.error('Failed to start activity session', e, stackTrace);
-      state = state.copyWith(
-        isLoading: false,
-        error: 'Unable to start activity right now. Please try again.',
-      );
+      state = state.copyWith(isLoading: false, error: kActivityStartError);
     }
   }
 
@@ -223,14 +229,12 @@ class ActivitySessionNotifier extends StateNotifier<ActivitySessionState> {
     final sessionId = state.sessionId;
     final currentUserId = _currentUserId();
     if (sessionId == null || sessionId.isEmpty || currentUserId == null) {
-      state = state.copyWith(error: 'Session is not ready yet.');
+      state = state.copyWith(error: kActivityNotReadyError);
       return;
     }
 
     if (!state.allQuestionsAnswered) {
-      state = state.copyWith(
-        error: 'Please answer all prompts before submitting.',
-      );
+      state = state.copyWith(error: kActivityAnswerAllError);
       return;
     }
 
@@ -239,7 +243,7 @@ class ActivitySessionNotifier extends StateNotifier<ActivitySessionState> {
           DateTime.now().toUtc(),
         ) <=
         0) {
-      state = state.copyWith(error: 'Time is up. Loading activity summary...');
+      state = state.copyWith(error: kActivityTimeUpNotice);
       await loadSummary();
       return;
     }
@@ -298,17 +302,11 @@ class ActivitySessionNotifier extends StateNotifier<ActivitySessionState> {
       }
       state = state.copyWith(
         isSubmitting: false,
-        error: _extractError(
-          e,
-          fallback: 'Failed to submit activity responses. Please try again.',
-        ),
+        error: _extractError(e, fallback: kActivitySubmitError),
       );
     } catch (e, stackTrace) {
       log.error('Failed to submit activity responses', e, stackTrace);
-      state = state.copyWith(
-        isSubmitting: false,
-        error: 'Failed to submit activity responses. Please try again.',
-      );
+      state = state.copyWith(isSubmitting: false, error: kActivitySubmitError);
     }
   }
 
@@ -371,16 +369,13 @@ class ActivitySessionNotifier extends StateNotifier<ActivitySessionState> {
       log.error('Failed to fetch activity summary', e, stackTrace);
       state = state.copyWith(
         isSummaryLoading: false,
-        error: _extractError(
-          e,
-          fallback: 'Unable to fetch summary yet. Please try again.',
-        ),
+        error: _extractError(e, fallback: kActivitySummaryError),
       );
     } catch (e, stackTrace) {
       log.error('Failed to fetch activity summary', e, stackTrace);
       state = state.copyWith(
         isSummaryLoading: false,
-        error: 'Unable to fetch summary yet. Please try again.',
+        error: kActivitySummaryError,
       );
     }
   }

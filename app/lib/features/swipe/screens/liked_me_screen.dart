@@ -2,13 +2,15 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/config/app_runtime_config.dart';
-import '../../../core/extensions/date_time_extensions.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../matching/screens/match_notification_screen.dart';
 import '../../payment/screens/subscription_screen.dart';
+import '../discover_l10n.dart';
 import '../models/discovery_profile.dart';
 import '../providers/liked_me_provider.dart';
 import '../providers/swipe_provider.dart';
@@ -40,12 +42,13 @@ class _LikedMeScreenState extends ConsumerState<LikedMeScreen> {
       return;
     }
     final messenger = ScaffoldMessenger.of(context)..hideCurrentSnackBar();
+    final l10n = AppLocalizations.of(context);
     if (result.dailyLimit != null) {
       messenger.showSnackBar(
         SnackBar(
-          content: Text(result.dailyLimit!.headline),
+          content: Text(result.dailyLimit!.localizedHeadline(l10n)),
           action: SnackBarAction(
-            label: 'See plans',
+            label: l10n.discoverSeePlans,
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute<void>(
                 builder: (_) => const SubscriptionScreen(),
@@ -57,7 +60,9 @@ class _LikedMeScreenState extends ConsumerState<LikedMeScreen> {
       return;
     }
     if (result.error != null) {
-      messenger.showSnackBar(SnackBar(content: Text(result.error!)));
+      messenger.showSnackBar(
+        SnackBar(content: Text(localizeDiscoverMessage(l10n, result.error!))),
+      );
       return;
     }
     final matchId = result.matchId;
@@ -80,7 +85,9 @@ class _LikedMeScreenState extends ConsumerState<LikedMeScreen> {
     messenger.showSnackBar(
       SnackBar(
         content: Text(
-          like ? 'You liked ${profile.name} back' : 'Passed on ${profile.name}',
+          like
+              ? l10n.discoverLikedBack(profile.name)
+              : l10n.discoverPassedOn(profile.name),
         ),
       ),
     );
@@ -110,6 +117,7 @@ class _LikedMeScreenState extends ConsumerState<LikedMeScreen> {
     final state = ref.watch(likedMeProvider);
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final l10n = AppLocalizations.of(context);
 
     Widget body;
     if (state.isLoading && state.entries.isEmpty) {
@@ -117,20 +125,18 @@ class _LikedMeScreenState extends ConsumerState<LikedMeScreen> {
     } else if (state.error != null && state.entries.isEmpty) {
       body = _MessagePane(
         icon: Icons.cloud_off_rounded,
-        title: 'Could not load your likes',
-        message: state.error!,
+        title: l10n.discoverLikedMeLoadFailedTitle,
+        message: localizeDiscoverMessage(l10n, state.error!),
         action: FilledButton(
           onPressed: () => ref.read(likedMeProvider.notifier).load(),
-          child: const Text('Retry'),
+          child: Text(l10n.commonRetry),
         ),
       );
     } else if (state.entries.isEmpty) {
-      body = const _MessagePane(
+      body = _MessagePane(
         icon: Icons.favorite_border_rounded,
-        title: 'No new likes yet',
-        message:
-            'When someone likes you, they show up here. Like them back and '
-            "it's a match.",
+        title: l10n.discoverLikedMeEmptyTitle,
+        message: l10n.discoverLikedMeEmptyBody,
       );
     } else {
       body = ListView.separated(
@@ -143,8 +149,7 @@ class _LikedMeScreenState extends ConsumerState<LikedMeScreen> {
             return Padding(
               padding: const EdgeInsets.fromLTRB(4, 0, 4, 4),
               child: Text(
-                'They already like you. Like back to match, or pass. '
-                'Passing is private.',
+                l10n.discoverLikedMeIntro,
                 style: textTheme.bodyMedium?.copyWith(
                   color: scheme.onSurfaceVariant,
                 ),
@@ -167,7 +172,9 @@ class _LikedMeScreenState extends ConsumerState<LikedMeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          state.count > 0 ? 'Liked you · ${state.count}' : 'Liked you',
+          state.count > 0
+              ? l10n.discoverLikedMeTitleCount(state.count)
+              : l10n.discoverLikedMeTitle,
         ),
         elevation: 0,
         backgroundColor: Colors.transparent,
@@ -204,6 +211,7 @@ class _LikedMeCard extends StatelessWidget {
     final profile = entry.profile;
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final l10n = AppLocalizations.of(context);
     final photoUrl = profile.photoUrls.isNotEmpty
         ? profile.photoUrls.first
         : '';
@@ -275,7 +283,7 @@ class _LikedMeCard extends StatelessWidget {
                                 Icons.verified_rounded,
                                 size: 18,
                                 color: scheme.primary,
-                                semanticLabel: 'Verified',
+                                semanticLabel: l10n.memberProfileVerified,
                               ),
                             ],
                           ],
@@ -302,7 +310,7 @@ class _LikedMeCard extends StatelessWidget {
                             const SizedBox(width: 4),
                             Flexible(
                               child: Text(
-                                _likedAtLabel(likedAt),
+                                _likedAtLabel(context, likedAt),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: textTheme.labelMedium?.copyWith(
@@ -338,7 +346,7 @@ class _LikedMeCard extends StatelessWidget {
                     key: ValueKey('qa.liked_me.pass.${profile.id}'),
                     onPressed: busy ? null : onPass,
                     icon: const Icon(Icons.close_rounded, size: 18),
-                    label: const Text('Pass'),
+                    label: Text(l10n.discoverPass),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -353,7 +361,7 @@ class _LikedMeCard extends StatelessWidget {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : const Icon(Icons.favorite_rounded, size: 18),
-                    label: const Text('Like back'),
+                    label: Text(l10n.discoverLikeBack),
                   ),
                 ),
               ],
@@ -365,16 +373,32 @@ class _LikedMeCard extends StatelessWidget {
   }
 }
 
-String _likedAtLabel(DateTime? likedAt) {
+/// Same buckets as `DateTime.getTimeAgo` (minutes, hours, days, weeks, then
+/// a date after a month), worded in the member's language.
+String _likedAtLabel(BuildContext context, DateTime? likedAt) {
+  final l10n = AppLocalizations.of(context);
   if (likedAt == null) {
-    return 'Liked you';
+    return l10n.discoverLikedMeTitle;
   }
-  final ago = likedAt.toLocal().getTimeAgo();
-  if (ago == 'Just now') {
-    return 'Liked you just now';
+  final local = likedAt.toLocal();
+  final difference = DateTime.now().difference(local);
+  if (difference.inSeconds < 60) {
+    return l10n.discoverLikedJustNow;
   }
-  // getTimeAgo falls back to a plain date after a month.
-  return ago.endsWith('ago') ? 'Liked you $ago' : 'Liked you on $ago';
+  if (difference.inMinutes < 60) {
+    return l10n.discoverLikedMinutesAgo(difference.inMinutes);
+  }
+  if (difference.inHours < 24) {
+    return l10n.discoverLikedHoursAgo(difference.inHours);
+  }
+  if (difference.inDays < 7) {
+    return l10n.discoverLikedDaysAgo(difference.inDays);
+  }
+  if (difference.inDays < 30) {
+    return l10n.discoverLikedWeeksAgo((difference.inDays / 7).floor());
+  }
+  final locale = Localizations.localeOf(context).toString();
+  return l10n.discoverLikedOnDate(DateFormat.yMd(locale).format(local));
 }
 
 class _PhotoFallback extends StatelessWidget {

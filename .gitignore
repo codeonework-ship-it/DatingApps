@@ -55,3 +55,4 @@ app/*.log
 
 # Golden test failure output (regenerated on each failing run)
 app/test/**/failures/
+app/lib/l10n/.l10n_add.lock

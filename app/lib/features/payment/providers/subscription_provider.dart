@@ -4,9 +4,11 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/network/api_error_message.dart';
 import '../../../core/providers/api_client_provider.dart';
 import '../../auth/providers/auth_provider.dart';
+import 'payment_error.dart';
+
+export 'payment_error.dart' show PaymentErrorCode, PaymentFailure;
 
 /// Subscriptions are sold through a hosted card checkout at the payment
 /// provider. The app never handles card data and never marks a plan active
@@ -298,6 +300,7 @@ class SubscriptionState {
     this.changingPlanId,
     this.isUpdatingCard = false,
     this.error,
+    this.errorCode,
     this.account,
   });
 
@@ -314,6 +317,10 @@ class SubscriptionState {
   final String? changingPlanId;
   final bool isUpdatingCard;
   final String? error;
+
+  /// Set when [error] is a client fallback the screen can translate; null
+  /// when [error] is the server's own message.
+  final PaymentErrorCode? errorCode;
   final BillingAccount? account;
 
   SubscriptionPlan? get currentPlan {
@@ -339,6 +346,8 @@ class SubscriptionState {
     Object? changingPlanId = _unset,
     bool? isUpdatingCard,
     Object? error = _unset,
+    Object? errorCode = _unset,
+    PaymentFailure? failure,
     Object? account = _unset,
   }) => SubscriptionState(
     plans: plans ?? this.plans,
@@ -355,7 +364,15 @@ class SubscriptionState {
         ? this.changingPlanId
         : changingPlanId as String?,
     isUpdatingCard: isUpdatingCard ?? this.isUpdatingCard,
-    error: identical(error, _unset) ? this.error : error as String?,
+    error:
+        failure?.message ??
+        (identical(error, _unset) ? this.error : error as String?),
+    // A new error without a code is the server's wording.
+    errorCode: failure != null
+        ? failure.code
+        : identical(errorCode, _unset)
+        ? (identical(error, _unset) ? this.errorCode : null)
+        : errorCode as PaymentErrorCode?,
     account: identical(account, _unset)
         ? this.account
         : account as BillingAccount?,
@@ -375,7 +392,10 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionState> {
   Future<void> load() async {
     final userId = _userId;
     if (userId == null) {
-      state = state.copyWith(error: 'Please sign in to manage subscriptions.');
+      state = state.copyWith(
+        error: PaymentErrorCode.signInSubscriptions.english,
+        errorCode: PaymentErrorCode.signInSubscriptions,
+      );
       return;
     }
     state = state.copyWith(isLoading: true, error: null);
@@ -424,10 +444,7 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionState> {
       state = state.copyWith(
         isLoading: false,
         account: null,
-        error: apiErrorMessage(
-          error,
-          fallback: 'Unable to load subscription details.',
-        ),
+        failure: paymentFailure(error, PaymentErrorCode.loadSubscription),
       );
     }
   }
@@ -474,10 +491,7 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionState> {
       }
       state = state.copyWith(
         checkoutPlanId: null,
-        error: apiErrorMessage(
-          error,
-          fallback: 'Unable to start checkout right now.',
-        ),
+        failure: paymentFailure(error, PaymentErrorCode.startCheckoutNow),
       );
       return null;
     }
@@ -530,10 +544,7 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionState> {
         return CheckoutOutcome.pending;
       }
       state = state.copyWith(
-        error: apiErrorMessage(
-          error,
-          fallback: 'Unable to confirm the payment yet.',
-        ),
+        failure: paymentFailure(error, PaymentErrorCode.confirmPayment),
       );
       // A lost response is not proof that the card was not charged.
       outcome = CheckoutOutcome.pending;
@@ -583,11 +594,11 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionState> {
       }
       state = state.copyWith(
         isUpdatingAutoRenew: false,
-        error: apiErrorMessage(
+        failure: paymentFailure(
           error,
-          fallback: enabled
-              ? 'Unable to turn auto-renew back on.'
-              : 'Unable to turn off auto-renew.',
+          enabled
+              ? PaymentErrorCode.autoRenewOn
+              : PaymentErrorCode.autoRenewOff,
         ),
       );
       return false;
@@ -630,7 +641,7 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionState> {
       }
       state = state.copyWith(
         changingPlanId: null,
-        error: apiErrorMessage(error, fallback: 'Unable to change plan.'),
+        failure: paymentFailure(error, PaymentErrorCode.changePlan),
       );
       return false;
     }
@@ -676,7 +687,7 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionState> {
       }
       state = state.copyWith(
         isUpdatingCard: false,
-        error: apiErrorMessage(error, fallback: 'Unable to update the card.'),
+        failure: paymentFailure(error, PaymentErrorCode.updateCard),
       );
       return null;
     }
@@ -721,7 +732,7 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionState> {
         return false;
       }
       state = state.copyWith(
-        error: apiErrorMessage(error, fallback: 'Sandbox simulation failed.'),
+        failure: paymentFailure(error, PaymentErrorCode.sandboxFailed),
       );
       return false;
     }

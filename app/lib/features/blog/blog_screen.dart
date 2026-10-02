@@ -5,6 +5,7 @@ import '../../core/providers/api_client_provider.dart';
 import '../../core/providers/safety_actions_provider.dart';
 import '../../core/rich_text/rich_document_view.dart';
 import '../../core/theme/app_theme.dart';
+import '../../l10n/app_localizations.dart';
 import '../auth/providers/auth_provider.dart';
 import '../common/widgets/report_user_sheet.dart';
 import '../walls/today_wall_data.dart';
@@ -38,12 +39,16 @@ class BlogScreen extends ConsumerStatefulWidget {
 
 /// Feed scopes in tab order. `top` and `subscriptions` are not offered while
 /// reading one writer's chapters.
-const blogScopes = {
-  'community': 'For you',
-  'top': 'Top rated',
-  'subscriptions': 'Following',
-  'friends': 'Friends',
-  'mine': 'Mine',
+const blogScopes = ['community', 'top', 'subscriptions', 'friends', 'mine'];
+
+/// The tab label of a feed scope.
+String blogScopeLabel(AppLocalizations l10n, String scope) => switch (scope) {
+  'community' => l10n.blogScopeForYou,
+  'top' => l10n.blogScopeTopRated,
+  'subscriptions' => l10n.blogScopeFollowing,
+  'friends' => l10n.blogAudienceFriends,
+  'mine' => l10n.blogScopeMine,
+  _ => scope,
 };
 
 class _BlogScreenState extends ConsumerState<BlogScreen> {
@@ -59,15 +64,12 @@ class _BlogScreenState extends ConsumerState<BlogScreen> {
       ..add('');
   });
 
-  String get scopeCaption => switch (scope) {
-    'mine' =>
-      'Your drafts and published chapters. You choose the audience for each one.',
-    'friends' => 'Chapters shared by your accepted Connect friends.',
-    'top' =>
-      'Ranked by likes, approved comments and readers, from the last 30 days.',
-    'subscriptions' => 'The newest chapters from writers you follow.',
-    _ =>
-      'For eligible, signed-in Connect members. These chapters are not public on the web.',
+  String scopeCaption(AppLocalizations l10n) => switch (scope) {
+    'mine' => l10n.blogScopeCaptionMine,
+    'friends' => l10n.blogScopeCaptionFriends,
+    'top' => l10n.blogScopeCaptionTop,
+    'subscriptions' => l10n.blogScopeCaptionFollowing,
+    _ => l10n.blogScopeCaptionCommunity,
   };
 
   @override
@@ -80,13 +82,11 @@ class _BlogScreenState extends ConsumerState<BlogScreen> {
       topic: topic,
     );
     final theme = Theme.of(context);
-    final scopes = {
-      for (final e in blogScopes.entries)
-        if (widget.authorId == null ||
-            e.key == 'community' ||
-            e.key == 'friends')
-          e.key: e.value,
-    };
+    final l10n = AppLocalizations.of(context);
+    final scopes = [
+      for (final s in blogScopes)
+        if (widget.authorId == null || s == 'community' || s == 'friends') s,
+    ];
     final topics = user == null
         ? const <BlogTopic>[]
         : ref
@@ -94,29 +94,29 @@ class _BlogScreenState extends ConsumerState<BlogScreen> {
               .maybeWhen(data: (t) => t, orElse: () => const <BlogTopic>[]);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Open Chapters'),
+        title: Text(l10n.blogTitle),
         actions: [
           IconButton(
             key: const ValueKey('blog.rewards'),
-            tooltip: 'How rewards work',
+            tooltip: l10n.blogRewardsTitle,
             onPressed: () => showBlogRewardsSheet(context),
             icon: const Icon(Icons.info_outline_rounded),
           ),
           IconButton(
             key: const ValueKey('blog.writers'),
-            tooltip: 'Writers you follow',
+            tooltip: l10n.blogWritersTitle,
             onPressed: () => openBlogWriters(context),
             icon: const Icon(Icons.favorite_border_rounded),
           ),
           IconButton(
-            tooltip: 'Private responses, sharing and notices',
+            tooltip: l10n.blogConnectionsTooltip,
             onPressed: () => openBlogConnections(context),
             icon: const Icon(Icons.mark_email_unread_outlined),
           ),
         ],
       ),
       body: user == null
-          ? const Center(child: Text('Sign in to read and write chapters.'))
+          ? Center(child: Text(l10n.blogSignInReadWrite))
           : Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 800),
@@ -129,22 +129,20 @@ class _BlogScreenState extends ConsumerState<BlogScreen> {
                     padding: const EdgeInsets.fromLTRB(24, 16, 24, 112),
                     children: [
                       Text(
-                        'A life worth\ngetting to know.',
+                        l10n.blogHeroTitle,
                         style: theme.textTheme.displaySmall?.copyWith(
                           fontFamily: AppTheme.displayFamily,
                         ),
                       ),
                       const SizedBox(height: 12),
-                      const Text(
-                        'The story behind a photo. A small obsession. Something you’re still learning. Let your everyday life do the talking.',
-                      ),
+                      Text(l10n.blogHeroBody),
                       const SizedBox(height: 20),
                       Align(
                         alignment: Alignment.centerLeft,
                         child: FilledButton.icon(
                           key: const ValueKey('blog.new'),
                           icon: const Icon(Icons.edit_note_rounded),
-                          label: const Text('Write a chapter'),
+                          label: Text(l10n.blogWriteChapter),
                           onPressed: () => Navigator.of(context).push<void>(
                             MaterialPageRoute(
                               builder: (_) => BlogEditor(key: ValueKey(user)),
@@ -160,7 +158,7 @@ class _BlogScreenState extends ConsumerState<BlogScreen> {
                           TextButton.icon(
                             onPressed: () => openBlogConnections(context),
                             icon: const Icon(Icons.forum_outlined),
-                            label: const Text('Private responses'),
+                            label: Text(l10n.blogPrivateResponses),
                           ),
                           TextButton.icon(
                             onPressed: () => openBlogConnections(
@@ -168,7 +166,7 @@ class _BlogScreenState extends ConsumerState<BlogScreen> {
                               section: 'publications',
                             ),
                             icon: const Icon(Icons.ios_share_outlined),
-                            label: const Text('Shared links'),
+                            label: Text(l10n.blogSharedLinks),
                           ),
                           TextButton.icon(
                             onPressed: () => openBlogConnections(
@@ -176,7 +174,7 @@ class _BlogScreenState extends ConsumerState<BlogScreen> {
                               section: 'notices',
                             ),
                             icon: const Icon(Icons.shield_outlined),
-                            label: const Text('Review notices'),
+                            label: Text(l10n.blogReviewNotices),
                           ),
                         ],
                       ),
@@ -186,12 +184,12 @@ class _BlogScreenState extends ConsumerState<BlogScreen> {
                         spacing: 8,
                         runSpacing: 8,
                         children: [
-                          for (final entry in scopes.entries)
+                          for (final s in scopes)
                             ChoiceChip(
-                              key: ValueKey('blog.scope.${entry.key}'),
-                              label: Text(entry.value),
-                              selected: scope == entry.key,
-                              onSelected: (_) => select(scope: entry.key),
+                              key: ValueKey('blog.scope.$s'),
+                              label: Text(blogScopeLabel(l10n, s)),
+                              selected: scope == s,
+                              onSelected: (_) => select(scope: s),
                             ),
                         ],
                       ),
@@ -203,7 +201,7 @@ class _BlogScreenState extends ConsumerState<BlogScreen> {
                           child: Row(
                             children: [
                               for (final t in [
-                                const BlogTopic(slug: '', title: 'All'),
+                                BlogTopic(slug: '', title: l10n.blogTopicAll),
                                 ...topics,
                               ])
                                 Padding(
@@ -222,7 +220,10 @@ class _BlogScreenState extends ConsumerState<BlogScreen> {
                         ),
                       ],
                       const SizedBox(height: 12),
-                      Text(scopeCaption, style: theme.textTheme.bodySmall),
+                      Text(
+                        scopeCaption(l10n),
+                        style: theme.textTheme.bodySmall,
+                      ),
                       const SizedBox(height: 20),
                       if (scope == 'community' &&
                           topic.isEmpty &&
@@ -243,7 +244,7 @@ class _BlogScreenState extends ConsumerState<BlogScreen> {
                             error: (e, _) => BlogError(
                               message: apiErrorMessage(
                                 e,
-                                fallback: 'Chapters could not load.',
+                                fallback: l10n.blogFeedLoadFailed,
                               ),
                               retry: () =>
                                   ref.invalidate(blogFeedProvider(query)),
@@ -274,14 +275,14 @@ class _BlogScreenState extends ConsumerState<BlogScreen> {
                                         onPressed: () => setState(
                                           () => cursors.removeLast(),
                                         ),
-                                        child: const Text('Previous page'),
+                                        child: Text(l10n.blogPreviousPage),
                                       ),
                                     if (page.next.isNotEmpty)
                                       OutlinedButton(
                                         onPressed: () => setState(
                                           () => cursors.add(page.next),
                                         ),
-                                        child: const Text('More chapters'),
+                                        child: Text(l10n.blogMoreChapters),
                                       ),
                                   ],
                                 ),
@@ -309,30 +310,29 @@ class _BlogEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final (IconData icon, String title, String body) = switch (scope) {
       'mine' => (
         Icons.menu_book_outlined,
-        'Your next chapter starts here.',
-        'Start with a moment you would love someone to ask about. Your first draft is only for you.',
+        l10n.blogEmptyMineTitle,
+        l10n.blogEmptyMineBody,
       ),
       'top' => (
         Icons.trending_up_rounded,
-        'When chapters move people, they rise here.',
-        filtered
-            ? 'Nothing has risen in this topic yet. Try All, or share a chapter of your own.'
-            : 'Chapters readers love from the last 30 days will appear here.',
+        l10n.blogEmptyTopTitle,
+        filtered ? l10n.blogEmptyTopFilteredBody : l10n.blogEmptyTopBody,
       ),
       'subscriptions' => (
         Icons.favorite_border_rounded,
         filtered
-            ? 'Nothing new in this topic yet.'
-            : 'Writers you follow will appear here.',
-        'When a chapter speaks to you, open it and tap Follow their chapters. Their new chapters will gather here, so you never miss what they share next.',
+            ? l10n.blogEmptyFollowingFilteredTitle
+            : l10n.blogEmptyFollowingTitle,
+        l10n.blogEmptyFollowingBody,
       ),
       _ => (
         Icons.menu_book_outlined,
-        'A little quiet here, for now.',
-        'Chapters appear here when members choose to share with this audience.',
+        l10n.blogEmptyCommunityTitle,
+        l10n.blogEmptyCommunityBody,
       ),
     };
     return Card(
@@ -357,7 +357,7 @@ class _BlogEmptyState extends StatelessWidget {
                 style: FilledButton.styleFrom(minimumSize: const Size(48, 48)),
                 onPressed: onSeeTopRated,
                 icon: const Icon(Icons.trending_up_rounded),
-                label: const Text('Find writers in Top rated'),
+                label: Text(l10n.blogFindWritersTopRated),
               ),
             ],
           ],
@@ -383,6 +383,7 @@ class BlogPostCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -396,7 +397,7 @@ class BlogPostCard extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: Tooltip(
-                    message: 'Number $rank in Top rated',
+                    message: l10n.blogRankTooltip(rank!),
                     child: Container(
                       key: ValueKey('blog.rank.${post.id}'),
                       width: 40,
@@ -431,7 +432,7 @@ class BlogPostCard extends StatelessWidget {
                   child: BlogImage(post: post, photo: post.photos.first),
                 ),
               Text(
-                post.title.isEmpty ? 'An untitled chapter' : post.title,
+                post.title.isEmpty ? l10n.blogUntitled : post.title,
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.headlineSmall?.copyWith(
@@ -440,9 +441,7 @@ class BlogPostCard extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               Text(
-                post.body.isEmpty
-                    ? 'A private draft, waiting for your words.'
-                    : post.body,
+                post.body.isEmpty ? l10n.blogDraftPlaceholder : post.body,
                 maxLines: 4,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -459,7 +458,9 @@ class BlogPostCard extends StatelessWidget {
                 ),
               const SizedBox(height: 16),
               Text(
-                post.authorId == user ? 'Read & edit →' : 'Read chapter →',
+                post.authorId == user
+                    ? l10n.blogReadEdit
+                    : l10n.blogReadChapter,
                 style: TextStyle(
                   color: colors.primary,
                   fontWeight: FontWeight.w600,
@@ -496,7 +497,9 @@ class BlogByline extends StatelessWidget {
               : Icons.public,
           size: 16,
         ),
-        label: Text(blogAudiences[post.audience]!),
+        label: Text(
+          blogAudienceLabel(AppLocalizations.of(context), post.audience),
+        ),
         visualDensity: VisualDensity.compact,
       ),
       if (post.topicTitle.isNotEmpty)
@@ -546,7 +549,9 @@ class BlogImage extends ConsumerWidget {
                     child: TextButton.icon(
                       onPressed: () => ref.invalidate(provider),
                       icon: const Icon(Icons.broken_image_outlined),
-                      label: const Text('Photo unavailable · Retry'),
+                      label: Text(
+                        AppLocalizations.of(context).blogPhotoUnavailableRetry,
+                      ),
                     ),
                   ),
                 ),
@@ -570,7 +575,10 @@ class BlogError extends StatelessWidget {
       children: [
         Text(message),
         const SizedBox(height: 8),
-        OutlinedButton(onPressed: retry, child: const Text('Try again')),
+        OutlinedButton(
+          onPressed: retry,
+          child: Text(AppLocalizations.of(context).blogTryAgain),
+        ),
       ],
     ),
   );
@@ -582,10 +590,11 @@ class BlogDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authNotifierProvider.select((s) => s.userId));
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('A chapter')),
+      appBar: AppBar(title: Text(l10n.blogDetailTitle)),
       body: user == null
-          ? const Center(child: Text('Sign in to read chapters.'))
+          ? Center(child: Text(l10n.blogSignInRead))
           : ref
                 .watch(blogPostProvider(id))
                 .when(
@@ -595,8 +604,7 @@ class BlogDetailScreen extends ConsumerWidget {
                   error: (e, _) => BlogError(
                     message: apiErrorMessage(
                       e,
-                      fallback:
-                          'This chapter is unavailable or its audience has changed.',
+                      fallback: l10n.blogDetailUnavailable,
                     ),
                     retry: () => ref.invalidate(blogPostProvider(id)),
                   ),
@@ -609,9 +617,7 @@ class BlogDetailScreen extends ConsumerWidget {
                           BlogByline(post: post, showAuthor: false),
                           const SizedBox(height: 20),
                           Text(
-                            post.title.isEmpty
-                                ? 'An untitled chapter'
-                                : post.title,
+                            post.title.isEmpty ? l10n.blogUntitled : post.title,
                             style: Theme.of(context).textTheme.headlineLarge
                                 ?.copyWith(fontFamily: AppTheme.displayFamily),
                           ),
@@ -649,7 +655,9 @@ class BlogDetailScreen extends ConsumerWidget {
                               margin: const EdgeInsets.only(top: 24),
                               child: Padding(
                                 padding: const EdgeInsets.all(20),
-                                child: Text(blogInvitations[post.invitation]!),
+                                child: Text(
+                                  blogInvitationLabel(l10n, post.invitation),
+                                ),
                               ),
                             ),
                           if (post.authorId != user &&
@@ -658,7 +666,7 @@ class BlogDetailScreen extends ConsumerWidget {
                               padding: const EdgeInsets.only(top: 16),
                               child: FilledButton.icon(
                                 icon: const Icon(Icons.mail_outline),
-                                label: const Text('Respond privately'),
+                                label: Text(l10n.blogRespondPrivately),
                                 onPressed: () =>
                                     respondToChapter(context, post),
                               ),
@@ -670,7 +678,7 @@ class BlogDetailScreen extends ConsumerWidget {
                               padding: const EdgeInsets.only(top: 16),
                               child: OutlinedButton.icon(
                                 icon: const Icon(Icons.ios_share_outlined),
-                                label: const Text('Create a public preview'),
+                                label: Text(l10n.blogCreatePublicPreview),
                                 onPressed: () => Navigator.push<void>(
                                   context,
                                   MaterialPageRoute(
@@ -680,11 +688,9 @@ class BlogDetailScreen extends ConsumerWidget {
                               ),
                             ),
                           if (post.moderation == 'removed')
-                            const Padding(
-                              padding: EdgeInsets.only(top: 16),
-                              child: Text(
-                                'Removed by moderation. Open Review notices to read the decision or request another review.',
-                              ),
+                            Padding(
+                              padding: const EdgeInsets.only(top: 16),
+                              child: Text(l10n.blogRemovedByModerationNote),
                             ),
                           if (post.audience != 'private') ...[
                             const SizedBox(height: 32),
@@ -698,7 +704,7 @@ class BlogDetailScreen extends ConsumerWidget {
                               children: [
                                 FilledButton.icon(
                                   icon: const Icon(Icons.edit_outlined),
-                                  label: const Text('Edit chapter'),
+                                  label: Text(l10n.blogEditChapter),
                                   onPressed: () =>
                                       Navigator.of(context).push<void>(
                                         MaterialPageRoute(
@@ -711,13 +717,13 @@ class BlogDetailScreen extends ConsumerWidget {
                                 ),
                                 OutlinedButton.icon(
                                   icon: const Icon(Icons.delete_outline),
-                                  label: const Text('Delete chapter'),
+                                  label: Text(l10n.blogDeleteChapter),
                                   onPressed: () async {
                                     if (!await confirmBlogAction(
                                       context,
-                                      'Delete this chapter?',
-                                      'It will disappear from all audiences. This cannot be undone.',
-                                      'Delete chapter',
+                                      l10n.blogDeleteChapterTitle,
+                                      l10n.blogDeleteChapterMessage,
+                                      l10n.blogDeleteChapter,
                                     )) {
                                       return;
                                     }
@@ -743,8 +749,8 @@ class BlogDetailScreen extends ConsumerWidget {
                                             content: Text(
                                               apiErrorMessage(
                                                 e,
-                                                fallback:
-                                                    'Could not confirm deletion. Reload the chapter before retrying.',
+                                                fallback: l10n
+                                                    .blogDeleteChapterFailed,
                                               ),
                                             ),
                                           ),
@@ -758,7 +764,7 @@ class BlogDetailScreen extends ConsumerWidget {
                           else
                             OutlinedButton.icon(
                               icon: const Icon(Icons.flag_outlined),
-                              label: const Text('Report chapter'),
+                              label: Text(l10n.blogReportChapter),
                               onPressed: () => showReportUserSheet(
                                 context: context,
                                 onSubmit:
@@ -781,8 +787,7 @@ class BlogDetailScreen extends ConsumerWidget {
                                         throw Exception(
                                           apiErrorMessage(
                                             e,
-                                            fallback:
-                                                'Report could not be submitted.',
+                                            fallback: l10n.blogReportFailed,
                                           ),
                                         );
                                       }
@@ -792,13 +797,13 @@ class BlogDetailScreen extends ConsumerWidget {
                           if (post.authorId != user)
                             TextButton.icon(
                               icon: const Icon(Icons.block_outlined),
-                              label: const Text('Block this member'),
+                              label: Text(l10n.blogBlockThisMember),
                               onPressed: () async {
                                 if (!await confirmBlogAction(
                                   context,
-                                  'Block this member?',
-                                  'You will no longer see each other’s chapters. This also blocks contact through Connect.',
-                                  'Block member',
+                                  l10n.blogBlockTitle,
+                                  l10n.blogBlockMessageChapter,
+                                  l10n.blogBlockMember,
                                 ))
                                   return;
                                 try {
@@ -815,8 +820,7 @@ class BlogDetailScreen extends ConsumerWidget {
                                         content: Text(
                                           apiErrorMessage(
                                             e,
-                                            fallback:
-                                                'Could not block this member. Please retry.',
+                                            fallback: l10n.blogBlockRetryFailed,
                                           ),
                                         ),
                                       ),
@@ -848,7 +852,7 @@ Future<bool> confirmBlogAction(
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(AppLocalizations.of(context).blogCancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),

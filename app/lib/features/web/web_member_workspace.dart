@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/platform/browser_context.dart';
 import '../../core/providers/runtime_feature_flags_provider.dart';
 import '../../core/widgets/connect_brand.dart';
+import '../../l10n/app_localizations.dart';
 import '../auth/providers/auth_provider.dart';
 import '../common/screens/main_navigation_screen.dart';
 import '../matching/screens/matches_list_screen.dart';
@@ -44,9 +45,17 @@ class WebDestination {
     this.icon,
     this.build, {
     this.flag,
+    this.labelOf,
   });
   final String path;
+
+  /// English name; stable for code and tests. Show [labelFor] to members.
   final String label;
+
+  /// The name in the member's language.
+  final String Function(AppLocalizations l10n)? labelOf;
+
+  String labelFor(AppLocalizations l10n) => labelOf?.call(l10n) ?? label;
   final IconData icon;
   final Widget Function() build;
 
@@ -61,6 +70,7 @@ final webDestinations = <WebDestination>[
   WebDestination(
     '/blog',
     'Blog',
+    labelOf: (l) => l.webDestBlog,
     Icons.menu_book_outlined,
     () => const BlogScreen(),
     flag: 'intentional_dating_enabled',
@@ -68,6 +78,7 @@ final webDestinations = <WebDestination>[
   WebDestination(
     '/first-chapter',
     'First Chapter Studio',
+    labelOf: (l) => l.webDestFirstChapter,
     Icons.auto_stories_outlined,
     () => const ChapterStudioScreen(),
     flag: 'intentional_dating_enabled',
@@ -75,18 +86,21 @@ final webDestinations = <WebDestination>[
   WebDestination(
     '/preferences',
     'Dating preferences',
+    labelOf: (l) => l.webDestDatingPreferences,
     Icons.tune_rounded,
     () => const SetupPreferencesScreen(isSetupFlow: false),
   ),
   WebDestination(
     '/edit-profile',
     'Edit profile',
+    labelOf: (l) => l.webDestEditProfile,
     Icons.edit_outlined,
     () => const EditProfileScreen(),
   ),
   WebDestination(
     '/photos',
     'Profile photos',
+    labelOf: (l) => l.webDestProfilePhotos,
     Icons.photo_library_outlined,
     () => const SetupPhotosScreen(),
   ),
@@ -94,18 +108,21 @@ final webDestinations = <WebDestination>[
   WebDestination(
     '/likes',
     'Liked you',
+    labelOf: (l) => l.webDestLikedYou,
     Icons.favorite_border_rounded,
     () => const LikedMeScreen(),
   ),
   WebDestination(
     '/notifications',
     'Notifications',
+    labelOf: (l) => l.webDestNotifications,
     Icons.notifications_outlined,
     () => const NotificationInboxScreen(),
   ),
   WebDestination(
     '/daily-prompt',
     'Daily prompt',
+    labelOf: (l) => l.webDestDailyPrompt,
     Icons.lightbulb_outline_rounded,
     () => const DailyPromptScreen(),
     flag: 'daily_prompts_enabled',
@@ -113,6 +130,7 @@ final webDestinations = <WebDestination>[
   WebDestination(
     '/progression',
     'Levels & progress',
+    labelOf: (l) => l.webDestLevels,
     Icons.insights_rounded,
     () => const LevelProgressionScreen(),
     flag: 'level_progression_enabled',
@@ -120,18 +138,21 @@ final webDestinations = <WebDestination>[
   WebDestination(
     '/trust',
     'Trust badges',
+    labelOf: (l) => l.webDestTrustBadges,
     Icons.verified_outlined,
     () => const TrustBadgesScreen(),
   ),
   WebDestination(
     '/trust-filters',
     'Trust filters',
+    labelOf: (l) => l.webDestTrustFilters,
     Icons.filter_alt_outlined,
     () => const TrustFilterScreen(),
   ),
   WebDestination(
     '/icebreakers',
     'Icebreakers',
+    labelOf: (l) => l.webDestIcebreakers,
     Icons.record_voice_over_outlined,
     () => const VoiceIcebreakersScreen(),
     flag: 'voice_icebreakers_enabled',
@@ -139,6 +160,7 @@ final webDestinations = <WebDestination>[
   WebDestination(
     '/challenges',
     'Circle challenges',
+    labelOf: (l) => l.webDestCircleChallenges,
     Icons.emoji_events_outlined,
     () => const CircleChallengesScreen(),
     flag: 'circles_enabled',
@@ -146,6 +168,7 @@ final webDestinations = <WebDestination>[
   WebDestination(
     '/coffee',
     'Coffee polls',
+    labelOf: (l) => l.webDestCoffeePolls,
     Icons.coffee_outlined,
     () => const GroupCoffeePollsScreen(),
     flag: 'group_coffee_polls_enabled',
@@ -153,6 +176,7 @@ final webDestinations = <WebDestination>[
   WebDestination(
     '/groups',
     'Groups',
+    labelOf: (l) => l.webDestGroups,
     Icons.groups_outlined,
     () => const GroupsScreen(),
     flag: 'groups_enabled',
@@ -160,6 +184,7 @@ final webDestinations = <WebDestination>[
   WebDestination(
     '/rooms',
     'Conversation rooms',
+    labelOf: (l) => l.webDestRooms,
     Icons.forum_outlined,
     () => const ConversationRoomsScreen(),
     flag: 'rooms_enabled',
@@ -167,6 +192,7 @@ final webDestinations = <WebDestination>[
   WebDestination(
     '/nudges',
     'Match nudges',
+    labelOf: (l) => l.webDestMatchNudges,
     Icons.waving_hand_outlined,
     () => const MatchNudgesScreen(),
     flag: 'match_nudges_enabled',
@@ -174,12 +200,14 @@ final webDestinations = <WebDestination>[
   WebDestination(
     '/friends',
     'Friends',
+    labelOf: (l) => l.webDestFriends,
     Icons.people_outline_rounded,
     () => const FriendsScreen(),
   ),
   WebDestination(
     '/plans',
     'Date plans',
+    labelOf: (l) => l.webDestDatePlans,
     Icons.event_available_rounded,
     () => const PlansScreen(),
     flag: 'date_plans_enabled',
@@ -187,6 +215,7 @@ final webDestinations = <WebDestination>[
   WebDestination(
     '/calls',
     'Call history',
+    labelOf: (l) => l.webDestCallHistory,
     Icons.call_outlined,
     () => const CallHistoryScreen(),
     flag: 'calls_enabled',
@@ -194,6 +223,7 @@ final webDestinations = <WebDestination>[
   WebDestination(
     '/membership',
     'Membership',
+    labelOf: (l) => l.webDestMembership,
     Icons.workspace_premium_outlined,
     () => const SubscriptionScreen(),
     flag: 'billing_enabled',
@@ -201,6 +231,7 @@ final webDestinations = <WebDestination>[
   WebDestination(
     '/verification',
     'Verification',
+    labelOf: (l) => l.webDestVerification,
     Icons.badge_outlined,
     () => const VerificationLandingScreen(),
     flag: 'identity_verification_enabled',
@@ -208,42 +239,49 @@ final webDestinations = <WebDestination>[
   WebDestination(
     '/safety',
     'Privacy & safety',
+    labelOf: (l) => l.webDestPrivacySafety,
     Icons.shield_outlined,
     () => const PrivacySafetyScreen(),
   ),
   WebDestination(
     '/account',
     'Account & data',
+    labelOf: (l) => l.webDestAccountData,
     Icons.manage_accounts_outlined,
     () => const AccountDataScreen(),
   ),
   WebDestination(
     '/blocked',
     'Blocked members',
+    labelOf: (l) => l.webDestBlockedMembers,
     Icons.block_outlined,
     () => const BlockedUsersScreen(),
   ),
   WebDestination(
     '/emergency-contacts',
     'Emergency contacts',
+    labelOf: (l) => l.webDestEmergencyContacts,
     Icons.contact_emergency_outlined,
     () => const EmergencyContactsScreen(),
   ),
   WebDestination(
     '/appeals',
     'Moderation appeals',
+    labelOf: (l) => l.webDestModerationAppeals,
     Icons.fact_check_outlined,
     () => const ModerationAppealsScreen(),
   ),
   WebDestination(
     '/notification-settings',
     'Notification preferences',
+    labelOf: (l) => l.webDestNotificationPreferences,
     Icons.notifications_active_outlined,
     () => const NotificationSettingsScreen(),
   ),
   WebDestination(
     '/help',
     'Help & support',
+    labelOf: (l) => l.webDestHelpSupport,
     Icons.help_outline_rounded,
     () => const HelpSupportScreen(),
   ),
@@ -256,12 +294,12 @@ const _primaryPaths = [
   '/profile',
   '/settings',
 ];
-const _primaryLabels = [
-  'Discover',
-  'Matches',
-  'Explore',
-  'My profile',
-  'Settings',
+List<String> _primaryLabels(AppLocalizations l10n) => [
+  l10n.navDiscover,
+  l10n.navMatches,
+  l10n.webNavExplore,
+  l10n.webNavMyProfile,
+  l10n.navSettings,
 ];
 const _primaryIcons = [
   Icons.explore_outlined,
@@ -380,6 +418,7 @@ class _WebMemberWorkspaceState extends ConsumerState<WebMemberWorkspace> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     ref.listen<int>(mainNavigationIndexProvider, (_, index) {
       if (_primaryPaths.contains(_path) && _primaryPaths[index] != _path) {
         _path = _primaryPaths[index];
@@ -409,7 +448,7 @@ class _WebMemberWorkspaceState extends ConsumerState<WebMemberWorkspace> {
           )
         : destination != null && !destination.availableWith(flags)
         ? _UnavailableDestination(
-            label: destination.label,
+            label: destination.labelFor(l10n),
             onBack: () => _go('/discover'),
           )
         : destination != null
@@ -418,11 +457,11 @@ class _WebMemberWorkspaceState extends ConsumerState<WebMemberWorkspace> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('This page could not be found.'),
+                Text(l10n.webPageNotFound),
                 const SizedBox(height: 16),
                 FilledButton(
                   onPressed: () => _go('/discover'),
-                  child: const Text('Back to Discover'),
+                  child: Text(l10n.webBackToDiscover),
                 ),
               ],
             ),
@@ -434,9 +473,9 @@ class _WebMemberWorkspaceState extends ConsumerState<WebMemberWorkspace> {
                     fallback: false,
                   ) &&
                   flags.enabled('curated_daily_set_enabled', fallback: true)
-              ? 'Today'
-              : _primaryLabels[primaryIndex])
-        : destination?.label ?? 'All features';
+              ? l10n.navToday
+              : _primaryLabels(l10n)[primaryIndex])
+        : destination?.labelFor(l10n) ?? l10n.webNavAllFeatures;
     if (!wide) {
       // A Scaffold, like the wide layout: the directory and "not available"
       // pages have none of their own, and without a Material ancestor their
@@ -454,7 +493,7 @@ class _WebMemberWorkspaceState extends ConsumerState<WebMemberWorkspace> {
                       BackButton(onPressed: _back),
                       Expanded(child: Text(title)),
                       IconButton(
-                        tooltip: 'All features',
+                        tooltip: l10n.webNavAllFeatures,
                         onPressed: () => _go('/features'),
                         icon: const Icon(Icons.grid_view_rounded),
                       ),
@@ -506,41 +545,49 @@ class _WebMemberWorkspaceState extends ConsumerState<WebMemberWorkspace> {
                                         'curated_daily_set_enabled',
                                         fallback: true,
                                       )
-                                  ? 'Today'
-                                  : _primaryLabels[i],
+                                  ? l10n.navToday
+                                  : _primaryLabels(l10n)[i],
                               _primaryIcons[i],
                             ),
                           if (flags.enabled(
                             'intentional_dating_enabled',
                             fallback: true,
                           ))
-                            _nav('/blog', 'Blog', Icons.menu_book_outlined),
-                          const _SidebarLabel('More for you'),
-                          _nav('/features', 'All features', Icons.apps_rounded),
+                            _nav(
+                              '/blog',
+                              l10n.webDestBlog,
+                              Icons.menu_book_outlined,
+                            ),
+                          _SidebarLabel(l10n.webNavMoreForYou),
+                          _nav(
+                            '/features',
+                            l10n.webNavAllFeatures,
+                            Icons.apps_rounded,
+                          ),
                           _nav(
                             '/preferences',
-                            'Preferences',
+                            l10n.webNavPreferences,
                             Icons.tune_rounded,
                           ),
                           _nav(
                             '/notifications',
-                            'Notifications',
+                            l10n.webDestNotifications,
                             Icons.notifications_outlined,
                           ),
                           if (flags.enabled('billing_enabled', fallback: true))
                             _nav(
                               '/membership',
-                              'Membership',
+                              l10n.webDestMembership,
                               Icons.workspace_premium_outlined,
                             ),
                           _nav(
                             '/safety',
-                            'Privacy & safety',
+                            l10n.webDestPrivacySafety,
                             Icons.shield_outlined,
                           ),
                           _nav(
                             '/help',
-                            'Help & support',
+                            l10n.webDestHelpSupport,
                             Icons.help_outline_rounded,
                           ),
                         ],
@@ -552,12 +599,12 @@ class _WebMemberWorkspaceState extends ConsumerState<WebMemberWorkspace> {
                       child: Column(
                         children: [
                           _SidebarItem(
-                            label: 'Connect website',
+                            label: l10n.webNavWebsite,
                             icon: Icons.open_in_new_rounded,
                             onTap: openWebsiteHome,
                           ),
                           _SidebarItem(
-                            label: 'Sign out',
+                            label: l10n.webNavSignOut,
                             icon: Icons.logout_rounded,
                             onTap: () async {
                               await ref
@@ -611,7 +658,7 @@ class _WebMemberWorkspaceState extends ConsumerState<WebMemberWorkspace> {
                       ),
                       const Spacer(),
                       Text(
-                        'Your pace. Your choice.',
+                        l10n.webTagline,
                         style: TextStyle(
                           fontSize: 13,
                           color: colors.onSurfaceVariant,
@@ -741,13 +788,13 @@ class _UnavailableDestination extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            '$label isn\'t available yet.',
+            AppLocalizations.of(context).webUnavailableTitle(label),
             style: Theme.of(context).textTheme.titleLarge,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           Text(
-            "It isn't part of this release of Connect.",
+            AppLocalizations.of(context).webUnavailableBody,
             style: Theme.of(context).textTheme.bodyMedium,
             textAlign: TextAlign.center,
           ),
@@ -755,7 +802,7 @@ class _UnavailableDestination extends StatelessWidget {
           FilledButton(
             onPressed: onBack,
             style: FilledButton.styleFrom(minimumSize: const Size(0, 48)),
-            child: const Text('Back to Discover'),
+            child: Text(AppLocalizations.of(context).webBackToDiscover),
           ),
         ],
       ),
@@ -777,13 +824,11 @@ class _FeatureDirectory extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Make this space yours.',
+              AppLocalizations.of(context).webDirectoryTitle,
               style: Theme.of(context).textTheme.displaySmall,
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Your profile, conversations, community and controls — all in one place.',
-            ),
+            Text(AppLocalizations.of(context).webDirectorySubtitle),
             const SizedBox(height: 24),
             LayoutBuilder(
               builder: (context, bounds) => Wrap(
@@ -806,7 +851,7 @@ class _FeatureDirectory extends StatelessWidget {
                             color: Theme.of(context).colorScheme.primary,
                           ),
                           title: Text(
-                            item.label,
+                            item.labelFor(AppLocalizations.of(context)),
                             style: const TextStyle(fontSize: 14),
                           ),
                           trailing: const Icon(

@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/layout/app_layout.dart';
+import '../../../l10n/app_localizations.dart';
 import '../models/graduation.dart';
+import '../models/graduation_labels.dart';
 import '../providers/graduation_provider.dart';
 
 /// Opens the "we found each other" sheet for a match. Resolves to the created
@@ -62,11 +64,13 @@ class _ProposeGraduationSheetState
       return;
     }
     if (graduation == null) {
+      final l10n = AppLocalizations.of(context);
+      final state = ref.read(matchGraduationProvider(widget.matchId));
       setState(() {
         _submitting = false;
-        _error =
-            ref.read(matchGraduationProvider(widget.matchId)).error ??
-            'Unable to propose leaving together.';
+        _error = state.error == null
+            ? l10n.graduationProposeFailed
+            : localizedGraduationError(l10n, state.error!, state.failure);
       });
       return;
     }
@@ -76,6 +80,7 @@ class _ProposeGraduationSheetState
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
     return Padding(
       padding: EdgeInsets.only(bottom: bottomInset),
@@ -94,7 +99,7 @@ class _ProposeGraduationSheetState
                 const SizedBox(width: AppLayout.space3),
                 Expanded(
                   child: Text(
-                    'Leave Connect with ${widget.partnerName}?',
+                    l10n.graduationProposeTitle(widget.partnerName),
                     style: theme.textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
@@ -104,9 +109,7 @@ class _ProposeGraduationSheetState
             ),
             const SizedBox(height: AppLayout.space3),
             Text(
-              'Once ${widget.partnerName} confirms, you are both hidden from '
-              'discovery. This chat stays open, and you can come back to '
-              'discovery from Privacy & Safety at any time.',
+              l10n.graduationProposeBody(widget.partnerName),
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -118,20 +121,17 @@ class _ProposeGraduationSheetState
               maxLength: 200,
               maxLines: 3,
               minLines: 2,
-              decoration: const InputDecoration(
-                labelText: 'A note for them (optional)',
-                hintText: 'Say why you are ready',
+              decoration: InputDecoration(
+                labelText: l10n.graduationNoteLabel,
+                hintText: l10n.graduationNoteHint,
               ),
             ),
             const SizedBox(height: AppLayout.space2),
             SwitchListTile(
               key: const ValueKey('qa.graduation.share_switch'),
               contentPadding: EdgeInsets.zero,
-              title: const Text('Tell my friends'),
-              subtitle: const Text(
-                'Your accepted friends hear you found someone. '
-                'They are not told who.',
-              ),
+              title: Text(l10n.graduationTellFriends),
+              subtitle: Text(l10n.graduationTellFriendsBody),
               value: _shareWithFriends,
               onChanged: (value) => setState(() => _shareWithFriends = value),
             ),
@@ -160,7 +160,7 @@ class _ProposeGraduationSheetState
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.send_rounded),
-                label: const Text('Ask them'),
+                label: Text(l10n.graduationAskThem),
               ),
             ),
           ],

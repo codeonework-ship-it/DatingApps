@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 import '../../core/network/api_error_message.dart';
 import '../../core/widgets/connect_page.dart';
 import '../../core/widgets/glass_widgets.dart';
+import '../../l10n/app_localizations.dart';
 import '../common/widgets/community_actions.dart';
 import 'friend_picker.dart';
 import 'group_cover_picker.dart';
@@ -80,7 +81,7 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
     final picked = await pickGroupFriends(
       context,
       selected: invitees,
-      title: 'Invite friends',
+      title: AppLocalizations.of(context).groupsInviteFriends,
     );
     if (picked != null && mounted) {
       setState(() {
@@ -101,6 +102,7 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
   /// Uploads the chosen photo to the new group. The group exists either way;
   /// a failed upload only leaves it on its emoji cover.
   Future<void> uploadCoverPhoto(String id, PickedGroupCover photo) async {
+    final l10n = AppLocalizations.of(context);
     setState(() {
       uploadingCover = true;
       coverProgress = null;
@@ -117,18 +119,13 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
         },
       );
       if (mounted) {
-        showCommunitySnack(context, groupCoverUploadedMessage(updated));
+        showCommunitySnack(context, groupCoverUploadedMessage(l10n, updated));
       }
     } on Object catch (e) {
       if (mounted) {
         showCommunitySnack(
           context,
-          apiErrorMessage(
-            e,
-            fallback:
-                'Your group is ready, but the cover photo could not be '
-                'uploaded. Try again from the group.',
-          ),
+          apiErrorMessage(e, fallback: l10n.groupsCreateCoverUploadFailed),
         );
       }
     } finally {
@@ -139,13 +136,14 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
   }
 
   Future<void> create() async {
+    final l10n = AppLocalizations.of(context);
     final trimmed = name.text.trim();
     if (kind == 'community' && category.isEmpty) {
-      setState(() => error = 'Pick a lifestyle for your community group.');
+      setState(() => error = l10n.groupsCreatePickLifestyle);
       return;
     }
     if (trimmed.length < 3) {
-      setState(() => error = 'Give your group a name of at least 3 letters.');
+      setState(() => error = l10n.groupsCreateNameTooShort);
       return;
     }
     setState(() {
@@ -183,10 +181,7 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
     } on Object catch (e) {
       if (mounted) {
         setState(
-          () => error = apiErrorMessage(
-            e,
-            fallback: 'Your group could not be created. Please try again.',
-          ),
+          () => error = apiErrorMessage(e, fallback: l10n.groupsCreateFailed),
         );
       }
     } finally {
@@ -200,6 +195,7 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
     final categories = ref.watch(groupCategoriesProvider);
     final categoryEmoji =
         categories.valueOrNull
@@ -244,32 +240,29 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
                     children: [
                       ConnectPageHeader(
                         leading: const BackButton(),
-                        eyebrow: 'NEW GROUP',
-                        title: 'Start a group',
+                        eyebrow: l10n.groupsCreateEyebrow,
+                        title: l10n.groupsStartGroup,
                         subtitle: invitees.isEmpty
-                            ? 'Bring people together around what you love.'
-                            : 'Turn your friends into a group.',
+                            ? l10n.groupsCreateSubtitle
+                            : l10n.groupsCreateSubtitleFriends,
                       ),
                       section(
-                        'WHAT KIND',
+                        l10n.groupsCreateKindHeader,
                         null,
                         Column(
                           children: [
                             _KindOption(
                               icon: Icons.public_rounded,
-                              title: 'Community group',
-                              subtitle:
-                                  'By lifestyle. Anyone can find and join it.',
+                              title: l10n.groupsKindCommunity,
+                              subtitle: l10n.groupsCreateCommunitySubtitle,
                               selected: kind == 'community',
                               onTap: () => setState(() => kind = 'community'),
                             ),
                             const SizedBox(height: ConnectMetrics.cardGap),
                             _KindOption(
                               icon: Icons.lock_outline_rounded,
-                              title: 'Private group',
-                              subtitle:
-                                  'Just friends. Only people you invite can '
-                                  'join.',
+                              title: l10n.groupsKindPrivate,
+                              subtitle: l10n.groupsCreatePrivateSubtitle,
                               selected: kind == 'private',
                               onTap: () => setState(() => kind = 'private'),
                             ),
@@ -278,8 +271,8 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
                       ),
                       if (kind == 'community')
                         section(
-                          'LIFESTYLE',
-                          'Where people will discover your group.',
+                          l10n.groupsCreateLifestyleHeader,
+                          l10n.groupsCreateLifestyleCaption,
                           categories.when(
                             loading: () => const Padding(
                               padding: EdgeInsets.all(16),
@@ -287,12 +280,12 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
                             ),
                             error: (e, _) => GroupNotice(
                               icon: Icons.cloud_off_outlined,
-                              title: 'Lifestyles could not load',
+                              title: l10n.groupsLifestylesFailed,
                               message: apiErrorMessage(
                                 e,
-                                fallback: 'Please try again.',
+                                fallback: l10n.groupsPleaseTryAgain,
                               ),
-                              actionLabel: 'Try again',
+                              actionLabel: l10n.chatTryAgain,
                               onAction: () =>
                                   ref.invalidate(groupCategoriesProvider),
                             ),
@@ -312,7 +305,7 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
                           ),
                         ),
                       section(
-                        'DETAILS',
+                        l10n.groupsCreateDetailsHeader,
                         null,
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -322,10 +315,10 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
                               maxLength: 60,
                               textCapitalization: TextCapitalization.words,
                               decoration: InputDecoration(
-                                labelText: 'Group name',
+                                labelText: l10n.groupsNameLabel,
                                 hintText: kind == 'community'
-                                    ? 'Sunrise runners of Indiranagar'
-                                    : 'The Sunday brunch crew',
+                                    ? l10n.groupsCreateNameHintCommunity
+                                    : l10n.groupsCreateNameHintPrivate,
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -335,8 +328,8 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
                               minLines: 2,
                               maxLines: 5,
                               textCapitalization: TextCapitalization.sentences,
-                              decoration: const InputDecoration(
-                                labelText: 'What is it about? (optional)',
+                              decoration: InputDecoration(
+                                labelText: l10n.groupsAboutOptionalLabel,
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -344,15 +337,15 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
                               controller: city,
                               maxLength: 60,
                               textCapitalization: TextCapitalization.words,
-                              decoration: const InputDecoration(
-                                labelText: 'City (optional)',
+                              decoration: InputDecoration(
+                                labelText: l10n.groupsCityLabel,
                               ),
                             ),
                           ],
                         ),
                       ),
                       section(
-                        'COVER',
+                        l10n.groupsCreateCoverHeader,
                         null,
                         ConnectPanel(
                           padding: const EdgeInsets.all(ConnectMetrics.padding),
@@ -372,8 +365,9 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
                                       spacing: 8,
                                       runSpacing: 8,
                                       children: [
-                                        for (final entry
-                                            in groupCoverColors.entries)
+                                        for (final entry in groupCoverColors(
+                                          l10n,
+                                        ).entries)
                                           ChoiceChip(
                                             label: Text(entry.value),
                                             selected: coverColor == entry.key,
@@ -395,7 +389,7 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
                                     Semantics(
                                       selected: shownEmoji == e,
                                       button: true,
-                                      label: 'Cover emoji $e',
+                                      label: l10n.groupsCoverEmojiSemantics(e),
                                       child: ExcludeSemantics(
                                         child: InkWell(
                                           borderRadius: BorderRadius.circular(
@@ -431,15 +425,14 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
                               ),
                               const SizedBox(height: 16),
                               Text(
-                                'Cover photo (optional)',
+                                l10n.groupsCreateCoverPhotoOptional,
                                 style: theme.textTheme.titleSmall?.copyWith(
                                   color: colors.onSurface,
                                 ),
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                'Members see the emoji until your photo is '
-                                'approved.',
+                                l10n.groupsCreateCoverPhotoHint,
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   color: colors.onSurfaceVariant,
                                 ),
@@ -474,8 +467,8 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
                                       ),
                                       label: Text(
                                         coverPhoto == null
-                                            ? 'Add a cover photo'
-                                            : 'Change photo',
+                                            ? l10n.groupsCreateAddCoverPhoto
+                                            : l10n.groupsCreateChangePhoto,
                                       ),
                                     ),
                                     if (coverPhoto != null)
@@ -488,7 +481,9 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
                                         style: TextButton.styleFrom(
                                           minimumSize: const Size(48, 48),
                                         ),
-                                        child: const Text('Remove photo'),
+                                        child: Text(
+                                          l10n.groupsCreateRemovePhoto,
+                                        ),
                                       ),
                                   ],
                                 ),
@@ -497,10 +492,10 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
                         ),
                       ),
                       section(
-                        'FRIENDS',
+                        l10n.groupsCreateFriendsHeader,
                         invitees.isEmpty
-                            ? 'Invite friends now, or later from the group.'
-                            : 'They’ll get an invitation to join.',
+                            ? l10n.groupsCreateFriendsCaptionEmpty
+                            : l10n.groupsCreateFriendsCaption,
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -517,10 +512,12 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
                                         radius: 12,
                                       ),
                                       label: Text(
-                                        f.name.isEmpty ? 'Friend' : f.name,
+                                        f.name.isEmpty
+                                            ? l10n.groupsFriendFallback
+                                            : f.name,
                                       ),
-                                      deleteButtonTooltipMessage:
-                                          'Remove ${f.name}',
+                                      deleteButtonTooltipMessage: l10n
+                                          .groupsRemoveInvitee(f.name),
                                       onDeleted: () =>
                                           setState(() => invitees.remove(f)),
                                     ),
@@ -536,8 +533,8 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
                               icon: const Icon(Icons.person_add_alt_rounded),
                               label: Text(
                                 invitees.isEmpty
-                                    ? 'Choose friends'
-                                    : 'Change friends',
+                                    ? l10n.groupsChooseFriends
+                                    : l10n.groupsChangeFriends,
                               ),
                             ),
                           ],
@@ -560,7 +557,9 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
                           minimumSize: const Size.fromHeight(52),
                         ),
                         icon: const Icon(Icons.celebration_outlined),
-                        label: Text(busy ? 'Creating…' : 'Create group'),
+                        label: Text(
+                          busy ? l10n.groupsCreating : l10n.groupsCreateGroup,
+                        ),
                       ),
                     ],
                   ),

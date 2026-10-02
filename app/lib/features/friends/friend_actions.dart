@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/layout/app_layout.dart';
 import '../../core/network/api_error_message.dart';
 import '../../core/providers/api_client_provider.dart';
+import '../../l10n/app_localizations.dart';
 import '../auth/providers/auth_provider.dart';
 import '../social_chat/social_chat_data.dart';
 import '../social_chat/social_chat_screen.dart';
@@ -70,12 +71,13 @@ Future<void> openFriendChat(
     if (!context.mounted) {
       return;
     }
+    final l10n = AppLocalizations.of(context);
     await openSocialChat(
       context,
       channelId: channel.id,
       title: channel.title.isNotEmpty ? channel.title : name,
-      subtitle: 'Friend',
-      emptyText: 'Say hello. Only the two of you can see this conversation.',
+      subtitle: l10n.roomsStatusFriend,
+      emptyText: l10n.friendsChatEmpty,
     );
     ref.invalidate(socialChannelsProvider);
   } on Object catch (e) {
@@ -83,7 +85,10 @@ Future<void> openFriendChat(
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            apiErrorMessage(e, fallback: 'Could not open the chat. Retry.'),
+            apiErrorMessage(
+              e,
+              fallback: AppLocalizations.of(context).friendsChatOpenFailed,
+            ),
           ),
         ),
       );
@@ -129,7 +134,9 @@ class AddFriendButton extends ConsumerStatefulWidget {
 class _AddFriendButtonState extends ConsumerState<AddFriendButton> {
   bool _busy = false;
 
-  String get _who => widget.name.trim().isEmpty ? 'this member' : widget.name;
+  /// The member's name, or null when it is unknown (messages then say
+  /// "this member").
+  String? get _name => widget.name.trim().isEmpty ? null : widget.name;
 
   void _snack(String message) {
     if (!mounted) {
@@ -153,20 +160,26 @@ class _AddFriendButtonState extends ConsumerState<AddFriendButton> {
       );
       return;
     }
+    final l10n = AppLocalizations.of(context);
+    final name = _name;
     if (relation == FriendRelation.outgoing) {
       final cancel = await showDialog<bool>(
         context: context,
         builder: (dialog) => AlertDialog(
-          title: const Text('Cancel your friend request?'),
-          content: Text('$_who won’t see your request any more.'),
+          title: Text(l10n.friendsCancelRequestTitle),
+          content: Text(
+            name == null
+                ? l10n.friendsCancelRequestBodyUnnamed
+                : l10n.friendsCancelRequestBody(name),
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialog, false),
-              child: const Text('Keep it'),
+              child: Text(l10n.friendsKeepIt),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(dialog, true),
-              child: const Text('Cancel request'),
+              child: Text(l10n.friendsCancelRequest),
             ),
           ],
         ),
@@ -177,6 +190,9 @@ class _AddFriendButtonState extends ConsumerState<AddFriendButton> {
     }
     setState(() => _busy = true);
     final notifier = ref.read(friendsProvider.notifier);
+    final nowFriends = name == null
+        ? l10n.friendsNowFriendsUnnamed
+        : l10n.friendsNowFriends(name);
     try {
       switch (relation) {
         case FriendRelation.none:
@@ -186,21 +202,26 @@ class _AddFriendButtonState extends ConsumerState<AddFriendButton> {
           );
           _snack(
             result?.isAccepted ?? false
-                ? 'You and $_who are now friends.'
-                : 'Friend request sent to $_who.',
+                ? nowFriends
+                : name == null
+                ? l10n.friendsRequestSentToUnnamed
+                : l10n.friendsRequestSentTo(name),
           );
         case FriendRelation.incoming:
           await notifier.decideFriendRequest(widget.userId, accept: true);
-          final error = ref.read(friendsProvider).error;
-          _snack(error ?? 'You and $_who are now friends.');
+          final error = ref.read(friendsProvider).errorText(l10n);
+          _snack(error ?? nowFriends);
         case FriendRelation.outgoing:
           await notifier.removeFriend(widget.userId);
-          _snack(ref.read(friendsProvider).error ?? 'Request cancelled.');
+          _snack(
+            ref.read(friendsProvider).errorText(l10n) ??
+                l10n.friendsRequestCancelled,
+          );
         case FriendRelation.friends:
           break;
       }
     } on Object catch (e) {
-      _snack(apiErrorMessage(e, fallback: 'Could not send the request.'));
+      _snack(apiErrorMessage(e, fallback: l10n.friendsRequestFailed));
     } finally {
       if (mounted) {
         setState(() => _busy = false);
@@ -215,26 +236,32 @@ class _AddFriendButtonState extends ConsumerState<AddFriendButton> {
       return const SizedBox.shrink();
     }
     final relation = ref.watch(friendRelationProvider(widget.userId));
+    final l10n = AppLocalizations.of(context);
+    final name = _name;
     final (label, icon, caption) = switch (relation) {
       FriendRelation.none => (
-        'Add friend',
+        l10n.friendsAddFriend,
         Icons.person_add_alt_1_outlined,
-        'Friends can message and plan things together',
+        l10n.friendsAddCaption,
       ),
       FriendRelation.outgoing => (
-        'Requested',
+        l10n.friendsRequested,
         Icons.schedule_rounded,
-        'Waiting for $_who. Tap to cancel.',
+        name == null
+            ? l10n.friendsWaitingForUnnamed
+            : l10n.friendsWaitingFor(name),
       ),
       FriendRelation.incoming => (
-        'Accept friend',
+        l10n.friendsAcceptFriend,
         Icons.how_to_reg_outlined,
-        '$_who asked to be friends',
+        name == null
+            ? l10n.friendsAskedToBeFriendsUnnamed
+            : l10n.friendsAskedToBeFriends(name),
       ),
       FriendRelation.friends => (
-        'Message',
+        l10n.friendsMessage,
         Icons.chat_bubble_outline_rounded,
-        'You’re friends. Open your chat.',
+        l10n.friendsYoureFriends,
       ),
     };
     final key = ValueKey('qa.add_friend.${widget.userId}');

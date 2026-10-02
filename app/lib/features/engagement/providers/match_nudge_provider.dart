@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_error_message.dart';
 import '../../../core/providers/api_client_provider.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../engagement_l10n.dart';
 
 class MatchNudge {
   const MatchNudge({
@@ -100,7 +101,7 @@ class MatchNudgeNotifier extends StateNotifier<MatchNudgeState> {
     } on Object catch (error) {
       final message = apiErrorMessage(
         error,
-        fallback: 'Unable to send this nudge.',
+        fallback: engagementL10nFor(ref).engagementNudgesSendFailed,
       );
       state = state.copyWith(
         sendingMatchIds: {...state.sendingMatchIds}..remove(matchId),

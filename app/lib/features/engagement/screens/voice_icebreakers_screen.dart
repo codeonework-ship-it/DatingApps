@@ -8,6 +8,7 @@ import 'package:record/record.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../matching/providers/match_provider.dart';
+import '../engagement_l10n.dart';
 import '../providers/voice_icebreaker_provider.dart';
 
 class VoiceIcebreakersScreen extends ConsumerStatefulWidget {
@@ -51,6 +52,7 @@ class _VoiceIcebreakersScreenState
 
   @override
   Widget build(BuildContext context) {
+    final l = engagementL10n(context);
     final state = ref.watch(voiceIcebreakerProvider);
     final notifier = ref.read(voiceIcebreakerProvider.notifier);
     final matches = widget.matchId == null
@@ -61,7 +63,7 @@ class _VoiceIcebreakersScreenState
         _selectedPromptId ?? (prompts.isNotEmpty ? prompts.first.id : null);
     final locked = state.isSubmitting || _isRecording || _recording != null;
     return Scaffold(
-      appBar: AppBar(title: const Text('A voice, a little closer')),
+      appBar: AppBar(title: Text(l.engagementVoiceAppBarTitle)),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -70,22 +72,24 @@ class _VoiceIcebreakersScreenState
               padding: const EdgeInsets.all(24),
               children: [
                 Text(
-                  'Let your hello\nsound like you.',
+                  l.engagementVoiceHeadline,
                   style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                     fontFamily: AppTheme.displayFamily,
                   ),
                 ),
                 const SizedBox(height: 12),
-                const Text(
-                  'An optional 20–45 second introduction, shared only in this conversation. Text is always welcome, too.',
-                ),
+                Text(l.engagementVoiceIntro),
                 const SizedBox(height: 24),
                 if (widget.matchId != null)
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     leading: const Icon(Icons.lock_outline_rounded),
-                    title: Text('You and ${_partnerName ?? 'your match'}'),
-                    subtitle: const Text('Private to this conversation'),
+                    title: Text(
+                      _partnerName == null
+                          ? l.engagementVoiceYouAndYourMatch
+                          : l.engagementVoiceYouAndName(_partnerName!),
+                    ),
+                    subtitle: Text(l.engagementVoicePrivate),
                   )
                 else if (matches!.isLoading)
                   const LinearProgressIndicator()
@@ -93,20 +97,18 @@ class _VoiceIcebreakersScreenState
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Your conversations couldn’t load.'),
+                      Text(l.engagementVoiceConversationsLoadFailed),
                       TextButton(
                         onPressed: () => ref.invalidate(matchNotifierProvider),
-                        child: const Text('Try again'),
+                        child: Text(l.chatTryAgain),
                       ),
                     ],
                   )
                 else if (matches.matches.isEmpty)
-                  const Card(
+                  Card(
                     child: Padding(
-                      padding: EdgeInsets.all(20),
-                      child: Text(
-                        'When you have a match, you can share a voice introduction here. No rush.',
-                      ),
+                      padding: const EdgeInsets.all(20),
+                      child: Text(l.engagementVoiceNoMatches),
                     ),
                   )
                 else
@@ -116,8 +118,8 @@ class _VoiceIcebreakersScreenState
                     initialValue: matches.matches.any((m) => m.id == _matchId)
                         ? _matchId
                         : null,
-                    decoration: const InputDecoration(
-                      labelText: 'Who would you like to say hello to?',
+                    decoration: InputDecoration(
+                      labelText: l.engagementVoicePickConversation,
                     ),
                     items: matches.matches
                         .map(
@@ -150,7 +152,7 @@ class _VoiceIcebreakersScreenState
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Text(
-                            'A small starting point',
+                            l.engagementVoiceStartingPoint,
                             style: Theme.of(context).textTheme.titleLarge,
                           ),
                           const SizedBox(height: 12),
@@ -160,8 +162,8 @@ class _VoiceIcebreakersScreenState
                             DropdownButtonFormField<String>(
                               isExpanded: true,
                               initialValue: promptId,
-                              decoration: const InputDecoration(
-                                labelText: 'Choose a prompt',
+                              decoration: InputDecoration(
+                                labelText: l.engagementVoiceChoosePrompt,
                               ),
                               items: prompts
                                   .map(
@@ -189,10 +191,9 @@ class _VoiceIcebreakersScreenState
                             maxLength: 2000,
                             enabled: !state.isSubmitting && !_isRecording,
                             onChanged: (_) => setState(() {}),
-                            decoration: const InputDecoration(
-                              labelText: 'Your words, in writing',
-                              helperText:
-                                  'Write what you say so they can read it, too. This is not automatic transcription.',
+                            decoration: InputDecoration(
+                              labelText: l.engagementVoiceTranscriptLabel,
+                              helperText: l.engagementVoiceTranscriptHelper,
                               helperMaxLines: 3,
                             ),
                           ),
@@ -211,18 +212,20 @@ class _VoiceIcebreakersScreenState
                             ),
                             label: Text(
                               _isRecording
-                                  ? 'Stop · ${_durationSeconds}s'
+                                  ? l.engagementVoiceStop(_durationSeconds)
                                   : _recording == null
-                                  ? 'Record your hello'
-                                  : 'Record again · ${_durationSeconds}s',
+                                  ? l.engagementVoiceRecord
+                                  : l.engagementVoiceRecordAgain(
+                                      _durationSeconds,
+                                    ),
                             ),
                           ),
                           if (_recording != null && !_isRecording) ...[
                             const SizedBox(height: 8),
                             Text(
                               _durationSeconds >= 20
-                                  ? 'Recording ready. Check your transcript before sending.'
-                                  : 'That was a little short. Record 20–45 seconds.',
+                                  ? l.engagementVoiceRecordingReady
+                                  : l.engagementVoiceRecordingShort,
                             ),
                             TextButton(
                               onPressed: state.isSubmitting
@@ -231,7 +234,7 @@ class _VoiceIcebreakersScreenState
                                       _recording = null;
                                       _durationSeconds = 0;
                                     }),
-                              child: const Text('Discard recording'),
+                              child: Text(l.engagementVoiceDiscard),
                             ),
                           ],
                           if (_recordingError != null)
@@ -279,9 +282,9 @@ class _VoiceIcebreakersScreenState
                                       ScaffoldMessenger.of(
                                         context,
                                       ).showSnackBar(
-                                        const SnackBar(
+                                        SnackBar(
                                           content: Text(
-                                            'Introduction submitted. Approved recordings appear below.',
+                                            l.engagementVoiceSubmitted,
                                           ),
                                         ),
                                       );
@@ -289,27 +292,23 @@ class _VoiceIcebreakersScreenState
                                   },
                             child: Text(
                               state.isSubmitting
-                                  ? 'Sending…'
-                                  : 'Share your hello',
+                                  ? l.engagementVoiceSending
+                                  : l.engagementVoiceShare,
                             ),
                           ),
                           const SizedBox(height: 12),
-                          const Text(
-                            'Recordings are checked before they are shared. There is no autoplay.',
-                          ),
+                          Text(l.engagementVoiceCheckedNote),
                         ],
                       ),
                     ),
                   ),
                   const SizedBox(height: 24),
                   Text(
-                    'Your voice introductions',
+                    l.engagementVoiceYourIntros,
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'The latest 20 approved recordings in this conversation. Transcripts are always available to read.',
-                  ),
+                  Text(l.engagementVoiceLatestNote),
                   const SizedBox(height: 12),
                   ref
                       .watch(voiceIntroductionsProvider(_matchId!))
@@ -318,23 +317,21 @@ class _VoiceIcebreakersScreenState
                         error: (_, __) => Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              'Introductions couldn’t load. The conversation may no longer be available.',
-                            ),
+                            Text(l.engagementVoiceIntrosLoadFailed),
                             TextButton(
                               onPressed: () => ref.invalidate(
                                 voiceIntroductionsProvider(_matchId!),
                               ),
-                              child: const Text('Try again'),
+                              child: Text(l.chatTryAgain),
                             ),
                           ],
                         ),
                         data: (items) => items.isEmpty
-                            ? const Padding(
-                                padding: EdgeInsets.symmetric(vertical: 20),
-                                child: Text(
-                                  'Nothing shared yet. A simple hello is a good beginning.',
+                            ? Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 20,
                                 ),
+                                child: Text(l.engagementVoiceNothingYet),
                               )
                             : Column(
                                 children: [
@@ -353,8 +350,12 @@ class _VoiceIcebreakersScreenState
                                                             authNotifierProvider,
                                                           )
                                                           .userId
-                                                  ? 'Your hello'
-                                                  : 'A hello from ${_partnerName ?? 'your match'}',
+                                                  ? l.engagementVoiceYourHello
+                                                  : _partnerName == null
+                                                  ? l.engagementVoiceHelloFromYourMatch
+                                                  : l.engagementVoiceHelloFromName(
+                                                      _partnerName!,
+                                                    ),
                                               style: Theme.of(
                                                 context,
                                               ).textTheme.titleMedium,
@@ -367,7 +368,9 @@ class _VoiceIcebreakersScreenState
                                               ).textTheme.labelLarge,
                                             ),
                                             const SizedBox(height: 12),
-                                            const Text('TRANSCRIPT'),
+                                            Text(
+                                              l.engagementVoiceTranscriptHeading,
+                                            ),
                                             const SizedBox(height: 6),
                                             SelectableText(item.transcript),
                                             const SizedBox(height: 12),
@@ -393,8 +396,10 @@ class _VoiceIcebreakersScreenState
                                                 state.isPlaying &&
                                                         state.lastItem?.id ==
                                                             item.id
-                                                    ? 'Stop playback'
-                                                    : 'Listen · ${item.durationSeconds}s',
+                                                    ? l.engagementVoiceStopPlayback
+                                                    : l.engagementVoiceListen(
+                                                        item.durationSeconds,
+                                                      ),
                                               ),
                                             ),
                                           ],
@@ -416,7 +421,7 @@ class _VoiceIcebreakersScreenState
                   if (prompts.isEmpty)
                     TextButton(
                       onPressed: notifier.loadPrompts,
-                      child: const Text('Reload prompts'),
+                      child: Text(l.engagementVoiceReloadPrompts),
                     ),
                 ],
               ],
@@ -437,8 +442,9 @@ class _VoiceIcebreakersScreenState
       if (!await _recorder.hasPermission()) {
         if (mounted)
           setState(
-            () => _recordingError =
-                'Allow microphone access to record. You can still read transcripts without it.',
+            () => _recordingError = engagementL10n(
+              context,
+            ).engagementVoiceMicPermission,
           );
         return;
       }
@@ -469,8 +475,9 @@ class _VoiceIcebreakersScreenState
     } on Object catch (_) {
       if (mounted) {
         setState(
-          () => _recordingError =
-              'Unable to start recording. Check microphone access and try again.',
+          () => _recordingError = engagementL10n(
+            context,
+          ).engagementVoiceStartFailed,
         );
       }
     }
@@ -489,7 +496,7 @@ class _VoiceIcebreakersScreenState
       _isRecording = false;
       _recording = outputPath == null ? null : XFile(outputPath);
       if (outputPath == null) {
-        _recordingError = 'The recording could not be saved. Please try again.';
+        _recordingError = engagementL10n(context).engagementVoiceSaveFailed;
       }
     });
   }

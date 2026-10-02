@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_error_message.dart';
 import '../../../core/providers/api_client_provider.dart';
 import '../../../core/providers/safety_actions_provider.dart';
+import '../../../l10n/app_localizations.dart';
 import 'report_user_sheet.dart';
 
 /// Asks before an action that cannot be undone. Resolves to false on dismiss.
@@ -21,7 +22,7 @@ Future<bool> confirmCommunityAction(
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(AppLocalizations.of(context).commonCancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
@@ -50,6 +51,7 @@ Future<void> reportCommunityItem(
   required String kind,
   required String id,
 }) async {
+  final l10n = AppLocalizations.of(context);
   final reportId = await showReportUserSheet(
     context: context,
     onSubmit: ({required reason, description}) async {
@@ -65,14 +67,14 @@ Future<void> reportCommunityItem(
         return report is Map ? report['id']?.toString() : null;
       } on Object catch (e) {
         throw Exception(
-          apiErrorMessage(e, fallback: 'Report could not be submitted.'),
+          apiErrorMessage(e, fallback: l10n.communityReportFailed),
         );
       }
     },
   );
   // The sheet closes on success; say so, as the other report flows do.
   if (reportId != null && context.mounted) {
-    showCommunitySnack(context, 'Report submitted. Thank you.');
+    showCommunitySnack(context, l10n.communityReportSubmitted);
   }
 }
 
@@ -83,13 +85,12 @@ Future<bool> blockCommunityMember(
   required String userId,
   required String name,
 }) async {
+  final l10n = AppLocalizations.of(context);
   final confirmed = await confirmCommunityAction(
     context,
-    title: 'Block $name?',
-    message:
-        'You will stop seeing each other’s photos, club posts, reviews and '
-        'lists. This also blocks contact through Connect.',
-    action: 'Block member',
+    title: l10n.communityBlockTitle(name),
+    message: l10n.communityBlockBody,
+    action: l10n.communityBlockAction,
   );
   if (!confirmed) {
     return false;
@@ -101,10 +102,7 @@ Future<bool> blockCommunityMember(
     if (context.mounted) {
       showCommunitySnack(
         context,
-        apiErrorMessage(
-          e,
-          fallback: 'Could not block this member. Please retry.',
-        ),
+        apiErrorMessage(e, fallback: l10n.communityBlockFailed),
       );
     }
     return false;

@@ -1,5 +1,8 @@
 import 'package:dio/dio.dart';
 
+import '../../core/i18n/app_l10n.dart';
+import '../../l10n/app_localizations.dart';
+
 /// A wall tier one of the member's chapters or photos reached that has not
 /// been celebrated yet. Served by `GET /walls/celebrations`.
 class WallCelebration {
@@ -36,14 +39,19 @@ class WallCelebration {
 
   /// "Your chapter reached 50 walls" / "Your photo reached 100 walls" /
   /// "Your photo is Cover of the Week".
-  String get headline => isCover
-      ? 'Your photo is Cover of the Week'
-      : 'Your ${isPhoto ? 'photo' : 'chapter'} reached $reach walls';
+  String get headline => headlineIn(currentAppL10n());
+
+  /// [headline] in the language of [l10n].
+  String headlineIn(AppLocalizations l10n) => isCover
+      ? l10n.celebrationCoverHeadline
+      : l10n.celebrationReachHeadline(isPhoto ? 'photo' : 'chapter', reach);
 
   /// The line under the headline on the celebration card.
-  String get message => isCover
-      ? 'Members loved it. Everyone sees it on Today this week.'
-      : 'Members loved it. It is now on their Today walls.';
+  String get message => messageIn(currentAppL10n());
+
+  /// [message] in the language of [l10n].
+  String messageIn(AppLocalizations l10n) =>
+      isCover ? l10n.celebrationCoverMessage : l10n.celebrationReachMessage;
 }
 
 /// Loads unseen celebrations. Failures return an empty list: a celebration is

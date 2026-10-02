@@ -1,6 +1,31 @@
 import 'package:flutter/material.dart' hide Title;
+import 'package:intl/intl.dart';
 
+import '../../l10n/app_localizations.dart';
 import 'clubs_data.dart';
+
+/// "Books" or "Films" for a club or list kind.
+String clubKindLabel(AppLocalizations l10n, String kind) =>
+    kind == 'film' ? l10n.clubsKindFilms : l10n.clubsKindBooks;
+
+/// Who can see a list or review; unknown values read as "Only me".
+String clubAudienceLabel(AppLocalizations l10n, String audience) =>
+    switch (audience) {
+      'friends' => l10n.clubsAudienceFriends,
+      'community' => l10n.clubsAudienceCommunity,
+      _ => l10n.clubsAudiencePrivate,
+    };
+
+/// A member's club role; unknown values read as "Member".
+String clubRoleLabel(AppLocalizations l10n, String role) => switch (role) {
+  'owner' => l10n.clubsRoleOwner,
+  'moderator' => l10n.clubsRoleModerator,
+  _ => l10n.clubsRoleMember,
+};
+
+/// An average rating with one decimal in the reader's locale ("4.3", "4,3").
+String formatClubRating(AppLocalizations l10n, double rating) =>
+    NumberFormat('0.0', l10n.localeName).format(rating);
 
 /// Books and films are told apart by icon and words, with a colour accent on
 /// top, so the difference never depends on colour alone.
@@ -26,16 +51,25 @@ LinearGradient kindGradient(ColorScheme scheme, String kind) => LinearGradient(
 class KindBadge extends StatelessWidget {
   const KindBadge({required this.kind, super.key, this.suffix = 'club'});
   final String kind;
+
+  /// 'club', 'list' or '' for the bare kind ("Book").
   final String suffix;
+
+  String _label(AppLocalizations l10n) => switch ((kind, suffix)) {
+    ('book', 'club') => l10n.clubsBadgeBookClub,
+    ('film', 'club') => l10n.clubsBadgeFilmClub,
+    ('book', 'list') => l10n.clubsBadgeBookList,
+    ('film', 'list') => l10n.clubsBadgeFilmList,
+    ('book', _) => l10n.clubsBadgeBook,
+    ('film', _) => l10n.clubsBadgeFilm,
+    _ => l10n.clubsClub,
+  };
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final accent = kindAccent(scheme, kind);
-    final label = [
-      clubKindSingular[kind] ?? 'Club',
-      if (suffix.isNotEmpty) suffix,
-    ].join(' ');
+    final label = _label(AppLocalizations.of(context));
     return DecoratedBox(
       decoration: BoxDecoration(
         color: accent,
@@ -104,6 +138,7 @@ class StarRating extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = Theme.of(context).colorScheme.tertiary;
+    final l10n = AppLocalizations.of(context);
     IconData iconFor(int star) => rating >= star
         ? Icons.star_rounded
         : rating >= star - 0.5
@@ -111,7 +146,7 @@ class StarRating extends StatelessWidget {
         : Icons.star_outline_rounded;
     if (onChanged == null) {
       return Semantics(
-        label: '${rating.toStringAsFixed(1)} out of 5 stars',
+        label: l10n.clubsStarsOutOfFive(formatClubRating(l10n, rating)),
         child: ExcludeSemantics(
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -127,7 +162,7 @@ class StarRating extends StatelessWidget {
       children: [
         for (var star = 1; star <= 5; star++)
           IconButton(
-            tooltip: '$star star${star == 1 ? '' : 's'}',
+            tooltip: l10n.clubsStarCount(star),
             isSelected: rating >= star,
             constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
             onPressed: () => onChanged!(star),
@@ -147,8 +182,9 @@ class RatingSummary extends StatelessWidget {
   Widget build(BuildContext context) {
     final average = title.averageRating;
     final text = Theme.of(context).textTheme.bodyMedium;
+    final l10n = AppLocalizations.of(context);
     if (average == null || title.reviewCount == 0) {
-      return Text('No ratings yet', style: text);
+      return Text(l10n.clubsNoRatingsYet, style: text);
     }
     return Wrap(
       spacing: 8,
@@ -156,8 +192,10 @@ class RatingSummary extends StatelessWidget {
       children: [
         StarRating(rating: average),
         Text(
-          '${average.toStringAsFixed(1)} · ${title.reviewCount} '
-          'review${title.reviewCount == 1 ? '' : 's'}',
+          l10n.clubsRatingSummary(
+            formatClubRating(l10n, average),
+            title.reviewCount,
+          ),
           style: text,
         ),
       ],
@@ -166,18 +204,18 @@ class RatingSummary extends StatelessWidget {
 }
 
 /// A short readable label for a pick's week, e.g. "Week of 2026-09-28".
-String weekLabel(String weekStart) {
+String weekLabel(AppLocalizations l10n, String weekStart) {
   final now = DateTime.now();
   if (weekStart == mondayOf(now)) {
-    return 'This week';
+    return l10n.clubsWeekThis;
   }
   if (weekStart == mondayOf(now.add(const Duration(days: 7)))) {
-    return 'Next week';
+    return l10n.clubsWeekNext;
   }
   if (weekStart == mondayOf(now.subtract(const Duration(days: 7)))) {
-    return 'Last week';
+    return l10n.clubsWeekLast;
   }
-  return 'Week of $weekStart';
+  return l10n.clubsWeekOf(weekStart);
 }
 
 /// A pill such as "This week" used on the current pick.

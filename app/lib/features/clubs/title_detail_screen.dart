@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/network/api_error_message.dart';
 import '../../core/providers/api_client_provider.dart';
 import '../../core/widgets/glass_widgets.dart';
+import '../../l10n/app_localizations.dart';
 import '../auth/providers/auth_provider.dart';
 import '../common/widgets/activity_visuals.dart';
 import '../common/widgets/community_actions.dart';
@@ -23,11 +24,16 @@ class TitleDetailScreen extends ConsumerWidget {
     final detail = user == null
         ? null
         : ref.watch(titleDetailProvider(titleId));
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(detail?.valueOrNull?.title.title ?? 'Title')),
+      appBar: AppBar(
+        title: Text(
+          detail?.valueOrNull?.title.title ?? l10n.clubsTitleFallback,
+        ),
+      ),
       body: PostLoginBackdrop(
         child: detail == null
-            ? const Center(child: Text('Sign in to see reviews.'))
+            ? Center(child: Text(l10n.clubsSignInToSeeReviews))
             : detail.when(
                 skipLoadingOnRefresh: false,
                 loading: () => const Center(child: CircularProgressIndicator()),
@@ -36,12 +42,12 @@ class TitleDetailScreen extends ConsumerWidget {
                     padding: const EdgeInsets.all(16),
                     child: ActivityNotice(
                       icon: Icons.cloud_off_outlined,
-                      title: 'This title could not load',
+                      title: l10n.clubsTitleLoadError,
                       message: apiErrorMessage(
                         e,
-                        fallback: 'Please check your connection.',
+                        fallback: l10n.clubsCheckConnection,
                       ),
-                      actionLabel: 'Try again',
+                      actionLabel: l10n.chatTryAgain,
                       onAction: () =>
                           ref.invalidate(titleDetailProvider(titleId)),
                     ),
@@ -60,19 +66,17 @@ class TitleDetailScreen extends ConsumerWidget {
                       _MyReview(detail: data),
                       const SizedBox(height: 24),
                       Text(
-                        'Reviews',
+                        l10n.clubsReviews,
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                       const SizedBox(height: 8),
                       if (data.reviews.where((r) => !r.mine).isEmpty)
-                        const ActivityNotice(
+                        ActivityNotice(
                           icon: Icons.rate_review_outlined,
-                          title: 'No other reviews yet',
-                          message:
-                              'When members you can see share a review, '
-                              'it shows up here.',
+                          title: l10n.clubsNoOtherReviewsTitle,
+                          message: l10n.clubsNoOtherReviewsMessage,
                         ),
                       for (final review in data.reviews.where((r) => !r.mine))
                         ReviewCard(review: review),
@@ -126,7 +130,7 @@ class _TitleHeader extends StatelessWidget {
             OutlinedButton.icon(
               onPressed: () => showAddToListSheet(context, title),
               icon: const Icon(Icons.playlist_add),
-              label: const Text('Add to a list'),
+              label: Text(AppLocalizations.of(context).clubsAddToAList),
             ),
           ],
         ),
@@ -152,11 +156,12 @@ class _MyReview extends ConsumerWidget {
 
   Future<void> delete(BuildContext context, WidgetRef ref) async {
     final review = detail.myReview!;
+    final l10n = AppLocalizations.of(context);
     if (!await confirmCommunityAction(
       context,
-      title: 'Delete your review?',
-      message: 'Your rating and words are removed for everyone.',
-      action: 'Delete review',
+      title: l10n.clubsDeleteReviewTitle,
+      message: l10n.clubsDeleteReviewMessage,
+      action: l10n.clubsDeleteReview,
     )) {
       return;
     }
@@ -172,10 +177,7 @@ class _MyReview extends ConsumerWidget {
       if (context.mounted) {
         showCommunitySnack(
           context,
-          apiErrorMessage(
-            e,
-            fallback: 'Your review could not be deleted. Reload and retry.',
-          ),
+          apiErrorMessage(e, fallback: l10n.clubsReviewDeleteFailed),
         );
       }
     }
@@ -185,6 +187,7 @@ class _MyReview extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final review = detail.myReview;
     final text = Theme.of(context).textTheme;
+    final l10n = AppLocalizations.of(context);
     if (review == null) {
       return Card(
         margin: EdgeInsets.zero,
@@ -194,19 +197,16 @@ class _MyReview extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'What did you think?',
+                l10n.clubsWhatDidYouThink,
                 style: text.titleMedium?.copyWith(fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 8),
-              Text(
-                'Rate it and say why. You choose who sees it.',
-                style: text.bodyMedium,
-              ),
+              Text(l10n.clubsReviewPrompt, style: text.bodyMedium),
               const SizedBox(height: 12),
               FilledButton.icon(
                 onPressed: () => edit(context, ref),
                 icon: const Icon(Icons.rate_review_outlined),
-                label: const Text('Write a review'),
+                label: Text(l10n.clubsWriteReview),
               ),
             ],
           ),
@@ -221,7 +221,7 @@ class _MyReview extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Your review',
+              l10n.clubsYourReview,
               style: text.titleMedium?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 8),
@@ -237,12 +237,12 @@ class _MyReview extends ConsumerWidget {
                       : review.audience == 'friends'
                       ? Icons.people_outline
                       : Icons.public,
-                  label: clubAudiences[review.audience] ?? 'Only me',
+                  label: clubAudienceLabel(l10n, review.audience),
                 ),
                 if (review.hasSpoilers)
-                  const CountPill(
+                  CountPill(
                     icon: Icons.warning_amber_outlined,
-                    label: 'Spoilers',
+                    label: l10n.clubsSpoilers,
                   ),
               ],
             ),
@@ -258,12 +258,12 @@ class _MyReview extends ConsumerWidget {
                 OutlinedButton.icon(
                   onPressed: () => edit(context, ref),
                   icon: const Icon(Icons.edit_outlined),
-                  label: const Text('Edit'),
+                  label: Text(l10n.clubsEdit),
                 ),
                 TextButton.icon(
                   onPressed: () => delete(context, ref),
                   icon: const Icon(Icons.delete_outline),
-                  label: const Text('Delete'),
+                  label: Text(l10n.commonDelete),
                 ),
               ],
             ),
@@ -308,7 +308,7 @@ class ReviewCard extends ConsumerWidget {
                   ),
                 ),
                 IconButton(
-                  tooltip: 'Report this review',
+                  tooltip: AppLocalizations.of(context).clubsReportReview,
                   onPressed: () => reportCommunityItem(
                     context,
                     ref,

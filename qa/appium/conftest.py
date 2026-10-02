@@ -128,6 +128,25 @@ def counterpart_factory():
             print(f"[counterpart cleanup failed] {exc!r}")
 
 
+@pytest.fixture(scope="function")
+def ensure_deck(api_client, qa_user_id):
+    """Make sure the Explore deck has candidates for the device member.
+
+    Every run passes, likes and matches through the shared account's small
+    pool (it seeks men; there are few synthetic men), so on a busy QA day
+    GET /discovery/{id} returns nothing and deck specs could only skip.
+    Seed completed male candidates through the API when the pool is low.
+    """
+    from api_client import extract_items
+    from seed_members import create_deck_candidate
+
+    body = api_client.get(f"/discovery/{qa_user_id}", query={"limit": 10, "mode": "all"}).require_status(200).body
+    have = len(extract_items(body, "candidates", "profiles", "items"))
+    for index in range(max(0, 3 - have)):
+        create_deck_candidate(f"Deck Dev {int(time.time()) % 10000}{index}")
+    return have
+
+
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(item, call):
     outcome = yield

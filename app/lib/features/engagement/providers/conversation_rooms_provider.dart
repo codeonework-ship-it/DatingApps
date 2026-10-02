@@ -1,11 +1,16 @@
+import 'dart:ui' show Locale;
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/feature_flags.dart';
+import '../../../core/i18n/app_locale_provider.dart';
 import '../../../core/network/api_error_message.dart';
 import '../../../core/providers/api_client_provider.dart';
 import '../../../core/utils/logger.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../engagement_l10n.dart';
 
 /// Conversation Rooms are live chat rooms (`/v1/rooms`, migration 117):
 /// always-on public topic rooms plus short rooms members host. Joining a room
@@ -238,14 +243,19 @@ ConversationRoom _roomFrom(Response<dynamic> response) {
 
 /// The room endpoints the screens use.
 class RoomsApi {
-  const RoomsApi(this._dio);
+  /// [strings] word the fallback errors; English when omitted.
+  const RoomsApi(this._dio, {AppLocalizations? strings}) : _strings = strings;
   final Dio _dio;
+  final AppLocalizations? _strings;
+
+  AppLocalizations get _l =>
+      _strings ?? lookupAppLocalizations(const Locale('en'));
 
   Future<ConversationRoom> join(String roomId) async {
     try {
       return _roomFrom(await _dio.post<dynamic>('/rooms/$roomId/join'));
     } on Object catch (e) {
-      throw _roomError(e, 'Could not join this room. Please retry.');
+      throw _roomError(e, _l.roomsJoinFailed);
     }
   }
 
@@ -253,7 +263,7 @@ class RoomsApi {
     try {
       return _roomFrom(await _dio.post<dynamic>('/rooms/$roomId/leave'));
     } on Object catch (e) {
-      throw _roomError(e, 'Could not leave this room. Please retry.');
+      throw _roomError(e, _l.engagementRoomsLeaveFailed);
     }
   }
 
@@ -267,7 +277,7 @@ class RoomsApi {
         ),
       );
     } on Object catch (e) {
-      throw _roomError(e, 'Lost touch with the room.');
+      throw _roomError(e, _l.engagementRoomsPresenceFailed);
     }
   }
 
@@ -281,7 +291,7 @@ class RoomsApi {
           if (row is Map) RoomMember.fromJson(row),
       ];
     } on Object catch (e) {
-      throw _roomError(e, 'Could not load who is here. Please retry.');
+      throw _roomError(e, _l.engagementRoomsMembersFailed);
     }
   }
 
@@ -308,7 +318,7 @@ class RoomsApi {
         ),
       );
     } on Object catch (e) {
-      throw _roomError(e, 'That did not go through. Please retry.');
+      throw _roomError(e, _l.engagementRoomsModerationFailed);
     }
   }
 
@@ -334,14 +344,19 @@ class RoomsApi {
       );
       return _roomFrom(response);
     } on Object catch (e) {
-      throw _roomError(e, 'Could not start the room. Please retry.');
+      throw _roomError(e, _l.engagementRoomsCreateFailed);
     }
   }
 }
 
-final roomsApiProvider = Provider<RoomsApi>(
-  (ref) => RoomsApi(ref.watch(apiClientProvider)),
-);
+final roomsApiProvider = Provider<RoomsApi>((ref) {
+  // Rebuilt when the member changes language so fallbacks follow it.
+  ref.watch(appLocaleProvider);
+  return RoomsApi(
+    ref.watch(apiClientProvider),
+    strings: engagementL10nFor(ref),
+  );
+});
 
 /// The people in a room (members only).
 final roomMembersProvider = FutureProvider.autoDispose
@@ -470,7 +485,7 @@ class ConversationRoomsNotifier extends StateNotifier<ConversationRoomsState> {
         isLoading: false,
         error: apiErrorMessage(
           e,
-          fallback: 'Rooms are unavailable right now. Pull to retry.',
+          fallback: engagementL10nFor(_ref).engagementRoomsLoadFailed,
         ),
       );
     }

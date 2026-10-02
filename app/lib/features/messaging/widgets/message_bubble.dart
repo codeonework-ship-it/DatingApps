@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../social_chat/social_chat_l10n.dart';
 import '../models/rose_gift.dart';
 import 'rose_gift_glyph.dart';
 
@@ -80,7 +81,7 @@ class MessageBubble extends StatelessWidget {
                   key: const ValueKey('qa.chat.gift_receiver_actions'),
                   onPressed: onGiftActions,
                   icon: const Icon(Icons.more_horiz_rounded, size: 18),
-                  label: const Text('Gift options'),
+                  label: Text(chatL10n(context).chatGiftOptions),
                   style: TextButton.styleFrom(
                     minimumSize: const Size(48, 44),
                     padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -108,10 +109,10 @@ class MessageBubble extends StatelessWidget {
                     if (isFromCurrentUser)
                       Semantics(
                         label: isRead
-                            ? 'Read'
+                            ? chatL10n(context).chatStatusRead
                             : isDelivered
-                            ? 'Delivered'
-                            : 'Sent',
+                            ? chatL10n(context).chatStatusDelivered
+                            : chatL10n(context).chatStatusSent,
                         child: Icon(
                           isRead || isDelivered ? Icons.done_all : Icons.done,
                           size: 15,
@@ -122,7 +123,7 @@ class MessageBubble extends StatelessWidget {
                       ),
                     if (assisted)
                       Text(
-                        'Drafted with help',
+                        chatL10n(context).chatDraftedWithHelp,
                         key: const ValueKey('qa.chat.assisted_label'),
                         style: theme.textTheme.labelSmall?.copyWith(
                           color: scheme.onSurfaceVariant,
@@ -258,7 +259,7 @@ class MessageBubble extends StatelessWidget {
     children: [
       _buildPill(
         context,
-        label: _giftHeading('Gesture + Rose Gift'),
+        label: _giftHeading(context, chatL10n(context).chatGestureGiftHeading),
         color: textColor,
       ),
       const SizedBox(height: 14),
@@ -295,7 +296,9 @@ class MessageBubble extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Tone: ${_titleCase(gestureGift.tone)}',
+                        chatL10n(
+                          context,
+                        ).chatGiftTone(_titleCase(gestureGift.tone)),
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: textColor.withValues(alpha: 0.82),
                           fontWeight: FontWeight.w600,
@@ -343,8 +346,8 @@ class MessageBubble extends StatelessWidget {
                 ),
                 Text(
                   gestureGift.giftPrice > 0
-                      ? '${gestureGift.giftPrice} coins'
-                      : 'Free gift',
+                      ? chatL10n(context).chatCoinCount(gestureGift.giftPrice)
+                      : chatL10n(context).chatFreeGift,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: textColor.withValues(alpha: 0.86),
                     fontWeight: FontWeight.w700,
@@ -375,7 +378,7 @@ class MessageBubble extends StatelessWidget {
     children: [
       _buildPill(
         context,
-        label: _giftHeading('A little something for you'),
+        label: _giftHeading(context, chatL10n(context).chatGiftForYouHeading),
         color: textColor,
       ),
       const SizedBox(height: 12),
@@ -395,7 +398,9 @@ class MessageBubble extends StatelessWidget {
       ),
       const SizedBox(height: 2),
       Text(
-        gift.price > 0 ? '${gift.price} coins' : 'Free gift',
+        gift.price > 0
+            ? chatL10n(context).chatCoinCount(gift.price)
+            : chatL10n(context).chatFreeGift,
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
           color: textColor.withValues(alpha: 0.9),
           fontWeight: FontWeight.w600,
@@ -404,9 +409,11 @@ class MessageBubble extends StatelessWidget {
     ],
   );
 
-  String _giftHeading(String fallback) {
+  String _giftHeading(BuildContext context, String fallback) {
     final sender = receivedGiftFrom?.trim() ?? '';
-    return sender.isEmpty ? fallback : 'Gift received from $sender';
+    return sender.isEmpty
+        ? fallback
+        : chatL10n(context).chatGiftReceivedFrom(sender);
   }
 
   Widget _buildPill(

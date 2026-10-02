@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../i18n/app_l10n.dart';
 import '../theme/app_theme.dart';
 import 'glass_widgets.dart';
 
@@ -82,7 +83,7 @@ class ThemedScreenScaffold extends StatelessWidget {
     } else if (isEmpty) {
       content = _EmptyState(
         icon: emptyIcon ?? Icons.inbox_rounded,
-        title: emptyTitle ?? 'Nothing here yet',
+        title: emptyTitle ?? l10nOrEnglish(context).commonNothingHereYet,
         subtitle: emptySubtitle,
       );
     } else {
@@ -175,7 +176,7 @@ class _ErrorState extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'Something went wrong',
+              l10nOrEnglish(context).commonSomethingWentWrong,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 color: Theme.of(context).colorScheme.onSurface,
                 fontWeight: FontWeight.w700,
@@ -193,7 +194,10 @@ class _ErrorState extends StatelessWidget {
             ),
             if (onRetry != null) ...[
               const SizedBox(height: 20),
-              GlassButton(label: 'Try Again', onPressed: onRetry!),
+              GlassButton(
+                label: l10nOrEnglish(context).commonTryAgainTitle,
+                onPressed: onRetry!,
+              ),
             ],
           ],
         ),

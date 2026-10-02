@@ -16,6 +16,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/config/app_runtime_config.dart';
 import 'core/config/feature_flags.dart';
+import 'core/i18n/app_l10n.dart';
 import 'core/i18n/app_locale_provider.dart';
 import 'core/notifications/push_notification_service.dart';
 import 'core/telemetry/client_error_navigator_observer.dart';
@@ -174,6 +175,7 @@ class DatingApp extends ConsumerWidget {
     // null follows the device; a chosen locale resolves against
     // AppLocalizations.supportedLocales (en-US lands on the `en` template).
     final locale = ref.watch(appLocaleProvider);
+    setCurrentAppLocale(locale);
     if (kIsWeb) {
       return MaterialApp.router(
         title: 'Connect',
@@ -288,12 +290,14 @@ class _AppGate extends ConsumerWidget {
 
     final termsAccepted = ref.watch(termsAcceptanceProvider);
     return termsAccepted.when(
-      loading: () => const _GateLoadingScreen(message: 'Checking terms…'),
+      loading: () => _GateLoadingScreen(
+        message: AppLocalizations.of(context).gateCheckingTerms,
+      ),
       error: (_, _) => Scaffold(
         body: Center(
           child: TextButton(
             onPressed: () => ref.invalidate(termsAcceptanceProvider),
-            child: const Text('Retry'),
+            child: Text(AppLocalizations.of(context).commonRetry),
           ),
         ),
       ),
@@ -314,8 +318,9 @@ class _AppGate extends ConsumerWidget {
         }
         final completion = ref.watch(profileCompletionProvider);
         return completion.when(
-          loading: () =>
-              const _GateLoadingScreen(message: 'Loading your profile…'),
+          loading: () => _GateLoadingScreen(
+            message: AppLocalizations.of(context).gateLoadingProfile,
+          ),
           error: (error, _) => _BackendConnectionIssue(
             message: error.toString(),
             onRetry: () => ref.invalidate(profileCompletionProvider),
@@ -394,7 +399,7 @@ class _BackendConnectionIssue extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                'Connection issue',
+                AppLocalizations.of(context).gateConnectionIssue,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: colors.onSurface,
                   fontWeight: FontWeight.w700,
@@ -411,7 +416,10 @@ class _BackendConnectionIssue extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 20),
-              FilledButton(onPressed: onRetry, child: const Text('Retry')),
+              FilledButton(
+                onPressed: onRetry,
+                child: Text(AppLocalizations.of(context).commonRetry),
+              ),
             ],
           ),
         ),

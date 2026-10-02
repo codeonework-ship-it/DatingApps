@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:verified_dating_app/features/engagement/providers/level_progression_provider.dart';
 import 'package:verified_dating_app/features/engagement/screens/level_progression_screen.dart';
+import 'package:verified_dating_app/l10n/app_localizations.dart';
 
 void main() {
   test('parses projected level state, rewards, and trust controls', () {
@@ -52,7 +53,11 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [levelProgressionProvider.overrideWith(_FakeNotifier.new)],
-        child: const MaterialApp(home: LevelProgressionScreen()),
+        child: const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: LevelProgressionScreen(),
+        ),
       ),
     );
     await tester.pumpAndSettle();

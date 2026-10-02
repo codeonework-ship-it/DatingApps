@@ -10,6 +10,7 @@ import '../../friends/models/friend_social.dart';
 import '../../friends/providers/friend_social_provider.dart';
 import '../../intentional_dating/profile_stories.dart';
 import '../../swipe/providers/profile_details_provider.dart';
+import '../data/india_master_data.dart';
 import 'cinematic_profile.dart';
 
 /// The "scenes" under a profile's title card: About (the bio as a pull
@@ -50,7 +51,10 @@ class ProfileScenes extends StatelessWidget {
 
     final interests = <(String, List<String>)>[
       (l10n.memberProfileInCommon, inCommon),
-      (l10n.memberProfileLookingFor, d.intentTags.map(_humanize).toList()),
+      (
+        l10n.memberProfileLookingFor,
+        d.intentTags.map((tag) => _intent(l10n, tag)).toList(),
+      ),
       (l10n.memberProfileHobbies, d.hobbies),
       (l10n.memberProfileActivities, d.extraCurriculars),
       (l10n.memberProfileSongs, d.favoriteSongs),
@@ -78,7 +82,8 @@ class ProfileScenes extends StatelessWidget {
         l10n.memberProfileFactWork,
         d.profession,
       ),
-      ?_fact(
+      ?_option(
+        l10n,
         Icons.school_outlined,
         l10n.memberProfileFactEducation,
         d.education,
@@ -89,17 +94,20 @@ class ProfileScenes extends StatelessWidget {
         l10n.memberProfileFactMotherTongue,
         d.motherTongue,
       ),
-      ?_fact(
+      ?_option(
+        l10n,
         Icons.self_improvement_rounded,
         l10n.memberProfileFactReligion,
         d.religion,
       ),
-      ?_fact(
+      ?_option(
+        l10n,
         Icons.psychology_alt_outlined,
         l10n.memberProfileFactPersonality,
         d.personalityType,
       ),
-      ?_fact(
+      ?_option(
+        l10n,
         Icons.favorite_border_rounded,
         l10n.memberProfileFactRelationship,
         d.relationshipStatus,
@@ -112,42 +120,60 @@ class ProfileScenes extends StatelessWidget {
     ];
 
     final lifestyle = <ProfileFact>[
-      ?_fact(
+      ?_option(
+        l10n,
         Icons.local_bar_outlined,
         l10n.memberProfileFactDrinking,
         d.drinking,
       ),
-      ?_fact(
+      ?_option(
+        l10n,
         Icons.smoke_free_rounded,
         l10n.memberProfileFactSmoking,
         d.smoking,
       ),
-      ?_fact(
+      ?_option(
+        l10n,
         Icons.fitness_center_rounded,
         l10n.memberProfileFactWorkout,
         d.workoutFrequency,
+        list: ProfileOptionList.workout,
       ),
-      ?_fact(
+      ?_option(
+        l10n,
         Icons.restaurant_outlined,
         l10n.memberProfileFactDiet,
         d.dietPreference,
+        list: ProfileOptionList.dietPreference,
       ),
-      ?_fact(Icons.eco_outlined, l10n.memberProfileFactDietType, d.dietType),
-      ?_fact(
+      ?_option(
+        l10n,
+        Icons.eco_outlined,
+        l10n.memberProfileFactDietType,
+        d.dietType,
+        list: ProfileOptionList.dietType,
+      ),
+      ?_option(
+        l10n,
         Icons.bedtime_outlined,
         l10n.memberProfileFactSleep,
         d.sleepSchedule,
+        list: ProfileOptionList.sleepSchedule,
       ),
-      ?_fact(
+      ?_option(
+        l10n,
         Icons.flight_takeoff_rounded,
         l10n.memberProfileFactTravel,
         d.travelStyle,
+        list: ProfileOptionList.travelStyle,
       ),
       ?_fact(Icons.pets_outlined, l10n.memberProfileFactPets, d.petPreference),
-      ?_fact(
+      ?_option(
+        l10n,
         Icons.forum_outlined,
         l10n.memberProfileFactPolitics,
         d.politicalComfortRange,
+        list: ProfileOptionList.politicalComfort,
       ),
       if (d.hookupOnly != null)
         ProfileFact(
@@ -271,6 +297,32 @@ class ProfileScenes extends StatelessWidget {
   static ProfileFact? _fact(IconData icon, String label, String? value) {
     final text = _clean(value);
     return text == null ? null : ProfileFact(icon, label, text);
+  }
+
+  /// A fact whose value is a stored option ('Night owl'), shown with its
+  /// label in the member's language.
+  static ProfileFact? _option(
+    AppLocalizations l10n,
+    IconData icon,
+    String label,
+    String? value, {
+    ProfileOptionList list = ProfileOptionList.general,
+  }) {
+    final text = _clean(value);
+    return text == null
+        ? null
+        : ProfileFact(icon, label, profileOptionLabel(l10n, text, list: list));
+  }
+
+  /// An intent code (`long_term`) as words, translated when known.
+  static String _intent(AppLocalizations l10n, String raw) {
+    final code = raw.trim();
+    final label = profileOptionLabel(
+      l10n,
+      code,
+      list: ProfileOptionList.intent,
+    );
+    return label == code ? _humanize(code) : label;
   }
 
   /// `long_term` → `Long term`.

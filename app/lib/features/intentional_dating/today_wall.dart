@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers/runtime_feature_flags_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/cinematic_effects.dart';
+import '../../l10n/app_localizations.dart';
 import '../blog/blog_data.dart';
 import '../blog/blog_screen.dart';
 import '../blog/blog_social.dart';
@@ -150,11 +151,12 @@ class CoverOfTheWeekCard extends ConsumerWidget {
     final likes =
         ref.watch(photoLikesProvider)[entry.id]?.count ?? entry.likeCount;
     const ink = Colors.white;
+    final l10n = AppLocalizations.of(context);
     final caption = entry.caption.trim();
     final kicker = entry.themeTitle.trim();
     final coverLine = caption.isNotEmpty
         ? caption
-        : (kicker.isNotEmpty ? kicker : 'A photo members loved');
+        : (kicker.isNotEmpty ? kicker : l10n.todayCoverFallbackLine);
     final small = theme.textTheme.labelMedium?.copyWith(
       color: ink,
       letterSpacing: 2.4,
@@ -165,7 +167,7 @@ class CoverOfTheWeekCard extends ConsumerWidget {
     return Semantics(
       container: true,
       button: true,
-      label: 'Open the Cover of the Week by ${entry.firstName}',
+      label: l10n.todayCoverSemantics(entry.firstName),
       child: ClipRRect(
         key: const ValueKey('qa.today.cover'),
         borderRadius: BorderRadius.circular(TodayMetrics.featureRadius),
@@ -210,7 +212,7 @@ class CoverOfTheWeekCard extends ConsumerWidget {
                         FittedBox(
                           fit: BoxFit.scaleDown,
                           child: Text(
-                            'COVER OF THE WEEK',
+                            l10n.todayCoverTitle,
                             maxLines: 1,
                             textAlign: TextAlign.center,
                             style: serif.copyWith(
@@ -274,28 +276,30 @@ class CoverOfTheWeekCard extends ConsumerWidget {
                           children: [
                             Expanded(
                               child: Text(
-                                'BY ${entry.firstName.toUpperCase()}',
+                                l10n.todayCoverBy(
+                                  entry.firstName.toUpperCase(),
+                                ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: small,
                               ),
                             ),
-                            const Icon(
+                            Icon(
                               Icons.favorite_rounded,
                               size: 16,
                               color: ink,
                               shadows: _photoShadows,
-                              semanticLabel: 'Likes',
+                              semanticLabel: l10n.todayLikes,
                             ),
                             const SizedBox(width: 4),
                             Text('$likes', style: small),
                             const SizedBox(width: 12),
-                            const Icon(
+                            Icon(
                               Icons.chat_bubble_rounded,
                               size: 16,
                               color: ink,
                               shadows: _photoShadows,
-                              semanticLabel: 'Comments',
+                              semanticLabel: l10n.todayComments,
                             ),
                             const SizedBox(width: 4),
                             Text('${entry.commentCount}', style: small),
@@ -342,7 +346,7 @@ class _ThisWeekChip extends StatelessWidget {
     child: Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: Text(
-        'This week',
+        AppLocalizations.of(context).todayThisWeek,
         style: Theme.of(context).textTheme.labelMedium?.copyWith(
           color: colors.onPrimary,
           fontWeight: FontWeight.w700,
@@ -411,10 +415,11 @@ class _TodayWallSectionState extends State<TodayWallSection> {
   @override
   Widget build(BuildContext context) {
     final items = widget.items;
-    const header = TodaySectionHeader(
-      label: 'FROM THE COMMUNITY',
-      title: 'Today’s wall',
-      caption: 'Stories and photos members loved — new picks every day',
+    final l10n = AppLocalizations.of(context);
+    final header = TodaySectionHeader(
+      label: l10n.todayWallLabel,
+      title: l10n.todayWallTitle,
+      caption: l10n.todayWallCaption,
     );
     if (items.isEmpty) {
       return Column(
@@ -467,7 +472,7 @@ class _TodayWallSectionState extends State<TodayWallSection> {
         Row(
           children: [
             IconButton(
-              tooltip: 'Previous pick',
+              tooltip: l10n.todayWallPrevious,
               onPressed: page > 0 ? () => _go(page - 1) : null,
               icon: const Icon(Icons.chevron_left_rounded),
             ),
@@ -510,7 +515,7 @@ class _TodayWallSectionState extends State<TodayWallSection> {
               ),
             ),
             IconButton(
-              tooltip: 'Next pick',
+              tooltip: l10n.todayWallNext,
               onPressed: page < items.length - 1 ? () => _go(page + 1) : null,
               icon: const Icon(Icons.chevron_right_rounded),
             ),
@@ -557,6 +562,7 @@ class _WallChapterCard extends ConsumerWidget {
       color: colors.onSurfaceVariant,
     );
     final excerpt = post.body.replaceAll(RegExp(r'\s+'), ' ').trim();
+    final l10n = AppLocalizations.of(context);
     final radius = BorderRadius.circular(TodayMetrics.cardRadius);
     return Material(
       key: ValueKey('qa.today.wall.chapter.${post.id}'),
@@ -577,7 +583,7 @@ class _WallChapterCard extends ConsumerWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      'CHAPTER',
+                      l10n.todayWallChapter,
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: colors.primary,
                         letterSpacing: 2,
@@ -590,7 +596,7 @@ class _WallChapterCard extends ConsumerWidget {
               ),
               const SizedBox(height: 12),
               Text(
-                post.title.isEmpty ? 'An untitled chapter' : post.title,
+                post.title.isEmpty ? l10n.todayWallUntitled : post.title,
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.headlineSmall?.copyWith(
@@ -631,7 +637,7 @@ class _WallChapterCard extends ConsumerWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      'by ${post.authorName}',
+                      l10n.todayWallBy(post.authorName),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.labelLarge,
@@ -641,7 +647,7 @@ class _WallChapterCard extends ConsumerWidget {
                     Icons.favorite_rounded,
                     size: 16,
                     color: colors.primary,
-                    semanticLabel: 'Likes',
+                    semanticLabel: l10n.todayLikes,
                   ),
                   const SizedBox(width: 4),
                   Text('$likes', style: muted),
@@ -650,7 +656,7 @@ class _WallChapterCard extends ConsumerWidget {
                     Icons.chat_bubble_outline_rounded,
                     size: 16,
                     color: colors.onSurfaceVariant,
-                    semanticLabel: 'Comments',
+                    semanticLabel: l10n.todayComments,
                   ),
                   const SizedBox(width: 4),
                   Text('${post.commentCount}', style: muted),
@@ -672,6 +678,7 @@ class _WallEmpty extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
     return TodayPanel(
       key: const ValueKey('qa.today.wall.empty'),
       color: colors.surfaceContainerLow,
@@ -680,10 +687,7 @@ class _WallEmpty extends StatelessWidget {
         children: [
           Icon(Icons.auto_awesome_outlined, color: colors.primary),
           const SizedBox(height: 12),
-          Text(
-            'Your wall fills up as members share stories and photos they love',
-            style: theme.textTheme.titleMedium,
-          ),
+          Text(l10n.todayWallEmpty, style: theme.textTheme.titleMedium),
           if (canWrite || canShare) ...[
             const SizedBox(height: 16),
             Wrap(
@@ -695,14 +699,14 @@ class _WallEmpty extends StatelessWidget {
                     key: const ValueKey('qa.today.wall.write'),
                     onPressed: () => openBlog(context),
                     icon: const Icon(Icons.edit_note_rounded),
-                    label: const Text('Write a chapter'),
+                    label: Text(l10n.todayWallWrite),
                   ),
                 if (canShare)
                   OutlinedButton.icon(
                     key: const ValueKey('qa.today.wall.share'),
                     onPressed: () => openPhotoThemes(context),
                     icon: const Icon(Icons.photo_camera_outlined),
-                    label: const Text('Share a photo'),
+                    label: Text(l10n.todayWallShare),
                   ),
               ],
             ),

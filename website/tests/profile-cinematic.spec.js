@@ -115,12 +115,10 @@ for (const width of [320, 390, 1440]) {
   });
 }
 
-// WEB-12 (open, backend): the app records a profile view with
-// POST /v1/profile/views {viewer_user_id, viewed_user_id}; the BFF's
-// pathOwnedByPrincipal treats "views" as a profile owner id and answers 403,
-// so "Who viewed you" never fills and every profile open logs a console error.
+// WEB-12 (fixed 2026-10-02): the app records a profile view with
+// POST /v1/profile/views {viewer_user_id, viewed_user_id}; the BFF used to
+// treat "views" as a profile owner id and answer 403.
 test('WEB-12: opening another member\'s profile records the view', async ({page, request}, testInfo) => {
-  test.fail(true, 'WEB-12 open: POST /v1/profile/views → 403 "resource does not belong to the authenticated user"');
   test.setTimeout(120000);
   const recorded = page.waitForResponse(r => r.url().endsWith('/v1/profile/views') && r.request().method() === 'POST', {timeout: 30000});
   await openLikerProfile(page, request, testInfo, 1440);

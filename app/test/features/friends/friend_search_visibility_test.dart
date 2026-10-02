@@ -7,6 +7,7 @@ import 'package:verified_dating_app/core/providers/runtime_feature_flags_provide
 import 'package:verified_dating_app/features/auth/providers/auth_provider.dart';
 import 'package:verified_dating_app/features/common/screens/privacy_safety_screen.dart';
 import 'package:verified_dating_app/features/friends/screens/friends_screen.dart';
+import 'package:verified_dating_app/l10n/app_localizations.dart';
 
 class _Auth extends AuthNotifier {
   @override
@@ -86,7 +87,11 @@ Widget _app(_Api api, Widget home) => ProviderScope(
       (ref) => Stream.value(RuntimeFeatureFlags.defaults),
     ),
   ],
-  child: MaterialApp(home: home),
+  child: MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
+    home: home,
+  ),
 );
 
 void main() {

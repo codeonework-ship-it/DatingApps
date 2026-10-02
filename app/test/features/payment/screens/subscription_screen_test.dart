@@ -6,6 +6,7 @@ import 'package:verified_dating_app/core/providers/api_client_provider.dart';
 import 'package:verified_dating_app/core/theme/app_theme.dart';
 import 'package:verified_dating_app/features/auth/providers/auth_provider.dart';
 import 'package:verified_dating_app/features/payment/screens/subscription_screen.dart';
+import 'package:verified_dating_app/l10n/app_localizations.dart';
 
 class _SignedIn extends AuthNotifier {
   @override
@@ -104,6 +105,8 @@ Future<void> _pump(WidgetTester tester, Dio dio) async {
       ],
       child: MaterialApp(
         theme: AppTheme.darkTheme,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: const SubscriptionScreen(),
       ),
     ),

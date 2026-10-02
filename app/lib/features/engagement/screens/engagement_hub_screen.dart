@@ -11,6 +11,7 @@ import '../../blog/blog_screen.dart';
 import '../../city_pilot/city_pilot_screen.dart';
 import '../../clubs/clubs_screen.dart';
 import '../../photo_themes/photo_themes_screen.dart';
+import '../engagement_l10n.dart';
 import '../providers/billing_coexistence_provider.dart';
 import '../providers/daily_prompt_provider.dart';
 import 'circle_challenges_screen.dart';
@@ -34,17 +35,22 @@ class EngagementHubScreen extends ConsumerWidget {
           data: (flags) => flags,
           orElse: () => RuntimeFeatureFlags.defaults,
         );
+    final l = engagementL10n(context);
     final dailyPromptState = ref.watch(dailyPromptProvider);
     final dailyPromptView = dailyPromptState.view;
     final dailyPromptSubtitle =
         dailyPromptState.isLoading && dailyPromptView == null
-        ? 'Loading today\'s prompt'
+        ? l.engagementHubPromptLoading
         : dailyPromptView == null
-        ? 'Answer one prompt daily and build your streak.'
+        ? l.engagementHubPromptIntro
         : dailyPromptView.answer == null
-        ? '${dailyPromptView.spark.participantsToday} people replied today'
-        : 'Streak ${dailyPromptView.streak.currentDays}d · '
-              '${dailyPromptView.spark.similarAnswerCount} similar replies';
+        ? l.engagementHubPromptRepliedToday(
+            dailyPromptView.spark.participantsToday,
+          )
+        : l.engagementHubPromptStreakSummary(
+            dailyPromptView.streak.currentDays,
+            dailyPromptView.spark.similarAnswerCount,
+          );
 
     final colors = Theme.of(context).colorScheme;
     void push(Widget screen) => Navigator.of(
@@ -54,24 +60,24 @@ class EngagementHubScreen extends ConsumerWidget {
       if (runtimeFlags.enabled('intentional_dating_enabled'))
         _tile(
           icon: Icons.menu_book_outlined,
-          title: 'Blog · Open Chapters',
-          subtitle: 'Read stories, share photos and write your own.',
+          title: l.engagementHubBlogTitle,
+          subtitle: l.engagementHubBlogSubtitle,
           tint: colors.primary,
           onTap: () => openBlog(context),
         ),
       if (runtimeFlags.enabled('photo_themes_enabled'))
         _tile(
           icon: Icons.photo_library_outlined,
-          title: 'Photo Themes',
-          subtitle: 'Share one photo per prompt and see everyone’s.',
+          title: l.engagementHubPhotoThemesTitle,
+          subtitle: l.engagementHubPhotoThemesSubtitle,
           tint: colors.secondary,
           onTap: () => openPhotoThemes(context),
         ),
       if (runtimeFlags.enabled('clubs_enabled'))
         _tile(
           icon: Icons.local_library_outlined,
-          title: 'Book & Film Clubs',
-          subtitle: 'Follow a weekly pick, talk it over, rate it.',
+          title: l.engagementHubClubsTitle,
+          subtitle: l.engagementHubClubsSubtitle,
           tint: colors.tertiary,
           onTap: () => openClubs(context),
         ),
@@ -79,15 +85,15 @@ class EngagementHubScreen extends ConsumerWidget {
     final meet = <Widget>[
       _tile(
         icon: Icons.location_city_rounded,
-        title: 'The City Pilot',
-        subtitle: 'A small community. Conversations that become plans.',
+        title: l.engagementHubCityPilotTitle,
+        subtitle: l.engagementHubCityPilotSubtitle,
         tint: colors.primary,
         onTap: () => push(const CityPilotScreen()),
       ),
       if (runtimeFlags.enabled('daily_prompts_enabled'))
         _tile(
           icon: Icons.local_fire_department_outlined,
-          title: 'Daily Prompt Streak',
+          title: l.engagementDailyPromptTitle,
           subtitle: dailyPromptSubtitle,
           tint: colors.secondary,
           onTap: () => push(const DailyPromptScreen()),
@@ -95,47 +101,47 @@ class EngagementHubScreen extends ConsumerWidget {
       if (runtimeFlags.enabled('voice_icebreakers_enabled'))
         _tile(
           icon: Icons.groups_2_outlined,
-          title: 'Guided Voice Icebreakers',
-          subtitle: 'Send one guided 20-45s voice intro per match/day',
+          title: l.engagementHubVoiceTitle,
+          subtitle: l.engagementHubVoiceSubtitle,
           tint: colors.tertiary,
           onTap: () => push(const VoiceIcebreakersScreen()),
         ),
       if (runtimeFlags.enabled('circles_enabled'))
         _tile(
           icon: Icons.groups_2_outlined,
-          title: 'Local Circle Challenges',
-          subtitle: 'Join a city circle and submit this week\'s entry',
+          title: l.engagementCirclesTitle,
+          subtitle: l.engagementHubCirclesSubtitle,
           tint: colors.primary,
           onTap: () => push(const CircleChallengesScreen()),
         ),
       if (runtimeFlags.enabled('group_coffee_polls_enabled'))
         _tile(
           icon: Icons.coffee_outlined,
-          title: 'Group Coffee Poll',
-          subtitle: 'Create, vote, and finalize lightweight meetup polls',
+          title: l.engagementHubCoffeeTitle,
+          subtitle: l.engagementHubCoffeeSubtitle,
           tint: colors.secondary,
           onTap: () => push(const GroupCoffeePollsScreen()),
         ),
       if (runtimeFlags.enabled('groups_enabled'))
         _tile(
           icon: Icons.diversity_3_rounded,
-          title: 'Groups',
-          subtitle: 'Lifestyle communities and private friend groups',
+          title: l.engagementHubGroupsTitle,
+          subtitle: l.engagementHubGroupsSubtitle,
           tint: colors.tertiary,
           onTap: () => openGroups(context),
         ),
       if (runtimeFlags.enabled('rooms_enabled'))
         _tile(
           icon: Icons.forum_rounded,
-          title: 'Conversation Rooms',
-          subtitle: 'Live chat rooms: drop in, talk, make friends',
+          title: l.settingsConversationRoomsTitle,
+          subtitle: l.engagementHubRoomsSubtitle,
           tint: colors.primary,
           onTap: () => push(const ConversationRoomsScreen()),
         ),
       _tile(
         icon: Icons.people_alt_rounded,
-        title: 'Friends & Introductions',
-        subtitle: 'Invite a trusted friend, even if they aren’t dating',
+        title: l.engagementHubFriendsTitle,
+        subtitle: l.engagementHubFriendsSubtitle,
         tint: colors.secondary,
         onTap: () => push(const FriendsScreen()),
       ),
@@ -144,24 +150,22 @@ class EngagementHubScreen extends ConsumerWidget {
       if (runtimeFlags.enabled('level_progression_enabled'))
         _tile(
           icon: Icons.auto_graph_rounded,
-          title: 'Level & XP',
-          subtitle:
-              'Track meaningful activity, level rewards, and '
-              'trust gates',
+          title: l.engagementLevelTitle,
+          subtitle: l.engagementHubLevelSubtitle,
           tint: colors.primary,
           onTap: () => push(const LevelProgressionScreen()),
         ),
       _tile(
         icon: Icons.workspace_premium_rounded,
-        title: 'Trust Badges',
-        subtitle: 'See earned badges and trust history',
+        title: l.settingsTrustBadgesTitle,
+        subtitle: l.settingsTrustBadgesSubtitle,
         tint: colors.tertiary,
         onTap: () => push(const TrustBadgesScreen()),
       ),
       _tile(
         icon: Icons.tune_rounded,
-        title: 'Trust Filters',
-        subtitle: 'Control trust requirements for discovery',
+        title: l.settingsTrustFiltersTitle,
+        subtitle: l.settingsTrustFiltersSubtitle,
         tint: colors.secondary,
         onTap: () => push(const TrustFilterScreen()),
       ),
@@ -179,8 +183,8 @@ class EngagementHubScreen extends ConsumerWidget {
                 children: [
                   Text(
                     matrix.coreProgressionNonBlocking
-                        ? 'Core progression stays paywall-free.'
-                        : 'Monetization policy is being updated.',
+                        ? l.engagementHubPaywallFree
+                        : l.engagementHubPolicyUpdating,
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
                       color: colors.onSurface,
                       fontWeight: FontWeight.w700,
@@ -189,7 +193,7 @@ class EngagementHubScreen extends ConsumerWidget {
                   if (preview.isNotEmpty) ...[
                     const SizedBox(height: 4),
                     Text(
-                      'Optional premium areas: $preview',
+                      l.engagementHubPremiumAreas(preview),
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: colors.onSurfaceVariant,
                       ),
@@ -227,28 +231,25 @@ class EngagementHubScreen extends ConsumerWidget {
                 child: ListView(
                   padding: EdgeInsets.fromLTRB(gutter, 12, gutter, 120),
                   children: [
-                    const ConnectPageHeader(
-                      eyebrow: 'ENGAGE',
-                      title: 'Make something together.',
-                      subtitle:
-                          'Build stronger matches with trust and shared '
-                          'activities.',
+                    ConnectPageHeader(
+                      eyebrow: l.engagementHubEyebrow,
+                      title: l.engagementHubTitle,
+                      subtitle: l.engagementHubSubtitle,
                     ),
                     if (create.isNotEmpty)
                       ...section(
-                        'CREATE & SHARE',
-                        'Stories, photos and clubs that start real '
-                            'conversations.',
+                        l.engagementHubSectionCreate,
+                        l.engagementHubSectionCreateCaption,
                         create,
                       ),
                     ...section(
-                      'MEET PEOPLE',
-                      'Small groups, prompts and plans at your pace.',
+                      l.engagementHubSectionMeet,
+                      l.engagementHubSectionMeetCaption,
                       meet,
                     ),
                     ...section(
-                      'TRUST & PROGRESS',
-                      'Your level, your badges and who can find you.',
+                      l.engagementHubSectionProgress,
+                      l.engagementHubSectionProgressCaption,
                       progress,
                     ),
                   ],

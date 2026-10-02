@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
+import '../../../l10n/app_localizations.dart';
 import '../platform/checkout_launcher.dart';
 import '../providers/subscription_provider.dart';
 import '../providers/wallet_provider.dart';
+import 'payment_l10n.dart';
 
 /// Wallet: coin balance, coin packs bought by card through the provider's
 /// hosted checkout, and the credit history. The balance shown always comes
@@ -37,10 +39,11 @@ class _WalletPaymentScreenState extends ConsumerState<WalletPaymentScreen> {
     final state = ref.watch(_wallet);
     final scheme = Theme.of(context).colorScheme;
     final muted = scheme.onSurfaceVariant;
+    final l10n = AppLocalizations.of(context);
     final balance = state.balance ?? widget.walletCoins;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Wallet & Payments')),
+      appBar: AppBar(title: Text(l10n.paymentWalletTitle)),
       body: PostLoginBackdrop(
         child: SafeArea(
           child: RefreshIndicator(
@@ -51,37 +54,36 @@ class _WalletPaymentScreenState extends ConsumerState<WalletPaymentScreen> {
               children: [
                 if (state.paymentMode == 'sandbox' ||
                     state.paymentMode == 'test') ...[
-                  const _InlineNote(
-                    message:
-                        'Test payments · no real charge. '
-                        'Use test card details only.',
-                  ),
+                  _InlineNote(message: l10n.paymentWalletTestNote),
                   const SizedBox(height: 16),
                 ],
                 _BalanceHero(balance: balance, isLoading: state.isLoading),
                 if (state.error != null) ...[
                   const SizedBox(height: 12),
-                  _InlineNote(message: state.error!, isError: true),
+                  _InlineNote(
+                    message: paymentErrorText(
+                      l10n,
+                      state.errorCode,
+                      state.error!,
+                    ),
+                    isError: true,
+                  ),
                 ],
                 const SizedBox(height: 24),
                 Text(
-                  'Popular top-ups',
+                  l10n.paymentWalletPopularTopUps,
                   style: Theme.of(
                     context,
                   ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Pay by card on the secure checkout page. Coins land in your '
-                  'wallet as soon as the payment settles.',
+                  l10n.paymentWalletTopUpsIntro,
                   style: TextStyle(fontSize: 12, color: muted),
                 ),
                 const SizedBox(height: 12),
                 if (!state.paymentsAvailable)
-                  const _InlineNote(
-                    message:
-                        'Card payments are not enabled on this server yet.',
-                  )
+                  _InlineNote(message: l10n.paymentWalletCardsDisabled)
                 else if (state.isLoading && state.packages.isEmpty)
                   Padding(
                     padding: const EdgeInsets.all(24),
@@ -91,7 +93,7 @@ class _WalletPaymentScreenState extends ConsumerState<WalletPaymentScreen> {
                   )
                 else if (state.packages.isEmpty)
                   Text(
-                    'No coin packs are on sale right now.',
+                    l10n.paymentWalletNoPacks,
                     style: TextStyle(color: muted),
                   )
                 else
@@ -122,14 +124,17 @@ class _WalletPaymentScreenState extends ConsumerState<WalletPaymentScreen> {
                   ),
                 const SizedBox(height: 24),
                 Text(
-                  'Wallet activity',
+                  l10n.paymentWalletActivity,
                   style: Theme.of(
                     context,
                   ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: 8),
                 if (state.purchases.isEmpty)
-                  Text('No coin purchases yet.', style: TextStyle(color: muted))
+                  Text(
+                    l10n.paymentWalletNoPurchases,
+                    style: TextStyle(color: muted),
+                  )
                 else
                   GlassContainer(
                     padding: const EdgeInsets.symmetric(
@@ -148,9 +153,7 @@ class _WalletPaymentScreenState extends ConsumerState<WalletPaymentScreen> {
                   ),
                 const SizedBox(height: 20),
                 Text(
-                  'Coins are used for gifts and boosts inside Connect. '
-                  'Purchases are final once settled; card details stay with '
-                  'the payment provider.',
+                  l10n.paymentWalletFooter,
                   style: TextStyle(fontSize: 12, height: 1.4, color: muted),
                 ),
               ],
@@ -162,6 +165,7 @@ class _WalletPaymentScreenState extends ConsumerState<WalletPaymentScreen> {
   }
 
   Future<void> _buy(CoinPackage package) async {
+    final l10n = AppLocalizations.of(context);
     final notifier = ref.read(_wallet.notifier);
     final checkout = await notifier.startCheckout(package);
     if (checkout == null || !mounted) {
@@ -170,7 +174,7 @@ class _WalletPaymentScreenState extends ConsumerState<WalletPaymentScreen> {
     final paid = await launchHostedCheckout(
       context,
       checkout: checkout,
-      title: '${package.totalCoins} coins',
+      title: l10n.paymentCoinCount(package.totalCoins),
     );
     if (!mounted) {
       return;
@@ -185,13 +189,9 @@ class _WalletPaymentScreenState extends ConsumerState<WalletPaymentScreen> {
       return;
     }
     final message = switch (outcome) {
-      CheckoutOutcome.completed =>
-        '${package.totalCoins} coins added to your wallet.',
-      CheckoutOutcome.pending =>
-        'Payment is still being confirmed. Pull to refresh in a moment.',
-      _ =>
-        'This checkout session has ended. '
-            'Review your payment history before trying again.',
+      CheckoutOutcome.completed => l10n.paymentCoinsAdded(package.totalCoins),
+      CheckoutOutcome.pending => l10n.paymentStillConfirming,
+      _ => l10n.paymentWalletCheckoutEnded,
     };
     ScaffoldMessenger.of(
       context,
@@ -236,7 +236,7 @@ class _BalanceHero extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Glow wallet balance',
+                    AppLocalizations.of(context).paymentWalletBalanceLabel,
                     style: TextStyle(
                       fontSize: 12,
                       letterSpacing: 1.1,
@@ -246,7 +246,7 @@ class _BalanceHero extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   GradientText(
-                    '$balance coins',
+                    AppLocalizations.of(context).paymentCoinCount(balance),
                     gradient: LinearGradient(
                       colors: [scheme.onSurface, scheme.onSurface],
                     ),
@@ -293,6 +293,7 @@ class _PackageCard extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final accent = scheme.primary;
+    final l10n = AppLocalizations.of(context);
     return GlassContainer(
       padding: const EdgeInsets.all(16),
       borderRadius: const BorderRadius.all(Radius.circular(20)),
@@ -327,15 +328,23 @@ class _PackageCard extends StatelessWidget {
           ),
           Text(
             package.bonusCoins > 0
-                ? 'coins · +${package.bonusCoins} bonus'
-                : 'coins',
+                ? l10n.paymentPackCoinsUnitBonus(
+                    package.totalCoins,
+                    package.bonusCoins,
+                  )
+                : l10n.paymentPackCoinsUnit(package.totalCoins),
             style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
           ),
           const SizedBox(height: 12),
           GlassButton(
             label: isBusy
-                ? 'Opening…'
-                : _money(package.price, package.currency),
+                ? l10n.paymentOpening
+                : paymentMoney(
+                    context,
+                    package.price,
+                    package.currency,
+                    alwaysDecimals: true,
+                  ),
             icon: Icons.credit_card,
             isLoading: isBusy,
             onPressed: isBusy ? null : onBuy,
@@ -354,14 +363,19 @@ class _PurchaseRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
     final label = switch (purchase.source) {
-      'admin_topup' => 'Top-up from support',
-      'promo' => 'Promotion',
-      _ => 'Coin purchase',
+      'admin_topup' => l10n.paymentWalletSourceSupport,
+      'promo' => l10n.paymentWalletSourcePromo,
+      _ => l10n.paymentWalletSourcePurchase,
     };
-    final paid = purchase.amountMinor > 0
-        ? ' · ${_money(purchase.amountMinor / 100, purchase.currency)}'
-        : '';
+    final amount = paymentMoney(
+      context,
+      purchase.amountMinor / 100,
+      purchase.currency,
+      alwaysDecimals: true,
+    );
+    final paid = purchase.amountMinor > 0 ? ' · $amount' : '';
     return ListTile(
       dense: true,
       leading: Container(
@@ -382,7 +396,7 @@ class _PurchaseRow extends StatelessWidget {
         style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
       ),
       subtitle: Text(
-        _dateLabel(purchase.createdAt),
+        paymentDate(context, purchase.createdAt),
         style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
       ),
       trailing: Text(
@@ -423,34 +437,4 @@ class _InlineNote extends StatelessWidget {
       ),
     );
   }
-}
-
-String _money(double amount, String currency) {
-  final symbol = switch (currency.toUpperCase()) {
-    'INR' => '₹',
-    'USD' => r'$',
-    'EUR' => '€',
-    'GBP' => '£',
-    _ => '${currency.toUpperCase()} ',
-  };
-  return '$symbol${amount.toStringAsFixed(2)}';
-}
-
-String _dateLabel(DateTime value) {
-  final local = value.toLocal();
-  const months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-  return '${local.day} ${months[local.month - 1]} ${local.year}';
 }

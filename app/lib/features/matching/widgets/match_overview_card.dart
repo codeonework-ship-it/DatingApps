@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+
+import '../../../l10n/app_localizations.dart';
 import '../../messaging/widgets/chat_chrome.dart';
+import '../matching_l10n.dart';
 import '../providers/match_provider.dart';
 
 /// The Matches destination represents people. Message previews belong in the
@@ -22,6 +25,8 @@ class MatchOverviewCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
+    final name = localizedMatchName(l10n, match.userName);
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -34,25 +39,21 @@ class MatchOverviewCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              ChatAvatar(
-                name: match.userName,
-                photoUrl: match.userPhoto,
-                size: 64,
-              ),
+              ChatAvatar(name: name, photoUrl: match.userPhoto, size: 64),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      match.userName,
+                      name,
                       style: theme.textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'You both chose to connect',
+                      l10n.matchesBothChose,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: colors.onSurfaceVariant,
                       ),
@@ -61,7 +62,7 @@ class MatchOverviewCard extends StatelessWidget {
                 ),
               ),
               IconButton(
-                tooltip: 'Match options for ${match.userName}',
+                tooltip: l10n.matchesOptionsTooltip(name),
                 onPressed: onOptions,
                 icon: const Icon(Icons.more_horiz_rounded),
               ),
@@ -77,21 +78,21 @@ class MatchOverviewCard extends StatelessWidget {
                 icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18),
                 label: Text(
                   match.unreadCount > 0
-                      ? 'Chat · ${match.unreadCount} unread'
-                      : 'Open chat',
+                      ? l10n.matchesChatUnread(match.unreadCount)
+                      : l10n.matchesOpenChat,
                 ),
               ),
               if (onPlan != null)
                 OutlinedButton.icon(
                   onPressed: onPlan,
                   icon: const Icon(Icons.event_available_rounded, size: 18),
-                  label: const Text('Plan a date'),
+                  label: Text(l10n.matchesActionPlanDate),
                 ),
               if (onChapter != null)
                 OutlinedButton.icon(
                   onPressed: onChapter,
                   icon: const Icon(Icons.auto_stories_outlined, size: 18),
-                  label: const Text('First Chapter'),
+                  label: Text(l10n.matchesFirstChapter),
                 ),
             ],
           ),

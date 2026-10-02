@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/platform/browser_context.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../notifications/providers/notification_provider.dart';
 import 'auth_provider.dart';
 
@@ -35,6 +36,10 @@ void listenForSessionEnd(WidgetRef ref, BuildContext context) {
     }
     ScaffoldMessenger.maybeOf(context)
       ?..hideCurrentSnackBar()
-      ..showSnackBar(const SnackBar(content: Text(kSessionExpiredMessage)));
+      ..showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context).authErrorSessionExpired),
+        ),
+      );
   });
 }

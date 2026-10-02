@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/constants/app_constants.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../providers/profile_completion_provider.dart';
 import '../../providers/profile_setup_provider.dart';
@@ -33,7 +34,7 @@ class ProfileSetupEntryScreen extends ConsumerWidget {
         body: Center(
           child: TextButton(
             onPressed: () => ref.invalidate(profileCompletionProvider),
-            child: const Text('Retry'),
+            child: Text(AppLocalizations.of(context).profileSetupRetry),
           ),
         ),
       ),

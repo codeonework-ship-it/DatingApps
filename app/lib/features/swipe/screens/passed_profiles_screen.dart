@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/widgets/glass_widgets.dart';
+import '../../../l10n/app_localizations.dart';
 import '../providers/swipe_provider.dart';
 import 'profile_details_screen.dart';
 
@@ -13,16 +14,17 @@ class PassedProfilesScreen extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     final state = ref.watch(swipeNotifierProvider);
     final passedProfiles = state.passedProfiles;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Passed Profiles')),
+      appBar: AppBar(title: Text(l10n.discoverPassedProfilesTitle)),
       body: ColoredBox(
         color: Theme.of(context).scaffoldBackgroundColor,
         child: SafeArea(
           child: passedProfiles.isEmpty
               ? Center(
                   child: Text(
-                    'No passed profiles yet',
+                    l10n.discoverNoPassedProfiles,
                     style: TextStyle(color: scheme.onSurfaceVariant),
                   ),
                 )
@@ -85,7 +87,7 @@ class PassedProfilesScreen extends ConsumerWidget {
                                 const SizedBox(height: 4),
                                 Text(
                                   profile.subtitle.trim().isEmpty
-                                      ? 'Saved for later'
+                                      ? l10n.discoverSavedForLater
                                       : profile.subtitle,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,

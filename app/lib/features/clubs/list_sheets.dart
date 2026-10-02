@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../core/network/api_error_message.dart';
 import '../../core/providers/api_client_provider.dart';
+import '../../l10n/app_localizations.dart';
 import 'club_widgets.dart';
 import 'clubs_data.dart';
 
@@ -41,8 +42,9 @@ class _ListEditorState extends ConsumerState<_ListEditor> {
   }
 
   Future<void> save() async {
+    final l10n = AppLocalizations.of(context);
     if (name.text.trim().isEmpty) {
-      setState(() => error = 'Give your list a name.');
+      setState(() => error = l10n.clubsListNameRequired);
       return;
     }
     setState(() {
@@ -69,10 +71,7 @@ class _ListEditorState extends ConsumerState<_ListEditor> {
     } on Object catch (e) {
       if (mounted) {
         setState(
-          () => error = apiErrorMessage(
-            e,
-            fallback: 'Your list could not be saved.',
-          ),
+          () => error = apiErrorMessage(e, fallback: l10n.clubsListNotSaved),
         );
       }
     } finally {
@@ -85,27 +84,28 @@ class _ListEditorState extends ConsumerState<_ListEditor> {
   @override
   Widget build(BuildContext context) {
     final editing = widget.existing != null;
+    final l10n = AppLocalizations.of(context);
     return SheetFrame(
-      title: editing ? 'Edit list' : 'New list',
+      title: editing ? l10n.clubsEditList : l10n.clubsNewList,
       children: [
         TextField(
           controller: name,
           maxLength: 60,
           textCapitalization: TextCapitalization.sentences,
-          decoration: const InputDecoration(
-            labelText: 'List name',
-            hintText: 'Books that changed my mind',
+          decoration: InputDecoration(
+            labelText: l10n.clubsListNameLabel,
+            hintText: l10n.clubsListNameHint,
           ),
         ),
         const SizedBox(height: 8),
         if (!editing || (widget.existing?.items.isEmpty ?? true)) ...[
           SegmentedButton<String>(
             segments: [
-              for (final entry in clubKinds.entries)
+              for (final kind in clubKinds)
                 ButtonSegment(
-                  value: entry.key,
-                  icon: Icon(kindIcon(entry.key)),
-                  label: Text(entry.value),
+                  value: kind,
+                  icon: Icon(kindIcon(kind)),
+                  label: Text(clubKindLabel(l10n, kind)),
                 ),
             ],
             selected: {kind},
@@ -113,17 +113,20 @@ class _ListEditorState extends ConsumerState<_ListEditor> {
           ),
           const SizedBox(height: 16),
         ],
-        Text('Who can see it', style: Theme.of(context).textTheme.titleSmall),
+        Text(
+          l10n.clubsWhoCanSee,
+          style: Theme.of(context).textTheme.titleSmall,
+        ),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
           runSpacing: 8,
           children: [
-            for (final entry in clubAudiences.entries)
+            for (final value in clubAudiences)
               ChoiceChip(
-                label: Text(entry.value),
-                selected: audience == entry.key,
-                onSelected: (_) => setState(() => audience = entry.key),
+                label: Text(clubAudienceLabel(l10n, value)),
+                selected: audience == value,
+                onSelected: (_) => setState(() => audience = value),
               ),
           ],
         ),
@@ -138,7 +141,11 @@ class _ListEditorState extends ConsumerState<_ListEditor> {
           ),
         FilledButton(
           onPressed: busy ? null : save,
-          child: Text(busy ? 'Saving…' : (editing ? 'Save' : 'Create list')),
+          child: Text(
+            busy
+                ? l10n.clubsSaving
+                : (editing ? l10n.clubsSave : l10n.clubsCreateList),
+          ),
         ),
       ],
     );
@@ -170,27 +177,30 @@ class _NoteDialogState extends State<_NoteDialog> {
   }
 
   @override
-  Widget build(BuildContext context) => AlertDialog(
-    title: const Text('Your note'),
-    scrollable: true,
-    content: TextField(
-      controller: note,
-      maxLength: 280,
-      maxLines: 4,
-      minLines: 1,
-      autofocus: true,
-      textCapitalization: TextCapitalization.sentences,
-      decoration: const InputDecoration(labelText: 'Why it is on this list'),
-    ),
-    actions: [
-      TextButton(
-        onPressed: () => Navigator.pop(context),
-        child: const Text('Cancel'),
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return AlertDialog(
+      title: Text(l10n.clubsYourNote),
+      scrollable: true,
+      content: TextField(
+        controller: note,
+        maxLength: 280,
+        maxLines: 4,
+        minLines: 1,
+        autofocus: true,
+        textCapitalization: TextCapitalization.sentences,
+        decoration: InputDecoration(labelText: l10n.clubsNoteLabel),
       ),
-      FilledButton(
-        onPressed: () => Navigator.pop(context, note.text.trim()),
-        child: const Text('Save note'),
-      ),
-    ],
-  );
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(l10n.commonCancel),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(context, note.text.trim()),
+          child: Text(l10n.clubsSaveNote),
+        ),
+      ],
+    );
+  }
 }

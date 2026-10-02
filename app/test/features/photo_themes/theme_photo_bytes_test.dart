@@ -10,6 +10,7 @@ import 'package:verified_dating_app/core/providers/api_client_provider.dart';
 import 'package:verified_dating_app/features/auth/providers/auth_provider.dart';
 import 'package:verified_dating_app/features/photo_themes/photo_themes_data.dart';
 import 'package:verified_dating_app/features/photo_themes/photo_wall.dart';
+import 'package:verified_dating_app/l10n/app_localizations.dart';
 
 /// Regression for theme photos (Cover of the Week) never rendering in the
 /// browser. The web API client rewrites media links in every response; it used
@@ -153,6 +154,8 @@ void main() {
             apiClientProvider.overrideWithValue(_webApi()),
           ],
           child: const MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: SizedBox(
               width: 300,
               height: 400,

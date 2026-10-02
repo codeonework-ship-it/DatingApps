@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../core/network/api_error_message.dart';
 import '../../core/providers/api_client_provider.dart';
+import '../../l10n/app_localizations.dart';
 import 'club_widgets.dart';
 import 'clubs_data.dart';
 
@@ -13,15 +14,18 @@ import 'clubs_data.dart';
 ///
 /// Adding a title that already exists returns the catalogue's copy, which may
 /// carry a different ID from the one the client generated.
+///
+/// [heading] defaults to "Choose a title".
 Future<Title?> pickTitle(
   BuildContext context, {
   required String kind,
-  String heading = 'Choose a title',
+  String? heading,
 }) => showClubSheet<Title>(context, _TitlePicker(kind: kind, heading: heading));
 
 class _TitlePicker extends ConsumerStatefulWidget {
-  const _TitlePicker({required this.kind, required this.heading});
-  final String kind, heading;
+  const _TitlePicker({required this.kind, this.heading});
+  final String kind;
+  final String? heading;
 
   @override
   ConsumerState<_TitlePicker> createState() => _TitlePickerState();
@@ -60,13 +64,14 @@ class _TitlePickerState extends ConsumerState<_TitlePicker> {
   Future<void> add() async {
     final title = name.text.trim();
     final released = int.tryParse(year.text.trim());
+    final l10n = AppLocalizations.of(context);
     if (title.isEmpty) {
-      setState(() => error = 'Enter the title.');
+      setState(() => error = l10n.clubsEnterTitle);
       return;
     }
     if (year.text.trim().isNotEmpty &&
         (released == null || released < 1450 || released > 2100)) {
-      setState(() => error = 'Enter a year between 1450 and 2100.');
+      setState(() => error = l10n.clubsYearRange);
       return;
     }
     setState(() {
@@ -92,10 +97,7 @@ class _TitlePickerState extends ConsumerState<_TitlePicker> {
     } on Object catch (e) {
       if (mounted) {
         setState(
-          () => error = apiErrorMessage(
-            e,
-            fallback: 'The title could not be added.',
-          ),
+          () => error = apiErrorMessage(e, fallback: l10n.clubsTitleAddFailed),
         );
       }
     } finally {
@@ -107,9 +109,11 @@ class _TitlePickerState extends ConsumerState<_TitlePicker> {
 
   @override
   Widget build(BuildContext context) {
-    final noun = widget.kind == 'film' ? 'film' : 'book';
+    final film = widget.kind == 'film';
+    final l10n = AppLocalizations.of(context);
+    final addNew = film ? l10n.clubsAddNewFilm : l10n.clubsAddNewBook;
     return SheetFrame(
-      title: widget.heading,
+      title: widget.heading ?? l10n.clubsChooseTitle,
       children: [
         TextField(
           controller: search,
@@ -117,8 +121,8 @@ class _TitlePickerState extends ConsumerState<_TitlePicker> {
           onChanged: onSearch,
           textInputAction: TextInputAction.search,
           decoration: InputDecoration(
-            labelText: 'Search ${noun}s',
-            helperText: 'Type at least 2 letters',
+            labelText: film ? l10n.clubsSearchFilms : l10n.clubsSearchBooks,
+            helperText: l10n.clubsTypeTwoLetters,
             prefixIcon: const Icon(Icons.search),
           ),
         ),
@@ -134,7 +138,7 @@ class _TitlePickerState extends ConsumerState<_TitlePicker> {
                 error: (e, _) => Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   child: Text(
-                    apiErrorMessage(e, fallback: 'Search is unavailable.'),
+                    apiErrorMessage(e, fallback: l10n.clubsSearchUnavailable),
                   ),
                 ),
                 data: (titles) => Column(
@@ -142,7 +146,11 @@ class _TitlePickerState extends ConsumerState<_TitlePicker> {
                     if (titles.isEmpty)
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 8),
-                        child: Text('No ${noun}s match. Add it below.'),
+                        child: Text(
+                          film
+                              ? l10n.clubsNoFilmsMatch
+                              : l10n.clubsNoBooksMatch,
+                        ),
                       ),
                     for (final title in titles)
                       ListTile(
@@ -167,32 +175,29 @@ class _TitlePickerState extends ConsumerState<_TitlePicker> {
                 name.text = search.text.trim();
               }),
               icon: const Icon(Icons.add),
-              label: Text('Add a new $noun'),
+              label: Text(addNew),
             ),
           )
         else ...[
-          Text(
-            'Add a new $noun',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
+          Text(addNew, style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           TextField(
             controller: name,
             maxLength: 200,
-            decoration: const InputDecoration(labelText: 'Title'),
+            decoration: InputDecoration(labelText: l10n.clubsTitleFieldLabel),
           ),
           TextField(
             controller: creator,
             maxLength: 120,
             decoration: InputDecoration(
-              labelText: noun == 'film' ? 'Director' : 'Author',
+              labelText: film ? l10n.clubsDirector : l10n.clubsAuthor,
             ),
           ),
           TextField(
             controller: year,
             keyboardType: TextInputType.number,
             maxLength: 4,
-            decoration: const InputDecoration(labelText: 'Year (optional)'),
+            decoration: InputDecoration(labelText: l10n.clubsYearOptional),
           ),
           if (error != null)
             Padding(
@@ -204,7 +209,7 @@ class _TitlePickerState extends ConsumerState<_TitlePicker> {
             ),
           FilledButton(
             onPressed: busy ? null : add,
-            child: Text(busy ? 'Adding…' : 'Add and choose'),
+            child: Text(busy ? l10n.clubsAdding : l10n.clubsAddAndChoose),
           ),
         ],
       ],

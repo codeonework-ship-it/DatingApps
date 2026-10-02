@@ -254,7 +254,7 @@ class _WelcomeInvitation extends StatelessWidget {
         ),
         TextButton.icon(
           icon: const Icon(Icons.people_outline),
-          label: const Text('Just here to introduce friends'),
+          label: Text(l10n.authWelcomeIntroducerLink),
           onPressed: () => Navigator.of(context).push(
             MaterialPageRoute<void>(
               builder: (_) => const SignupScreen(introducer: true),

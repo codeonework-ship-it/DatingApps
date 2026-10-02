@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../auth/providers/auth_provider.dart';
 import 'profile_stories.dart';
 import 'today_section.dart';
@@ -50,49 +51,45 @@ class _StoryNudgeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
     final count = stories?.length.clamp(0, maxProfileStories);
     final complete = count == maxProfileStories;
     final latest = (stories?.isNotEmpty ?? false)
-        ? storyPrompts[stories!.last['prompt_id']]
+        ? storyPromptLabel(l10n, stories!.last['prompt_id'])
         : null;
 
     final (title, body, action, icon) = switch (count) {
       null => (
-        'Tell a little more of your story',
-        'Short stories on your profile give people something real to '
-            'say hello about.',
-        'Open your stories',
+        l10n.storiesNudgeTitle,
+        l10n.storiesNudgeBodyUnknown,
+        l10n.storiesNudgeActionOpen,
         Icons.edit_note_rounded,
       ),
       0 => (
-        'Tell a little more of your story',
-        'Add a short story to your profile: a small joy, a weekend worth '
-            'sharing. People read these before they say hello.',
-        'Write your first story',
+        l10n.storiesNudgeTitle,
+        l10n.storiesNudgeBodyEmpty,
+        l10n.storiesNudgeActionFirst,
         Icons.edit_note_rounded,
       ),
       maxProfileStories => (
-        'Your story is complete',
-        'All three stories are on your profile. Refresh one whenever life '
-            'gives you a new one.',
-        'Edit your stories',
+        l10n.storiesNudgeCompleteTitle,
+        l10n.storiesNudgeCompleteBody,
+        l10n.storiesNudgeActionEdit,
         Icons.edit_outlined,
       ),
       _ => (
-        '$count of $maxProfileStories stories shared',
+        l10n.storiesNudgeSharedTitle(count, maxProfileStories),
         latest == null
-            ? 'One more story gives people another way to start a '
-                  'conversation.'
-            : 'Latest: “$latest”. One more gives people another way to '
-                  'start a conversation.',
-        'Add another story',
+            ? l10n.storiesNudgeBodyMore
+            : l10n.storiesNudgeBodyLatest(latest),
+        l10n.storiesNudgeActionAdd,
         Icons.add_rounded,
       ),
     };
 
     // Prompts not used yet, as a nudge for the first story.
     final used = {for (final s in stories ?? const []) s['prompt_id']};
-    final ideas = storyPrompts.entries
+    final ideas = localizedStoryPrompts(l10n).entries
         .where((e) => !used.contains(e.key))
         .map((e) => e.value)
         .take(3)
@@ -180,7 +177,7 @@ class _StoryNudgeCard extends StatelessWidget {
               if (count == 0 && ideas.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 Text(
-                  'Ideas to start with',
+                  l10n.storiesNudgeIdeas,
                   style: theme.textTheme.labelLarge?.copyWith(
                     color: colors.onSurfaceVariant,
                   ),
@@ -222,7 +219,9 @@ class _StoryProgress extends StatelessWidget {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     return Semantics(
-      label: '$count of $maxProfileStories stories written',
+      label: AppLocalizations.of(
+        context,
+      ).storiesProgressSemantics(count, maxProfileStories),
       child: ExcludeSemantics(
         child: Row(
           children: [

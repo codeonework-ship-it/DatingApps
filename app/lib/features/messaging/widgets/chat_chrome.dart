@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../social_chat/social_chat_l10n.dart';
+
 /// Shared conversation chrome for the mobile app and browser workspace.
 class ChatAvatar extends StatelessWidget {
   const ChatAvatar({
@@ -59,6 +61,7 @@ class ChatWelcome extends StatelessWidget {
   final bool pending;
   final ValueChanged<String>? onStarter;
 
+  /// The English starters; the screen shows them in the reader's language.
   static const starters = [
     'What made you smile today?',
     'Your ideal Sunday: go.',
@@ -69,6 +72,12 @@ class ChatWelcome extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final l = chatL10n(context);
+    final localizedStarters = [
+      l.chatStarterSmile,
+      l.chatStarterSunday,
+      l.chatStarterCoffee,
+    ];
     return Center(
       child: SingleChildScrollView(
         child: Padding(
@@ -88,7 +97,7 @@ class ChatWelcome extends StatelessWidget {
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  'Every good story\nstarts with a hello.',
+                  l.chatWelcomeTitle,
                   textAlign: TextAlign.center,
                   style: theme.textTheme.headlineMedium?.copyWith(
                     fontSize: 30,
@@ -98,9 +107,7 @@ class ChatWelcome extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  pending
-                      ? 'Your conversation will open when the match is confirmed.'
-                      : 'No perfect opening line needed. Just be you.',
+                  pending ? l.chatWelcomePending : l.chatWelcomeBody,
                   textAlign: TextAlign.center,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: scheme.onSurfaceVariant,
@@ -110,14 +117,14 @@ class ChatWelcome extends StatelessWidget {
                 if (onStarter != null && !pending) ...[
                   const SizedBox(height: 24),
                   Text(
-                    'A LITTLE INSPIRATION',
+                    l.chatInspirationEyebrow,
                     style: theme.textTheme.labelSmall?.copyWith(
                       letterSpacing: 1.6,
                       color: scheme.onSurfaceVariant,
                     ),
                   ),
                   const SizedBox(height: 12),
-                  for (final starter in starters)
+                  for (final starter in localizedStarters)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8),
                       child: OutlinedButton(
@@ -156,6 +163,7 @@ class ChatConversationSidebar extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final l = chatL10n(context);
     return Container(
       key: const ValueKey('qa.chat.desktop_sidebar'),
       width: 280,
@@ -171,7 +179,7 @@ class ChatConversationSidebar extends StatelessWidget {
             child: TextButton.icon(
               onPressed: onBack,
               icon: const Icon(Icons.arrow_back_rounded, size: 18),
-              label: const Text('All conversations'),
+              label: Text(l.chatAllConversations),
             ),
           ),
           const SizedBox(height: 36),
@@ -190,17 +198,17 @@ class ChatConversationSidebar extends StatelessWidget {
           Divider(color: scheme.outlineVariant),
           const SizedBox(height: 24),
           Text(
-            'MAKE A CONNECTION',
+            l.chatMakeConnectionEyebrow,
             style: theme.textTheme.labelSmall?.copyWith(
               letterSpacing: 1.6,
               color: scheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 12),
-          Text('A little less small talk.', style: theme.textTheme.titleLarge),
+          Text(l.chatLessSmallTalk, style: theme.textTheme.titleLarge),
           const SizedBox(height: 10),
           Text(
-            'Ask about the things that make them light up. Share something that feels like you.',
+            l.chatLessSmallTalkBody,
             style: theme.textTheme.bodyMedium?.copyWith(
               height: 1.6,
               color: scheme.onSurfaceVariant,
@@ -211,7 +219,7 @@ class ChatConversationSidebar extends StatelessWidget {
             OutlinedButton.icon(
               onPressed: onCopilot,
               icon: const Icon(Icons.auto_awesome_outlined, size: 18),
-              label: const Text('Find the words'),
+              label: Text(l.chatFindTheWords),
             ),
           if (onGift != null)
             Padding(
@@ -219,7 +227,7 @@ class ChatConversationSidebar extends StatelessWidget {
               child: OutlinedButton.icon(
                 onPressed: onGift,
                 icon: const Icon(Icons.card_giftcard_rounded, size: 18),
-                label: const Text('Send a little joy'),
+                label: Text(l.chatSendJoy),
               ),
             ),
           const SizedBox(height: 36),
@@ -238,13 +246,10 @@ class ChatConversationSidebar extends StatelessWidget {
                   size: 22,
                 ),
                 const SizedBox(height: 12),
-                Text(
-                  'Your pace. Your space.',
-                  style: theme.textTheme.titleSmall,
-                ),
+                Text(l.chatPaceTitle, style: theme.textTheme.titleSmall),
                 const SizedBox(height: 6),
                 Text(
-                  'Share only what feels comfortable. A good connection respects your boundaries.',
+                  l.chatPaceBody,
                   style: theme.textTheme.bodySmall?.copyWith(
                     height: 1.6,
                     color: scheme.onSurfaceVariant,
@@ -289,6 +294,7 @@ class ChatComposer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l = chatL10n(context);
     return SafeArea(
       top: false,
       child: Padding(
@@ -346,8 +352,8 @@ class ChatComposer extends StatelessWidget {
                           ).textTheme.bodyLarge?.copyWith(height: 1.45),
                           decoration: InputDecoration(
                             hintText: enabled
-                                ? 'Write a message…'
-                                : 'Conversation paused',
+                                ? l.chatWriteMessageHint
+                                : l.chatConversationPaused,
                             filled: false,
                             border: InputBorder.none,
                             enabledBorder: InputBorder.none,
@@ -371,7 +377,9 @@ class ChatComposer extends StatelessWidget {
                         padding: const EdgeInsets.only(bottom: 4),
                         child: IconButton.filled(
                           key: const ValueKey('qa.chat.send_button'),
-                          tooltip: sending ? 'Sending message' : 'Send message',
+                          tooltip: sending
+                              ? l.chatSendingMessageTooltip
+                              : l.chatSendMessageTooltip,
                           onPressed: canSend ? onSend : null,
                           style: IconButton.styleFrom(
                             minimumSize: const Size(48, 48),
@@ -397,7 +405,9 @@ class ChatComposer extends StatelessWidget {
                   if (onGift != null)
                     IconButton(
                       key: const ValueKey('qa.chat.gift_tray_button'),
-                      tooltip: giftTrayOpen ? 'Close gifts' : 'Send a gift',
+                      tooltip: giftTrayOpen
+                          ? l.chatCloseGifts
+                          : l.chatSendGiftTooltip,
                       onPressed: enabled && !sending ? onGift : null,
                       isSelected: giftTrayOpen,
                       icon: Icon(
@@ -407,7 +417,7 @@ class ChatComposer extends StatelessWidget {
                       ),
                     ),
                   IconButton(
-                    tooltip: 'Add an emoji',
+                    tooltip: l.chatAddEmojiTooltip,
                     onPressed: enabled && !sending ? onEmoji : null,
                     icon: const Icon(Icons.sentiment_satisfied_alt_rounded),
                   ),
@@ -423,7 +433,7 @@ class ChatComposer extends StatelessWidget {
                           size: 18,
                         ),
                         label: Text(
-                          assisted ? 'Drafted with help' : 'Help me say it',
+                          assisted ? l.chatDraftedWithHelp : l.chatHelpMeSayIt,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -433,7 +443,7 @@ class ChatComposer extends StatelessWidget {
                       MediaQuery.textScalerOf(context).scale(12) < 16) ...[
                     const Spacer(),
                     Text(
-                      'Enter to send · Shift + Enter for a new line',
+                      l.chatEnterToSendHint,
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
                         color: scheme.onSurfaceVariant,
                       ),
@@ -459,10 +469,11 @@ class ChatDateDivider extends StatelessWidget {
     final now = DateTime.now();
     final today = DateUtils.dateOnly(now);
     final day = DateUtils.dateOnly(local);
+    final l = chatL10n(context);
     final label = day == today
-        ? 'Today'
+        ? l.chatToday
         : day == today.subtract(const Duration(days: 1))
-        ? 'Yesterday'
+        ? l.chatYesterday
         : MaterialLocalizations.of(context).formatMediumDate(local);
     final scheme = Theme.of(context).colorScheme;
     return Padding(

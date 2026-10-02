@@ -10,6 +10,7 @@ import 'package:verified_dating_app/features/intentional_dating/dating_rhythm.da
 import 'package:verified_dating_app/features/intentional_dating/profile_stories.dart';
 import 'package:verified_dating_app/features/intentional_dating/today_introductions.dart';
 import 'package:verified_dating_app/features/swipe/providers/curated_daily_set_provider.dart';
+import 'package:verified_dating_app/l10n/app_localizations.dart';
 
 // AND-10: pull-to-refresh on Today reloaded the wall, cover and introductions
 // but not the "Your story" card, so a story published elsewhere kept showing
@@ -79,6 +80,8 @@ void main() {
           }),
         ],
         child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           theme: ThemePresets.themeFor(ThemePresets.realLife),
           home: TodayIntroductions(onOpenProfile: (_) {}, onBrowse: () {}),
         ),

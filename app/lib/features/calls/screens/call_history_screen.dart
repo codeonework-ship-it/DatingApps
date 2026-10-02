@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/widgets/glass_widgets.dart';
+import '../../../l10n/app_localizations.dart';
+import '../../social_chat/social_chat_l10n.dart';
+import '../call_l10n.dart';
 import '../providers/call_provider.dart';
 
 class CallHistoryScreen extends ConsumerStatefulWidget {
@@ -22,8 +26,11 @@ class _CallHistoryScreenState extends ConsumerState<CallHistoryScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(callProvider);
     final scheme = Theme.of(context).colorScheme;
+    final l = chatL10n(context);
+    final locale = Localizations.localeOf(context).toString();
+    final error = callErrorText(l, state);
     return Scaffold(
-      appBar: AppBar(title: const Text('Call history')),
+      appBar: AppBar(title: Text(l.callsHistoryTitle)),
       body: PostLoginBackdrop(
         child: SafeArea(
           child: RefreshIndicator(
@@ -34,16 +41,16 @@ class _CallHistoryScreenState extends ConsumerState<CallHistoryScreen> {
                     physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.all(16),
                     children: [
-                      if (state.error != null)
+                      if (error != null)
                         _MessageCard(
                           icon: Icons.error_outline,
-                          message: state.error!,
+                          message: error,
                           color: scheme.error,
                         ),
                       if (state.history.isEmpty && !state.isLoading)
                         _MessageCard(
                           icon: Icons.video_call_outlined,
-                          message: 'No call sessions yet.',
+                          message: l.callsHistoryEmpty,
                           color: scheme.primary,
                         ),
                       for (final session in state.history)
@@ -72,20 +79,22 @@ class _CallHistoryScreenState extends ConsumerState<CallHistoryScreen> {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        _statusLabel(session),
+                                        _statusLabel(l, session),
                                         style: const TextStyle(
                                           fontWeight: FontWeight.w700,
                                         ),
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        _dateLabel(session.startedAt),
+                                        _dateLabel(locale, session.startedAt),
                                         style: TextStyle(
                                           color: scheme.onSurfaceVariant,
                                         ),
                                       ),
                                       Text(
-                                        'Match ${_shortId(session.matchId)}',
+                                        l.callsHistoryMatch(
+                                          _shortId(session.matchId),
+                                        ),
                                         style: TextStyle(
                                           color: scheme.onSurfaceVariant,
                                           fontSize: 12,
@@ -96,7 +105,7 @@ class _CallHistoryScreenState extends ConsumerState<CallHistoryScreen> {
                                 ),
                                 if (session.status != 'ended')
                                   IconButton(
-                                    tooltip: 'Join live room',
+                                    tooltip: l.callsJoinLiveRoom,
                                     onPressed: session.joinUrl == null
                                         ? null
                                         : () => ref
@@ -145,17 +154,17 @@ class _MessageCard extends StatelessWidget {
 String _shortId(String value) =>
     value.length > 8 ? value.substring(0, 8) : value;
 
-String _statusLabel(CallSession session) {
-  if (session.status != 'ended') return 'Active call session';
+String _statusLabel(AppLocalizations l, CallSession session) {
+  if (session.status != 'ended') return l.callsActiveSession;
   final minutes = session.durationSeconds ~/ 60;
   final seconds = session.durationSeconds % 60;
-  return 'Ended · $minutes:${seconds.toString().padLeft(2, '0')}';
+  return l.callsEndedWithDuration(
+    '$minutes:${seconds.toString().padLeft(2, '0')}',
+  );
 }
 
-String _dateLabel(DateTime value) {
+String _dateLabel(String locale, DateTime value) {
   final local = value.toLocal();
-  return '${local.day.toString().padLeft(2, '0')}/'
-      '${local.month.toString().padLeft(2, '0')}/${local.year} · '
-      '${local.hour.toString().padLeft(2, '0')}:'
-      '${local.minute.toString().padLeft(2, '0')}';
+  return '${DateFormat.yMd(locale).format(local)} · '
+      '${DateFormat.Hm(locale).format(local)}';
 }

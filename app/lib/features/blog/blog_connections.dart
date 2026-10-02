@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 import '../../core/network/api_error_message.dart';
 import '../../core/providers/api_client_provider.dart';
 import '../../core/providers/safety_actions_provider.dart';
+import '../../l10n/app_localizations.dart';
 import '../auth/providers/auth_provider.dart';
 import '../common/widgets/report_user_sheet.dart';
 import '../first_chapter/chapter_studio_screen.dart';
@@ -27,13 +28,15 @@ void openBlogConnections(BuildContext context, {String section = 'responses'}) {
 }
 
 Future<void> respondToChapter(BuildContext context, BlogPost post) async {
+  final l10n = AppLocalizations.of(context);
   final result = await Navigator.of(context).push<Map<String, dynamic>>(
     MaterialPageRoute(
       builder: (_) => BlogTextCommandScreen(
-        title: 'A private response',
-        help:
-            '${blogInvitations[post.invitation]}\n\nOnly the author receives this response. They can accept or decline an optional exchange. Up to five new responses per day, and one to the same author.',
-        label: 'Send private response',
+        title: l10n.blogPrivateResponseTitle,
+        help: l10n.blogPrivateResponseHelp(
+          blogInvitationLabel(l10n, post.invitation),
+        ),
+        label: l10n.blogSendPrivateResponse,
         path: '/blog/responses',
         payload: {'post_id': post.id},
         maxLength: 600,
@@ -72,6 +75,8 @@ class _BlogTextCommandState extends ConsumerState<BlogTextCommandScreen> {
     super.dispose();
   }
 
+  AppLocalizations get l10n => AppLocalizations.of(context);
+
   Future<void> submit() async {
     if (text.text.trim().isEmpty ||
         busy ||
@@ -106,8 +111,7 @@ class _BlogTextCommandState extends ConsumerState<BlogTextCommandScreen> {
         setState(
           () => error = apiErrorMessage(
             e,
-            fallback:
-                'Could not confirm the save. Your words are still here; retry or reload the saved exchange.',
+            fallback: l10n.blogTextSaveUnconfirmed,
           ),
         );
     } finally {
@@ -119,18 +123,16 @@ class _BlogTextCommandState extends ConsumerState<BlogTextCommandScreen> {
   Widget build(BuildContext context) {
     if (ref.watch(authNotifierProvider.select((s) => s.userId)) != user ||
         user == null)
-      return const Scaffold(
-        body: Center(child: Text('Sign in again to continue.')),
-      );
+      return Scaffold(body: Center(child: Text(l10n.blogSignInAgain)));
     return PopScope(
       canPop: leaving || (!busy && text.text.isEmpty),
       onPopInvokedWithResult: (didPop, _) async {
         if (didPop || busy) return;
         if (await confirmBlogAction(
               context,
-              'Leave without sending?',
-              'Your unsent words will be discarded.',
-              'Leave',
+              l10n.blogLeaveUnsentTitle,
+              l10n.blogLeaveUnsentMessage,
+              l10n.blogLeave,
             ) &&
             mounted) {
           setState(() => leaving = true);
@@ -156,8 +158,8 @@ class _BlogTextCommandState extends ConsumerState<BlogTextCommandScreen> {
                   minLines: 5,
                   maxLines: 12,
                   maxLength: widget.maxLength,
-                  decoration: const InputDecoration(
-                    labelText: 'In your own words',
+                  decoration: InputDecoration(
+                    labelText: l10n.blogOwnWordsLabel,
                     alignLabelWithHint: true,
                   ),
                 ),
@@ -168,7 +170,7 @@ class _BlogTextCommandState extends ConsumerState<BlogTextCommandScreen> {
                   ),
                 FilledButton(
                   onPressed: busy || text.text.trim().isEmpty ? null : submit,
-                  child: Text(busy ? 'Sending…' : widget.label),
+                  child: Text(busy ? l10n.blogSending : widget.label),
                 ),
               ],
             ),
@@ -192,6 +194,8 @@ class _BlogConnectionsState extends ConsumerState<BlogConnectionsScreen> {
   final previous = <String>[];
   bool busy = false;
   String? error;
+  AppLocalizations get l10n => AppLocalizations.of(context);
+
   Future<void> mutate(
     String path,
     Map<String, dynamic> data, {
@@ -213,10 +217,8 @@ class _BlogConnectionsState extends ConsumerState<BlogConnectionsScreen> {
     } on Object catch (e) {
       if (mounted)
         setState(
-          () => error = apiErrorMessage(
-            e,
-            fallback: 'Could not confirm the change. Refresh to check.',
-          ),
+          () =>
+              error = apiErrorMessage(e, fallback: l10n.blogChangeUnconfirmed),
         );
     } finally {
       if (mounted) setState(() => busy = false);
@@ -229,33 +231,33 @@ class _BlogConnectionsState extends ConsumerState<BlogConnectionsScreen> {
     final path = '/blog/$section${cursor.isEmpty ? '' : '?before=$cursor'}';
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Your Chapter connections'),
+        title: Text(l10n.blogConnectionsTitle),
         actions: [
           IconButton(
-            tooltip: 'Refresh',
+            tooltip: l10n.blogRefresh,
             onPressed: () => ref.invalidate(blogHubProvider),
             icon: const Icon(Icons.refresh),
           ),
         ],
       ),
       body: user == null
-          ? const Center(child: Text('Sign in to continue.'))
+          ? Center(child: Text(l10n.blogSignInContinue))
           : Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 800),
                 child: ListView(
                   padding: const EdgeInsets.all(24),
                   children: [
-                    const Text('Good stories leave room for someone else.'),
+                    Text(l10n.blogConnectionsIntro),
                     const SizedBox(height: 16),
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
                       children: [
                         for (final e in {
-                          'responses': 'Private responses',
-                          'publications': 'Shared links',
-                          'notices': 'Review notices',
+                          'responses': l10n.blogPrivateResponses,
+                          'publications': l10n.blogSharedLinks,
+                          'notices': l10n.blogReviewNotices,
                         }.entries)
                           ChoiceChip(
                             label: Text(e.value),
@@ -283,7 +285,7 @@ class _BlogConnectionsState extends ConsumerState<BlogConnectionsScreen> {
                           error: (e, _) => BlogError(
                             message: apiErrorMessage(
                               e,
-                              fallback: 'Could not load your connections.',
+                              fallback: l10n.blogConnectionsLoadFailed,
                             ),
                             retry: () => ref.invalidate(blogHubProvider(path)),
                           ),
@@ -299,10 +301,10 @@ class _BlogConnectionsState extends ConsumerState<BlogConnectionsScreen> {
                                     padding: const EdgeInsets.all(24),
                                     child: Text(
                                       section == 'responses'
-                                          ? 'Responses to your chapters and the ones you send will appear here. Nothing needs an instant answer.'
+                                          ? l10n.blogResponsesEmpty
                                           : section == 'publications'
-                                          ? 'Your public previews and jointly approved links will appear here.'
-                                          : 'No review notices to show.',
+                                          ? l10n.blogPublicationsEmpty
+                                          : l10n.blogNoticesEmpty,
                                     ),
                                   ),
                                 for (final item in items)
@@ -332,17 +334,17 @@ class _BlogConnectionsState extends ConsumerState<BlogConnectionsScreen> {
                                                 const SizedBox(height: 12),
                                                 Text(
                                                   item['revealed'] == true
-                                                      ? 'Your shared chapter is ready'
+                                                      ? l10n.blogResponseRevealed
                                                       : item['status'] ==
                                                             'pending'
                                                       ? (item['incoming'] ==
                                                                 true
-                                                            ? 'A response for you'
-                                                            : 'Sent · their choice, their pace')
+                                                            ? l10n.blogResponseIncoming
+                                                            : l10n.blogResponseSent)
                                                       : item['status'] ==
                                                             'accepted'
-                                                      ? 'An exchange, at your pace'
-                                                      : 'This exchange is closed',
+                                                      ? l10n.blogResponseAccepted
+                                                      : l10n.blogResponseClosed,
                                                 ),
                                                 TextButton(
                                                   onPressed: () =>
@@ -357,8 +359,8 @@ class _BlogConnectionsState extends ConsumerState<BlogConnectionsScreen> {
                                                               ),
                                                         ),
                                                       ),
-                                                  child: const Text(
-                                                    'Open private exchange',
+                                                  child: Text(
+                                                    l10n.blogOpenExchange,
                                                   ),
                                                 ),
                                               ],
@@ -381,13 +383,13 @@ class _BlogConnectionsState extends ConsumerState<BlogConnectionsScreen> {
                                                 const SizedBox(height: 12),
                                                 Text(
                                                   item['published'] == true
-                                                      ? 'Live public copy'
+                                                      ? l10n.blogPublicationLive
                                                       : item['moderation_state'] ==
                                                             'removed'
-                                                      ? 'Removed by moderation'
+                                                      ? l10n.blogPublicationRemoved
                                                       : item['joint'] == true
-                                                      ? 'Requires both approvals and a current source chapter'
-                                                      : 'Source changed · create a new preview to share again',
+                                                      ? l10n.blogPublicationNeedsBoth
+                                                      : l10n.blogPublicationSourceChanged,
                                                 ),
                                                 const SizedBox(height: 12),
                                                 Wrap(
@@ -405,9 +407,9 @@ class _BlogConnectionsState extends ConsumerState<BlogConnectionsScreen> {
                                                             : () async {
                                                                 if (await confirmBlogAction(
                                                                   context,
-                                                                  'Approve this public copy?',
-                                                                  'The exact words above will be available to anyone with the link. Both people can withdraw sharing. No names are added automatically, but the words may identify you.',
-                                                                  'Approve public copy',
+                                                                  l10n.blogApprovePublicCopyTitle,
+                                                                  l10n.blogApprovePublicCopyMessage,
+                                                                  l10n.blogApprovePublicCopyAction,
                                                                 ))
                                                                   await mutate(
                                                                     '/blog/publications/${item['id']}',
@@ -421,8 +423,8 @@ class _BlogConnectionsState extends ConsumerState<BlogConnectionsScreen> {
                                                                     },
                                                                   );
                                                               },
-                                                        child: const Text(
-                                                          'Approve exact public copy',
+                                                        child: Text(
+                                                          l10n.blogApproveExactPublicCopy,
                                                         ),
                                                       ),
                                                     if (item['published'] ==
@@ -437,8 +439,8 @@ class _BlogConnectionsState extends ConsumerState<BlogConnectionsScreen> {
                                                         icon: const Icon(
                                                           Icons.copy,
                                                         ),
-                                                        label: const Text(
-                                                          'Copy link',
+                                                        label: Text(
+                                                          l10n.blogCopyLink,
                                                         ),
                                                       ),
                                                     TextButton(
@@ -447,9 +449,9 @@ class _BlogConnectionsState extends ConsumerState<BlogConnectionsScreen> {
                                                           : () async {
                                                               if (await confirmBlogAction(
                                                                 context,
-                                                                'Withdraw this link?',
-                                                                'The public copy will become unavailable. Copies already saved by someone else cannot be recalled.',
-                                                                'Withdraw link',
+                                                                l10n.blogWithdrawLinkTitle,
+                                                                l10n.blogWithdrawLinkMessage,
+                                                                l10n.blogWithdrawLink,
                                                               ))
                                                                 await mutate(
                                                                   '/blog/publications/${item['id']}',
@@ -457,8 +459,8 @@ class _BlogConnectionsState extends ConsumerState<BlogConnectionsScreen> {
                                                                   remove: true,
                                                                 );
                                                             },
-                                                      child: const Text(
-                                                        'Withdraw link',
+                                                      child: Text(
+                                                        l10n.blogWithdrawLink,
                                                       ),
                                                     ),
                                                   ],
@@ -483,7 +485,7 @@ class _BlogConnectionsState extends ConsumerState<BlogConnectionsScreen> {
                                                 if ((item['appeal'] as String)
                                                     .isNotEmpty) ...[
                                                   const SizedBox(height: 12),
-                                                  const Text('Your appeal'),
+                                                  Text(l10n.blogYourAppeal),
                                                   Text(
                                                     item['appeal'] as String,
                                                   ),
@@ -494,12 +496,12 @@ class _BlogConnectionsState extends ConsumerState<BlogConnectionsScreen> {
                                                       context,
                                                       MaterialPageRoute(
                                                         builder: (_) => BlogTextCommandScreen(
-                                                          title:
-                                                              'Request another review',
-                                                          help:
-                                                              'Explain what the reviewer should reconsider. Your appeal goes privately to the trust team. Removed content stays hidden during review.',
-                                                          label:
-                                                              'Submit appeal',
+                                                          title: l10n
+                                                              .blogRequestReview,
+                                                          help: l10n
+                                                              .blogRequestReviewHelp,
+                                                          label: l10n
+                                                              .blogSubmitAppeal,
                                                           path:
                                                               '/blog/notices/${item['id']}/appeal',
                                                           payload: {
@@ -510,8 +512,8 @@ class _BlogConnectionsState extends ConsumerState<BlogConnectionsScreen> {
                                                         ),
                                                       ),
                                                     ),
-                                                    child: const Text(
-                                                      'Appeal this decision',
+                                                    child: Text(
+                                                      l10n.blogAppealDecision,
                                                     ),
                                                   ),
                                               ],
@@ -526,7 +528,7 @@ class _BlogConnectionsState extends ConsumerState<BlogConnectionsScreen> {
                                         onPressed: () => setState(
                                           () => cursor = previous.removeLast(),
                                         ),
-                                        child: const Text('Previous'),
+                                        child: Text(l10n.blogPrevious),
                                       ),
                                     if (next.isNotEmpty)
                                       OutlinedButton(
@@ -534,7 +536,7 @@ class _BlogConnectionsState extends ConsumerState<BlogConnectionsScreen> {
                                           previous.add(cursor);
                                           cursor = next;
                                         }),
-                                        child: const Text('More'),
+                                        child: Text(l10n.blogMore),
                                       ),
                                   ],
                                 ),
@@ -577,6 +579,8 @@ class _BlogExchangeState extends ConsumerState<BlogExchangeScreen> {
     super.dispose();
   }
 
+  AppLocalizations get l10n => AppLocalizations.of(context);
+
   Future<void> command(Map<String, dynamic> item, String action) async {
     if (busy) return;
     setState(() {
@@ -600,7 +604,7 @@ class _BlogExchangeState extends ConsumerState<BlogExchangeScreen> {
         setState(
           () => error = apiErrorMessage(
             e,
-            fallback: 'Could not confirm this change. Refresh and retry.',
+            fallback: l10n.blogExchangeChangeFailed,
           ),
         );
     } finally {
@@ -612,15 +616,13 @@ class _BlogExchangeState extends ConsumerState<BlogExchangeScreen> {
   Widget build(BuildContext context) {
     if (user == null ||
         ref.watch(authNotifierProvider.select((s) => s.userId)) != user)
-      return const Scaffold(
-        body: Center(child: Text('Sign in again to continue.')),
-      );
+      return Scaffold(body: Center(child: Text(l10n.blogSignInAgain)));
     return Scaffold(
       appBar: AppBar(
-        title: const Text('A private Chapter exchange'),
+        title: Text(l10n.blogExchangeTitle),
         actions: [
           IconButton(
-            tooltip: 'Refresh',
+            tooltip: l10n.blogRefresh,
             onPressed: () => ref.invalidate(blogHubProvider(path)),
             icon: const Icon(Icons.refresh),
           ),
@@ -635,7 +637,7 @@ class _BlogExchangeState extends ConsumerState<BlogExchangeScreen> {
             error: (e, _) => BlogError(
               message: apiErrorMessage(
                 e,
-                fallback: 'This exchange is no longer available.',
+                fallback: l10n.blogExchangeUnavailable,
               ),
               retry: () => ref.invalidate(blogHubProvider(path)),
             ),
@@ -649,13 +651,11 @@ class _BlogExchangeState extends ConsumerState<BlogExchangeScreen> {
                     padding: const EdgeInsets.all(24),
                     children: [
                       Text(
-                        'With ${v['partner_name']}',
+                        l10n.blogExchangeWith(v['partner_name'].toString()),
                         style: Theme.of(context).textTheme.headlineMedium,
                       ),
                       const SizedBox(height: 12),
-                      const Text(
-                        'A response is an invitation, never an obligation. This exchange does not create a match or unlock chat.',
-                      ),
+                      Text(l10n.blogExchangeIntro),
                       const SizedBox(height: 20),
                       Card(
                         child: Padding(
@@ -673,34 +673,28 @@ class _BlogExchangeState extends ConsumerState<BlogExchangeScreen> {
                               onPressed: busy
                                   ? null
                                   : () => command(v, 'accept'),
-                              child: const Text('Accept an exchange'),
+                              child: Text(l10n.blogAcceptExchange),
                             ),
                             OutlinedButton(
                               onPressed: busy
                                   ? null
                                   : () => command(v, 'decline'),
-                              child: const Text('Decline kindly'),
+                              child: Text(l10n.blogDeclineKindly),
                             ),
                           ],
                         ),
                       if (v['status'] == 'pending' && v['incoming'] != true)
-                        const Text(
-                          'Your response has been sent. There is no countdown and no need to follow up.',
-                        ),
+                        Text(l10n.blogResponseSentNote),
                       if (v['status'] == 'declined')
-                        const Text(
-                          'This exchange is closed. Make room for another connection at your own pace.',
-                        ),
+                        Text(l10n.blogExchangeClosedNote),
                       if (v['status'] == 'accepted') ...[
                         const SizedBox(height: 20),
                         Text(
-                          'One small story each.',
+                          l10n.blogOneStoryEach,
                           style: Theme.of(context).textTheme.titleLarge,
                         ),
                         const SizedBox(height: 8),
-                        const Text(
-                          'Add a tiny continuation, a memory, or your version of the moment. Both contributions appear together, only after both people submit.',
-                        ),
+                        Text(l10n.blogOneStoryEachBody),
                         if ((v['my_story'] as String).isEmpty)
                           Padding(
                             padding: const EdgeInsets.only(top: 16),
@@ -709,10 +703,9 @@ class _BlogExchangeState extends ConsumerState<BlogExchangeScreen> {
                                 context,
                                 MaterialPageRoute(
                                   builder: (_) => BlogTextCommandScreen(
-                                    title: 'Your side of the chapter',
-                                    help:
-                                        'Share up to 1,000 characters. Your partner cannot read this until they also contribute. Once submitted, the words cannot be edited; you can withdraw the exchange at any time.',
-                                    label: 'Submit my contribution',
+                                    title: l10n.blogYourSideTitle,
+                                    help: l10n.blogYourSideHelp,
+                                    label: l10n.blogSubmitContribution,
                                     path: path,
                                     payload: {
                                       'action': 'contribute',
@@ -722,18 +715,20 @@ class _BlogExchangeState extends ConsumerState<BlogExchangeScreen> {
                                   ),
                                 ),
                               ),
-                              child: const Text('Add my contribution'),
+                              child: Text(l10n.blogAddContribution),
                             ),
                           )
                         else ...[
                           const SizedBox(height: 16),
-                          const Text('Your contribution'),
+                          Text(l10n.blogYourContribution),
                           SelectableText(v['my_story'] as String),
                         ],
                         if (v['revealed'] == true) ...[
                           const SizedBox(height: 24),
                           Text(
-                            '${v['partner_name']}’s contribution',
+                            l10n.blogPartnerContribution(
+                              v['partner_name'].toString(),
+                            ),
                             style: Theme.of(context).textTheme.titleLarge,
                           ),
                           const SizedBox(height: 12),
@@ -742,13 +737,12 @@ class _BlogExchangeState extends ConsumerState<BlogExchangeScreen> {
                           if (v['can_plan'] == true)
                             FilledButton.icon(
                               icon: const Icon(Icons.event_available_outlined),
-                              label: const Text('Shape a date together'),
+                              label: Text(l10n.blogShapeDate),
                               onPressed: () => showProposeDatePlanSheet(
                                 context: context,
                                 matchId: v['match_id'] as String,
                                 partnerName: v['partner_name'] as String,
-                                initialNote:
-                                    'Inspired by our Chapter exchange.',
+                                initialNote: l10n.blogInspiredNote,
                                 sourceBlogResponseId: widget.id,
                               ),
                             ),
@@ -759,18 +753,14 @@ class _BlogExchangeState extends ConsumerState<BlogExchangeScreen> {
                                 matchId: v['match_id'] as String,
                                 partnerName: v['partner_name'] as String,
                               ),
-                              child: const Text('Try First Chapter Studio'),
+                              child: Text(l10n.blogTryStudio),
                             ),
                           if (v['can_plan'] != true)
-                            const Text(
-                              'Date planning becomes available if you have an active match and your conversation is unlocked.',
-                            ),
+                            Text(l10n.blogDatePlanningUnavailable),
                           if (v['can_joint_share'] == true)
                             OutlinedButton.icon(
                               icon: const Icon(Icons.menu_book_outlined),
-                              label: const Text(
-                                'Propose a shared journal page',
-                              ),
+                              label: Text(l10n.blogProposeJournalPage),
                               onPressed: () async {
                                 try {
                                   final post = await ref.read(
@@ -793,19 +783,16 @@ class _BlogExchangeState extends ConsumerState<BlogExchangeScreen> {
                                     setState(
                                       () => error = apiErrorMessage(
                                         e,
-                                        fallback:
-                                            'The source chapter is unavailable.',
+                                        fallback: l10n.blogSourceUnavailable,
                                       ),
                                     );
                                 }
                               },
                             ),
                         ] else if ((v['my_story'] as String).isNotEmpty)
-                          const Padding(
-                            padding: EdgeInsets.only(top: 16),
-                            child: Text(
-                              'Your contribution is saved privately. The reveal happens when both of you are ready.',
-                            ),
+                          Padding(
+                            padding: const EdgeInsets.only(top: 16),
+                            child: Text(l10n.blogContributionSaved),
                           ),
                       ],
                       const SizedBox(height: 28),
@@ -819,13 +806,13 @@ class _BlogExchangeState extends ConsumerState<BlogExchangeScreen> {
                                 : () async {
                                     if (await confirmBlogAction(
                                       context,
-                                      'Withdraw this exchange?',
-                                      'The response and contributions will no longer be available to either of you. Joint public links will also stop working.',
-                                      'Withdraw exchange',
+                                      l10n.blogWithdrawExchangeTitle,
+                                      l10n.blogWithdrawExchangeMessage,
+                                      l10n.blogWithdrawExchange,
                                     ))
                                       await command(v, 'withdraw');
                                   },
-                            child: const Text('Withdraw exchange'),
+                            child: Text(l10n.blogWithdrawExchange),
                           ),
                           TextButton(
                             onPressed: () => showReportUserSheet(
@@ -846,15 +833,15 @@ class _BlogExchangeState extends ConsumerState<BlogExchangeScreen> {
                                     ?.toString();
                               },
                             ),
-                            child: const Text('Report exchange'),
+                            child: Text(l10n.blogReportExchange),
                           ),
                           TextButton(
                             onPressed: () async {
                               if (!await confirmBlogAction(
                                 context,
-                                'Block this member?',
-                                'Contact and access to each other’s chapters will stop.',
-                                'Block member',
+                                l10n.blogBlockTitle,
+                                l10n.blogBlockMessageExchange,
+                                l10n.blogBlockMember,
                               ))
                                 return;
                               try {
@@ -873,12 +860,12 @@ class _BlogExchangeState extends ConsumerState<BlogExchangeScreen> {
                                   setState(
                                     () => error = apiErrorMessage(
                                       e,
-                                      fallback: 'Could not block this member.',
+                                      fallback: l10n.blogBlockFailed,
                                     ),
                                   );
                               }
                             },
-                            child: const Text('Block member'),
+                            child: Text(l10n.blogBlockMember),
                           ),
                         ],
                       ),

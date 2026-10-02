@@ -6,6 +6,7 @@ import '../../../core/providers/runtime_feature_flags_provider.dart';
 import '../../../core/providers/safety_actions_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../calls/screens/call_history_screen.dart';
 import '../../calls/screens/call_session_screen.dart';
 import '../../common/screens/moderation_appeals_screen.dart';
@@ -17,6 +18,7 @@ import '../../plans/screens/propose_date_plan_sheet.dart';
 import '../../swipe/screens/home_discovery_screen.dart';
 import '../../first_chapter/chapter_studio_screen.dart';
 import '../../friends/friend_actions.dart';
+import '../matching_l10n.dart';
 import '../providers/match_provider.dart';
 import '../widgets/match_card.dart';
 import '../widgets/match_overview_card.dart';
@@ -115,6 +117,7 @@ class _MatchesListScreenState extends ConsumerState<MatchesListScreen> {
         .where((match) => match.unreadCount > 0)
         .length;
     final bottomClearance = MediaQuery.of(context).padding.bottom + 104;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       body: PostLoginBackdrop(
@@ -129,7 +132,7 @@ class _MatchesListScreenState extends ConsumerState<MatchesListScreen> {
                 elevation: 0,
                 backgroundColor: Colors.transparent,
                 title: Text(
-                  'Matches',
+                  l10n.navMatches,
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                     color: Theme.of(context).colorScheme.onSurface,
                     fontWeight: FontWeight.bold,
@@ -139,7 +142,7 @@ class _MatchesListScreenState extends ConsumerState<MatchesListScreen> {
                   if (callsEnabled)
                     IconButton(
                       key: const ValueKey('qa.calls.history'),
-                      tooltip: 'Call history',
+                      tooltip: l10n.callsHistoryTitle,
                       onPressed: () => Navigator.of(context).push(
                         MaterialPageRoute<void>(
                           builder: (_) => const CallHistoryScreen(),
@@ -161,7 +164,7 @@ class _MatchesListScreenState extends ConsumerState<MatchesListScreen> {
                         blur: AppTheme.glassBlurUltra,
                         crystalEffect: true,
                         child: Text(
-                          '${matchState.matches.length} ${matchState.matches.length == 1 ? 'match' : 'matches'}',
+                          l10n.matchesCount(matchState.matches.length),
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(
                                 color: Theme.of(context).colorScheme.onSurface,
@@ -182,8 +185,8 @@ class _MatchesListScreenState extends ConsumerState<MatchesListScreen> {
                     children: [
                       Text(
                         conversations
-                            ? 'A little closer, one message at a time.'
-                            : 'People you chose. Possibilities you shape together.',
+                            ? l10n.matchesSubtitleConversations
+                            : l10n.matchesSubtitlePeople,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
@@ -196,8 +199,8 @@ class _MatchesListScreenState extends ConsumerState<MatchesListScreen> {
                         onChanged: (value) => setState(() => _query = value),
                         decoration: InputDecoration(
                           hintText: conversations
-                              ? 'Search conversations'
-                              : 'Search your matches',
+                              ? l10n.matchesSearchConversations
+                              : l10n.matchesSearchMatches,
                           prefixIcon: Icon(Icons.search_rounded),
                         ),
                       ),
@@ -207,13 +210,15 @@ class _MatchesListScreenState extends ConsumerState<MatchesListScreen> {
                           spacing: 8,
                           children: [
                             ChoiceChip(
-                              label: const Text('All conversations'),
+                              label: Text(l10n.matchesFilterAllConversations),
                               selected: !_unreadOnly,
                               onSelected: (_) =>
                                   setState(() => _unreadOnly = false),
                             ),
                             ChoiceChip(
-                              label: Text('Unread · $unreadCount'),
+                              label: Text(
+                                l10n.matchesFilterUnread(unreadCount),
+                              ),
                               selected: _unreadOnly,
                               onSelected: (_) =>
                                   setState(() => _unreadOnly = true),
@@ -239,7 +244,7 @@ class _MatchesListScreenState extends ConsumerState<MatchesListScreen> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'Loading matches...',
+                          l10n.matchesLoading,
                           style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(
                                 color: Theme.of(context).colorScheme.onSurface,
@@ -267,7 +272,7 @@ class _MatchesListScreenState extends ConsumerState<MatchesListScreen> {
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'Unable to load matches',
+                            l10n.matchesLoadErrorTitle,
                             style: Theme.of(context).textTheme.titleMedium
                                 ?.copyWith(
                                   color: Theme.of(
@@ -278,7 +283,7 @@ class _MatchesListScreenState extends ConsumerState<MatchesListScreen> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            matchState.error!,
+                            localizeMatchesError(l10n, matchState.error)!,
                             textAlign: TextAlign.center,
                             style: Theme.of(context).textTheme.bodySmall
                                 ?.copyWith(
@@ -289,7 +294,7 @@ class _MatchesListScreenState extends ConsumerState<MatchesListScreen> {
                           ),
                           const SizedBox(height: 20),
                           GlassButton(
-                            label: 'Retry',
+                            label: l10n.matchesRetry,
                             onPressed: () => matchNotifier.refresh(),
                           ),
                         ],
@@ -322,7 +327,7 @@ class _MatchesListScreenState extends ConsumerState<MatchesListScreen> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'No matches yet',
+                          l10n.matchesEmptyTitle,
                           style: Theme.of(context).textTheme.titleLarge
                               ?.copyWith(
                                 color: Theme.of(context).colorScheme.onSurface,
@@ -332,8 +337,10 @@ class _MatchesListScreenState extends ConsumerState<MatchesListScreen> {
                         Text(
                           matchState.trustFilterActive &&
                                   matchState.trustFilteredOutCount > 0
-                              ? 'Trust filters hid ${matchState.trustFilteredOutCount} match(es). Try relaxing trust filters from Discover.'
-                              : 'Visit Today to discover someone you’d like to meet.',
+                              ? l10n.matchesTrustFilteredHint(
+                                  matchState.trustFilteredOutCount,
+                                )
+                              : l10n.matchesEmptyBody,
                           textAlign: TextAlign.center,
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(
@@ -353,8 +360,8 @@ class _MatchesListScreenState extends ConsumerState<MatchesListScreen> {
                   child: Center(
                     child: Text(
                       conversations
-                          ? 'No conversations here yet. Try another search or filter.'
-                          : 'No matches found. Try another name.',
+                          ? l10n.matchesNoConversationResults
+                          : l10n.matchesNoPeopleResults,
                     ),
                   ),
                 )
@@ -460,24 +467,27 @@ class _MatchesListScreenState extends ConsumerState<MatchesListScreen> {
     );
   }
 
-  Widget _viewTabs(MatchesView selected) => Wrap(
-    spacing: 8,
-    runSpacing: 8,
-    children: [
-      for (final entry in const {
-        MatchesView.discover: 'Discover',
-        MatchesView.people: 'Your matches',
-        MatchesView.conversations: 'Conversations',
-      }.entries)
-        ChoiceChip(
-          key: ValueKey('qa.matches.${entry.key.name}_tab'),
-          label: Text(entry.value),
-          selected: selected == entry.key,
-          onSelected: (_) =>
-              ref.read(matchesViewProvider.notifier).state = entry.key,
-        ),
-    ],
-  );
+  Widget _viewTabs(MatchesView selected) {
+    final l10n = AppLocalizations.of(context);
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (final entry in {
+          MatchesView.discover: l10n.navDiscover,
+          MatchesView.people: l10n.matchesTabPeople,
+          MatchesView.conversations: l10n.matchesTabConversations,
+        }.entries)
+          ChoiceChip(
+            key: ValueKey('qa.matches.${entry.key.name}_tab'),
+            label: Text(entry.value),
+            selected: selected == entry.key,
+            onSelected: (_) =>
+                ref.read(matchesViewProvider.notifier).state = entry.key,
+          ),
+      ],
+    );
+  }
 
   Widget _buildMatchOptionsSheet({
     required BuildContext pageContext,
@@ -490,263 +500,277 @@ class _MatchesListScreenState extends ConsumerState<MatchesListScreen> {
     required bool activitiesEnabled,
     bool plansEnabled = true,
     bool graduationEnabled = true,
-  }) => GlassContainer(
-    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
-    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-    backgroundColor: Theme.of(
-      context,
-    ).colorScheme.surface.withValues(alpha: 0.9),
-    blur: 10,
-    borderRadius: const BorderRadius.all(Radius.circular(24)),
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 40,
-          height: 4,
-          decoration: BoxDecoration(
-            color: Theme.of(
-              context,
-            ).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
-            borderRadius: BorderRadius.circular(2),
-          ),
-        ),
-        const SizedBox(height: 20),
-        if (callsEnabled)
-          ListTile(
-            key: const ValueKey('qa.matches.call_action'),
-            leading: Icon(
-              Icons.video_call_outlined,
-              color: Theme.of(context).colorScheme.primary,
+  }) {
+    final l10n = AppLocalizations.of(context);
+    return GlassContainer(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      backgroundColor: Theme.of(
+        context,
+      ).colorScheme.surface.withValues(alpha: 0.9),
+      blur: 10,
+      borderRadius: const BorderRadius.all(Radius.circular(24)),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(2),
             ),
-            title: const Text('Start call session'),
-            onTap: () {
-              Navigator.pop(sheetContext);
-              Navigator.of(pageContext).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => CallSessionScreen(
+          ),
+          const SizedBox(height: 20),
+          if (callsEnabled)
+            ListTile(
+              key: const ValueKey('qa.matches.call_action'),
+              leading: Icon(
+                Icons.video_call_outlined,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              title: Text(l10n.matchesActionStartCall),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                Navigator.of(pageContext).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => CallSessionScreen(
+                      matchId: match.id,
+                      recipientUserId: match.userId,
+                      recipientName: match.userName,
+                    ),
+                  ),
+                );
+              },
+            ),
+          // The mini-activity journey was built end to end — lifecycle
+          // APIs (Story 4.1), a Riverpod provider, and ActivitySessionScreen —
+          // but no screen ever constructed it, so none of it was reachable.
+          // This is the missing entry point; it mirrors the call action above
+          // because the screen takes the same match/counterparty shape.
+          if (activitiesEnabled)
+            ListTile(
+              key: const ValueKey('qa.matches.activity_action'),
+              leading: Icon(
+                Icons.extension_outlined,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              title: Text(l10n.matchesActionStartActivity),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                Navigator.of(pageContext).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => ActivitySessionScreen(
+                      matchId: match.id,
+                      otherUserId: match.userId,
+                      otherUserName: match.userName,
+                    ),
+                  ),
+                );
+              },
+            ),
+          if (plansEnabled)
+            ListTile(
+              key: const ValueKey('qa.matches.plan_action'),
+              leading: Icon(
+                Icons.event_available_rounded,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              title: Text(l10n.matchesActionPlanDate),
+              subtitle: Text(l10n.matchesActionPlanDateSubtitle),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                Future<void>.delayed(Duration.zero, () async {
+                  if (!pageContext.mounted) return;
+                  final plan = await showProposeDatePlanSheet(
+                    context: pageContext,
                     matchId: match.id,
-                    recipientUserId: match.userId,
-                    recipientName: match.userName,
-                  ),
-                ),
-              );
-            },
-          ),
-        // The mini-activity journey was built end to end — lifecycle APIs
-        // (Story 4.1), a Riverpod provider, and ActivitySessionScreen — but no
-        // screen ever constructed it, so none of it was reachable. This is the
-        // missing entry point; it mirrors the call action above because the
-        // screen takes the same match/counterparty shape.
-        if (activitiesEnabled)
-          ListTile(
-            key: const ValueKey('qa.matches.activity_action'),
-            leading: Icon(
-              Icons.extension_outlined,
-              color: Theme.of(context).colorScheme.primary,
+                    partnerName: match.userName,
+                  );
+                  if (!pageContext.mounted || plan == null) return;
+                  ScaffoldMessenger.of(pageContext).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        l10n.matchesPlanSent(
+                          localizedMatchName(l10n, match.userName),
+                        ),
+                      ),
+                    ),
+                  );
+                });
+              },
             ),
-            title: const Text('Start an activity'),
-            onTap: () {
-              Navigator.pop(sheetContext);
-              Navigator.of(pageContext).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => ActivitySessionScreen(
+          if (graduationEnabled)
+            ListTile(
+              key: const ValueKey('qa.matches.graduation_action'),
+              leading: Icon(
+                Icons.favorite_rounded,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              title: Text(l10n.matchesActionGraduate),
+              subtitle: Text(l10n.matchesActionGraduateSubtitle),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                Future<void>.delayed(Duration.zero, () async {
+                  if (!pageContext.mounted) {
+                    return;
+                  }
+                  final graduation = await showProposeGraduationSheet(
+                    context: pageContext,
                     matchId: match.id,
-                    otherUserId: match.userId,
-                    otherUserName: match.userName,
-                  ),
-                ),
-              );
-            },
-          ),
-        if (plansEnabled)
-          ListTile(
-            key: const ValueKey('qa.matches.plan_action'),
-            leading: Icon(
-              Icons.event_available_rounded,
-              color: Theme.of(context).colorScheme.primary,
+                    partnerName: match.userName,
+                  );
+                  if (!pageContext.mounted || graduation == null) {
+                    return;
+                  }
+                  ScaffoldMessenger.of(pageContext).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        l10n.matchesGraduationAsked(
+                          localizedMatchName(l10n, match.userName),
+                        ),
+                      ),
+                    ),
+                  );
+                });
+              },
             ),
-            title: const Text('Plan a date'),
-            subtitle: const Text('Choose a time and what you want to share'),
-            onTap: () {
-              Navigator.pop(sheetContext);
-              Future<void>.delayed(Duration.zero, () async {
-                if (!pageContext.mounted) return;
-                final plan = await showProposeDatePlanSheet(
+          // Add friend / Requested / Accept / Message, kept live inside the
+          // sheet by the widget's own provider watch.
+          AddFriendButton(
+            userId: match.userId,
+            name: match.userName,
+            source: FriendRequestSource.match,
+            style: AddFriendStyle.tile,
+          ),
+          if (nudgesEnabled)
+            ListTile(
+              key: const ValueKey('qa.matches.nudge_action'),
+              leading: Icon(
+                Icons.waving_hand_outlined,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              title: Text(l10n.matchesActionNudge),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                Future<void>.delayed(Duration.zero, () async {
+                  final nudge = await ref
+                      .read(matchNudgeProvider.notifier)
+                      .send(
+                        matchId: match.id,
+                        counterpartyUserId: match.userId,
+                      );
+                  if (!pageContext.mounted) return;
+                  final error = ref
+                      .read(matchNudgeProvider)
+                      .errorByMatchId[match.id];
+                  ScaffoldMessenger.of(pageContext).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        nudge != null
+                            ? l10n.matchesNudgeSent(
+                                localizedMatchName(l10n, match.userName),
+                              )
+                            : error ?? l10n.matchesNudgeFailed,
+                      ),
+                    ),
+                  );
+                });
+              },
+            ),
+          Semantics(
+            label: 'qa.matches.unmatch_action',
+            button: true,
+            child: ListTile(
+              key: const ValueKey('qa.matches.unmatch_action'),
+              leading: Icon(
+                Icons.block,
+                color: Theme.of(context).colorScheme.error,
+              ),
+              title: Text(l10n.matchesActionClose),
+              subtitle: Text(l10n.matchesActionCloseSubtitle),
+              onTap: () async {
+                Navigator.pop(sheetContext);
+                final close = await showDialog<bool>(
                   context: pageContext,
-                  matchId: match.id,
-                  partnerName: match.userName,
-                );
-                if (!pageContext.mounted || plan == null) return;
-                ScaffoldMessenger.of(pageContext).showSnackBar(
-                  SnackBar(content: Text('Plan sent to ${match.userName}.')),
-                );
-              });
-            },
-          ),
-        if (graduationEnabled)
-          ListTile(
-            key: const ValueKey('qa.matches.graduation_action'),
-            leading: Icon(
-              Icons.favorite_rounded,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            title: const Text('We found each other'),
-            subtitle: const Text('Leave Connect together; your chat stays'),
-            onTap: () {
-              Navigator.pop(sheetContext);
-              Future<void>.delayed(Duration.zero, () async {
-                if (!pageContext.mounted) {
-                  return;
-                }
-                final graduation = await showProposeGraduationSheet(
-                  context: pageContext,
-                  matchId: match.id,
-                  partnerName: match.userName,
-                );
-                if (!pageContext.mounted || graduation == null) {
-                  return;
-                }
-                ScaffoldMessenger.of(pageContext).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Asked ${match.userName} to leave together. '
-                      'They can confirm from your chat.',
-                    ),
+                  builder: (dialog) => AlertDialog(
+                    title: Text(l10n.matchesCloseDialogTitle),
+                    content: Text(l10n.matchesCloseDialogBody),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(dialog, false),
+                        child: Text(l10n.matchesCloseDialogKeep),
+                      ),
+                      FilledButton(
+                        onPressed: () => Navigator.pop(dialog, true),
+                        child: Text(l10n.matchesActionClose),
+                      ),
+                    ],
                   ),
                 );
-              });
-            },
-          ),
-        // Add friend / Requested / Accept / Message, kept live inside the
-        // sheet by the widget's own provider watch.
-        AddFriendButton(
-          userId: match.userId,
-          name: match.userName,
-          source: FriendRequestSource.match,
-          style: AddFriendStyle.tile,
-        ),
-        if (nudgesEnabled)
-          ListTile(
-            key: const ValueKey('qa.matches.nudge_action'),
-            leading: Icon(
-              Icons.waving_hand_outlined,
-              color: Theme.of(context).colorScheme.primary,
+                if (close == true) await matchNotifier.unmatch(match.id);
+              },
             ),
-            title: const Text('Send a nudge'),
-            onTap: () {
-              Navigator.pop(sheetContext);
-              Future<void>.delayed(Duration.zero, () async {
-                final nudge = await ref
-                    .read(matchNudgeProvider.notifier)
-                    .send(matchId: match.id, counterpartyUserId: match.userId);
-                if (!pageContext.mounted) return;
-                final error = ref
-                    .read(matchNudgeProvider)
-                    .errorByMatchId[match.id];
-                ScaffoldMessenger.of(pageContext).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      nudge != null
-                          ? 'Nudge sent to ${match.userName}.'
-                          : error ?? 'Unable to send this nudge.',
-                    ),
-                  ),
-                );
-              });
-            },
           ),
-        Semantics(
-          label: 'qa.matches.unmatch_action',
-          button: true,
-          child: ListTile(
-            key: const ValueKey('qa.matches.unmatch_action'),
-            leading: Icon(
-              Icons.block,
-              color: Theme.of(context).colorScheme.error,
-            ),
-            title: const Text('Close conversation'),
-            subtitle: const Text('Make space, without an explanation.'),
-            onTap: () async {
-              Navigator.pop(sheetContext);
-              final close = await showDialog<bool>(
-                context: pageContext,
-                builder: (dialog) => AlertDialog(
-                  title: const Text('Close this conversation?'),
-                  content: const Text(
-                    'It is okay if this connection is not for you. This ends the match. You do not need to send an explanation. Reporting remains a separate choice.',
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(dialog, false),
-                      child: const Text('Keep talking'),
-                    ),
-                    FilledButton(
-                      onPressed: () => Navigator.pop(dialog, true),
-                      child: const Text('Close conversation'),
-                    ),
-                  ],
-                ),
-              );
-              if (close == true) await matchNotifier.unmatch(match.id);
-            },
-          ),
-        ),
-        Semantics(
-          label: 'qa.matches.report_action',
-          button: true,
-          child: ListTile(
-            key: const ValueKey('qa.matches.report_action'),
-            leading: const Icon(
-              Icons.flag_rounded,
-              color: AppTheme.warningOrange,
-            ),
-            title: const Text('Report'),
-            onTap: () {
-              Navigator.pop(sheetContext);
-              Future<void>.delayed(Duration.zero, () async {
-                // Confirm only a report that was sent, not a dismissed sheet.
-                var submitted = false;
-                final reportId = await showReportUserSheet(
-                  context: pageContext,
-                  onSubmit: ({required reason, description}) async {
-                    final id = await ref
-                        .read(safetyActionsProvider)
-                        .reportUser(
-                          reportedUserId: match.userId,
-                          reason: reason,
-                          description: description,
-                        );
-                    submitted = true;
-                    return id;
-                  },
-                );
+          Semantics(
+            label: 'qa.matches.report_action',
+            button: true,
+            child: ListTile(
+              key: const ValueKey('qa.matches.report_action'),
+              leading: const Icon(
+                Icons.flag_rounded,
+                color: AppTheme.warningOrange,
+              ),
+              title: Text(l10n.matchesActionReport),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                Future<void>.delayed(Duration.zero, () async {
+                  // Confirm only a report that was sent, not a dismissed sheet.
+                  var submitted = false;
+                  final reportId = await showReportUserSheet(
+                    context: pageContext,
+                    onSubmit: ({required reason, description}) async {
+                      final id = await ref
+                          .read(safetyActionsProvider)
+                          .reportUser(
+                            reportedUserId: match.userId,
+                            reason: reason,
+                            description: description,
+                          );
+                      submitted = true;
+                      return id;
+                    },
+                  );
 
-                if (!pageContext.mounted || !submitted) return;
-                ScaffoldMessenger.of(pageContext).showSnackBar(
-                  SnackBar(
-                    content: const Text('Report submitted. Thank you.'),
-                    action: SnackBarAction(
-                      label: 'Appeal',
-                      onPressed: () {
-                        Navigator.of(pageContext).push(
-                          MaterialPageRoute<void>(
-                            builder: (_) => ModerationAppealsScreen(
-                              initialReason:
-                                  'Review moderation outcome for report on user ${match.userId}',
-                              initialReportId: reportId,
+                  if (!pageContext.mounted || !submitted) return;
+                  ScaffoldMessenger.of(pageContext).showSnackBar(
+                    SnackBar(
+                      content: Text(l10n.matchesReportSubmitted),
+                      action: SnackBarAction(
+                        label: l10n.matchesReportAppeal,
+                        onPressed: () {
+                          Navigator.of(pageContext).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => ModerationAppealsScreen(
+                                initialReason: l10n.matchesAppealReason(
+                                  match.userId,
+                                ),
+                                initialReportId: reportId,
+                              ),
                             ),
-                          ),
-                        );
-                      },
+                          );
+                        },
+                      ),
                     ),
-                  ),
-                );
-              });
-            },
+                  );
+                });
+              },
+            ),
           ),
-        ),
-      ],
-    ),
-  );
+        ],
+      ),
+    );
+  }
 }

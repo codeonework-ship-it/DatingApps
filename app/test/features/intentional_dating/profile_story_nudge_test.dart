@@ -5,6 +5,7 @@ import 'package:verified_dating_app/core/theme/theme_presets.dart';
 import 'package:verified_dating_app/features/auth/providers/auth_provider.dart';
 import 'package:verified_dating_app/features/intentional_dating/profile_stories.dart';
 import 'package:verified_dating_app/features/intentional_dating/profile_story_nudge.dart';
+import 'package:verified_dating_app/l10n/app_localizations.dart';
 
 class _Auth extends AuthNotifier {
   @override
@@ -21,12 +22,16 @@ Widget host(
   double width = 390,
   double scale = 1,
   Brightness brightness = Brightness.light,
+  Locale? locale,
 }) => ProviderScope(
   overrides: [
     authNotifierProvider.overrideWith(_Auth.new),
     profileStoriesProvider.overrideWith((ref, user) => stories()),
   ],
   child: MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
+    locale: locale,
     theme: ThemePresets.themeFor(
       ThemePresets.realLife,
     ).copyWith(brightness: brightness),
@@ -46,6 +51,50 @@ Widget host(
 );
 
 void main() {
+  testWidgets('German member sees the story card in German', (tester) async {
+    await tester.pumpWidget(
+      host(
+        () async => {
+          'stories': [story('little_joy')],
+        },
+        locale: const Locale('de'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('1 von 3 Geschichten geteilt'), findsOneWidget);
+    expect(
+      find.textContaining(
+        'Zuletzt: „Eine Kleinigkeit, für die ich mir immer Zeit nehme“.',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.bySemanticsLabel('1 von 3 Geschichten geschrieben'),
+      findsOneWidget,
+    );
+    expect(find.text('Weitere Geschichte hinzufügen'), findsOneWidget);
+    expect(find.text('Add another story'), findsNothing);
+  });
+
+  testWidgets('German member with no stories gets German prompt ideas', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      host(() async => {'stories': <Object>[]}, locale: const Locale('de')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.text('Erzähl ein bisschen mehr von deiner Geschichte'),
+      findsOneWidget,
+    );
+    expect(find.text('Ideen für den Anfang'), findsOneWidget);
+    expect(
+      find.text('Ein Wochenende, das sich zu erzählen lohnt'),
+      findsOneWidget,
+    );
+    expect(find.text('Schreib deine erste Geschichte'), findsOneWidget);
+  });
+
   testWidgets('no stories yet: explains stories, suggests prompts and '
       'invites the first one', (tester) async {
     await tester.pumpWidget(host(() async => {'stories': <Object>[]}));

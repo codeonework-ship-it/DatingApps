@@ -15,6 +15,7 @@ import 'package:verified_dating_app/features/intentional_dating/today_wall.dart'
 import 'package:verified_dating_app/features/photo_themes/photo_theme_widgets.dart';
 import 'package:verified_dating_app/features/photo_themes/photo_themes_data.dart';
 import 'package:verified_dating_app/features/walls/today_wall_data.dart';
+import 'package:verified_dating_app/l10n/app_localizations.dart';
 
 class _Auth extends AuthNotifier {
   @override
@@ -155,6 +156,8 @@ Widget host(_Api api, {double scale = 1, Widget? home}) => ProviderScope(
     ),
   ],
   child: MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
     theme: ThemePresets.themeFor(ThemePresets.realLife),
     builder: (context, child) => MediaQuery(
       data: MediaQuery.of(

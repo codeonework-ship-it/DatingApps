@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/i18n/app_l10n.dart';
 import '../../core/theme/app_theme.dart';
 import 'reactions.dart';
 
@@ -29,6 +30,7 @@ class ReactionPicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = l10nOrEnglish(context);
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     return SafeArea(
@@ -39,7 +41,7 @@ class ReactionPicker extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'REACT',
+              l10n.wallsReactEyebrow,
               style: theme.textTheme.labelMedium?.copyWith(
                 letterSpacing: 2,
                 fontWeight: FontWeight.w700,
@@ -50,7 +52,7 @@ class ReactionPicker extends StatelessWidget {
             Semantics(
               header: true,
               child: Text(
-                'How does this $noun make you feel?',
+                l10n.wallsReactQuestion(noun),
                 style: theme.textTheme.headlineSmall?.copyWith(
                   fontFamily: AppTheme.displayFamily,
                   height: 1.2,
@@ -59,8 +61,7 @@ class ReactionPicker extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              'Your reaction tells them they were heard. Every reaction '
-              'counts as a like.',
+              l10n.wallsReactBody,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: colors.onSurfaceVariant,
               ),
@@ -93,7 +94,7 @@ class ReactionPicker extends StatelessWidget {
                 key: const ValueKey('reaction.remove'),
                 onPressed: () => Navigator.of(context).pop(''),
                 icon: const Icon(Icons.undo_rounded),
-                label: const Text('Take my reaction back'),
+                label: Text(l10n.wallsReactRemove),
               ),
             ],
           ],
@@ -110,13 +111,14 @@ class _ReactionOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = l10nOrEnglish(context);
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     const radius = BorderRadius.all(Radius.circular(16));
     return Semantics(
       button: true,
       selected: selected,
-      label: reaction.label,
+      label: localizedEmpathyLabel(l10n, reaction),
       excludeSemantics: true,
       child: Material(
         color: selected ? colors.primaryContainer : colors.surface,
@@ -141,7 +143,7 @@ class _ReactionOption extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      reaction.label,
+                      localizedEmpathyLabel(l10n, reaction),
                       style: theme.textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.w700,
                         color: selected
@@ -169,6 +171,7 @@ class ReactionSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = l10nOrEnglish(context);
     if (reactions.isEmpty) return const SizedBox.shrink();
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
@@ -177,9 +180,11 @@ class ReactionSummary extends StatelessWidget {
         if ((reactions[r.id] ?? 0) > 0) r,
     ]..sort((a, b) => reactions[b.id]!.compareTo(reactions[a.id]!));
     final shown = ranked.take(max).toList();
-    final label = shown.map((r) => '${reactions[r.id]} ${r.label}').join(', ');
+    final label = shown
+        .map((r) => '${reactions[r.id]} ${localizedEmpathyLabel(l10n, r)}')
+        .join(', ');
     return Semantics(
-      label: 'Reactions: $label',
+      label: l10n.wallsReactionsSemantics(label),
       excludeSemantics: true,
       child: Wrap(
         spacing: 4,
@@ -187,7 +192,7 @@ class ReactionSummary extends StatelessWidget {
         children: [
           for (final r in shown)
             Tooltip(
-              message: r.label,
+              message: localizedEmpathyLabel(l10n, r),
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(

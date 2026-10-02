@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/network/api_error_message.dart';
 import '../../core/widgets/connect_page.dart';
 import '../../core/widgets/glass_widgets.dart';
+import '../../l10n/app_localizations.dart';
 import '../common/widgets/community_actions.dart';
 import '../social_chat/social_chat_data.dart';
 import 'group_detail_screen.dart';
@@ -80,6 +81,7 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final mine = ref.watch(myGroupsProvider);
     final invites = ref.watch(groupInvitesProvider);
     final categories = ref.watch(groupCategoriesProvider);
@@ -113,8 +115,8 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen> {
     Widget failed(Object e, String title, VoidCallback retry) => GroupNotice(
       icon: Icons.cloud_off_outlined,
       title: title,
-      message: apiErrorMessage(e, fallback: 'Please check your connection.'),
-      actionLabel: 'Try again',
+      message: apiErrorMessage(e, fallback: l10n.groupsErrorCheckConnection),
+      actionLabel: l10n.chatTryAgain,
       onAction: retry,
     );
 
@@ -124,6 +126,9 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen> {
         .where((c) => c.slug == category)
         .map((c) => '${c.emoji} ${c.title}')
         .firstOrNull;
+    final discoverEmptyTitle = categoryTitle == null
+        ? l10n.groupsDiscoverEmptyTitle
+        : l10n.groupsDiscoverEmptyCategoryTitle(categoryTitle);
 
     return Scaffold(
       body: PostLoginBackdrop(
@@ -141,11 +146,9 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen> {
                       children: [
                         ConnectPageHeader(
                           leading: canPop ? const BackButton() : null,
-                          eyebrow: 'GROUPS',
-                          title: 'Find your people.',
-                          subtitle:
-                              'Lifestyle communities anyone can join, and '
-                              'private groups just for your friends.',
+                          eyebrow: l10n.groupsEyebrow,
+                          title: l10n.groupsTitle,
+                          subtitle: l10n.groupsSubtitle,
                         ),
                         const SizedBox(height: 20),
                         FilledButton.icon(
@@ -155,12 +158,12 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen> {
                             minimumSize: const Size.fromHeight(52),
                           ),
                           icon: const Icon(Icons.add_rounded),
-                          label: const Text('Start a group'),
+                          label: Text(l10n.groupsStartGroup),
                         ),
                         if (pending.isNotEmpty)
                           ...section(
-                            'INVITATIONS',
-                            'Friends asked you to join.',
+                            l10n.groupsInvitationsHeader,
+                            l10n.groupsInvitationsCaption,
                             [
                               for (final invite in pending)
                                 _InviteCard(
@@ -172,33 +175,31 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen> {
                                     () => groupsApi(
                                       ref,
                                     ).respond(invite.group.id, accept: accept),
-                                    failure: 'Your answer could not be saved.',
+                                    failure: l10n.groupsAnswerFailed,
                                     success: accept
-                                        ? 'Welcome to ${invite.group.name}!'
-                                        : 'Invitation declined.',
+                                        ? l10n.groupsWelcome(invite.group.name)
+                                        : l10n.groupsInvitationDeclined,
                                   ),
                                 ),
                             ],
                           ),
                         ...section(
-                          'YOUR GROUPS',
+                          l10n.groupsYourGroupsHeader,
                           null,
                           mine.when(
                             loading: () => [loading()],
                             error: (e, _) => [
                               failed(
                                 e,
-                                'Your groups could not load',
+                                l10n.groupsYourGroupsFailed,
                                 () => ref.invalidate(myGroupsProvider),
                               ),
                             ],
                             data: (groups) => groups.isEmpty
                                 ? [
-                                    const GroupNotice(
-                                      title: 'No groups yet',
-                                      message:
-                                          'Join a community below, or start a '
-                                          'private group with your friends.',
+                                    GroupNotice(
+                                      title: l10n.groupsEmptyTitle,
+                                      message: l10n.groupsEmptyBody,
                                     ),
                                   ]
                                 : [
@@ -217,14 +218,14 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen> {
                           ),
                         ),
                         ...section(
-                          'DISCOVER BY LIFESTYLE',
-                          'Community groups are open to everyone.',
+                          l10n.groupsDiscoverHeader,
+                          l10n.groupsDiscoverCaption,
                           [
                             categories.when(
                               loading: loading,
                               error: (e, _) => failed(
                                 e,
-                                'Lifestyles could not load',
+                                l10n.groupsLifestylesFailed,
                                 () => ref.invalidate(groupCategoriesProvider),
                               ),
                               data: (list) => Wrap(
@@ -232,7 +233,7 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen> {
                                 runSpacing: 8,
                                 children: [
                                   ChoiceChip(
-                                    label: const Text('All'),
+                                    label: Text(l10n.groupsCategoryAll),
                                     selected: category.isEmpty,
                                     onSelected: (_) =>
                                         setState(() => category = ''),
@@ -263,7 +264,7 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen> {
                               error: (e, _) => [
                                 failed(
                                   e,
-                                  'Groups could not load',
+                                  l10n.groupsDiscoverFailed,
                                   () => ref.invalidate(
                                     discoverGroupsProvider(category),
                                   ),
@@ -273,13 +274,9 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen> {
                                   ? [
                                       GroupNotice(
                                         icon: Icons.explore_outlined,
-                                        title: categoryTitle == null
-                                            ? 'Nothing new to join'
-                                            : 'No $categoryTitle groups yet',
-                                        message:
-                                            'Be the first: start a community '
-                                            'group and invite your friends.',
-                                        actionLabel: 'Start one',
+                                        title: discoverEmptyTitle,
+                                        message: l10n.groupsDiscoverEmptyBody,
+                                        actionLabel: l10n.groupsStartOne,
                                         onAction: () => openCreateGroup(
                                           context,
                                           kind: 'community',
@@ -304,12 +301,12 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen> {
                                                           () => groupsApi(
                                                             ref,
                                                           ).join(g.id),
-                                                          failure:
-                                                              'You could not '
-                                                              'join just now.',
-                                                          success:
-                                                              'Welcome to '
-                                                              '${g.name}!',
+                                                          failure: l10n
+                                                              .groupsJoinFailed,
+                                                          success: l10n
+                                                              .groupsWelcome(
+                                                                g.name,
+                                                              ),
                                                         ),
                                                   style: FilledButton.styleFrom(
                                                     minimumSize: const Size(
@@ -318,9 +315,11 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen> {
                                                     ),
                                                   ),
                                                   child: Text(
-                                                    'Join',
-                                                    semanticsLabel:
-                                                        'Join ${g.name}',
+                                                    l10n.groupsJoin,
+                                                    semanticsLabel: l10n
+                                                        .groupsJoinNamed(
+                                                          g.name,
+                                                        ),
                                                   ),
                                                 )
                                               : null,
@@ -358,8 +357,13 @@ class _InviteCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
     final group = invite.group;
-    final who = invite.inviterName.isEmpty ? 'A friend' : invite.inviterName;
+    final kind = group.kindLabel(l10n);
+    final members = group.memberLabel(l10n);
+    final line = invite.inviterName.isEmpty
+        ? l10n.groupsInvitedByFriend(kind, members)
+        : l10n.groupsInvitedBy(invite.inviterName, kind, members);
     return ConnectPanel(
       padding: const EdgeInsets.all(ConnectMetrics.padding),
       child: Column(
@@ -385,8 +389,7 @@ class _InviteCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '$who invited you · ${group.kindLabel} · '
-                        '${group.memberLabel}',
+                        line,
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: colors.onSurfaceVariant,
                         ),
@@ -407,8 +410,8 @@ class _InviteCard extends StatelessWidget {
                     minimumSize: const Size(48, 48),
                   ),
                   child: Text(
-                    'Decline',
-                    semanticsLabel: 'Decline ${group.name}',
+                    l10n.groupsDecline,
+                    semanticsLabel: l10n.groupsDeclineNamed(group.name),
                   ),
                 ),
               ),
@@ -419,7 +422,10 @@ class _InviteCard extends StatelessWidget {
                   style: FilledButton.styleFrom(
                     minimumSize: const Size(48, 48),
                   ),
-                  child: Text('Join', semanticsLabel: 'Join ${group.name}'),
+                  child: Text(
+                    l10n.groupsJoin,
+                    semanticsLabel: l10n.groupsJoinNamed(group.name),
+                  ),
                 ),
               ),
             ],

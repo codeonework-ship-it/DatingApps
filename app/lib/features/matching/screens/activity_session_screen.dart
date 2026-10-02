@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/widgets/glass_widgets.dart';
+import '../../../l10n/app_localizations.dart';
+import '../matching_l10n.dart';
 import '../providers/activity_session_provider.dart';
 
 class ActivitySessionScreen extends ConsumerStatefulWidget {
@@ -96,13 +98,14 @@ class _ActivitySessionScreenState extends ConsumerState<ActivitySessionScreen> {
     );
     final isTimedOut =
         state.status == 'timed_out' || state.status == 'partial_timeout';
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('2-Minute This-or-That'),
+        title: Text(l10n.matchesActivityTitle),
         actions: [
           IconButton(
-            tooltip: 'Start a new session',
+            tooltip: l10n.matchesActivityRestartTooltip,
             icon: const Icon(Icons.refresh),
             onPressed: state.isLoading || state.isSubmitting
                 ? null
@@ -133,7 +136,9 @@ class _ActivitySessionScreenState extends ConsumerState<ActivitySessionScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Complete this with ${widget.otherUserName}',
+                              l10n.matchesActivityCompleteWith(
+                                widget.otherUserName,
+                              ),
                               style: Theme.of(context).textTheme.titleMedium
                                   ?.copyWith(
                                     color: Theme.of(
@@ -144,7 +149,7 @@ class _ActivitySessionScreenState extends ConsumerState<ActivitySessionScreen> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Answer all 8 rounds before time ends.',
+                              l10n.matchesActivityInstructions,
                               style: Theme.of(context).textTheme.bodyMedium,
                             ),
                             const SizedBox(height: 12),
@@ -152,7 +157,9 @@ class _ActivitySessionScreenState extends ConsumerState<ActivitySessionScreen> {
                             if (state.status.isNotEmpty) ...[
                               const SizedBox(height: 8),
                               Text(
-                                'Status: ${state.status.replaceAll('_', ' ')}',
+                                l10n.matchesActivityStatus(
+                                  localizedActivityStatus(l10n, state.status),
+                                ),
                                 style: Theme.of(context).textTheme.bodySmall
                                     ?.copyWith(
                                       color: Theme.of(
@@ -179,7 +186,7 @@ class _ActivitySessionScreenState extends ConsumerState<ActivitySessionScreen> {
                       ),
                       if (state.error != null) ...[
                         Text(
-                          state.error!,
+                          localizeActivityError(l10n, state.error)!,
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(
                                 color: Theme.of(context).colorScheme.error,
@@ -207,7 +214,7 @@ class _ActivitySessionScreenState extends ConsumerState<ActivitySessionScreen> {
                                     ),
                                   ),
                                 )
-                              : const Text('Submit Responses'),
+                              : Text(l10n.matchesActivitySubmit),
                         ),
                       ),
                       if (remainingSeconds <= 0 && !state.isTerminal) ...[
@@ -218,7 +225,7 @@ class _ActivitySessionScreenState extends ConsumerState<ActivitySessionScreen> {
                             onPressed: state.isSummaryLoading
                                 ? null
                                 : notifier.loadSummary,
-                            child: const Text('Time is up — Load Summary'),
+                            child: Text(l10n.matchesActivityTimeUpLoad),
                           ),
                         ),
                       ],
@@ -226,7 +233,7 @@ class _ActivitySessionScreenState extends ConsumerState<ActivitySessionScreen> {
                           state.allQuestionsAnswered) ...[
                         const SizedBox(height: 8),
                         Text(
-                          'Responses sent. Waiting for the other participant to finish.',
+                          l10n.matchesActivityWaiting,
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
                         const SizedBox(height: 8),
@@ -236,7 +243,7 @@ class _ActivitySessionScreenState extends ConsumerState<ActivitySessionScreen> {
                             onPressed: state.isSummaryLoading
                                 ? null
                                 : notifier.loadSummary,
-                            child: const Text('Refresh Summary'),
+                            child: Text(l10n.matchesActivityRefreshSummary),
                           ),
                         ),
                       ],
@@ -251,7 +258,7 @@ class _ActivitySessionScreenState extends ConsumerState<ActivitySessionScreen> {
                               widget.enableShareToChat && state.summary != null
                               ? () => Navigator.of(
                                   context,
-                                ).pop(_buildShareMessage(state.summary!))
+                                ).pop(_buildShareMessage(l10n, state.summary!))
                               : null,
                         ),
                       ],
@@ -264,12 +271,19 @@ class _ActivitySessionScreenState extends ConsumerState<ActivitySessionScreen> {
   }
 }
 
-String _buildShareMessage(ActivitySummary summary) {
-  final status = summary.status.replaceAll('_', ' ');
+String _buildShareMessage(AppLocalizations l10n, ActivitySummary summary) {
+  final status = localizedActivityStatus(l10n, summary.status);
   final completed = summary.participantsCompleted.length;
   final total = summary.totalParticipants;
   final insight = summary.insight.trim();
-  return '2-Min This-or-That result: $status • $completed/$total completed${insight.isEmpty ? '' : ' • $insight'}';
+  return insight.isEmpty
+      ? l10n.matchesActivityShareMessage(status, completed, total)
+      : l10n.matchesActivityShareMessageWithInsight(
+          status,
+          completed,
+          total,
+          insight,
+        );
 }
 
 class _CountdownPill extends StatelessWidget {
@@ -291,7 +305,9 @@ class _CountdownPill extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
-        'Time left $minutes:$seconds',
+        AppLocalizations.of(
+          context,
+        ).matchesActivityTimeLeft('$minutes:$seconds'),
         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
           color: isUrgent
               ? Theme.of(context).colorScheme.onErrorContainer
@@ -316,35 +332,38 @@ class _QuestionCard extends StatelessWidget {
   final bool enabled;
 
   @override
-  Widget build(BuildContext context) => GlassContainer(
-    padding: const EdgeInsets.all(16),
-    backgroundColor: Theme.of(context).colorScheme.surface,
-    blur: 0,
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          question.title,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            color: Theme.of(context).colorScheme.onSurface,
-            fontWeight: FontWeight.w700,
+  Widget build(BuildContext context) {
+    final text = localizedActivityQuestion(
+      AppLocalizations.of(context),
+      question,
+    );
+    return GlassContainer(
+      padding: const EdgeInsets.all(16),
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      blur: 0,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            text.title,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurface,
+              fontWeight: FontWeight.w700,
+            ),
           ),
-        ),
-        const SizedBox(height: 6),
-        Text(question.prompt, style: Theme.of(context).textTheme.bodyMedium),
-        const SizedBox(height: 10),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: question.options
-              .map(
-                (option) => ChoiceChip(
-                  label: Text(option),
+          const SizedBox(height: 6),
+          Text(text.prompt, style: Theme.of(context).textTheme.bodyMedium),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final (index, option) in question.options.indexed)
+                ChoiceChip(
+                  label: Text(text.optionLabels[index]),
                   selected: selectedAnswer == option,
                   onSelected: enabled ? (_) => onSelected(option) : null,
-                  selectedColor: Theme.of(
-                    context,
-                  ).colorScheme.primaryContainer,
+                  selectedColor: Theme.of(context).colorScheme.primaryContainer,
                   labelStyle: TextStyle(
                     color: selectedAnswer == option
                         ? Theme.of(context).colorScheme.onPrimaryContainer
@@ -354,12 +373,12 @@ class _QuestionCard extends StatelessWidget {
                         : FontWeight.w500,
                   ),
                 ),
-              )
-              .toList(growable: false),
-        ),
-      ],
-    ),
-  );
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _SummaryCard extends StatelessWidget {
@@ -377,6 +396,7 @@ class _SummaryCard extends StatelessWidget {
     final status = summary?.status.isNotEmpty == true
         ? summary!.status
         : fallbackStatus;
+    final l10n = AppLocalizations.of(context);
 
     return GlassContainer(
       padding: const EdgeInsets.all(16),
@@ -386,7 +406,7 @@ class _SummaryCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Activity Summary',
+            l10n.matchesActivitySummaryTitle,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
               color: Theme.of(context).colorScheme.onSurface,
               fontWeight: FontWeight.w700,
@@ -394,21 +414,22 @@ class _SummaryCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Status: ${status.replaceAll('_', ' ')}',
+            l10n.matchesActivityStatus(localizedActivityStatus(l10n, status)),
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: 4),
           Text(
-            'Participants completed: '
-            '${summary?.participantsCompleted.length ?? 0}/'
-            '${summary?.totalParticipants ?? 2}',
+            l10n.matchesActivityParticipantsCompleted(
+              summary?.participantsCompleted.length ?? 0,
+              summary?.totalParticipants ?? 2,
+            ),
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: 8),
           Text(
             summary?.insight.isNotEmpty == true
                 ? summary!.insight
-                : 'Summary will appear once available.',
+                : l10n.matchesActivitySummaryPending,
             style: Theme.of(context).textTheme.bodySmall,
           ),
           if (onShare != null) ...[
@@ -418,7 +439,7 @@ class _SummaryCard extends StatelessWidget {
               child: OutlinedButton.icon(
                 onPressed: onShare,
                 icon: const Icon(Icons.share_outlined),
-                label: const Text('Share Result to Chat'),
+                label: Text(l10n.matchesActivityShareResult),
               ),
             ),
           ],

@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/widgets/connect_page.dart';
 import '../../../l10n/app_localizations.dart';
@@ -376,7 +377,10 @@ class _FileTile extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  formatSupportFileSize(attachment.sizeBytes),
+                  formatSupportFileSize(
+                    attachment.sizeBytes,
+                    Localizations.localeOf(context).toLanguageTag(),
+                  ),
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: colors.onSurfaceVariant,
                   ),
@@ -390,9 +394,15 @@ class _FileTile extends StatelessWidget {
   }
 }
 
-String formatSupportFileSize(int bytes) {
+/// A file size such as "1.5 MB". With [locale] the number uses that
+/// language's decimal separator ("1,5 MB" in German).
+String formatSupportFileSize(int bytes, [String? locale]) {
   if (bytes >= 1024 * 1024) {
-    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    final mb = bytes / (1024 * 1024);
+    final value = locale == null
+        ? mb.toStringAsFixed(1)
+        : NumberFormat('0.0', locale).format(mb);
+    return '$value MB';
   }
   if (bytes >= 1024) {
     return '${(bytes / 1024).round()} KB';

@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/glass_widgets.dart';
+import '../../l10n/app_localizations.dart';
 import '../graduation/providers/graduation_provider.dart';
 import '../swipe/models/discovery_profile.dart';
 import '../swipe/providers/curated_daily_set_provider.dart';
@@ -55,6 +56,7 @@ class _TodayIntroductionsState extends ConsumerState<TodayIntroductions> {
     });
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
     final daily = ref.watch(curatedDailySetProvider);
     final rhythm = ref.watch(datingRhythmProvider);
     final pause = ref.watch(discoveryPauseProvider);
@@ -105,7 +107,7 @@ class _TodayIntroductionsState extends ConsumerState<TodayIntroductions> {
                           const SizedBox(height: TodayMetrics.sectionGap),
                           const TodayActivities(),
                           const SizedBox(height: TodayMetrics.sectionGap),
-                          const TodaySectionHeader(label: 'YOUR PACE'),
+                          TodaySectionHeader(label: l10n.todaySectionPace),
                           const SizedBox(height: TodayMetrics.cardGap),
                           TodayPanel(
                             child: Column(
@@ -122,13 +124,12 @@ class _TodayIntroductionsState extends ConsumerState<TodayIntroductions> {
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          'What fits your week?',
+                                          l10n.todayPaceTitle,
                                           style: theme.textTheme.titleMedium,
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
-                                          'Your pace, your kind of first date, '
-                                          'optional availability.',
+                                          l10n.todayPaceBody,
                                           style: theme.textTheme.bodyMedium
                                               ?.copyWith(
                                                 color: colors.onSurfaceVariant,
@@ -141,7 +142,7 @@ class _TodayIntroductionsState extends ConsumerState<TodayIntroductions> {
                                       onPressed: () =>
                                           openDatingRhythm(context),
                                       icon: const Icon(Icons.tune_rounded),
-                                      label: const Text('Set your rhythm'),
+                                      label: Text(l10n.todaySetRhythm),
                                     ),
                                   ],
                                 ),
@@ -149,18 +150,17 @@ class _TodayIntroductionsState extends ConsumerState<TodayIntroductions> {
                             ),
                           ),
                           const SizedBox(height: TodayMetrics.sectionGap),
-                          const TodaySectionHeader(label: 'YOUR STORY'),
+                          TodaySectionHeader(label: l10n.todaySectionStory),
                           const SizedBox(height: TodayMetrics.cardGap),
                           const ProfileStoryNudge(),
                           const SizedBox(height: TodayMetrics.sectionGap),
                           TodaySectionHeader(
-                            label: 'TODAY’S INTRODUCTIONS',
+                            label: l10n.todaySectionIntroductions,
                             title: showPicks
-                                ? 'A few people to get to know'
+                                ? l10n.todayIntroductionsTitle
                                 : null,
                             caption: showPicks
-                                ? 'Shared interests are a starting point. '
-                                      'Chemistry is yours to discover.'
+                                ? l10n.todayIntroductionsCaption
                                 : null,
                           ),
                           const SizedBox(height: TodayMetrics.cardGap),
@@ -177,35 +177,33 @@ class _TodayIntroductionsState extends ConsumerState<TodayIntroductions> {
                             ),
                           if (paused)
                             _Notice(
-                              title: 'Take the time you need.',
-                              body:
-                                  'Introductions are paused. Your conversations are still here.',
-                              action: 'Manage your rhythm',
+                              title: l10n.todayPausedTitle,
+                              body: l10n.todayPausedBody,
+                              action: l10n.todayManageRhythm,
                               onPressed: () => openDatingRhythm(context),
                             )
                           else if (loading)
-                            const Padding(
-                              padding: EdgeInsets.all(40),
+                            Padding(
+                              padding: const EdgeInsets.all(40),
                               child: Center(
                                 child: CircularProgressIndicator(
-                                  semanticsLabel: 'Loading introductions',
+                                  semanticsLabel:
+                                      l10n.todayLoadingIntroductions,
                                 ),
                               ),
                             )
                           else if (failed)
                             _Notice(
-                              title: 'Your introductions are taking a moment.',
-                              body:
-                                  'We couldn’t load the latest information. Please try again.',
-                              action: 'Try again',
+                              title: l10n.todayFailedTitle,
+                              body: l10n.todayFailedBody,
+                              action: l10n.todayTryAgain,
                               onPressed: refresh,
                             )
                           else if (daily.profiles.isEmpty)
                             _Notice(
-                              title: 'A little breathing room.',
-                              body:
-                                  'There are no new introductions for your preferences right now. You can adjust your rhythm or explore profiles.',
-                              action: 'Explore profiles',
+                              title: l10n.todayEmptyTitle,
+                              body: l10n.todayEmptyBody,
+                              action: l10n.todayExploreProfiles,
                               onPressed: widget.onBrowse,
                             )
                           else ...[
@@ -217,7 +215,7 @@ class _TodayIntroductionsState extends ConsumerState<TodayIntroductions> {
                                   runSpacing: 8,
                                   children: [
                                     ChoiceChip(
-                                      label: const Text('All introductions'),
+                                      label: Text(l10n.todayAllIntroductions),
                                       selected: selected == null,
                                       onSelected: (_) =>
                                           setState(() => activity = null),
@@ -225,7 +223,9 @@ class _TodayIntroductionsState extends ConsumerState<TodayIntroductions> {
                                     for (final a in activities)
                                       ChoiceChip(
                                         key: ValueKey('qa.today.activity.$a'),
-                                        label: Text(datingActivities[a] ?? a),
+                                        label: Text(
+                                          datingActivityLabel(l10n, a),
+                                        ),
                                         selected: selected == a,
                                         onSelected: (_) => setState(
                                           () => activity = selected == a
@@ -269,17 +269,15 @@ class _TodayIntroductionsState extends ConsumerState<TodayIntroductions> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'A good connection has room to breathe.',
+                                    l10n.todayBreatheTitle,
                                     style: theme.textTheme.titleMedium,
                                   ),
                                   const SizedBox(height: 8),
-                                  const Text(
-                                    'These are today’s introductions. There is no countdown, and no need to decide on everyone.',
-                                  ),
+                                  Text(l10n.todayBreatheBody),
                                   const SizedBox(height: 8),
                                   TextButton(
                                     onPressed: widget.onBrowse,
-                                    child: const Text('Explore more profiles'),
+                                    child: Text(l10n.todayExploreMore),
                                   ),
                                 ],
                               ),
@@ -314,6 +312,7 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
     return Row(
       children: [
         Expanded(
@@ -321,7 +320,7 @@ class _Header extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'TODAY',
+                l10n.todayLabel,
                 style: theme.textTheme.labelMedium?.copyWith(
                   letterSpacing: 2.4,
                   fontWeight: FontWeight.w700,
@@ -340,13 +339,13 @@ class _Header extends StatelessWidget {
           ),
         ),
         IconButton(
-          tooltip: 'Refresh Today',
+          tooltip: l10n.todayRefreshTooltip,
           onPressed: refreshing ? null : onRefresh,
           icon: const Icon(Icons.refresh_rounded),
         ),
         if (onOpenFilters != null)
           IconButton(
-            tooltip: 'Discovery preferences',
+            tooltip: l10n.todayDiscoveryPreferences,
             onPressed: onOpenFilters,
             icon: const Icon(Icons.tune_rounded),
           ),
@@ -355,12 +354,16 @@ class _Header extends StatelessWidget {
   }
 }
 
-/// "Wednesday, 1 October" in the member's locale, falling back to English
+/// "Wednesday, 1 October" in English, and the locale's own long weekday and
+/// date form elsewhere ("Mittwoch, 1. Oktober"), falling back to English
 /// when date symbols for that locale are not loaded.
 String todayDateLabel(BuildContext context, DateTime date) {
-  final locale = Localizations.maybeLocaleOf(context)?.toLanguageTag();
+  final locale = Localizations.maybeLocaleOf(context);
   try {
-    return DateFormat('EEEE, d MMMM', locale).format(date);
+    if (locale == null || locale.languageCode == 'en') {
+      return DateFormat('EEEE, d MMMM', locale?.toLanguageTag()).format(date);
+    }
+    return DateFormat.MMMMEEEEd(locale.toLanguageTag()).format(date);
   } on Object {
     return DateFormat('EEEE, d MMMM', 'en').format(date);
   }
@@ -375,6 +378,7 @@ class _Hero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -384,7 +388,7 @@ class _Hero extends StatelessWidget {
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
             child: Text(
-              'A little hello.\nRoom for something real.',
+              l10n.todayHeroTitle,
               maxLines: 2,
               style: theme.textTheme.displaySmall?.copyWith(
                 fontFamily: AppTheme.displayFamily,
@@ -397,7 +401,7 @@ class _Hero extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          'A few thoughtful introductions, at your pace.',
+          l10n.todayHeroSubtitle,
           style: theme.textTheme.bodyLarge?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
           ),
@@ -415,6 +419,7 @@ class _Introduction extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
     Widget fallback() => ColoredBox(
       color: colors.primaryContainer,
       child: Center(
@@ -474,7 +479,7 @@ class _Introduction extends StatelessWidget {
                   if (profile.reasons.isNotEmpty) ...[
                     const SizedBox(height: 18),
                     Text(
-                      'A LITTLE COMMON GROUND',
+                      l10n.todayCommonGround,
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: colors.primary,
                         letterSpacing: 1,
@@ -507,7 +512,7 @@ class _Introduction extends StatelessWidget {
                     Padding(
                       padding: const EdgeInsets.only(top: 12),
                       child: Text(
-                        'A first hello could be ${_activityLine(profile.sharedActivities.first)}.',
+                        _firstHelloIdea(l10n, profile.sharedActivities.first),
                         style: theme.textTheme.bodyMedium?.copyWith(
                           fontWeight: FontWeight.w600,
                         ),
@@ -520,7 +525,7 @@ class _Introduction extends StatelessWidget {
                       key: ValueKey('qa.today.profile.${profile.id}'),
                       onPressed: onOpen,
                       icon: const Icon(Icons.arrow_forward_rounded),
-                      label: Text('Meet ${profile.name}'),
+                      label: Text(l10n.todayMeetName(profile.name)),
                     ),
                   ),
                 ],
@@ -532,14 +537,14 @@ class _Introduction extends StatelessWidget {
     );
   }
 
-  String _activityLine(String a) => switch (a) {
-    'coffee' => 'a coffee together',
-    'walk' => 'a daytime walk',
-    'meal' => 'a relaxed meal',
-    'video_call' => 'a video hello',
-    'event' => 'an event you both enjoy',
-    'drinks' => 'a drink together',
-    _ => 'something you both enjoy',
+  String _firstHelloIdea(AppLocalizations l10n, String a) => switch (a) {
+    'coffee' => l10n.todayFirstHelloCoffee,
+    'walk' => l10n.todayFirstHelloWalk,
+    'meal' => l10n.todayFirstHelloMeal,
+    'video_call' => l10n.todayFirstHelloVideoCall,
+    'event' => l10n.todayFirstHelloEvent,
+    'drinks' => l10n.todayFirstHelloDrinks,
+    _ => l10n.todayFirstHelloOther,
   };
 }
 

@@ -61,9 +61,14 @@ def _upload_id_and_continue_to_selfie(app) -> None:
 def _open_profile_detail(app) -> None:
     app.open_discovery_deck()
 
+    # A Spotlight row ("View more" of its own) can push the card down: bring
+    # the card's own View more into view; never fall back to a bare
+    # "View more", which opens Spotlight Matches instead.
+    try:
+        app.scroll_into_middle("qa.discovery.view_more_button", timeout=25)
+    except Exception:  # noqa: BLE001 - empty deck
+        pytest.skip("No visible discovery profile detail entry point in current deck")
     opened = app.maybe_tap_qa("qa.discovery.view_more_button", timeout=8)
-    if not opened:
-        opened = app.maybe_tap_contains("View more", timeout=8)
     if not opened:
         pytest.skip("No visible discovery profile detail entry point in current deck")
     app.assert_any_text_visible("Message", "Love", "Read more", timeout=20)
@@ -127,6 +132,7 @@ def test_verification_selfie_from_gallery_submit_reaches_status(app):
 
 @pytest.mark.requires_appium
 @pytest.mark.verification_safety
+@pytest.mark.usefixtures("ensure_deck")
 def test_profile_report_submit_success(app):
     _open_profile_detail(app)
 
@@ -134,9 +140,12 @@ def test_profile_report_submit_success(app):
     app.assert_any_text_visible("Report", "Submit report", "Add context", timeout=15)
     try:
         app.type_into_edit_text(0, "Appium safety report smoke context")
-        app.hide_keyboard()
     except TimeoutException:
         pass
+    # Do not hide the keyboard with hide_keyboard(): on this sheet it sends
+    # BACK, which closes the sheet unsent. (Before AND-12 was fixed the app
+    # still showed "Report submitted." then, so this test passed without a
+    # report ever being sent.) The sheet rides above the keyboard.
     try:
         app.tap_first_visible_text(["Submit report"], timeout=10)
     except TimeoutException:

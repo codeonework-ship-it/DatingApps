@@ -29,11 +29,8 @@ export async function api(request, token, method, path, data) {
   return {status: response.status(), body: await response.json().catch(() => null)};
 }
 
-// WEB-12 (open, backend): POST /v1/profile/views is refused with 403 by the
-// BFF ownership check, so opening another member's profile logs a console
-// error and the view is never recorded. Tracked by its own test.fail() in
-// profile-cinematic.spec.js; tolerated (and annotated) everywhere else.
-const knownDefects = [{id: 'WEB-12', test: (status, method, url) => status === 403 && method === 'POST' && url.endsWith('/v1/profile/views')}];
+// Known defects tolerated by watchApp (none open; WEB-12 was fixed 2026-10-02).
+const knownDefects = [];
 
 /** Page errors, console errors and failed /v1 calls, minus annotated known defects. */
 export function watchApp(page, testInfo) {

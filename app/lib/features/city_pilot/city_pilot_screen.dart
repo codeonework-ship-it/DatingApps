@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/network/api_error_message.dart';
 import '../../core/providers/api_client_provider.dart';
+import '../../l10n/app_localizations.dart';
 import '../auth/providers/auth_provider.dart';
 
 final cityPilotProvider = FutureProvider.autoDispose<Map<String, dynamic>>((
@@ -47,8 +48,7 @@ class _CityPilotScreenState extends ConsumerState<CityPilotScreen> {
         setState(
           () => _error = apiErrorMessage(
             e,
-            fallback:
-                'We couldn’t confirm that change. Refresh to check before trying again.',
+            fallback: AppLocalizations.of(context).cityPilotSaveFailed,
           ),
         );
     } finally {
@@ -57,21 +57,20 @@ class _CityPilotScreenState extends ConsumerState<CityPilotScreen> {
   }
 
   Future<void> _leave(String id) async {
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Leave the city pilot?'),
-        content: const Text(
-          'Your pilot bookings will be cancelled and experience feedback removed. Your activity will stop contributing to current pilot results. Your matches and conversations stay. You cannot rejoin this pilot.',
-        ),
+        title: Text(l10n.cityPilotLeaveTitle),
+        content: Text(l10n.cityPilotLeaveBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Stay in pilot'),
+            child: Text(l10n.cityPilotStay),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Leave pilot'),
+            child: Text(l10n.cityPilotLeave),
           ),
         ],
       ),
@@ -82,28 +81,33 @@ class _CityPilotScreenState extends ConsumerState<CityPilotScreen> {
           '/city-pilot/membership',
           data: {'pilot_id': id},
         );
-      }, 'You have left the pilot. Your matches stay with you.');
+      }, l10n.cityPilotLeftNotice);
     }
   }
 
   Future<void> _book(Map<String, dynamic> event) async {
+    final l10n = AppLocalizations.of(context);
     final accepted = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Join ${event['title']}?'),
+        title: Text(l10n.cityPilotJoinEventTitle('${event['title']}')),
         content: SingleChildScrollView(
           child: Text(
-            'This experience is free. Meet at the public venue, respect other people’s boundaries, and arrange your own travel. You can leave at any time.\n\nHost: ${event['host']}\nSafety contact: ${event['safety_contact']}\n\nAccessibility: ${event['accessibility']}\n\nFor immediate danger, contact local emergency services.',
+            l10n.cityPilotBookingTerms(
+              '${event['host']}',
+              '${event['safety_contact']}',
+              '${event['accessibility']}',
+            ),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Not now'),
+            child: Text(l10n.debriefNotNow),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Accept & reserve a place'),
+            child: Text(l10n.cityPilotAcceptReserve),
           ),
         ],
       ),
@@ -114,33 +118,34 @@ class _CityPilotScreenState extends ConsumerState<CityPilotScreen> {
           '/city-pilot/events/${event['id']}/registration',
           data: {'safety_terms_accepted': true},
         );
-      }, 'Your place is reserved. You can cancel here at any time.');
+      }, l10n.cityPilotReservedNotice);
   }
 
   Future<void> _feedback(Map<String, dynamic> event) async {
+    final l10n = AppLocalizations.of(context);
     bool? attended, worthwhile;
     final answers = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, update) => AlertDialog(
-          title: const Text('How was the experience?'),
+          title: Text(l10n.cityPilotFeedbackTitle),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Optional. Answers contribute to the pilot’s combined results. They aren’t shown to other members or the host.',
-                ),
+                Text(l10n.cityPilotFeedbackIntro),
                 const SizedBox(height: 16),
-                const Text('Did you attend?'),
+                Text(l10n.cityPilotDidYouAttend),
                 Wrap(
                   spacing: 8,
                   children: [
                     for (final value in [true, false])
                       ChoiceChip(
                         label: Text(
-                          value ? 'Yes, I went' : 'I couldn’t make it',
+                          value
+                              ? l10n.cityPilotAttendedYes
+                              : l10n.cityPilotAttendedNo,
                         ),
                         selected: attended == value,
                         onSelected: (_) => update(() {
@@ -152,13 +157,15 @@ class _CityPilotScreenState extends ConsumerState<CityPilotScreen> {
                 ),
                 if (attended == true) ...[
                   const SizedBox(height: 16),
-                  const Text('Was it worth your time? (optional)'),
+                  Text(l10n.cityPilotWorthwhileQuestion),
                   Wrap(
                     spacing: 8,
                     children: [
                       for (final value in [true, false])
                         ChoiceChip(
-                          label: Text(value ? 'Yes' : 'Not this time'),
+                          label: Text(
+                            value ? l10n.commonYes : l10n.cityPilotNotThisTime,
+                          ),
                           selected: worthwhile == value,
                           onSelected: (selected) => update(
                             () => worthwhile = selected ? value : null,
@@ -173,7 +180,7 @@ class _CityPilotScreenState extends ConsumerState<CityPilotScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Skip'),
+              child: Text(l10n.cityPilotSkip),
             ),
             FilledButton(
               onPressed: attended == null
@@ -182,7 +189,7 @@ class _CityPilotScreenState extends ConsumerState<CityPilotScreen> {
                       'attended': attended,
                       'worthwhile': worthwhile,
                     }),
-              child: const Text('Share feedback'),
+              child: Text(l10n.cityPilotShareFeedback),
             ),
           ],
         ),
@@ -194,27 +201,38 @@ class _CityPilotScreenState extends ConsumerState<CityPilotScreen> {
           '/city-pilot/events/${event['id']}/feedback',
           data: answers,
         );
-      }, 'Thank you. Your feedback has been recorded privately.');
+      }, l10n.cityPilotFeedbackThanks);
   }
 
   String _date(dynamic value) {
     final parsed = DateTime.tryParse(value?.toString() ?? '');
-    return parsed == null
-        ? 'Time to be confirmed'
-        : DateFormat('EEE, d MMM · h:mm a').format(parsed.toLocal());
+    if (parsed == null) {
+      return AppLocalizations.of(context).cityPilotTimeTbc;
+    }
+    final locale = Localizations.localeOf(context);
+    final localeName = locale.toString();
+    final local = parsed.toLocal();
+    // English keeps its original pattern; other languages use their own
+    // weekday/day/month order and 12/24-hour clock.
+    if (locale.languageCode == 'en') {
+      return DateFormat('EEE, d MMM · h:mm a', localeName).format(local);
+    }
+    return '${DateFormat.MMMEd(localeName).format(local)} · '
+        '${DateFormat.jm(localeName).format(local)}';
   }
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(cityPilotProvider);
     final colors = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
-        title: const Text('The city pilot'),
+        title: Text(l10n.cityPilotTitle),
         actions: [
           IconButton(
-            tooltip: 'Refresh pilot',
+            tooltip: l10n.cityPilotRefreshTooltip,
             onPressed: _busy ? null : () => ref.invalidate(cityPilotProvider),
             icon: const Icon(Icons.refresh_rounded),
           ),
@@ -242,7 +260,7 @@ class _CityPilotScreenState extends ConsumerState<CityPilotScreen> {
                     ),
                     const SizedBox(height: 20),
                     Text(
-                      'A little closer.\nA lot more real.',
+                      l10n.cityPilotHeroTitle,
                       style: Theme.of(context).textTheme.headlineLarge
                           ?.copyWith(
                             color: colors.onPrimaryContainer,
@@ -251,7 +269,7 @@ class _CityPilotScreenState extends ConsumerState<CityPilotScreen> {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'One city. A small community. More chances for a conversation to become a plan.',
+                      l10n.cityPilotHeroBody,
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         color: colors.onPrimaryContainer,
                       ),
@@ -260,25 +278,11 @@ class _CityPilotScreenState extends ConsumerState<CityPilotScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-              _step(
-                '01',
-                'Start with a conversation',
-                'Meet at your pace through your existing introductions.',
-              ),
-              _step(
-                '02',
-                'Make room for a real date',
-                'Shape a plan together. Share how it went only if you want to.',
-              ),
-              _step(
-                '03',
-                'Try something together',
-                'Small, hosted experiences come after the first pilot review.',
-              ),
+              _step('01', l10n.cityPilotStep1Title, l10n.cityPilotStep1Body),
+              _step('02', l10n.cityPilotStep2Title, l10n.cityPilotStep2Body),
+              _step('03', l10n.cityPilotStep3Title, l10n.cityPilotStep3Body),
               if (_busy)
-                const LinearProgressIndicator(
-                  semanticsLabel: 'Saving pilot preference',
-                ),
+                LinearProgressIndicator(semanticsLabel: l10n.cityPilotSaving),
               if (_error != null)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 12),
@@ -295,13 +299,11 @@ class _CityPilotScreenState extends ConsumerState<CityPilotScreen> {
               const SizedBox(height: 12),
               state.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (_, _) => _panel('Your pilot is unavailable', [
-                  const Text(
-                    'Check your connection and refresh to see your latest participation and bookings.',
-                  ),
+                error: (_, _) => _panel(l10n.cityPilotUnavailableTitle, [
+                  Text(l10n.cityPilotUnavailableBody),
                   TextButton(
                     onPressed: () => ref.invalidate(cityPilotProvider),
-                    child: const Text('Try again'),
+                    child: Text(l10n.chatTryAgain),
                   ),
                 ]),
                 data: (data) {
@@ -309,10 +311,8 @@ class _CityPilotScreenState extends ConsumerState<CityPilotScreen> {
                       ?.cast<String, dynamic>();
                   final joined = data['membership'] == 'joined';
                   if (pilot == null)
-                    return _panel('Coming to a city near you', [
-                      const Text(
-                        'There isn’t an open pilot for your profile city yet. When one opens, you can choose whether to take part. Your current dating experience carries on as usual.',
-                      ),
+                    return _panel(l10n.cityPilotComingSoonTitle, [
+                      Text(l10n.cityPilotComingSoonBody),
                     ]);
                   final events = ((data['experiences'] as List?) ?? [])
                       .map((e) => (e as Map).cast<String, dynamic>())
@@ -321,34 +321,28 @@ class _CityPilotScreenState extends ConsumerState<CityPilotScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       _panel(
-                        '${pilot['city']} · ${joined ? 'You’re part of it' : 'City pilot'}',
+                        joined
+                            ? l10n.cityPilotPanelTitleJoined('${pilot['city']}')
+                            : l10n.cityPilotPanelTitleOpen('${pilot['city']}'),
                         [
                           Text(
-                            'Recruitment closes ${_date(pilot['closes_at'])} (your local time).',
+                            l10n.cityPilotRecruitmentCloses(
+                              _date(pilot['closes_at']),
+                            ),
                           ),
                           const SizedBox(height: 12),
                           if (pilot['status'] == 'paused' ||
                               pilot['enabled'] == false)
-                            const Text(
-                              'New participation and bookings are paused. You can still leave or cancel.',
-                            ),
+                            Text(l10n.cityPilotPaused),
                           if (pilot['status'] == 'completed')
-                            const Text(
-                              'This pilot is complete. Thank you for being part of it.',
-                            ),
-                          const Text(
-                            'Joining lets us count conversations, accepted plans and optional “did the date happen?” answers for new matches where both people joined this pilot. We use 7-day conversation and 28-day date windows. We don’t read message text or private feedback notes for the pilot.',
-                          ),
+                            Text(l10n.cityPilotCompleted),
+                          Text(l10n.cityPilotMeasurement),
                           const SizedBox(height: 12),
-                          const Text(
-                            'Participation stays private. There’s no public attendance list or dating score. Leaving excludes your activity from current pilot results and cancels pilot bookings. Previously reviewed combined results cannot be un-seen.',
-                          ),
+                          Text(l10n.cityPilotPrivacy),
                           if (data['can_join'] == true) ...[
                             CheckboxListTile(
                               contentPadding: EdgeInsets.zero,
-                              title: const Text(
-                                'I agree to take part in this pilot and its outcome measurement.',
-                              ),
+                              title: Text(l10n.cityPilotConsent),
                               value: _consent,
                               onChanged: _busy
                                   ? null
@@ -359,20 +353,17 @@ class _CityPilotScreenState extends ConsumerState<CityPilotScreen> {
                             FilledButton.icon(
                               onPressed: _busy || !_consent
                                   ? null
-                                  : () => _save(
-                                      (dio) async {
-                                        await dio.post<dynamic>(
-                                          '/city-pilot/membership',
-                                          data: {
-                                            'pilot_id': pilot['id'],
-                                            'consent_version': 'city-pilot-v1',
-                                          },
-                                        );
-                                      },
-                                      'You’re in. Keep meeting people at your own pace.',
-                                    ),
+                                  : () => _save((dio) async {
+                                      await dio.post<dynamic>(
+                                        '/city-pilot/membership',
+                                        data: {
+                                          'pilot_id': pilot['id'],
+                                          'consent_version': 'city-pilot-v1',
+                                        },
+                                      );
+                                    }, l10n.cityPilotJoinedNotice),
                               icon: const Icon(Icons.arrow_forward_rounded),
-                              label: const Text('Join the city pilot'),
+                              label: Text(l10n.cityPilotJoin),
                             ),
                           ] else if (joined) ...[
                             const SizedBox(height: 12),
@@ -380,35 +371,28 @@ class _CityPilotScreenState extends ConsumerState<CityPilotScreen> {
                               onPressed: _busy
                                   ? null
                                   : () => _leave(pilot['id'] as String),
-                              child: const Text('Leave pilot'),
+                              child: Text(l10n.cityPilotLeave),
                             ),
                           ] else if (data['membership'] == 'withdrawn')
-                            const Padding(
-                              padding: EdgeInsets.only(top: 12),
-                              child: Text(
-                                'You’ve left this pilot. Your matches and conversations are unchanged.',
-                              ),
+                            Padding(
+                              padding: const EdgeInsets.only(top: 12),
+                              child: Text(l10n.cityPilotWithdrawn),
                             )
                           else
-                            const Padding(
-                              padding: EdgeInsets.only(top: 12),
-                              child: Text(
-                                'This pilot is not accepting new members right now.',
-                              ),
+                            Padding(
+                              padding: const EdgeInsets.only(top: 12),
+                              child: Text(l10n.cityPilotNotAccepting),
                             ),
                         ],
                       ),
                       if (joined) ...[
                         const SizedBox(height: 24),
                         Text(
-                          'Small plans. Shared experiences.',
+                          l10n.cityPilotExperiencesHeading,
                           style: Theme.of(context).textTheme.titleLarge,
                         ),
                         const SizedBox(height: 10),
-                        if (events.isEmpty)
-                          const Text(
-                            'Hosted experiences aren’t open yet. They’ll appear here after an outcome and safety review.',
-                          ),
+                        if (events.isEmpty) Text(l10n.cityPilotNoExperiences),
                         for (final event in events)
                           Padding(
                             padding: const EdgeInsets.only(bottom: 16),
@@ -416,24 +400,33 @@ class _CityPilotScreenState extends ConsumerState<CityPilotScreen> {
                               Text(event['summary'] as String),
                               const SizedBox(height: 12),
                               Text(
-                                '${_date(event['starts_at'])} → ${_date(event['ends_at'])}\nYour local time · Free\n${event['venue']}\nHosted by ${event['host']}',
+                                l10n.cityPilotEventDetails(
+                                  _date(event['starts_at']),
+                                  _date(event['ends_at']),
+                                  '${event['venue']}',
+                                  '${event['host']}',
+                                ),
                               ),
                               const SizedBox(height: 12),
-                              Text('Accessibility · ${event['accessibility']}'),
                               Text(
-                                'Safety contact · ${event['safety_contact']}',
+                                l10n.cityPilotAccessibility(
+                                  '${event['accessibility']}',
+                                ),
+                              ),
+                              Text(
+                                l10n.cityPilotSafetyContact(
+                                  '${event['safety_contact']}',
+                                ),
                               ),
                               if (event['status'] == 'cancelled')
-                                const Padding(
-                                  padding: EdgeInsets.only(top: 12),
-                                  child: Text(
-                                    'This experience has been cancelled. Please do not travel to the venue.',
-                                  ),
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 12),
+                                  child: Text(l10n.cityPilotEventCancelled),
                                 ),
                               if (event['registration'] == 'registered' &&
                                   event['status'] != 'cancelled') ...[
                                 const SizedBox(height: 12),
-                                const Text('Your place is reserved.'),
+                                Text(l10n.cityPilotPlaceReserved),
                                 OutlinedButton(
                                   onPressed: _busy
                                       ? null
@@ -441,25 +434,25 @@ class _CityPilotScreenState extends ConsumerState<CityPilotScreen> {
                                           await dio.delete<dynamic>(
                                             '/city-pilot/events/${event['id']}/registration',
                                           );
-                                        }, 'Your booking is cancelled.'),
-                                  child: const Text('Cancel my place'),
+                                        }, l10n.cityPilotBookingCancelled),
+                                  child: Text(l10n.cityPilotCancelPlace),
                                 ),
                               ] else if (event['can_register'] == true)
                                 FilledButton(
                                   onPressed: _busy ? null : () => _book(event),
-                                  child: const Text('Reserve a free place'),
+                                  child: Text(l10n.cityPilotReserveFree),
                                 ),
                               if (event['can_feedback'] == true)
                                 TextButton(
                                   onPressed: _busy
                                       ? null
                                       : () => _feedback(event),
-                                  child: const Text('Share optional feedback'),
+                                  child: Text(
+                                    l10n.cityPilotShareOptionalFeedback,
+                                  ),
                                 ),
                               if (event['feedback'] != null)
-                                const Text(
-                                  'Your feedback has been received. Thank you.',
-                                ),
+                                Text(l10n.cityPilotFeedbackReceived),
                             ]),
                           ),
                       ],

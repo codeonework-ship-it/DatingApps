@@ -10,10 +10,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/providers/runtime_feature_flags_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../engagement/providers/daily_prompt_provider.dart';
 import '../../matching/providers/match_provider.dart';
 import '../../matching/screens/match_notification_screen.dart';
 import '../../messaging/screens/chat_screen.dart';
+import '../discover_l10n.dart';
 import '../models/discovery_profile.dart';
 import '../models/discovery_notification_item.dart';
 import '../../payment/providers/entitlements_provider.dart';
@@ -125,9 +127,16 @@ class _HomeDiscoveryScreenState extends ConsumerState<HomeDiscoveryScreen>
     final result = ref.read(swipeNotifierProvider);
     if (result.error != null || result.dailyLimit != null) {
       if (result.error != null)
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(result.error!)));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              localizeDiscoverMessage(
+                AppLocalizations.of(context),
+                result.error!,
+              ),
+            ),
+          ),
+        );
       return;
     }
     ref.invalidate(curatedDailySetProvider);
@@ -149,7 +158,11 @@ class _HomeDiscoveryScreenState extends ConsumerState<HomeDiscoveryScreen>
     }
     if (showSnack) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Super like sent to ${profile.name}')),
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context).discoverSuperLikeSent(profile.name),
+          ),
+        ),
       );
     }
   }
@@ -172,9 +185,16 @@ class _HomeDiscoveryScreenState extends ConsumerState<HomeDiscoveryScreen>
       final result = ref.read(swipeNotifierProvider);
       if (result.error != null || result.dailyLimit != null) {
         if (result.error != null)
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(result.error!)));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                localizeDiscoverMessage(
+                  AppLocalizations.of(context),
+                  result.error!,
+                ),
+              ),
+            ),
+          );
         return;
       }
       ref.invalidate(curatedDailySetProvider);
@@ -186,7 +206,9 @@ class _HomeDiscoveryScreenState extends ConsumerState<HomeDiscoveryScreen>
           userPhoto: profile.photoUrls.isNotEmpty
               ? profile.photoUrls.first
               : '',
-          lastMessage: 'Say hi',
+          lastMessage: AppLocalizations.of(
+            context,
+          ).discoverMatchPlaceholderMessage,
           lastMessageTime: DateTime.now(),
           unreadCount: 0,
           isOnline: false,
@@ -199,7 +221,7 @@ class _HomeDiscoveryScreenState extends ConsumerState<HomeDiscoveryScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'You can chat with ${profile.name} after a real match is created.',
+            AppLocalizations.of(context).discoverChatNeedsMatch(profile.name),
           ),
         ),
       );
@@ -223,6 +245,7 @@ class _HomeDiscoveryScreenState extends ConsumerState<HomeDiscoveryScreen>
   ) async {
     final limit = DailyLimit.fromRefusal(refusal);
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
     await showModalBottomSheet<void>(
       context: context,
       builder: (sheetContext) => Padding(
@@ -234,7 +257,7 @@ class _HomeDiscoveryScreenState extends ConsumerState<HomeDiscoveryScreen>
             Icon(Icons.favorite_rounded, size: 40, color: scheme.primary),
             const SizedBox(height: 12),
             Text(
-              limit?.headline ?? "You've used today's likes",
+              limit?.localizedHeadline(l10n) ?? l10n.discoverDailyLimitTitle,
               textAlign: TextAlign.center,
               style: Theme.of(
                 sheetContext,
@@ -243,8 +266,10 @@ class _HomeDiscoveryScreenState extends ConsumerState<HomeDiscoveryScreen>
             const SizedBox(height: 8),
             Text(
               limit == null
-                  ? 'Come back tomorrow, or upgrade for more likes every day.'
-                  : '${limit.resetLabel}. Upgrade for more likes every day.',
+                  ? l10n.discoverDailyLimitBody
+                  : l10n.discoverDailyLimitResetBody(
+                      limit.localizedResetLabel(l10n, l10n.localeName),
+                    ),
               textAlign: TextAlign.center,
               style: Theme.of(sheetContext).textTheme.bodyMedium,
             ),
@@ -258,11 +283,11 @@ class _HomeDiscoveryScreenState extends ConsumerState<HomeDiscoveryScreen>
                   ),
                 );
               },
-              child: const Text('See plans'),
+              child: Text(l10n.discoverSeePlans),
             ),
             TextButton(
               onPressed: () => Navigator.of(sheetContext).pop(),
-              child: const Text('Not now'),
+              child: Text(l10n.discoverNotNow),
             ),
           ],
         ),
@@ -327,11 +352,13 @@ class _HomeDiscoveryScreenState extends ConsumerState<HomeDiscoveryScreen>
           appBar: _browsing && !widget.browseOnly
               ? AppBar(
                   leading: IconButton(
-                    tooltip: 'Back to Today',
+                    tooltip: AppLocalizations.of(context).discoverBackToToday,
                     onPressed: () => setState(() => _browsing = false),
                     icon: const Icon(Icons.arrow_back_rounded),
                   ),
-                  title: const Text('Explore'),
+                  title: Text(
+                    AppLocalizations.of(context).discoverExploreTitle,
+                  ),
                 )
               : null,
           body: PostLoginBackdrop(
@@ -598,7 +625,9 @@ class _HomeDiscoveryScreenState extends ConsumerState<HomeDiscoveryScreen>
             ),
             const SizedBox(height: 16),
             Text(
-              isSpotlightMode ? 'Spotlight reviewed!' : 'All reviewed!',
+              isSpotlightMode
+                  ? AppLocalizations.of(context).discoverSpotlightReviewed
+                  : AppLocalizations.of(context).discoverAllReviewed,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 color: Theme.of(context).colorScheme.onSurface,
               ),
@@ -742,6 +771,7 @@ class _DesktopDiscoverHeader extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final count = unreadNotifications.length;
+    final l10n = AppLocalizations.of(context);
     final buttonShape = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(AppTheme.radiusS),
     );
@@ -753,10 +783,14 @@ class _DesktopDiscoverHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _Eyebrow(isSpotlightMode ? 'Spotlight' : 'Curated for you'),
+              _Eyebrow(
+                isSpotlightMode
+                    ? l10n.memberProfileSpotlight
+                    : l10n.discoverCuratedForYou,
+              ),
               const SizedBox(height: 12),
               Text(
-                'Discover Matches',
+                l10n.discoverTitle,
                 style: theme.textTheme.displaySmall?.copyWith(
                   color: scheme.onSurface,
                   fontSize: 48,
@@ -767,7 +801,7 @@ class _DesktopDiscoverHeader extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'A little curiosity. A real connection.',
+                l10n.discoverTagline,
                 style: theme.textTheme.bodyLarge?.copyWith(
                   color: scheme.onSurfaceVariant,
                 ),
@@ -781,7 +815,7 @@ class _DesktopDiscoverHeader extends StatelessWidget {
           child: OutlinedButton.icon(
             onPressed: onOpenMessages,
             icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18),
-            label: const Text('Messages'),
+            label: Text(l10n.discoverMessages),
             style: OutlinedButton.styleFrom(
               foregroundColor: scheme.onSurface,
               backgroundColor: scheme.surface,
@@ -799,7 +833,7 @@ class _DesktopDiscoverHeader extends StatelessWidget {
           child: FilledButton.icon(
             onPressed: onOpenFilters,
             icon: const Icon(Icons.tune_rounded, size: 18),
-            label: const Text('Filters'),
+            label: Text(l10n.discoverFilters),
             style: FilledButton.styleFrom(
               backgroundColor: scheme.onSurface,
               foregroundColor: scheme.surface,
@@ -811,7 +845,7 @@ class _DesktopDiscoverHeader extends StatelessWidget {
         ),
         const SizedBox(width: 12),
         Tooltip(
-          message: 'Notifications',
+          message: l10n.notificationsTitle,
           child: Badge(
             isLabelVisible: count > 0,
             label: Text(count > 9 ? '9+' : '$count'),
@@ -882,6 +916,7 @@ class _DesktopDiscoverAside extends StatelessWidget {
       color: scheme.onSurfaceVariant,
       height: 1.5,
     );
+    final l10n = AppLocalizations.of(context);
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -890,20 +925,26 @@ class _DesktopDiscoverAside extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Your deck', style: heading),
+                Text(l10n.discoverYourDeck, style: heading),
                 const SizedBox(height: 16),
                 Row(
                   children: [
                     Expanded(
-                      child: _DeckStat(value: visibleProfiles, label: 'Ready'),
+                      child: _DeckStat(
+                        value: visibleProfiles,
+                        label: l10n.discoverStatReady,
+                      ),
                     ),
                     Expanded(
-                      child: _DeckStat(value: likeCount, label: 'Liked'),
+                      child: _DeckStat(
+                        value: likeCount,
+                        label: l10n.discoverStatLiked,
+                      ),
                     ),
                     Expanded(
                       child: _DeckStat(
                         value: passCount,
-                        label: 'Passed',
+                        label: l10n.discoverStatPassed,
                         semanticLabel: 'qa.discovery.passed_button',
                         onTap: () => Navigator.of(context).push(
                           MaterialPageRoute<void>(
@@ -919,16 +960,16 @@ class _DesktopDiscoverAside extends StatelessWidget {
                 const SizedBox(height: 16),
                 Row(
                   children: [
-                    Expanded(child: Text('Filters', style: heading)),
+                    Expanded(child: Text(l10n.discoverFilters, style: heading)),
                     TextButton(
                       onPressed: onOpenFilters,
-                      child: const Text('Edit'),
+                      child: Text(l10n.discoverEdit),
                     ),
                   ],
                 ),
                 const SizedBox(height: 4),
                 if (activeFilterChips.isEmpty)
-                  Text('Showing everyone in your preferences.', style: muted)
+                  Text(l10n.discoverShowingEveryone, style: muted)
                 else
                   Wrap(
                     spacing: 8,
@@ -963,11 +1004,11 @@ class _DesktopDiscoverAside extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const _Eyebrow('Curated for you'),
+                  _Eyebrow(l10n.discoverCuratedForYou),
                   const SizedBox(height: 8),
-                  Text('Today', style: heading),
+                  Text(l10n.discoverToday, style: heading),
                   const SizedBox(height: 4),
-                  Text('Five picks, refreshed every day.', style: muted),
+                  Text(l10n.discoverTodaySubtitle, style: muted),
                   const SizedBox(height: 12),
                   _TodayRail(
                     profiles: todayProfiles,
@@ -986,10 +1027,15 @@ class _DesktopDiscoverAside extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Expanded(child: Text('Spotlight', style: heading)),
+                      Expanded(
+                        child: Text(
+                          l10n.memberProfileSpotlight,
+                          style: heading,
+                        ),
+                      ),
                       TextButton(
                         onPressed: onViewSpotlight,
-                        child: const Text('View all'),
+                        child: Text(l10n.discoverViewAll),
                       ),
                     ],
                   ),
@@ -1011,13 +1057,9 @@ class _DesktopDiscoverAside extends StatelessWidget {
               children: [
                 Icon(Icons.shield_outlined, color: scheme.primary, size: 22),
                 const SizedBox(height: 12),
-                Text('Match on your terms', style: heading),
+                Text(l10n.discoverMatchOnYourTerms, style: heading),
                 const SizedBox(height: 8),
-                Text(
-                  'Mutual interest creates a match. You can block or report '
-                  'anyone from their profile or conversation.',
-                  style: muted,
-                ),
+                Text(l10n.discoverMatchOnYourTermsBody, style: muted),
               ],
             ),
           ),
@@ -1164,6 +1206,7 @@ class _DiscoverHeader extends StatelessWidget {
     final compact = MediaQuery.sizeOf(context).width < 390;
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: EdgeInsets.fromLTRB(4, compact ? 4 : 8, 4, 4),
       child: Column(
@@ -1177,7 +1220,7 @@ class _DiscoverHeader extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'CURATED FOR YOU',
+                      l10n.discoverCuratedForYou.toUpperCase(),
                       style: theme.textTheme.labelMedium?.copyWith(
                         color: colors.primary,
                         fontWeight: FontWeight.w700,
@@ -1186,7 +1229,7 @@ class _DiscoverHeader extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Discover Matches',
+                      l10n.discoverTitle,
                       style: theme.textTheme.displaySmall?.copyWith(
                         fontFamily: AppTheme.displayFamily,
                         color: colors.onSurface,
@@ -1197,7 +1240,7 @@ class _DiscoverHeader extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'A little curiosity. A real connection.',
+                      l10n.discoverTagline,
                       style: theme.textTheme.bodyLarge?.copyWith(
                         color: colors.onSurfaceVariant,
                       ),
@@ -1225,7 +1268,7 @@ class _DiscoverHeader extends StatelessWidget {
             children: [
               Expanded(
                 child: _MetricPill(
-                  label: 'Ready',
+                  label: l10n.discoverStatReady,
                   value: '$visibleProfiles',
                   icon: Icons.auto_awesome_rounded,
                 ),
@@ -1233,7 +1276,7 @@ class _DiscoverHeader extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: _MetricPill(
-                  label: 'Liked',
+                  label: l10n.discoverStatLiked,
                   value: '$likeCount',
                   icon: Icons.favorite_rounded,
                 ),
@@ -1241,7 +1284,7 @@ class _DiscoverHeader extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: _MetricPill(
-                  label: 'Passed',
+                  label: l10n.discoverStatPassed,
                   value: '$passCount',
                   icon: Icons.history_rounded,
                 ),
@@ -1264,7 +1307,7 @@ class _DiscoverHeader extends StatelessWidget {
               Expanded(
                 child: _ActionChip(
                   icon: Icons.history,
-                  label: 'Passed',
+                  label: l10n.discoverStatPassed,
                   semanticLabel: 'qa.discovery.passed_button',
                   onTap: () {
                     Navigator.of(context).push(
@@ -1279,7 +1322,7 @@ class _DiscoverHeader extends StatelessWidget {
               Expanded(
                 child: _ActionChip(
                   icon: Icons.chat_bubble_outline_rounded,
-                  label: 'Messages',
+                  label: l10n.discoverMessages,
                   semanticLabel: 'qa.discovery.messages_button',
                   onTap: onOpenMessages,
                 ),
@@ -1288,7 +1331,8 @@ class _DiscoverHeader extends StatelessWidget {
               Expanded(
                 child: _ActionChip(
                   icon: Icons.tune_rounded,
-                  label: 'Filters',
+                  label: l10n.discoverFilters,
+                  primary: true,
                   semanticLabel: 'qa.discovery.filter_button',
                   onTap: onOpenFilters,
                 ),
@@ -1400,14 +1444,15 @@ class _DiscoveryErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return _ResponsiveStateCenter(
       child: _PremiumStateCard(
         semanticLabel: 'qa.discovery.retry_state',
         icon: Icons.cloud_off_rounded,
-        eyebrow: 'Connection paused',
-        title: 'Unable to load profiles',
-        message: error,
-        actionLabel: 'Try Again',
+        eyebrow: l10n.discoverErrorEyebrow,
+        title: l10n.discoverErrorTitle,
+        message: localizeDiscoverMessage(l10n, error),
+        actionLabel: l10n.commonTryAgainTitle,
         onAction: onRetry,
       ),
     );
@@ -1565,28 +1610,40 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final trustMessage = trustFilterActive && filteredOutCount > 0
-        ? 'Trust filters hid $filteredOutCount profile(s). Try relaxing '
-              'trust filters or refresh to rebuild your deck.'
-        : 'Your curated deck is being prepared. Refresh to check for new '
-              'verified profiles near you.';
+        ? l10n.discoverTrustFilteredBody(filteredOutCount)
+        : l10n.discoverDeckPreparingBody;
     return _ResponsiveStateCenter(
       child: _PremiumStateCard(
         semanticLabel: 'qa.discovery.empty_state',
         icon: Icons.diamond_outlined,
-        eyebrow: isSpotlightMode ? 'Spotlight' : 'Check back soon',
-        title: isSpotlightMode ? 'No spotlight profiles' : 'No profiles',
+        eyebrow: isSpotlightMode
+            ? l10n.memberProfileSpotlight
+            : l10n.discoverCheckBackSoon,
+        title: isSpotlightMode
+            ? l10n.discoverNoSpotlightProfiles
+            : l10n.discoverNoProfiles,
         message: trustMessage,
-        actionLabel: 'Refresh',
+        actionLabel: l10n.discoverRefresh,
         onAction: onRefresh,
-        footer: const Wrap(
+        footer: Wrap(
           alignment: WrapAlignment.center,
           spacing: 8,
           runSpacing: 8,
           children: [
-            _TinyPromiseChip(icon: Icons.verified_rounded, label: 'Verified'),
-            _TinyPromiseChip(icon: Icons.lock_rounded, label: 'Private'),
-            _TinyPromiseChip(icon: Icons.auto_awesome, label: 'Premium'),
+            _TinyPromiseChip(
+              icon: Icons.verified_rounded,
+              label: l10n.memberProfileVerified,
+            ),
+            _TinyPromiseChip(
+              icon: Icons.lock_rounded,
+              label: l10n.discoverPromisePrivate,
+            ),
+            _TinyPromiseChip(
+              icon: Icons.auto_awesome,
+              label: l10n.discoverPremium,
+            ),
           ],
         ),
       ),
@@ -1705,17 +1762,20 @@ class _ActionChip extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.onTap,
+    this.primary = false,
     this.semanticLabel,
   });
   final IconData icon;
   final String label;
   final VoidCallback? onTap;
+
+  /// The filled, primary-coloured chip (Filters).
+  final bool primary;
   final String? semanticLabel;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final primary = label == 'Filters';
     final foreground = primary ? colors.onPrimary : colors.onSurface;
     return Semantics(
       label: semanticLabel,
@@ -1777,7 +1837,9 @@ class _NotificationBell extends StatelessWidget {
     return Semantics(
       container: true,
       button: true,
-      label: count > 0 ? 'Notifications, $count unread' : 'Notifications',
+      label: count > 0
+          ? AppLocalizations.of(context).discoverNotificationsUnread(count)
+          : AppLocalizations.of(context).notificationsTitle,
       child: GestureDetector(
         onTap: onTap,
         child: Container(
@@ -1841,6 +1903,7 @@ class _NotificationsSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Container(
       margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -1854,7 +1917,7 @@ class _NotificationsSheet extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Latest unread notifications',
+            l10n.discoverLatestUnreadNotifications,
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
               color: Theme.of(context).colorScheme.onSurface,
               fontWeight: FontWeight.w700,
@@ -1863,7 +1926,7 @@ class _NotificationsSheet extends StatelessWidget {
           const SizedBox(height: 10),
           if (notifications.isEmpty)
             Text(
-              'No unread notifications',
+              l10n.discoverNoUnreadNotifications,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
@@ -1873,6 +1936,12 @@ class _NotificationsSheet extends StatelessWidget {
               // Who liked me opens the list of pending likes; the sheet
               // closes first so back returns to Discover.
               final opensLikes = n.type == DiscoveryNotificationType.whoLikedMe;
+              final title = opensLikes
+                  ? l10n.discoverNotificationWhoLiked
+                  : l10n.discoverNotificationWhoReplied;
+              final subtitle = opensLikes
+                  ? l10n.discoverNotificationLikesCount(n.count)
+                  : l10n.discoverNotificationRepliesCount(n.count);
               return Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: InkWell(
@@ -1918,7 +1987,7 @@ class _NotificationsSheet extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                n.title,
+                                title,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: Theme.of(context).textTheme.bodySmall
@@ -1930,7 +1999,7 @@ class _NotificationsSheet extends StatelessWidget {
                                     ),
                               ),
                               Text(
-                                n.subtitle,
+                                subtitle,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: Theme.of(context).textTheme.labelSmall
@@ -2008,7 +2077,7 @@ class _SpotlightRail extends StatelessWidget {
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
-                  'Spotlight',
+                  AppLocalizations.of(context).memberProfileSpotlight,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
@@ -2029,7 +2098,7 @@ class _SpotlightRail extends StatelessWidget {
                   minimumSize: Size.zero,
                 ),
                 child: Text(
-                  'View more',
+                  AppLocalizations.of(context).discoverViewMore,
                   style: Theme.of(
                     context,
                   ).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w700),
@@ -2161,6 +2230,7 @@ class _TodayRail extends ConsumerWidget {
     final scheme = theme.colorScheme;
     final items = profiles.take(5).toList(growable: false);
     final cardWidth = MediaQuery.sizeOf(context).width < 390 ? 132.0 : 148.0;
+    final l10n = AppLocalizations.of(context);
     return Column(
       key: const ValueKey('qa.discover.today.rail'),
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2175,7 +2245,7 @@ class _TodayRail extends ConsumerWidget {
             child: TextButton.icon(
               onPressed: () => openDatingRhythm(context),
               icon: const Icon(Icons.tune, size: 18),
-              label: const Text('Fits your week'),
+              label: Text(l10n.discoverFitsYourWeek),
             ),
           ),
         if (showHeader) ...[
@@ -2185,7 +2255,7 @@ class _TodayRail extends ConsumerWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Today',
+                  l10n.discoverToday,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.titleSmall?.copyWith(
@@ -2195,7 +2265,7 @@ class _TodayRail extends ConsumerWidget {
                 ),
               ),
               Text(
-                items.length == 1 ? '1 pick' : '${items.length} picks',
+                l10n.discoverTodayPicks(items.length),
                 key: const ValueKey('qa.discover.today.count'),
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: scheme.onSurfaceVariant,
@@ -2248,10 +2318,11 @@ class _TodayCard extends StatelessWidget {
       color: scheme.surfaceContainerHighest,
       child: Icon(Icons.person_outline_rounded, color: scheme.onSurfaceVariant),
     );
+    final why =
+        profile.why ?? AppLocalizations.of(context).discoverPickedForYouToday;
     return Semantics(
       button: true,
-      label:
-          '${profile.displayName}. ${profile.why ?? 'Picked for you today.'}',
+      label: '${profile.displayName}. $why',
       child: GlassContainer(
         key: ValueKey('qa.discover.today.card.$index'),
         width: width,

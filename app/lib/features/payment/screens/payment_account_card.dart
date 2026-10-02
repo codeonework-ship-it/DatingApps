@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../providers/subscription_provider.dart';
+
+/// Stripe's published test card number; shown verbatim in every language.
+const _stripeTestCard = '4242 4242 4242 4242';
 
 class PaymentAccountCard extends StatelessWidget {
   const PaymentAccountCard({
@@ -20,11 +24,12 @@ class PaymentAccountCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
     final modeLabel = switch (account.mode) {
-      'sandbox' => 'Local test · no real charge',
-      'test' => 'Stripe test · no real charge',
-      'live' => 'Live payments',
-      _ => 'Payments unavailable',
+      'sandbox' => l10n.paymentModeSandbox,
+      'test' => l10n.paymentModeStripeTest,
+      'live' => l10n.paymentModeLive,
+      _ => l10n.paymentModeUnavailable,
     };
     return Card.outlined(
       margin: EdgeInsets.zero,
@@ -40,7 +45,7 @@ class PaymentAccountCard extends StatelessWidget {
               children: [
                 const Icon(Icons.account_balance_wallet_outlined),
                 Text(
-                  'Your payment account',
+                  l10n.paymentAccountTitle,
                   style: theme.textTheme.titleMedium,
                 ),
                 Container(
@@ -63,7 +68,9 @@ class PaymentAccountCard extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              account.name.isEmpty ? 'Signed-in member' : account.name,
+              account.name.isEmpty
+                  ? l10n.paymentAccountSignedInMember
+                  : account.name,
               style: theme.textTheme.titleLarge,
             ),
             if (account.email.isNotEmpty) ...[
@@ -73,24 +80,21 @@ class PaymentAccountCard extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               account.cardAvailable
-                  ? 'Credit or debit card'
-                  : 'Card checkout is unavailable',
+                  ? l10n.paymentAccountCardTitle
+                  : l10n.paymentAccountCardUnavailableTitle,
               style: theme.textTheme.titleSmall,
             ),
             const SizedBox(height: 4),
             Text(
               account.cardAvailable
-                  ? 'Use the hosted checkout to enter your card. Membership '
-                        'and payment history belong to this account.'
-                  : 'You can keep using your existing account. '
-                        'New card payments are not enabled.',
+                  ? l10n.paymentAccountCardBody
+                  : l10n.paymentAccountCardUnavailableBody,
               style: theme.textTheme.bodyMedium,
             ),
             if (account.isTest) ...[
               const SizedBox(height: 12),
               Text(
-                'For testing, use 4242 4242 4242 4242, a future expiry '
-                'and any three-digit CVC. Use test details only.',
+                l10n.paymentAccountTestCardHint(_stripeTestCard),
                 style: theme.textTheme.bodySmall,
               ),
             ],
@@ -98,14 +102,12 @@ class PaymentAccountCard extends StatelessWidget {
               const Divider(height: 32),
               Text(
                 checkout.kind == 'card_update'
-                    ? 'Unfinished card update'
-                    : 'Unfinished ${checkout.planCode} checkout',
+                    ? l10n.paymentAccountUnfinishedCardUpdate
+                    : l10n.paymentAccountUnfinishedCheckout(checkout.planCode),
                 style: theme.textTheme.titleSmall,
               ),
               const SizedBox(height: 4),
-              const Text(
-                'Check the latest status or continue the same checkout.',
-              ),
+              Text(l10n.paymentAccountPendingHint),
               const SizedBox(height: 12),
               Wrap(
                 spacing: 12,
@@ -114,14 +116,14 @@ class PaymentAccountCard extends StatelessWidget {
                   OutlinedButton.icon(
                     onPressed: busy ? null : () => onCheck(checkout),
                     icon: const Icon(Icons.refresh),
-                    label: const Text('Check status'),
+                    label: Text(l10n.paymentAccountCheckStatus),
                   ),
                   FilledButton.icon(
                     onPressed: busy || !account.cardAvailable
                         ? null
                         : () => onResume(checkout),
                     icon: const Icon(Icons.open_in_new),
-                    label: const Text('Resume checkout'),
+                    label: Text(l10n.paymentAccountResumeCheckout),
                   ),
                 ],
               ),

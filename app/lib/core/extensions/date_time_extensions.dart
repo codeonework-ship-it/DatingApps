@@ -1,6 +1,10 @@
 /// Extensions on [DateTime] for common operations
 library;
 
+import 'package:intl/intl.dart';
+
+import '../../l10n/app_localizations.dart';
+
 extension DateTimeExtensions on DateTime {
   /// Get age from birthdate
   int get age {
@@ -33,10 +37,30 @@ extension DateTimeExtensions on DateTime {
         day == yesterday.day;
   }
 
-  /// Get human readable time difference
-  String getTimeAgo() {
+  /// Get human readable time difference.
+  ///
+  /// Pass [l10n] (`AppLocalizations.of(context)`) to get it in the member's
+  /// language; without it the text is English.
+  String getTimeAgo([AppLocalizations? l10n]) {
     final now = DateTime.now();
     final difference = now.difference(this);
+
+    if (l10n != null) {
+      if (difference.inSeconds < 60) {
+        return l10n.timeAgoJustNow;
+      } else if (difference.inMinutes < 60) {
+        return l10n.timeAgoMinutes(difference.inMinutes);
+      } else if (difference.inHours < 24) {
+        return l10n.timeAgoHours(difference.inHours);
+      } else if (difference.inDays < 7) {
+        return l10n.timeAgoDays(difference.inDays);
+      } else if (difference.inDays < 30) {
+        return l10n.timeAgoWeeks((difference.inDays / 7).floor());
+      }
+      return l10n.localeName.startsWith('en')
+          ? formattedDate
+          : DateFormat.yMd(l10n.localeName).format(this);
+    }
 
     if (difference.inSeconds < 60) {
       return 'Just now';

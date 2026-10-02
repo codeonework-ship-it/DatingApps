@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
+import '../../../l10n/app_localizations.dart';
 import '../providers/verification_provider.dart';
 import 'verification_status_screen.dart';
 import 'verification_upload_id_screen.dart';
@@ -15,8 +16,9 @@ class VerificationLandingScreen extends ConsumerWidget {
     final verification = ref.watch(verificationNotifierProvider).valueOrNull;
     final submitted = verification?.status == 'pending';
     final verified = verification?.status == 'verified';
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Government Verification')),
+      appBar: AppBar(title: Text(l10n.settingsGovernmentVerificationTitle)),
       body: PostLoginBackdrop(
         child: SafeArea(
           child: SingleChildScrollView(
@@ -40,24 +42,20 @@ class VerificationLandingScreen extends ConsumerWidget {
                       Semantics(
                         label: 'qa.verification.landing_title',
                         child: Text(
-                          'Verify with confidence',
+                          l10n.verificationLandingTitle,
                           style: Theme.of(context).textTheme.headlineSmall,
                         ),
                       ),
                       const SizedBox(height: 8),
-                      const Text(
-                        'Upload a clear government identity document and a recent selfie. Files are sent as encrypted transport data and stored in a private evidence area.',
-                      ),
+                      Text(l10n.verificationLandingBody),
                       const SizedBox(height: 12),
-                      const Text(
-                        'A review signal adds context to your profile. It never guarantees another person’s identity, intentions, or safety.',
-                      ),
+                      Text(l10n.verificationLandingDisclaimer),
                       const SizedBox(height: 24),
                       if (submitted || verified)
                         GlassButton(
                           label: verified
-                              ? 'View verified status'
-                              : 'View review status',
+                              ? l10n.verificationViewVerifiedStatus
+                              : l10n.verificationViewReviewStatus,
                           onPressed: () => Navigator.of(context).push(
                             MaterialPageRoute<void>(
                               builder: (_) => const VerificationStatusScreen(),
@@ -69,7 +67,7 @@ class VerificationLandingScreen extends ConsumerWidget {
                           label: 'qa.verification.landing.start_button',
                           button: true,
                           child: GlassButton(
-                            label: 'Start secure verification',
+                            label: l10n.verificationStartButton,
                             onPressed: () => Navigator.of(context).push(
                               MaterialPageRoute<void>(
                                 builder: (_) =>

@@ -105,6 +105,11 @@ def test_edit_profile_binds_saved_profile(app, api_client, qa_user_id):
         name = str(seeded.get("name") or "").strip()
 
         _open_edit_profile(app)
+        # The location was written behind the app's back (API). Edit Profile
+        # keeps the draft it loaded earlier in the session (AND-13), so use
+        # its own "Refresh profile" control before asserting the binding.
+        app.tap_text("Refresh profile", timeout=10)
+        time.sleep(1.5)
 
         app.assert_any_text_visible(
             "About you",

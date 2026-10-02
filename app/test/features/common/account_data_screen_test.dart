@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:verified_dating_app/core/theme/app_theme.dart';
 import 'package:verified_dating_app/features/common/providers/account_lifecycle_provider.dart';
 import 'package:verified_dating_app/features/common/screens/account_data_screen.dart';
+import 'package:verified_dating_app/l10n/app_localizations.dart';
 
 /// Serves a fixed lifecycle state so the screen can be driven without a
 /// backend. The notifier's network methods are never reached in these tests.
@@ -19,6 +20,7 @@ Future<void> _pumpScreen(
   WidgetTester tester,
   AccountLifecycle lifecycle, {
   ThemeMode themeMode = ThemeMode.light,
+  Locale? locale,
 }) async {
   await tester.pumpWidget(
     ProviderScope(
@@ -31,6 +33,9 @@ Future<void> _pumpScreen(
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
         themeMode: themeMode,
+        locale: locale,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: const AccountDataScreen(),
       ),
     ),
@@ -184,6 +189,15 @@ void main() {
         deletionEffectiveAt: DateTime.now().subtract(const Duration(days: 2)),
       );
       expect(overdue.daysUntilDeletion, 0);
+    });
+
+    testWidgets('speaks the member\'s language (German)', (tester) async {
+      await _pumpScreen(tester, _normal, locale: const Locale('de'));
+
+      expect(find.text('Konto & Daten'), findsOneWidget);
+      expect(find.text('Mach eine Pause'), findsOneWidget);
+      expect(find.text('Deine Daten herunterladen'), findsOneWidget);
+      expect(find.text('Account & Data'), findsNothing);
     });
   });
 }

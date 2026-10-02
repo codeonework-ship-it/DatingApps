@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/layout/app_layout.dart';
+import '../../social_chat/social_chat_l10n.dart';
 import '../providers/copilot_provider.dart';
 
 /// "Help me say it": drafts an opener, a reply or a date idea in the
@@ -45,16 +46,23 @@ class _CopilotSheetState extends ConsumerState<_CopilotSheet> {
   String? _error;
   bool _loading = false;
 
-  static const _kinds = <String, String>{
-    'opener': 'Opener',
-    'reply': 'Reply',
-    'plan_idea': 'Date idea',
-  };
-  static const _tones = <String, String>{
-    'warm': 'Warm',
-    'playful': 'Playful',
-    'direct': 'Direct',
-  };
+  Map<String, String> _kinds(BuildContext context) {
+    final l = chatL10n(context);
+    return {
+      'opener': l.chatCopilotKindOpener,
+      'reply': l.chatCopilotKindReply,
+      'plan_idea': l.chatCopilotKindDateIdea,
+    };
+  }
+
+  Map<String, String> _tones(BuildContext context) {
+    final l = chatL10n(context);
+    return {
+      'warm': l.chatCopilotToneWarm,
+      'playful': l.chatCopilotTonePlayful,
+      'direct': l.chatCopilotToneDirect,
+    };
+  }
 
   Future<void> _generate() async {
     setState(() {
@@ -76,8 +84,13 @@ class _CopilotSheetState extends ConsumerState<_CopilotSheet> {
       if (!mounted) {
         return;
       }
+      final l = chatL10n(context);
       setState(() {
-        _error = error.message;
+        _error = switch (error.failure) {
+          CopilotFailure.empty => l.chatCopilotEmpty,
+          CopilotFailure.unavailable => l.chatCopilotUnavailable,
+          null => error.message,
+        };
         _loading = false;
       });
     }
@@ -87,6 +100,7 @@ class _CopilotSheetState extends ConsumerState<_CopilotSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final draft = _draft;
+    final l = chatL10n(context);
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
       child: Column(
@@ -94,16 +108,14 @@ class _CopilotSheetState extends ConsumerState<_CopilotSheet> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            'Help me say it',
+            l.chatHelpMeSayIt,
             style: theme.textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.w700,
             ),
           ),
           const SizedBox(height: AppLayout.space2),
           Text(
-            'A draft in your voice, from ${widget.partnerName}’s profile '
-            'and your conversation. It is never sent for you, and if you '
-            'send it as drafted they can see it was written with help.',
+            l.chatCopilotIntro(widget.partnerName),
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -112,7 +124,7 @@ class _CopilotSheetState extends ConsumerState<_CopilotSheet> {
           Wrap(
             spacing: AppLayout.space2,
             children: [
-              for (final entry in _kinds.entries)
+              for (final entry in _kinds(context).entries)
                 ChoiceChip(
                   key: ValueKey('qa.copilot.kind.${entry.key}'),
                   label: Text(entry.value),
@@ -125,7 +137,7 @@ class _CopilotSheetState extends ConsumerState<_CopilotSheet> {
           Wrap(
             spacing: AppLayout.space2,
             children: [
-              for (final entry in _tones.entries)
+              for (final entry in _tones(context).entries)
                 ChoiceChip(
                   key: ValueKey('qa.copilot.tone.${entry.key}'),
                   label: Text(entry.value),
@@ -148,7 +160,7 @@ class _CopilotSheetState extends ConsumerState<_CopilotSheet> {
             ),
             const SizedBox(height: AppLayout.space2),
             Text(
-              '${draft.disclosure} ${draft.remainingToday} drafts left today.',
+              l.chatCopilotDisclosure(draft.disclosure, draft.remainingToday),
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -182,7 +194,11 @@ class _CopilotSheetState extends ConsumerState<_CopilotSheet> {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Icon(Icons.auto_awesome_outlined),
-                  label: Text(draft == null ? 'Draft it' : 'Try another'),
+                  label: Text(
+                    draft == null
+                        ? l.chatCopilotDraftIt
+                        : l.chatCopilotTryAnother,
+                  ),
                 ),
               ),
               if (draft != null) ...[
@@ -195,7 +211,7 @@ class _CopilotSheetState extends ConsumerState<_CopilotSheet> {
                     ),
                     onPressed: () => Navigator.of(context).pop(draft),
                     icon: const Icon(Icons.edit_outlined),
-                    label: const Text('Use and edit'),
+                    label: Text(l.chatCopilotUseAndEdit),
                   ),
                 ),
               ],

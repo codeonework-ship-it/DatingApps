@@ -7,6 +7,7 @@ import 'package:verified_dating_app/features/auth/providers/auth_provider.dart';
 import 'package:verified_dating_app/features/photo_themes/photo_theme_gallery_screen.dart';
 import 'package:verified_dating_app/features/photo_themes/photo_themes_data.dart';
 import 'package:verified_dating_app/features/photo_themes/photo_themes_screen.dart';
+import 'package:verified_dating_app/l10n/app_localizations.dart';
 
 class _Auth extends AuthNotifier {
   @override
@@ -70,12 +71,17 @@ class _FakeApi {
     );
 }
 
-Widget _host(_FakeApi api, Widget child) => ProviderScope(
+Widget _host(_FakeApi api, Widget child, {Locale? locale}) => ProviderScope(
   overrides: [
     authNotifierProvider.overrideWith(_Auth.new),
     apiClientProvider.overrideWithValue(api.dio),
   ],
-  child: MaterialApp(home: child),
+  child: MaterialApp(
+    locale: locale,
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
+    home: child,
+  ),
 );
 
 void main() {
@@ -162,6 +168,26 @@ void main() {
     expect(find.text('Comfort food'), findsOneWidget);
     expect(find.text('0 shared'), findsOneWidget);
     expect(find.text('Be the first to share →'), findsOneWidget);
+  });
+
+  testWidgets('PhotoThemesScreen speaks German when the app does', (t) async {
+    final api = _FakeApi({
+      '/themes': {
+        'themes': [_sunday],
+        'eligible': true,
+        'eligibility_message': '',
+      },
+    });
+    await t.pumpWidget(
+      _host(api, const PhotoThemesScreen(), locale: const Locale('de')),
+    );
+    await t.pumpAndSettle();
+
+    expect(find.text('Fotothemen'), findsOneWidget);
+    expect(find.text('Zeig ein bisschen von deiner Welt'), findsOneWidget);
+    expect(find.text('12 geteilt'), findsOneWidget);
+    // Server-provided theme titles stay as written.
+    expect(find.text('My perfect Sunday'), findsOneWidget);
   });
 
   testWidgets('gallery disables sharing once the member has shared', (t) async {
