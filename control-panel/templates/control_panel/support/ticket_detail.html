@@ -1,7 +1,6 @@
 {% extends "control_panel/base.html" %}
 {% block title %}{{ ticket.reference|default:"Ticket" }} · Support · {{ project_name }}{% endblock %}
 {% block topbar_title %}Support · {{ ticket.reference|default:"Ticket" }}{% endblock %}
-{% block extra_head %}{% include "control_panel/support/_styles.html" %}{% endblock %}
 {% block content %}
 <p class="mb-3"><a href="{% url 'support_queue' %}"><i class="bi bi-arrow-left"></i> Ticket queue</a></p>
 {% include "control_panel/support/_nav.html" %}
@@ -75,8 +74,8 @@
           <div class="support-event"><span>{{ entry.text }}{% if entry.at %} · {{ entry.at|date:"M d, H:i" }}{% endif %}</span></div>
           {% else %}{% with m=entry.message %}
           <article class="support-msg {% if m.is_internal %}is-internal{% elif m.author_kind == 'agent' %}from-agent{% elif m.author_kind == 'system' %}from-system{% else %}from-requester{% endif %}">
-            <div class="d-flex justify-content-between gap-3 small">
-              <strong>{% if m.is_internal %}<i class="bi bi-lock-fill me-1" style="color:var(--gold);"></i>{% endif %}{{ m.author_label }}</strong>
+            <div class="d-flex justify-content-between gap-3 small flex-wrap">
+              <strong>{% if m.is_internal %}<i class="bi bi-lock-fill me-1 text-gold"></i>{% endif %}{{ m.author_label }}</strong>
               <span class="text-muted">{% if m.is_internal %}<span class="badge badge-gold me-1">Internal note</span>{% elif m.author_kind == 'agent' %}<span class="badge badge-purple me-1">Public reply</span>{% endif %}{{ entry.at|date:"M d, H:i"|default:"" }}</span>
             </div>
             {% if m.body %}<p class="support-msg-body">{{ m.body }}</p>{% endif %}

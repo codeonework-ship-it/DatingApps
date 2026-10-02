@@ -25,7 +25,7 @@
   <div class="table-responsive"><table class="glass-table w-100">
     <thead><tr><th>Month</th><th>Channel</th><th>Market</th><th>Amount</th><th>Attributed</th><th>Note</th><th>Updated</th><th></th></tr></thead>
     <tbody>{% for e in entries %}<tr><td>{{ e.month|slice:":7" }}</td><td>{{ e.channel }}</td><td>{{ e.market }}</td><td>{{ e.amount }} {{ e.currency }}</td><td>{{ e.attributed_members|default:"—" }}</td><td>{{ e.note }}</td><td>{{ e.updated_at }}</td>
-      <td><form method="post" action="{% url 'business_spend_delete' e.id %}" class="biz-noprint" onsubmit="return confirm('Delete this spend entry?')">{% csrf_token %}<button class="btn btn-sm btn-glass"><i class="bi bi-trash"></i></button></form></td></tr>{% endfor %}</tbody>
+      <td><form method="post" action="{% url 'business_spend_delete' e.id %}" class="biz-noprint" data-confirm="The entry is removed from marketing spend. This cannot be undone." data-confirm-title="Delete this spend entry?" data-confirm-label="Delete entry">{% csrf_token %}<button class="btn btn-sm btn-glass"><i class="bi bi-trash"></i></button></form></td></tr>{% endfor %}</tbody>
   </table></div>
   {% else %}<div class="empty-command-state">No spend recorded in this window.</div>{% endif %}
 </div>

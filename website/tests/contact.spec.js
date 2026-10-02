@@ -31,7 +31,7 @@ async function fillValid(page, overrides = {}) {
 const alert = page => page.locator('[data-contact-alert]');
 
 for (const width of [360, 1440]) {
-  test(`contact page renders the form without CSP violations at ${width}px`, async ({page}) => {
+  test(`contact page renders the form without CSP violations at ${width}px [case:site.contact.renders_csp]`, async ({page}) => {
     const problems = await watch(page);
     await page.setViewportSize({width, height: 900});
     const response = await page.goto('/contact');
@@ -55,14 +55,14 @@ for (const width of [360, 1440]) {
   });
 }
 
-test('footer links to the contact page in each locale', async ({page}) => {
+test('footer links to the contact page in each locale [case:site.site_header.links_resolve]', async ({page}) => {
   await page.goto('/');
   await expect(page.locator('footer a[href="/contact"]')).toHaveText('Contact support');
   await page.goto('/de/safety');
   await expect(page.locator('footer a[href="/de/contact"]')).toHaveText('Support kontaktieren');
 });
 
-test('honeypot is present, hidden from people and skipped by keyboard', async ({page}) => {
+test('honeypot is present, hidden from people and skipped by keyboard [case:site.contact.honeypot]', async ({page}) => {
   await page.goto('/contact');
   const trap = page.locator('#contact-website');
   await expect(trap).toHaveCount(1);
@@ -75,7 +75,7 @@ test('honeypot is present, hidden from people and skipped by keyboard', async ({
   await expect(page.locator('#contact-submit')).toBeFocused();
 });
 
-test('valid submission posts JSON and shows the reference', async ({page}) => {
+test('valid submission posts JSON and shows the reference [case:site.contact.submit.valid_posts_json] [case:site.contact.again.resets]', async ({page}) => {
   const problems = await watch(page);
   let request;
   let release;
@@ -119,7 +119,7 @@ test('valid submission posts JSON and shows the reference', async ({page}) => {
   expect(problems).toEqual([]);
 });
 
-test('success without a reference still confirms; optional name is omitted', async ({page}) => {
+test('success without a reference still confirms; optional name is omitted [case:site.contact.submit.valid_posts_json]', async ({page}) => {
   let body;
   await page.route(API, route => { body = route.request().postDataJSON(); return route.fulfill({status: 202, json: {success: true, received: true}}); });
   await page.goto('/contact');
@@ -131,7 +131,7 @@ test('success without a reference still confirms; optional name is omitted', asy
   expect(body.website).toBe('');
 });
 
-test('client validation lists errors, focuses the summary and sends nothing', async ({page}) => {
+test('client validation lists errors, focuses the summary and sends nothing [case:site.contact.submit.client_validation]', async ({page}) => {
   let calls = 0;
   await page.route(API, route => { calls++; return route.fulfill({status: 202, json: {success: true}}); });
   await page.goto('/contact');
@@ -167,7 +167,7 @@ test('client validation lists errors, focuses the summary and sends nothing', as
   expect(calls).toBe(0);
 });
 
-test('server validation message is shown and the form is kept', async ({page}) => {
+test('server validation message is shown and the form is kept [case:site.contact.submit.server_errors]', async ({page}) => {
   await page.route(API, route => route.fulfill({status: 400, json: {success: false, error: 'subject must be between 4 and 120 characters'}}));
   await page.goto('/contact');
   const v = await fillValid(page);
@@ -179,7 +179,7 @@ test('server validation message is shown and the form is kept', async ({page}) =
   await expect(page.locator('#contact-submit')).toHaveText('Send message');
 });
 
-test('rate limit, disabled feature and outages show their messages', async ({page}) => {
+test('rate limit, disabled feature and outages show their messages [case:site.contact.submit.server_errors]', async ({page}) => {
   let reply = route => route.fulfill({status: 429, json: {error_code: 'SUPPORT_RATE_LIMITED', retry_after_seconds: 600}});
   await page.route(API, route => reply(route));
   await page.goto('/contact');
@@ -209,7 +209,7 @@ test('rate limit, disabled feature and outages show their messages', async ({pag
   await expect(page.locator('#contact-reference')).toContainText('CN-2026-000125');
 });
 
-test('localised contact page sends its locale and shows translated copy', async ({page}) => {
+test('localised contact page sends its locale and shows translated copy [case:site.contact.locale]', async ({page}) => {
   const problems = await watch(page);
   let body;
   await page.route(API, route => { body = route.request().postDataJSON(); return route.fulfill({status: 202, json: {success: true, received: true, reference: 'CN-2026-000126'}}); });
@@ -237,4 +237,42 @@ test('localised contact page sends its locale and shows translated copy', async 
     await expect(page.locator('#contact-form')).toBeVisible();
   }
   expect(problems).toEqual([]);
+});
+
+// Against the real stack (no page.route): while support_ticketing_enabled is
+// off the BFF refuses public contact messages with 403 FEATURE_DISABLED and
+// the page explains it without losing what was typed. A probe with an empty
+// body tells the states apart without ever creating a ticket (flag off → 403
+// FEATURE_DISABLED before validation; flag on → 400 validation error). The
+// flag-on path is covered with mocks above.
+test('live stack: with support switched off the form explains it and keeps the message [case:site.contact.flag_off.live]', async ({page, request}) => {
+  const problems = await watch(page);
+  const probe = await request.post('/v1/support/contact', {data: {}});
+  const probeBody = await probe.json().catch(() => ({}));
+  test.skip(probeBody.error_code !== 'FEATURE_DISABLED', `support_ticketing_enabled is on here (probe ${probe.status()}); flag-on paths are mocked`);
+  expect(probe.status()).toBe(403);
+  expect(probeBody.feature_flag).toBe('support_ticketing_enabled');
+
+  await page.goto('/contact');
+  await expect(page.locator('#contact-form')).toBeVisible();
+  const v = await fillValid(page, {subject: 'Live flag-off check', description: 'QA: the contact form while support is switched off.'});
+  const sent = page.waitForRequest(r => r.url().endsWith('/v1/support/contact') && r.method() === 'POST');
+  const answered = page.waitForResponse(r => r.url().endsWith('/v1/support/contact') && r.request().method() === 'POST');
+  await page.locator('#contact-submit').click();
+  const body = (await sent).postDataJSON();
+  expect(body).toEqual({email: v.email, name: v.name, category: v.category, subject: v.subject, description: v.description, locale: 'en', website: ''});
+  const response = await answered;
+  expect(response.status()).toBe(403);
+  expect((await response.json()).error_code).toBe('FEATURE_DISABLED');
+
+  await expect(alert(page)).toBeFocused();
+  await expect(alert(page)).toHaveText('The contact form isn’t available right now. If you have an account, sign in and use Help & support in the app, or try again later.');
+  await expect(page.locator('#contact-success')).toBeHidden();
+  await expect(page.locator('#contact-form')).toBeVisible();
+  await expect(page.getByLabel('Subject')).toHaveValue(v.subject);
+  await expect(page.locator('#contact-description')).toHaveValue(v.description);
+  await expect(page.locator('#contact-submit')).toBeEnabled();
+  await expect(page.locator('#contact-submit')).toHaveText('Send message');
+  // The console error for the refused request is the browser's, not the page's.
+  expect(problems.filter(p => !p.includes('403'))).toEqual([]);
 });

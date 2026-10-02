@@ -7,8 +7,8 @@
   <p>Built days: <strong>{{ status.built_days|default:0 }}</strong> ({{ status.final_days|default:0 }} final) · {{ status.first_built_day|default:"—" }} → {{ status.last_built_day|default:"—" }} · reportable members now: <strong>{{ status.reportable_members|default:"—" }}</strong></p>
   {% if status.missing_days %}<p class="text-warning">Missing in the last {{ status.window_days }} days: {{ status.missing_days|join:", " }}</p>{% else %}<p class="text-muted">No missing days in the last {{ status.window_days|default:35 }} days.</p>{% endif %}
   <h3 class="h6 mt-3">Excluded from every report</h3>
-  <table class="glass-table w-auto"><thead><tr><th scope="col">Rule</th><th scope="col" class="text-end">Accounts</th></tr></thead>
-  <tbody>{% for reason, n in status.exclusions.items %}<tr><td>{{ reason }}</td><td class="text-end">{{ n }}</td></tr>{% empty %}<tr><td colspan="2" class="text-muted">None</td></tr>{% endfor %}</tbody></table>
+  <div class="table-responsive"><table class="glass-table w-auto"><thead><tr><th scope="col">Rule</th><th scope="col" class="text-end">Accounts</th></tr></thead>
+  <tbody>{% for reason, n in status.exclusions.items %}<tr><td>{{ reason }}</td><td class="text-end">{{ n }}</td></tr>{% empty %}<tr><td colspan="2" class="text-muted">None</td></tr>{% endfor %}</tbody></table></div>
   <h3 class="h6 mt-3">Test-account rules</h3>
   <ul class="small">{% for s in status.settings %}<li><code>{{ s.key }}</code> = <code>{{ s.value }}</code> — {{ s.description }}</li>{% endfor %}</ul>
   <h3 class="h6 mt-3">Recent runs</h3>

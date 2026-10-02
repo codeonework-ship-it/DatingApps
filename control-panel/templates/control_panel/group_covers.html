@@ -19,7 +19,7 @@
       <form method="post" action="{% url 'group_cover_decision' cover.cover_id %}" class="d-inline">{% csrf_token %}<input type="hidden" name="decision" value="approved"><button class="btn btn-glow" type="submit">Approve</button></form>
       <form method="post" action="{% url 'group_cover_decision' cover.cover_id %}" class="row g-2 mt-2">{% csrf_token %}<input type="hidden" name="decision" value="rejected">
         <div class="col-md-9"><label for="reason-{{ cover.cover_id }}">Rejection reason (kept in the review record)</label><input id="reason-{{ cover.cover_id }}" name="reason" required minlength="{{ reason_min }}" maxlength="{{ reason_max }}" class="glass-input w-100" placeholder="Shows a person who has not agreed to be in the group cover"></div>
-        <div class="col-md-3 d-flex align-items-end"><button class="btn btn-outline-danger w-100" type="submit">Reject</button></div>
+        <div class="col-md-3 d-flex align-items-end"><button class="btn btn-danger-glass w-100" type="submit">Reject</button></div>
       </form>
       {% else %}<p>Status: {{ cover.status|title }}. Decided covers cannot be changed here; the owner can upload a new cover.</p>{% endif %}
     </div>

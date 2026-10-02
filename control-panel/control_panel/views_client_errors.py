@@ -17,7 +17,7 @@ from django.shortcuts import redirect, render
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_POST
 
-from .services.go_client import GoBFFClient
+from .services.go_client import GoBFFClient, bff_failure_status
 
 STATUSES = {'open': 'Open', 'resolved': 'Resolved', 'ignored': 'Ignored', 'all': 'All'}
 PLATFORMS = {
@@ -36,7 +36,7 @@ VERSION_RE = re.compile(r'^[0-9A-Za-z][0-9A-Za-z.+_-]*$')
 
 
 def _status(result):
-    return 200 if result.ok else (result.status_code or 502)
+    return 200 if result.ok else bff_failure_status(result.status_code)
 
 
 def _dicts(value):

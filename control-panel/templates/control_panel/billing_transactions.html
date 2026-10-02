@@ -1,4 +1,5 @@
 {% extends "control_panel/base.html" %}
+{% load custom_filters %}
 {% block topbar_title %}Billing Transactions{% endblock %}
 
 {% block content %}
@@ -13,7 +14,7 @@
 </div>
 
 {% if error %}
-<div class="alert-glass alert-glass-warning"><i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}</div>
+<div class="alert-glass warning"><i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}</div>
 {% endif %}
 
 <div class="glass-card">
@@ -34,13 +35,13 @@
       <tbody>
         {% for tx in transactions %}
         <tr>
-          <td class="text-muted small">{{ tx.created_at|date:"M d, Y H:i"|default:"—" }}</td>
+          <td class="text-muted small">{{ tx.created_at|isodate|date:"M d, Y H:i"|default:"—" }}</td>
           <td>
-            <a href="{% url 'user_detail' tx.user_id %}" class="text-decoration-none" style="color:var(--aqua);">
+            <a href="{% url 'user_detail' tx.user_id %}" class="text-decoration-none text-aqua">
               {{ tx.user_id|truncatechars:12 }}
             </a>
           </td>
-          <td style="color:var(--gold);font-weight:600;">
+          <td class="text-gold fw-semibold">
             {% if tx.coins > 0 %}+{% endif %}{{ tx.coins }}
           </td>
           <td class="text-muted">
@@ -63,7 +64,7 @@
   <!-- Pagination -->
   <div class="d-flex justify-content-between align-items-center mt-3">
     <span class="text-muted small">{{ total }} transaction{{ total|pluralize }}</span>
-    <div class="d-flex gap-2">
+    <div class="d-flex gap-2 flex-wrap">
       {% if offset > 0 %}
       <a href="?offset={{ prev_offset }}" class="btn btn-glass btn-sm">
         <i class="bi bi-chevron-left me-1"></i>Prev
@@ -78,7 +79,7 @@
   </div>
   {% else %}
   <div class="text-center py-5 text-muted">
-    <i class="bi bi-clock-history" style="font-size:2.5rem;opacity:0.3;"></i>
+    <i class="bi bi-clock-history empty-icon-sm"></i>
     <p class="mt-2">No transactions found.</p>
   </div>
   {% endif %}

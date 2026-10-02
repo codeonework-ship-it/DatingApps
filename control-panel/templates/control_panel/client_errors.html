@@ -13,35 +13,35 @@
 {% if error %}<div class="alert-glass warning" role="alert"><i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}</div>{% endif %}
 
 <div class="row g-3 mb-4">
-  <div class="col-6 col-md-3"><a class="glass-card d-block text-center py-3 text-decoration-none" href="?status=open"><div style="font-size:1.6rem;font-weight:700;color:var(--aqua);">{{ summary.open|default:"0" }}</div><div class="text-muted small">Open</div></a></div>
-  <div class="col-6 col-md-3"><a class="glass-card d-block text-center py-3 text-decoration-none" href="?status=open&amp;fatal=true"><div style="font-size:1.6rem;font-weight:700;color:#ef4444;">{{ summary.fatal_open|default:"0" }}</div><div class="text-muted small">Open fatal</div></a></div>
-  <div class="col-6 col-md-3"><a class="glass-card d-block text-center py-3 text-decoration-none" href="?status=resolved"><div style="font-size:1.6rem;font-weight:700;color:#22c55e;">{{ summary.resolved|default:"0" }}</div><div class="text-muted small">Resolved</div></a></div>
-  <div class="col-6 col-md-3"><a class="glass-card d-block text-center py-3 text-decoration-none" href="?status=ignored"><div style="font-size:1.6rem;font-weight:700;color:#94a3b8;">{{ summary.ignored|default:"0" }}</div><div class="text-muted small">Ignored</div></a></div>
+  <div class="col-6 col-md-3"><a class="glass-card d-block text-center py-3 text-decoration-none" href="?status=open"><div class="stat-value text-aqua">{{ summary.open|default:"0" }}</div><div class="text-muted small">Open</div></a></div>
+  <div class="col-6 col-md-3"><a class="glass-card d-block text-center py-3 text-decoration-none" href="?status=open&amp;fatal=true"><div class="stat-value text-danger-soft">{{ summary.fatal_open|default:"0" }}</div><div class="text-muted small">Open fatal</div></a></div>
+  <div class="col-6 col-md-3"><a class="glass-card d-block text-center py-3 text-decoration-none" href="?status=resolved"><div class="stat-value text-success-soft">{{ summary.resolved|default:"0" }}</div><div class="text-muted small">Resolved</div></a></div>
+  <div class="col-6 col-md-3"><a class="glass-card d-block text-center py-3 text-decoration-none" href="?status=ignored"><div class="stat-value text-slate">{{ summary.ignored|default:"0" }}</div><div class="text-muted small">Ignored</div></a></div>
 </div>
 
 <div class="glass-card mb-4">
   <form method="get" class="row g-3 align-items-end" aria-label="Filter client errors">
     <div class="col-lg-2 col-md-4 col-6">
-      <label for="ce-status" class="form-label text-muted small">Status</label>
+      <label for="ce-status" class="form-label">Status</label>
       <select id="ce-status" name="status" class="form-select glass-select">{% for key, label in statuses %}<option value="{{ key }}"{% if key == filters.status %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
     </div>
     <div class="col-lg-2 col-md-4 col-6">
-      <label for="ce-platform" class="form-label text-muted small">Platform</label>
+      <label for="ce-platform" class="form-label">Platform</label>
       <select id="ce-platform" name="platform" class="form-select glass-select"><option value="">All platforms</option>{% for key, label in platforms %}<option value="{{ key }}"{% if key == filters.platform %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
     </div>
     <div class="col-lg-2 col-md-4 col-6">
-      <label for="ce-version" class="form-label text-muted small">App version</label>
+      <label for="ce-version" class="form-label">App version</label>
       <input id="ce-version" name="version" value="{{ filters.version }}" maxlength="64" class="form-control glass-input" placeholder="e.g. 1.4.2">
     </div>
     <div class="col-lg-2 col-md-4 col-6">
-      <label for="ce-fatal" class="form-label text-muted small">Severity</label>
+      <label for="ce-fatal" class="form-label">Severity</label>
       <select id="ce-fatal" name="fatal" class="form-select glass-select">{% for key, label in fatal_options %}<option value="{{ key }}"{% if key == filters.fatal %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
     </div>
     <div class="col-lg-2 col-md-4 col-6">
-      <label for="ce-sort" class="form-label text-muted small">Sort by</label>
+      <label for="ce-sort" class="form-label">Sort by</label>
       <select id="ce-sort" name="sort" class="form-select glass-select">{% for key, label in sorts %}<option value="{{ key }}"{% if key == filters.sort %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
     </div>
-    <div class="col-lg-2 col-md-4 col-6 d-flex gap-2">
+    <div class="col-lg-2 col-md-4 col-6 d-flex gap-2 flex-wrap">
       <button type="submit" class="btn btn-glow"><i class="bi bi-funnel-fill me-1"></i>Filter</button>
       <a href="{% url 'client_errors' %}" class="btn btn-glass">Clear</a>
     </div>
@@ -51,7 +51,7 @@
 <div class="glass-card">
   <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
     <span class="text-muted small">Showing {{ issues|length }} of {{ total }} issue{{ total|pluralize }}{% if offset > 0 %} (offset {{ offset }}){% endif %}</span>
-    <nav class="d-flex gap-2" aria-label="Issue pages">
+    <nav class="d-flex gap-2 flex-wrap" aria-label="Issue pages">
       {% if offset > 0 %}<a href="?{{ filter_query }}&amp;offset={{ prev_offset }}" class="btn btn-glass btn-sm"><i class="bi bi-chevron-left"></i> Previous</a>{% endif %}
       {% if has_more %}<a href="?{{ filter_query }}&amp;offset={{ next_offset }}" class="btn btn-glass btn-sm">Next <i class="bi bi-chevron-right"></i></a>{% endif %}
     </nav>
@@ -65,7 +65,7 @@
       <tbody>
         {% for issue in issues %}
         <tr>
-          <td style="max-width:420px;">
+          <td class="mw-cell-xxl">
             <a href="{% url 'client_error_detail' issue.id %}" class="fw-semibold">{{ issue.title|default:"Untitled error" }}</a>
             <div class="small font-monospace text-muted text-break">{{ issue.error_type|default:"—" }}{% if issue.culprit %} · {{ issue.culprit }}{% endif %}</div>
           </td>
@@ -87,7 +87,7 @@
   </div>
   {% else %}
   <div class="text-center py-5 text-muted">
-    <i class="bi bi-bug" style="font-size:3rem;opacity:0.3;"></i>
+    <i class="bi bi-bug empty-icon"></i>
     <p class="mt-2 mb-0">{% if error %}Issues could not be loaded.{% else %}No issues match these filters.{% endif %}</p>
   </div>
   {% endif %}

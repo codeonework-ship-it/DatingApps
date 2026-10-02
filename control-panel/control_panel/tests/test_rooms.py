@@ -40,6 +40,7 @@ class RoomsViewTest(TestCase):
         session.save()
 
     def test_requires_login_and_csrf(self):
+        """[case:console.moderation_rooms.room_action.authz] [case:console.moderation_rooms.room_role.authz]"""
         self.assertEqual(Client().get(reverse('rooms')).status_code, 302)
         client = Client(enforce_csrf_checks=True)
         session = client.session
@@ -51,6 +52,7 @@ class RoomsViewTest(TestCase):
 
     @patch('control_panel.views_rooms.GoBFFClient')
     def test_lists_and_filters_rooms_escaped(self, cls):
+        """[case:console.moderation_rooms.rooms.renders]"""
         cls.return_value.admin_rooms.return_value = _rooms_payload()
         response = self.client.get(reverse('rooms'))
         self.assertContains(response, '&lt;b&gt;Late-night talks&lt;/b&gt;')
@@ -83,6 +85,7 @@ class RoomsViewTest(TestCase):
 
     @patch('control_panel.views_rooms.GoBFFClient')
     def test_api_errors_are_shown(self, cls):
+        """[case:console.moderation_rooms.rooms.renders]"""
         cls.return_value.admin_rooms.return_value = APIResult(False, {}, error='forbidden', status_code=403)
         response = self.client.get(reverse('rooms'))
         self.assertEqual(response.status_code, 403)
@@ -90,6 +93,7 @@ class RoomsViewTest(TestCase):
 
     @patch('control_panel.views_rooms.GoBFFClient')
     def test_detail_shows_room_actions_and_people(self, cls):
+        """[case:console.moderation_rooms.room_detail.renders]"""
         cls.return_value.admin_rooms.return_value = _rooms_payload()
         response = self.client.get(reverse('room_detail', args=[ALWAYS_ON]))
         self.assertContains(response, 'Keep it kind')
@@ -102,6 +106,7 @@ class RoomsViewTest(TestCase):
 
     @patch('control_panel.views_rooms.GoBFFClient')
     def test_detail_lists_members_with_per_member_actions(self, cls):
+        """[case:console.moderation_rooms.room_detail.renders]"""
         cls.return_value.admin_rooms.return_value = _rooms_payload()
         cls.return_value.room_members.return_value = APIResult(True, {'members': [
             {'user_id': OTHER, 'name': '<i>Ravi</i>', 'role': 'moderator', 'status': 'joined', 'in_room': True,
@@ -134,6 +139,7 @@ class RoomsViewTest(TestCase):
 
     @patch('control_panel.views_rooms.GoBFFClient')
     def test_member_list_failure_keeps_the_page(self, cls):
+        """[case:console.moderation_rooms.room_detail.renders]"""
         cls.return_value.admin_rooms.return_value = _rooms_payload()
         cls.return_value.room_members.return_value = APIResult(False, {}, error='members unavailable', status_code=503)
         response = self.client.get(reverse('room_detail', args=[ALWAYS_ON]))
@@ -144,6 +150,7 @@ class RoomsViewTest(TestCase):
 
     @patch('control_panel.views_rooms.GoBFFClient')
     def test_member_row_unmute_uses_the_action_flow(self, cls):
+        """[case:console.moderation_rooms.room_action.performs]"""
         cls.return_value.admin_rooms.return_value = _rooms_payload()
         cls.return_value.room_members.return_value = APIResult(True, {'members': []})
         cls.return_value.admin_room_action.return_value = APIResult(True, {'room': {}, 'moderation_action': {}})
@@ -155,6 +162,7 @@ class RoomsViewTest(TestCase):
 
     @patch('control_panel.views_rooms.GoBFFClient')
     def test_actions_validate_before_calling_api(self, cls):
+        """[case:console.moderation_rooms.room_action.performs]"""
         url = reverse('room_action', args=[ALWAYS_ON])
         self.client.post(url, {'action': 'warn_user', 'target_user_id': 'not-a-uuid', 'reason': 'Keep it kind'})
         self.client.post(url, {'action': 'warn_user', 'target_user_id': MEMBER, 'reason': 'no'})
@@ -164,6 +172,7 @@ class RoomsViewTest(TestCase):
 
     @patch('control_panel.views_rooms.GoBFFClient')
     def test_warn_mute_remove_and_close(self, cls):
+        """[case:console.moderation_rooms.room_action.performs]"""
         cls.return_value.admin_rooms.return_value = _rooms_payload()
         cls.return_value.admin_room_action.return_value = APIResult(True, {'room': {}, 'moderation_action': {}})
         url = reverse('room_action', args=[ALWAYS_ON])
@@ -181,6 +190,7 @@ class RoomsViewTest(TestCase):
 
     @patch('control_panel.views_rooms.GoBFFClient')
     def test_action_failure_is_reported(self, cls):
+        """[case:console.moderation_rooms.room_action.performs]"""
         cls.return_value.admin_rooms.return_value = _rooms_payload()
         cls.return_value.admin_room_action.return_value = APIResult(False, {}, error='member is not in this room', status_code=409)
         response = self.client.post(reverse('room_action', args=[ALWAYS_ON]),
@@ -189,6 +199,7 @@ class RoomsViewTest(TestCase):
 
     @patch('control_panel.views_rooms.GoBFFClient')
     def test_appoint_and_revoke_moderators(self, cls):
+        """[case:console.moderation_rooms.room_role.performs]"""
         cls.return_value.admin_rooms.return_value = _rooms_payload()
         cls.return_value.admin_room_role.return_value = APIResult(True, {'member_id': MEMBER, 'role': 'moderator'})
         url = reverse('room_role', args=[ALWAYS_ON])

@@ -1,21 +1,22 @@
 {% extends "control_panel/base.html" %}
+{% load custom_filters %}
 {% block topbar_title %}Safety — SOS Alerts{% endblock %}
 
 {% block content %}
 <div class="page-header">
   <div>
-    <h1><i class="bi bi-shield-exclamation header-icon" style="color:#ef4444;"></i> SOS Alerts</h1>
+    <h1><i class="bi bi-shield-exclamation header-icon text-danger-soft"></i> SOS Alerts</h1>
     <p class="text-muted mb-0">Real-time safety alerts requiring immediate review</p>
   </div>
 </div>
 
 {% if error %}
-<div class="alert-glass alert-glass-warning mb-3"><i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}</div>
+<div class="alert-glass warning mb-3"><i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}</div>
 {% endif %}
 
-{% with pending_count=alerts|length %}
+{% with pending_count=active_count %}
 {% if pending_count > 0 %}
-<div class="alert-glass alert-glass-error mb-4">
+<div class="alert-glass error mb-4">
   <i class="bi bi-exclamation-octagon-fill me-2"></i>
   <strong>{{ pending_count }} active SOS alert{{ pending_count|pluralize }}</strong> require your attention.
 </div>
@@ -55,7 +56,7 @@
               <span class="text-muted">Not shared</span>
             {% endif %}
           </td>
-          <td class="text-muted small">{{ alert.triggered_at|date:"M d, Y H:i"|default:"—" }}</td>
+          <td class="text-muted small">{{ alert.triggered_at|isodate|date:"M d, Y H:i"|default:"—" }}</td>
           <td>
             {% if alert.resolved_at %}
               <span class="badge badge-active">Resolved</span>
@@ -70,7 +71,7 @@
             <form method="post" action="{% url 'safety_sos_resolve' alert.id %}" class="d-inline">
               {% csrf_token %}
               <button type="submit" class="btn btn-success-glass btn-sm"
-                onclick="return confirm('Mark this SOS alert as resolved?')">
+                data-confirm="The alert is marked resolved and leaves the active queue." data-confirm-title="Resolve this SOS alert?" data-confirm-label="Mark resolved" data-confirm-tone="primary">
                 <i class="bi bi-check2-circle me-1"></i>Resolve
               </button>
             </form>
@@ -85,7 +86,7 @@
   </div>
   {% else %}
   <div class="text-center py-5 text-muted">
-    <i class="bi bi-shield-check" style="font-size:3rem;color:#22c55e;opacity:0.5;"></i>
+    <i class="bi bi-shield-check empty-icon text-success-soft"></i>
     <p class="mt-3 text-success">No active SOS alerts. All clear! ✅</p>
   </div>
   {% endif %}

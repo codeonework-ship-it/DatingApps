@@ -111,6 +111,53 @@ def _provision(username: str, password: str) -> None:
         pytest.fail(f"operator provisioning failed (exit {result.returncode}): {result.stderr.strip()[:300]}")
 
 
+# Catalog case each sidebar page proves when it loads cleanly (qa/catalog/feature_catalog.json).
+NAV_CASES = {
+    "/": "console.dashboard.dashboard.renders",
+    "/catalog/": "console.catalog.catalog_list.renders",
+    "/engagement/prompts/": "console.engagement.engagement_prompts.renders",
+    "/engagement/nudges/": "console.engagement.engagement_nudges.renders",
+    "/engagement/photo-themes/": "console.engagement.photo_themes.renders",
+    "/progression/": "console.progression.progression_admin.renders",
+    "/city-pilot/": "console.city_pilot.city_pilot.renders",
+    "/users/": "console.users.user_list.renders",
+    "/verifications/": "console.verifications.verification_queue.renders",
+    "/moderation/media/": "console.moderation_media.media_moderation_queue.renders",
+    "/moderation/blog/": "console.moderation_blog.blog_reviews.renders",
+    "/moderation/rooms/": "console.moderation_rooms.rooms.renders",
+    "/moderation/group-covers/": "console.moderation_group_covers.group_covers.renders",
+    "/moderation/reports/": "console.moderation_reports.moderation_reports.renders",
+    "/appeals/": "console.appeals.appeal_queue.renders",
+    "/support/": "console.support.support_queue.renders",
+    "/support/dashboard/": "console.support.support_dashboard.renders",
+    "/support/canned/": "console.support.support_canned_responses.renders",
+    "/analytics/": "console.analytics.analytics_overview.renders",
+    "/analytics/funnel/": "console.analytics.analytics_funnel.renders",
+    "/analytics/retention/": "console.analytics.analytics_retention.renders",
+    "/analytics/engagement/": "console.analytics.analytics_engagement.renders",
+    "/analytics/liquidity/": "console.analytics.analytics_liquidity.renders",
+    "/analytics/safety/": "console.analytics.analytics_safety.renders",
+    "/analytics/data/": "console.analytics.analytics_data.renders",
+    "/business/": "console.business.business_revenue.renders",
+    "/business/subscriptions/": "console.business.business_subscriptions.renders",
+    "/business/conversion/": "console.business.business_conversion.renders",
+    "/business/coins/": "console.business.business_coins.renders",
+    "/business/referrals/": "console.business.business_referrals.renders",
+    "/business/markets/": "console.business.business_markets.renders",
+    "/business/investor-pack/": "console.business.business_investor_pack.renders",
+    "/business/spend/": "console.business.business_spend.renders",
+    "/billing/": "console.billing.billing_dashboard.renders",
+    "/config/flags/": "console.config.config_flags.renders",
+    "/growth/governance/": "console.growth.growth_governance.renders",
+    "/safety/sos/": "console.safety.safety_sos.renders",
+    "/account-recovery/": "console.account_recovery.account_recovery_queue.renders",
+    "/activities/": "console.activities.activity_feed.renders",
+    "/audit/": "console.audit.audit_log.renders",
+    "/events/": "console.events.domain_events.renders",
+    "/client-errors/": "console.client_errors.client_errors.renders",
+}
+
+
 _SESSION_CACHE: dict[str, requests.Session] = {}
 
 
@@ -168,6 +215,8 @@ def pytest_generate_tests(metafunc):
     params = []
     for link in links:
         marks = [pytest.mark.skip(reason="excluded via CONSOLE_SMOKE_EXCLUDE")] if link in EXCLUDED_NAV else []
+        if link in NAV_CASES:
+            marks.append(pytest.mark.case(NAV_CASES[link]))
         params.append(pytest.param(link, marks=marks, id=link))
     metafunc.parametrize("nav_path", params)
 

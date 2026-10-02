@@ -10,9 +10,9 @@
 {% endblock %}
 {% block business_after %}
 <div class="glass-card mb-4">
-  <div class="d-flex justify-content-between align-items-start gap-2 mb-2"><h6 class="mb-0">Checkout funnel</h6>
+  <div class="d-flex justify-content-between align-items-start gap-2 mb-2 flex-wrap"><h6 class="mb-0">Checkout funnel</h6>
     <a class="btn btn-sm btn-glass biz-noprint" href="{{ funnel_csv_url }}?table=funnel{% if query %}&{{ query }}{% endif %}"><i class="bi bi-download"></i> CSV</a></div>
-  {% if funnel_error %}<div class="alert-glass alert-glass-warning mb-2">{{ funnel_error }}</div>{% endif %}
+  {% if funnel_error %}<div class="alert-glass warning mb-2">{{ funnel_error }}</div>{% endif %}
   <div class="biz-note mb-2">{{ funnel.instrumentation.paywall_views }} · {{ funnel.instrumentation.platform }}</div>
   <div class="biz-chart mb-3"><canvas id="chart-funnel" aria-label="Checkout funnel"></canvas></div>
   {% if funnel_table.rows %}

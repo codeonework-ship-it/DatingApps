@@ -93,7 +93,19 @@ def _format(value, column: dict, suppressed: bool) -> str:
         return "—"
     unit = column.get("unit") or ""
     if isinstance(value, float):
-        text = f"{value:,.4f}".rstrip("0").rstrip(".") if abs(value) < 1000 else f"{value:,.1f}"
+        # Readable precision: one decimal for rates (82.5%) and large
+        # values, two up to 100, three significant figures below 1
+        # (0.284, 0.0812) so small ratios never round away.
+        if unit == "%" or abs(value) >= 100:
+            text = f"{value:,.1f}"
+        elif abs(value) >= 1:
+            text = f"{value:,.2f}"
+        elif value == 0 or abs(value) >= 1e-4:
+            text = f"{value:.3g}"
+        else:
+            text = f"{value:.6f}"
+        if "." in text:
+            text = text.rstrip("0").rstrip(".")
     elif isinstance(value, int) and not isinstance(value, bool):
         text = f"{value:,}" if column.get("kind") != "dimension" else str(value)
     else:

@@ -25,6 +25,7 @@ class UserDetailStatusTest(TestCase):
 
     @patch("control_panel.views.GoBFFClient")
     def test_known_member_renders_200(self, client_cls):
+        """[case:console.users.user_detail.renders]"""
         self._client(
             client_cls,
             APIResult(ok=True, data={"user": {"id": MEMBER_ID, "name": "Workflow QA", "username": "qaweb1001_m4"}}, status_code=200),
@@ -35,6 +36,7 @@ class UserDetailStatusTest(TestCase):
 
     @patch("control_panel.views.GoBFFClient")
     def test_unknown_member_is_404_not_200(self, client_cls):
+        """[case:console.users.user_detail.renders]"""
         # Regression (CON-02): the BFF says 404 but the console answered 200.
         self._client(client_cls, APIResult(ok=False, data={}, error="user not found", status_code=404))
         response = self.client.get(reverse("user_detail", args=["00000000-0000-4000-8000-000000000000"]))
@@ -43,6 +45,7 @@ class UserDetailStatusTest(TestCase):
 
     @patch("control_panel.views.GoBFFClient")
     def test_bff_outage_still_renders_page_with_error(self, client_cls):
+        """[case:console.users.user_detail.renders]"""
         self._client(client_cls, APIResult(ok=False, data={}, error="upstream timeout", status_code=503))
         response = self.client.get(reverse("user_detail", args=[MEMBER_ID]))
         self.assertEqual(response.status_code, 200)
@@ -69,6 +72,7 @@ class UserDetailTransactionsTest(TestCase):
 
     @patch("control_panel.views.GoBFFClient")
     def test_transactions_are_requested_for_this_member(self, client_cls):
+        """[case:console.users.user_detail.renders]"""
         client = self._client(client_cls, [
             {"user_id": MEMBER_ID, "coins": 120, "source": "purchase", "provider": "stripe"},
         ])
@@ -84,6 +88,7 @@ class UserDetailTransactionsTest(TestCase):
 
     @patch("control_panel.views.GoBFFClient")
     def test_other_members_rows_are_never_shown_and_partial_list_is_flagged(self, client_cls):
+        """[case:console.users.user_detail.renders]"""
         # A BFF that ignores user_id answers with platform-wide rows.
         self._client(client_cls, [
             {"user_id": "11111111-1111-4111-8111-111111111111", "coins": 999, "source": "purchase"},

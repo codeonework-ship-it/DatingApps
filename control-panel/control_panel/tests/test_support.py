@@ -95,6 +95,7 @@ class SupportTestBase(TestCase):
 
 class SupportQueueViewTest(SupportTestBase):
     def test_requires_login_and_csrf(self):
+        """[case:console.support.support_ticket_reply.authz] [case:console.support.support_ticket_claim.authz] [case:console.support.support_bulk.authz] [case:console.support.support_ticket_update.authz] [case:console.support.support_canned_save.authz] [case:console.support.support_canned_deactivate.authz]"""
         anonymous = Client()
         for url in (reverse('support_queue'), reverse('support_dashboard'), reverse('support_canned_responses'),
                     reverse('support_ticket_detail', args=[TICKET]), reverse('support_attachment', args=[ATTACHMENT]),
@@ -113,6 +114,7 @@ class SupportQueueViewTest(SupportTestBase):
 
     @patch('control_panel.views_support.GoBFFClient')
     def test_queue_renders_filters_badges_and_controls(self, cls):
+        """[case:console.support.support_queue.renders]"""
         api = cls.return_value
         api.list_support_tickets.return_value = APIResult(True, {
             'success': True, 'tickets': [_ticket(), _ticket(id=OTHER, reference='CN-2026-000124', assignee=None,
@@ -151,6 +153,7 @@ class SupportQueueViewTest(SupportTestBase):
 
     @patch('control_panel.views_support.GoBFFClient')
     def test_invalid_filters_fall_back_to_defaults(self, cls):
+        """[case:console.support.support_queue.renders]"""
         api = cls.return_value
         api.list_support_tickets.return_value = APIResult(True, {'tickets': [], 'total': 0})
         api.support_agents.return_value = AGENTS
@@ -164,6 +167,7 @@ class SupportQueueViewTest(SupportTestBase):
 
     @patch('control_panel.views_support.GoBFFClient')
     def test_analyst_sees_no_mutation_controls_and_posts_are_refused(self, cls):
+        """[case:console.support.support_queue.renders] [case:console.support.support_ticket_claim.authz] [case:console.support.support_bulk.authz] [case:console.support.support_ticket_reply.authz] [case:console.support.support_ticket_update.authz] [case:console.support.support_canned_save.authz] [case:console.support.support_attachment.renders]"""
         api = cls.return_value
         api.list_support_tickets.return_value = FORBIDDEN
         api.support_agents.return_value = FORBIDDEN
@@ -192,6 +196,7 @@ class SupportQueueViewTest(SupportTestBase):
 
     @patch('control_panel.views_support.GoBFFClient')
     def test_go_403_on_post_is_explained(self, cls):
+        """[case:console.support.support_ticket_claim.performs]"""
         cls.return_value.claim_support_ticket.return_value = FORBIDDEN
         cls.return_value.get_support_ticket.return_value = FORBIDDEN
         cls.return_value.support_agents.return_value = FORBIDDEN
@@ -202,6 +207,7 @@ class SupportQueueViewTest(SupportTestBase):
 
     @patch('control_panel.views_support.GoBFFClient')
     def test_bulk_actions_validate_and_forward(self, cls):
+        """[case:console.support.support_bulk.performs]"""
         api = cls.return_value
         api.list_support_tickets.return_value = APIResult(True, {'tickets': [], 'total': 0})
         api.support_agents.return_value = AGENTS
@@ -236,6 +242,7 @@ class SupportQueueViewTest(SupportTestBase):
 
     @patch('control_panel.views_support.GoBFFClient')
     def test_claim_from_queue_returns_to_filtered_queue(self, cls):
+        """[case:console.support.support_ticket_claim.performs]"""
         cls.return_value.claim_support_ticket.return_value = APIResult(True, {'ticket': _ticket(assignee={'id': ME})})
         response = self.client.post(reverse('support_ticket_claim', args=[TICKET]),
                                     {'next': '/support/?assignee=unassigned', 'ticket_ids': [OTHER]})
@@ -248,6 +255,7 @@ class SupportQueueViewTest(SupportTestBase):
 class SupportExportTest(SupportTestBase):
     @patch('control_panel.views_support.GoBFFClient')
     def test_csv_export_streams_with_filters(self, cls):
+        """[case:console.support.support_export.renders]"""
         cls.return_value.export_support_tickets.return_value = StreamAPIResult(
             True, chunks=iter([b'reference,subject\r\n', b'CN-2026-000123,Crash\r\n']), content_type='text/csv; charset=utf-8')
         response = self.client.get(reverse('support_export'), {'status': 'all', 'team': 'trust_safety', 'q': 'crash'})
@@ -264,6 +272,7 @@ class SupportExportTest(SupportTestBase):
 
     @patch('control_panel.views_support.GoBFFClient')
     def test_export_failure_and_wrong_type(self, cls):
+        """[case:console.support.support_export.renders]"""
         cls.return_value.export_support_tickets.return_value = StreamAPIResult(False, error='boom', status_code=500)
         response = self.client.get(reverse('support_export'), {'team': 'billing'})
         self.assertEqual(response.status_code, 302)
@@ -289,6 +298,7 @@ class SupportTicketDetailTest(SupportTestBase):
 
     @patch('control_panel.views_support.GoBFFClient')
     def test_detail_renders_thread_notes_events_and_context(self, cls):
+        """[case:console.support.support_ticket_detail.renders]"""
         api = self._api(cls)
         response = self.client.get(reverse('support_ticket_detail', args=[TICKET]))
         api.get_support_ticket.assert_called_with(TICKET)
@@ -331,6 +341,7 @@ class SupportTicketDetailTest(SupportTestBase):
 
     @patch('control_panel.views_support.GoBFFClient')
     def test_support_only_role_hides_user_link_and_claim_when_mine(self, cls):
+        """[case:console.support.support_ticket_detail.renders]"""
         api = self._api(cls, _detail(assignee={'id': ME, 'name': 'Me'}))
         response = self.client.get(reverse('support_ticket_detail', args=[TICKET]))
         self.assertNotContains(response, reverse('user_detail', args=[MEMBER]))
@@ -341,6 +352,7 @@ class SupportTicketDetailTest(SupportTestBase):
 
     @patch('control_panel.views_support.GoBFFClient')
     def test_website_contact_ticket_shows_email_note(self, cls):
+        """[case:console.support.support_ticket_detail.renders]"""
         detail = _detail(channel='website', requester={'kind': 'contact', 'member_id': None, 'display_name': 'Visitor Vee',
                                                        'username': None, 'email': 'vee@example.com'})
         detail['member_context'] = None
@@ -352,6 +364,7 @@ class SupportTicketDetailTest(SupportTestBase):
 
     @patch('control_panel.views_support.GoBFFClient')
     def test_read_only_detail_hides_controls(self, cls):
+        """[case:console.support.support_ticket_detail.renders]"""
         api = self._api(cls)
         api.get_support_ticket.return_value = FORBIDDEN
         api.support_agents.return_value = FORBIDDEN
@@ -362,6 +375,7 @@ class SupportTicketDetailTest(SupportTestBase):
 
     @patch('control_panel.views_support.GoBFFClient')
     def test_reply_posts_payload(self, cls):
+        """[case:console.support.support_ticket_reply.performs]"""
         api = self._api(cls)
         api.reply_support_ticket.return_value = APIResult(True, {'ticket': _ticket(), 'message': {}}, status_code=201)
         url = reverse('support_ticket_reply', args=[TICKET])
@@ -380,6 +394,7 @@ class SupportTicketDetailTest(SupportTestBase):
 
     @patch('control_panel.views_support.GoBFFClient')
     def test_reply_validation_keeps_draft(self, cls):
+        """[case:console.support.support_ticket_reply.performs]"""
         api = self._api(cls)
         url = reverse('support_ticket_reply', args=[TICKET])
         for data in ({'body': '', 'visibility': 'public'}, {'body': 'x', 'visibility': 'everyone'},
@@ -395,6 +410,7 @@ class SupportTicketDetailTest(SupportTestBase):
 
     @patch('control_panel.views_support.GoBFFClient')
     def test_update_sends_only_changed_fields(self, cls):
+        """[case:console.support.support_ticket_update.performs]"""
         api = self._api(cls)
         api.update_support_ticket.return_value = APIResult(True, {'ticket': _ticket()})
         url = reverse('support_ticket_update', args=[TICKET])
@@ -419,6 +435,7 @@ class SupportTicketDetailTest(SupportTestBase):
 
     @patch('control_panel.views_support.GoBFFClient')
     def test_merge_by_reference_and_id(self, cls):
+        """[case:console.support.support_ticket_merge.performs]"""
         api = self._api(cls)
         url = reverse('support_ticket_merge', args=[TICKET])
         self.client.post(url, {'into': 'CN-2026-000099'})
@@ -447,6 +464,7 @@ class SupportTicketDetailTest(SupportTestBase):
 
     @patch('control_panel.views_support.GoBFFClient')
     def test_canned_preview_proxy(self, cls):
+        """[case:console.support.support_canned_preview.performs]"""
         cls.return_value.preview_support_canned_response.return_value = APIResult(True, {'success': True, 'body': 'Hi Priya'})
         response = self.client.get(reverse('support_canned_preview', args=[TICKET, CANNED]))
         cls.return_value.preview_support_canned_response.assert_called_with(TICKET, CANNED)
@@ -461,6 +479,7 @@ class SupportTicketDetailTest(SupportTestBase):
 class SupportAttachmentProxyTest(SupportTestBase):
     @patch('control_panel.views_support.GoBFFClient')
     def test_image_inline_pdf_attachment_and_private_headers(self, cls):
+        """[case:console.support.support_attachment.renders]"""
         cls.return_value.support_attachment_content.return_value = StreamAPIResult(
             True, chunks=iter([b'\x89PNG', b'rest']), content_type='image/png',
             content_disposition='inline; filename="screen shot.png"', content_length='8')
@@ -488,6 +507,7 @@ class SupportAttachmentProxyTest(SupportTestBase):
 
     @patch('control_panel.views_support.GoBFFClient')
     def test_unsupported_and_missing(self, cls):
+        """[case:console.support.support_attachment.renders]"""
         cls.return_value.support_attachment_content.return_value = StreamAPIResult(
             True, chunks=iter([b'<script>']), content_type='text/html')
         self.assertEqual(self.client.get(reverse('support_attachment', args=[ATTACHMENT])).status_code, 415)
@@ -500,6 +520,7 @@ class SupportAttachmentProxyTest(SupportTestBase):
 class SupportCannedResponsesTest(SupportTestBase):
     @patch('control_panel.views_support.GoBFFClient')
     def test_list_includes_inactive_and_placeholder_help(self, cls):
+        """[case:console.support.support_canned_responses.renders]"""
         api = cls.return_value
         api.support_agents.return_value = AGENTS
         api.list_support_canned_responses.return_value = APIResult(True, {'canned_responses': [
@@ -520,6 +541,7 @@ class SupportCannedResponsesTest(SupportTestBase):
 
     @patch('control_panel.views_support.GoBFFClient')
     def test_create_edit_deactivate(self, cls):
+        """[case:console.support.support_canned_save.performs] [case:console.support.support_canned_deactivate.performs]"""
         api = cls.return_value
         api.support_agents.return_value = AGENTS
         api.list_support_canned_responses.return_value = APIResult(True, {'canned_responses': []})
@@ -564,6 +586,7 @@ class SupportDashboardTest(SupportTestBase):
 
     @patch('control_panel.views_support.GoBFFClient')
     def test_dashboard_renders_kpis_charts_and_safety(self, cls):
+        """[case:console.support.support_dashboard.renders]"""
         api = cls.return_value
         api.support_dashboard.return_value = APIResult(True, self.PAYLOAD)
         api.support_agents.return_value = AGENTS
@@ -588,6 +611,7 @@ class SupportDashboardTest(SupportTestBase):
 
     @patch('control_panel.views_support.GoBFFClient')
     def test_analyst_gets_dashboard_without_queue_links(self, cls):
+        """[case:console.support.support_dashboard.renders]"""
         api = cls.return_value
         api.support_dashboard.return_value = APIResult(True, self.PAYLOAD)
         api.support_agents.return_value = FORBIDDEN
@@ -599,6 +623,7 @@ class SupportDashboardTest(SupportTestBase):
 
     @patch('control_panel.views_support.GoBFFClient')
     def test_non_support_operator_is_denied(self, cls):
+        """[case:console.support.support_dashboard.renders]"""
         cls.return_value.support_dashboard.return_value = FORBIDDEN
         cls.return_value.support_agents.return_value = FORBIDDEN
         response = self.client.get(reverse('support_dashboard'))
@@ -698,6 +723,7 @@ class ConsoleDashboardSafetyCardTest(SupportTestBase):
 
     @patch('control_panel.views.GoBFFClient')
     def test_console_dashboard_shows_safety_ticket_card(self, cls):
+        """[case:console.dashboard.dashboard.renders]"""
         api = cls.return_value
         ok = APIResult(True, {})
         for name in ('health', 'readiness', 'list_verifications', 'list_activities', 'analytics_overview', 'list_users',

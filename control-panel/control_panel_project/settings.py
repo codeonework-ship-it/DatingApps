@@ -18,6 +18,8 @@ DEBUG = env_bool("DJANGO_DEBUG", True)
 ALLOWED_HOSTS = [item.strip() for item in os.getenv("DJANGO_ALLOWED_HOSTS", "*").split(",") if item.strip()]
 
 INSTALLED_APPS = [
+    # First, so `manage.py runserver` serves ASGI (pages + the live socket).
+    "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -25,6 +27,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "control_panel",
+    "channels",
 ]
 
 MIDDLEWARE = [
@@ -35,6 +38,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "control_panel.middleware.OperatorSessionMiddleware",
+    "control_panel.middleware.OperatorRoleGateMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
@@ -57,6 +61,12 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "control_panel_project.wsgi.application"
+ASGI_APPLICATION = "control_panel_project.asgi.application"
+
+# Live console updates (control_panel/consumers.py). The in-memory layer
+# reaches the sockets of one server process, which is how the console runs;
+# several processes would need a shared layer (e.g. channels-redis).
+CHANNEL_LAYERS = {"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
 
 DATABASES = {
     "default": {

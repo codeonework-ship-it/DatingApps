@@ -29,7 +29,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_POST
 
 from .operator_context import OPERATOR_ROLE_LABELS, USER_READ_ROLES
-from .services.go_client import GoBFFClient
+from .services.go_client import GoBFFClient, bff_failure_status
 
 PROJECT_NAME = 'AegisConnect'
 
@@ -161,7 +161,7 @@ def _number(value):
 
 
 def _status(result):
-    return 200 if result.ok else (result.status_code or 502)
+    return 200 if result.ok else bff_failure_status(result.status_code)
 
 
 def _parse_time(value):
@@ -755,7 +755,7 @@ def support_canned_preview(request, ticket_id, response_id):
     result = GoBFFClient().preview_support_canned_response(str(ticket_id), str(response_id))
     if result.ok:
         return JsonResponse({'body': str(_data(result).get('body') or '')})
-    return JsonResponse({'error': result.error or 'Preview unavailable.'}, status=result.status_code or 502)
+    return JsonResponse({'error': result.error or 'Preview unavailable.'}, status=bff_failure_status(result.status_code))
 
 
 @never_cache
@@ -766,7 +766,7 @@ def support_attachment(request, attachment_id):
         return HttpResponse('Forbidden', status=403, content_type='text/plain')
     result = GoBFFClient().support_attachment_content(str(attachment_id))
     if not result.ok:
-        return HttpResponse('Attachment unavailable', status=result.status_code or 502, content_type='text/plain')
+        return HttpResponse('Attachment unavailable', status=bff_failure_status(result.status_code), content_type='text/plain')
     content_type = (result.content_type or '').split(';')[0].strip().lower()
     if content_type not in ATTACHMENT_TYPES:
         close = getattr(result.chunks, 'close', None)

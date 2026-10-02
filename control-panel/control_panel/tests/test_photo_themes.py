@@ -12,6 +12,7 @@ class PhotoThemesViewTest(TestCase):
         session.save()
 
     def test_requires_login_and_csrf(self):
+        """[case:console.engagement.photo_theme_save.authz]"""
         self.assertEqual(Client().get(reverse('photo_themes')).status_code, 302)
         client = Client(enforce_csrf_checks=True)
         session = client.session
@@ -22,6 +23,7 @@ class PhotoThemesViewTest(TestCase):
 
     @patch('control_panel.views_photo_themes.GoBFFClient')
     def test_lists_themes_escaped(self, cls):
+        """[case:console.engagement.photo_themes.renders]"""
         cls.return_value.photo_themes.return_value = APIResult(True, {'themes': [
             {'slug': 'perfect-sunday', 'title': '<b>Sunday</b>', 'prompt': 'Show us', 'status': 'active', 'sort_order': 10, 'entry_count': 3}]})
         response = self.client.get(reverse('photo_themes'))
@@ -31,6 +33,7 @@ class PhotoThemesViewTest(TestCase):
 
     @patch('control_panel.views_photo_themes.GoBFFClient')
     def test_save_validates_before_calling_api(self, cls):
+        """[case:console.engagement.photo_theme_save.performs]"""
         self.client.post(reverse('photo_theme_save'), {'slug': 'Bad Slug', 'title': 'Ok title', 'prompt': 'A prompt'})
         cls.return_value.save_photo_theme.assert_not_called()
         cls.return_value.save_photo_theme.return_value = APIResult(True, {'themes': []})

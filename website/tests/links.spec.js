@@ -2,6 +2,7 @@ import {test, expect} from '@playwright/test';
 import {readFileSync} from 'node:fs';
 import {resolve} from 'node:path';
 import {generatedPages, standalonePages, websiteDir, excluded} from './support/site.js';
+import {createMember, signIn} from './support/member.js';
 
 // Crawls every internal href/src (and CSS url() assets) reachable from every
 // public page and checks each resolves. Deep links into the web app
@@ -18,7 +19,7 @@ const registeredAppRoutes = new Set([
 
 const sources = [...generatedPages.map(p => p.url), ...standalonePages];
 
-test('every internal link, asset and app deep link resolves', async ({page, request}) => {
+test('every internal link, asset and app deep link resolves [case:site.site_header.links_resolve]', async ({page, request}) => {
   test.setTimeout(240000);
   expect(registeredAppRoutes.has('/discover')).toBe(true);
   expect(registeredAppRoutes.has('/settings')).toBe(true);
@@ -36,7 +37,7 @@ test('every internal link, asset and app deep link resolves', async ({page, requ
       const url = new URL(ref, page.url());
       if (url.origin !== new URL(page.url()).origin) { external.add(url.href); continue; }
       const key = url.pathname + url.hash;
-      // The contact/support page is being built in another session; not crawled here.
+      // Pages deliberately left out of the crawl (support/site.js `excluded`; none today).
       if (excluded.test(url.pathname)) continue;
       if (!found.has(key)) found.set(key, source);
     }
@@ -67,7 +68,7 @@ test('every internal link, asset and app deep link resolves', async ({page, requ
   expect([...external]).toEqual([]);
 });
 
-test('same-page and cross-page anchors land on an element', async ({page}) => {
+test('same-page and cross-page anchors land on an element [case:site.site_header.links_resolve]', async ({page}) => {
   const anchors = new Set();
   for (const source of sources) {
     await page.goto(source);
@@ -84,4 +85,42 @@ test('same-page and cross-page anchors land on an element', async ({page}) => {
     if (await page.locator(`[id="${id}"]`).count() !== 1) missing.push(target);
   }
   expect(missing).toEqual([]);
+});
+
+// The feature cards on /features hand a signed-in member to the web app: each
+// link must land on its own workspace page (address kept, real page shown),
+// never on "page not found". A card whose capability is switched off by a
+// runtime flag shows the app's honest "isn't available yet" page; that is
+// recorded as an annotation (the website then advertises a switched-off
+// feature), not as a failure.
+test('every feature card opens its own page in the signed-in web app [case:site.features.feature_links.deep_links]', async ({page}) => {
+  test.setTimeout(300000);
+  await page.setViewportSize({width: 1440, height: 900});
+  await signIn(page, createMember('qalinks'));
+  await page.goto('/features');
+  const cards = await page.locator('[data-feature]').evaluateAll(list => list.map(c => ({
+    name: c.querySelector('h2').textContent.trim(), href: c.querySelector('a').getAttribute('href'),
+  })));
+  expect(cards.length).toBeGreaterThan(20);
+  const problems = [];
+  page.on('pageerror', e => problems.push(`pageerror: ${e.message}`));
+  for (const [index, card] of cards.entries()) {
+    await test.step(`${card.name} → ${card.href}`, async () => {
+      await page.goto('/features');
+      await page.locator('[data-feature] a').nth(index).click();
+      const route = card.href.split('#')[1];
+      await expect(page).toHaveURL(new RegExp(`/app/#${route}$`));
+      // Signed in after the reload: the workspace sidebar, not the sign-in form.
+      await expect(page.getByRole('button', {name: 'Sign out', exact: true})).toBeVisible({timeout: 30000});
+      await expect(page.getByRole('textbox', {name: 'username', exact: true})).toHaveCount(0);
+      await expect(page.getByText('This page could not be found.', {exact: true})).toHaveCount(0);
+      const unavailable = page.getByText(/ isn't available yet\.$/);
+      if (await unavailable.count()) {
+        test.info().annotations.push({type: 'feature switched off', description: `${card.name} (${card.href}): ${await unavailable.first().textContent()}`});
+        await expect(page.getByRole('button', {name: 'Back to Discover', exact: true})).toBeVisible();
+      }
+      await expect(page).toHaveURL(new RegExp(`/app/#${route}$`));
+    });
+  }
+  expect(problems).toEqual([]);
 });

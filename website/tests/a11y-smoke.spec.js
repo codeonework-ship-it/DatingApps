@@ -72,7 +72,7 @@ function audit() {
 
 // WEB-05 (fixed): features/safety/membership card titles are <h2>s under the
 // page <h1>, so heading levels never skip.
-test('WEB-05: heading levels never skip on generated pages', async ({page}) => {
+test('WEB-05: heading levels never skip on generated pages [case:site.site_header.a11y]', async ({page}) => {
   const skips = [];
   for (const {url} of generatedPages.filter(p => p.locale.prefix === '')) {
     await page.goto(url);
@@ -82,7 +82,7 @@ test('WEB-05: heading levels never skip on generated pages', async ({page}) => {
 });
 
 for (const {locale, url} of generatedPages) {
-  test(`a11y smoke ${url} [${locale.hreflang}]`, async ({page}) => {
+  test(`a11y smoke ${url} [${locale.hreflang}] [case:site.site_header.a11y]`, async ({page}) => {
     await page.goto(url);
     expect(await page.evaluate(audit)).toEqual([]);
     // Landmarks: banner, navigation (labelled), main, contentinfo.
@@ -97,14 +97,14 @@ for (const {locale, url} of generatedPages) {
 }
 
 for (const path of standalonePages) {
-  test(`a11y smoke ${path}`, async ({page}) => {
+  test(`a11y smoke ${path} [case:site.site_header.a11y]`, async ({page}) => {
     await page.goto(path);
     await page.waitForLoadState('networkidle');
     expect(await page.evaluate(audit)).toEqual([]);
   });
 }
 
-test('focus is visible on interactive header controls', async ({page}) => {
+test('focus is visible on interactive header controls [case:site.site_header.a11y]', async ({page}) => {
   await page.goto('/');
   for (let i = 0; i < 6; i++) {
     await page.keyboard.press('Tab');
@@ -118,7 +118,7 @@ test('focus is visible on interactive header controls', async ({page}) => {
 });
 
 // WEB-06 (fixed): the nav landmark label comes from each locale's `nav_label`.
-test('WEB-06: the main navigation landmark label is localised', async ({page}) => {
+test('WEB-06: the main navigation landmark label is localised [case:site.site_header.a11y]', async ({page}) => {
   const english = [];
   for (const {locale, url, page: name} of generatedPages) {
     if (name !== 'index') continue;

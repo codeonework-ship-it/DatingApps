@@ -42,7 +42,7 @@ async function headerOverlaps(page) {
 // locales. Up to 1000px the nav now collapses behind the menu button.
 const tabletHeaderLocales = ['de', 'fr', 'ru', 'pt'];
 
-test('WEB-04: tablet header fits at 768px in long-label locales', async ({page}) => {
+test('WEB-04: tablet header fits at 768px in long-label locales [case:site.site_header.menu_toggle.mobile]', async ({page}) => {
   await page.setViewportSize({width: 768, height: 1024});
   const failures = [];
   for (const locale of manifest.locales.filter(l => tabletHeaderLocales.includes(l.hreflang))) {
@@ -54,7 +54,7 @@ test('WEB-04: tablet header fits at 768px in long-label locales', async ({page})
   expect(failures).toEqual([]);
 });
 
-test('WEB-04: menu button drives the nav up to 1000px, inline nav from 1001px', async ({page}) => {
+test('WEB-04: menu button drives the nav up to 1000px, inline nav from 1001px [case:site.site_header.menu_toggle.mobile]', async ({page}) => {
   for (const locale of manifest.locales.filter(l => tabletHeaderLocales.includes(l.hreflang))) {
     const menu = page.getByRole('button', {name: locale.openMenu, exact: true});
     const firstLink = page.getByRole('navigation', {name: locale.navLabel, exact: true}).getByRole('link', {name: locale.nav[0], exact: true});
@@ -82,7 +82,7 @@ test('WEB-04: menu button drives the nav up to 1000px, inline nav from 1001px', 
 
 for (const viewport of viewports) {
   for (const locale of manifest.locales) {
-    test(`${locale.hreflang} pages fit ${viewport.name}`, async ({page}) => {
+    test(`${locale.hreflang} pages fit ${viewport.name} ${manifest.pages.map(p => `[case:site.${p}.renders_all_locales]`).join(' ')}`, async ({page}) => {
       await page.setViewportSize(viewport);
       const failures = [];
       for (const p of manifest.pages) {
@@ -106,7 +106,7 @@ for (const viewport of viewports) {
       expect(failures).toEqual([]);
     });
   }
-  test(`standalone pages fit ${viewport.name}`, async ({page}) => {
+  test(`standalone pages fit ${viewport.name} [case:site.story.layout] [case:site.chapter.layout]`, async ({page}) => {
     await page.setViewportSize(viewport);
     for (const path of standalonePages) {
       await page.goto(path);
@@ -116,7 +116,7 @@ for (const viewport of viewports) {
   });
 }
 
-test('open phone menu stays within the viewport and does not cover the header', async ({page}) => {
+test('open phone menu stays within the viewport and does not cover the header [case:site.site_header.menu_toggle.mobile]', async ({page}) => {
   for (const width of [360, 375]) {
     await page.setViewportSize({width, height: 780});
     for (const locale of manifest.locales) {

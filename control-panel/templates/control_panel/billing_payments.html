@@ -7,7 +7,7 @@
     <h1><i class="bi bi-receipt-cutoff header-icon"></i> Payments</h1>
     <p class="text-muted mb-0">Payment records from billing providers</p>
   </div>
-  <div class="d-flex gap-2">
+  <div class="d-flex gap-2 flex-wrap">
     <a href="{% url 'billing_dashboard' %}" class="btn btn-glass">
       <i class="bi bi-arrow-left me-2"></i>Billing
     </a>
@@ -15,7 +15,7 @@
 </div>
 
 {% if error %}
-<div class="alert-glass alert-glass-warning mb-3"><i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}</div>
+<div class="alert-glass warning mb-3"><i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}</div>
 {% endif %}
 
 <!-- Filters -->
@@ -58,12 +58,12 @@
       <tbody>
         {% for pay in payments %}
         <tr>
-          <td class="text-truncate" style="max-width:180px;" title="{{ pay.user_id }}">
-            <a href="{% url 'user_detail' pay.user_id %}" class="text-decoration-none" style="color:var(--aqua);">
+          <td class="text-truncate mw-cell-md" title="{{ pay.user_id }}">
+            <a href="{% url 'user_detail' pay.user_id %}" class="text-decoration-none text-aqua">
               {{ pay.user_id|truncatechars:12 }}
             </a>
           </td>
-          <td style="font-weight:600;color:var(--gold);">{{ pay.amount_paise }}</td>
+          <td class="text-gold fw-semibold">{{ pay.amount_paise }}</td>
           <td>{{ pay.currency }}</td>
           <td>
             {% if pay.status == "success" %}
@@ -76,8 +76,8 @@
             <span class="badge badge-inactive">{{ pay.status }}</span>
             {% endif %}
           </td>
-          <td class="text-truncate small" style="max-width:120px;" title="{{ pay.provider_payment_id }}">{{ pay.provider_payment_id|default:"—"|truncatechars:12 }}</td>
-          <td class="text-truncate small" style="max-width:120px;" title="{{ pay.provider_order_id }}">{{ pay.provider_order_id|default:"—"|truncatechars:12 }}</td>
+          <td class="text-truncate small mw-cell-xs" title="{{ pay.provider_payment_id }}">{{ pay.provider_payment_id|default:"—"|truncatechars:12 }}</td>
+          <td class="text-truncate small mw-cell-xs" title="{{ pay.provider_order_id }}">{{ pay.provider_order_id|default:"—"|truncatechars:12 }}</td>
           <td class="small">{{ pay.paid_at|default:"—"|truncatechars:10 }}</td>
           <td class="small">{{ pay.created_at|truncatechars:10 }}</td>
         </tr>
@@ -104,7 +104,7 @@
   </div>
   {% else %}
   <div class="text-center py-4 text-muted">
-    <i class="bi bi-receipt" style="font-size:2.5rem;opacity:0.3;"></i>
+    <i class="bi bi-receipt empty-icon-sm"></i>
     <p class="mt-2">No payments found.</p>
   </div>
   {% endif %}

@@ -64,7 +64,7 @@
 </div>
 <div class="glass-card">
   <h2 class="h5">Recent moderation actions</h2>
-  <table class="table"><thead><tr><th scope="col">When</th><th scope="col">Action</th><th scope="col">Member</th><th scope="col">By</th><th scope="col">Reason</th></tr></thead>
-  <tbody>{% for a in recent_actions %}<tr><td>{{ a.created_at }}</td><td>{{ a.action }}</td><td>{% if a.target_user_id %}<code>{{ a.target_user_id }}</code>{% else %}—{% endif %}</td><td>{% if a.moderator_user_id %}<code>{{ a.moderator_user_id }}</code>{% else %}—{% endif %}</td><td>{{ a.reason }}</td></tr>{% empty %}<tr><td colspan="5">No recent actions in this room.</td></tr>{% endfor %}</tbody></table>
+  <div class="table-responsive"><table class="table"><thead><tr><th scope="col">When</th><th scope="col">Action</th><th scope="col">Member</th><th scope="col">By</th><th scope="col">Reason</th></tr></thead>
+  <tbody>{% for a in recent_actions %}<tr><td>{{ a.created_at }}</td><td>{{ a.action }}</td><td>{% if a.target_user_id %}<code>{{ a.target_user_id }}</code>{% else %}—{% endif %}</td><td>{% if a.moderator_user_id %}<code>{{ a.moderator_user_id }}</code>{% else %}—{% endif %}</td><td>{{ a.reason }}</td></tr>{% empty %}<tr><td colspan="5">No recent actions in this room.</td></tr>{% endfor %}</tbody></table></div>
 </div>
 {% endblock %}

@@ -13,7 +13,7 @@
   <div class="table-responsive"><table class="glass-table w-100">
     <caption class="small text-muted">Share of each signup week active in week k after it. Darker = higher. Blank = week not complete yet.</caption>
     <thead><tr>{% for c in triangle.columns %}<th scope="col"{% if c.kind != 'dimension' %} class="text-end"{% endif %}>{{ c.label }}</th>{% endfor %}</tr></thead>
-    <tbody>{% for row in triangle.rows %}<tr>{% for cell in row.cells %}<td class="{% if cell.numeric %}text-end{% endif %}"{% if cell.heat is not None %} style="background: rgba(57,135,229,{{ cell.heat }})"{% endif %}>{% if cell.suppressed %}&lt;5{% elif cell.text == '—' and cell.heat is None and cell.numeric %}{% else %}{{ cell.text }}{% endif %}</td>{% endfor %}</tr>{% empty %}<tr><td class="text-muted">No complete cohort weeks in this range.</td></tr>{% endfor %}</tbody>
+    <tbody>{% for row in triangle.rows %}<tr>{% for cell in row.cells %}<td class="{% if cell.numeric %}text-end{% endif %} heat-cell"{% if cell.heat is not None %} style="--heat: {{ cell.heat }}"{% endif %}>{% if cell.suppressed %}&lt;5{% elif cell.text == '—' and cell.heat is None and cell.numeric %}{% else %}{{ cell.text }}{% endif %}</td>{% endfor %}</tr>{% empty %}<tr><td class="text-muted">No complete cohort weeks in this range.</td></tr>{% endfor %}</tbody>
   </table></div>
   {% if range.definition %}<p class="small text-muted mt-2">{{ range.definition }}</p>{% endif %}
 </section>

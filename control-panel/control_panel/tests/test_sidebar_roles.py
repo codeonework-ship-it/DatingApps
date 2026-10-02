@@ -37,8 +37,8 @@ class SidebarRoleFilteringTest(TestCase):
             response = self.client.get(reverse("activity_feed"))
         self.assertEqual(response.status_code, 200)
         html = response.content.decode()
-        sidebar = html[html.index('<aside class="sidebar"'):html.index("</aside>")]
-        hrefs = set(re.findall(r'<a href="([^"]+)" class="nav-item-link', sidebar))
+        sidebar = html[html.index('<aside class="sidebar'):html.index("</aside>")]
+        hrefs = set(re.findall(r'<a href="([^"]+)"[^>]*class="nav-item-link', sidebar))
         by_path = {reverse(name): name for name in ALL_LINKS}
         return {by_path[h] for h in hrefs}, sidebar
 

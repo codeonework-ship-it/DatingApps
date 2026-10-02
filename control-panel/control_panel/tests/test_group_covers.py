@@ -30,6 +30,7 @@ class GroupCoversViewTest(TestCase):
         session.save()
 
     def test_requires_login_and_csrf(self):
+        """[case:console.moderation_group_covers.group_cover_decision.authz]"""
         self.assertEqual(Client().get(reverse('group_covers')).status_code, 302)
         self.assertEqual(Client().get(reverse('group_cover_content', args=[COVER])).status_code, 302)
         client = Client(enforce_csrf_checks=True)
@@ -41,6 +42,7 @@ class GroupCoversViewTest(TestCase):
 
     @patch('control_panel.views_group_covers.GoBFFClient')
     def test_pending_queue_lists_covers_with_actions(self, cls):
+        """[case:console.moderation_group_covers.group_covers.renders]"""
         cls.return_value.group_covers.return_value = APIResult(True, {'items': [_item()], 'count': 1, 'status': 'pending'})
         response = self.client.get(reverse('group_covers'))
         cls.return_value.group_covers.assert_called_with(status='pending')
@@ -60,6 +62,7 @@ class GroupCoversViewTest(TestCase):
 
     @patch('control_panel.views_group_covers.GoBFFClient')
     def test_approved_tab_is_read_only_and_unknown_status_falls_back(self, cls):
+        """[case:console.moderation_group_covers.group_covers.renders]"""
         cls.return_value.group_covers.return_value = APIResult(True, {'items': [_item(status='approved')]})
         response = self.client.get(reverse('group_covers'), {'status': 'approved'})
         cls.return_value.group_covers.assert_called_with(status='approved')
@@ -71,12 +74,14 @@ class GroupCoversViewTest(TestCase):
 
     @patch('control_panel.views_group_covers.GoBFFClient')
     def test_api_errors_are_shown(self, cls):
+        """[case:console.moderation_group_covers.group_covers.renders]"""
         cls.return_value.group_covers.return_value = APIResult(False, {}, error='forbidden', status_code=403)
         response = self.client.get(reverse('group_covers'))
         self.assertContains(response, 'forbidden', status_code=403)
 
     @patch('control_panel.views_group_covers.GoBFFClient')
     def test_content_proxy_streams_images_only(self, cls):
+        """[case:console.moderation_group_covers.group_cover_content.renders]"""
         cls.return_value.group_cover_content.return_value = BinaryAPIResult(True, b'jpeg-bytes', 'image/jpeg', '', 200)
         response = self.client.get(reverse('group_cover_content', args=[COVER]))
         cls.return_value.group_cover_content.assert_called_with(COVER)
@@ -92,6 +97,7 @@ class GroupCoversViewTest(TestCase):
 
     @patch('control_panel.views_group_covers.GoBFFClient')
     def test_decisions_validate_before_calling_api(self, cls):
+        """[case:console.moderation_group_covers.group_cover_decision.performs]"""
         url = reverse('group_cover_decision', args=[COVER])
         self.client.post(url, {'decision': 'delete', 'reason': 'Not allowed here'})
         self.client.post(url, {'decision': 'rejected', 'reason': ''})
@@ -103,6 +109,7 @@ class GroupCoversViewTest(TestCase):
 
     @patch('control_panel.views_group_covers.GoBFFClient')
     def test_approve_and_reject(self, cls):
+        """[case:console.moderation_group_covers.group_cover_decision.performs]"""
         cls.return_value.group_covers.return_value = APIResult(True, {'items': []})
         cls.return_value.group_cover_decision.return_value = APIResult(True, {'cover_id': COVER, 'status': 'approved'})
         url = reverse('group_cover_decision', args=[COVER])
@@ -115,6 +122,7 @@ class GroupCoversViewTest(TestCase):
 
     @patch('control_panel.views_group_covers.GoBFFClient')
     def test_decision_failure_is_reported(self, cls):
+        """[case:console.moderation_group_covers.group_cover_decision.performs]"""
         cls.return_value.group_covers.return_value = APIResult(True, {'items': []})
         cls.return_value.group_cover_decision.return_value = APIResult(
             False, {}, error='This cover is no longer waiting for review.', status_code=409)

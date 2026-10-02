@@ -7,7 +7,7 @@
     <h1><i class="bi bi-graph-up-arrow header-icon"></i> Revenue Analytics</h1>
     <p class="text-muted mb-0">Windowed revenue per currency. Same definitions as reconciliation: admin grants, promotions and local activations are never revenue; sandbox is shown only on request.</p>
   </div>
-  <div class="d-flex gap-2">
+  <div class="d-flex gap-2 flex-wrap">
     <a href="{% url 'billing_dashboard' %}" class="btn btn-glass"><i class="bi bi-arrow-left me-2"></i>Billing</a>
     <a href="{% url 'billing_reconciliation' %}{% if filters.since or filters.until %}?since={{ filters.since|default:'' }}&until={{ filters.until|default:'' }}{% endif %}" class="btn btn-glass"><i class="bi bi-clipboard-check me-2"></i>Reconciliation</a>
     <a href="{% url 'business_revenue' %}" class="btn btn-glow"><i class="bi bi-briefcase me-2"></i>Business reports</a>
@@ -15,7 +15,7 @@
 </div>
 
 {% if error %}
-<div class="alert-glass alert-glass-warning mb-3"><i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}</div>
+<div class="alert-glass warning mb-3"><i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}</div>
 {% endif %}
 
 <div class="glass-card mb-4">
@@ -45,7 +45,7 @@
 <div class="small text-muted mb-3"><i class="bi bi-info-circle me-1"></i>{{ data_status.sandbox_hint }}</div>
 {% endif %}
 
-<h5 class="text-muted mb-3"><i class="bi bi-cash-coin me-2" style="color:#22c55e;"></i>Revenue by currency</h5>
+<h5 class="text-muted mb-3"><i class="bi bi-cash-coin me-2 text-success-soft"></i>Revenue by currency</h5>
 {% if revenue %}
 <div class="glass-card mb-4"><div class="table-responsive"><table class="glass-table w-100">
   <thead><tr><th>Currency</th><th>Gross</th><th>Refunded</th><th>Chargebacks</th><th>Disputed (held)</th><th>Net</th><th>Settled payments</th><th>Failed</th><th>Paying members</th><th>Refund rate</th><th>Chargeback rate</th></tr></thead>
@@ -58,7 +58,7 @@
 <div class="glass-card mb-4 text-muted">No revenue in this window.</div>
 {% endif %}
 
-<h5 class="text-muted mb-3"><i class="bi bi-coin me-2" style="color:var(--gold);"></i>Coins</h5>
+<h5 class="text-muted mb-3"><i class="bi bi-coin me-2 text-gold"></i>Coins</h5>
 <div class="row g-3 mb-4">
   <div class="col-md-6"><div class="glass-card h-100">
     <h6 class="text-muted">Purchased with money ({{ mode }}) — {{ coin_stats.purchased_coins|default:0 }} coins</h6>
@@ -71,16 +71,16 @@
   </div></div>
 </div>
 
-<h5 class="text-muted mb-3"><i class="bi bi-person-badge me-2" style="color:var(--aqua);"></i>Subscriptions ({{ mode }}, current state)</h5>
+<h5 class="text-muted mb-3"><i class="bi bi-person-badge me-2 text-aqua"></i>Subscriptions ({{ mode }}, current state)</h5>
 <div class="row g-3 mb-4">
   {% for status, count in sub_stats.by_status.items %}
   <div class="col-sm-6 col-lg-3"><div class="glass-card text-center py-3">
-    <div style="font-size:1.6rem;font-weight:700;{% if status == 'active' %}color:#22c55e;{% elif status == 'cancelled' %}color:#ef4444;{% else %}color:var(--purple-accent);{% endif %}">{{ count }}</div>
+    <div class="stat-value {% if status == 'active' %}text-success-soft{% elif status == 'cancelled' %}text-danger-soft{% else %}text-purple{% endif %}">{{ count }}</div>
     <div class="text-muted small">{{ status|title }}</div></div></div>
   {% empty %}
   <div class="col-12"><div class="glass-card text-muted">No {{ mode }} subscriptions.</div></div>
   {% endfor %}
-  <div class="col-sm-6 col-lg-3"><div class="glass-card text-center py-3"><div style="font-size:1.6rem;font-weight:700;color:var(--aqua);">{{ sub_stats.started_in_window|default:0 }}</div><div class="text-muted small">Started in window</div></div></div>
+  <div class="col-sm-6 col-lg-3"><div class="glass-card text-center py-3"><div class="stat-value text-aqua">{{ sub_stats.started_in_window|default:0 }}</div><div class="text-muted small">Started in window</div></div></div>
 </div>
 
 <h5 class="text-muted mb-3"><i class="bi bi-receipt me-2"></i>Payments by status</h5>
@@ -92,7 +92,7 @@
   {% if local_activations %}<div class="small text-muted mt-2">Local activations excluded (no money moved): {% for l in local_activations %}{{ l.payments }} × {{ l.currency }}{% if not forloop.last %}, {% endif %}{% endfor %}</div>{% endif %}
 </div>
 
-<div class="d-flex gap-2 mb-4">
+<div class="d-flex gap-2 mb-4 flex-wrap">
   <a href="{% url 'billing_subscriptions' %}" class="btn btn-glass"><i class="bi bi-table me-2"></i>View All Subscriptions</a>
   <a href="{% url 'billing_payments' %}" class="btn btn-glass"><i class="bi bi-table me-2"></i>View All Payments</a>
   <a href="{% url 'billing_transactions' %}" class="btn btn-glass"><i class="bi bi-table me-2"></i>View All Transactions</a>

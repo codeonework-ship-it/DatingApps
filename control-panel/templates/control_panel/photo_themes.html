@@ -17,7 +17,7 @@
 </div>
 <div class="glass-card">
   <h2 class="h5">Themes</h2>
-  <table class="table"><thead><tr><th scope="col">Order</th><th scope="col">Title</th><th scope="col">Prompt</th><th scope="col">Slug</th><th scope="col">Status</th><th scope="col">Live photos</th></tr></thead>
-  <tbody>{% for theme in themes %}<tr><td>{{ theme.sort_order }}</td><td>{{ theme.title }}</td><td>{{ theme.prompt }}</td><td><code>{{ theme.slug }}</code></td><td>{{ theme.status|title }}</td><td>{{ theme.entry_count }}</td></tr>{% empty %}<tr><td colspan="6">No themes yet.</td></tr>{% endfor %}</tbody></table>
+  <div class="table-responsive"><table class="table"><thead><tr><th scope="col">Order</th><th scope="col">Title</th><th scope="col">Prompt</th><th scope="col">Slug</th><th scope="col">Status</th><th scope="col">Live photos</th></tr></thead>
+  <tbody>{% for theme in themes %}<tr><td>{{ theme.sort_order }}</td><td>{{ theme.title }}</td><td>{{ theme.prompt }}</td><td><code>{{ theme.slug }}</code></td><td>{{ theme.status|title }}</td><td>{{ theme.entry_count }}</td></tr>{% empty %}<tr><td colspan="6">No themes yet.</td></tr>{% endfor %}</tbody></table></div>
 </div>
 {% endblock %}

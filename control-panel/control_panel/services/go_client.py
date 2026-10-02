@@ -67,6 +67,17 @@ def operator_error_message(
     )
 
 
+def bff_failure_status(status_code: int | None) -> int:
+    """HTTP status for a console page or proxy whose BFF call failed.
+
+    Go's 4xx answers pass through (403, 404, 409...). A 5xx, or no answer at
+    all, becomes 502 Bad Gateway: the console rendered its page, its upstream
+    failed, and a console 500 would read as a console crash to monitoring.
+    """
+    code = status_code or 0
+    return code if 400 <= code < 500 else 502
+
+
 def _response_correlation_id(data: Any, sent: str) -> str:
     if isinstance(data, dict):
         value = data.get("correlation_id")
@@ -312,15 +323,11 @@ class GoBFFClient:
             params["status"] = status.strip()
         return self._request("GET", "/admin/moderation/appeals", params=params)
 
-    def action_appeal(self, appeal_id: str, status: str, resolution_reason: str) -> APIResult:
-        return self._request(
-            "POST",
-            f"/admin/moderation/appeals/{appeal_id}/action",
-            payload={
-                "status": status,
-                "resolution_reason": resolution_reason,
-            },
-        )
+    def action_appeal(self, appeal_id: str, status: str, resolution_reason: str, *, reviewed_by: str = "") -> APIResult:
+        payload: dict[str, Any] = {"status": status, "resolution_reason": resolution_reason}
+        if reviewed_by:
+            payload["reviewed_by"] = reviewed_by
+        return self._request("POST", f"/admin/moderation/appeals/{appeal_id}/action", payload=payload)
 
     # ── Deferred growth governance ───────────────────────────────────────────
 
@@ -489,12 +496,15 @@ class GoBFFClient:
             params["status"] = status.strip()
         return self._request("GET", "/admin/moderation/reports", params=params)
 
-    def action_report(self, report_id: str, action: str, reason: str) -> APIResult:
-        return self._request(
-            "POST",
-            f"/admin/moderation/reports/{report_id}/action",
-            payload={"action": action, "reason": reason},
-        )
+    def action_report(
+        self, report_id: str, action: str, reason: str, *, status: str = "", reviewed_by: str = ""
+    ) -> APIResult:
+        payload: dict[str, Any] = {"action": action, "reason": reason}
+        if status:
+            payload["status"] = status
+        if reviewed_by:
+            payload["reviewed_by"] = reviewed_by
+        return self._request("POST", f"/admin/moderation/reports/{report_id}/action", payload=payload)
 
     def list_media_moderation(self, *, status: str = "review_required", limit: int = 50) -> APIResult:
         return self._request(
@@ -693,13 +703,6 @@ class GoBFFClient:
 
     def unsuspend_user(self, user_id: str) -> APIResult:
         return self._request("POST", f"/admin/users/{user_id}/unsuspend", payload={})
-
-    def grant_coins(self, user_id: str, coins: int, reason: str = "admin_grant") -> APIResult:
-        return self._request(
-            "POST",
-            f"/wallet/{user_id}/coins/top-up",
-            payload={"coins": coins, "source": reason, "provider": "admin"},
-        )
 
     def ban_user(self, user_id: str, reason: str) -> APIResult:
         return self._request(

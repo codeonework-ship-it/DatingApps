@@ -19,7 +19,7 @@ enforces every request either way.
 """
 from __future__ import annotations
 
-from typing import Any, Iterable
+from typing import Any, Iterable, NamedTuple
 
 from .operator_context import OPERATOR_ROLE_LABELS
 
@@ -142,6 +142,127 @@ NAV_ITEMS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     ("domain_events", "logs", ("events", "events/metrics")),
     ("client_errors", "logs", ("client-errors",)),
 )
+
+
+class ConsoleAction(NamedTuple):
+    """The BFF admin call a console POST makes, and where to send the
+    operator back to when their role cannot make it. ``path`` is formatted
+    with the view's URL kwargs; ids that arrive in the form body are written
+    as ``-`` because Go's rule only looks at the route's shape."""
+
+    method: str
+    path: str
+    back: str
+
+
+# Every console POST that changes something (url name -> the call it makes).
+# ``OperatorRoleGateMiddleware`` refuses the POST up front when the operator's
+# stored roles cannot make the call, so Go is never asked and the operator is
+# told why; with unknown roles Go decides, as before. A test checks that every
+# POST-accepting console route is listed here.
+CONSOLE_ACTIONS: dict[str, ConsoleAction] = {
+    # Analytics (admin only for rebuilds and test-account flags)
+    "analytics_rebuild": ConsoleAction("POST", "analytics/snapshots/rebuild", "analytics_data"),
+    "analytics_exclude": ConsoleAction("POST", "analytics/excluded-accounts", "analytics_data"),
+    "analytics_include": ConsoleAction("DELETE", "analytics/excluded-accounts/{member_id}", "analytics_data"),
+    # Business
+    "business_market_save": ConsoleAction("POST", "business/markets", "business_markets"),
+    "business_spend_save": ConsoleAction("POST", "business/marketing-spend", "business_spend"),
+    "business_spend_delete": ConsoleAction("DELETE", "business/marketing-spend/{spend_id}", "business_spend"),
+    # Engagement
+    "photo_theme_save": ConsoleAction("POST", "engagement/photo-themes", "photo_themes"),
+    "engagement_prompt_new": ConsoleAction("POST", "engagement/prompts", "engagement_prompts"),
+    "engagement_prompt_edit": ConsoleAction("PUT", "engagement/prompts/{prompt_id}", "engagement_prompts"),
+    "engagement_prompt_activate": ConsoleAction("POST", "engagement/prompts/{prompt_id}/activate", "engagement_prompts"),
+    # Moderation
+    "room_action": ConsoleAction("POST", "moderation/rooms/{room_id}/actions", "room_detail"),
+    "room_role": ConsoleAction("POST", "moderation/rooms/{room_id}/roles", "room_detail"),
+    "group_cover_decision": ConsoleAction("POST", "moderation/group-covers/{cover_id}/decision", "group_covers"),
+    "blog_decision": ConsoleAction("POST", "moderation/blog/{case_id}", "blog_reviews"),
+    "action_report": ConsoleAction("POST", "moderation/reports/{report_id}/action", "moderation_reports"),
+    "media_moderation_decision": ConsoleAction("POST", "moderation/media/{photo_id}/decision", "media_moderation_queue"),
+    "action_appeal": ConsoleAction("POST", "moderation/appeals/{appeal_id}/action", "appeal_queue"),
+    "approve_verification": ConsoleAction("POST", "verifications/{user_id}/approve", "verification_queue"),
+    "reject_verification": ConsoleAction("POST", "verifications/{user_id}/reject", "verification_queue"),
+    # City pilot
+    "city_pilot_save": ConsoleAction("POST", "growth/city-pilot", "city_pilot"),
+    "city_pilot_stage": ConsoleAction("POST", "growth/city-pilot/{pilot_id}/stage", "city_pilot"),
+    "city_pilot_experience_create": ConsoleAction("POST", "growth/city-pilot/{pilot_id}/experiences", "city_pilot"),
+    "city_pilot_experience_cancel": ConsoleAction(
+        "POST", "growth/city-pilot/{pilot_id}/experiences/{event_id}/cancel", "city_pilot"),
+    # Logs
+    "client_error_status": ConsoleAction("POST", "client-errors/{issue_id}/status", "client_error_detail"),
+    # Support
+    "support_bulk": ConsoleAction("POST", "support/tickets/bulk", "support_queue"),
+    "support_canned_save": ConsoleAction("POST", "support/canned-responses", "support_canned_responses"),
+    "support_canned_deactivate": ConsoleAction(
+        "DELETE", "support/canned-responses/{response_id}", "support_canned_responses"),
+    "support_ticket_reply": ConsoleAction("POST", "support/tickets/{ticket_id}/messages", "support_ticket_detail"),
+    "support_ticket_update": ConsoleAction("PATCH", "support/tickets/{ticket_id}", "support_ticket_detail"),
+    "support_ticket_claim": ConsoleAction("POST", "support/tickets/{ticket_id}/claim", "support_ticket_detail"),
+    "support_ticket_merge": ConsoleAction("POST", "support/tickets/{ticket_id}/merge", "support_ticket_detail"),
+    # Gift catalog
+    "catalog_new": ConsoleAction("POST", "catalog/gifts", "catalog_list"),
+    "catalog_edit": ConsoleAction("PUT", "catalog/gifts/{gift_id}", "catalog_list"),
+    "catalog_toggle": ConsoleAction("POST", "catalog/gifts/{gift_id}/toggle", "catalog_list"),
+    "catalog_delete": ConsoleAction("DELETE", "catalog/gifts/{gift_id}", "catalog_list"),
+    # Users
+    "user_create": ConsoleAction("POST", "users", "user_list"),
+    "user_edit": ConsoleAction("PUT", "users/{user_id}", "user_detail"),
+    "user_delete": ConsoleAction("DELETE", "users/{user_id}", "user_detail"),
+    "user_suspend": ConsoleAction("POST", "users/{user_id}/suspend", "user_detail"),
+    "user_unsuspend": ConsoleAction("POST", "users/{user_id}/unsuspend", "user_detail"),
+    "user_ban": ConsoleAction("POST", "users/{user_id}/ban", "user_detail"),
+    "user_unban": ConsoleAction("POST", "users/{user_id}/unban", "user_detail"),
+    "user_force_verify": ConsoleAction("POST", "users/{user_id}/verify", "user_detail"),
+    "user_grant_coins": ConsoleAction("POST", "billing/grant-coins", "user_detail"),
+    # Platform
+    "config_flag_toggle": ConsoleAction("PUT", "config/flags/{key}", "config_flags"),
+    # Progression
+    "progression_policy_update": ConsoleAction("PUT", "progression/policies/{source}", "progression_admin"),
+    "progression_experiment_update": ConsoleAction("PUT", "progression/experiments/{key}", "progression_admin"),
+    "progression_fraud_rule_update": ConsoleAction("PUT", "progression/fraud-rules/{rule_code}", "progression_admin"),
+    "progression_fraud_resolve": ConsoleAction("POST", "progression/fraud/{case_id}/resolve", "progression_admin"),
+    "progression_user_adjust": ConsoleAction("POST", "progression/users/-/adjust-xp", "progression_admin"),
+    "progression_user_control": ConsoleAction("PUT", "progression/users/-/control", "progression_admin"),
+    # Billing
+    "billing_package_toggle": ConsoleAction("POST", "billing/coin-packages/{package_id}/toggle", "billing_dashboard"),
+    "billing_package_new": ConsoleAction("POST", "billing/coin-packages", "billing_dashboard"),
+    "billing_package_edit": ConsoleAction("PUT", "billing/coin-packages/{package_id}", "billing_dashboard"),
+    "billing_grant_coins": ConsoleAction("POST", "billing/grant-coins", "billing_dashboard"),
+    "billing_gift_reverse": ConsoleAction("POST", "billing/gift-sends/-/reverse", "billing_reconciliation"),
+    "billing_wallet_review": ConsoleAction("POST", "billing/wallets/{user_id}/review", "billing_reconciliation"),
+    "billing_fraud_case_resolve": ConsoleAction(
+        "POST", "billing/fraud/cases/{case_id}/resolve", "billing_reconciliation"),
+    "billing_fraud_rule_update": ConsoleAction("PUT", "billing/fraud/rules/{rule_code}", "billing_reconciliation"),
+    # Safety
+    "safety_sos_resolve": ConsoleAction("POST", "safety/sos-alerts/{alert_id}/resolve", "safety_sos"),
+    "account_recovery_resolve": ConsoleAction(
+        "POST", "safety/account-recovery/{request_id}/resolve", "account_recovery_queue"),
+}
+
+
+def action_allowed(roles: Iterable[str] | None, url_name: str, kwargs: dict[str, Any] | None = None) -> bool:
+    """Whether Go would let these roles make the call behind a console POST.
+    Unknown roles (None) and routes that are not console actions are allowed:
+    Go still decides."""
+    action = CONSOLE_ACTIONS.get(url_name)
+    if roles is None or action is None:
+        return True
+    values = {key: str(value) for key, value in (kwargs or {}).items()}
+    try:
+        path = action.path.format(**values)
+    except (KeyError, IndexError):
+        path = action.path
+    return can_access_admin_route(roles, action.method, path)
+
+
+def refusal_message(roles: Iterable[str]) -> str:
+    names = ", ".join(OPERATOR_ROLE_LABELS.get(r, r) for r in roles) or "no operator role"
+    return (
+        f"Your operator role ({names}) cannot make this change, so it was not sent. "
+        "Ask an admin if you need it."
+    )
 
 
 def stored_roles(session: Any) -> list[str] | None:

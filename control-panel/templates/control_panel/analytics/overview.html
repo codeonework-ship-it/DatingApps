@@ -10,7 +10,7 @@
     <article class="metric-tile" aria-label="{{ t.label }}">
       <div class="metric-top"><span>{{ t.label }}</span></div>
       <div class="metric-number">{{ t.value }}</div>
-      <div class="metric-unit">{{ t.unit }}</div>
+      <div class="metric-unit">{% if t.unit != "%" %}{{ t.unit }}{% endif %}</div>
       <div class="metric-meta"><strong>Week before: {{ t.previous }}</strong><span>{{ t.definition }}</span></div>
     </article>
     {% empty %}<p class="text-muted">No KPI data yet. Snapshots build nightly after 00:00 UTC; see Data &amp; exclusions.</p>{% endfor %}

@@ -13,7 +13,7 @@ from django.shortcuts import redirect, render
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_POST
 
-from .services.go_client import GoBFFClient
+from .services.go_client import GoBFFClient, bff_failure_status
 
 STATUSES = {'pending': 'Needs review', 'approved': 'Approved'}
 DECISIONS = {'approved': 'approved', 'rejected': 'rejected'}
@@ -38,7 +38,7 @@ def group_covers(request):
         'reason_max': REASON_MAX,
         'error': None if result.ok else result.error,
         'project_name': 'AegisConnect',
-    }, status=200 if result.ok else (result.status_code or 502))
+    }, status=200 if result.ok else bff_failure_status(result.status_code))
 
 
 @never_cache
@@ -46,7 +46,7 @@ def group_covers(request):
 def group_cover_content(request, cover_id):
     result = GoBFFClient().group_cover_content(str(cover_id))
     if not result.ok:
-        return HttpResponse('Cover unavailable', status=result.status_code or 502)
+        return HttpResponse('Cover unavailable', status=bff_failure_status(result.status_code), content_type='text/plain')
     content_type = (result.content_type or '').split(';')[0].strip().lower()
     if content_type not in IMAGE_TYPES:
         return HttpResponse('Unsupported cover type', status=415)

@@ -42,6 +42,7 @@ class AnalyticsPagesTest(TestCase):
 
     @patch("control_panel.views_analytics.GoBFFClient")
     def test_overview_renders_tiles_chart_and_table_with_suppression(self, cls):
+        """[case:console.analytics.analytics_overview.renders]"""
         def fake(name, params):
             if name == "kpis":
                 return KPI_TILES
@@ -76,12 +77,14 @@ class AnalyticsPagesTest(TestCase):
 
     @patch("control_panel.views_analytics.GoBFFClient")
     def test_member_role_sees_role_message(self, cls):
+        """[case:console.analytics.analytics_funnel.renders]"""
         cls.return_value.analytics_report.return_value = APIResult(False, {}, "operator role does not permit this administrative action", 403)
         response = self.client.get(reverse("analytics_funnel"))
         self.assertContains(response, "require the analyst or admin role")
 
     @patch("control_panel.views_analytics.GoBFFClient")
     def test_funnel_forwards_window_and_renders_both_tables(self, cls):
+        """[case:console.analytics.analytics_funnel.renders]"""
         steps = table([("cohort", "Cohort", "dimension", ""), ("step_label", "Step", "dimension", ""), ("members", "Members", "count", ""),
                        ("conversion_from_previous", "From previous", "ratio", "%")],
                       [{"cohort": "2026-09-01", "step_label": "Signed up", "members": 40, "conversion_from_previous": 100, "suppressed": []},
@@ -97,19 +100,21 @@ class AnalyticsPagesTest(TestCase):
 
     @patch("control_panel.views_analytics.GoBFFClient")
     def test_retention_heatmap_and_experiment(self, cls):
+        """[case:console.analytics.analytics_retention.renders]"""
         summary = table([("cohort", "Cohort", "dimension", ""), ("d7", "D7", "ratio", "%")], [{"cohort": "2026-09-01", "d7": 25.5, "suppressed": []}])
         triangle = table([("cohort_week", "Week", "dimension", ""), ("week_0", "Week 0", "ratio", "%"), ("week_1", "Week 1", "ratio", "%")],
                          [{"cohort_week": "2026-09-01", "week_0": 100, "week_1": None, "suppressed": []}])
         cls.return_value.analytics_report.return_value = report({"summary": summary, "triangle": triangle})
         response = self.client.get(reverse("analytics_retention"), {"experiment": "match_nudge_v1"})
         self.assertContains(response, "25.5%")
-        self.assertContains(response, "rgba(57,135,229,1.0)")
+        self.assertContains(response, "--heat: 1.0")
         self.assertEqual(cls.return_value.analytics_report.call_args.args[1]["experiment"], "match_nudge_v1")
         self.client.get(reverse("analytics_retention"), {"experiment": "bad key;"})
         self.assertNotIn("experiment", cls.return_value.analytics_report.call_args.args[1])
 
     @patch("control_panel.views_analytics.GoBFFClient")
     def test_liquidity_and_safety_escape_member_text(self, cls):
+        """[case:console.analytics.analytics_liquidity.renders] [case:console.analytics.analytics_safety.renders]"""
         cities = table([("city", "City", "dimension", ""), ("active_members", "Active", "count", ""), ("women", "Women", "count", ""), ("men", "Men", "count", "")],
                        [{"city": "<script>x()</script>", "active_members": 50, "women": 20, "men": None, "suppressed": ["men"]}])
         cls.return_value.analytics_report.return_value = report({"cities": cities})
@@ -127,6 +132,7 @@ class AnalyticsPagesTest(TestCase):
 
     @patch("control_panel.views_analytics.GoBFFClient")
     def test_data_page_rebuild_and_flags(self, cls):
+        """[case:console.analytics.analytics_data.renders] [case:console.analytics.analytics_rebuild.performs] [case:console.analytics.analytics_exclude.performs] [case:console.analytics.analytics_include.performs]"""
         cls.return_value.analytics_snapshots.return_value = APIResult(True, {"built_days": 30, "final_days": 28, "missing_days": ["2026-09-12"],
                                                                              "exclusions": {"operator_account": 3}, "settings": [], "runs": [], "window_days": 35})
         cls.return_value.analytics_excluded_accounts.return_value = APIResult(False, {}, "forbidden", 403)
@@ -154,6 +160,7 @@ class AnalyticsPagesTest(TestCase):
         cls.return_value.analytics_include_account.assert_called_once_with(member)
 
     def test_mutations_require_csrf(self):
+        """[case:console.analytics.analytics_rebuild.authz]"""
         client = Client(enforce_csrf_checks=True)
         session = client.session
         session["operator_access_token"] = "access"
@@ -163,6 +170,7 @@ class AnalyticsPagesTest(TestCase):
 
     @patch("control_panel.views_analytics.GoBFFClient")
     def test_csv_export_streams_and_whitelists_params(self, cls):
+        """[case:console.analytics.analytics_export.renders]"""
         upstream = MagicMock()
         upstream.iter_content.return_value = [b"period,value\n", b"2026-09-01,<5\n"]
         upstream.headers = {"Content-Disposition": 'attachment; filename="connect_trends_series.csv"'}
@@ -180,6 +188,7 @@ class AnalyticsPagesTest(TestCase):
 
     @patch("control_panel.views_analytics.GoBFFClient")
     def test_csv_export_error_redirects(self, cls):
+        """[case:console.analytics.analytics_export.renders]"""
         cls.return_value.analytics_report_csv.return_value = (None, "operator role does not permit this administrative action")
         cls.ANALYTICS_REPORTS = GoBFFClient.ANALYTICS_REPORTS
         response = self.client.get(reverse("analytics_export", args=["kpis"]))
@@ -204,6 +213,7 @@ class DashboardDurableKpiTest(TestCase):
 
     @patch("control_panel.views.GoBFFClient")
     def test_dashboard_uses_durable_snapshot_kpis(self, cls):
+        """[case:console.dashboard.dashboard.renders]"""
         self._client(cls).analytics_report.return_value = KPI_TILES
         response = self.client.get(reverse("dashboard"))
         self.assertContains(response, "UTC day 2026-09-30")
@@ -214,6 +224,7 @@ class DashboardDurableKpiTest(TestCase):
 
     @patch("control_panel.views.GoBFFClient")
     def test_dashboard_falls_back_to_live_activity_without_analyst_role(self, cls):
+        """[case:console.dashboard.dashboard.renders]"""
         self._client(cls).analytics_report.return_value = APIResult(False, {}, "forbidden", 403)
         response = self.client.get(reverse("dashboard"))
         self.assertContains(response, "Trailing 24 hours")

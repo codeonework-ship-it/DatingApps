@@ -1,7 +1,6 @@
 {% extends "control_panel/base.html" %}
 {% block title %}Canned responses · Support · {{ project_name }}{% endblock %}
 {% block topbar_title %}Support · Canned responses{% endblock %}
-{% block extra_head %}{% include "control_panel/support/_styles.html" %}{% endblock %}
 {% block content %}
 <div class="page-header">
   <div>
@@ -21,7 +20,7 @@
         <span class="text-muted small">{{ active_total }} active · {{ items|length }} in total</span>
       </div>
       {% for item in items %}
-      <div class="glass-card-sm p-3 mb-3 border rounded-3{% if not item.is_active %} opacity-75{% endif %}" style="border-color:var(--glass-border)!important;">
+      <div class="glass-card-sm p-3 mb-3 border rounded-3{% if not item.is_active %} opacity-75{% endif %} border-glass">
         <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
           <div>
             <strong>{{ item.title }}</strong>
@@ -55,7 +54,7 @@
         {% endif %}
       </div>
       {% empty %}
-      <div class="text-center py-5 text-muted"><i class="bi bi-chat-square-quote" style="font-size:3rem;opacity:0.3;"></i><p class="mt-2 mb-0">{% if error %}Canned responses could not be loaded.{% else %}No canned responses yet.{% endif %}</p></div>
+      <div class="text-center py-5 text-muted"><i class="bi bi-chat-square-quote empty-icon"></i><p class="mt-2 mb-0">{% if error %}Canned responses could not be loaded.{% else %}No canned responses yet.{% endif %}</p></div>
       {% endfor %}
     </div>
   </div>

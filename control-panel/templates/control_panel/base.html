@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+{% load static %}<!DOCTYPE html>
 <html lang="en" data-bs-theme="dark">
 <head>
     <meta charset="UTF-8">
@@ -10,498 +10,201 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg-start: #0a0a1a;
-            --bg-mid:   #0f0728;
-            --bg-end:   #1a0533;
-            --glass-bg: rgba(255,255,255,0.06);
-            --glass-border: rgba(255,255,255,0.12);
-            --glass-hover: rgba(255,255,255,0.10);
-            --gold: #f5c842;
-            --gold-light: #fde98a;
-            --purple-accent: #8a5cf6;
-            --aqua: #00d9ff;
-            --sidebar-width: 260px;
-            --text-primary: #f0f0fa;
-            --text-muted: rgba(240,240,250,0.55);
-        }
-        * { box-sizing: border-box; }
-        html, body { height: 100%; margin: 0; font-family: 'Inter', sans-serif; }
-        body {
-            background: linear-gradient(135deg, var(--bg-start) 0%, var(--bg-mid) 50%, var(--bg-end) 100%);
-            background-attachment: fixed;
-            color: var(--text-primary);
-            min-height: 100vh;
-        }
-
-        /* ── Layout ── */
-        .layout { display: flex; min-height: 100vh; }
-        .main-content { flex: 1; margin-left: var(--sidebar-width); display: flex; flex-direction: column; transition: margin-left 0.3s; }
-
-        /* ── Sidebar ── */
-        .sidebar {
-            width: var(--sidebar-width);
-            position: fixed; top: 0; left: 0; height: 100vh;
-            background: rgba(10,10,30,0.82);
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
-            border-right: 1px solid var(--glass-border);
-            display: flex; flex-direction: column;
-            z-index: 1000; overflow-y: auto; overflow-x: hidden;
-        }
-        .sidebar-logo {
-            padding: 22px 20px 16px;
-            border-bottom: 1px solid var(--glass-border);
-        }
-        .sidebar-logo .brand-name {
-            font-size: 1.1rem; font-weight: 800; letter-spacing: -0.3px;
-            background: linear-gradient(90deg, var(--gold), var(--gold-light));
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-        .sidebar-logo .brand-sub {
-            font-size: 0.7rem; color: var(--text-muted); letter-spacing: 0.5px; text-transform: uppercase;
-        }
-        .sidebar-section-label {
-            font-size: 0.62rem; text-transform: uppercase; letter-spacing: 1.2px;
-            color: var(--text-muted); padding: 18px 20px 6px; font-weight: 600;
-        }
-        .nav-item-link {
-            display: flex; align-items: center; gap: 10px;
-            padding: 9px 20px; color: var(--text-muted);
-            text-decoration: none; border-radius: 10px; margin: 1px 8px;
-            font-size: 0.875rem; font-weight: 500; transition: all 0.18s ease;
-            position: relative;
-        }
-        .nav-item-link:hover {
-            background: var(--glass-hover); color: var(--text-primary);
-        }
-        .nav-item-link.active {
-            background: linear-gradient(135deg, rgba(138,92,246,0.3), rgba(79,70,229,0.3));
-            border: 1px solid rgba(138,92,246,0.35);
-            color: #fff; font-weight: 600;
-        }
-        .nav-item-link.active .nav-icon { color: var(--gold); }
-        .nav-icon { font-size: 1rem; flex-shrink: 0; }
-        .nav-badge {
-            margin-left: auto; background: var(--purple-accent);
-            color: #fff; font-size: 0.62rem; padding: 1px 6px;
-            border-radius: 999px; font-weight: 700;
-        }
-        .nav-badge.danger { background: #ef4444; }
-        .nav-badge.warning { background: #f59e0b; }
-        .sidebar-footer {
-            margin-top: auto; padding: 16px 20px;
-            border-top: 1px solid var(--glass-border);
-            font-size: 0.72rem; color: var(--text-muted);
-        }
-        .health-dot {
-            display: inline-block; width: 7px; height: 7px;
-            border-radius: 50%; background: #22c55e; margin-right: 5px;
-            box-shadow: 0 0 6px #22c55e;
-        }
-        .health-dot.warn { background: #f59e0b; box-shadow: 0 0 6px #f59e0b; }
-        .health-dot.dead { background: #ef4444; box-shadow: 0 0 6px #ef4444; }
-
-        /* ── Top bar ── */
-        .topbar {
-            height: 60px; background: rgba(10,10,30,0.72);
-            backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-            border-bottom: 1px solid var(--glass-border);
-            display: flex; align-items: center; padding: 0 24px;
-            position: sticky; top: 0; z-index: 900;
-            gap: 16px;
-        }
-        .topbar-title { font-size: 1rem; font-weight: 700; color: #fff; }
-        .topbar-spacer { flex: 1; }
-        .topbar-badge {
-            font-size: 0.72rem; padding: 4px 10px; border-radius: 999px;
-            font-weight: 600; display: flex; align-items: center; gap: 5px;
-        }
-
-        /* ── Page content ── */
-        .page-body { flex: 1; padding: 24px; }
-
-        /* ── Glass card ── */
-        .glass-card {
-            background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
-            border-radius: 16px; padding: 24px;
-            backdrop-filter: blur(12px);
-        }
-        .glass-card-sm { padding: 16px; }
-        .glass-card:hover { border-color: rgba(255,255,255,0.2); }
-
-        /* ── KPI cards ── */
-        .kpi-card {
-            background: var(--glass-bg);
-            border: 1px solid var(--glass-border);
-            border-radius: 14px; padding: 20px;
-            position: relative; overflow: hidden;
-            transition: all 0.2s ease;
-        }
-        .kpi-card::before {
-            content: '';
-            position: absolute; top: 0; left: 0; right: 0; height: 2px;
-        }
-        .kpi-card.gold::before, .kpi-card.kpi-gold::before   { background: linear-gradient(90deg, var(--gold), var(--gold-light)); }
-        .kpi-card.purple::before, .kpi-card.kpi-purple::before { background: linear-gradient(90deg, var(--purple-accent), #c084fc); }
-        .kpi-card.aqua::before, .kpi-card.kpi-aqua::before   { background: linear-gradient(90deg, var(--aqua), #818cf8); }
-        .kpi-card.green::before, .kpi-card.kpi-green::before  { background: linear-gradient(90deg, #22c55e, #4ade80); }
-        .kpi-card.red::before, .kpi-card.kpi-red::before    { background: linear-gradient(90deg, #ef4444, #f97316); }
-        .kpi-card:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.22); }
-        .kpi-icon { font-size: 1.8rem; margin-bottom: 10px; }
-        .kpi-value { font-size: 2rem; font-weight: 800; color: #fff; line-height: 1; }
-        .kpi-label { font-size: 0.78rem; color: var(--text-muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
-
-        /* ── Command center ── */
-        .command-hero { display:flex; justify-content:space-between; align-items:flex-end; gap:24px; padding:30px; border:1px solid rgba(245,200,66,.2); border-radius:22px; background:radial-gradient(circle at 8% 10%,rgba(245,200,66,.14),transparent 36%),linear-gradient(135deg,rgba(31,25,67,.95),rgba(12,12,35,.92)); box-shadow:0 24px 80px rgba(0,0,0,.22); }
-        .command-hero h1 { font-size:clamp(1.7rem,3vw,2.6rem); letter-spacing:-.04em; margin:.35rem 0 .5rem; max-width:720px; }
-        .command-hero p { color:var(--text-muted); margin:0; max-width:720px; }
-        .eyebrow { color:var(--gold); font-size:.68rem; font-weight:800; letter-spacing:.15em; text-transform:uppercase; }
-        .live-pulse { display:inline-block; width:8px; height:8px; border-radius:50%; background:#22c55e; box-shadow:0 0 0 5px rgba(34,197,94,.12); margin-right:8px; }
-        .system-strip { display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--glass-border); border:1px solid var(--glass-border); border-radius:16px; overflow:hidden; }
-        .system-state { background:rgba(10,10,30,.85); padding:16px 18px; display:flex; align-items:center; gap:12px; }
-        .system-state strong,.system-state small { display:block; }
-        .system-state small { color:var(--text-muted); font-size:.64rem; margin-top:3px; letter-spacing:.08em; }
-        .status-orb { width:10px; height:10px; border-radius:50%; flex:none; }.status-orb.good{background:#22c55e;box-shadow:0 0 14px #22c55e}.status-orb.bad{background:#ef4444;box-shadow:0 0 14px #ef4444}.status-orb.neutral{background:var(--aqua);box-shadow:0 0 14px var(--aqua)}
-        .section-heading { display:flex; justify-content:space-between; align-items:end; gap:18px; margin-bottom:16px; }.section-heading.compact{align-items:center;margin-bottom:20px}.section-heading h2{font-size:1.2rem;margin:.25rem 0 0}.definition-note{color:var(--text-muted);font-size:.75rem}
-        .metric-grid { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:12px; }.metric-tile{min-height:178px;padding:18px;border:1px solid var(--glass-border);border-radius:16px;background:linear-gradient(160deg,rgba(255,255,255,.075),rgba(255,255,255,.025));}.metric-tile.unavailable{opacity:.58}.metric-top{display:flex;justify-content:space-between;color:var(--text-muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.06em}.metric-number{font-size:2rem;font-weight:800;margin-top:18px}.metric-unit{color:var(--aqua);font-size:.68rem;text-transform:uppercase}.metric-meta{border-top:1px solid rgba(255,255,255,.07);margin-top:16px;padding-top:10px;font-size:.63rem}.metric-meta strong,.metric-meta span{display:block}.metric-meta span{color:var(--text-muted);margin-top:3px}
-        .queue-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}.queue-card{display:block;color:var(--text-primary);text-decoration:none;padding:18px;border-radius:16px;border:1px solid var(--glass-border);background:rgba(255,255,255,.04);transition:.18s}.queue-card:hover{color:#fff;transform:translateY(-2px);border-color:rgba(255,255,255,.25)}.queue-card.danger{background:linear-gradient(150deg,rgba(239,68,68,.15),rgba(255,255,255,.03));border-color:rgba(239,68,68,.32)}.queue-card.warning{background:linear-gradient(150deg,rgba(245,158,11,.13),rgba(255,255,255,.03));border-color:rgba(245,158,11,.28)}.queue-card.green{border-color:rgba(34,197,94,.2)}.queue-count{font-size:2rem;font-weight:800}.queue-name{font-weight:700}.queue-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}.queue-meta span{font-size:.62rem;color:var(--text-muted);padding:3px 6px;background:rgba(0,0,0,.2);border-radius:6px}
-        .signal-card{height:100%;padding:16px;border:1px solid rgba(255,255,255,.08);border-radius:12px;background:rgba(0,0,0,.15)}.signal-card>div{color:var(--text-muted);font-size:.76rem}.signal-card strong{display:block;font-size:1.75rem;margin:.5rem 0}.signal-card small{color:var(--text-muted);display:block;line-height:1.45}.quality-band{display:flex;gap:12px;align-items:center;padding:14px;border-radius:12px;background:rgba(0,217,255,.06);border:1px solid rgba(0,217,255,.14)}.quality-band i{color:var(--aqua);font-size:1.3rem}.quality-band strong,.quality-band span{display:block}.quality-band span{color:var(--text-muted);font-size:.7rem;word-break:break-word}
-        .readiness-list{display:grid;gap:6px}.readiness-row{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;padding:10px;border-bottom:1px solid rgba(255,255,255,.06)}.readiness-row:last-child{border:0}.readiness-icon{width:28px;height:28px;border-radius:8px;display:grid;place-items:center}.readiness-icon.implemented{background:rgba(34,197,94,.15);color:#86efac}.readiness-icon.deployment_gate{background:rgba(245,158,11,.15);color:#fde68a}.readiness-icon.unavailable{background:rgba(239,68,68,.15);color:#fca5a5}.readiness-row strong,.readiness-row small{display:block}.readiness-row small{color:var(--text-muted);font-size:.68rem}.readiness-status{font-size:.62rem;color:var(--text-muted);text-transform:uppercase}
-        .timeline-list{display:grid}.timeline-row{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid rgba(255,255,255,.06)}.timeline-row:last-child{border:0}.timeline-dot{width:9px;height:9px;border-radius:50%;background:var(--aqua);box-shadow:0 0 10px rgba(0,217,255,.65)}.timeline-dot.audit{background:var(--gold);box-shadow:0 0 10px rgba(245,200,66,.55)}.timeline-row strong,.timeline-row small{display:block}.timeline-row strong{font-size:.82rem}.timeline-row small{font-size:.68rem;color:var(--text-muted);margin-top:2px}.empty-command-state{text-align:center;color:var(--text-muted);padding:42px 16px;border:1px dashed var(--glass-border);border-radius:12px}.observability-bar{display:flex;justify-content:space-between;align-items:center;gap:20px}.observability-bar h2{font-size:1.15rem;margin:.25rem 0}.observability-bar p{margin:0;color:var(--text-muted);font-size:.78rem}
-
-        /* ── Tables ── */
-        .glass-table { border-collapse: separate; border-spacing: 0; width: 100%; }
-        .glass-table th {
-            font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.8px;
-            color: var(--text-muted); font-weight: 600;
-            padding: 10px 14px; border-bottom: 1px solid var(--glass-border);
-            white-space: nowrap;
-        }
-        .glass-table td {
-            padding: 11px 14px; font-size: 0.875rem;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-            vertical-align: middle;
-        }
-        .glass-table tr:hover td { background: rgba(255,255,255,0.04); }
-        .glass-table tr:last-child td { border-bottom: none; }
-
-        /* ── Buttons ── */
-        .btn-glow {
-            background: linear-gradient(135deg, var(--gold) 0%, #f59e0b 100%);
-            color: #0a0a1a; font-weight: 700; border: none;
-            border-radius: 8px; padding: 8px 18px;
-            transition: all 0.2s;
-        }
-        .btn-glow:hover { box-shadow: 0 0 20px rgba(245,200,66,0.5); transform: translateY(-1px); color: #0a0a1a; }
-        .btn-glass {
-            background: var(--glass-bg); border: 1px solid var(--glass-border);
-            color: var(--text-primary); border-radius: 8px; padding: 7px 16px;
-            font-size: 0.8rem; transition: all 0.2s;
-        }
-        .btn-glass:hover { background: var(--glass-hover); color: #fff; }
-        .btn-danger-glass {
-            background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.35);
-            color: #fca5a5; border-radius: 8px; padding: 6px 14px; font-size: 0.78rem;
-        }
-        .btn-danger-glass:hover { background: rgba(239,68,68,0.25); color: #fca5a5; }
-        .btn-success-glass {
-            background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.3);
-            color: #86efac; border-radius: 8px; padding: 6px 14px; font-size: 0.78rem;
-        }
-        .btn-success-glass:hover { background: rgba(34,197,94,0.2); color: #86efac; }
-
-        /* ── Badges ── */
-        .badge-active { background: rgba(34,197,94,0.18); color: #86efac; border: 1px solid rgba(34,197,94,0.3); padding: 3px 9px; border-radius: 999px; font-size: 0.7rem; font-weight: 600; }
-        .badge-inactive { background: rgba(148,163,184,0.12); color: #94a3b8; border: 1px solid rgba(148,163,184,0.2); padding: 3px 9px; border-radius: 999px; font-size: 0.7rem; font-weight: 600; }
-        .badge-danger { background: rgba(239,68,68,0.15); color: #fca5a5; border: 1px solid rgba(239,68,68,0.3); padding: 3px 9px; border-radius: 999px; font-size: 0.7rem; font-weight: 600; }
-        .badge-warning { background: rgba(245,158,11,0.15); color: #fde68a; border: 1px solid rgba(245,158,11,0.3); padding: 3px 9px; border-radius: 999px; font-size: 0.7rem; font-weight: 600; }
-        .badge-purple { background: rgba(138,92,246,0.2); color: #c4b5fd; border: 1px solid rgba(138,92,246,0.35); padding: 3px 9px; border-radius: 999px; font-size: 0.7rem; font-weight: 600; }
-        .badge-gold { background: rgba(245,200,66,0.15); color: var(--gold-light); border: 1px solid rgba(245,200,66,0.3); padding: 3px 9px; border-radius: 999px; font-size: 0.7rem; font-weight: 600; }
-
-        /* ── Forms (extend Bootstrap .form-control styling) ── */
-        .glass-input, .form-control.glass-input {
-            background: rgba(255,255,255,0.06);
-            border: 1px solid var(--glass-border);
-            color: #fff; border-radius: 8px; padding: 8px 14px; font-size: 0.875rem;
-            width: 100%; transition: border-color 0.2s;
-        }
-        .glass-input:focus, .form-control.glass-input:focus { outline: none; border-color: var(--purple-accent); background: rgba(255,255,255,0.09); color: #fff; box-shadow: 0 0 0 0.2rem rgba(138,92,246,0.25); }
-        .glass-input option { background: #1a0533; }
-        .glass-select, .form-select.glass-select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23aaa' d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; background-size: 10px; padding-right: 32px; background-color: rgba(255,255,255,0.06); border: 1px solid var(--glass-border); color: #fff; border-radius: 8px; }
-        .glass-select:focus, .form-select.glass-select:focus { border-color: var(--purple-accent); box-shadow: 0 0 0 0.2rem rgba(138,92,246,0.25); background-color: rgba(255,255,255,0.09); color: #fff; }
-        .glass-select option, .form-select.glass-select option { background: #1a0533; color: #fff; }
-        /* Bootstrap dark overrides for form controls */
-        .form-control, .form-select { background-color: rgba(255,255,255,0.06); border-color: var(--glass-border); color: #fff; }
-        .form-control:focus, .form-select:focus { background-color: rgba(255,255,255,0.09); border-color: var(--purple-accent); color: #fff; box-shadow: 0 0 0 0.2rem rgba(138,92,246,0.25); }
-        .form-label { color: var(--text-muted); font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
-        .input-group-text { background: rgba(255,255,255,0.06); border-color: var(--glass-border); color: var(--text-muted); }
-
-        /* ── Alerts ── */
-        .alert-glass {
-            border-radius: 10px; padding: 12px 18px; margin-bottom: 16px;
-            font-size: 0.875rem; display: flex; align-items: center; gap: 10px;
-        }
-        .alert-glass.success { background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.3); color: #86efac; }
-        .alert-glass.error   { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.3); color: #fca5a5; }
-        .alert-glass.warning { background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.3); color: #fde68a; }
-        .alert-glass.info    { background: rgba(96,165,250,0.12); border: 1px solid rgba(96,165,250,0.3); color: #93c5fd; }
-
-        /* ── Toggle switch ── */
-        .toggle-wrapper { display: flex; align-items: center; gap: 10px; }
-        .toggle-switch {
-            position: relative; width: 44px; height: 24px; cursor: pointer;
-        }
-        .toggle-switch input { opacity: 0; width: 0; height: 0; }
-        .toggle-slider {
-            position: absolute; cursor: pointer; inset: 0;
-            background: rgba(255,255,255,0.12); border-radius: 24px;
-            transition: 0.3s;
-        }
-        .toggle-slider:before {
-            content: ''; position: absolute;
-            width: 18px; height: 18px; left: 3px; top: 3px;
-            background: white; border-radius: 50%; transition: 0.3s;
-        }
-        input:checked + .toggle-slider { background: var(--purple-accent); }
-        input:checked + .toggle-slider:before { transform: translateX(20px); }
-
-        /* ── Section header ── */
-        .page-header {
-            display: flex; align-items: center; justify-content: space-between;
-            margin-bottom: 22px;
-        }
-        .page-header h1 {
-            font-size: 1.4rem; font-weight: 700; margin: 0;
-            display: flex; align-items: center; gap: 10px;
-        }
-        .page-header h1 .header-icon { color: var(--gold); font-size: 1.3rem; }
-
-        /* ── Misc ── */
-        .divider { border-color: var(--glass-border); margin: 20px 0; }
-        .text-gold { color: var(--gold); }
-        .text-aqua { color: var(--aqua); }
-        .text-purple { color: var(--purple-accent); }
-        code { background: rgba(138,92,246,0.2); color: #c4b5fd; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; }
-
-        /* ── Category chip ── */
-        .chip {
-            display: inline-flex; align-items: center; gap: 5px;
-            padding: 4px 10px; border-radius: 999px; font-size: 0.72rem; font-weight: 600;
-            background: var(--glass-bg); border: 1px solid var(--glass-border);
-            cursor: pointer; transition: all 0.18s; text-decoration: none; color: var(--text-muted);
-        }
-        .chip.active, .chip:hover { background: rgba(138,92,246,0.25); border-color: rgba(138,92,246,0.5); color: #c4b5fd; }
-
-        /* ── Spinner ── */
-        .spinner-glow {
-            width: 28px; height: 28px; border: 3px solid rgba(255,255,255,0.1);
-            border-top-color: var(--purple-accent); border-radius: 50%;
-            animation: spin 0.7s linear infinite;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        /* ── Scrollbar ── */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 999px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
-
-        @media (max-width: 768px) {
-            .sidebar { transform: translateX(-100%); }
-            .sidebar.open { transform: translateX(0); }
-            .main-content { margin-left: 0; }
-            .command-hero,.observability-bar { align-items:stretch; flex-direction:column; }
-            .metric-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
-            .queue-grid,.system-strip { grid-template-columns:1fr; }
-        }
-        @media (min-width:769px) and (max-width:1250px){.metric-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.queue-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.system-strip{grid-template-columns:repeat(2,1fr)}}
-    </style>
+    <!-- Console design system (tokens, shell, forms, tables) -->
+    <link rel="stylesheet" href="{% static 'control_panel/app.css' %}">
+    <script>
+      // Restore the collapsed desktop sidebar before first paint (no flicker).
+      try { if (localStorage.getItem('console.sidebar') === 'collapsed') document.documentElement.dataset.sidebar = 'collapsed'; } catch (e) {}
+    </script>
     {% block extra_head %}{% endblock %}
 </head>
 <body>
-<div class="layout">
+<div class="layout{% if not login_page %} has-sidebar{% endif %}">
     <!-- ── Sidebar ── -->
     {% if not login_page %}
-    <aside class="sidebar" id="sidebar">
+    <!-- Sidebar: a drawer below 992px, a sticky column above (Bootstrap offcanvas-lg). -->
+    <aside class="sidebar offcanvas-lg offcanvas-start" tabindex="-1" id="sidebar" aria-labelledby="sidebar-brand">
         <div class="sidebar-logo">
-            <div class="d-flex align-items-center gap-2 mb-1">
-                <span style="font-size:1.4rem;">💎</span>
-                <div>
-                    <div class="brand-name">{{ project_name }}</div>
-                    <div class="brand-sub">Operations Command Center</div>
-                </div>
+            <span class="brand-mark" aria-hidden="true">💎</span>
+            <div class="brand-text flex-grow-1">
+                <div class="brand-name" id="sidebar-brand" title="{{ project_name }}">{{ project_name }}</div>
+                <div class="brand-sub">Operations Command Center</div>
             </div>
+            <button type="button" class="btn-close btn-close-white d-lg-none" data-bs-dismiss="offcanvas" data-bs-target="#sidebar" aria-label="Close menu"></button>
         </div>
+        <nav class="offcanvas-body" aria-label="Main navigation">
 
         {% if not nav_hidden.section_overview %}<div class="sidebar-section-label">Overview</div>{% endif %}
         {% if not nav_hidden.dashboard %}<a href="/" class="nav-item-link {% if request.path == '/' %}active{% endif %}">
-            <i class="bi bi-grid-1x2-fill nav-icon"></i> Command Center
-        </a>{% endif %}
+            <i class="bi bi-grid-1x2-fill nav-icon"></i><span class="nav-label">Command Center</span></a>{% endif %}
 
         {% if not nav_hidden.section_content %}<div class="sidebar-section-label">Content</div>{% endif %}
         {% if not nav_hidden.catalog_list %}<a href="/catalog/" class="nav-item-link {% if '/catalog' in request.path %}active{% endif %}">
-            <i class="bi bi-gift-fill nav-icon"></i> Gift Catalog
-        </a>{% endif %}
+            <i class="bi bi-gift-fill nav-icon"></i><span class="nav-label">Gift Catalog</span></a>{% endif %}
         {% if not nav_hidden.engagement_prompts %}<a href="/engagement/prompts/" class="nav-item-link {% if '/engagement/prompts' in request.path %}active{% endif %}">
-            <i class="bi bi-chat-heart-fill nav-icon"></i> Daily Prompts
-        </a>{% endif %}
+            <i class="bi bi-chat-heart-fill nav-icon"></i><span class="nav-label">Daily Prompts</span></a>{% endif %}
         {% if not nav_hidden.engagement_nudges %}<a href="/engagement/nudges/" class="nav-item-link {% if '/engagement/nudges' in request.path %}active{% endif %}">
-            <i class="bi bi-bell-fill nav-icon"></i> Nudge Templates
-        </a>{% endif %}
+            <i class="bi bi-bell-fill nav-icon"></i><span class="nav-label">Nudge Templates</span></a>{% endif %}
         {% if not nav_hidden.progression_admin %}<a href="/progression/" class="nav-item-link {% if '/progression' in request.path %}active{% endif %}">
-            <i class="bi bi-graph-up-arrow nav-icon"></i> Level & XP
-        </a>{% endif %}
+            <i class="bi bi-graph-up-arrow nav-icon"></i><span class="nav-label">Level & XP</span></a>{% endif %}
 
         {% if not nav_hidden.city_pilot %}<a href="{% url 'city_pilot' %}" class="nav-item-link {% if '/city-pilot' in request.path %}active{% endif %}">
-            <i class="bi bi-geo-alt-fill nav-icon"></i> City Pilot
-        </a>{% endif %}
+            <i class="bi bi-geo-alt-fill nav-icon"></i><span class="nav-label">City Pilot</span></a>{% endif %}
         {% if not nav_hidden.section_users %}<div class="sidebar-section-label">Users</div>{% endif %}
         {% if not nav_hidden.user_list %}<a href="/users/" class="nav-item-link {% if '/users' in request.path %}active{% endif %}">
-            <i class="bi bi-people-fill nav-icon"></i> User Management
-        </a>{% endif %}
-        {% if not nav_hidden.verification_queue %}<a href="/verifications/" class="nav-item-link {% if '/verifications' in request.path %}active{% endif %}">
-            <i class="bi bi-shield-check nav-icon"></i> Verifications
-        </a>{% endif %}
+            <i class="bi bi-people-fill nav-icon"></i><span class="nav-label">User Management</span></a>{% endif %}
+        {% if not nav_hidden.verification_queue %}<a href="/verifications/" data-nav="verification_queue" class="nav-item-link {% if '/verifications' in request.path %}active{% endif %}">
+            <i class="bi bi-shield-check nav-icon"></i><span class="nav-label">Verifications</span></a>{% endif %}
 
         {% if not nav_hidden.section_moderation %}<div class="sidebar-section-label">Moderation</div>{% endif %}
-        {% if not nav_hidden.media_moderation_queue %}<a href="/moderation/media/" class="nav-item-link {% if '/moderation/media' in request.path %}active{% endif %}">
-            <i class="bi bi-images nav-icon"></i> Profile Media
-        </a>{% endif %}
-        {% if not nav_hidden.blog_reviews %}<a href="{% url 'blog_reviews' %}" class="nav-item-link {% if '/moderation/blog' in request.path %}active{% endif %}"><i class="bi bi-journal-text nav-icon"></i> Blog Moderation</a>{% endif %}
-        {% if not nav_hidden.photo_themes %}<a href="{% url 'photo_themes' %}" class="nav-item-link {% if '/engagement/photo-themes' in request.path %}active{% endif %}"><i class="bi bi-camera nav-icon"></i> Photo Themes</a>{% endif %}
-        {% if not nav_hidden.rooms %}<a href="{% url 'rooms' %}" class="nav-item-link {% if '/moderation/rooms' in request.path %}active{% endif %}"><i class="bi bi-chat-square-dots nav-icon"></i> Conversation Rooms</a>{% endif %}
-        {% if not nav_hidden.group_covers %}<a href="{% url 'group_covers' %}" class="nav-item-link {% if '/moderation/group-covers' in request.path %}active{% endif %}"><i class="bi bi-image nav-icon"></i> Group Covers</a>{% endif %}
-        {% if not nav_hidden.moderation_reports %}<a href="/moderation/reports/" class="nav-item-link {% if '/moderation/reports' in request.path %}active{% endif %}">
-            <i class="bi bi-flag-fill nav-icon"></i> Reports
-        </a>{% endif %}
-        {% if not nav_hidden.appeal_queue %}<a href="/appeals/" class="nav-item-link {% if '/appeals' in request.path %}active{% endif %}">
-            <i class="bi bi-megaphone-fill nav-icon"></i> Appeals
-        </a>{% endif %}
+        {% if not nav_hidden.media_moderation_queue %}<a href="/moderation/media/" data-nav="media_moderation_queue" class="nav-item-link {% if '/moderation/media' in request.path %}active{% endif %}">
+            <i class="bi bi-images nav-icon"></i><span class="nav-label">Profile Media</span></a>{% endif %}
+        {% if not nav_hidden.blog_reviews %}<a href="{% url 'blog_reviews' %}" class="nav-item-link {% if '/moderation/blog' in request.path %}active{% endif %}"><i class="bi bi-journal-text nav-icon"></i><span class="nav-label">Blog Moderation</span></a>{% endif %}
+        {% if not nav_hidden.photo_themes %}<a href="{% url 'photo_themes' %}" class="nav-item-link {% if '/engagement/photo-themes' in request.path %}active{% endif %}"><i class="bi bi-camera nav-icon"></i><span class="nav-label">Photo Themes</span></a>{% endif %}
+        {% if not nav_hidden.rooms %}<a href="{% url 'rooms' %}" class="nav-item-link {% if '/moderation/rooms' in request.path %}active{% endif %}"><i class="bi bi-chat-square-dots nav-icon"></i><span class="nav-label">Conversation Rooms</span></a>{% endif %}
+        {% if not nav_hidden.group_covers %}<a href="{% url 'group_covers' %}" class="nav-item-link {% if '/moderation/group-covers' in request.path %}active{% endif %}"><i class="bi bi-image nav-icon"></i><span class="nav-label">Group Covers</span></a>{% endif %}
+        {% if not nav_hidden.moderation_reports %}<a href="/moderation/reports/" data-nav="moderation_reports" class="nav-item-link {% if '/moderation/reports' in request.path %}active{% endif %}">
+            <i class="bi bi-flag-fill nav-icon"></i><span class="nav-label">Reports</span></a>{% endif %}
+        {% if not nav_hidden.appeal_queue %}<a href="/appeals/" data-nav="appeal_queue" class="nav-item-link {% if '/appeals' in request.path %}active{% endif %}">
+            <i class="bi bi-megaphone-fill nav-icon"></i><span class="nav-label">Appeals</span></a>{% endif %}
 
         {% if not nav_hidden.section_support %}<div class="sidebar-section-label">Support</div>{% endif %}
-        {% if not nav_hidden.support_queue %}<a href="{% url 'support_queue' %}" class="nav-item-link {% if request.path == '/support/' or '/support/tickets/' in request.path %}active{% endif %}"><i class="bi bi-headset nav-icon"></i> Ticket queue</a>{% endif %}
-        {% if not nav_hidden.support_dashboard %}<a href="{% url 'support_dashboard' %}" class="nav-item-link {% if '/support/dashboard' in request.path %}active{% endif %}"><i class="bi bi-speedometer2 nav-icon"></i> SLA dashboard</a>{% endif %}
-        {% if not nav_hidden.support_canned_responses %}<a href="{% url 'support_canned_responses' %}" class="nav-item-link {% if '/support/canned' in request.path %}active{% endif %}"><i class="bi bi-chat-square-quote nav-icon"></i> Canned responses</a>{% endif %}
+        {% if not nav_hidden.support_queue %}<a href="{% url 'support_queue' %}" data-nav="support_queue" class="nav-item-link {% if request.path == '/support/' or '/support/tickets/' in request.path %}active{% endif %}"><i class="bi bi-headset nav-icon"></i><span class="nav-label">Ticket queue</span></a>{% endif %}
+        {% if not nav_hidden.support_dashboard %}<a href="{% url 'support_dashboard' %}" class="nav-item-link {% if '/support/dashboard' in request.path %}active{% endif %}"><i class="bi bi-speedometer2 nav-icon"></i><span class="nav-label">SLA dashboard</span></a>{% endif %}
+        {% if not nav_hidden.support_canned_responses %}<a href="{% url 'support_canned_responses' %}" class="nav-item-link {% if '/support/canned' in request.path %}active{% endif %}"><i class="bi bi-chat-square-quote nav-icon"></i><span class="nav-label">Canned responses</span></a>{% endif %}
 
         {% if not nav_hidden.section_analytics %}<div class="sidebar-section-label">Analytics</div>{% endif %}
-        {% if not nav_hidden.analytics_overview %}<a href="{% url 'analytics_overview' %}" class="nav-item-link {% if request.path == '/analytics/' %}active{% endif %}"><i class="bi bi-bar-chart-line nav-icon"></i> Overview</a>{% endif %}
-        {% if not nav_hidden.analytics_funnel %}<a href="{% url 'analytics_funnel' %}" class="nav-item-link {% if '/analytics/funnel' in request.path %}active{% endif %}"><i class="bi bi-funnel-fill nav-icon"></i> Activation funnel</a>{% endif %}
-        {% if not nav_hidden.analytics_retention %}<a href="{% url 'analytics_retention' %}" class="nav-item-link {% if '/analytics/retention' in request.path %}active{% endif %}"><i class="bi bi-arrow-return-left nav-icon"></i> Retention</a>{% endif %}
-        {% if not nav_hidden.analytics_engagement %}<a href="{% url 'analytics_engagement' %}" class="nav-item-link {% if '/analytics/engagement' in request.path %}active{% endif %}"><i class="bi bi-hand-index-thumb nav-icon"></i> Engagement</a>{% endif %}
-        {% if not nav_hidden.analytics_liquidity %}<a href="{% url 'analytics_liquidity' %}" class="nav-item-link {% if '/analytics/liquidity' in request.path %}active{% endif %}"><i class="bi bi-pin-map nav-icon"></i> Liquidity by city</a>{% endif %}
-        {% if not nav_hidden.analytics_safety %}<a href="{% url 'analytics_safety' %}" class="nav-item-link {% if '/analytics/safety' in request.path %}active{% endif %}"><i class="bi bi-shield-exclamation nav-icon"></i> Safety health</a>{% endif %}
-        {% if not nav_hidden.analytics_data %}<a href="{% url 'analytics_data' %}" class="nav-item-link {% if '/analytics/data' in request.path %}active{% endif %}"><i class="bi bi-database-check nav-icon"></i> Data &amp; exclusions</a>{% endif %}
+        {% if not nav_hidden.analytics_overview %}<a href="{% url 'analytics_overview' %}" class="nav-item-link {% if request.path == '/analytics/' %}active{% endif %}"><i class="bi bi-bar-chart-line nav-icon"></i><span class="nav-label">Overview</span></a>{% endif %}
+        {% if not nav_hidden.analytics_funnel %}<a href="{% url 'analytics_funnel' %}" class="nav-item-link {% if '/analytics/funnel' in request.path %}active{% endif %}"><i class="bi bi-funnel-fill nav-icon"></i><span class="nav-label">Activation funnel</span></a>{% endif %}
+        {% if not nav_hidden.analytics_retention %}<a href="{% url 'analytics_retention' %}" class="nav-item-link {% if '/analytics/retention' in request.path %}active{% endif %}"><i class="bi bi-arrow-return-left nav-icon"></i><span class="nav-label">Retention</span></a>{% endif %}
+        {% if not nav_hidden.analytics_engagement %}<a href="{% url 'analytics_engagement' %}" class="nav-item-link {% if '/analytics/engagement' in request.path %}active{% endif %}"><i class="bi bi-hand-index-thumb nav-icon"></i><span class="nav-label">Engagement</span></a>{% endif %}
+        {% if not nav_hidden.analytics_liquidity %}<a href="{% url 'analytics_liquidity' %}" class="nav-item-link {% if '/analytics/liquidity' in request.path %}active{% endif %}"><i class="bi bi-pin-map nav-icon"></i><span class="nav-label">Liquidity by city</span></a>{% endif %}
+        {% if not nav_hidden.analytics_safety %}<a href="{% url 'analytics_safety' %}" class="nav-item-link {% if '/analytics/safety' in request.path %}active{% endif %}"><i class="bi bi-shield-exclamation nav-icon"></i><span class="nav-label">Safety health</span></a>{% endif %}
+        {% if not nav_hidden.analytics_data %}<a href="{% url 'analytics_data' %}" class="nav-item-link {% if '/analytics/data' in request.path %}active{% endif %}"><i class="bi bi-database-check nav-icon"></i><span class="nav-label">Data &amp; exclusions</span></a>{% endif %}
         {% if not nav_hidden.section_business %}<div class="sidebar-section-label">Business</div>{% endif %}
-        {% if not nav_hidden.business_revenue %}<a href="{% url 'business_revenue' %}" class="nav-item-link {% if request.path == '/business/' %}active{% endif %}"><i class="bi bi-graph-up-arrow nav-icon"></i> Revenue</a>{% endif %}
-        {% if not nav_hidden.business_subscriptions %}<a href="{% url 'business_subscriptions' %}" class="nav-item-link {% if '/business/subscriptions' in request.path %}active{% endif %}"><i class="bi bi-arrow-repeat nav-icon"></i> Subscriptions &amp; MRR</a>{% endif %}
-        {% if not nav_hidden.business_conversion %}<a href="{% url 'business_conversion' %}" class="nav-item-link {% if '/business/conversion' in request.path %}active{% endif %}"><i class="bi bi-funnel nav-icon"></i> Conversion &amp; funnel</a>{% endif %}
-        {% if not nav_hidden.business_coins %}<a href="{% url 'business_coins' %}" class="nav-item-link {% if '/business/coins' in request.path %}active{% endif %}"><i class="bi bi-coin nav-icon"></i> Coin economy</a>{% endif %}
-        {% if not nav_hidden.business_referrals %}<a href="{% url 'business_referrals' %}" class="nav-item-link {% if '/business/referrals' in request.path %}active{% endif %}"><i class="bi bi-people nav-icon"></i> Referrals</a>{% endif %}
-        {% if not nav_hidden.business_markets %}<a href="{% url 'business_markets' %}" class="nav-item-link {% if '/business/markets' in request.path %}active{% endif %}"><i class="bi bi-geo-alt nav-icon"></i> Market readiness</a>{% endif %}
-        {% if not nav_hidden.business_investor_pack %}<a href="{% url 'business_investor_pack' %}" class="nav-item-link {% if '/business/investor-pack' in request.path %}active{% endif %}"><i class="bi bi-briefcase nav-icon"></i> Investor KPI pack</a>{% endif %}
-        {% if not nav_hidden.business_spend %}<a href="{% url 'business_spend' %}" class="nav-item-link {% if '/business/spend' in request.path %}active{% endif %}"><i class="bi bi-cash-stack nav-icon"></i> Marketing spend</a>{% endif %}
+        {% if not nav_hidden.business_revenue %}<a href="{% url 'business_revenue' %}" class="nav-item-link {% if request.path == '/business/' %}active{% endif %}"><i class="bi bi-graph-up-arrow nav-icon"></i><span class="nav-label">Revenue</span></a>{% endif %}
+        {% if not nav_hidden.business_subscriptions %}<a href="{% url 'business_subscriptions' %}" class="nav-item-link {% if '/business/subscriptions' in request.path %}active{% endif %}"><i class="bi bi-arrow-repeat nav-icon"></i><span class="nav-label">Subscriptions &amp; MRR</span></a>{% endif %}
+        {% if not nav_hidden.business_conversion %}<a href="{% url 'business_conversion' %}" class="nav-item-link {% if '/business/conversion' in request.path %}active{% endif %}"><i class="bi bi-funnel nav-icon"></i><span class="nav-label">Conversion &amp; funnel</span></a>{% endif %}
+        {% if not nav_hidden.business_coins %}<a href="{% url 'business_coins' %}" class="nav-item-link {% if '/business/coins' in request.path %}active{% endif %}"><i class="bi bi-coin nav-icon"></i><span class="nav-label">Coin economy</span></a>{% endif %}
+        {% if not nav_hidden.business_referrals %}<a href="{% url 'business_referrals' %}" class="nav-item-link {% if '/business/referrals' in request.path %}active{% endif %}"><i class="bi bi-people nav-icon"></i><span class="nav-label">Referrals</span></a>{% endif %}
+        {% if not nav_hidden.business_markets %}<a href="{% url 'business_markets' %}" class="nav-item-link {% if '/business/markets' in request.path %}active{% endif %}"><i class="bi bi-geo-alt nav-icon"></i><span class="nav-label">Market readiness</span></a>{% endif %}
+        {% if not nav_hidden.business_investor_pack %}<a href="{% url 'business_investor_pack' %}" class="nav-item-link {% if '/business/investor-pack' in request.path %}active{% endif %}"><i class="bi bi-briefcase nav-icon"></i><span class="nav-label">Investor KPI pack</span></a>{% endif %}
+        {% if not nav_hidden.business_spend %}<a href="{% url 'business_spend' %}" class="nav-item-link {% if '/business/spend' in request.path %}active{% endif %}"><i class="bi bi-cash-stack nav-icon"></i><span class="nav-label">Marketing spend</span></a>{% endif %}
 
         {% if not nav_hidden.section_platform %}<div class="sidebar-section-label">Platform</div>{% endif %}
         {% if not nav_hidden.billing_dashboard %}<a href="/billing/" class="nav-item-link {% if '/billing' in request.path %}active{% endif %}">
-            <i class="bi bi-credit-card-fill nav-icon"></i> Billing & Plans
-        </a>{% endif %}
+            <i class="bi bi-credit-card-fill nav-icon"></i><span class="nav-label">Billing & Plans</span></a>{% endif %}
         {% if not nav_hidden.config_flags %}<a href="/config/flags/" class="nav-item-link {% if '/config' in request.path %}active{% endif %}">
-            <i class="bi bi-toggles nav-icon"></i> Feature Flags
-        </a>{% endif %}
-        {% if not nav_hidden.growth_governance %}<a href="{% url 'growth_governance' %}" class="nav-item-link {% if '/growth/governance' in request.path %}active{% endif %}"><i class="bi bi-rocket-takeoff nav-icon"></i> Growth governance</a>{% endif %}
+            <i class="bi bi-toggles nav-icon"></i><span class="nav-label">Feature Flags</span></a>{% endif %}
+        {% if not nav_hidden.growth_governance %}<a href="{% url 'growth_governance' %}" class="nav-item-link {% if '/growth/governance' in request.path %}active{% endif %}"><i class="bi bi-rocket-takeoff nav-icon"></i><span class="nav-label">Growth governance</span></a>{% endif %}
 
         {% if not nav_hidden.section_safety %}<div class="sidebar-section-label">Safety</div>{% endif %}
-        {% if not nav_hidden.safety_sos %}<a href="/safety/sos/" class="nav-item-link {% if '/safety' in request.path %}active{% endif %}">
-            <i class="bi bi-exclamation-triangle-fill nav-icon"></i> SOS Alerts
-        </a>{% endif %}
-        {% if not nav_hidden.account_recovery_queue %}<a href="/account-recovery/" class="nav-item-link {% if '/account-recovery' in request.path %}active{% endif %}">
-            <i class="bi bi-key-fill nav-icon"></i> Account recovery
-        </a>{% endif %}
+        {% if not nav_hidden.safety_sos %}<a href="/safety/sos/" data-nav="safety_sos" class="nav-item-link {% if '/safety' in request.path %}active{% endif %}">
+            <i class="bi bi-exclamation-triangle-fill nav-icon"></i><span class="nav-label">SOS Alerts</span></a>{% endif %}
+        {% if not nav_hidden.account_recovery_queue %}<a href="/account-recovery/" data-nav="account_recovery_queue" class="nav-item-link {% if '/account-recovery' in request.path %}active{% endif %}">
+            <i class="bi bi-key-fill nav-icon"></i><span class="nav-label">Account recovery</span></a>{% endif %}
 
         {% if not nav_hidden.section_logs %}<div class="sidebar-section-label">Logs</div>{% endif %}
         {% if not nav_hidden.activity_feed %}<a href="/activities/" class="nav-item-link {% if '/activities' in request.path %}active{% endif %}">
-            <i class="bi bi-activity nav-icon"></i> Activity Feed
-        </a>{% endif %}
+            <i class="bi bi-activity nav-icon"></i><span class="nav-label">Activity Feed</span></a>{% endif %}
         {% if not nav_hidden.audit_log %}<a href="/audit/" class="nav-item-link {% if '/audit' in request.path %}active{% endif %}">
-            <i class="bi bi-fingerprint nav-icon"></i> Operator Audit
-        </a>{% endif %}
+            <i class="bi bi-fingerprint nav-icon"></i><span class="nav-label">Operator Audit</span></a>{% endif %}
         {% if not nav_hidden.domain_events %}<a href="/events/" class="nav-item-link {% if '/events' in request.path %}active{% endif %}">
-            <i class="bi bi-diagram-3-fill nav-icon"></i> Domain Events
-        </a>{% endif %}
-        {% if not nav_hidden.client_errors %}<a href="{% url 'client_errors' %}" class="nav-item-link {% if '/client-errors' in request.path %}active{% endif %}"><i class="bi bi-bug-fill nav-icon"></i> Client errors</a>{% endif %}
+            <i class="bi bi-diagram-3-fill nav-icon"></i><span class="nav-label">Domain Events</span></a>{% endif %}
+        {% if not nav_hidden.client_errors %}<a href="{% url 'client_errors' %}" class="nav-item-link {% if '/client-errors' in request.path %}active{% endif %}"><i class="bi bi-bug-fill nav-icon"></i><span class="nav-label">Client errors</span></a>{% endif %}
 
         <div class="sidebar-footer">
-            <div class="mb-1">
+            <form method="post" action="{% url 'operator_logout' %}" class="mb-3">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-glass w-100 sidebar-sign-out" data-sign-out title="Sign out and end this session"><i class="bi bi-box-arrow-right" aria-hidden="true"></i><span class="nav-label">Sign out</span></button>
+            </form>
+            <div class="mb-1" data-live-bff-footer>
                 {% if health and health.status == 'ok' %}
-                    <span class="health-dot"></span> BFF Online
+                    <span class="health-dot"></span><span class="nav-label">BFF Online</span>
                 {% else %}
-                    <span class="health-dot dead"></span> BFF Unreachable
+                    <span class="health-dot dead"></span><span class="nav-label">BFF Unreachable</span>
                 {% endif %}
             </div>
-            <div class="text-muted" style="font-size:0.65rem;">Version 1.0 · 2026</div>
+            <div class="text-muted fs-xs sidebar-version">Version 1.0 · 2026</div>
         </div>
+        </nav>
     </aside>
     {% endif %}
 
     <!-- ── Main ── -->
-    <div class="main-content" {% if login_page %}style="margin-left:0"{% endif %}>
+    <div class="main-content">
         {% if not login_page %}
         <header class="topbar">
-            <button class="btn btn-sm btn-glass d-md-none me-2" onclick="document.getElementById('sidebar').classList.toggle('open')">
-                <i class="bi bi-list"></i>
+            <button type="button" class="btn btn-glass btn-icon" id="menu-toggle" aria-controls="sidebar" aria-expanded="true" aria-label="Open menu">
+                <i class="bi bi-list" aria-hidden="true"></i>
             </button>
             <span class="topbar-title">{% block topbar_title %}{{ project_name }}{% endblock %}</span>
-            <div class="topbar-spacer"></div>
+            <span class="topbar-badge live-status" data-live-status="connecting" role="status" title="Live updates">
+                <i class="bi bi-circle-fill" aria-hidden="true"></i><span class="live-status-text d-none d-sm-inline">Connecting</span>
+            </span>
             {% if health and health.status == 'ok' %}
-                <span class="topbar-badge badge-active"><i class="bi bi-circle-fill" style="font-size:0.4rem;"></i> Go BFF Live</span>
+                <span class="topbar-badge badge-active" data-live-bff title="Go BFF live"><i class="bi bi-circle-fill" aria-hidden="true"></i><span class="d-none d-md-inline">Go BFF Live</span><span class="visually-hidden d-md-none">Go BFF live</span></span>
             {% else %}
-                <span class="topbar-badge badge-danger"><i class="bi bi-circle-fill" style="font-size:0.4rem;"></i> BFF Unreachable</span>
+                <span class="topbar-badge badge-danger" data-live-bff title="BFF unreachable"><i class="bi bi-circle-fill" aria-hidden="true"></i><span class="d-none d-md-inline">BFF Unreachable</span><span class="visually-hidden d-md-none">BFF unreachable</span></span>
             {% endif %}
-            <span class="small text-muted ms-2">{{ request.session.operator_username|default:"operator" }}</span>
-            <form method="post" action="{% url 'operator_logout' %}" class="ms-1">
-                {% csrf_token %}
-                <button class="btn btn-glass btn-sm" title="Sign out"><i class="bi bi-box-arrow-right"></i></button>
-            </form>
-            <a href="/admin/" class="btn btn-glass btn-sm ms-2" title="Django Admin">
-                <i class="bi bi-gear-fill"></i>
+            <span class="topbar-user d-none d-lg-inline" title="Signed in operator">{{ request.session.operator_username|default:"operator" }}</span>
+            <a href="/admin/" class="btn btn-glass btn-icon" title="Django admin" aria-label="Django admin">
+                <i class="bi bi-gear-fill" aria-hidden="true"></i>
             </a>
+            <form method="post" action="{% url 'operator_logout' %}" class="m-0">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-glass btn-sign-out" title="Sign out and end this session" data-sign-out>
+                    <i class="bi bi-box-arrow-right" aria-hidden="true"></i><span class="d-none d-sm-inline">Sign out</span><span class="visually-hidden d-sm-none">Sign out</span>
+                </button>
+            </form>
         </header>
         {% endif %}
 
         <main class="page-body">
-            {% if messages %}
-                {% for message in messages %}
-                    <div class="alert-glass {% if 'error' in message.tags %}error{% elif 'warning' in message.tags %}warning{% elif 'success' in message.tags %}success{% else %}info{% endif %} mb-3">
-                        {% if 'error' in message.tags %}<i class="bi bi-x-circle-fill"></i>
-                        {% elif 'warning' in message.tags %}<i class="bi bi-exclamation-triangle-fill"></i>
-                        {% elif 'success' in message.tags %}<i class="bi bi-check-circle-fill"></i>
-                        {% else %}<i class="bi bi-info-circle-fill"></i>{% endif %}
-                        {{ message }}
-                    </div>
-                {% endfor %}
-            {% endif %}
             {% block content %}{% endblock %}
         </main>
     </div>
 </div>
 
+<!-- Notifications: flash messages and live events, as Bootstrap toasts (console.js). -->
+<div class="toast-container position-fixed top-0 end-0 p-3 console-toasts" data-toasts aria-live="polite" aria-atomic="false">
+    {% for message in messages %}
+    <div class="toast console-toast {% if 'error' in message.tags %}error{% elif 'warning' in message.tags %}warning{% elif 'success' in message.tags %}success{% else %}info{% endif %}"
+         role="{% if 'error' in message.tags or 'warning' in message.tags %}alert{% else %}status{% endif %}"
+         data-flash {% if 'error' in message.tags %}data-bs-autohide="false"{% else %}data-bs-delay="6000"{% endif %}>
+        <div class="toast-body">
+            <i class="bi {% if 'error' in message.tags %}bi-x-circle-fill{% elif 'warning' in message.tags %}bi-exclamation-triangle-fill{% elif 'success' in message.tags %}bi-check-circle-fill{% else %}bi-info-circle-fill{% endif %}" aria-hidden="true"></i>
+            <span class="toast-text">{{ message }}</span>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Dismiss"></button>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% if not login_page %}
+<!-- One confirmation dialog for every [data-confirm] form or button (console.js). -->
+<div class="modal fade console-modal" id="confirm-modal" tabindex="-1" aria-labelledby="confirm-modal-title" aria-describedby="confirm-modal-body" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title h5" id="confirm-modal-title">Are you sure?</h2>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="confirm-modal-body"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-glass" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger-glass" data-confirm-accept>Confirm</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <!-- Bootstrap 5 JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
-<script>
-    // Auto-dismiss flash messages
-    setTimeout(() => {
-        document.querySelectorAll('.alert-glass').forEach(el => {
-            el.style.opacity = '0'; el.style.transition = 'opacity 0.5s';
-            setTimeout(() => el.remove(), 500);
-        });
-    }, 5000);
-</script>
+<script src="{% static 'control_panel/console.js' %}" defer></script>
 {% block extra_js %}{% endblock %}
 </body>
 </html>

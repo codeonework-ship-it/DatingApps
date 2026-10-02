@@ -7,7 +7,7 @@ import http from 'node:http';
 
 for (const width of [360,1440]) {
   for (const path of ['/','/features','/safety','/privacy','/guidelines','/membership']) {
-    test(`${path} has working content and fits ${width}px`,async({page})=>{
+    test(`${path} has working content and fits ${width}px [case:site.${path === '/' ? 'index' : path.slice(1)}.renders_all_locales]`,async({page})=>{
       await page.setViewportSize({width,height:900});
       const response=await page.goto(path); expect(response.status()).toBe(200);
       await expect(page.getByRole('heading',{level:1})).toBeVisible();
@@ -19,7 +19,7 @@ for (const width of [360,1440]) {
     });
   }
 }
-test('feature search, empty results and recovery',async({page})=>{
+test('feature search, empty results and recovery [case:site.features.search.filters]',async({page})=>{
   await page.goto('/features');
   const search=page.getByRole('searchbox',{name:'Find a feature'});
   await search.fill('chat');await expect(page.locator('[data-feature]:visible')).not.toHaveCount(0);
@@ -28,7 +28,7 @@ test('feature search, empty results and recovery',async({page})=>{
   await expect(page.locator('#feature-status')).toContainText('No matches');
   await search.fill('');await expect(page.locator('[data-feature]:visible')).toHaveCount(31);
 });
-test('localised pages carry their language, the full feature list and alternates',async({page})=>{
+test('localised pages carry their language, the full feature list and alternates [case:site.site_header.language_switch.moves_locale] [case:site.features.renders_all_locales]',async({page})=>{
   const response=await page.goto('/de/features.html'); expect(response.status()).toBe(200);
   await expect(page.locator('html')).toHaveAttribute('lang','de');
   await expect(page.locator('[data-feature]')).toHaveCount(31);
@@ -45,7 +45,7 @@ test('localised pages carry their language, the full feature list and alternates
   await page.goto('/ru/safety.html');
   await expect(page.locator('[data-safety-disclaimer]')).toContainText('не является экстренной службой');
 });
-test('mobile navigation and FAQ operate with keyboard and touch targets',async({page})=>{
+test('mobile navigation and FAQ operate with keyboard and touch targets [case:site.site_header.menu_toggle.mobile] [case:site.index.faq.keyboard]',async({page})=>{
   await page.setViewportSize({width:360,height:800});await page.goto('/');
   const menu=page.getByRole('button',{name:'Open menu'});
   await menu.click();await expect(menu).toHaveAttribute('aria-expanded','true');
@@ -55,7 +55,7 @@ test('mobile navigation and FAQ operate with keyboard and touch targets',async({
   await faq.focus();await page.keyboard.press('Enter');
   await expect(faq.locator('..')).toHaveAttribute('open','');
 });
-test('all public links resolve and unknown paths return 404',async({page,request})=>{
+test('all public links resolve and unknown paths return 404 [case:site.site_header.links_resolve]',async({page,request})=>{
   await page.goto('/features');
   const paths=await page.locator('a[href]').evaluateAll(links=>[...new Set(links.map(a=>new URL(a.href).pathname))]);
   for(const path of paths)expect((await request.get(path)).status(),path).toBe(200);
@@ -64,7 +64,7 @@ test('all public links resolve and unknown paths return 404',async({page,request
   expect((await request.get('/v1/settings/not-your-account')).status()).toBe(401);
 });
 
-test('every browser-facing response carries security headers', async ({request}) => {
+test('every browser-facing response carries security headers [case:site.site_header.security_headers]', async ({request}) => {
   for (const path of ['/', '/not-a-page', '/healthz', '/v1/settings/not-your-account']) {
     const response = await request.get(path);
     const expectedDefaultSource = path.startsWith('/v1/')
@@ -82,7 +82,7 @@ test('every browser-facing response carries security headers', async ({request})
   expect((await request.get('/v1/settings/not-your-account')).headers()['cache-control']).toBe('no-store');
 });
 
-test('website rejects untrusted hosts and oversized proxy bodies', async () => {
+test('website rejects untrusted hosts and oversized proxy bodies [case:site.site_header.security_headers]', async () => {
   const requestStatus = options => new Promise((resolve, reject) => {
     const req = http.request({host: '127.0.0.1', port: 4190, ...options}, res => {
       res.resume();

@@ -4,7 +4,7 @@ from django.http import HttpResponse
 from django.shortcuts import redirect, render
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_POST
-from .services.go_client import GoBFFClient
+from .services.go_client import GoBFFClient, bff_failure_status
 
 
 @never_cache
@@ -25,7 +25,7 @@ def blog_reviews(request):
         'queue_status': status, 'previous': max(0, offset - 100),
         'next': offset + 100, 'offset': offset,
         'project_name': 'AegisConnect',
-    }, status=200 if result.ok else (result.status_code or 502))
+    }, status=200 if result.ok else bff_failure_status(result.status_code))
 
 
 @never_cache
@@ -52,7 +52,7 @@ def blog_decision(request, case_id):
 def blog_evidence(request, case_id, photo_id):
     result = GoBFFClient().blog_evidence(str(case_id), str(photo_id))
     if not result.ok:
-        return HttpResponse('Evidence unavailable', status=result.status_code or 502)
+        return HttpResponse('Evidence unavailable', status=bff_failure_status(result.status_code), content_type='text/plain')
     if result.content_type not in ('image/jpeg', 'image/png', 'image/webp'):
         return HttpResponse('Unsupported evidence type', status=415)
     response = HttpResponse(result.content, content_type=result.content_type)

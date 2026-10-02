@@ -9,20 +9,20 @@
   </div>
   <form method="get" class="d-flex flex-wrap gap-2 align-items-end">
     <div>
-      <label class="form-label text-muted small">Action contains</label>
+      <label class="form-label">Action contains</label>
       <input name="action" value="{{ action_filter }}" class="glass-input" placeholder="login, match, report…">
     </div>
     <div>
-      <label class="form-label text-muted small">User ID</label>
+      <label class="form-label">User ID</label>
       <input name="user_id" value="{{ user_filter }}" class="glass-input" placeholder="UUID">
     </div>
     <div>
-      <label class="form-label text-muted small">Status</label>
+      <label class="form-label">Status</label>
       <select name="status" class="glass-select"><option value="">All</option><option value="success" {% if status_filter == 'success' %}selected{% endif %}>Success</option><option value="failed" {% if status_filter == 'failed' %}selected{% endif %}>Failed</option><option value="client_error" {% if status_filter == 'client_error' %}selected{% endif %}>Client error</option></select>
     </div>
     <div>
-      <label class="form-label text-muted small">Limit</label>
-      <input type="number" name="limit" value="{{ limit }}" min="1" max="1000" class="glass-input" style="width:80px;">
+      <label class="form-label">Limit</label>
+      <input type="number" name="limit" value="{{ limit }}" min="1" max="1000" class="glass-input w-num-sm">
     </div>
     <button type="submit" class="btn btn-glow"><i class="bi bi-funnel me-1"></i>Apply</button>
     <a href="{% url 'activity_feed' %}" class="btn btn-glass">Clear</a>
@@ -30,7 +30,7 @@
 </div>
 
 {% if error %}
-<div class="alert-glass alert-glass-warning mb-3"><i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}</div>
+<div class="alert-glass warning mb-3"><i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}</div>
 {% endif %}
 
 <div class="glass-card">
@@ -65,7 +65,7 @@
   </div>
   {% else %}
   <div class="text-center py-5 text-muted">
-    <i class="bi bi-activity" style="font-size:3rem;opacity:0.3;"></i>
+    <i class="bi bi-activity empty-icon"></i>
     <p class="mt-3">No activity data available.</p>
   </div>
   {% endif %}

@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>QA Lab · Connect</title>
+<link rel="stylesheet" href="/qa-lab/app.css">
+<script type="module" src="/qa-lab/app.js"></script>
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <span class="logo" aria-hidden="true"></span>
+    <h1>QA Lab</h1>
+    <span class="pill" title="Mounted because QA_LAB=1 on a loopback server">local</span>
+  </div>
+  <nav class="tabs" id="tabs" role="tablist" aria-label="QA Lab sections" hidden>
+    <button role="tab" id="tab-overview" data-tab="overview" aria-selected="true" aria-controls="view-overview">Overview</button>
+    <button role="tab" id="tab-cases" data-tab="cases" aria-selected="false" aria-controls="view-cases">Cases</button>
+    <button role="tab" id="tab-runs" data-tab="runs" aria-selected="false" aria-controls="view-runs">Runs</button>
+    <button role="tab" id="tab-manual" data-tab="manual" aria-selected="false" aria-controls="view-manual">Manual <span class="count" id="manualCount"></span></button>
+  </nav>
+  <div class="who" id="who" hidden>
+    <span class="who-name" id="whoName"></span>
+    <button type="button" class="ghost small" id="signOut">Sign out</button>
+  </div>
+  <button type="button" class="icon" id="themeToggle" aria-label="Switch light or dark theme" title="Switch theme">
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z" fill="currentColor"/></svg>
+  </button>
+</header>
+
+<main id="main">
+  <section id="signin" class="signin" hidden>
+    <div class="card signin-card">
+      <h2>Operator sign-in</h2>
+      <p class="muted">QA Lab runs the catalog's cases against seeded data on this machine. Sign in with an operator account that has the <code>admin</code> or <code>ops_admin</code> role (locally: <code>local_control_admin</code>).</p>
+      <form id="signinForm" autocomplete="on">
+        <label for="username">Username</label>
+        <input id="username" name="username" autocomplete="username" required maxlength="64" spellcheck="false" autocapitalize="off">
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required maxlength="256">
+        <p class="error" id="signinError" role="alert" hidden></p>
+        <button type="submit" class="primary" id="signinButton">Sign in</button>
+      </form>
+    </div>
+  </section>
+
+  <section id="view-overview" class="view" role="tabpanel" aria-labelledby="tab-overview" hidden>
+    <div class="meters" id="meters"></div>
+    <div class="card">
+      <div class="card-head"><h2>Case status</h2><span class="muted small" id="catalogMeta"></span></div>
+      <div class="stack" id="statusStack" aria-hidden="true"></div>
+      <ul class="legend" id="statusLegend"></ul>
+    </div>
+    <div class="grid2">
+      <div class="card" id="runPanel">
+        <div class="card-head"><h2>Run</h2><span class="muted small" id="stackHealth"></span></div>
+        <fieldset class="suites" id="suitePicker"><legend>Suites</legend></fieldset>
+        <div class="run-options">
+          <label class="check"><input type="checkbox" id="optSeed" checked> Seed data first</label>
+          <label class="inline">Catalog rescan
+            <select id="optRescan">
+              <option value="">auto</option><option value="full">full</option><option value="tags">tags only</option><option value="none">none</option>
+            </select>
+          </label>
+        </div>
+        <div class="actions">
+          <button type="button" class="primary" id="runAll">Run all</button>
+          <button type="button" id="runFailed">Run failed</button>
+          <button type="button" class="danger" id="cancelRun" hidden>Cancel</button>
+        </div>
+        <div class="live" id="live" hidden>
+          <div class="live-head"><span class="chip" id="liveStatus"></span><span id="liveTitle"></span></div>
+          <ol class="steps" id="liveSteps"></ol>
+          <div class="bar"><span class="bar-fill" id="liveBar"></span></div>
+          <p class="small muted" id="liveCounts"></p>
+        </div>
+        <details class="logbox" id="logBox">
+          <summary>Live log</summary>
+          <pre id="log" tabindex="0" aria-label="Run log"></pre>
+        </details>
+      </div>
+      <div class="card" id="seedCard">
+        <div class="card-head"><h2>Seeded data</h2></div>
+        <div id="seedBody" class="small"></div>
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-head"><h2>By suite</h2></div>
+        <div class="table-wrap"><table class="data" id="bySuite"></table></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h2>By area</h2><span class="muted small">select an area to open its cases</span></div>
+        <div class="table-wrap"><table class="data" id="byArea"></table></div>
+      </div>
+    </div>
+    <div class="card export">
+      <h2>Export</h2>
+      <p class="muted small">Current coverage (latest result per case across runs, plus manual checks).</p>
+      <a class="button" href="/qa-lab/api/report.md" download>Markdown report</a>
+      <a class="button" href="/qa-lab/api/report.json" download>JSON report</a>
+    </div>
+  </section>
+
+  <section id="view-cases" class="view" role="tabpanel" aria-labelledby="tab-cases" hidden>
+    <div class="filters card">
+      <input type="search" id="fSearch" placeholder="Search title, id, screen, test…" aria-label="Search cases">
+      <select id="fArea" aria-label="Area"><option value="">All areas</option></select>
+      <select id="fStatus" aria-label="Status">
+        <option value="">All statuses</option>
+        <option value="pass">pass</option><option value="fail">fail</option><option value="not_run">not run</option><option value="skipped">skipped</option>
+        <option value="manual">manual (any)</option><option value="manual_unchecked">manual, unchecked</option>
+        <option value="presence_only">presence-only</option><option value="partial">partial</option><option value="not_automated">not automated</option>
+        <option value="gap">every gap (not verified)</option>
+      </select>
+      <select id="fSuite" aria-label="Suite"><option value="">All suites</option></select>
+      <select id="fType" aria-label="Case type"><option value="">All types</option></select>
+      <div class="filter-actions">
+        <button type="button" class="small" id="selectVisible">Select visible</button>
+        <button type="button" class="small ghost" id="clearSelection">Clear</button>
+        <button type="button" class="small primary" id="runSelected" disabled>Run selected</button>
+        <button type="button" class="small" id="runArea" disabled>Run area</button>
+      </div>
+    </div>
+    <p class="small muted" id="caseCount" aria-live="polite"></p>
+    <div id="featureList" class="features"></div>
+    <button type="button" class="ghost" id="moreFeatures" hidden>Show more features</button>
+  </section>
+
+  <section id="view-runs" class="view" role="tabpanel" aria-labelledby="tab-runs" hidden>
+    <div class="card">
+      <div class="card-head"><h2>Run history</h2></div>
+      <div class="table-wrap"><table class="data clickable" id="runTable"></table></div>
+    </div>
+    <div class="card" id="runDetail" hidden></div>
+  </section>
+
+  <section id="view-manual" class="view" role="tabpanel" aria-labelledby="tab-manual" hidden>
+    <div class="card">
+      <div class="card-head"><h2>Manual checklist</h2><span class="muted small" id="manualSummary"></span></div>
+      <p class="muted small">Cases that cannot be automated locally live in <code>qa/catalog/manual_cases.json</code> (<code>{case_id: reason}</code>). Mark each one after doing it by hand; every mark is recorded with your name and the time.</p>
+      <div class="filters-inline">
+        <input type="search" id="mSearch" placeholder="Search manual cases…" aria-label="Search manual cases">
+        <select id="mState" aria-label="Manual state"><option value="">All</option><option value="unchecked">Unchecked</option><option value="pass">Passed</option><option value="fail">Failed</option></select>
+      </div>
+    </div>
+    <div id="manualList" class="manual-list"></div>
+  </section>
+</main>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+</body>
+</html>

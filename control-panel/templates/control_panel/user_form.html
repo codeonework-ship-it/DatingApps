@@ -23,182 +23,160 @@
   {% endif %}
 </div>
 
+{% if load_error %}
+<div class="alert-glass warning"><i class="bi bi-exclamation-triangle-fill me-2"></i>Could not load this member, so the form is hidden (saving it would blank their profile): {{ load_error }}</div>
+{% else %}
 <div class="row justify-content-center">
   <div class="col-lg-8">
     <div class="glass-card">
       <form method="post">
         {% csrf_token %}
 
+        <h2 class="form-section-title mt-0">Account</h2>
         <div class="row g-3">
-          <!-- Username -->
-          <div class="col-md-6">
-            <label class="form-label text-muted small">Username {% if not editing %}*{% endif %}</label>
+          <div class="col-12 col-md-6">
+            <label class="form-label" for="f-username">Username{% if not editing %} <span class="text-danger-light" aria-hidden="true">*</span>{% endif %}</label>
             {% if editing %}
-            <input type="text" class="form-control glass-input" readonly
-              value="{{ form_data.username|default:'' }}">
-            <div class="form-text text-muted">Usernames are permanent.</div>
+            <input id="f-username" type="text" class="form-control" readonly value="{{ form_data.username|default:'' }}" aria-describedby="f-username-help">
+            <div id="f-username-help" class="form-text">Usernames are permanent.</div>
             {% else %}
-            <input type="text" name="username" class="form-control glass-input" required
+            <input id="f-username" type="text" name="username" class="form-control" required
               minlength="3" maxlength="30" pattern="[A-Za-z0-9](?:[A-Za-z0-9._]{1,28}[A-Za-z0-9])?"
-              autocomplete="username" placeholder="e.g. john_doe"
-              value="{{ form_data.username|default:'' }}">
+              autocomplete="username" placeholder="e.g. john_doe" value="{{ form_data.username|default:'' }}">
             {% endif %}
           </div>
           {% if not editing %}
-          <!-- Password -->
-          <div class="col-md-6">
-            <label class="form-label text-muted small">Temporary Password *</label>
-            <input type="password" name="password" class="form-control glass-input" required
-              minlength="8" autocomplete="new-password" placeholder="At least 8 characters">
+          <div class="col-12 col-md-6">
+            <label class="form-label" for="f-password">Temporary password <span class="text-danger-light" aria-hidden="true">*</span></label>
+            <input id="f-password" type="password" name="password" class="form-control" required
+              minlength="8" autocomplete="new-password" placeholder="At least 8 characters" aria-describedby="f-password-help">
+            <div id="f-password-help" class="form-text">The member changes it at first sign-in.</div>
           </div>
           {% endif %}
-
-          <!-- Name -->
-          <div class="col-md-6">
-            <label class="form-label text-muted small">Full Name *</label>
-            <input type="text" name="name" class="form-control glass-input" required
-              placeholder="e.g. John Doe"
-              value="{{ form_data.name|default:'' }}">
+          <div class="col-12 col-md-6">
+            <label class="form-label" for="f-name">Full name <span class="text-danger-light" aria-hidden="true">*</span></label>
+            <input id="f-name" type="text" name="name" class="form-control" required autocomplete="name"
+              placeholder="e.g. John Doe" value="{{ form_data.name|default:'' }}">
           </div>
-          <!-- Optional contact phone -->
-          <div class="col-md-6">
-            <label class="form-label text-muted small">Contact Phone (optional)</label>
-            <input type="text" name="phone_number" class="form-control glass-input"
-              placeholder="+91XXXXXXXXXX"
-              value="{{ form_data.phone_number|default:'' }}">
+          <div class="col-12 col-md-6">
+            <label class="form-label" for="f-phone">Contact phone <span class="text-muted">(optional)</span></label>
+            <input id="f-phone" type="tel" name="phone_number" class="form-control" autocomplete="tel"
+              placeholder="+91XXXXXXXXXX" value="{{ form_data.phone_number|default:'' }}">
           </div>
+        </div>
 
-          <!-- Gender -->
-          <div class="col-md-4">
-            <label class="form-label text-muted small">Gender</label>
-            <select name="gender" class="form-select glass-select">
+        <h2 class="form-section-title">About</h2>
+        <div class="row g-3">
+          <div class="col-12 col-sm-6 col-md-4">
+            <label class="form-label" for="f-gender">Gender</label>
+            <select id="f-gender" name="gender" class="form-select">
               <option value="">Select…</option>
               <option value="male" {% if form_data.gender == "male" %}selected{% endif %}>Male</option>
               <option value="female" {% if form_data.gender == "female" %}selected{% endif %}>Female</option>
               <option value="other" {% if form_data.gender == "other" %}selected{% endif %}>Other</option>
             </select>
           </div>
-          <!-- Height -->
-          <div class="col-md-4">
-            <label class="form-label text-muted small">Height (cm)</label>
-            <input type="number" name="height_cm" class="form-control glass-input" min="100" max="250"
-              placeholder="170"
-              value="{{ form_data.height_cm|default:'' }}">
+          <div class="col-12 col-sm-6 col-md-4">
+            <label class="form-label" for="f-height">Height (cm)</label>
+            <input id="f-height" type="number" name="height_cm" class="form-control" min="100" max="250"
+              inputmode="numeric" placeholder="170" value="{{ form_data.height_cm|default:'' }}">
           </div>
-          <!-- Education -->
-          <div class="col-md-4">
-            <label class="form-label text-muted small">Education</label>
-            <input type="text" name="education" class="form-control glass-input"
-              placeholder="e.g. Bachelor's"
-              value="{{ form_data.education|default:'' }}">
+          <div class="col-12 col-md-4">
+            <label class="form-label" for="f-education">Education</label>
+            <input id="f-education" type="text" name="education" class="form-control"
+              placeholder="e.g. Bachelor's" value="{{ form_data.education|default:'' }}">
           </div>
-
-          <!-- Profession -->
-          <div class="col-md-6">
-            <label class="form-label text-muted small">Profession</label>
-            <input type="text" name="profession" class="form-control glass-input"
-              placeholder="e.g. Software Engineer"
-              value="{{ form_data.profession|default:'' }}">
+          <div class="col-12 {% if editing %}col-md-6{% endif %}">
+            <label class="form-label" for="f-profession">Profession</label>
+            <input id="f-profession" type="text" name="profession" class="form-control"
+              placeholder="e.g. Software Engineer" value="{{ form_data.profession|default:'' }}">
           </div>
           {% if editing %}
-          <!-- Income Range -->
-          <div class="col-md-6">
-            <label class="form-label text-muted small">Income Range</label>
-            <input type="text" name="income_range" class="form-control glass-input"
-              placeholder="e.g. 50k-100k"
-              value="{{ form_data.income_range|default:'' }}">
+          <div class="col-12 col-md-6">
+            <label class="form-label" for="f-income">Income range</label>
+            <input id="f-income" type="text" name="income_range" class="form-control"
+              placeholder="e.g. 50k-100k" value="{{ form_data.income_range|default:'' }}">
           </div>
-          {% else %}
-          <div class="col-md-6"></div>
           {% endif %}
+        </div>
 
-          <!-- City -->
-          <div class="col-md-4">
-            <label class="form-label text-muted small">City</label>
-            <input type="text" name="city" class="form-control glass-input"
-              placeholder="e.g. Mumbai"
-              value="{{ form_data.city|default:'' }}">
+        <h2 class="form-section-title">Location</h2>
+        <div class="row g-3">
+          <div class="col-12 {% if editing %}col-md-4{% else %}col-md-6{% endif %}">
+            <label class="form-label" for="f-city">City</label>
+            <input id="f-city" type="text" name="city" class="form-control" autocomplete="address-level2"
+              placeholder="e.g. Mumbai" value="{{ form_data.city|default:'' }}">
           </div>
-          <!-- State -->
-          <div class="col-md-4">
-            <label class="form-label text-muted small">State</label>
-            <input type="text" name="state" class="form-control glass-input"
-              placeholder="e.g. Maharashtra"
-              value="{{ form_data.state|default:'' }}">
+          <div class="col-12 {% if editing %}col-md-4{% else %}col-md-6{% endif %}">
+            <label class="form-label" for="f-state">State</label>
+            <input id="f-state" type="text" name="state" class="form-control" autocomplete="address-level1"
+              placeholder="e.g. Maharashtra" value="{{ form_data.state|default:'' }}">
           </div>
           {% if editing %}
-          <!-- Country -->
-          <div class="col-md-4">
-            <label class="form-label text-muted small">Country</label>
-            <input type="text" name="country" class="form-control glass-input"
-              placeholder="e.g. India"
-              value="{{ form_data.country|default:'' }}">
+          <div class="col-12 col-md-4">
+            <label class="form-label" for="f-country">Country</label>
+            <input id="f-country" type="text" name="country" class="form-control" autocomplete="country-name"
+              placeholder="e.g. India" value="{{ form_data.country|default:'' }}">
           </div>
-          {% else %}
-          <div class="col-md-4"></div>
           {% endif %}
+        </div>
 
-          {% if editing %}
-          <!-- Lifestyle -->
-          <div class="col-md-4">
-            <label class="form-label text-muted small">Drinking</label>
-            <select name="drinking" class="form-select glass-select">
+        {% if editing %}
+        <h2 class="form-section-title">Lifestyle</h2>
+        <div class="row g-3">
+          <div class="col-12 col-sm-6 col-md-4">
+            <label class="form-label" for="f-drinking">Drinking</label>
+            <select id="f-drinking" name="drinking" class="form-select">
               <option value="">Select…</option>
               <option value="never" {% if form_data.drinking == "never" %}selected{% endif %}>Never</option>
               <option value="socially" {% if form_data.drinking == "socially" %}selected{% endif %}>Socially</option>
               <option value="regularly" {% if form_data.drinking == "regularly" %}selected{% endif %}>Regularly</option>
             </select>
           </div>
-          <div class="col-md-4">
-            <label class="form-label text-muted small">Smoking</label>
-            <select name="smoking" class="form-select glass-select">
+          <div class="col-12 col-sm-6 col-md-4">
+            <label class="form-label" for="f-smoking">Smoking</label>
+            <select id="f-smoking" name="smoking" class="form-select">
               <option value="">Select…</option>
               <option value="never" {% if form_data.smoking == "never" %}selected{% endif %}>Never</option>
               <option value="socially" {% if form_data.smoking == "socially" %}selected{% endif %}>Socially</option>
               <option value="regularly" {% if form_data.smoking == "regularly" %}selected{% endif %}>Regularly</option>
             </select>
           </div>
-          <div class="col-md-4">
-            <label class="form-label text-muted small">Religion</label>
-            <input type="text" name="religion" class="form-control glass-input"
-              placeholder="e.g. Hindu"
-              value="{{ form_data.religion|default:'' }}">
+          <div class="col-12 col-md-4">
+            <label class="form-label" for="f-religion">Religion</label>
+            <input id="f-religion" type="text" name="religion" class="form-control"
+              placeholder="e.g. Hindu" value="{{ form_data.religion|default:'' }}">
           </div>
-          <div class="col-md-4">
-            <label class="form-label text-muted small">Mother Tongue</label>
-            <input type="text" name="mother_tongue" class="form-control glass-input"
-              placeholder="e.g. Hindi"
-              value="{{ form_data.mother_tongue|default:'' }}">
+          <div class="col-12 col-md-6">
+            <label class="form-label" for="f-tongue">Mother tongue</label>
+            <input id="f-tongue" type="text" name="mother_tongue" class="form-control"
+              placeholder="e.g. Hindi" value="{{ form_data.mother_tongue|default:'' }}">
           </div>
-          <div class="col-md-4">
-            <label class="form-label text-muted small">Personality Type</label>
-            <input type="text" name="personality_type" class="form-control glass-input"
-              placeholder="e.g. INTJ"
-              value="{{ form_data.personality_type|default:'' }}">
+          <div class="col-12 col-md-6">
+            <label class="form-label" for="f-personality">Personality type</label>
+            <input id="f-personality" type="text" name="personality_type" class="form-control"
+              placeholder="e.g. INTJ" value="{{ form_data.personality_type|default:'' }}">
           </div>
-          {% endif %}
+        </div>
+        {% endif %}
 
-          <!-- Bio -->
+        <div class="row g-3 mt-1">
           <div class="col-12">
-            <label class="form-label text-muted small">Bio</label>
-            <textarea name="bio" class="form-control glass-input" rows="3"
+            <label class="form-label" for="f-bio">Bio</label>
+            <textarea id="f-bio" name="bio" class="form-control" rows="3"
               placeholder="A short bio about the user…">{{ form_data.bio|default:'' }}</textarea>
           </div>
         </div>
 
-        <div class="d-flex gap-3 mt-4 pt-3" style="border-top:1px solid rgba(255,255,255,0.06);">
-          <button type="submit" class="btn btn-glow flex-fill">
-            <i class="bi bi-check-lg me-2"></i>
-            {% if editing %}Save Changes{% else %}Create User{% endif %}
+        <div class="form-actions">
+          <a href="{% if editing %}{% url 'user_detail' user_id %}{% else %}{% url 'user_list' %}{% endif %}" class="btn btn-glass">Cancel</a>
+          <button type="submit" class="btn btn-glow">
+            <i class="bi bi-check-lg" aria-hidden="true"></i>{% if editing %}Save changes{% else %}Create user{% endif %}
           </button>
-          {% if editing %}
-          <a href="{% url 'user_detail' user_id %}" class="btn btn-glass">Cancel</a>
-          {% else %}
-          <a href="{% url 'user_list' %}" class="btn btn-glass">Cancel</a>
-          {% endif %}
         </div>
       </form>
     </div>
   </div>
 </div>
+{% endif %}
 {% endblock %}

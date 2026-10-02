@@ -7,7 +7,7 @@
     <h1><i class="bi bi-key-fill header-icon"></i> Account recovery</h1>
     <p class="text-muted mb-0">Members who lost their recovery code and cannot sign in. Confirm identity before issuing a code; the code is shown once, expires in 72 hours and signs the member out everywhere.</p>
   </div>
-  <form method="get" class="d-flex gap-2">
+  <form method="get" class="d-flex gap-2 flex-wrap">
     <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
       <option value="open" {% if status_filter == "open" %}selected{% endif %}>Open</option>
       <option value="code_issued" {% if status_filter == "code_issued" %}selected{% endif %}>Code issued</option>
@@ -18,7 +18,7 @@
 </div>
 
 {% if error %}
-<div class="alert-glass alert-glass-warning mb-3"><i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}</div>
+<div class="alert-glass warning mb-3"><i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}</div>
 {% endif %}
 
 <div class="glass-card">
@@ -54,7 +54,7 @@
           <td><span class="badge">{{ item.status }}</span></td>
           <td class="text-end">
             {% if item.status == "open" %}
-            <form method="post" action="{% url 'account_recovery_resolve' item.id %}" class="text-start" style="min-width:320px;">
+            <form method="post" action="{% url 'account_recovery_resolve' item.id %}" class="text-start minw-col-lg">
               {% csrf_token %}
               <select name="identity_check" class="form-select form-select-sm mb-2">
                 <option value="">How did you confirm identity?</option>
@@ -63,9 +63,9 @@
                 {% endfor %}
               </select>
               <textarea name="resolution_note" class="form-control form-control-sm mb-2" rows="2" minlength="10" maxlength="1000" required placeholder="What you checked (10+ characters). Never paste the code here."></textarea>
-              <div class="d-flex gap-2 justify-content-end">
-                <button type="submit" name="action" value="decline" class="btn btn-sm btn-outline-secondary">Decline</button>
-                <button type="submit" name="action" value="issue_recovery_code" class="btn btn-sm btn-primary" {% if not item.account_recoverable %}disabled{% endif %}>Issue recovery code</button>
+              <div class="d-flex gap-2 justify-content-end flex-wrap">
+                <button type="submit" name="action" value="decline" class="btn btn-sm btn-glass">Decline</button>
+                <button type="submit" name="action" value="issue_recovery_code" class="btn btn-sm btn-glow" {% if not item.account_recoverable %}disabled{% endif %}>Issue recovery code</button>
               </div>
             </form>
             {% endif %}

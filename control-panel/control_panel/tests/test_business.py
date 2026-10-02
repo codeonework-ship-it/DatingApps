@@ -43,6 +43,7 @@ class BusinessViewsTest(TestCase):
 
     @patch("control_panel.views_business.GoBFFClient")
     def test_empty_revenue_explains_release_one(self, cls):
+        """[case:console.business.business_revenue.renders]"""
         cls.return_value.business_report.return_value = envelope("revenue", totals=[], trend=[], by_product=[], by_city=[])
         response = self.client.get(reverse("business_revenue"))
         self.assertContains(response, "PEN-25")
@@ -53,6 +54,7 @@ class BusinessViewsTest(TestCase):
 
     @patch("control_panel.views_business.GoBFFClient")
     def test_revenue_forwards_validated_filters_and_renders_currencies(self, cls):
+        """[case:console.business.business_revenue.renders]"""
         cls.return_value.business_report.return_value = envelope(
             "revenue",
             data_status={**EMPTY_STATUS, "empty": False, "sandbox_hint": "Sandbox payments exist in this window"},
@@ -74,6 +76,7 @@ class BusinessViewsTest(TestCase):
 
     @patch("control_panel.views_business.GoBFFClient")
     def test_subscriptions_waterfall_uses_one_currency(self, cls):
+        """[case:console.business.business_subscriptions.renders]"""
         moves = [
             {"bucket": "2026-08-01", "currency": "INR", "mrr_start_minor": 0, "new_minor": 2000, "expansion_minor": 0, "contraction_minor": 0, "churned_minor": 0, "mrr_end_minor": 2000},
             {"bucket": "2026-09-01", "currency": "INR", "mrr_start_minor": 2000, "new_minor": 0, "expansion_minor": 1000, "contraction_minor": 0, "churned_minor": 500, "mrr_end_minor": 2500},
@@ -90,6 +93,7 @@ class BusinessViewsTest(TestCase):
 
     @patch("control_panel.views_business.GoBFFClient")
     def test_conversion_page_calls_conversion_and_funnel(self, cls):
+        """[case:console.business.business_conversion.renders]"""
         cls.return_value.business_report.side_effect = [
             envelope("conversion", cohorts=[{"cohort": "2026-09", "members": 12, "paid_30d": "<5", "conversion_to_date": 0.25}], ltv=[], actives_conversion={"rate": 0.05}),
             envelope("funnel", totals={"created": 6, "completed": 5, "paid": 5, "refunded": "<5"}, detail=[], instrumentation={"paywall_views": "not instrumented", "platform": "not captured"}),
@@ -103,6 +107,7 @@ class BusinessViewsTest(TestCase):
 
     @patch("control_panel.views_business.GoBFFClient")
     def test_markets_shows_status_and_saves_gates(self, cls):
+        """[case:console.business.business_markets.renders] [case:console.business.business_market_save.performs]"""
         cls.return_value.business_report.return_value = envelope("markets", markets=[{
             "city": "Bengaluru", "city_key": "bengaluru", "configured": True, "status": "approaching", "members": 2000, "verified_members": 1600,
             "gates": {"verified_members": {"target": 3000, "progress": 0.5333, "met": False}, "gender_balance": {"largest_share": 0.58, "met": True}, "plans_kept_per_active": {"target": 0.08, "value": None}},
@@ -120,11 +125,13 @@ class BusinessViewsTest(TestCase):
 
     @patch("control_panel.views_business.GoBFFClient")
     def test_invalid_market_targets_do_not_call_api(self, cls):
+        """[case:console.business.business_market_save.performs]"""
         self.client.post(reverse("business_market_save"), {"city_key": "x", "verified_target": "many"})
         cls.return_value.save_launch_market.assert_not_called()
 
     @patch("control_panel.views_business.GoBFFClient")
     def test_investor_pack_is_printable_and_flags_missing_spend(self, cls):
+        """[case:console.business.business_investor_pack.renders]"""
         cls.return_value.business_report.return_value = envelope("investor-pack", months=[{
             "month": "2026-09", "members_total": 309, "new_members": 13, "mau": 38, "plans_kept": 0, "north_star": 0, "burn": "not available",
             "by_currency": [{"currency": "INR", "net": "0.00", "mrr": "19.99", "cac": "needs spend data", "marketing_spend": "needs spend data"}],
@@ -139,6 +146,7 @@ class BusinessViewsTest(TestCase):
 
     @patch("control_panel.views_business.GoBFFClient")
     def test_spend_form_records_and_deletes(self, cls):
+        """[case:console.business.business_spend.renders] [case:console.business.business_spend_save.performs] [case:console.business.business_spend_delete.performs]"""
         cls.return_value.business_report.return_value = envelope("marketing-spend", entries=[], cac=[], channels=["paid_social", "search"], markets=["all", "bengaluru"], status="needs spend data", note="No marketing spend recorded")
         response = self.client.get(reverse("business_spend"))
         self.assertContains(response, "No marketing spend recorded")
@@ -157,6 +165,7 @@ class BusinessViewsTest(TestCase):
 
     @patch("control_panel.views_business.GoBFFClient")
     def test_spend_rejects_bad_month_and_shows_api_errors(self, cls):
+        """[case:console.business.business_spend_save.performs]"""
         self.client.post(reverse("business_spend_save"), {"month": "September", "channel": "search", "currency": "INR", "amount": "1"})
         cls.return_value.save_marketing_spend.assert_not_called()
         cls.return_value.save_marketing_spend.return_value = APIResult(False, {}, "this report requires one of the roles: admin, finance", 403)
@@ -166,6 +175,7 @@ class BusinessViewsTest(TestCase):
 
     @patch("control_panel.views_business.GoBFFClient")
     def test_csv_download_proxies_table_and_filters(self, cls):
+        """[case:console.business.business_csv.renders]"""
         cls.return_value.business_csv.return_value = BinaryAPIResult(ok=True, content=b"currency,net\r\nINR,193.00\r\n", content_type="text/csv")
         response = self.client.get(reverse("business_csv", args=["revenue"]), {"table": "totals", "mode": "sandbox", "since": "2026-09-01"})
         self.assertEqual(response.status_code, 200)
@@ -178,6 +188,7 @@ class BusinessViewsTest(TestCase):
         self.assertEqual(self.client.get(reverse("business_csv", args=["passwords"])).status_code, 404)
 
     def test_csrf_required_for_spend(self):
+        """[case:console.business.business_spend_save.authz]"""
         client = Client(enforce_csrf_checks=True)
         session = client.session
         session["operator_access_token"] = "a"
@@ -195,6 +206,7 @@ class BillingRevenuePageTest(TestCase):
 
     @patch("control_panel.views.GoBFFClient")
     def test_revenue_page_uses_windowed_per_currency_api(self, cls):
+        """[case:console.billing.billing_revenue_analytics.renders]"""
         client = cls.return_value
         client.health.return_value = APIResult(True, {"status": "ok"})
         client.get_revenue_analytics.return_value = APIResult(True, {
@@ -218,6 +230,7 @@ class BillingRevenuePageTest(TestCase):
 
     @patch("control_panel.views.GoBFFClient")
     def test_revenue_page_empty_state(self, cls):
+        """[case:console.billing.billing_revenue_analytics.renders]"""
         client = cls.return_value
         client.health.return_value = APIResult(True, {"status": "ok"})
         client.get_revenue_analytics.return_value = APIResult(True, {"mode": "live", "revenue": [], "data_status": {"empty": True, "release_note": "Billing is excluded from release 1 (PEN-25)."}})

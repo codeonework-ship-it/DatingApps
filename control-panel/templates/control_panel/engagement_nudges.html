@@ -14,7 +14,7 @@
 <div class="row g-3 mb-4">
   <div class="col-md-4"><div class="glass-card p-4"><div class="text-muted">Recent sends</div><div class="display-6">{{ nudge_count }}</div></div></div>
   <div class="col-md-4"><div class="glass-card p-4"><div class="text-muted">Clicked</div><div class="display-6">{{ clicked_count }}</div></div></div>
-  <div class="col-md-4"><div class="glass-card p-4"><div class="text-muted">Delivery</div><div class="h3 mt-2">{% if nudges_enabled %}<span class="badge bg-success">Enabled</span>{% else %}<span class="badge bg-danger">Disabled</span>{% endif %}</div></div></div>
+  <div class="col-md-4"><div class="glass-card p-4"><div class="text-muted">Delivery</div><div class="h3 mt-2">{% if nudges_enabled is None %}<span class="badge bg-secondary">Unknown</span>{% elif nudges_enabled %}<span class="badge bg-success">Enabled</span>{% else %}<span class="badge bg-danger">Disabled</span>{% endif %}</div></div></div>
 </div>
 
 <div class="glass-card p-4">

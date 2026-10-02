@@ -17,12 +17,13 @@ import filecmp, html, importlib, json, pathlib, re, sys, tempfile
 sys.path.insert(0, '.')
 import generate_pages as g
 from locales import LOCALES
-# Pages whose copy keys are known here. A page added by in-progress work (e.g.
-# contact) is listed in 'allPages' but only asserted once it is added below.
+# Pages whose copy keys are known here. A page added later is listed in
+# 'allPages' but only asserted once it is added below (public-pages.spec.js
+# fails until it is).
 h1_keys = {'index': 'hero_h1', 'features': 'features_h1', 'safety': 'safety_h1',
-           'privacy': 'privacy_h1', 'guidelines': 'g_h1', 'membership': 'm_h1'}
+           'privacy': 'privacy_h1', 'guidelines': 'g_h1', 'membership': 'm_h1', 'contact': 'c_h1'}
 title_keys = {'index': 'home_title', 'features': 'features_title', 'safety': 'safety_title',
-              'privacy': 'privacy_title', 'guidelines': 'g_title', 'membership': 'm_title'}
+              'privacy': 'privacy_title', 'guidelines': 'g_title', 'membership': 'm_title', 'contact': 'c_title'}
 text = lambda s: re.sub(r'\s+', ' ', html.unescape(re.sub(r'<[^>]+>', '', re.sub(r'<br\s*/?>', ' ', s)))).strip()
 pages = [p for p in g.PAGES if p in h1_keys]
 out = {'pages': pages, 'allPages': g.PAGES, 'locales': []}
@@ -57,8 +58,9 @@ export const manifest = JSON.parse(
   execFileSync('python3', ['-c', manifestScript], {cwd: websiteDir, encoding: 'utf8'}),
 );
 
-// Pages owned by in-progress work in other sessions (contact/support form).
-export const excluded = /contact|support/i;
+// Public pages left out of the page × locale crawl. The contact page joined the
+// matrix on 2026-10-02 once its form shipped; nothing is excluded today.
+export const excluded = /(?!)/;
 
 /** Every generated page in every locale: {locale, page, url, title, h1}. */
 export const generatedPages = manifest.locales.flatMap(locale =>

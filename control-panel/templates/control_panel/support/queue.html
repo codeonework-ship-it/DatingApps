@@ -1,7 +1,6 @@
 {% extends "control_panel/base.html" %}
 {% block title %}Support queue · {{ project_name }}{% endblock %}
 {% block topbar_title %}Support · Ticket queue{% endblock %}
-{% block extra_head %}{% include "control_panel/support/_styles.html" %}{% endblock %}
 {% block content %}
 <div class="page-header">
   <div>
@@ -17,7 +16,7 @@
   {% for key, label, count in counts %}
   <div class="col-6 col-md-4 col-xl-2">
     <a class="glass-card d-block text-center py-3 text-decoration-none{% if filters.status == key %} border border-info{% endif %}" href="?status={{ key }}">
-      <div class="support-count" style="color:var(--aqua);">{{ count }}</div><div class="text-muted small">{{ label }}</div>
+      <div class="support-count text-aqua">{{ count }}</div><div class="text-muted small">{{ label }}</div>
     </a>
   </div>
   {% endfor %}
@@ -25,26 +24,26 @@
 
 <div class="glass-card mb-4">
   <form method="get" class="row g-3 align-items-end" aria-label="Filter support tickets">
-    <div class="col-lg-2 col-md-4 col-6"><label for="sq-q" class="form-label text-muted small">Search</label>
+    <div class="col-lg-2 col-md-4 col-6"><label for="sq-q" class="form-label">Search</label>
       <input id="sq-q" name="q" value="{{ filters.q }}" maxlength="120" class="form-control glass-input" placeholder="Reference, subject, username, email"></div>
-    <div class="col-lg-2 col-md-4 col-6"><label for="sq-status" class="form-label text-muted small">Status</label>
+    <div class="col-lg-2 col-md-4 col-6"><label for="sq-status" class="form-label">Status</label>
       <select id="sq-status" name="status" class="form-select glass-select">{% for key, label in statuses %}<option value="{{ key }}"{% if key == filters.status %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
-    <div class="col-lg-2 col-md-4 col-6"><label for="sq-category" class="form-label text-muted small">Category</label>
+    <div class="col-lg-2 col-md-4 col-6"><label for="sq-category" class="form-label">Category</label>
       <select id="sq-category" name="category" class="form-select glass-select"><option value="">All categories</option>{% for key, label in categories %}<option value="{{ key }}"{% if key == filters.category %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
-    <div class="col-lg-2 col-md-4 col-6"><label for="sq-priority" class="form-label text-muted small">Priority</label>
+    <div class="col-lg-2 col-md-4 col-6"><label for="sq-priority" class="form-label">Priority</label>
       <select id="sq-priority" name="priority" class="form-select glass-select"><option value="">All priorities</option>{% for key, label in priorities %}<option value="{{ key }}"{% if key == filters.priority %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
-    <div class="col-lg-2 col-md-4 col-6"><label for="sq-team" class="form-label text-muted small">Team</label>
+    <div class="col-lg-2 col-md-4 col-6"><label for="sq-team" class="form-label">Team</label>
       <select id="sq-team" name="team" class="form-select glass-select"><option value="">All teams</option>{% for key, label in teams %}<option value="{{ key }}"{% if key == filters.team %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
-    <div class="col-lg-2 col-md-4 col-6"><label for="sq-channel" class="form-label text-muted small">Channel</label>
+    <div class="col-lg-2 col-md-4 col-6"><label for="sq-channel" class="form-label">Channel</label>
       <select id="sq-channel" name="channel" class="form-select glass-select"><option value="">All channels</option>{% for key, label in channels %}<option value="{{ key }}"{% if key == filters.channel %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
-    <div class="col-lg-2 col-md-4 col-6"><label for="sq-assignee" class="form-label text-muted small">Assignee</label>
+    <div class="col-lg-2 col-md-4 col-6"><label for="sq-assignee" class="form-label">Assignee</label>
       <select id="sq-assignee" name="assignee" class="form-select glass-select">
         {% for key, label in assignee_filters %}<option value="{{ key }}"{% if key == filters.assignee %} selected{% endif %}>{{ label }}</option>{% endfor %}
         {% for agent in agents %}<option value="{{ agent.id }}"{% if agent.id == filters.assignee %} selected{% endif %}>{{ agent.name|default:agent.id }}</option>{% endfor %}
       </select></div>
-    <div class="col-lg-2 col-md-4 col-6"><label for="sq-sla" class="form-label text-muted small">SLA</label>
+    <div class="col-lg-2 col-md-4 col-6"><label for="sq-sla" class="form-label">SLA</label>
       <select id="sq-sla" name="sla" class="form-select glass-select"><option value="">Any SLA state</option>{% for key, label in sla_filters %}<option value="{{ key }}"{% if key == filters.sla %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
-    <div class="col-lg-2 col-md-4 col-6"><label for="sq-sort" class="form-label text-muted small">Sort by</label>
+    <div class="col-lg-2 col-md-4 col-6"><label for="sq-sort" class="form-label">Sort by</label>
       <select id="sq-sort" name="sort" class="form-select glass-select">{% for key, label in sorts %}<option value="{{ key }}"{% if key == filters.sort %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
     <div class="col-lg-6 col-md-12 d-flex gap-2 flex-wrap">
       <button type="submit" class="btn btn-glow"><i class="bi bi-funnel-fill me-1"></i>Filter</button>
@@ -62,18 +61,18 @@
       <span class="text-muted small">Showing {{ tickets|length }} of {{ total }} ticket{{ total|pluralize }}{% if offset > 0 %} (offset {{ offset }}){% endif %}</span>
       {% if can_manage and tickets %}
       <div class="d-flex flex-wrap gap-2 align-items-end" aria-label="Bulk actions">
-        <div><label for="bulk-action" class="form-label text-muted small mb-0">With selected</label>
+        <div><label for="bulk-action" class="form-label mb-0">With selected</label>
           <select id="bulk-action" name="action" class="form-select form-select-sm glass-select">{% for key, label in bulk_actions %}<option value="{{ key }}">{{ label }}</option>{% endfor %}</select></div>
-        <div data-bulk-value="assign" hidden><label for="bulk-assign" class="form-label text-muted small mb-0">Agent</label>
+        <div data-bulk-value="assign" hidden><label for="bulk-assign" class="form-label mb-0">Agent</label>
           <select id="bulk-assign" name="assign_value" class="form-select form-select-sm glass-select"><option value="">Unassign</option>{% for agent in agents %}<option value="{{ agent.id }}">{{ agent.name|default:agent.id }}{% if agent.open_assigned is not None %} ({{ agent.open_assigned }} open){% endif %}</option>{% endfor %}</select></div>
-        <div data-bulk-value="status" hidden><label for="bulk-status" class="form-label text-muted small mb-0">Status</label>
+        <div data-bulk-value="status" hidden><label for="bulk-status" class="form-label mb-0">Status</label>
           <select id="bulk-status" name="status_value" class="form-select form-select-sm glass-select">{% for key, label in ticket_statuses %}<option value="{{ key }}">{{ label }}</option>{% endfor %}</select></div>
-        <div data-bulk-value="priority" hidden><label for="bulk-priority" class="form-label text-muted small mb-0">Priority</label>
+        <div data-bulk-value="priority" hidden><label for="bulk-priority" class="form-label mb-0">Priority</label>
           <select id="bulk-priority" name="priority_value" class="form-select form-select-sm glass-select">{% for key, label in priorities %}<option value="{{ key }}">{{ label }}</option>{% endfor %}</select></div>
         <button type="submit" class="btn btn-glow btn-sm">Apply</button>
       </div>
       {% endif %}
-      <nav class="d-flex gap-2" aria-label="Ticket pages">
+      <nav class="d-flex gap-2 flex-wrap" aria-label="Ticket pages">
         {% if offset > 0 %}<a href="?{{ filter_query }}&amp;offset={{ prev_offset }}" class="btn btn-glass btn-sm"><i class="bi bi-chevron-left"></i> Previous</a>{% endif %}
         {% if has_more %}<a href="?{{ filter_query }}&amp;offset={{ next_offset }}" class="btn btn-glass btn-sm">Next <i class="bi bi-chevron-right"></i></a>{% endif %}
       </nav>
@@ -91,7 +90,7 @@
           {% for ticket in tickets %}
           <tr class="{% if ticket.sla.state == 'breached' %}is-breached{% elif ticket.sla.state == 'at_risk' %}is-at-risk{% endif %}">
             {% if can_manage %}<td><input type="checkbox" class="form-check-input" name="ticket_ids" value="{{ ticket.id }}" data-bulk-row aria-label="Select {{ ticket.reference|default:ticket.id }}"></td>{% endif %}
-            <td style="max-width:380px;">
+            <td class="mw-cell-xl">
               <a href="{% url 'support_ticket_detail' ticket.id %}" class="fw-semibold">{{ ticket.subject|default:"(no subject)" }}</a>
               <div class="small text-muted"><span class="font-monospace">{{ ticket.reference|default:"—" }}</span> · {{ ticket.requester.display_name|default:"Unknown requester" }}{% if ticket.requester.username %} (@{{ ticket.requester.username }}){% elif ticket.requester.kind == 'contact' %} (website visitor){% endif %}</div>
               {% if ticket.awaiting_agent %}<div class="support-awaiting"><i class="bi bi-reply-fill"></i> Awaiting reply</div>{% endif %}
@@ -117,7 +116,7 @@
     </div>
     {% else %}
     <div class="text-center py-5 text-muted">
-      <i class="bi bi-inbox" style="font-size:3rem;opacity:0.3;"></i>
+      <i class="bi bi-inbox empty-icon"></i>
       <p class="mt-2 mb-0">{% if error %}Tickets could not be loaded.{% else %}No tickets match these filters.{% endif %}</p>
     </div>
     {% endif %}

@@ -14,7 +14,7 @@ from django.shortcuts import redirect, render
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_POST
 
-from .services.go_client import GoBFFClient
+from .services.go_client import GoBFFClient, bff_failure_status
 
 FILTERS = {
     'all': 'All rooms',
@@ -72,7 +72,7 @@ def _load():
 
 
 def _status(result):
-    return 200 if result.ok else (result.status_code or 502)
+    return 200 if result.ok else bff_failure_status(result.status_code)
 
 
 def _members(room_id):

@@ -99,6 +99,7 @@ class BFFErrorBannerTest(TestCase):
         session.save()
 
     def test_failed_action_banner_hides_sqlstate(self):
+        """[case:console.users.user_suspend.performs]"""
         failure = api_response(500, {"error": RAW_DB_ERROR, "correlation_id": "corr-456"})
         with patch("requests.Session.request", return_value=failure), \
                 self.assertLogs("control_panel.services.go_client", level="WARNING"):

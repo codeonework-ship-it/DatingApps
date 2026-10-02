@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from django.contrib import messages
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect
-from django.urls import reverse
+from django.urls import NoReverseMatch, reverse
 
+from .operator_access import CONSOLE_ACTIONS, action_allowed, refusal_message, stored_roles
 from .operator_context import OperatorSession, current_operator_session
 
 
@@ -56,3 +58,38 @@ class OperatorSessionMiddleware:
             return self.get_response(request)
         finally:
             current_operator_session.reset(token)
+
+
+class OperatorRoleGateMiddleware:
+    """Refuse a console change the operator's role cannot make (CON-05).
+
+    Go enforces every /v1/admin call; this only stops the console from
+    sending a change Go is certain to refuse, so a mis-clicked form never
+    reaches the BFF and the operator is told why. It applies to POSTs listed
+    in ``operator_access.CONSOLE_ACTIONS`` when the operator's roles are
+    known (resolved at login); with unknown roles Go decides, as before.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request: HttpRequest) -> HttpResponse:
+        return self.get_response(request)
+
+    def process_view(self, request: HttpRequest, view_func, view_args, view_kwargs):
+        if request.method != "POST":
+            return None
+        match = getattr(request, "resolver_match", None)
+        url_name = match.url_name if match else ""
+        action = CONSOLE_ACTIONS.get(url_name or "")
+        if action is None:
+            return None
+        roles = stored_roles(getattr(request, "session", None))
+        if action_allowed(roles, url_name, view_kwargs):
+            return None
+        messages.error(request, refusal_message(roles or []))
+        try:
+            target = reverse(action.back, kwargs={k: str(v) for k, v in view_kwargs.items()})
+        except NoReverseMatch:
+            target = reverse(action.back)
+        return redirect(target)

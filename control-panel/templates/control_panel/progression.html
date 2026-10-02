@@ -9,8 +9,8 @@
   </div>
 </div>
 
-{% if error %}<div class="alert-glass alert-glass-warning">{{ error }}</div>{% endif %}
-{% if fraud_error %}<div class="alert-glass alert-glass-warning">{{ fraud_error }}</div>{% endif %}
+{% if error %}<div class="alert-glass warning">{{ error }}</div>{% endif %}
+{% if fraud_error %}<div class="alert-glass warning">{{ fraud_error }}</div>{% endif %}
 
 <div class="row g-3 mb-4">
   <div class="col-6 col-xl-3"><div class="glass-card"><div class="text-muted small">Projected users</div><div class="fs-3 fw-bold">{{ metrics.users|default:0 }}</div></div></div>
@@ -46,10 +46,10 @@
             <form id="policy-{{ forloop.counter }}" method="post" action="{% url 'progression_policy_update' policy.source %}">{% csrf_token %}</form>
             <strong>{{ policy.display_name }}</strong><br><code>{{ policy.source }}</code>
           </td>
-          <td><input form="policy-{{ forloop.counter }}" class="glass-input" style="width:85px" type="number" min="0" max="500" name="base_xp" value="{{ policy.base_xp }}"></td>
-          <td><input form="policy-{{ forloop.counter }}" class="glass-input" style="width:85px" type="number" min="0" max="300" name="daily_xp_cap" value="{{ policy.daily_xp_cap }}"></td>
-          <td><input form="policy-{{ forloop.counter }}" class="glass-input" style="width:85px" type="number" min="1" max="100" name="daily_event_cap" value="{{ policy.daily_event_cap }}"></td>
-          <td><input form="policy-{{ forloop.counter }}" class="glass-input" style="width:100px" type="number" min="0" max="86400" name="cooldown_seconds" value="{{ policy.cooldown_seconds }}"></td>
+          <td><input form="policy-{{ forloop.counter }}" class="glass-input w-num" type="number" min="0" max="500" name="base_xp" value="{{ policy.base_xp }}"></td>
+          <td><input form="policy-{{ forloop.counter }}" class="glass-input w-num" type="number" min="0" max="300" name="daily_xp_cap" value="{{ policy.daily_xp_cap }}"></td>
+          <td><input form="policy-{{ forloop.counter }}" class="glass-input w-num" type="number" min="1" max="100" name="daily_event_cap" value="{{ policy.daily_event_cap }}"></td>
+          <td><input form="policy-{{ forloop.counter }}" class="glass-input w-num-md" type="number" min="0" max="86400" name="cooldown_seconds" value="{{ policy.cooldown_seconds }}"></td>
           <td><input form="policy-{{ forloop.counter }}" type="checkbox" name="enabled" {% if policy.enabled %}checked{% endif %}></td>
           <td><button form="policy-{{ forloop.counter }}" class="btn btn-glow btn-sm">Save</button></td>
         </tr>
@@ -126,7 +126,7 @@
     <div class="col-md-2"><label class="form-label small">Severity</label><select class="glass-select w-100" name="severity"><option {% if rule.severity == "low" %}selected{% endif %}>low</option><option {% if rule.severity == "medium" %}selected{% endif %}>medium</option><option {% if rule.severity == "high" %}selected{% endif %}>high</option><option {% if rule.severity == "critical" %}selected{% endif %}>critical</option></select></div>
     <div class="col-md-2"><label class="d-flex gap-2 align-items-center mb-2"><input type="checkbox" name="enabled" {% if rule.enabled %}checked{% endif %}> Enabled</label></div>
     <div class="col-md-10"><label class="form-label small">Tuning rationale</label><input class="glass-input" name="tuning_note" minlength="10" value="{{ rule.tuning_note }}" required></div>
-    <div class="col-md-2"><button class="btn btn-outline-light w-100">Save fraud rule</button></div>
+    <div class="col-md-2"><button class="btn btn-glass w-100">Save fraud rule</button></div>
   </form>
   {% empty %}<p class="text-muted mb-0">No fraud rules configured.</p>{% endfor %}
 </div>
@@ -148,8 +148,8 @@
     {% if case.status == "open" or case.status == "reviewing" %}
     <form method="post" action="{% url 'progression_fraud_resolve' case.id %}" class="d-flex flex-wrap gap-2">{% csrf_token %}
       <input class="glass-input flex-grow-1" name="resolution" placeholder="Resolution evidence" required>
-      <button class="btn btn-outline-light" name="status" value="dismissed">Dismiss</button>
-      <button class="btn btn-outline-danger" name="status" value="confirmed">Confirm abuse</button>
+      <button class="btn btn-glass" name="status" value="dismissed">Dismiss</button>
+      <button class="btn btn-danger-glass" name="status" value="confirmed">Confirm abuse</button>
     </form>{% endif %}
   </div>
   {% empty %}<p class="text-muted mb-0">No cases in this queue.</p>{% endfor %}

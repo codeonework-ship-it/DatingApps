@@ -50,6 +50,7 @@ class ClientErrorsViewTest(TestCase):
         session.save()
 
     def test_requires_login_and_csrf(self):
+        """[case:console.client_errors.client_error_status.authz]"""
         self.assertEqual(Client().get(reverse('client_errors')).status_code, 302)
         self.assertEqual(Client().get(reverse('client_error_detail', args=[ISSUE])).status_code, 302)
         self.assertEqual(Client().post(reverse('client_error_status', args=[ISSUE]), {'status': 'resolved'}).status_code, 302)
@@ -62,6 +63,7 @@ class ClientErrorsViewTest(TestCase):
 
     @patch('control_panel.views_client_errors.GoBFFClient')
     def test_list_renders_issues_summary_and_privacy_note(self, cls):
+        """[case:console.client_errors.client_errors.renders]"""
         cls.return_value.list_client_errors.return_value = APIResult(True, {
             'success': True, 'issues': [_issue()], 'total': 1,
             'summary': {'open': 12, 'resolved': 40, 'ignored': 3, 'fatal_open': 5},
@@ -92,6 +94,7 @@ class ClientErrorsViewTest(TestCase):
 
     @patch('control_panel.views_client_errors.GoBFFClient')
     def test_filters_and_pagination_pass_through(self, cls):
+        """[case:console.client_errors.client_errors.renders]"""
         cls.return_value.list_client_errors.return_value = APIResult(True, {
             'issues': [_issue()], 'total': 120, 'summary': {}})
         response = self.client.get(reverse('client_errors'), {
@@ -108,6 +111,7 @@ class ClientErrorsViewTest(TestCase):
 
     @patch('control_panel.views_client_errors.GoBFFClient')
     def test_unknown_filters_fall_back_to_defaults(self, cls):
+        """[case:console.client_errors.client_errors.renders]"""
         cls.return_value.list_client_errors.return_value = APIResult(True, {'issues': [], 'total': 0})
         response = self.client.get(reverse('client_errors'), {
             'status': 'deleted', 'platform': 'symbian', 'fatal': 'maybe', 'sort': 'random', 'offset': '-5'})
@@ -117,6 +121,7 @@ class ClientErrorsViewTest(TestCase):
 
     @patch('control_panel.views_client_errors.GoBFFClient')
     def test_list_api_error_is_shown(self, cls):
+        """[case:console.client_errors.client_errors.renders]"""
         cls.return_value.list_client_errors.return_value = APIResult(
             False, {}, error='operator role is not allowed', status_code=403)
         response = self.client.get(reverse('client_errors'))
@@ -128,6 +133,7 @@ class ClientErrorsViewTest(TestCase):
 
     @patch('control_panel.views_client_errors.GoBFFClient')
     def test_detail_renders_and_escapes_report_text(self, cls):
+        """[case:console.client_errors.client_error_detail.renders]"""
         cls.return_value.get_client_error.return_value = APIResult(True, _detail())
         response = self.client.get(reverse('client_error_detail', args=[ISSUE]))
         cls.return_value.get_client_error.assert_called_with(ISSUE)
@@ -155,6 +161,7 @@ class ClientErrorsViewTest(TestCase):
 
     @patch('control_panel.views_client_errors.GoBFFClient')
     def test_resolved_issue_offers_reopen_and_shows_resolution(self, cls):
+        """[case:console.client_errors.client_error_detail.renders]"""
         cls.return_value.get_client_error.return_value = APIResult(True, _detail(
             status='resolved', regressed=False, resolved_at='2026-10-01T10:00:00Z', resolved_in_version='1.4.3',
             status_changed_by=OPERATOR, status_note='Fixed <u>null</u> list'))
@@ -168,6 +175,7 @@ class ClientErrorsViewTest(TestCase):
 
     @patch('control_panel.views_client_errors.GoBFFClient')
     def test_detail_missing_issue_shows_error(self, cls):
+        """[case:console.client_errors.client_error_detail.renders]"""
         cls.return_value.get_client_error.return_value = APIResult(
             False, {'success': False, 'error': 'issue not found'}, error='issue not found', status_code=404)
         response = self.client.get(reverse('client_error_detail', args=[ISSUE]))
@@ -176,6 +184,7 @@ class ClientErrorsViewTest(TestCase):
 
     @patch('control_panel.views_client_errors.GoBFFClient')
     def test_status_post_calls_client_and_redirects(self, cls):
+        """[case:console.client_errors.client_error_status.performs]"""
         cls.return_value.get_client_error.return_value = APIResult(True, _detail(status='resolved'))
         cls.return_value.set_client_error_status.return_value = APIResult(True, {'issue': _issue(status='resolved')})
         url = reverse('client_error_status', args=[ISSUE])
@@ -195,6 +204,7 @@ class ClientErrorsViewTest(TestCase):
 
     @patch('control_panel.views_client_errors.GoBFFClient')
     def test_status_post_validates_before_calling_api(self, cls):
+        """[case:console.client_errors.client_error_status.performs] [case:console.client_errors.client_error_status.authz]"""
         cls.return_value.get_client_error.return_value = APIResult(True, _detail())
         url = reverse('client_error_status', args=[ISSUE])
         self.client.post(url, {'status': 'deleted'})
@@ -206,6 +216,7 @@ class ClientErrorsViewTest(TestCase):
 
     @patch('control_panel.views_client_errors.GoBFFClient')
     def test_status_failures_are_reported(self, cls):
+        """[case:console.client_errors.client_error_status.performs]"""
         cls.return_value.get_client_error.return_value = APIResult(True, _detail())
         url = reverse('client_error_status', args=[ISSUE])
         cls.return_value.set_client_error_status.return_value = APIResult(
@@ -223,7 +234,7 @@ class ClientErrorsViewTest(TestCase):
         cls.return_value.list_client_errors.return_value = APIResult(True, {'issues': [], 'total': 0})
         response = self.client.get(reverse('client_errors'))
         self.assertContains(response, f'href="{reverse("client_errors")}" class="nav-item-link active"')
-        self.assertContains(response, 'Client errors</a>')
+        self.assertContains(response, '<span class="nav-label">Client errors</span></a>')
 
 
 class ClientErrorsClientTest(TestCase):

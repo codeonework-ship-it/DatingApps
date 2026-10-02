@@ -7,14 +7,14 @@
     <h1><i class="bi bi-clipboard-check header-icon"></i> Settlement reconciliation</h1>
     <p class="text-muted mb-0">Provider-settled payments against what the product granted. Grants and promotions are never revenue.</p>
   </div>
-  <div class="d-flex gap-2">
+  <div class="d-flex gap-2 flex-wrap">
     <a href="{% url 'billing_dashboard' %}" class="btn btn-glass"><i class="bi bi-arrow-left me-2"></i>Billing</a>
     <a href="{% url 'billing_webhook_events' %}" class="btn btn-glass"><i class="bi bi-broadcast me-2"></i>Webhooks</a>
   </div>
 </div>
 
 {% if error %}
-<div class="alert-glass alert-glass-warning mb-3"><i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}</div>
+<div class="alert-glass warning mb-3"><i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}</div>
 {% endif %}
 
 <div class="glass-card mb-4">
@@ -44,7 +44,7 @@
   </div>
 
   {% if frozen_wallets_error %}
-  <div class="alert-glass alert-glass-warning mb-3"><i class="bi bi-exclamation-triangle-fill me-2"></i>{{ frozen_wallets_error }}</div>
+  <div class="alert-glass warning mb-3"><i class="bi bi-exclamation-triangle-fill me-2"></i>{{ frozen_wallets_error }}</div>
   {% endif %}
 
   <div class="row g-4">
@@ -70,7 +70,7 @@
       {% if frozen_wallets %}
       <div class="d-grid gap-3">
         {% for wallet in frozen_wallets %}
-        <form method="post" action="{% url 'billing_wallet_review' wallet.user_id %}" class="p-3" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:14px;">
+        <form method="post" action="{% url 'billing_wallet_review' wallet.user_id %}" class="p-3 inset-panel">
           {% csrf_token %}
           <div class="d-flex flex-wrap justify-content-between gap-2 mb-2">
             <code>{{ wallet.user_id }}</code>
@@ -109,11 +109,11 @@
     </div>
     <span class="badge {% if fraud_cases %}badge-danger{% else %}badge-active{% endif %}">{{ fraud_cases|length }} open case{{ fraud_cases|length|pluralize }}</span>
   </div>
-  {% if fraud_cases_error %}<div class="alert-glass alert-glass-warning mb-3">{{ fraud_cases_error }}</div>{% endif %}
+  {% if fraud_cases_error %}<div class="alert-glass warning mb-3">{{ fraud_cases_error }}</div>{% endif %}
   {% if fraud_cases %}
   <div class="d-grid gap-3 mb-4">
     {% for case in fraud_cases %}
-    <form method="post" action="{% url 'billing_fraud_case_resolve' case.id %}" class="p-3" style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:14px;">
+    <form method="post" action="{% url 'billing_fraud_case_resolve' case.id %}" class="p-3 inset-panel">
       {% csrf_token %}
       <div class="d-flex flex-wrap justify-content-between gap-2 mb-2">
         <div><span class="badge badge-danger">{{ case.severity }}</span> <strong>{{ case.rule_code }}</strong> <code class="ms-2">{{ case.user_id }}</code></div>
@@ -131,11 +131,11 @@
   {% else %}<div class="text-success mb-4"><i class="bi bi-check-circle me-2"></i>No fraud cases await review.</div>{% endif %}
 
   <h6>Rules and response actions</h6>
-  {% if fraud_rules_error %}<div class="alert-glass alert-glass-warning mb-3">{{ fraud_rules_error }}</div>{% endif %}
+  {% if fraud_rules_error %}<div class="alert-glass warning mb-3">{{ fraud_rules_error }}</div>{% endif %}
   <div class="table-responsive"><table class="glass-table w-100"><thead><tr><th>Rule</th><th>Metric</th><th>Threshold</th><th>Response</th><th>Severity</th><th>State</th><th></th></tr></thead><tbody>
   {% for rule in fraud_rules %}<tr>
     <td><form id="fraud-rule-{{ forloop.counter }}" method="post" action="{% url 'billing_fraud_rule_update' rule.rule_code %}">{% csrf_token %}</form><strong>{{ rule.rule_code }}</strong><div class="small text-muted">{{ rule.event_type }}</div></td><td>{{ rule.metric }}</td>
-    <td><input form="fraud-rule-{{ forloop.counter }}" class="glass-input" style="width:85px" type="number" min="1" name="trigger_value" value="{{ rule.trigger_value }}"><input form="fraud-rule-{{ forloop.counter }}" type="hidden" name="window_seconds" value="{{ rule.window_seconds }}"><div class="small text-muted">{{ rule.window_seconds }} sec</div></td>
+    <td><input form="fraud-rule-{{ forloop.counter }}" class="glass-input w-num" type="number" min="1" name="trigger_value" value="{{ rule.trigger_value }}"><input form="fraud-rule-{{ forloop.counter }}" type="hidden" name="window_seconds" value="{{ rule.window_seconds }}"><div class="small text-muted">{{ rule.window_seconds }} sec</div></td>
     <td><select form="fraud-rule-{{ forloop.counter }}" class="glass-input" name="response_action"><option {% if rule.response_action == 'warn' %}selected{% endif %}>warn</option><option {% if rule.response_action == 'throttle' %}selected{% endif %}>throttle</option><option {% if rule.response_action == 'temporary_lock' %}selected{% endif %}>temporary_lock</option></select><input form="fraud-rule-{{ forloop.counter }}" type="hidden" name="lock_seconds" value="{{ rule.lock_seconds }}"></td>
     <td><select form="fraud-rule-{{ forloop.counter }}" class="glass-input" name="severity"><option {% if rule.severity == 'low' %}selected{% endif %}>low</option><option {% if rule.severity == 'medium' %}selected{% endif %}>medium</option><option {% if rule.severity == 'high' %}selected{% endif %}>high</option><option {% if rule.severity == 'critical' %}selected{% endif %}>critical</option></select></td>
     <td><label class="small"><input form="fraud-rule-{{ forloop.counter }}" type="checkbox" name="enabled" {% if rule.enabled %}checked{% endif %}> Enabled</label></td><td><button form="fraud-rule-{{ forloop.counter }}" class="btn btn-glass btn-sm">Save</button></td>
@@ -163,7 +163,7 @@
         {% for a in anomalies %}
         <tr>
           <td><span class="badge badge-danger">{{ a.type }}</span></td>
-          <td class="small text-truncate" style="max-width:180px;" title="{{ a.id }}">{{ a.id|truncatechars:18 }}</td>
+          <td class="small text-truncate mw-cell-md" title="{{ a.id }}">{{ a.id|truncatechars:18 }}</td>
           <td class="small">{{ a.detail }}</td>
         </tr>
         {% endfor %}
@@ -179,7 +179,7 @@
   <div class="col-md-6">
     <div class="glass-card h-100">
       <h5 class="mb-3">Payments by status</h5>
-      <table class="glass-table w-100">
+      <div class="table-responsive"><table class="glass-table w-100">
         <thead><tr><th>Provider</th><th>Status</th><th>Count</th><th>Amount</th><th>Refunded</th></tr></thead>
         <tbody>
           {% for row in payments_by_status %}
@@ -188,23 +188,23 @@
           <tr><td colspan="5" class="text-muted">No payments in this window.</td></tr>
           {% endfor %}
         </tbody>
-      </table>
+      </table></div>
       <div class="small text-muted mt-2">Amounts in minor units ({{ currency }} paise).</div>
     </div>
   </div>
   <div class="col-md-6">
     <div class="glass-card h-100">
       <h5 class="mb-3">Wallet</h5>
-      <table class="glass-table w-100">
+      <div class="table-responsive"><table class="glass-table w-100">
         <tbody>
           <tr><td>Coin purchases (settled at provider)</td><td>{{ wallet.purchases.count }} · {{ wallet.purchases.coins }} coins · {{ wallet.purchases.amount_minor }}</td></tr>
           <tr><td>Coin payments in ledger</td><td>{{ wallet.settled_coin_payments.count }} · {{ wallet.settled_coin_payments.amount_minor }}</td></tr>
           <tr><td>Admin grants (not revenue)</td><td>{{ wallet.admin_grants.count }} · {{ wallet.admin_grants.coins }} coins</td></tr>
           <tr><td>Promotions (not revenue)</td><td>{{ wallet.promotions.count }} · {{ wallet.promotions.coins }} coins</td></tr>
         </tbody>
-      </table>
+      </table></div>
       <h5 class="mt-4 mb-3">Subscriptions · webhooks · checkouts</h5>
-      <table class="glass-table w-100">
+      <div class="table-responsive"><table class="glass-table w-100">
         <tbody>
           {% for status, row in subscriptions.items %}
           <tr><td>Subscriptions {{ status }}</td><td>{{ row.count }}{% if row.cancel_at_period_end %} ({{ row.cancel_at_period_end }} ending){% endif %}</td></tr>
@@ -215,7 +215,7 @@
           <tr><td>Checkouts open past expiry</td><td>{{ checkouts.open_past_expiry }}</td></tr>
           <tr><td>Checkouts completed without subscription</td><td>{{ checkouts.completed_without_subscription }}</td></tr>
         </tbody>
-      </table>
+      </table></div>
     </div>
   </div>
 </div>

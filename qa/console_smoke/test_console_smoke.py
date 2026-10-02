@@ -4,7 +4,10 @@ Run (console on 8765, BFF on 18081):
     CONSOLE_BASE_URL=http://127.0.0.1:8765 .venv/bin/python -m pytest qa/console_smoke -q
 
 No operator mutations are performed: every request is a GET, apart from the
-login form itself and a CSRF-less POST that must be rejected.
+login form itself and POSTs that must be refused before any view runs
+(anonymous, or without a CSRF token).
+
+Tests carry ``@pytest.mark.case(<catalog case id>)`` (qa/catalog/feature_catalog.json).
 """
 from __future__ import annotations
 
@@ -100,6 +103,7 @@ def _record(page_report, path, response, started, problems):
 
 # ── Authentication ────────────────────────────────────────────────────────────
 
+@pytest.mark.case("console.login.operator_login.authz")
 @pytest.mark.parametrize("path", ["/", "/moderation/rooms/", "/client-errors/", "/billing/", "/analytics/funnel/"])
 def test_logged_out_request_redirects_to_login(path):
     response = requests.get(f"{BASE_URL}{path}", allow_redirects=False, timeout=15)
@@ -107,6 +111,7 @@ def test_logged_out_request_redirects_to_login(path):
     assert response.headers["Location"] == f"/login/?next={path}"
 
 
+@pytest.mark.case("console.login.operator_login.authz")
 def test_login_page_renders_csrf_protected_form():
     session = requests.Session()
     response = session.get(f"{BASE_URL}/login/", timeout=15)
@@ -116,6 +121,7 @@ def test_login_page_renders_csrf_protected_form():
     assert "csrftoken" in session.cookies
 
 
+@pytest.mark.case("console.login.operator_login.authz")
 def test_login_without_csrf_token_is_rejected():
     response = requests.post(
         f"{BASE_URL}/login/", data={"username": "nobody", "password": "x"}, allow_redirects=False, timeout=15
@@ -123,6 +129,7 @@ def test_login_without_csrf_token_is_rejected():
     assert response.status_code == 403
 
 
+@pytest.mark.case("console.login.operator_login.authz")
 def test_unknown_operator_is_refused_without_session():
     session = requests.Session()
     response = login(session, f"qa_no_such_operator_{int(time.time())}", "not-a-real-password-1A!")
@@ -132,6 +139,7 @@ def test_unknown_operator_is_refused_without_session():
     assert follow.status_code == 302 and follow.headers["Location"].startswith("/login/")
 
 
+@pytest.mark.case("console.login.operator_login.performs")
 def test_login_honours_next_and_rejects_offsite_next(operator):
     from conftest import operator_credentials
 
@@ -174,6 +182,7 @@ def _first_link(operator, list_path: str, pattern: str) -> str | None:
 UUID = r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
 
 
+@pytest.mark.case("console.moderation_rooms.room_detail.renders")
 def test_room_detail_with_members(operator, page_report):
     path = _first_link(operator, "/moderation/rooms/", rf'href="(/moderation/rooms/{UUID}/)"')
     if not path:
@@ -188,6 +197,7 @@ def test_room_detail_with_members(operator, page_report):
     assert "Room id" in response.text
 
 
+@pytest.mark.case("console.client_errors.client_error_detail.renders")
 def test_client_error_detail(operator, page_report):
     path = _first_link(operator, "/client-errors/?status=all", rf'href="(/client-errors/{UUID}/)"')
     if not path:
@@ -200,6 +210,7 @@ def test_client_error_detail(operator, page_report):
     assert "Fingerprint" in response.text
 
 
+@pytest.mark.case("console.users.user_detail.renders")
 def test_user_detail(operator, page_report):
     path = _first_link(operator, "/users/", rf'href="(/users/{UUID}/)"')
     if not path:
@@ -214,9 +225,12 @@ def test_user_detail(operator, page_report):
 @pytest.mark.parametrize(
     "path",
     [
-        "/moderation/rooms/00000000-0000-4000-8000-000000000000/",
-        "/client-errors/00000000-0000-4000-8000-000000000000/",
-        "/users/00000000-0000-4000-8000-000000000000/",
+        pytest.param("/moderation/rooms/00000000-0000-4000-8000-000000000000/",
+                     marks=pytest.mark.case("console.moderation_rooms.room_detail.renders")),
+        pytest.param("/client-errors/00000000-0000-4000-8000-000000000000/",
+                     marks=pytest.mark.case("console.client_errors.client_error_detail.renders")),
+        pytest.param("/users/00000000-0000-4000-8000-000000000000/",
+                     marks=pytest.mark.case("console.users.user_detail.renders")),
         "/console-smoke-no-such-page/",
     ],
 )
@@ -227,8 +241,8 @@ def test_missing_records_return_404_not_500(operator, path):
 
 
 @pytest.mark.parametrize("list_path,pattern", [
-    ("/business/", r'href="(/business/csv/[^"]+)"'),
-    ("/analytics/", r'href="(/analytics/export/[^"]+)"'),
+    pytest.param("/business/", r'href="(/business/csv/[^"]+)"', marks=pytest.mark.case("console.business.business_csv.renders")),
+    pytest.param("/analytics/", r'href="(/analytics/export/[^"]+)"', marks=pytest.mark.case("console.analytics.analytics_export.renders")),
 ])
 def test_report_csv_export(operator, list_path, pattern):
     path = _first_link(operator, list_path, pattern)
@@ -238,3 +252,117 @@ def test_report_csv_export(operator, list_path, pattern):
     assert response.status_code == 200, f"{path}: HTTP {response.status_code}"
     assert "csv" in response.headers.get("Content-Type", ""), response.headers.get("Content-Type")
     assert "Traceback" not in response.text and not GO_STRUCT_LEAK.search(response.text)
+
+
+# ── Pages reached from inside a section (not sidebar links) ───────────────────
+
+SECONDARY_PAGES = {
+    "/billing/transactions/": "console.billing.billing_transactions.renders",
+    "/billing/subscriptions/": "console.billing.billing_subscriptions.renders",
+    "/billing/payments/": "console.billing.billing_payments.renders",
+    "/billing/webhooks/": "console.billing.billing_webhook_events.renders",
+    "/billing/reconciliation/": "console.billing.billing_reconciliation.renders",
+    "/billing/revenue/": "console.billing.billing_revenue_analytics.renders",
+}
+
+
+@pytest.mark.parametrize("path", [pytest.param(p, marks=pytest.mark.case(c), id=p) for p, c in SECONDARY_PAGES.items()])
+def test_secondary_page_loads_cleanly(operator, path, page_report):
+    started = time.monotonic()
+    response = operator.get(f"{BASE_URL}{path}", timeout=60)
+    problems = page_problems(response)
+    _record(page_report, path, response, started, problems)
+    assert not problems, f"{path}: {problems}"
+
+
+# ── Console changes refuse unsafe requests (no change is ever made) ──────────
+# Anonymous POST -> login redirect; GET on a POST-only action -> 405; a
+# signed-in POST without a CSRF token -> 403. Every request here is refused
+# before the view runs, so nothing reaches the BFF. Role refusals are covered
+# by the Django suite (control_panel/tests), which can sign in as any role.
+
+Z = "00000000-0000-4000-8000-000000000000"
+ACTION_ROUTES = [
+    # (path, POST-only, catalog case)
+    ("/analytics/data/rebuild/", True, "console.analytics.analytics_rebuild.authz"),
+    ("/analytics/data/exclusions/", True, "console.analytics.analytics_exclude.authz"),
+    (f"/analytics/data/exclusions/{Z}/remove/", True, "console.analytics.analytics_include.authz"),
+    ("/business/markets/save/", True, "console.business.business_market_save.authz"),
+    ("/business/spend/save/", True, "console.business.business_spend_save.authz"),
+    (f"/business/spend/{Z}/delete/", True, "console.business.business_spend_delete.authz"),
+    ("/engagement/photo-themes/save/", True, "console.engagement.photo_theme_save.authz"),
+    ("/engagement/prompts/new/", False, "console.engagement.engagement_prompt_new.authz"),
+    (f"/engagement/prompts/{Z}/edit/", False, "console.engagement.engagement_prompt_edit.authz"),
+    (f"/engagement/prompts/{Z}/activate/", True, "console.engagement.engagement_prompt_activate.authz"),
+    (f"/moderation/rooms/{Z}/actions/", True, "console.moderation_rooms.room_action.authz"),
+    (f"/moderation/rooms/{Z}/roles/", True, "console.moderation_rooms.room_role.authz"),
+    (f"/moderation/group-covers/{Z}/decision/", True, "console.moderation_group_covers.group_cover_decision.authz"),
+    (f"/moderation/blog/{Z}/decision/", True, "console.moderation_blog.blog_decision.authz"),
+    (f"/moderation/reports/{Z}/action/", True, "console.moderation_reports.action_report.authz"),
+    (f"/moderation/media/{Z}/decision/", True, "console.moderation_media.media_moderation_decision.authz"),
+    (f"/appeals/{Z}/action/", True, "console.appeals.action_appeal.authz"),
+    (f"/verifications/{Z}/approve/", True, "console.verifications.approve_verification.authz"),
+    (f"/verifications/{Z}/reject/", True, "console.verifications.reject_verification.authz"),
+    ("/city-pilot/save/", True, "console.city_pilot.city_pilot_save.authz"),
+    (f"/city-pilot/{Z}/stage/", True, "console.city_pilot.city_pilot_stage.authz"),
+    (f"/city-pilot/{Z}/experiences/", True, "console.city_pilot.city_pilot_experience_create.authz"),
+    (f"/city-pilot/{Z}/experiences/{Z}/cancel/", True, "console.city_pilot.city_pilot_experience_cancel.authz"),
+    (f"/client-errors/{Z}/status/", True, "console.client_errors.client_error_status.authz"),
+    ("/support/bulk/", True, "console.support.support_bulk.authz"),
+    ("/support/canned/save/", True, "console.support.support_canned_save.authz"),
+    (f"/support/canned/{Z}/deactivate/", True, "console.support.support_canned_deactivate.authz"),
+    (f"/support/tickets/{Z}/reply/", True, "console.support.support_ticket_reply.authz"),
+    (f"/support/tickets/{Z}/update/", True, "console.support.support_ticket_update.authz"),
+    (f"/support/tickets/{Z}/claim/", True, "console.support.support_ticket_claim.authz"),
+    (f"/support/tickets/{Z}/merge/", True, "console.support.support_ticket_merge.authz"),
+    ("/catalog/new/", False, "console.catalog.catalog_new.authz"),
+    ("/catalog/console-smoke-gift/edit/", False, "console.catalog.catalog_edit.authz"),
+    ("/catalog/console-smoke-gift/toggle/", True, "console.catalog.catalog_toggle.authz"),
+    ("/catalog/console-smoke-gift/delete/", True, "console.catalog.catalog_delete.authz"),
+    ("/users/new/", False, "console.users.user_create.authz"),
+    (f"/users/{Z}/edit/", False, "console.users.user_edit.authz"),
+    (f"/users/{Z}/delete/", True, "console.users.user_delete.authz"),
+    (f"/users/{Z}/suspend/", True, "console.users.user_suspend.authz"),
+    (f"/users/{Z}/unsuspend/", True, "console.users.user_unsuspend.authz"),
+    (f"/users/{Z}/ban/", True, "console.users.user_ban.authz"),
+    (f"/users/{Z}/unban/", True, "console.users.user_unban.authz"),
+    (f"/users/{Z}/verify/", True, "console.users.user_force_verify.authz"),
+    (f"/users/{Z}/grant-coins/", True, "console.users.user_grant_coins.authz"),
+    ("/config/flags/console_smoke_flag/toggle/", True, "console.config.config_flag_toggle.authz"),
+    ("/progression/policies/console_smoke/", True, "console.progression.progression_policy_update.authz"),
+    ("/progression/experiments/console_smoke/", True, "console.progression.progression_experiment_update.authz"),
+    ("/progression/fraud-rules/console_smoke/", True, "console.progression.progression_fraud_rule_update.authz"),
+    (f"/progression/fraud/{Z}/", True, "console.progression.progression_fraud_resolve.authz"),
+    ("/progression/users/adjust/", True, "console.progression.progression_user_adjust.authz"),
+    ("/progression/users/control/", True, "console.progression.progression_user_control.authz"),
+    ("/billing/packages/console-smoke/toggle/", True, "console.billing.billing_package_toggle.authz"),
+    ("/billing/packages/new/", False, "console.billing.billing_package_new.authz"),
+    ("/billing/packages/console-smoke/edit/", False, "console.billing.billing_package_edit.authz"),
+    ("/billing/grant-coins/", True, "console.billing.billing_grant_coins.authz"),
+    ("/billing/gifts/reverse/", True, "console.billing.billing_gift_reverse.authz"),
+    (f"/billing/wallets/{Z}/review/", True, "console.billing.billing_wallet_review.authz"),
+    (f"/billing/fraud/cases/{Z}/resolve/", True, "console.billing.billing_fraud_case_resolve.authz"),
+    ("/billing/fraud/rules/console_smoke/", True, "console.billing.billing_fraud_rule_update.authz"),
+    (f"/safety/sos/{Z}/resolve/", True, "console.safety.safety_sos_resolve.authz"),
+    (f"/account-recovery/{Z}/resolve/", True, "console.account_recovery.account_recovery_resolve.authz"),
+    ("/logout/", True, "console.logout.operator_logout.authz"),
+]
+
+
+@pytest.mark.parametrize(
+    "path,post_only",
+    [pytest.param(p, post_only, marks=pytest.mark.case(c), id=p) for p, post_only, c in ACTION_ROUTES],
+)
+def test_action_route_refuses_unsafe_requests(operator, path, post_only):
+    url = f"{BASE_URL}{path}"
+    if path != "/logout/":
+        anonymous = requests.post(url, data={}, allow_redirects=False, timeout=15)
+        assert anonymous.status_code == 302, f"anonymous POST {path}: HTTP {anonymous.status_code}"
+        assert anonymous.headers["Location"].startswith("/login/?next="), anonymous.headers["Location"]
+    if post_only:
+        refused = operator.get(url, allow_redirects=False, timeout=15)
+        assert refused.status_code == 405, f"GET {path}: HTTP {refused.status_code}"
+    no_token = operator.post(url, data={"value": "1"}, allow_redirects=False, timeout=15)
+    # 403 (not a login redirect) also shows the operator was signed in when refused.
+    assert no_token.status_code == 403, f"POST {path} without a CSRF token: HTTP {no_token.status_code}"
+

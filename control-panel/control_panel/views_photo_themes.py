@@ -7,7 +7,7 @@ from django.shortcuts import redirect, render
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_POST
 
-from .services.go_client import GoBFFClient
+from .services.go_client import GoBFFClient, bff_failure_status
 
 SLUG = re.compile(r'^[a-z0-9][a-z0-9-]{2,47}$')
 
@@ -20,7 +20,7 @@ def photo_themes(request):
         'themes': (result.data or {}).get('themes', []) if result.ok else [],
         'error': None if result.ok else result.error,
         'project_name': 'AegisConnect',
-    }, status=200 if result.ok else (result.status_code or 502))
+    }, status=200 if result.ok else bff_failure_status(result.status_code))
 
 
 @never_cache

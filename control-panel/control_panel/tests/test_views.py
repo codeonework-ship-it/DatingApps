@@ -16,6 +16,7 @@ class DashboardViewsTest(TestCase):
 
     @patch("control_panel.views.GoBFFClient")
     def test_dashboard_renders(self, client_cls):
+        """[case:console.dashboard.dashboard.renders]"""
         client = client_cls.return_value
         client.health.return_value = APIResult(ok=True, data={"status": "ok"})
         client.readiness.return_value = APIResult(ok=True, data={"status": "ready"})
@@ -58,6 +59,7 @@ class DashboardViewsTest(TestCase):
 
     @patch("control_panel.views.GoBFFClient")
     def test_activity_feed_filters_latest_events(self, client_cls):
+        """[case:console.activities.activity_feed.renders]"""
         client_cls.return_value.list_activities.return_value = APIResult(
             ok=True,
             data={
@@ -76,6 +78,7 @@ class DashboardViewsTest(TestCase):
 
     @patch("control_panel.views.GoBFFClient")
     def test_operator_audit_page_forwards_filters(self, client_cls):
+        """[case:console.audit.audit_log.renders]"""
         client_cls.return_value.list_audit_events.return_value = APIResult(
             ok=True,
             data={
@@ -113,6 +116,7 @@ class DashboardViewsTest(TestCase):
 
     @patch("control_panel.views.GoBFFClient")
     def test_domain_event_page_forwards_filters_and_renders_pipeline_health(self, client_cls):
+        """[case:console.events.domain_events.renders]"""
         client = client_cls.return_value
         client.list_domain_events.return_value = APIResult(
             ok=True,
@@ -158,6 +162,7 @@ class DashboardViewsTest(TestCase):
 
     @patch("control_panel.views.GoBFFClient")
     def test_user_list_uses_global_kpis_from_api(self, client_cls):
+        """[case:console.users.user_list.renders]"""
         client_cls.return_value.list_users.return_value = APIResult(
             ok=True,
             data={
@@ -176,6 +181,7 @@ class DashboardViewsTest(TestCase):
 
     @patch("control_panel.views.GoBFFClient")
     def test_approve_redirects_with_success(self, client_cls):
+        """[case:console.verifications.approve_verification.renders]"""
         client = client_cls.return_value
         client.approve_verification.return_value = APIResult(ok=True, data={"success": True})
 
@@ -186,6 +192,7 @@ class DashboardViewsTest(TestCase):
 
     @patch("control_panel.views.GoBFFClient")
     def test_reject_requires_reason(self, client_cls):
+        """[case:console.verifications.reject_verification.renders]"""
         client = client_cls.return_value
         client.reject_verification.return_value = APIResult(ok=True, data={"success": True})
 
@@ -197,6 +204,7 @@ class DashboardViewsTest(TestCase):
 
     @patch("control_panel.views.GoBFFClient")
     def test_appeal_queue_renders(self, client_cls):
+        """[case:console.appeals.appeal_queue.renders]"""
         client = client_cls.return_value
         client.list_appeals.return_value = APIResult(ok=True, data={"appeals": []})
 
@@ -207,6 +215,7 @@ class DashboardViewsTest(TestCase):
 
     @patch("control_panel.views.GoBFFClient")
     def test_action_appeal_redirects(self, client_cls):
+        """[case:console.appeals.action_appeal.renders]"""
         client = client_cls.return_value
         client.action_appeal.return_value = APIResult(ok=True, data={"success": True})
 
@@ -220,6 +229,7 @@ class DashboardViewsTest(TestCase):
 
     @patch("control_panel.views.GoBFFClient")
     def test_media_moderation_queue_and_content_proxy(self, client_cls):
+        """[case:console.moderation_media.media_moderation_queue.renders] [case:console.moderation_media.media_moderation_content.renders]"""
         client = client_cls.return_value
         client.health.return_value = APIResult(ok=True, data={"status": "ok"})
         client.list_media_moderation.return_value = APIResult(
@@ -246,6 +256,7 @@ class DashboardViewsTest(TestCase):
 
     @patch("control_panel.views.GoBFFClient")
     def test_media_rejection_requires_reason(self, client_cls):
+        """[case:console.moderation_media.media_moderation_decision.performs]"""
         client = client_cls.return_value
         response = self.client.post(
             reverse("media_moderation_decision", kwargs={"photo_id": "photo-1"}),
@@ -257,6 +268,7 @@ class DashboardViewsTest(TestCase):
 
     @patch("control_panel.views.GoBFFClient")
     def test_user_create_forwards_username_credentials(self, client_cls):
+        """[case:console.users.user_create.performs]"""
         client = client_cls.return_value
         client.create_user.return_value = APIResult(ok=True, data={"id": "user-1"})
 
@@ -282,6 +294,7 @@ class DashboardViewsTest(TestCase):
 
     @patch("control_panel.views.GoBFFClient")
     def test_user_create_requires_username_and_password(self, client_cls):
+        """[case:console.users.user_create.performs]"""
         response = self.client.post(
             reverse("user_create"),
             {"name": "Person One", "username": "", "password": ""},
@@ -293,6 +306,7 @@ class DashboardViewsTest(TestCase):
 
     @patch("control_panel.views.GoBFFClient")
     def test_engagement_nudges_renders_durable_delivery_state(self, client_cls):
+        """[case:console.engagement.engagement_nudges.renders]"""
         client_cls.return_value.list_engagement_nudges.return_value = APIResult(
             ok=True,
             data={
@@ -321,6 +335,7 @@ class DashboardViewsTest(TestCase):
 
     @patch("control_panel.views.GoBFFClient")
     def test_progression_console_renders_policies_experiments_and_fraud(self, client_cls):
+        """[case:console.progression.progression_admin.renders]"""
         client = client_cls.return_value
         client.health.return_value = APIResult(ok=True, data={"status": "ok"})
         client.progression_overview.return_value = APIResult(
@@ -386,6 +401,7 @@ class DashboardViewsTest(TestCase):
 
     @patch("control_panel.views.GoBFFClient")
     def test_progression_adjustment_requires_auditable_reason(self, client_cls):
+        """[case:console.progression.progression_user_adjust.performs]"""
         response = self.client.post(
             reverse("progression_user_adjust"),
             {"user_id": "user-1", "amount": "100", "reason": "short"},
@@ -396,6 +412,7 @@ class DashboardViewsTest(TestCase):
 
     @patch("control_panel.views.GoBFFClient")
     def test_progression_control_forwards_freeze_and_risk(self, client_cls):
+        """[case:console.progression.progression_user_control.performs]"""
         client_cls.return_value.set_user_progression_control.return_value = APIResult(
             ok=True, data={"success": True}
         )
@@ -420,6 +437,7 @@ class DashboardViewsTest(TestCase):
 
     @patch("control_panel.views.GoBFFClient")
     def test_progression_rollout_forwards_reviewed_fixed_stage(self, client_cls):
+        """[case:console.progression.progression_experiment_update.performs]"""
         client_cls.return_value.update_progression_experiment.return_value = APIResult(
             ok=True, data={"success": True}
         )
@@ -448,6 +466,7 @@ class DashboardViewsTest(TestCase):
 
     @patch("control_panel.views.GoBFFClient")
     def test_progression_fraud_tuning_forwards_bounded_review_policy(self, client_cls):
+        """[case:console.progression.progression_fraud_rule_update.performs]"""
         client_cls.return_value.update_progression_fraud_rule.return_value = APIResult(
             ok=True, data={"success": True}
         )
@@ -480,6 +499,7 @@ class DashboardViewsTest(TestCase):
 
 class OperatorAuthenticationTest(TestCase):
     def test_console_redirects_anonymous_operator_to_login(self):
+        """[case:console.login.operator_login.authz]"""
         response = self.client.get(reverse("dashboard"))
 
         self.assertEqual(response.status_code, 302)
@@ -487,6 +507,7 @@ class OperatorAuthenticationTest(TestCase):
 
     @patch("control_panel.views.GoBFFClient")
     def test_login_requires_bff_operator_authorization(self, client_cls):
+        """[case:console.login.operator_login.authz]"""
         client = client_cls.return_value
         client.login.return_value = APIResult(
             ok=True,
@@ -515,6 +536,7 @@ class OperatorAuthenticationTest(TestCase):
 
     @patch("control_panel.views.GoBFFClient")
     def test_login_stores_bff_session_after_admin_probe(self, client_cls):
+        """[case:console.login.operator_login.performs]"""
         client = client_cls.return_value
         client.login.return_value = APIResult(
             ok=True,
@@ -541,6 +563,7 @@ class OperatorAuthenticationTest(TestCase):
         self.assertEqual(self.client.session["operator_username"], "console_admin")
 
     def test_logout_flushes_operator_session(self):
+        """[case:console.logout.operator_logout.performs]"""
         session = self.client.session
         session["operator_access_token"] = "access-token"
         session["operator_refresh_token"] = "refresh-token"
@@ -564,6 +587,7 @@ class AccountRecoveryViewsTest(TestCase):
 
     @patch("control_panel.views.GoBFFClient")
     def test_queue_lists_open_requests(self, client_cls):
+        """[case:console.account_recovery.account_recovery_queue.renders]"""
         client = client_cls.return_value
         client.list_account_recovery.return_value = APIResult(
             ok=True,
@@ -581,6 +605,7 @@ class AccountRecoveryViewsTest(TestCase):
 
     @patch("control_panel.views.GoBFFClient")
     def test_issued_code_is_shown_once_and_never_cached_or_flashed(self, client_cls):
+        """[case:console.account_recovery.account_recovery_resolve.performs]"""
         client = client_cls.return_value
         client.resolve_account_recovery.return_value = APIResult(
             ok=True,
@@ -601,6 +626,7 @@ class AccountRecoveryViewsTest(TestCase):
 
     @patch("control_panel.views.GoBFFClient")
     def test_decline_redirects_back_to_queue(self, client_cls):
+        """[case:console.account_recovery.account_recovery_resolve.performs]"""
         client = client_cls.return_value
         client.resolve_account_recovery.return_value = APIResult(ok=True, data={"status": "declined"})
         client.list_account_recovery.return_value = APIResult(ok=True, data={"requests": []})
@@ -621,6 +647,7 @@ class BillingIntegrityViewsTest(TestCase):
 
     @patch("control_panel.views.GoBFFClient")
     def test_reconciliation_renders_refund_controls_and_frozen_wallets(self, client_cls):
+        """[case:console.billing.billing_reconciliation.renders]"""
         client = client_cls.return_value
         client.health.return_value = APIResult(ok=True, data={"status": "ok"})
         client.get_billing_reconciliation.return_value = APIResult(
@@ -667,6 +694,7 @@ class BillingIntegrityViewsTest(TestCase):
 
     @patch("control_panel.views.GoBFFClient")
     def test_gift_reversal_posts_reason_to_bff(self, client_cls):
+        """[case:console.billing.billing_gift_reverse.performs]"""
         client_cls.return_value.reverse_gift_send.return_value = APIResult(
             ok=True,
             data={"coins_refunded": 3, "message_retracted": True},
@@ -684,6 +712,7 @@ class BillingIntegrityViewsTest(TestCase):
 
     @patch("control_panel.views.GoBFFClient")
     def test_wallet_review_posts_audited_resolution_to_bff(self, client_cls):
+        """[case:console.billing.billing_wallet_review.performs]"""
         client_cls.return_value.review_frozen_wallet.return_value = APIResult(
             ok=True,
             data={"debt_collected": 10, "debt_written_off": 30},
@@ -706,6 +735,7 @@ class BillingIntegrityViewsTest(TestCase):
 
     @patch("control_panel.views.GoBFFClient")
     def test_short_gift_reversal_reason_is_rejected_before_api_call(self, client_cls):
+        """[case:console.billing.billing_gift_reverse.performs]"""
         response = self.client.post(
             reverse("billing_gift_reverse"),
             {"gift_send_id": "gift-1", "reason": "no"},
@@ -716,6 +746,7 @@ class BillingIntegrityViewsTest(TestCase):
 
     @patch("control_panel.views.GoBFFClient")
     def test_fraud_false_positive_posts_attributed_clear(self, client_cls):
+        """[case:console.billing.billing_fraud_case_resolve.performs]"""
         client_cls.return_value.resolve_economy_fraud_case.return_value = APIResult(ok=True, data={"status": "cleared"})
         response = self.client.post(
             reverse("billing_fraud_case_resolve", args=["case-1"]),

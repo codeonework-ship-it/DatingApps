@@ -15,6 +15,11 @@ const allowedHosts = new Set(
   (process.env.WEB_ALLOWED_HOSTS || `127.0.0.1:${port},localhost:${port},[::1]:${port}`)
     .split(',').map(value => value.trim().toLowerCase()).filter(Boolean),
 );
+// QA Lab (website/qa-lab, documents/qa/QA_LAB_2026-10-02.md): mounted only with
+// QA_LAB=1, never when NODE_ENV=production; it serves loopback clients only.
+const qaLab = process.env.QA_LAB === '1' && process.env.NODE_ENV !== 'production'
+  ? (await import('./qa-lab/runner.mjs')).createQaLab({root: resolve(here, '..'), upstream})
+  : null;
 const mime = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.json':'application/json','.png':'image/png','.svg':'image/svg+xml','.ttf':'font/ttf','.woff2':'font/woff2','.wasm':'application/wasm','.ico':'image/x-icon','.bin':'application/octet-stream'};
 function isAllowedHost(req) {
   return allowedHosts.has(String(req.headers.host || '').trim().toLowerCase());
@@ -47,6 +52,10 @@ const server = http.createServer((req,res) => {
   catch { res.writeHead(400); res.end('Invalid URL'); return; }
   applySecurityHeaders(res, path === '/app' || path.startsWith('/app/') || path.startsWith('/v1/'));
   if (!isAllowedHost(req)) { res.writeHead(421, {'Content-Type':'text/plain; charset=utf-8', 'Cache-Control':'no-store'}); res.end('Misdirected request'); return; }
+  if (qaLab && (path === '/qa-lab' || path.startsWith('/qa-lab/'))) {
+    qaLab.handle(req, res, requestURL).catch(() => { if (!res.headersSent) res.writeHead(500); res.end(); });
+    return;
+  }
   if (path.startsWith('/v1/')) {
     const contentLength = Number(req.headers['content-length'] || 0);
     if (!Number.isFinite(contentLength) || contentLength < 0 || contentLength > maxProxyBodyBytes) {
@@ -120,4 +129,4 @@ server.requestTimeout = 40_000;
 server.headersTimeout = 10_000;
 server.keepAliveTimeout = 5_000;
 server.maxHeadersCount = 100;
-server.listen(port,host,()=>console.log(`Connect website: http://${host}:${port}`));
+server.listen(port,host,()=>console.log(`Connect website: http://${host}:${port}${qaLab ? ` (QA Lab: http://${host}:${port}/qa-lab/)` : ''}`));

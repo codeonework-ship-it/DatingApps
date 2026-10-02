@@ -25,7 +25,7 @@
     <div class="col-md-2"><label class="form-label">Aggregate ID</label><input name="aggregate_id" value="{{ filters.aggregate_id }}" class="glass-input" placeholder="ID or key"></div>
     <div class="col-md-2"><label class="form-label">Producer</label><input name="producer" value="{{ filters.producer }}" class="glass-input" placeholder="matching"></div>
     <div class="col-md-1"><label class="form-label">Limit</label><input type="number" name="limit" value="{{ limit }}" min="1" max="500" class="glass-input"></div>
-    <div class="col-md-2 d-flex gap-2"><button class="btn btn-glow" type="submit"><i class="bi bi-funnel me-1"></i>Apply</button><a href="{% url 'domain_events' %}" class="btn btn-glass">Clear</a></div>
+    <div class="col-md-2 d-flex gap-2 flex-wrap"><button class="btn btn-glow" type="submit"><i class="bi bi-funnel me-1"></i>Apply</button><a href="{% url 'domain_events' %}" class="btn btn-glass">Clear</a></div>
   </form>
 </div>
 

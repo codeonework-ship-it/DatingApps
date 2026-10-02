@@ -5,16 +5,16 @@ import {manifest, generatedPages, standalonePages, watchPage} from './support/si
 // h1, hreflang alternates, header/footer navigation and a clean console.
 const pageUrl = (prefix, page) => manifest.locales.find(l => l.prefix === prefix).pages[page].url;
 
-test('committed public/ pages match the generator output', () => {
+test('committed public/ pages match the generator output [case:site.generator.output_current]', () => {
   expect(manifest.locales.length).toBeGreaterThan(1);
   expect(generatedPages.length).toBe(manifest.pages.length * manifest.locales.length);
-  expect(manifest.pages).toEqual(manifest.allPages.filter(p => !/contact|support/i.test(p)));
+  expect(manifest.pages).toEqual(manifest.allPages);
   // Stale output means a locale/copy change was not regenerated (python3 generate_pages.py).
   expect(manifest.stale).toEqual([]);
 });
 
 for (const {locale, page, url, title, h1} of generatedPages) {
-  test(`${url} [${locale.hreflang}] renders its locale`, async ({page: tab, request}) => {
+  test(`${url} [${locale.hreflang}] renders its locale [case:site.${page}.renders_all_locales] [case:site.site_header.nav_links.every_locale]`, async ({page: tab, request}) => {
     const watch = watchPage(tab);
     const response = await tab.goto(url);
     expect(response.status()).toBe(200);
@@ -79,7 +79,7 @@ for (const {locale, page, url, title, h1} of generatedPages) {
 }
 
 for (const path of standalonePages) {
-  test(`standalone page ${path} loads with a language and one h1`, async ({page}) => {
+  test(`standalone page ${path} loads with a language and one h1 [case:site.${path.slice(1, -5)}.idle_state]`, async ({page}) => {
     const watch = watchPage(page);
     // These pages fetch member content by query id; with none they show their idle state.
     expect((await page.goto(path)).status()).toBe(200);
@@ -91,7 +91,7 @@ for (const path of standalonePages) {
   });
 }
 
-test('locale switcher moves between every locale on the same page', async ({page}) => {
+test('locale switcher moves between every locale on the same page [case:site.site_header.language_switch.moves_locale]', async ({page}) => {
   const order = manifest.locales;
   for (const [i, locale] of order.entries()) {
     const next = order[(i + 1) % order.length];
@@ -105,7 +105,7 @@ test('locale switcher moves between every locale on the same page', async ({page
   }
 });
 
-test('locale homes and .html aliases resolve; unknown locale is a 404', async ({request}) => {
+test('locale homes and .html aliases resolve; unknown locale is a 404 [case:site.site_header.links_resolve]', async ({request}) => {
   for (const locale of manifest.locales) {
     for (const p of manifest.pages) {
       const {url, file} = locale.pages[p];
@@ -117,7 +117,7 @@ test('locale homes and .html aliases resolve; unknown locale is a 404', async ({
   expect((await request.get('/xx/features')).status()).toBe(404);
 });
 
-test('features page lists every feature in every locale and search works', async ({page}) => {
+test('features page lists every feature in every locale and search works [case:site.features.search.filters] [case:site.features.renders_all_locales]', async ({page}) => {
   for (const locale of manifest.locales) {
     await page.goto(locale.pages.features.url);
     await expect(page.locator('[data-feature]')).toHaveCount(locale.featureCount);
@@ -133,7 +133,7 @@ test('features page lists every feature in every locale and search works', async
   }
 });
 
-test('header navigation, skip link and mobile menu work in every locale', async ({page}) => {
+test('header navigation, skip link and mobile menu work in every locale [case:site.site_header.nav_links.every_locale] [case:site.site_header.menu_toggle.mobile]', async ({page}) => {
   for (const locale of manifest.locales) {
     await page.setViewportSize({width: 1440, height: 900});
     await page.goto(locale.pages.index.url);
@@ -171,7 +171,7 @@ test('header navigation, skip link and mobile menu work in every locale', async 
 });
 
 // WEB-07 (fixed): German nouns keep their capital inside "{name} öffnen".
-test('WEB-07: German feature links keep noun capitalisation', async ({page}) => {
+test('WEB-07: German feature links keep noun capitalisation [case:site.features.renders_all_locales]', async ({page}) => {
   await page.goto('/de/features');
   const links = await page.locator('[data-feature]').evaluateAll(cards => cards.map(c => [c.querySelector('h2').textContent, c.querySelector('a').textContent]));
   const lowered = links.filter(([name, link]) => !link.includes(name)).map(([, link]) => link.trim());
