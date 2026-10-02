@@ -298,6 +298,18 @@ Map<String, Widget Function()> buildScreenMatrix() {
   };
 }
 
+/// Offline fixtures (signed-in member, draft, master data, canned API) so a
+/// screen renders its real content without a backend.
+List<Override> screenMatrixOverrides() => [
+  authNotifierProvider.overrideWith(_LayoutAuth.new),
+  profileSetupNotifierProvider.overrideWith(_LayoutDraft.new),
+  preferenceMasterDataProvider.overrideWith(
+    (ref) async => PreferenceMasterData.localFallback(),
+  ),
+  preferenceMasterDataOfflineProvider.overrideWith((ref) => false),
+  apiClientProvider.overrideWithValue(_layoutApi()),
+];
+
 /// True for the errors this harness exists to catch.
 bool isLayoutError(Object error) {
   final text = error.toString();
@@ -349,15 +361,8 @@ Future<List<Object>> pumpAndCollectLayoutErrors(
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            if (const bool.fromEnvironment('QA_SCREEN_FIXTURES')) ...[
-              authNotifierProvider.overrideWith(_LayoutAuth.new),
-              profileSetupNotifierProvider.overrideWith(_LayoutDraft.new),
-              preferenceMasterDataProvider.overrideWith(
-                (ref) async => PreferenceMasterData.localFallback(),
-              ),
-              preferenceMasterDataOfflineProvider.overrideWith((ref) => false),
-              apiClientProvider.overrideWithValue(_layoutApi()),
-            ],
+            if (const bool.fromEnvironment('QA_SCREEN_FIXTURES'))
+              ...screenMatrixOverrides(),
             ...overrides,
           ],
           child: MaterialApp(

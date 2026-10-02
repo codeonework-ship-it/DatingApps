@@ -5,6 +5,7 @@ import '../../core/widgets/connect_page.dart';
 import '../../l10n/app_localizations.dart';
 import '../auth/providers/auth_provider.dart';
 import 'groups_data.dart';
+import '../../core/widgets/sheet_close_bar.dart';
 
 /// Cover colour roles a group may pick, with their display labels; resolved
 /// from the member's theme so every theme keeps its contrast.
@@ -509,7 +510,15 @@ Future<T?> showGroupSheet<T>(BuildContext context, Widget child) =>
       useSafeArea: true,
       showDragHandle: true,
       backgroundColor: Theme.of(context).colorScheme.surface,
-      builder: (_) => child,
+      builder: (_) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Opens full height: a visible way out besides the handle.
+          const SheetCloseBar(closeKey: ValueKey('qa.sheet.close')),
+          Flexible(child: child),
+        ],
+      ),
     );
 
 class GroupSheetFrame extends StatelessWidget {

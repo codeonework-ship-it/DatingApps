@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
 import '../../../l10n/app_localizations.dart';
+import '../providers/auth_provider.dart';
 import '../providers/terms_provider.dart';
 
 class UserAgreementScreen extends ConsumerStatefulWidget {
@@ -191,6 +192,20 @@ class _UserAgreementScreenState extends ConsumerState<UserAgreementScreen> {
                           ),
                         ],
                       ),
+                    ),
+                    const SizedBox(height: 12),
+                    // The terms gate is shown in place of the app, so it
+                    // needs its own way out: someone who doesn't accept (or
+                    // signed in to the wrong account) can sign out.
+                    TextButton.icon(
+                      key: const ValueKey('qa.terms.sign_out'),
+                      onPressed: termsState.isLoading
+                          ? null
+                          : () => ref
+                                .read(authNotifierProvider.notifier)
+                                .logout(),
+                      icon: const Icon(Icons.logout_rounded),
+                      label: Text(l10n.webNavSignOut),
                     ),
                   ],
                 ),

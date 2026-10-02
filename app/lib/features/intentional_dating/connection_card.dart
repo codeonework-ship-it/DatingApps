@@ -8,6 +8,7 @@ import '../../l10n/app_localizations.dart';
 import '../plans/providers/plans_provider.dart';
 import '../auth/providers/auth_provider.dart';
 import '../first_chapter/chapter_studio_screen.dart';
+import '../../core/widgets/sheet_close_bar.dart';
 
 // Bounded reconciliation while the conversation is visible; domain events
 // remain authoritative on the server. The timer stops when nobody watches.
@@ -134,7 +135,14 @@ Future<void> showChemistrySheet(
   isScrollControlled: true,
   showDragHandle: true,
   useSafeArea: true,
-  builder: (_) => ChemistrySheet(matchId: matchId),
+  builder: (_) => Column(
+    mainAxisSize: MainAxisSize.min,
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      const SheetCloseBar(closeKey: ValueKey('qa.chemistry.close')),
+      Flexible(child: ChemistrySheet(matchId: matchId)),
+    ],
+  ),
 );
 
 class ChemistrySheet extends ConsumerStatefulWidget {

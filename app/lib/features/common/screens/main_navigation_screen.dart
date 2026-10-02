@@ -926,13 +926,26 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                           ),
                         ),
                         const SizedBox(width: 10),
-                        Text(
-                          l10n.filterSheetTitle,
-                          style: Theme.of(context).textTheme.titleLarge
-                              ?.copyWith(
-                                color: Theme.of(context).colorScheme.onSurface,
-                                fontWeight: FontWeight.w700,
-                              ),
+                        Expanded(
+                          child: Text(
+                            l10n.filterSheetTitle,
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
+                        ),
+                        // Closes without saving, like dragging it away.
+                        IconButton(
+                          key: const ValueKey('qa.filters.close'),
+                          tooltip: MaterialLocalizations.of(
+                            context,
+                          ).closeButtonTooltip,
+                          onPressed: () => Navigator.of(context).maybePop(),
+                          icon: const Icon(Icons.close_rounded),
                         ),
                       ],
                     ),

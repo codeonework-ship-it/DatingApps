@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 
 import '../../l10n/app_localizations.dart';
 import 'clubs_data.dart';
+import '../../core/widgets/sheet_close_bar.dart';
 
 /// "Books" or "Films" for a club or list kind.
 String clubKindLabel(AppLocalizations l10n, String kind) =>
@@ -289,5 +290,13 @@ Future<T?> showClubSheet<T>(BuildContext context, Widget child) =>
       isScrollControlled: true,
       useSafeArea: true,
       showDragHandle: true,
-      builder: (_) => child,
+      builder: (_) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Opens full height: a visible way out besides the handle.
+          const SheetCloseBar(closeKey: ValueKey('qa.sheet.close')),
+          Flexible(child: child),
+        ],
+      ),
     );

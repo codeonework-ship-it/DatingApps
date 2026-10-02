@@ -238,6 +238,10 @@ class DiscoveryPauseNotifier extends StateNotifier<DiscoveryPauseState> {
       _apply(response.data);
     } on Object catch (error) {
       log.error('Discovery pause load failed', error);
+      // The screen may have closed while the request was in flight.
+      if (!mounted) {
+        return;
+      }
       final result = _graduationError(error, GraduationFailure.pauseLoad);
       state = state.copyWith(
         isLoading: false,
@@ -288,6 +292,9 @@ class DiscoveryPauseNotifier extends StateNotifier<DiscoveryPauseState> {
       return true;
     } on Object catch (error) {
       log.error('Discovery pause mutation failed', error);
+      if (!mounted) {
+        return false;
+      }
       final result = _graduationError(error, failure);
       state = state.copyWith(
         isMutating: false,
@@ -299,6 +306,9 @@ class DiscoveryPauseNotifier extends StateNotifier<DiscoveryPauseState> {
   }
 
   void _apply(Object? payload) {
+    if (!mounted) {
+      return;
+    }
     final body = (payload as Map?)?.cast<String, dynamic>() ?? {};
     final pauseJson = body['pause'];
     state = state.copyWith(
