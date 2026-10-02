@@ -11,11 +11,33 @@ import 'setup/setup_photos_screen.dart';
 import 'setup/setup_preferences_screen.dart';
 import 'setup/setup_shared_widgets.dart';
 
-class EditProfileScreen extends ConsumerWidget {
+class EditProfileScreen extends ConsumerStatefulWidget {
   const EditProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<EditProfileScreen> createState() => _EditProfileScreenState();
+}
+
+class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // The draft provider stays alive across the setup screens so in-progress
+    // edits survive moving between them. Opening Edit Profile is a fresh
+    // start, so reload what the server has (changes made elsewhere, on
+    // another device or in another session); the last draft stays on screen
+    // while it loads.
+    Future.microtask(() {
+      // Only a draft cached from earlier can be stale; a first open is
+      // already fetching.
+      if (mounted && ref.read(profileSetupNotifierProvider).hasValue) {
+        ref.invalidate(profileSetupNotifierProvider);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final draftAsync = ref.watch(profileSetupNotifierProvider);
     final bottomPadding = MediaQuery.viewPaddingOf(context).bottom + 28;
 

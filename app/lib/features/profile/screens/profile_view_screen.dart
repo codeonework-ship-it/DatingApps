@@ -35,7 +35,12 @@ import 'setup/setup_photos_screen.dart';
 /// (`/profile/{id}`); until it exists (or if it cannot load) it is built
 /// from the member's own account summary.
 class ProfileViewScreen extends ConsumerStatefulWidget {
-  const ProfileViewScreen({super.key});
+  const ProfileViewScreen({super.key, this.isActive = true});
+
+  /// Whether the Profile tab is the one on screen. The tab stack keeps this
+  /// screen alive; coming back to it starts again at the title sequence
+  /// instead of wherever the member last scrolled to.
+  final bool isActive;
 
   @override
   ConsumerState<ProfileViewScreen> createState() => _ProfileViewScreenState();
@@ -46,6 +51,14 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
   static const double _statCardHeight = 132;
 
   final ScrollController _scroll = ScrollController();
+
+  @override
+  void didUpdateWidget(covariant ProfileViewScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isActive && !oldWidget.isActive && _scroll.hasClients) {
+      _scroll.jumpTo(0);
+    }
+  }
 
   @override
   void dispose() {

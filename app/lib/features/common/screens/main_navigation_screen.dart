@@ -151,7 +151,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
         activeFilterChips: _discoverActiveFilterChips(l10n),
       ),
       const EngagementHubScreen(),
-      const ProfileViewScreen(),
+      ProfileViewScreen(isActive: selectedIndex == 3),
       const SettingsScreen(),
     ];
 

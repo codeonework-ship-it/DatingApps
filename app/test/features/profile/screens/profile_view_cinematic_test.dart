@@ -118,7 +118,44 @@ const _tools = [
   'qa.profile.tool.viewers',
 ];
 
+/// Toggles the Profile tab's isActive like the tab stack does.
+class _TabHarness extends StatelessWidget {
+  const _TabHarness(this.active);
+  final ValueNotifier<bool> active;
+
+  @override
+  Widget build(BuildContext context) => ValueListenableBuilder<bool>(
+    valueListenable: active,
+    builder: (context, isActive, _) => ProfileViewScreen(isActive: isActive),
+  );
+}
+
 void main() {
+  // AND-11: the tab stack keeps Profile alive; coming back to it must start
+  // at the title sequence, not where the member last scrolled.
+  testWidgets('returning to the Profile tab starts at the top', (
+    tester,
+  ) async {
+    final active = ValueNotifier<bool>(true);
+    addTearDown(active.dispose);
+    await _pump(tester, _TabHarness(active));
+    final scrollable = find.byType(Scrollable).first;
+    await tester.drag(scrollable, const Offset(0, -900));
+    await tester.pumpAndSettle();
+    ScrollPosition position() =>
+        tester.state<ScrollableState>(scrollable).position;
+    expect(position().pixels, greaterThan(0));
+
+    active.value = false; // another tab
+    await tester.pumpAndSettle();
+    expect(position().pixels, greaterThan(0), reason: 'kept while away');
+
+    active.value = true; // back to Profile
+    await tester.pumpAndSettle();
+    expect(position().pixels, 0);
+    expect(find.text('STARRING'), findsOneWidget);
+  });
+
   testWidgets('my profile shows how I appear, with owner tools', (
     tester,
   ) async {
