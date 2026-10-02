@@ -34,6 +34,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
                       child: Column(
                         children: [
                           ListTile(
+                            key: const ValueKey('qa.notifications.inbox'),
                             leading: const Icon(
                               Icons.notifications_active_rounded,
                             ),
@@ -54,6 +55,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
                           ),
                           const Divider(),
                           SwitchListTile(
+                            key: const ValueKey('qa.notifications.in_app'),
                             title: Text(l10n.notificationsInAppTitle),
                             subtitle: Text(l10n.notificationsInAppSubtitle),
                             value: preferences.inApp,
@@ -64,6 +66,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
                                 ),
                           ),
                           SwitchListTile(
+                            key: const ValueKey('qa.notifications.push'),
                             title: Text(l10n.notificationsPushTitle),
                             subtitle: Text(l10n.notificationsPushSubtitle),
                             value: preferences.push,
@@ -74,6 +77,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
                                 ),
                           ),
                           SwitchListTile(
+                            key: const ValueKey('qa.notifications.new_matches'),
                             title: Text(l10n.notificationsNewMatchesTitle),
                             subtitle: Text(
                               l10n.notificationsNewMatchesSubtitle,
@@ -86,6 +90,9 @@ class NotificationSettingsScreen extends ConsumerWidget {
                                 ),
                           ),
                           SwitchListTile(
+                            key: const ValueKey(
+                              'qa.notifications.new_messages',
+                            ),
                             title: Text(l10n.notificationsNewMessagesTitle),
                             subtitle: Text(
                               l10n.notificationsNewMessagesSubtitle,
@@ -98,6 +105,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
                                 ),
                           ),
                           SwitchListTile(
+                            key: const ValueKey('qa.notifications.likes'),
                             title: Text(l10n.notificationsLikesTitle),
                             subtitle: Text(l10n.notificationsLikesSubtitle),
                             value: preferences.likes,
@@ -108,6 +116,9 @@ class NotificationSettingsScreen extends ConsumerWidget {
                                 ),
                           ),
                           SwitchListTile(
+                            key: const ValueKey(
+                              'qa.notifications.match_nudges',
+                            ),
                             title: Text(l10n.notificationsMatchNudgesTitle),
                             subtitle: Text(
                               l10n.notificationsMatchNudgesSubtitle,
@@ -120,6 +131,9 @@ class NotificationSettingsScreen extends ConsumerWidget {
                                 ),
                           ),
                           SwitchListTile(
+                            key: const ValueKey(
+                              'qa.notifications.incoming_calls',
+                            ),
                             title: Text(l10n.notificationsIncomingCallsTitle),
                             subtitle: Text(
                               l10n.notificationsIncomingCallsSubtitle,
@@ -132,6 +146,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
                                 ),
                           ),
                           SwitchListTile(
+                            key: const ValueKey('qa.notifications.safety'),
                             title: Text(l10n.notificationsSafetyTitle),
                             subtitle: Text(l10n.notificationsSafetySubtitle),
                             value: preferences.safety,
@@ -161,6 +176,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
                               padding: const EdgeInsets.only(top: 8),
                               child: Text(
                                 state.error!,
+                                key: const ValueKey('qa.notifications.error'),
                                 style: TextStyle(
                                   color: Theme.of(context).colorScheme.error,
                                 ),

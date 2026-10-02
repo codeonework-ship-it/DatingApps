@@ -1,0 +1,115 @@
+{
+  "note": "Controls that are inert by design, with the reason. Read by dead_control_audit_test.dart.",
+  "controls": [
+    {
+      "screen": "AccountRecoveryScreen",
+      "control": "ButtonSegment|I have my code|account_recovery_screen.dart",
+      "reason": "\"I have my code\" is the recovery path selected when the screen opens; re-selecting the current segment changes nothing. \"I lost my code\" is audited."
+    },
+    {
+      "screen": "BlogScreen",
+      "control": "ChoiceChip|For you|blog_screen.dart",
+      "reason": "\"For you\" is the feed scope selected when Blog opens; re-selecting the current scope changes nothing. The other scopes are audited."
+    },
+    {
+      "screen": "ClubsScreen",
+      "control": "ButtonSegment|My clubs|clubs_screen.dart",
+      "reason": "\"My clubs\" is the scope selected when Clubs opens; re-selecting the current segment changes nothing. \"Discover\" is audited."
+    },
+    {
+      "screen": "ClubsScreen",
+      "control": "ChoiceChip|All|clubs_screen.dart",
+      "reason": "\"All\" is the kind filter selected when Clubs opens; re-selecting it changes nothing. Books and Films are audited."
+    },
+    {
+      "screen": "ConversationRoomsScreen",
+      "control": "FloatingActionButton|Start a room|conversation_rooms_screen.dart › ButtonSegment|qa.rooms.start.length|conversation_rooms_screen.dart#2",
+      "reason": "\"1 hour\" is the length the Start a room sheet opens with; re-selecting the current segment changes nothing. 30 min and 2 hours are audited."
+    },
+    {
+      "screen": "ConversationRoomsScreen",
+      "control": "FloatingActionButton|Start a room|conversation_rooms_screen.dart › ChoiceChip|qa.rooms.start.category.talk|conversation_rooms_screen.dart",
+      "reason": "\"Talk\" is the topic the Start a room sheet opens with; re-selecting the current topic changes nothing. The other topics are audited."
+    },
+    {
+      "screen": "CreateGroupScreen",
+      "control": "ChoiceChip|Theme|create_group_screen.dart",
+      "reason": "\"Theme\" is the cover colour selected when Start a group opens; re-selecting it changes nothing. The other colours are audited."
+    },
+    {
+      "screen": "CreateGroupScreen",
+      "control": "InkWell|Community group · By lifestyle. Anyone can find and join it.|create_group_screen.dart",
+      "reason": "Community group is the kind selected when Start a group opens with no friends invited; re-selecting it changes nothing. Private group is audited."
+    },
+    {
+      "screen": "CreateGroupScreen",
+      "control": "InkWell|Cover emoji ✨|create_group_screen.dart",
+      "reason": "✨ is the cover emoji shown when Start a group opens; re-selecting it changes nothing. The other emoji are audited."
+    },
+    {
+      "screen": "GroupsScreen",
+      "control": "ChoiceChip|All|groups_screen.dart",
+      "reason": "\"All\" is the lifestyle filter selected when Groups opens; re-selecting it changes nothing. Picking a lifestyle and going back to All are covered by groups_controls_test.dart [case:groups.groups.all.action]."
+    },
+    {
+      "screen": "MainNavigationScreen",
+      "control": "BottomNavigationBarItem|Today|main_navigation_screen.dart",
+      "reason": "Today is the tab shown when the app opens; tapping the tab you are on changes nothing. The other tabs are audited."
+    },
+    {
+      "screen": "MatchesListScreen",
+      "control": "ChoiceChip|qa.matches.discover_tab|matches_list_screen.dart",
+      "reason": "Discover is the Matches view selected when the screen opens; re-selecting it changes nothing. People and Conversations are audited."
+    },
+    {
+      "screen": "MyListsScreen",
+      "control": "FloatingActionButton|Create a new list|my_lists_screen.dart › ButtonSegment|Books|list_sheets.dart",
+      "reason": "Books is the kind the new-list sheet opens with; re-selecting the current segment changes nothing. Films is audited."
+    },
+    {
+      "screen": "MyListsScreen",
+      "control": "FloatingActionButton|Create a new list|my_lists_screen.dart › ChoiceChip|Only me|list_sheets.dart",
+      "reason": "\"Only me\" is the audience the new-list sheet opens with; re-selecting it changes nothing. Friends and Community are audited."
+    },
+    {
+      "screen": "MyListsScreen",
+      "control": "OutlinedButton|New list|activity_visuals.dart › ButtonSegment|Books|list_sheets.dart",
+      "reason": "Books is the kind the new-list sheet opens with; re-selecting the current segment changes nothing. Films is audited."
+    },
+    {
+      "screen": "MyListsScreen",
+      "control": "OutlinedButton|New list|activity_visuals.dart › ChoiceChip|Only me|list_sheets.dart",
+      "reason": "\"Only me\" is the audience the new-list sheet opens with; re-selecting it changes nothing. Friends and Community are audited."
+    },
+    {
+      "screen": "PlansScreen",
+      "control": "Tab|Mine|plans_screen.dart",
+      "reason": "Mine is the tab Plans opens on; tapping the tab you are on changes nothing. The other tab is audited."
+    },
+    {
+      "screen": "SettingsScreen",
+      "control": "ButtonSegment|qa.settings.theme_selector|settings_screen.dart",
+      "reason": "The first segment (Light) is the one already selected in the audit fixture; re-selecting the current theme mode changes nothing. The other segments are audited."
+    },
+    {
+      "screen": "SettingsScreen",
+      "control": "InkWell|qa.settings.theme_preset.classic|settings_screen.dart",
+      "reason": "The Today look is the one already selected in the audit fixture; re-selecting the current look changes nothing. The other looks are audited."
+    },
+    {
+      "screen": "SetupPreferencesScreen",
+      "control": "Tab|Basic|setup_preferences_screen.dart",
+      "reason": "Basic is the tab Preferences opens on; tapping the tab you are on changes nothing. The other tab is audited."
+    },
+    {
+      "screen": "SosScreen",
+      "control": "ButtonSegment|qa.safety.sos_level|sos_screen.dart",
+      "reason": "Urgent is the SOS level selected when the screen opens; re-selecting the current segment changes nothing. Critical is audited."
+    },
+    {
+      "screen": "SubscriptionScreen",
+      "control": "GestureDetector|qa.membership.cycle.monthly|subscription_screen.dart",
+      "reason": "Monthly is the billing cycle selected when Membership opens; re-selecting it changes nothing. Yearly is audited."
+    }
+  ]
+}

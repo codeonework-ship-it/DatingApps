@@ -22,6 +22,11 @@ class VerificationSelfieScreen extends ConsumerStatefulWidget {
 class _VerificationSelfieScreenState
     extends ConsumerState<VerificationSelfieScreen> {
   XFile? _selfie;
+  // One upload at a time: the button stayed live while sending, so a second
+  // tap uploaded the evidence twice.
+  bool _submitting = false;
+  // Only a failed upload shows the upload error (not a failed status check).
+  bool _submitFailed = false;
 
   @override
   Widget build(BuildContext context) {
@@ -65,6 +70,9 @@ class _VerificationSelfieScreenState
                           label: 'qa.verification.selfie.gallery_button',
                           button: true,
                           child: OutlinedButton.icon(
+                            key: const ValueKey(
+                              'qa.verification.selfie.gallery_button',
+                            ),
                             onPressed: () async {
                               final picked = await notifier.pickSelfie(
                                 fromCamera: false,
@@ -81,6 +89,9 @@ class _VerificationSelfieScreenState
                       const SizedBox(width: 12),
                       Expanded(
                         child: OutlinedButton.icon(
+                          key: const ValueKey(
+                            'qa.verification.selfie.camera_button',
+                          ),
                           onPressed: () async {
                             final picked = await notifier.pickSelfie(
                               fromCamera: true,
@@ -96,7 +107,7 @@ class _VerificationSelfieScreenState
                     ],
                   ),
                   const SizedBox(height: 12),
-                  if (state.hasError) ...[
+                  if (_submitFailed) ...[
                     Text(
                       l10n.verificationUploadFailed,
                       textAlign: TextAlign.center,
@@ -110,16 +121,35 @@ class _VerificationSelfieScreenState
                     label: 'qa.verification.selfie.submit_button',
                     button: true,
                     child: ElevatedButton(
-                      onPressed: _selfie == null
+                      key: const ValueKey(
+                        'qa.verification.selfie.submit_button',
+                      ),
+                      onPressed: _selfie == null || _submitting
                           ? null
                           : () {
+                              if (_submitting) {
+                                return;
+                              }
+                              setState(() {
+                                _submitting = true;
+                                _submitFailed = false;
+                              });
                               unawaited(() async {
                                 final submitted = await notifier.submit(
                                   idPhoto: widget.idPhoto,
                                   selfiePhoto: _selfie!,
                                 );
 
-                                if (!context.mounted || !submitted) return;
+                                if (!context.mounted) {
+                                  return;
+                                }
+                                if (!submitted) {
+                                  setState(() {
+                                    _submitting = false;
+                                    _submitFailed = true;
+                                  });
+                                  return;
+                                }
                                 Navigator.of(context).pushReplacement(
                                   MaterialPageRoute<void>(
                                     builder: (_) =>

@@ -246,6 +246,7 @@ class _WelcomeInvitation extends StatelessWidget {
           label: 'qa.welcome.signup_button',
           button: true,
           child: _EmberCta(
+            key: const ValueKey('qa.welcome.signup_button'),
             label: l10n.welcomeCreateAccount,
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute<void>(builder: (_) => const SignupScreen()),
@@ -253,6 +254,7 @@ class _WelcomeInvitation extends StatelessWidget {
           ),
         ),
         TextButton.icon(
+          key: const ValueKey('qa.welcome.introducer_button'),
           icon: const Icon(Icons.people_outline),
           label: Text(l10n.authWelcomeIntroducerLink),
           onPressed: () => Navigator.of(context).push(
@@ -266,6 +268,7 @@ class _WelcomeInvitation extends StatelessWidget {
           label: 'qa.welcome.signin_button',
           button: true,
           child: TextButton(
+            key: const ValueKey('qa.welcome.signin_button'),
             style: TextButton.styleFrom(
               minimumSize: const Size.fromHeight(48),
               foregroundColor: scheme.onSurface,
@@ -312,7 +315,7 @@ class _WelcomeInvitation extends StatelessWidget {
 
 /// The one filled button on the screen, in the theme's primary colour.
 class _EmberCta extends StatelessWidget {
-  const _EmberCta({required this.label, required this.onPressed});
+  const _EmberCta({required this.label, required this.onPressed, super.key});
   final String label;
   final VoidCallback onPressed;
 

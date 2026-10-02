@@ -263,9 +263,10 @@ void main() {
     expect(find.textContaining('ID:'), findsNothing);
   });
 
-  testWidgets('accepting and declining requests call the decision API', (
-    tester,
-  ) async {
+  testWidgets('accepting and declining requests call the decision API '
+      '[case:friends.friends.friends_accept_x_accept.action] '
+      '[case:friends.friends.friends_decline_x_decline.action] '
+      '[case:friends.friends.friends_cancel_x_cancel.action]', (tester) async {
     final api = _FakeFriendsApi();
     api.rows['kiran'] = _row('kiran', 'Kiran', 'pending', 'incoming');
     await tester.pumpWidget(_host(api));
@@ -290,9 +291,10 @@ void main() {
     expect(api.commands.last.path, '/friends/me/tara');
   });
 
-  testWidgets('Add friend searches by name and sends a request', (
-    tester,
-  ) async {
+  testWidgets('Add friend searches by name and sends a request '
+      '[case:friends.friends.friends_add.action] '
+      '[case:friends.friends.friends_search_field.action] '
+      '[case:friends.friends.friends_search_field.validation]', (tester) async {
     final api = _FakeFriendsApi();
     await tester.pumpWidget(_host(api));
     await tester.pumpAndSettle();
@@ -331,7 +333,10 @@ void main() {
     );
   });
 
-  testWidgets('Message opens the friend chat', (tester) async {
+  testWidgets('Message opens the friend chat '
+      '[case:friends.friends.friends_message_x_message.action]', (
+    tester,
+  ) async {
     final api = _FakeFriendsApi();
     await tester.pumpWidget(_host(api));
     await tester.pumpAndSettle();
@@ -353,9 +358,10 @@ void main() {
     await tester.pump(const Duration(seconds: 2));
   });
 
-  testWidgets('Create a group passes the chosen friends to Groups', (
-    tester,
-  ) async {
+  testWidgets('Create a group passes the chosen friends to Groups '
+      '[case:friends.friends.friends_create_group.action] '
+      '[case:friends.friends.friends_group_pick_x.action] '
+      '[case:friends.friends.friends_group_continue.action]', (tester) async {
     final api = _FakeFriendsApi();
     List<GroupInvitee>? invited;
     await tester.pumpWidget(

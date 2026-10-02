@@ -135,6 +135,7 @@ class _PlanSharingSheetState extends ConsumerState<PlanSharingSheet> {
                   ),
                 ),
                 IconButton(
+                  key: const ValueKey('qa.plan.sharing.close'),
                   tooltip: l10n.planSharingCloseTooltip,
                   onPressed: saving ? null : () => Navigator.of(context).pop(),
                   icon: const Icon(Icons.close_rounded),
@@ -204,6 +205,7 @@ class _PlanSharingSheetState extends ConsumerState<PlanSharingSheet> {
                   style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
                 TextButton(
+                  key: const ValueKey('qa.plan.sharing.reload'),
                   onPressed: saving ? null : load,
                   child: Text(l10n.planSharingReload),
                 ),
@@ -226,6 +228,7 @@ class _PlanSharingSheetState extends ConsumerState<PlanSharingSheet> {
               ),
               if (selected.isNotEmpty)
                 TextButton(
+                  key: const ValueKey('qa.plan.sharing.deselect_all'),
                   onPressed: saving
                       ? null
                       : () => setState(() => selected.clear()),

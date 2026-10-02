@@ -29,6 +29,11 @@ class ActivitySessionScreen extends ConsumerStatefulWidget {
 class _ActivitySessionScreenState extends ConsumerState<ActivitySessionScreen> {
   Timer? _ticker;
 
+  /// The session whose summary was fetched automatically when time ran out.
+  /// Once per session: while the server still reported the session active
+  /// (or the summary failed) this used to re-request it every second.
+  String? _autoSummaryFor;
+
   @override
   void initState() {
     super.initState();
@@ -63,9 +68,11 @@ class _ActivitySessionScreenState extends ConsumerState<ActivitySessionScreen> {
       DateTime.now().toUtc(),
     );
     if (state.sessionId != null &&
+        state.sessionId != _autoSummaryFor &&
         state.status == 'active' &&
         remaining == 0 &&
         !state.isSummaryLoading) {
+      _autoSummaryFor = state.sessionId;
       await ref
           .read(
             activitySessionProvider((
@@ -105,6 +112,7 @@ class _ActivitySessionScreenState extends ConsumerState<ActivitySessionScreen> {
         title: Text(l10n.matchesActivityTitle),
         actions: [
           IconButton(
+            key: const ValueKey('qa.activity.restart'),
             tooltip: l10n.matchesActivityRestartTooltip,
             icon: const Icon(Icons.refresh),
             onPressed: state.isLoading || state.isSubmitting
@@ -197,6 +205,7 @@ class _ActivitySessionScreenState extends ConsumerState<ActivitySessionScreen> {
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
+                          key: const ValueKey('qa.activity.submit'),
                           onPressed:
                               state.isSubmitting ||
                                   state.isTerminal ||
@@ -217,11 +226,17 @@ class _ActivitySessionScreenState extends ConsumerState<ActivitySessionScreen> {
                               : Text(l10n.matchesActivitySubmit),
                         ),
                       ),
-                      if (remainingSeconds <= 0 && !state.isTerminal) ...[
+                      // Only a session that started can have run out of
+                      // time: with none (it failed to start) there is no
+                      // summary to load, and Restart is the way forward.
+                      if (state.sessionId != null &&
+                          remainingSeconds <= 0 &&
+                          !state.isTerminal) ...[
                         const SizedBox(height: 8),
                         SizedBox(
                           width: double.infinity,
                           child: OutlinedButton(
+                            key: const ValueKey('qa.activity.time_up_load'),
                             onPressed: state.isSummaryLoading
                                 ? null
                                 : notifier.loadSummary,
@@ -240,6 +255,7 @@ class _ActivitySessionScreenState extends ConsumerState<ActivitySessionScreen> {
                         SizedBox(
                           width: double.infinity,
                           child: OutlinedButton(
+                            key: const ValueKey('qa.activity.refresh_summary'),
                             onPressed: state.isSummaryLoading
                                 ? null
                                 : notifier.loadSummary,
@@ -360,6 +376,7 @@ class _QuestionCard extends StatelessWidget {
             children: [
               for (final (index, option) in question.options.indexed)
                 ChoiceChip(
+                  key: ValueKey('qa.activity.answer.${question.id}.$index'),
                   label: Text(text.optionLabels[index]),
                   selected: selectedAnswer == option,
                   onSelected: enabled ? (_) => onSelected(option) : null,
@@ -437,6 +454,7 @@ class _SummaryCard extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
+                key: const ValueKey('qa.activity.share_result'),
                 onPressed: onShare,
                 icon: const Icon(Icons.share_outlined),
                 label: Text(l10n.matchesActivityShareResult),

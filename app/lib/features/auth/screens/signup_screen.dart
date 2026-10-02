@@ -178,6 +178,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                     Align(
                       alignment: Alignment.centerLeft,
                       child: GoldBackButton(
+                        key: const ValueKey('qa.signup.back'),
                         tooltip: l10n.signupBackTooltip,
                         onTap: () {
                           notifier.resetAuthFlow();
@@ -254,6 +255,9 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                               hint: l10n.signupPasswordHint,
                               icon: Icons.password_rounded,
                               suffixIcon: _VisibilityButton(
+                                key: const ValueKey(
+                                  'qa.signup.password_visibility',
+                                ),
                                 obscure: _obscurePassword,
                                 onPressed: () => setState(
                                   () => _obscurePassword = !_obscurePassword,
@@ -276,6 +280,9 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                               hint: l10n.signupConfirmPasswordHint,
                               icon: Icons.lock_outline_rounded,
                               suffixIcon: _VisibilityButton(
+                                key: const ValueKey(
+                                  'qa.signup.confirm_password_visibility',
+                                ),
                                 obscure: _obscureConfirmation,
                                 onPressed: () => setState(
                                   () => _obscureConfirmation =
@@ -604,6 +611,7 @@ class _GenderSelector extends StatelessWidget {
               selected: value == option.$1,
               button: true,
               child: InkWell(
+                key: ValueKey('qa.signup.gender.${option.$1}'),
                 onTap: onChanged == null ? null : () => onChanged!(option.$1),
                 borderRadius: BorderRadius.circular(14),
                 child: AnimatedContainer(
@@ -642,7 +650,11 @@ class _GenderSelector extends StatelessWidget {
 }
 
 class _VisibilityButton extends StatelessWidget {
-  const _VisibilityButton({required this.obscure, required this.onPressed});
+  const _VisibilityButton({
+    required this.obscure,
+    required this.onPressed,
+    super.key,
+  });
   final bool obscure;
   final VoidCallback onPressed;
 
@@ -705,6 +717,7 @@ class _SigninLink extends StatelessWidget {
         style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
       ),
       TextButton(
+        key: const ValueKey('qa.signup.sign_in_link'),
         onPressed: enabled ? onTap : null,
         child: Text(AppLocalizations.of(context).authSignIn),
       ),

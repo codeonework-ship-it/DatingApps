@@ -14,14 +14,14 @@ String _$swipeNotifierHash() => r'5e1cd3889aa20ff32e69421512fc8c5cd80bcee8';
 @ProviderFor(SwipeNotifier)
 final swipeNotifierProvider =
     AutoDisposeNotifierProvider<SwipeNotifier, SwipeState>.internal(
-  SwipeNotifier.new,
-  name: r'swipeNotifierProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$swipeNotifierHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+      SwipeNotifier.new,
+      name: r'swipeNotifierProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$swipeNotifierHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
 
 typedef _$SwipeNotifier = AutoDisposeNotifier<SwipeState>;
 // ignore_for_file: type=lint

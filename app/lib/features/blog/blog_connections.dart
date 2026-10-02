@@ -152,6 +152,7 @@ class _BlogTextCommandState extends ConsumerState<BlogTextCommandScreen> {
                 Text(widget.help, style: Theme.of(context).textTheme.bodyLarge),
                 const SizedBox(height: 24),
                 TextField(
+                  key: const ValueKey('qa.blog.text_command.field'),
                   controller: text,
                   enabled: !busy,
                   onChanged: (_) => setState(() {}),
@@ -169,6 +170,7 @@ class _BlogTextCommandState extends ConsumerState<BlogTextCommandScreen> {
                     child: Semantics(liveRegion: true, child: Text(error!)),
                   ),
                 FilledButton(
+                  key: const ValueKey('qa.blog.text_command.submit'),
                   onPressed: busy || text.text.trim().isEmpty ? null : submit,
                   child: Text(busy ? l10n.blogSending : widget.label),
                 ),
@@ -234,6 +236,7 @@ class _BlogConnectionsState extends ConsumerState<BlogConnectionsScreen> {
         title: Text(l10n.blogConnectionsTitle),
         actions: [
           IconButton(
+            key: const ValueKey('qa.blog.connections.refresh'),
             tooltip: l10n.blogRefresh,
             onPressed: () => ref.invalidate(blogHubProvider),
             icon: const Icon(Icons.refresh),
@@ -260,6 +263,9 @@ class _BlogConnectionsState extends ConsumerState<BlogConnectionsScreen> {
                           'notices': l10n.blogReviewNotices,
                         }.entries)
                           ChoiceChip(
+                            key: ValueKey(
+                              'qa.blog.connections.section.${e.key}',
+                            ),
                             label: Text(e.value),
                             selected: section == e.key,
                             onSelected: busy
@@ -347,6 +353,9 @@ class _BlogConnectionsState extends ConsumerState<BlogConnectionsScreen> {
                                                       : l10n.blogResponseClosed,
                                                 ),
                                                 TextButton(
+                                                  key: ValueKey(
+                                                    'qa.blog.connections.open_exchange.${item['id']}',
+                                                  ),
                                                   onPressed: () =>
                                                       Navigator.push<void>(
                                                         context,
@@ -379,6 +388,9 @@ class _BlogConnectionsState extends ConsumerState<BlogConnectionsScreen> {
                                                 const SizedBox(height: 12),
                                                 SelectableText(
                                                   item['excerpt'] as String,
+                                                  key: ValueKey(
+                                                    'qa.blog.connections.excerpt.${item['id']}',
+                                                  ),
                                                 ),
                                                 const SizedBox(height: 12),
                                                 Text(
@@ -402,6 +414,9 @@ class _BlogConnectionsState extends ConsumerState<BlogConnectionsScreen> {
                                                         item['title'] !=
                                                             'Sharing unavailable')
                                                       FilledButton(
+                                                        key: ValueKey(
+                                                          'qa.blog.connections.approve_copy.${item['id']}',
+                                                        ),
                                                         onPressed: busy
                                                             ? null
                                                             : () async {
@@ -430,6 +445,9 @@ class _BlogConnectionsState extends ConsumerState<BlogConnectionsScreen> {
                                                     if (item['published'] ==
                                                         true)
                                                       OutlinedButton.icon(
+                                                        key: ValueKey(
+                                                          'qa.blog.connections.copy_link.${item['id']}',
+                                                        ),
                                                         onPressed: () =>
                                                             copyBlogLink(
                                                               context,
@@ -444,6 +462,9 @@ class _BlogConnectionsState extends ConsumerState<BlogConnectionsScreen> {
                                                         ),
                                                       ),
                                                     TextButton(
+                                                      key: ValueKey(
+                                                        'qa.blog.connections.withdraw_link.${item['id']}',
+                                                      ),
                                                       onPressed: busy
                                                           ? null
                                                           : () async {
@@ -492,6 +513,9 @@ class _BlogConnectionsState extends ConsumerState<BlogConnectionsScreen> {
                                                 ],
                                                 if (item['can_appeal'] == true)
                                                   TextButton(
+                                                    key: ValueKey(
+                                                      'qa.blog.connections.appeal.${item['id']}',
+                                                    ),
                                                     onPressed: () => Navigator.push<void>(
                                                       context,
                                                       MaterialPageRoute(
@@ -525,6 +549,9 @@ class _BlogConnectionsState extends ConsumerState<BlogConnectionsScreen> {
                                   children: [
                                     if (previous.isNotEmpty)
                                       OutlinedButton(
+                                        key: const ValueKey(
+                                          'qa.blog.connections.previous',
+                                        ),
                                         onPressed: () => setState(
                                           () => cursor = previous.removeLast(),
                                         ),
@@ -532,6 +559,9 @@ class _BlogConnectionsState extends ConsumerState<BlogConnectionsScreen> {
                                       ),
                                     if (next.isNotEmpty)
                                       OutlinedButton(
+                                        key: const ValueKey(
+                                          'qa.blog.connections.more',
+                                        ),
                                         onPressed: () => setState(() {
                                           previous.add(cursor);
                                           cursor = next;
@@ -612,6 +642,31 @@ class _BlogExchangeState extends ConsumerState<BlogExchangeScreen> {
     }
   }
 
+  Future<void> report() async {
+    // The report id may legitimately be null, so only confirm what was sent.
+    var submitted = false;
+    await showReportUserSheet(
+      context: context,
+      onSubmit: ({required reason, description}) async {
+        final result = await ref
+            .read(apiClientProvider)
+            .post<dynamic>(
+              '/blog/reports/response/${widget.id}',
+              data: {'reason': reason, 'description': description ?? ''},
+            );
+        submitted = true;
+        return ((result.data as Map<dynamic, dynamic>)['report'] as Map?)?['id']
+            ?.toString();
+      },
+    );
+    // The sheet closes on success; say so, as the other report flows do.
+    if (submitted && mounted) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(l10n.communityReportSubmitted)));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (user == null ||
@@ -622,6 +677,7 @@ class _BlogExchangeState extends ConsumerState<BlogExchangeScreen> {
         title: Text(l10n.blogExchangeTitle),
         actions: [
           IconButton(
+            key: const ValueKey('qa.blog.exchange.refresh'),
             tooltip: l10n.blogRefresh,
             onPressed: () => ref.invalidate(blogHubProvider(path)),
             icon: const Icon(Icons.refresh),
@@ -670,12 +726,14 @@ class _BlogExchangeState extends ConsumerState<BlogExchangeScreen> {
                           runSpacing: 12,
                           children: [
                             FilledButton(
+                              key: const ValueKey('qa.blog.exchange.accept'),
                               onPressed: busy
                                   ? null
                                   : () => command(v, 'accept'),
                               child: Text(l10n.blogAcceptExchange),
                             ),
                             OutlinedButton(
+                              key: const ValueKey('qa.blog.exchange.decline'),
                               onPressed: busy
                                   ? null
                                   : () => command(v, 'decline'),
@@ -699,6 +757,9 @@ class _BlogExchangeState extends ConsumerState<BlogExchangeScreen> {
                           Padding(
                             padding: const EdgeInsets.only(top: 16),
                             child: FilledButton(
+                              key: const ValueKey(
+                                'qa.blog.exchange.contribute',
+                              ),
                               onPressed: () => Navigator.push<void>(
                                 context,
                                 MaterialPageRoute(
@@ -721,7 +782,10 @@ class _BlogExchangeState extends ConsumerState<BlogExchangeScreen> {
                         else ...[
                           const SizedBox(height: 16),
                           Text(l10n.blogYourContribution),
-                          SelectableText(v['my_story'] as String),
+                          SelectableText(
+                            v['my_story'] as String,
+                            key: const ValueKey('qa.blog.exchange.my_story'),
+                          ),
                         ],
                         if (v['revealed'] == true) ...[
                           const SizedBox(height: 24),
@@ -732,10 +796,18 @@ class _BlogExchangeState extends ConsumerState<BlogExchangeScreen> {
                             style: Theme.of(context).textTheme.titleLarge,
                           ),
                           const SizedBox(height: 12),
-                          SelectableText(v['partner_story'] as String),
+                          SelectableText(
+                            v['partner_story'] as String,
+                            key: const ValueKey(
+                              'qa.blog.exchange.partner_story',
+                            ),
+                          ),
                           const SizedBox(height: 24),
                           if (v['can_plan'] == true)
                             FilledButton.icon(
+                              key: const ValueKey(
+                                'qa.blog.exchange.shape_date',
+                              ),
                               icon: const Icon(Icons.event_available_outlined),
                               label: Text(l10n.blogShapeDate),
                               onPressed: () => showProposeDatePlanSheet(
@@ -748,6 +820,7 @@ class _BlogExchangeState extends ConsumerState<BlogExchangeScreen> {
                             ),
                           if ((v['match_id'] as String? ?? '').isNotEmpty)
                             OutlinedButton(
+                              key: const ValueKey('qa.blog.exchange.studio'),
                               onPressed: () => openChapterStudio(
                                 context,
                                 matchId: v['match_id'] as String,
@@ -759,6 +832,9 @@ class _BlogExchangeState extends ConsumerState<BlogExchangeScreen> {
                             Text(l10n.blogDatePlanningUnavailable),
                           if (v['can_joint_share'] == true)
                             OutlinedButton.icon(
+                              key: const ValueKey(
+                                'qa.blog.exchange.journal_page',
+                              ),
                               icon: const Icon(Icons.menu_book_outlined),
                               label: Text(l10n.blogProposeJournalPage),
                               onPressed: () async {
@@ -801,6 +877,7 @@ class _BlogExchangeState extends ConsumerState<BlogExchangeScreen> {
                         runSpacing: 12,
                         children: [
                           TextButton(
+                            key: const ValueKey('qa.blog.exchange.withdraw'),
                             onPressed: busy
                                 ? null
                                 : () async {
@@ -815,27 +892,12 @@ class _BlogExchangeState extends ConsumerState<BlogExchangeScreen> {
                             child: Text(l10n.blogWithdrawExchange),
                           ),
                           TextButton(
-                            onPressed: () => showReportUserSheet(
-                              context: context,
-                              onSubmit: ({required reason, description}) async {
-                                final result = await ref
-                                    .read(apiClientProvider)
-                                    .post<dynamic>(
-                                      '/blog/reports/response/${widget.id}',
-                                      data: {
-                                        'reason': reason,
-                                        'description': description ?? '',
-                                      },
-                                    );
-                                return ((result.data
-                                            as Map<dynamic, dynamic>)['report']
-                                        as Map?)?['id']
-                                    ?.toString();
-                              },
-                            ),
+                            key: const ValueKey('qa.blog.exchange.report'),
+                            onPressed: report,
                             child: Text(l10n.blogReportExchange),
                           ),
                           TextButton(
+                            key: const ValueKey('qa.blog.exchange.block'),
                             onPressed: () async {
                               if (!await confirmBlogAction(
                                 context,

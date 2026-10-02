@@ -235,10 +235,12 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
         ),
         actions: [
           TextButton(
+            key: const ValueKey('qa.membership.switch.not_now'),
             onPressed: () => Navigator.pop(dialogContext, false),
             child: Text(l10n.membershipNotNow),
           ),
           FilledButton(
+            key: const ValueKey('qa.membership.switch.confirm'),
             onPressed: () => Navigator.pop(dialogContext, true),
             child: Text(
               upgrade ? l10n.membershipUpgrade : l10n.membershipSwitchPlan,
@@ -323,10 +325,12 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
           ),
           actions: [
             TextButton(
+              key: const ValueKey('qa.membership.auto_renew_off.keep'),
               onPressed: () => Navigator.pop(dialogContext, false),
               child: Text(l10n.membershipKeepRenewing),
             ),
             FilledButton(
+              key: const ValueKey('qa.membership.auto_renew_off.confirm'),
               style: FilledButton.styleFrom(
                 backgroundColor: Theme.of(dialogContext).colorScheme.error,
                 foregroundColor: Theme.of(dialogContext).colorScheme.onError,
@@ -377,10 +381,12 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
         content: Text(body),
         actions: [
           TextButton(
+            key: const ValueKey('qa.membership.subscribe.not_now'),
             onPressed: () => Navigator.pop(dialogContext, false),
             child: Text(l10n.membershipNotNow),
           ),
           FilledButton(
+            key: const ValueKey('qa.membership.subscribe.continue'),
             onPressed: () => Navigator.pop(dialogContext, true),
             child: Text(l10n.membershipContinueToCard),
           ),
@@ -505,8 +511,11 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
 
   Future<void> _celebrate(SubscriptionPlan plan) => showModalBottomSheet<void>(
     context: context,
+    // Longer languages (German) need more than the default 9/16 height on a
+    // phone; size to the content and scroll if it must.
+    isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    builder: (sheetContext) => Padding(
+    builder: (sheetContext) => SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: GlassContainer(
         padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
@@ -549,6 +558,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
             ),
             const SizedBox(height: 20),
             GlassButton(
+              key: const ValueKey('qa.membership.start_exploring'),
               label: AppLocalizations.of(sheetContext).membershipStartExploring,
               onPressed: () => Navigator.of(sheetContext).pop(),
             ),
@@ -662,6 +672,7 @@ class _CurrentPlanHero extends StatelessWidget {
                   ),
                   if (sub.provider != 'local')
                     TextButton(
+                      key: const ValueKey('qa.membership.update_card'),
                       onPressed: isUpdatingCard ? null : onUpdateCard,
                       style: TextButton.styleFrom(
                         padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -685,6 +696,7 @@ class _CurrentPlanHero extends StatelessWidget {
               const SizedBox(height: 12),
               Divider(height: 1, color: scheme.outlineVariant),
               SwitchListTile.adaptive(
+                key: const ValueKey('qa.membership.auto_renew'),
                 contentPadding: EdgeInsets.zero,
                 title: Text(
                   l10n.membershipAutoRenew,
@@ -848,6 +860,7 @@ class _CycleToggle extends StatelessWidget {
         children: [
           for (final cycle in const ['monthly', 'yearly'])
             GestureDetector(
+              key: ValueKey('qa.membership.cycle.$cycle'),
               onTap: () => onChanged(cycle),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
@@ -1046,6 +1059,7 @@ class _PlanCard extends StatelessWidget {
           ],
           const SizedBox(height: 16),
           GlassButton(
+            key: ValueKey('qa.membership.plan.${plan.id}'),
             label: isCurrent
                 ? l10n.membershipYourCurrentPlan
                 : isBusy
@@ -1278,6 +1292,7 @@ class _SandboxControls extends StatelessWidget {
               'refund': 'Refund last charge',
             }.entries)
               OutlinedButton(
+                key: ValueKey('qa.membership.sandbox.${entry.key}'),
                 onPressed: () => onEvent(entry.key),
                 child: Text(entry.value),
               ),

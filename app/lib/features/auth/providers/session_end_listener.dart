@@ -12,6 +12,9 @@ import 'auth_provider.dart';
 ///
 /// - Any change of signed-in member drops the notification feed, which closes
 ///   its realtime socket and stops reconnect attempts with an old credential.
+///   (Other member data needs no reset here: those providers depend on the
+///   member through `watchSignedInUserId` and rebuild on their own, in every
+///   container and on every sign-out path.)
 /// - When the server ended the session ([kSessionExpiredMessage]), screens
 ///   pushed above the gate are closed so the sign-in screen is visible; the
 ///   browser goes to `#/signin` (whose form shows the notice) and the phone

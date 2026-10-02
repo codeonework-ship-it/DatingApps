@@ -62,6 +62,7 @@ class MatchOverviewCard extends StatelessWidget {
                 ),
               ),
               IconButton(
+                key: ValueKey('qa.matches.person.${match.id}.options'),
                 tooltip: l10n.matchesOptionsTooltip(name),
                 onPressed: onOptions,
                 icon: const Icon(Icons.more_horiz_rounded),
@@ -74,6 +75,7 @@ class MatchOverviewCard extends StatelessWidget {
             runSpacing: 10,
             children: [
               FilledButton.tonalIcon(
+                key: ValueKey('qa.matches.person.${match.id}.chat'),
                 onPressed: onChat,
                 icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18),
                 label: Text(
@@ -84,12 +86,14 @@ class MatchOverviewCard extends StatelessWidget {
               ),
               if (onPlan != null)
                 OutlinedButton.icon(
+                  key: ValueKey('qa.matches.person.${match.id}.plan'),
                   onPressed: onPlan,
                   icon: const Icon(Icons.event_available_rounded, size: 18),
                   label: Text(l10n.matchesActionPlanDate),
                 ),
               if (onChapter != null)
                 OutlinedButton.icon(
+                  key: ValueKey('qa.matches.person.${match.id}.chapter'),
                   onPressed: onChapter,
                   icon: const Icon(Icons.auto_stories_outlined, size: 18),
                   label: Text(l10n.matchesFirstChapter),

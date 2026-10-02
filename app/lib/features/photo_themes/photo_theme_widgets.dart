@@ -288,6 +288,10 @@ class _ThemeEntrySheetState extends ConsumerState<ThemeEntrySheet> {
       comments = groups.approved.length;
       waiting = groups.awaitingMyApproval.length;
     }
+    // Watch the like state itself (the notifier never changes), so the
+    // reaction summary follows the member's reaction at once.
+    ref.watch(photoLikesProvider);
+    final reactions = ref.read(photoLikesProvider.notifier).of(entry).reactions;
     // The sheet opens full height, so the close button stays pinned above
     // the scrolling content (Android back also closes it).
     return Column(
@@ -342,10 +346,7 @@ class _ThemeEntrySheetState extends ConsumerState<ThemeEntrySheet> {
                     Expanded(
                       child: SocialEngagementRow(
                         likeButton: PhotoLikeButton(entry: entry),
-                        reactions: ref
-                            .watch(photoLikesProvider.notifier)
-                            .of(entry)
-                            .reactions,
+                        reactions: reactions,
                         comments: comments,
                         waiting: waiting,
                       ),

@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:just_audio/just_audio.dart';
 
 import '../../../core/config/feature_flags.dart';
 import '../../../core/providers/api_client_provider.dart';
@@ -11,6 +10,7 @@ import '../../../core/utils/logger.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../engagement_l10n.dart';
+import 'voice_audio_devices.dart';
 
 class VoiceIcebreakerPrompt {
   const VoiceIcebreakerPrompt({required this.id, required this.promptText});
@@ -113,7 +113,7 @@ class VoiceIcebreakerNotifier extends StateNotifier<VoiceIcebreakerState> {
   }
 
   final Ref _ref;
-  AudioPlayer? _player;
+  VoicePlayer? _player;
 
   AppLocalizations get _l => engagementL10nFor(_ref);
 
@@ -366,7 +366,7 @@ class VoiceIcebreakerNotifier extends StateNotifier<VoiceIcebreakerState> {
         throw StateError('Playback URL was not returned.');
       }
       state = state.copyWith(lastItem: updated, isPlaying: true);
-      final player = _player ??= AudioPlayer();
+      final player = _player ??= _ref.read(voicePlayerFactoryProvider)();
       await player.setUrl(audioUrl);
       if (!mounted) return;
       await player.play();

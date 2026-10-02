@@ -337,6 +337,7 @@ class _PackageCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           GlassButton(
+            key: ValueKey('qa.wallet.buy.${package.id}'),
             label: isBusy
                 ? l10n.paymentOpening
                 : paymentMoney(

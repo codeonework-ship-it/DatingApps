@@ -14,6 +14,10 @@ Future<String?> showReactionPicker(
 }) => showModalBottomSheet<String>(
   context: context,
   showDragHandle: true,
+  // Sized to its content and scrollable, so small phones, large text and
+  // long translations never clip the last options.
+  isScrollControlled: true,
+  useSafeArea: true,
   builder: (sheet) => ReactionPicker(current: current, noun: noun),
 );
 
@@ -34,70 +38,72 @@ class ReactionPicker extends StatelessWidget {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              l10n.wallsReactEyebrow,
-              style: theme.textTheme.labelMedium?.copyWith(
-                letterSpacing: 2,
-                fontWeight: FontWeight.w700,
-                color: colors.primary,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Semantics(
-              header: true,
-              child: Text(
-                l10n.wallsReactQuestion(noun),
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  fontFamily: AppTheme.displayFamily,
-                  height: 1.2,
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                l10n.wallsReactEyebrow,
+                style: theme.textTheme.labelMedium?.copyWith(
+                  letterSpacing: 2,
+                  fontWeight: FontWeight.w700,
+                  color: colors.primary,
                 ),
               ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              l10n.wallsReactBody,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: colors.onSurfaceVariant,
+              const SizedBox(height: 4),
+              Semantics(
+                header: true,
+                child: Text(
+                  l10n.wallsReactQuestion(noun),
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontFamily: AppTheme.displayFamily,
+                    height: 1.2,
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            LayoutBuilder(
-              builder: (context, box) {
-                const gap = 8.0;
-                final columns = box.maxWidth >= 520 ? 3 : 2;
-                final width = (box.maxWidth - gap * (columns - 1)) / columns;
-                return Wrap(
-                  spacing: gap,
-                  runSpacing: gap,
-                  children: [
-                    for (final r in empathyReactions)
-                      SizedBox(
-                        width: width,
-                        child: _ReactionOption(
-                          reaction: r,
-                          selected: r.id == current,
+              const SizedBox(height: 4),
+              Text(
+                l10n.wallsReactBody,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: colors.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 16),
+              LayoutBuilder(
+                builder: (context, box) {
+                  const gap = 8.0;
+                  final columns = box.maxWidth >= 520 ? 3 : 2;
+                  final width = (box.maxWidth - gap * (columns - 1)) / columns;
+                  return Wrap(
+                    spacing: gap,
+                    runSpacing: gap,
+                    children: [
+                      for (final r in empathyReactions)
+                        SizedBox(
+                          width: width,
+                          child: _ReactionOption(
+                            reaction: r,
+                            selected: r.id == current,
+                          ),
                         ),
-                      ),
-                  ],
-                );
-              },
-            ),
-            if (current.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              TextButton.icon(
-                key: const ValueKey('reaction.remove'),
-                onPressed: () => Navigator.of(context).pop(''),
-                icon: const Icon(Icons.undo_rounded),
-                label: Text(l10n.wallsReactRemove),
+                    ],
+                  );
+                },
               ),
+              if (current.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                TextButton.icon(
+                  key: const ValueKey('reaction.remove'),
+                  onPressed: () => Navigator.of(context).pop(''),
+                  icon: const Icon(Icons.undo_rounded),
+                  label: Text(l10n.wallsReactRemove),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

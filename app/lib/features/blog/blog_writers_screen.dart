@@ -112,6 +112,10 @@ class BlogWritersScreen extends ConsumerWidget {
                                       ),
                                       if (writer.latestPostId.isNotEmpty)
                                         TextButton(
+                                          key: ValueKey(
+                                            'qa.blog.writer.latest.'
+                                            '${writer.authorId}',
+                                          ),
                                           style: TextButton.styleFrom(
                                             minimumSize: const Size(48, 48),
                                             padding: EdgeInsets.zero,

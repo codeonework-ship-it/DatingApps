@@ -18,6 +18,7 @@ import 'core/config/app_runtime_config.dart';
 import 'core/config/feature_flags.dart';
 import 'core/i18n/app_l10n.dart';
 import 'core/i18n/app_locale_provider.dart';
+import 'core/network/api_error_message.dart';
 import 'core/notifications/push_notification_service.dart';
 import 'core/telemetry/client_error_navigator_observer.dart';
 import 'core/telemetry/client_error_reporter.dart';
@@ -322,7 +323,14 @@ class _AppGate extends ConsumerWidget {
             message: AppLocalizations.of(context).gateLoadingProfile,
           ),
           error: (error, _) => _BackendConnectionIssue(
-            message: error.toString(),
+            // Never the raw exception: a localized reason (server text is
+            // shown as sent, by policy).
+            message: apiErrorMessage(
+              error,
+              fallback: AppLocalizations.of(
+                context,
+              ).commonSomethingWentWrongTryAgain,
+            ),
             onRetry: () => ref.invalidate(profileCompletionProvider),
           ),
           data: (c) {
@@ -411,9 +419,9 @@ class _BackendConnectionIssue extends StatelessWidget {
                 textAlign: TextAlign.center,
                 maxLines: 4,
                 overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: colors.onSurfaceVariant,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
               ),
               const SizedBox(height: 20),
               FilledButton(

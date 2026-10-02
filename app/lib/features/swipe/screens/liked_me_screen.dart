@@ -34,12 +34,13 @@ class _LikedMeScreenState extends ConsumerState<LikedMeScreen> {
     Future<void>.microtask(() => ref.read(likedMeProvider.notifier).load());
   }
 
-  Future<void> _answer(DiscoveryProfile profile, {required bool like}) async {
+  /// Returns true when the answer was saved.
+  Future<bool> _answer(DiscoveryProfile profile, {required bool like}) async {
     final result = await ref
         .read(likedMeProvider.notifier)
         .answer(profile, like: like);
     if (!mounted) {
-      return;
+      return result.error == null && result.dailyLimit == null;
     }
     final messenger = ScaffoldMessenger.of(context)..hideCurrentSnackBar();
     final l10n = AppLocalizations.of(context);
@@ -47,6 +48,9 @@ class _LikedMeScreenState extends ConsumerState<LikedMeScreen> {
       messenger.showSnackBar(
         SnackBar(
           content: Text(result.dailyLimit!.localizedHeadline(l10n)),
+          // Flutter keeps snack bars with an action up until tapped;
+          // let this one time out so it never covers the screen.
+          persist: false,
           action: SnackBarAction(
             label: l10n.discoverSeePlans,
             onPressed: () => Navigator.of(context).push(
@@ -57,13 +61,13 @@ class _LikedMeScreenState extends ConsumerState<LikedMeScreen> {
           ),
         ),
       );
-      return;
+      return false;
     }
     if (result.error != null) {
       messenger.showSnackBar(
         SnackBar(content: Text(localizeDiscoverMessage(l10n, result.error!))),
       );
-      return;
+      return false;
     }
     final matchId = result.matchId;
     if (like && matchId != null) {
@@ -80,7 +84,7 @@ class _LikedMeScreenState extends ConsumerState<LikedMeScreen> {
           ),
         ),
       );
-      return;
+      return true;
     }
     messenger.showSnackBar(
       SnackBar(
@@ -91,25 +95,43 @@ class _LikedMeScreenState extends ConsumerState<LikedMeScreen> {
         ),
       ),
     );
+    return true;
   }
 
   Future<void> _openProfile(DiscoveryProfile profile) async {
     unawaited(
       ref.read(swipeNotifierProvider.notifier).recordProfileView(profile.id),
     );
-    final action = await Navigator.of(context).push<ProfileDetailsAction>(
+    // They already liked the member: Love and Message both answer with a
+    // like back (which makes the match), on the profile page itself.
+    await Navigator.of(context).push<ProfileDetailsAction>(
       MaterialPageRoute<ProfileDetailsAction>(
-        builder: (_) => ProfileDetailsScreen(profile: profile),
+        builder: (_) => ProfileDetailsScreen(
+          profile: profile,
+          onLove: (_) => _answer(profile, like: true),
+          onMessage: (_) => _answer(profile, like: true),
+        ),
       ),
     );
-    if (!mounted) {
-      return;
-    }
-    // Messaging needs a match, so both actions answer with a like back.
-    if (action == ProfileDetailsAction.love ||
-        action == ProfileDetailsAction.message) {
-      await _answer(profile, like: true);
-    }
+  }
+
+  /// Pull to refresh. With people already listed a failed reload leaves
+  /// them on screen, so say it failed instead of ending the spinner silently.
+  Future<void> _refresh() async {
+    await ref.read(likedMeProvider.notifier).load();
+    if (!mounted) return;
+    final state = ref.read(likedMeProvider);
+    final error = state.error;
+    if (error == null || state.entries.isEmpty) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            localizeDiscoverMessage(AppLocalizations.of(context), error),
+          ),
+        ),
+      );
   }
 
   @override
@@ -128,6 +150,7 @@ class _LikedMeScreenState extends ConsumerState<LikedMeScreen> {
         title: l10n.discoverLikedMeLoadFailedTitle,
         message: localizeDiscoverMessage(l10n, state.error!),
         action: FilledButton(
+          key: const ValueKey('qa.liked_me.retry'),
           onPressed: () => ref.read(likedMeProvider.notifier).load(),
           child: Text(l10n.commonRetry),
         ),
@@ -182,7 +205,8 @@ class _LikedMeScreenState extends ConsumerState<LikedMeScreen> {
       ),
       body: PostLoginBackdrop(
         child: RefreshIndicator(
-          onRefresh: () => ref.read(likedMeProvider.notifier).load(),
+          key: const ValueKey('qa.liked_me.refresh'),
+          onRefresh: _refresh,
           child: body,
         ),
       ),
@@ -232,6 +256,7 @@ class _LikedMeCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             InkWell(
+              key: ValueKey('qa.liked_me.open.${profile.id}'),
               onTap: onOpen,
               borderRadius: BorderRadius.circular(AppTheme.radiusS),
               child: Row(

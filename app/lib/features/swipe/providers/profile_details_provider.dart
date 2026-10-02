@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/config/app_runtime_config.dart';
 import '../../../core/config/feature_flags.dart';
 import '../../../core/providers/api_client_provider.dart';
+import '../../auth/providers/auth_provider.dart';
 
 class ProfileDetails {
   const ProfileDetails({
@@ -107,6 +108,8 @@ final profileDetailsProvider = FutureProvider.family<ProfileDetails, String>((
   ref,
   userId,
 ) async {
+  // Per viewer: what a profile shows depends on who is looking.
+  watchSignedInUserId(ref);
   if (kUseMockAuth) {
     await Future<void>.delayed(const Duration(milliseconds: 120));
     return _mockProfileDetailsFor(userId);

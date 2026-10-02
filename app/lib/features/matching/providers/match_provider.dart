@@ -55,16 +55,20 @@ class MatchState {
   final bool trustFilterActive;
   final int trustFilteredOutCount;
 
+  static const Object _unchanged = Object();
+
+  /// `error: null` clears the error (a reload that succeeds must not keep
+  /// showing the last failure); leave it out to keep the current one.
   MatchState copyWith({
     List<Match>? matches,
     bool? isLoading,
-    String? error,
+    Object? error = _unchanged,
     bool? trustFilterActive,
     int? trustFilteredOutCount,
   }) => MatchState(
     matches: matches ?? this.matches,
     isLoading: isLoading ?? this.isLoading,
-    error: error ?? this.error,
+    error: identical(error, _unchanged) ? this.error : error as String?,
     trustFilterActive: trustFilterActive ?? this.trustFilterActive,
     trustFilteredOutCount: trustFilteredOutCount ?? this.trustFilteredOutCount,
   );
@@ -196,11 +200,13 @@ class MatchNotifier extends _$MatchNotifier {
   }
 
   /// Unmatch
-  Future<void> unmatch(String matchId) async {
+  /// Ends the match. Returns false when the server refused or could not be
+  /// reached, so the screen can say so (the conversation stays).
+  Future<bool> unmatch(String matchId) async {
     try {
       if (!kUseMockAuth) {
         final currentUserId = ref.read(authNotifierProvider).userId;
-        if (currentUserId == null) return;
+        if (currentUserId == null) return false;
 
         final dio = ref.read(apiClientProvider);
         await dio.delete<void>(
@@ -212,12 +218,15 @@ class MatchNotifier extends _$MatchNotifier {
       state = state.copyWith(
         matches: state.matches.where((m) => m.id != matchId).toList(),
       );
+      return true;
     } on DioException catch (e, stackTrace) {
       log.error('Failed to unmatch', e, stackTrace);
       state = state.copyWith(error: kMatchesUnmatchError);
+      return false;
     } catch (e, stackTrace) {
       log.error('Failed to unmatch', e, stackTrace);
       state = state.copyWith(error: kMatchesUnmatchError);
+      return false;
     }
   }
 

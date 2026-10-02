@@ -12,7 +12,6 @@ import '../../../l10n/app_localizations.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../providers/app_theme_provider.dart';
 import 'account_data_screen.dart';
-import '../../auth/providers/terms_provider.dart';
 import '../../auth/screens/welcome_screen.dart';
 import '../../engagement/screens/conversation_rooms_screen.dart';
 import '../../engagement/screens/match_nudges_screen.dart';
@@ -20,13 +19,10 @@ import '../../engagement/screens/trust_badges_screen.dart';
 import '../../engagement/screens/trust_filter_screen.dart';
 import '../../calls/screens/call_history_screen.dart';
 import '../../friends/screens/friends_screen.dart';
-import '../../profile/providers/profile_completion_provider.dart';
-import '../../profile/providers/profile_setup_provider.dart';
 import '../../profile/screens/edit_profile_screen.dart';
 import '../../profile/screens/setup/setup_photos_screen.dart';
 import '../../profile/screens/setup/setup_preferences_screen.dart';
 import '../../payment/screens/subscription_screen.dart';
-import '../../swipe/providers/swipe_provider.dart';
 import '../../verification/screens/verification_landing_screen.dart';
 import '../../verification/screens/verification_upload_id_screen.dart';
 import '../../intentional_dating/dating_rhythm.dart';
@@ -34,7 +30,6 @@ import '../../../core/providers/runtime_feature_flags_provider.dart';
 import 'about_app_screen.dart';
 import 'help_support_screen.dart';
 import 'language_settings_screen.dart';
-import 'main_navigation_screen.dart';
 import 'notification_settings_screen.dart';
 import 'privacy_safety_screen.dart';
 
@@ -67,6 +62,9 @@ class SettingsScreen extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
                 sliver: SliverList(
                   delegate: SliverChildListDelegate([
+                    // Account first: who is signed in, and the way out, are
+                    // never buried below every other setting.
+                    ..._buildAccountSection(context, ref, l10n),
                     // The browser app is fixed to Today (webThemeLockedProvider).
                     if (!ref.watch(webThemeLockedProvider)) ...[
                       _buildSectionHeader(
@@ -99,6 +97,7 @@ class SettingsScreen extends ConsumerWidget {
                         false)
                       _buildSettingsTile(
                         context,
+                        key: const ValueKey('qa.settings.dating_rhythm'),
                         icon: Icons.spa_outlined,
                         title: l10n.settingsDatingRhythmTitle,
                         subtitle: l10n.settingsDatingRhythmSubtitle,
@@ -114,6 +113,7 @@ class SettingsScreen extends ConsumerWidget {
                         true)
                       _buildSettingsTile(
                         context,
+                        key: const ValueKey('qa.settings.profile_stories'),
                         icon: Icons.auto_stories_outlined,
                         title: l10n.settingsProfileStoriesTitle,
                         subtitle: l10n.settingsProfileStoriesSubtitle,
@@ -129,6 +129,7 @@ class SettingsScreen extends ConsumerWidget {
                         true)
                       _buildSettingsTile(
                         context,
+                        key: const ValueKey('qa.settings.blog'),
                         icon: Icons.menu_book_outlined,
                         title: l10n.settingsBlogTitle,
                         subtitle: l10n.settingsBlogSubtitle,
@@ -138,6 +139,7 @@ class SettingsScreen extends ConsumerWidget {
                     _buildSectionHeader(context, l10n.settingsSectionProfile),
                     _buildSettingsTile(
                       context,
+                      key: const ValueKey('qa.settings.edit_profile'),
                       icon: Icons.person,
                       title: l10n.settingsEditProfileTitle,
                       subtitle: l10n.settingsEditProfileSubtitle,
@@ -151,6 +153,7 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                     _buildSettingsTile(
                       context,
+                      key: const ValueKey('qa.settings.photos'),
                       icon: Icons.photo,
                       title: l10n.settingsPhotosTitle,
                       subtitle: l10n.settingsPhotosSubtitle,
@@ -184,6 +187,7 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                     _buildSettingsTile(
                       context,
+                      key: const ValueKey('qa.settings.dating_preferences'),
                       icon: Icons.favorite,
                       title: l10n.settingsDatingPreferencesTitle,
                       subtitle: l10n.settingsDatingPreferencesSubtitle,
@@ -197,6 +201,7 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                     _buildSettingsTile(
                       context,
+                      key: const ValueKey('qa.settings.account_data'),
                       icon: Icons.manage_accounts_outlined,
                       title: l10n.settingsAccountDataTitle,
                       subtitle: l10n.settingsAccountDataSubtitle,
@@ -210,6 +215,7 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                     _buildSettingsTile(
                       context,
+                      key: const ValueKey('qa.settings.notifications'),
                       icon: Icons.notifications,
                       title: l10n.settingsNotificationsTitle,
                       subtitle: l10n.settingsNotificationsSubtitle,
@@ -228,6 +234,7 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                     _buildSettingsTile(
                       context,
+                      key: const ValueKey('qa.settings.trust_badges'),
                       icon: Icons.workspace_premium,
                       title: l10n.settingsTrustBadgesTitle,
                       subtitle: l10n.settingsTrustBadgesSubtitle,
@@ -241,6 +248,7 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                     _buildSettingsTile(
                       context,
+                      key: const ValueKey('qa.settings.trust_filters'),
                       icon: Icons.tune,
                       title: l10n.settingsTrustFiltersTitle,
                       subtitle: l10n.settingsTrustFiltersSubtitle,
@@ -257,6 +265,7 @@ class SettingsScreen extends ConsumerWidget {
                         .enabled('rooms_enabled'))
                       _buildSettingsTile(
                         context,
+                        key: const ValueKey('qa.settings.conversation_rooms'),
                         icon: Icons.forum,
                         title: l10n.settingsConversationRoomsTitle,
                         subtitle: l10n.settingsConversationRoomsSubtitle,
@@ -270,6 +279,7 @@ class SettingsScreen extends ConsumerWidget {
                       ),
                     _buildSettingsTile(
                       context,
+                      key: const ValueKey('qa.settings.friends'),
                       icon: Icons.people,
                       title: l10n.settingsFriendsTitle,
                       subtitle: l10n.settingsFriendsSubtitle,
@@ -283,6 +293,7 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                     _buildSettingsTile(
                       context,
+                      key: const ValueKey('qa.settings.call_history'),
                       icon: Icons.video_call_outlined,
                       title: l10n.settingsCallHistoryTitle,
                       subtitle: l10n.settingsCallHistorySubtitle,
@@ -296,6 +307,7 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                     _buildSettingsTile(
                       context,
+                      key: const ValueKey('qa.settings.match_nudges'),
                       icon: Icons.notifications_active_outlined,
                       title: l10n.settingsMatchNudgesTitle,
                       subtitle: l10n.settingsMatchNudgesSubtitle,
@@ -309,6 +321,7 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                     _buildSettingsTile(
                       context,
+                      key: const ValueKey('qa.settings.subscriptions'),
                       icon: Icons.workspace_premium_outlined,
                       title: l10n.settingsSubscriptionsTitle,
                       subtitle: l10n.settingsSubscriptionsSubtitle,
@@ -324,6 +337,7 @@ class SettingsScreen extends ConsumerWidget {
                     _buildSectionHeader(context, l10n.settingsSectionApp),
                     _buildSettingsTile(
                       context,
+                      key: const ValueKey('qa.settings.privacy_safety'),
                       icon: Icons.security,
                       title: l10n.settingsPrivacySafetyTitle,
                       subtitle: l10n.settingsPrivacySafetySubtitle,
@@ -337,6 +351,9 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                     _buildSettingsTile(
                       context,
+                      key: const ValueKey(
+                        'qa.settings.government_verification',
+                      ),
                       icon: Icons.verified_user_rounded,
                       title: l10n.settingsGovernmentVerificationTitle,
                       subtitle: l10n.settingsGovernmentVerificationSubtitle,
@@ -352,6 +369,7 @@ class SettingsScreen extends ConsumerWidget {
                     if (kEnableQaAutomation)
                       _buildSettingsTile(
                         context,
+                        key: const ValueKey('qa.settings.verification_upload'),
                         icon: Icons.badge_outlined,
                         title: l10n.settingsQaVerificationUploadTitle,
                         subtitle: l10n.settingsQaVerificationUploadSubtitle,
@@ -367,6 +385,7 @@ class SettingsScreen extends ConsumerWidget {
                       ),
                     _buildSettingsTile(
                       context,
+                      key: const ValueKey('qa.settings.help_support'),
                       icon: Icons.help,
                       title: l10n.settingsHelpSupportTitle,
                       subtitle: l10n.settingsHelpSupportSubtitle,
@@ -380,6 +399,7 @@ class SettingsScreen extends ConsumerWidget {
                     ),
                     _buildSettingsTile(
                       context,
+                      key: const ValueKey('qa.settings.about'),
                       icon: Icons.info,
                       title: l10n.settingsAboutTitle,
                       subtitle: l10n.settingsAboutSubtitle,
@@ -390,15 +410,6 @@ class SettingsScreen extends ConsumerWidget {
                           ),
                         );
                       },
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Logout Button
-                    GlassButton(
-                      label: l10n.settingsLogout,
-                      backgroundColor: Theme.of(context).colorScheme.error,
-                      textColor: Theme.of(context).colorScheme.onError,
-                      onPressed: () => _logout(context, ref),
                     ),
                     SizedBox(height: bottomClearance),
                   ]),
@@ -411,19 +422,152 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _logout(BuildContext context, WidgetRef ref) async {
-    ref.read(mainNavigationIndexProvider.notifier).state = 0;
-    await ref.read(authNotifierProvider.notifier).logout();
-    ref.invalidate(profileCompletionProvider);
-    ref.invalidate(profileSetupNotifierProvider);
-    ref.invalidate(swipeNotifierProvider);
-    ref.invalidate(termsAcceptanceProvider);
+  /// The Account section: who is signed in, Sign out, and Sign out of all
+  /// devices. Keeps the `qa.settings.logout` automation key.
+  List<Widget> _buildAccountSection(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+  ) {
+    final username =
+        ref.watch(authNotifierProvider.select((s) => s.username))?.trim() ?? '';
+    final error = Theme.of(context).colorScheme.error;
+    return [
+      _buildSectionHeader(
+        context,
+        l10n.settingsSectionAccount,
+        caption: username.isEmpty ? null : l10n.settingsSignedInAs(username),
+      ),
+      _buildSettingsTile(
+        context,
+        key: const ValueKey('qa.settings.logout'),
+        icon: Icons.logout_rounded,
+        tint: error,
+        title: l10n.settingsSignOut,
+        subtitle: l10n.settingsSignOutSubtitle,
+        onTap: () => _logout(context, ref),
+      ),
+      _buildSettingsTile(
+        context,
+        key: const ValueKey('qa.settings.logout_all'),
+        icon: Icons.devices_other_rounded,
+        tint: error,
+        title: l10n.settingsSignOutAllTitle,
+        subtitle: l10n.settingsSignOutAllSubtitle,
+        onTap: () => _logoutAllDevices(context, ref),
+      ),
+    ];
+  }
 
+  /// Signs out on this device after the member confirms.
+  ///
+  /// Nothing is reset here: member data is tied to the signed-in member
+  /// (see `watchSignedInUserId`), and inside the app the gate replaces this
+  /// screen with Welcome as soon as the session ends, so `ref` must not be
+  /// used after the sign-out starts.
+  Future<void> _logout(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await _confirmSignOut(
+      context,
+      key: 'qa.settings.logout',
+      title: l10n.settingsSignOutConfirmTitle,
+      body: l10n.settingsSignOutConfirmBody,
+      action: l10n.settingsSignOut,
+    );
+    if (!confirmed || !context.mounted) return;
+    final navigator = Navigator.of(context, rootNavigator: true);
+    await ref.read(authNotifierProvider.notifier).logout();
     if (!context.mounted) return;
-    Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+    await _showWelcome(context, navigator);
+  }
+
+  /// Ends every session of this member (all devices) after they confirm.
+  /// When the server cannot do it the member stays signed in here and is
+  /// told, rather than this device claiming the others were signed out.
+  Future<void> _logoutAllDevices(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await _confirmSignOut(
+      context,
+      key: 'qa.settings.logout_all',
+      title: l10n.settingsSignOutAllConfirmTitle,
+      body: l10n.settingsSignOutAllConfirmBody,
+      action: l10n.settingsSignOutAllConfirmAction,
+    );
+    if (!confirmed || !context.mounted) return;
+    final navigator = Navigator.of(context, rootNavigator: true);
+    final messenger = ScaffoldMessenger.of(context);
+    final failed = l10n.settingsSignOutAllFailed;
+    final signedOut = await ref
+        .read(authNotifierProvider.notifier)
+        .logoutAllDevices();
+    if (!signedOut) {
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(failed)));
+      return;
+    }
+    if (!context.mounted) return;
+    await _showWelcome(context, navigator);
+  }
+
+  /// Outside the app gate (Settings pushed on its own) nothing replaces this
+  /// screen when the session ends, so Welcome is shown here instead. Waits a
+  /// frame first so that, inside the app, the gate has already swapped this
+  /// screen for its own Welcome (and the gate is never removed).
+  Future<void> _showWelcome(
+    BuildContext context,
+    NavigatorState navigator,
+  ) async {
+    await WidgetsBinding.instance.endOfFrame;
+    if (!context.mounted || !navigator.mounted) return;
+    navigator.pushAndRemoveUntil(
       MaterialPageRoute<void>(builder: (_) => const WelcomeScreen()),
       (_) => false,
     );
+  }
+
+  Future<bool> _confirmSignOut(
+    BuildContext context, {
+    required String key,
+    required String title,
+    required String body,
+    required String action,
+  }) async {
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        // A second tap while the dialog closes must not pop the screen
+        // underneath it.
+        void close(bool value) {
+          if (ModalRoute.of(dialogContext)?.isCurrent ?? false) {
+            Navigator.of(dialogContext).pop(value);
+          }
+        }
+
+        return AlertDialog(
+          key: ValueKey('$key.dialog'),
+          title: Text(title),
+          content: Text(body),
+          actions: [
+            TextButton(
+              key: ValueKey('$key.cancel'),
+              onPressed: () => close(false),
+              child: Text(l10n.commonCancel),
+            ),
+            TextButton(
+              key: ValueKey('$key.confirm'),
+              style: TextButton.styleFrom(
+                foregroundColor: Theme.of(dialogContext).colorScheme.error,
+              ),
+              onPressed: () => close(true),
+              child: Text(action),
+            ),
+          ],
+        );
+      },
+    );
+    return confirmed ?? false;
   }
 
   Future<void> _choosePreset(
@@ -615,12 +759,14 @@ class SettingsScreen extends ConsumerWidget {
     required String subtitle,
     required VoidCallback onTap,
     String? semanticLabel,
+    Color? tint,
     Key? key,
   }) => Padding(
     key: key,
     padding: const EdgeInsets.only(bottom: ConnectMetrics.cardGap),
     child: ConnectNavTile(
       icon: icon,
+      tint: tint,
       title: title,
       subtitle: subtitle,
       onTap: onTap,

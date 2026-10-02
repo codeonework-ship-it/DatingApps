@@ -4,6 +4,7 @@ import '../../../core/config/feature_flags.dart';
 import '../../../core/network/api_error_message.dart';
 import '../../../core/providers/api_client_provider.dart';
 import '../../../core/utils/logger.dart';
+import '../../auth/providers/auth_provider.dart';
 
 /// A copilot draft: text in the member's own voice, never sent by the app.
 class CopilotDraft {
@@ -145,6 +146,8 @@ class ConversationTrust {
 
 final conversationTrustProvider =
     FutureProvider.family<ConversationTrust?, String>((ref, matchId) async {
+      // Per member: never show the previous member's conversation.
+      watchSignedInUserId(ref);
       if (matchId.isEmpty || matchId.startsWith('pending-')) {
         return null;
       }

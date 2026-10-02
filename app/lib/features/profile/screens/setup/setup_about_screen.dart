@@ -41,6 +41,10 @@ class _SetupAboutScreenState extends ConsumerState<SetupAboutScreen> {
   bool _didInitialize = false;
   bool _isSaving = false;
 
+  /// Set once Save has stored the form, so closing the screen afterwards
+  /// does not send the same edits a second time.
+  bool _savedByButton = false;
+
   @override
   void dispose() {
     _bioController.dispose();
@@ -63,6 +67,10 @@ class _SetupAboutScreenState extends ConsumerState<SetupAboutScreen> {
   }
 
   Future<void> _save() async {
+    // A second tap before the button rebuilds must not save twice.
+    if (_isSaving) {
+      return;
+    }
     final bio = _bioController.text.trim();
     if (bio.length < ValidationConstants.minBioLength) {
       _snack(
@@ -98,6 +106,7 @@ class _SetupAboutScreenState extends ConsumerState<SetupAboutScreen> {
             MaterialPageRoute<void>(builder: (_) => const SetupPreviewScreen()),
           );
         } else {
+          _savedByButton = true;
           Navigator.of(context).pop();
         }
       });
@@ -119,7 +128,9 @@ class _SetupAboutScreenState extends ConsumerState<SetupAboutScreen> {
   /// creates a brand-new widget instance), the draft already contains their
   /// latest edits and the controllers are pre-populated correctly.
   void _autoSaveOnBack() {
-    if (!_didInitialize) return;
+    if (!_didInitialize || _savedByButton) {
+      return;
+    }
     final notifier = ref.read(profileSetupNotifierProvider.notifier);
     final bio = _bioController.text.trim();
     if (bio.isNotEmpty) {

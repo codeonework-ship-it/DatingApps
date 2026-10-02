@@ -64,10 +64,10 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsLooksClassicDescription =>
-      'Warm ivory and forest by day. Soft mint and deep forest by night.';
+      'Tagsüber warmes Elfenbein und Waldgrün. Nachts sanfte Minze und tiefes Waldgrün.';
 
   @override
-  String get settingsLooksClassicLabel => 'Today';
+  String get settingsLooksClassicLabel => 'Heute';
 
   @override
   String get settingsThemeSaveFailed =>
@@ -12722,4 +12722,62 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get themeTaglineBluelotus =>
       'Mondbeschienenes Wasser, Saphirblüten und ein goldenes Herz.';
+
+  @override
+  String discoverMessageLikeSent(String name) {
+    return 'Love an $name gesendet. Ihr könnt chatten, sobald $name dich auch liked.';
+  }
+
+  @override
+  String get notificationsDismissFailed =>
+      'Die Benachrichtigung konnte nicht entfernt werden. Versuch es noch mal.';
+
+  @override
+  String get notificationsReadAllFailed =>
+      'Konnte nicht alle als gelesen markieren. Versuch es noch mal.';
+
+  @override
+  String get blogReportSubmitted => 'Meldung gesendet. Danke!';
+
+  @override
+  String get settingsSectionAccount => 'Konto';
+
+  @override
+  String settingsSignedInAs(String username) {
+    return 'Angemeldet als @$username';
+  }
+
+  @override
+  String get settingsSignOut => 'Abmelden';
+
+  @override
+  String get settingsSignOutSubtitle => 'Beende deine Sitzung auf diesem Gerät';
+
+  @override
+  String get settingsSignOutAllTitle => 'Auf allen Geräten abmelden';
+
+  @override
+  String get settingsSignOutAllSubtitle =>
+      'Beende jede Sitzung auf jedem Handy und in jedem Browser';
+
+  @override
+  String get settingsSignOutConfirmTitle => 'Abmelden?';
+
+  @override
+  String get settingsSignOutConfirmBody =>
+      'Um dich auf diesem Gerät wieder anzumelden, brauchst du deinen Benutzernamen und dein Passwort.';
+
+  @override
+  String get settingsSignOutAllConfirmTitle => 'Auf allen Geräten abmelden?';
+
+  @override
+  String get settingsSignOutAllConfirmBody =>
+      'Damit endet deine Sitzung auf jedem Handy, Tablet und in jedem Browser, auch auf diesem Gerät. Wer anderswo mit deinem Konto angemeldet ist, wird abgemeldet.';
+
+  @override
+  String get settingsSignOutAllConfirmAction => 'Überall abmelden';
+
+  @override
+  String get settingsSignOutAllFailed =>
+      'Deine anderen Geräte konnten nicht abgemeldet werden. Prüfe deine Verbindung und versuch es noch einmal.';
 }

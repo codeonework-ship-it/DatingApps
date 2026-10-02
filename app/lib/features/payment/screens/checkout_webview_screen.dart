@@ -107,6 +107,7 @@ class _CheckoutWebViewScreenState extends State<CheckoutWebViewScreen> {
       appBar: AppBar(
         title: Text(l10n.paymentCheckoutPayFor(widget.planName)),
         leading: IconButton(
+          key: const ValueKey('qa.checkout.close'),
           icon: const Icon(Icons.close),
           tooltip: l10n.paymentCheckoutClose,
           onPressed: () => Navigator.of(context).pop(null),

@@ -3,10 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/theme/cinematic_effects.dart';
 import '../../../core/layout/app_layout.dart';
 import '../../../core/network/api_error_message.dart';
 import '../../../core/providers/safety_actions_provider.dart';
+import '../../../core/theme/cinematic_effects.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../common/widgets/community_actions.dart';
 import '../../common/widgets/report_user_sheet.dart';
@@ -49,6 +49,13 @@ String roomRoleLabel(AppLocalizations l, String role) => switch (role) {
   'moderator' => l.roomsRoleModerator,
   _ => '',
 };
+
+/// Why a room call failed: the reason [RoomsApi] already worded (the server's
+/// message when it sent one), else [fallback].
+String _roomFailure(Object error, String fallback) =>
+    error is RoomActionException && error.message.trim().isNotEmpty
+    ? error.message
+    : apiErrorMessage(error, fallback: fallback);
 
 /// A room topic's name in the reader's language ([roomCategories] keys).
 String roomCategoryLabel(AppLocalizations l, String key) => switch (key) {
@@ -296,10 +303,7 @@ class _RoomMenuButton extends ConsumerWidget {
       }
     } on Object catch (e) {
       if (context.mounted) {
-        showCommunitySnack(
-          context,
-          apiErrorMessage(e, fallback: l.roomsLeaveFailed),
-        );
+        showCommunitySnack(context, _roomFailure(e, l.roomsLeaveFailed));
       }
     }
   }
@@ -323,10 +327,7 @@ class _RoomMenuButton extends ConsumerWidget {
       }
     } on Object catch (e) {
       if (context.mounted) {
-        showCommunitySnack(
-          context,
-          apiErrorMessage(e, fallback: l.roomsCloseFailed),
-        );
+        showCommunitySnack(context, _roomFailure(e, l.roomsCloseFailed));
       }
     }
   }
@@ -431,11 +432,12 @@ class _RoomMembersSheet extends ConsumerWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        apiErrorMessage(e, fallback: l.roomsMembersLoadFailed),
+                        _roomFailure(e, l.roomsMembersLoadFailed),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: AppLayout.space3),
                       FilledButton(
+                        key: const ValueKey('qa.room.members.retry'),
                         onPressed: () =>
                             ref.invalidate(roomMembersProvider(room.id)),
                         child: Text(l.chatTryAgain),
@@ -472,9 +474,7 @@ class _RoomMembersSheet extends ConsumerWidget {
                       photoUrl: m.photoUrl,
                       here: m.hereNow,
                     ),
-                    title: Text(
-                      m.isMe ? l.roomsYouSuffix(name) : name,
-                    ),
+                    title: Text(m.isMe ? l.roomsYouSuffix(name) : name),
                     subtitle: Text(status),
                     trailing: m.isMe
                         ? null
@@ -742,7 +742,7 @@ class _RoomMemberCardState extends ConsumerState<_RoomMemberCard> {
       showCommunitySnack(context, done);
     } on Object catch (e) {
       if (mounted) {
-        showCommunitySnack(context, apiErrorMessage(e, fallback: fallback));
+        showCommunitySnack(context, _roomFailure(e, fallback));
       }
     } finally {
       if (mounted) {
@@ -752,20 +752,30 @@ class _RoomMemberCardState extends ConsumerState<_RoomMemberCard> {
   }
 
   Future<void> _report(String name) async {
+    final done = chatL10n(context).communityReportSubmitted;
+    var sent = false;
     await showReportUserSheet(
       context: context,
-      onSubmit: ({required reason, description}) => ref
-          .read(safetyActionsProvider)
-          .reportUser(
-            reportedUserId: widget.userId,
-            reason: reason,
-            description: [
-              'Reported from the room "${widget.room.title}".',
-              if (description != null && description.trim().isNotEmpty)
-                description.trim(),
-            ].join(' '),
-          ),
+      onSubmit: ({required reason, description}) async {
+        final id = await ref
+            .read(safetyActionsProvider)
+            .reportUser(
+              reportedUserId: widget.userId,
+              reason: reason,
+              description: [
+                'Reported from the room "${widget.room.title}".',
+                if (description != null && description.trim().isNotEmpty)
+                  description.trim(),
+              ].join(' '),
+            );
+        sent = true;
+        return id;
+      },
     );
+    // The sheet closes on success; say so, as the other report flows do.
+    if (sent && mounted) {
+      showCommunitySnack(context, done);
+    }
   }
 
   Future<void> _block(String name) async {

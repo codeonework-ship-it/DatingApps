@@ -6,6 +6,9 @@ import '../../../core/widgets/glass_widgets.dart';
 import '../engagement_l10n.dart';
 import '../providers/circle_challenge_provider.dart';
 
+/// The server refuses entries longer than this (`circleChallengeMaxChars`).
+const kCircleEntryMaxChars = 280;
+
 class CircleChallengesScreen extends ConsumerStatefulWidget {
   const CircleChallengesScreen({super.key});
 
@@ -37,142 +40,169 @@ class _CircleChallengesScreenState
       appBar: AppBar(title: Text(l.engagementCirclesTitle)),
       body: PostLoginBackdrop(
         child: SafeArea(
-          child: RefreshIndicator(
-            onRefresh: notifier.load,
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                if (state.isLoading && state.items.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 80),
-                    child: Center(
-                      child: CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          Theme.of(context).colorScheme.primary,
-                        ),
-                      ),
+          child: Column(
+            children: [
+              // Errors stay in view above the list: a failed Join or Submit
+              // on a lower card used to report below the last card, off
+              // screen. With no circles the empty card shows the error.
+              if (state.error != null && state.items.isNotEmpty)
+                Padding(
+                  key: const ValueKey('qa.circles.error'),
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                  child: Text(
+                    state.error!,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.error,
                     ),
-                  )
-                else if (state.items.isEmpty)
-                  _infoCard(
-                    context,
-                    title: l.engagementCirclesEmptyTitle,
-                    subtitle: state.error ?? l.engagementCirclesPullToRefresh,
-                  )
-                else ...[
-                  ...state.items.map((item) {
-                    final controller = _controllerFor(
-                      item.id,
-                      item.userEntryText,
-                    );
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: GlassContainer(
-                        padding: const EdgeInsets.all(16),
-                        backgroundColor: Theme.of(context).colorScheme.surface,
-                        blur: 12,
-                        crystalEffect: true,
-                        borderRadius: BorderRadius.circular(18),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    '${item.topic} · ${item.city}',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleMedium
+                  ),
+                ),
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: notifier.load,
+                  child: ListView(
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      if (state.isLoading && state.items.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 80),
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Theme.of(context).colorScheme.primary,
+                              ),
+                            ),
+                          ),
+                        )
+                      else if (state.items.isEmpty)
+                        _infoCard(
+                          context,
+                          title: l.engagementCirclesEmptyTitle,
+                          subtitle:
+                              state.error ?? l.engagementCirclesPullToRefresh,
+                        )
+                      else ...[
+                        ...state.items.map((item) {
+                          final controller = _controllerFor(
+                            item.id,
+                            item.userEntryText,
+                          );
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: GlassContainer(
+                              padding: const EdgeInsets.all(16),
+                              backgroundColor: Theme.of(
+                                context,
+                              ).colorScheme.surface,
+                              blur: 12,
+                              crystalEffect: true,
+                              borderRadius: BorderRadius.circular(18),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          '${item.topic} · ${item.city}',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .titleMedium
+                                              ?.copyWith(
+                                                color: Theme.of(
+                                                  context,
+                                                ).colorScheme.onSurface,
+                                                fontWeight: FontWeight.w700,
+                                              ),
+                                        ),
+                                      ),
+                                      _pill(
+                                        context,
+                                        item.isJoined
+                                            ? l.engagementCirclesJoined
+                                            : l.engagementCirclesNotJoined,
+                                        item.isJoined
+                                            ? AppTheme.successGreen
+                                            : AppTheme.warningOrange,
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    item.promptText,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodyMedium,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    l.engagementCirclesParticipants(
+                                      item.participationCount,
+                                    ),
+                                    style: Theme.of(context).textTheme.bodySmall
                                         ?.copyWith(
                                           color: Theme.of(
                                             context,
-                                          ).colorScheme.onSurface,
-                                          fontWeight: FontWeight.w700,
+                                          ).colorScheme.onSurfaceVariant,
                                         ),
                                   ),
-                                ),
-                                _pill(
-                                  context,
-                                  item.isJoined
-                                      ? l.engagementCirclesJoined
-                                      : l.engagementCirclesNotJoined,
-                                  item.isJoined
-                                      ? AppTheme.successGreen
-                                      : AppTheme.warningOrange,
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              item.promptText,
-                              style: Theme.of(context).textTheme.bodyMedium,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              l.engagementCirclesParticipants(
-                                item.participationCount,
-                              ),
-                              style: Theme.of(context).textTheme.bodySmall
-                                  ?.copyWith(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onSurfaceVariant,
-                                  ),
-                            ),
-                            const SizedBox(height: 10),
-                            if (!item.isJoined)
-                              SizedBox(
-                                width: double.infinity,
-                                child: OutlinedButton(
-                                  onPressed: state.isSubmitting
-                                      ? null
-                                      : () => notifier.joinCircle(item.id),
-                                  child: Text(l.engagementCirclesJoin),
-                                ),
-                              ),
-                            const SizedBox(height: 8),
-                            TextField(
-                              controller: controller,
-                              minLines: 2,
-                              maxLines: 3,
-                              decoration: InputDecoration(
-                                labelText: l.engagementCirclesResponseLabel,
-                                border: const OutlineInputBorder(),
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton(
-                                onPressed: state.isSubmitting
-                                    ? null
-                                    : () => notifier.submitEntry(
-                                        circleId: item.id,
-                                        challengeId: item.challengeId,
-                                        entryText: controller.text,
+                                  const SizedBox(height: 10),
+                                  if (!item.isJoined)
+                                    SizedBox(
+                                      width: double.infinity,
+                                      child: OutlinedButton(
+                                        key: ValueKey(
+                                          'qa.circles.join.${item.id}',
+                                        ),
+                                        onPressed: state.isSubmitting
+                                            ? null
+                                            : () =>
+                                                  notifier.joinCircle(item.id),
+                                        child: Text(l.engagementCirclesJoin),
                                       ),
-                                child: Text(l.engagementCirclesSubmit),
+                                    ),
+                                  const SizedBox(height: 8),
+                                  TextField(
+                                    key: ValueKey(
+                                      'qa.circles.response.${item.id}',
+                                    ),
+                                    controller: controller,
+                                    minLines: 2,
+                                    maxLines: 3,
+                                    maxLength: kCircleEntryMaxChars,
+                                    decoration: InputDecoration(
+                                      labelText:
+                                          l.engagementCirclesResponseLabel,
+                                      border: const OutlineInputBorder(),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: ElevatedButton(
+                                      key: ValueKey(
+                                        'qa.circles.submit.${item.id}',
+                                      ),
+                                      onPressed: state.isSubmitting
+                                          ? null
+                                          : () => notifier.submitEntry(
+                                              circleId: item.id,
+                                              challengeId: item.challengeId,
+                                              entryText: controller.text,
+                                            ),
+                                      child: Text(l.engagementCirclesSubmit),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }),
-                ],
-                if (state.error != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Text(
-                      state.error!,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.error,
-                      ),
-                    ),
+                          );
+                        }),
+                      ],
+                    ],
                   ),
-              ],
-            ),
+                ),
+              ),
+            ],
           ),
         ),
       ),

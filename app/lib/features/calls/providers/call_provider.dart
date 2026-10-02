@@ -279,6 +279,8 @@ class CallNotifier extends StateNotifier<CallState> {
 CallErrorKind? _fallbackKind(Object error, CallErrorKind kind) =>
     apiErrorMessage(error, fallback: '').isEmpty ? kind : null;
 
-final callProvider = StateNotifierProvider<CallNotifier, CallState>(
-  (ref) => CallNotifier(ref),
-);
+final callProvider = StateNotifierProvider<CallNotifier, CallState>((ref) {
+  // Per member: a call never carries over to whoever signs in next.
+  watchSignedInUserId(ref);
+  return CallNotifier(ref);
+});

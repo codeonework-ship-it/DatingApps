@@ -12465,6 +12465,64 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get themeTaglineBluelotus =>
       'Moonlit water, sapphire petals and a golden heart.';
+
+  @override
+  String discoverMessageLikeSent(String name) {
+    return 'Love sent to $name. You can chat as soon as they like you back.';
+  }
+
+  @override
+  String get notificationsDismissFailed =>
+      'Couldn\'t remove that notification. Try again.';
+
+  @override
+  String get notificationsReadAllFailed =>
+      'Couldn\'t mark them all as read. Try again.';
+
+  @override
+  String get blogReportSubmitted => 'Report submitted. Thank you.';
+
+  @override
+  String get settingsSectionAccount => 'Account';
+
+  @override
+  String settingsSignedInAs(String username) {
+    return 'Signed in as @$username';
+  }
+
+  @override
+  String get settingsSignOut => 'Sign out';
+
+  @override
+  String get settingsSignOutSubtitle => 'End your session on this device';
+
+  @override
+  String get settingsSignOutAllTitle => 'Sign out of all devices';
+
+  @override
+  String get settingsSignOutAllSubtitle =>
+      'End every session, on every phone and browser';
+
+  @override
+  String get settingsSignOutConfirmTitle => 'Sign out?';
+
+  @override
+  String get settingsSignOutConfirmBody =>
+      'You\'ll need your username and password to sign in again on this device.';
+
+  @override
+  String get settingsSignOutAllConfirmTitle => 'Sign out of all devices?';
+
+  @override
+  String get settingsSignOutAllConfirmBody =>
+      'This ends your session on every phone, tablet and browser, including this one. Anyone signed in to your account elsewhere will be signed out.';
+
+  @override
+  String get settingsSignOutAllConfirmAction => 'Sign out everywhere';
+
+  @override
+  String get settingsSignOutAllFailed =>
+      'Couldn\'t sign out your other devices. Check your connection and try again.';
 }
 
 /// The translations for English, as used in the United Kingdom (`en_GB`).
@@ -24928,4 +24986,62 @@ class AppLocalizationsEnGb extends AppLocalizationsEn {
   @override
   String get themeTaglineBluelotus =>
       'Moonlit water, sapphire petals and a golden heart.';
+
+  @override
+  String discoverMessageLikeSent(String name) {
+    return 'Love sent to $name. You can chat as soon as they like you back.';
+  }
+
+  @override
+  String get notificationsDismissFailed =>
+      'Couldn\'t remove that notification. Try again.';
+
+  @override
+  String get notificationsReadAllFailed =>
+      'Couldn\'t mark them all as read. Try again.';
+
+  @override
+  String get blogReportSubmitted => 'Report submitted. Thank you.';
+
+  @override
+  String get settingsSectionAccount => 'Account';
+
+  @override
+  String settingsSignedInAs(String username) {
+    return 'Signed in as @$username';
+  }
+
+  @override
+  String get settingsSignOut => 'Sign out';
+
+  @override
+  String get settingsSignOutSubtitle => 'End your session on this device';
+
+  @override
+  String get settingsSignOutAllTitle => 'Sign out of all devices';
+
+  @override
+  String get settingsSignOutAllSubtitle =>
+      'End every session, on every phone and browser';
+
+  @override
+  String get settingsSignOutConfirmTitle => 'Sign out?';
+
+  @override
+  String get settingsSignOutConfirmBody =>
+      'You\'ll need your username and password to sign in again on this device.';
+
+  @override
+  String get settingsSignOutAllConfirmTitle => 'Sign out of all devices?';
+
+  @override
+  String get settingsSignOutAllConfirmBody =>
+      'This ends your session on every phone, tablet and browser, including this one. Anyone signed in to your account elsewhere will be signed out.';
+
+  @override
+  String get settingsSignOutAllConfirmAction => 'Sign out everywhere';
+
+  @override
+  String get settingsSignOutAllFailed =>
+      'Couldn\'t sign out your other devices. Check your connection and try again.';
 }

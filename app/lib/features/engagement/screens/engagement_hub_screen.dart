@@ -59,6 +59,7 @@ class EngagementHubScreen extends ConsumerWidget {
     final create = <Widget>[
       if (runtimeFlags.enabled('intentional_dating_enabled'))
         _tile(
+          key: 'qa.engagement_hub.blog',
           icon: Icons.menu_book_outlined,
           title: l.engagementHubBlogTitle,
           subtitle: l.engagementHubBlogSubtitle,
@@ -67,6 +68,7 @@ class EngagementHubScreen extends ConsumerWidget {
         ),
       if (runtimeFlags.enabled('photo_themes_enabled'))
         _tile(
+          key: 'qa.engagement_hub.photo_themes',
           icon: Icons.photo_library_outlined,
           title: l.engagementHubPhotoThemesTitle,
           subtitle: l.engagementHubPhotoThemesSubtitle,
@@ -75,6 +77,7 @@ class EngagementHubScreen extends ConsumerWidget {
         ),
       if (runtimeFlags.enabled('clubs_enabled'))
         _tile(
+          key: 'qa.engagement_hub.clubs',
           icon: Icons.local_library_outlined,
           title: l.engagementHubClubsTitle,
           subtitle: l.engagementHubClubsSubtitle,
@@ -84,6 +87,7 @@ class EngagementHubScreen extends ConsumerWidget {
     ];
     final meet = <Widget>[
       _tile(
+        key: 'qa.engagement_hub.city_pilot',
         icon: Icons.location_city_rounded,
         title: l.engagementHubCityPilotTitle,
         subtitle: l.engagementHubCityPilotSubtitle,
@@ -92,6 +96,7 @@ class EngagementHubScreen extends ConsumerWidget {
       ),
       if (runtimeFlags.enabled('daily_prompts_enabled'))
         _tile(
+          key: 'qa.engagement_hub.daily_prompt',
           icon: Icons.local_fire_department_outlined,
           title: l.engagementDailyPromptTitle,
           subtitle: dailyPromptSubtitle,
@@ -100,6 +105,7 @@ class EngagementHubScreen extends ConsumerWidget {
         ),
       if (runtimeFlags.enabled('voice_icebreakers_enabled'))
         _tile(
+          key: 'qa.engagement_hub.voice_icebreakers',
           icon: Icons.groups_2_outlined,
           title: l.engagementHubVoiceTitle,
           subtitle: l.engagementHubVoiceSubtitle,
@@ -108,6 +114,7 @@ class EngagementHubScreen extends ConsumerWidget {
         ),
       if (runtimeFlags.enabled('circles_enabled'))
         _tile(
+          key: 'qa.engagement_hub.circles',
           icon: Icons.groups_2_outlined,
           title: l.engagementCirclesTitle,
           subtitle: l.engagementHubCirclesSubtitle,
@@ -116,6 +123,7 @@ class EngagementHubScreen extends ConsumerWidget {
         ),
       if (runtimeFlags.enabled('group_coffee_polls_enabled'))
         _tile(
+          key: 'qa.engagement_hub.coffee_polls',
           icon: Icons.coffee_outlined,
           title: l.engagementHubCoffeeTitle,
           subtitle: l.engagementHubCoffeeSubtitle,
@@ -124,6 +132,7 @@ class EngagementHubScreen extends ConsumerWidget {
         ),
       if (runtimeFlags.enabled('groups_enabled'))
         _tile(
+          key: 'qa.engagement_hub.groups',
           icon: Icons.diversity_3_rounded,
           title: l.engagementHubGroupsTitle,
           subtitle: l.engagementHubGroupsSubtitle,
@@ -132,6 +141,7 @@ class EngagementHubScreen extends ConsumerWidget {
         ),
       if (runtimeFlags.enabled('rooms_enabled'))
         _tile(
+          key: 'qa.engagement_hub.conversation_rooms',
           icon: Icons.forum_rounded,
           title: l.settingsConversationRoomsTitle,
           subtitle: l.engagementHubRoomsSubtitle,
@@ -139,6 +149,7 @@ class EngagementHubScreen extends ConsumerWidget {
           onTap: () => push(const ConversationRoomsScreen()),
         ),
       _tile(
+        key: 'qa.engagement_hub.friends',
         icon: Icons.people_alt_rounded,
         title: l.engagementHubFriendsTitle,
         subtitle: l.engagementHubFriendsSubtitle,
@@ -149,6 +160,7 @@ class EngagementHubScreen extends ConsumerWidget {
     final progress = <Widget>[
       if (runtimeFlags.enabled('level_progression_enabled'))
         _tile(
+          key: 'qa.engagement_hub.level_xp',
           icon: Icons.auto_graph_rounded,
           title: l.engagementLevelTitle,
           subtitle: l.engagementHubLevelSubtitle,
@@ -156,6 +168,7 @@ class EngagementHubScreen extends ConsumerWidget {
           onTap: () => push(const LevelProgressionScreen()),
         ),
       _tile(
+        key: 'qa.engagement_hub.trust_badges',
         icon: Icons.workspace_premium_rounded,
         title: l.settingsTrustBadgesTitle,
         subtitle: l.settingsTrustBadgesSubtitle,
@@ -163,6 +176,7 @@ class EngagementHubScreen extends ConsumerWidget {
         onTap: () => push(const TrustBadgesScreen()),
       ),
       _tile(
+        key: 'qa.engagement_hub.trust_filters',
         icon: Icons.tune_rounded,
         title: l.settingsTrustFiltersTitle,
         subtitle: l.settingsTrustFiltersSubtitle,
@@ -263,12 +277,14 @@ class EngagementHubScreen extends ConsumerWidget {
   }
 
   Widget _tile({
+    required String key,
     required IconData icon,
     required String title,
     required String subtitle,
     required Color tint,
     required VoidCallback onTap,
   }) => ConnectNavTile(
+    key: ValueKey(key),
     icon: icon,
     title: title,
     subtitle: subtitle,

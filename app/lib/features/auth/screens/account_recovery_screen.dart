@@ -101,8 +101,13 @@ class _AccountRecoveryScreenState extends ConsumerState<AccountRecoveryScreen> {
       }
     } on DioException catch (error) {
       final data = error.response?.data;
+      // Only a rejection (4xx) means the code is wrong. A server outage also
+      // carries an error body; calling that an invalid code sends the member
+      // off to get a new one for nothing.
+      final status = error.response?.statusCode ?? 0;
+      final rejected = status >= 400 && status < 500 && status != 429;
       _error = _path == _RecoveryPath.haveCode
-          ? (data is Map && data['error'] != null
+          ? (rejected && data is Map && data['error'] != null
                 ? l10n.authRecoveryInvalidCode
                 : l10n.authRecoveryOffline)
           : l10n.authRecoverySendFailed;
@@ -140,6 +145,7 @@ class _AccountRecoveryScreenState extends ConsumerState<AccountRecoveryScreen> {
                   ),
                   const SizedBox(height: 24),
                   FilledButton(
+                    key: const ValueKey('qa.recovery.back_to_sign_in'),
                     onPressed: () => Navigator.of(context).maybePop(),
                     child: Text(l10n.authRecoveryBackToSignIn),
                   ),
@@ -198,6 +204,9 @@ class _AccountRecoveryScreenState extends ConsumerState<AccountRecoveryScreen> {
                       decoration: InputDecoration(
                         labelText: l10n.authRecoveryNewPasswordLabel,
                         suffixIcon: IconButton(
+                          key: const ValueKey(
+                            'qa.recovery.password_visibility',
+                          ),
                           tooltip: _obscure
                               ? l10n.authShowPassword
                               : l10n.authHidePassword,

@@ -20871,6 +20871,102 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Moonlit water, sapphire petals and a golden heart.'**
   String get themeTaglineBluelotus;
+
+  /// Snack bar after tapping Message on a profile you have not matched with yet: a like was sent instead.
+  ///
+  /// In en, this message translates to:
+  /// **'Love sent to {name}. You can chat as soon as they like you back.'**
+  String discoverMessageLikeSent(String name);
+
+  /// Notification inbox: snack bar when swiping a notification away failed on the server; the notification is put back.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t remove that notification. Try again.'**
+  String get notificationsDismissFailed;
+
+  /// Notification inbox: snack bar when 'Read all' failed on the server; the notifications stay unread.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t mark them all as read. Try again.'**
+  String get notificationsReadAllFailed;
+
+  /// Chapter page: snackbar after a report about the chapter was sent.
+  ///
+  /// In en, this message translates to:
+  /// **'Report submitted. Thank you.'**
+  String get blogReportSubmitted;
+
+  /// Settings: heading of the Account section at the top (who is signed in, sign out).
+  ///
+  /// In en, this message translates to:
+  /// **'Account'**
+  String get settingsSectionAccount;
+
+  /// Settings, Account section: which member is signed in on this device.
+  ///
+  /// In en, this message translates to:
+  /// **'Signed in as @{username}'**
+  String settingsSignedInAs(String username);
+
+  /// Settings: button that signs the member out on this device (also the confirm button of the sign-out dialog).
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out'**
+  String get settingsSignOut;
+
+  /// Settings: subtitle under 'Sign out'.
+  ///
+  /// In en, this message translates to:
+  /// **'End your session on this device'**
+  String get settingsSignOutSubtitle;
+
+  /// Settings: button that ends the member's sessions on every device, this one included.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out of all devices'**
+  String get settingsSignOutAllTitle;
+
+  /// Settings: subtitle under 'Sign out of all devices'.
+  ///
+  /// In en, this message translates to:
+  /// **'End every session, on every phone and browser'**
+  String get settingsSignOutAllSubtitle;
+
+  /// Settings: title of the dialog that confirms signing out on this device.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out?'**
+  String get settingsSignOutConfirmTitle;
+
+  /// Settings: body of the dialog that confirms signing out on this device.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ll need your username and password to sign in again on this device.'**
+  String get settingsSignOutConfirmBody;
+
+  /// Settings: title of the dialog that confirms signing out of all devices.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out of all devices?'**
+  String get settingsSignOutAllConfirmTitle;
+
+  /// Settings: body of the dialog that confirms signing out of all devices.
+  ///
+  /// In en, this message translates to:
+  /// **'This ends your session on every phone, tablet and browser, including this one. Anyone signed in to your account elsewhere will be signed out.'**
+  String get settingsSignOutAllConfirmBody;
+
+  /// Settings: confirm button of the 'Sign out of all devices?' dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out everywhere'**
+  String get settingsSignOutAllConfirmAction;
+
+  /// Settings: shown when the server could not end the other sessions; the member stays signed in.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t sign out your other devices. Check your connection and try again.'**
+  String get settingsSignOutAllFailed;
 }
 
 class _AppLocalizationsDelegate

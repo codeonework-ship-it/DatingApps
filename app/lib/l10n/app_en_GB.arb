@@ -3454,5 +3454,21 @@
   "rewardNewBadgeFallback": "New badge",
   "blockedUnknownUser": "Unknown User",
   "themeTaglineBluerose": "Midnight velvet, sapphire roses and a platinum edge.",
-  "themeTaglineBluelotus": "Moonlit water, sapphire petals and a golden heart."
+  "themeTaglineBluelotus": "Moonlit water, sapphire petals and a golden heart.",
+  "discoverMessageLikeSent": "Love sent to {name}. You can chat as soon as they like you back.",
+  "notificationsDismissFailed": "Couldn't remove that notification. Try again.",
+  "notificationsReadAllFailed": "Couldn't mark them all as read. Try again.",
+  "blogReportSubmitted": "Report submitted. Thank you.",
+  "settingsSectionAccount": "Account",
+  "settingsSignedInAs": "Signed in as @{username}",
+  "settingsSignOut": "Sign out",
+  "settingsSignOutSubtitle": "End your session on this device",
+  "settingsSignOutAllTitle": "Sign out of all devices",
+  "settingsSignOutAllSubtitle": "End every session, on every phone and browser",
+  "settingsSignOutConfirmTitle": "Sign out?",
+  "settingsSignOutConfirmBody": "You'll need your username and password to sign in again on this device.",
+  "settingsSignOutAllConfirmTitle": "Sign out of all devices?",
+  "settingsSignOutAllConfirmBody": "This ends your session on every phone, tablet and browser, including this one. Anyone signed in to your account elsewhere will be signed out.",
+  "settingsSignOutAllConfirmAction": "Sign out everywhere",
+  "settingsSignOutAllFailed": "Couldn't sign out your other devices. Check your connection and try again."
 }

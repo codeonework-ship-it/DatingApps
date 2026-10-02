@@ -33,6 +33,11 @@ class SetupPhotosScreen extends ConsumerStatefulWidget {
 class _SetupPhotosScreenState extends ConsumerState<SetupPhotosScreen> {
   bool _isPickingPhoto = false;
 
+  /// A reorder or delete is waiting for the server. Another one started
+  /// now would act on a list that is about to change (a double tap on "Set
+  /// as profile picture" used to swap the photos back).
+  bool _isUpdatingPhotos = false;
+
   // ── Navigation helpers ──────────────────────────────────────────────────
   void _navigateNext() {
     if (!mounted) {
@@ -146,6 +151,7 @@ class _SetupPhotosScreenState extends ConsumerState<SetupPhotosScreen> {
         content: Text(l10n.profileSetupRemovePhotoBody),
         actions: [
           TextButton(
+            key: const ValueKey('qa.setup.photos.cancel_delete'),
             onPressed: () => Navigator.of(dialogContext).pop(false),
             child: Text(l10n.profileSetupCancel),
           ),
@@ -157,26 +163,32 @@ class _SetupPhotosScreenState extends ConsumerState<SetupPhotosScreen> {
         ],
       ),
     );
-    if (confirmed != true || !mounted) {
+    if (confirmed != true || !mounted || _isUpdatingPhotos) {
       return;
     }
+    _isUpdatingPhotos = true;
     try {
       await ref.read(profileSetupNotifierProvider.notifier).deletePhoto(photo);
     } on Object catch (error) {
       _showMediaError(error);
+    } finally {
+      _isUpdatingPhotos = false;
     }
   }
 
   Future<void> _reorderPhotos(int oldIndex, int newIndex) async {
-    if (_isPickingPhoto || oldIndex == newIndex) {
+    if (_isPickingPhoto || _isUpdatingPhotos || oldIndex == newIndex) {
       return;
     }
+    _isUpdatingPhotos = true;
     try {
       await ref
           .read(profileSetupNotifierProvider.notifier)
           .reorderPhotos(oldIndex, newIndex);
     } on Object catch (error) {
       _showMediaError(error);
+    } finally {
+      _isUpdatingPhotos = false;
     }
   }
 
@@ -395,26 +407,26 @@ class _PhotoListBody extends StatelessWidget {
           InfoCard(
             icon: Icons.collections_outlined,
             title: l10n.profileSetupYourPhotosHeading,
-            child: SizedBox(
-              height: (draft.photos.length * 92.0).clamp(92.0, 368.0),
-              child: ReorderableListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                buildDefaultDragHandles: false,
-                itemCount: draft.photos.length,
-                onReorder: isPickingPhoto ? (_, _) {} : onReorder,
-                itemBuilder: (context, index) {
-                  final photo = draft.photos[index];
-                  return _PhotoRow(
-                    key: ValueKey(photo.id),
-                    photo: photo,
-                    index: index,
-                    onDelete: () => onDeletePhoto(photo),
-                    onSetPrimary: () => onSetPrimary(index),
-                    enabled: !isPickingPhoto,
-                  );
-                },
-              ),
+            // Sized by its rows: a fixed height clipped rows taller than
+            // expected (a safety-review note, large text, long translations)
+            // and, not being scrollable, left them out of reach.
+            child: ReorderableListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              buildDefaultDragHandles: false,
+              itemCount: draft.photos.length,
+              onReorder: isPickingPhoto ? (_, _) {} : onReorder,
+              itemBuilder: (context, index) {
+                final photo = draft.photos[index];
+                return _PhotoRow(
+                  key: ValueKey(photo.id),
+                  photo: photo,
+                  index: index,
+                  onDelete: () => onDeletePhoto(photo),
+                  onSetPrimary: () => onSetPrimary(index),
+                  enabled: !isPickingPhoto,
+                );
+              },
             ),
           ),
         ],
@@ -611,6 +623,9 @@ class _PhotoRow extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.only(top: 8),
                     child: GestureDetector(
+                      key: ValueKey<String>(
+                        'qa.setup.photos.set_primary_${photo.id}',
+                      ),
                       onTap: enabled ? onSetPrimary : null,
                       child: Text(
                         l10n.profileSetupSetAsProfilePicture,
@@ -653,6 +668,7 @@ class _PhotoRow extends StatelessWidget {
             child: IgnorePointer(
               ignoring: !enabled,
               child: ReorderableDragStartListener(
+                key: ValueKey<String>('qa.setup.photos.reorder_${photo.id}'),
                 index: index,
                 child: Padding(
                   padding: const EdgeInsets.only(right: 4, left: 4),

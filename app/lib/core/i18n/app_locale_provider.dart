@@ -111,14 +111,18 @@ class AppLocaleNotifier extends StateNotifier<Locale?> {
 
   final Ref _ref;
   final _log = AppLogger();
-  bool _loaded = false;
+
+  /// The member whose stored language was last adopted. Per member, not a
+  /// flag: signing in as someone else on this device loads their language
+  /// instead of keeping the previous member's.
+  String? _loadedFor;
 
   String? get _userId {
     final id = _ref.read(authNotifierProvider).userId?.trim();
     return (id == null || id.isEmpty) ? null : id;
   }
 
-  /// Adopt the account's stored language once a session exists.
+  /// Adopt the account's stored language once per signed-in member.
   ///
   /// Not called from the constructor: `MaterialApp` watches this provider on
   /// the first frame, before there is a session to load for, so a constructor
@@ -127,12 +131,17 @@ class AppLocaleNotifier extends StateNotifier<Locale?> {
   /// local cache; an empty one leaves the cached choice alone so a member who
   /// picked a language before signing in keeps it.
   Future<void> ensureLoaded() async {
-    if (_loaded || _userId == null) {
+    final userId = _userId;
+    if (userId == null || userId == _loadedFor) {
       return;
     }
-    _loaded = true;
+    _loadedFor = userId;
     try {
       final settings = await _ref.read(userSettingsProvider.future);
+      // Someone else signed in while this member's settings were loading.
+      if (_userId != userId) {
+        return;
+      }
       final stored = appLocaleFromTag(settings.locale);
       if (stored != null && stored != state) {
         state = stored;
@@ -154,17 +163,29 @@ class AppLocaleNotifier extends StateNotifier<Locale?> {
       return;
     }
     final notifier = _ref.read(userSettingsProvider.notifier);
-    await notifier.patchSettings(locale: appLocaleToTag(locale));
-    final result = _ref.read(userSettingsProvider);
-    if (result.hasError) {
+    Object? error;
+    StackTrace? stackTrace;
+    try {
+      await notifier.patchSettings(locale: appLocaleToTag(locale));
+      final result = _ref.read(userSettingsProvider);
+      if (result.hasError) {
+        error = result.error;
+        stackTrace = result.stackTrace;
+      }
+    } on Object catch (e, s) {
+      // The account could not even be read (offline).
+      error = e;
+      stackTrace = s;
+    }
+    if (error != null) {
       // Roll back rather than show a language the account does not have: it
       // would silently revert on the next device.
       state = previous;
       await _cache(previous);
-      Error.throwWithStackTrace(
-        result.error!,
-        result.stackTrace ?? StackTrace.current,
-      );
+      // A failed save leaves the settings in error; read them again on the
+      // next pick instead of failing it without reaching the server.
+      _ref.invalidate(userSettingsProvider);
+      Error.throwWithStackTrace(error, stackTrace ?? StackTrace.current);
     }
   }
 

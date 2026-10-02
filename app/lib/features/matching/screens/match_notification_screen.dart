@@ -62,6 +62,9 @@ class MatchNotificationScreen extends StatelessWidget {
                     SizedBox(
                       width: double.infinity,
                       child: GlassButton(
+                        key: const ValueKey(
+                          'qa.match_notification.send_message',
+                        ),
                         label: l10n.matchesSendMessage,
                         onPressed: () {
                           Navigator.of(context).pushReplacement(
@@ -79,6 +82,7 @@ class MatchNotificationScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 10),
                     TextButton(
+                      key: const ValueKey('qa.match_notification.keep_swiping'),
                       onPressed: () => Navigator.of(context).pop(),
                       child: Text(l10n.matchesKeepSwiping),
                     ),

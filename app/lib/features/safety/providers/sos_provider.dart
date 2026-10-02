@@ -196,6 +196,8 @@ class SosNotifier extends StateNotifier<SosState> {
   }
 }
 
-final sosProvider = StateNotifierProvider<SosNotifier, SosState>(
-  (ref) => SosNotifier(ref),
-);
+final sosProvider = StateNotifierProvider<SosNotifier, SosState>((ref) {
+  // Per member: an SOS alert never carries over to whoever signs in next.
+  watchSignedInUserId(ref);
+  return SosNotifier(ref);
+});

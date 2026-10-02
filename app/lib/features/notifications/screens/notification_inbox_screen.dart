@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/network/api_error_message.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
 import '../../../l10n/app_localizations.dart';
@@ -15,6 +16,9 @@ class NotificationInboxScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    // Rows can leave the tree before their command fails (a swiped-away
+    // last row empties the list), so failures report through the screen.
+    final screen = context;
     final state = ref.watch(notificationProvider);
     final scheme = Theme.of(context).colorScheme;
     return Scaffold(
@@ -23,8 +27,22 @@ class NotificationInboxScreen extends ConsumerWidget {
         actions: [
           if (state.unreadCount > 0)
             TextButton(
-              onPressed: () =>
-                  ref.read(notificationProvider.notifier).markAllRead(),
+              key: const ValueKey('qa.notifications.read_all'),
+              onPressed: () async {
+                try {
+                  await ref.read(notificationProvider.notifier).markAllRead();
+                } on Object catch (error) {
+                  if (context.mounted) {
+                    _showError(
+                      context,
+                      apiErrorMessage(
+                        error,
+                        fallback: l10n.notificationsReadAllFailed,
+                      ),
+                    );
+                  }
+                }
+              },
               child: Text(l10n.notificationsReadAll),
             ),
         ],
@@ -32,10 +50,43 @@ class NotificationInboxScreen extends ConsumerWidget {
       body: PostLoginBackdrop(
         child: SafeArea(
           child: RefreshIndicator(
-            onRefresh: () =>
-                ref.read(notificationProvider.notifier).bootstrap(),
+            key: const ValueKey('qa.notifications.refresh'),
+            onRefresh: () async {
+              await ref.read(notificationProvider.notifier).bootstrap();
+              final error = ref.read(notificationProvider).error;
+              if (error != null && context.mounted) {
+                _showError(context, error);
+              }
+            },
             child: state.isLoading && state.items.isEmpty
                 ? const Center(child: CircularProgressIndicator())
+                : state.items.isEmpty && state.error != null
+                // A failed load is not "all caught up": say so and offer
+                // a retry (pull to refresh works too).
+                ? ListView(
+                    padding: const EdgeInsets.all(24),
+                    children: [
+                      const SizedBox(height: 120),
+                      const Icon(Icons.cloud_off_rounded, size: 56),
+                      const SizedBox(height: 16),
+                      Text(
+                        state.error!,
+                        key: const ValueKey('qa.notifications.load_error'),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                      const SizedBox(height: 12),
+                      Center(
+                        child: TextButton(
+                          key: const ValueKey('qa.notifications.retry'),
+                          onPressed: () => ref
+                              .read(notificationProvider.notifier)
+                              .bootstrap(),
+                          child: Text(l10n.commonRetry),
+                        ),
+                      ),
+                    ],
+                  )
                 : state.items.isEmpty
                 ? ListView(
                     padding: const EdgeInsets.all(24),
@@ -57,7 +108,7 @@ class NotificationInboxScreen extends ConsumerWidget {
                     itemBuilder: (context, index) {
                       final item = state.items[index];
                       return Dismissible(
-                        key: ValueKey(item.id),
+                        key: ValueKey('qa.notifications.item.${item.id}'),
                         direction: DismissDirection.endToStart,
                         background: Container(
                           alignment: Alignment.centerRight,
@@ -71,9 +122,23 @@ class NotificationInboxScreen extends ConsumerWidget {
                             color: scheme.onError,
                           ),
                         ),
-                        onDismissed: (_) => ref
-                            .read(notificationProvider.notifier)
-                            .dismiss(item.id),
+                        onDismissed: (_) async {
+                          try {
+                            await ref
+                                .read(notificationProvider.notifier)
+                                .dismiss(item.id);
+                          } on Object catch (error) {
+                            if (screen.mounted) {
+                              _showError(
+                                screen,
+                                apiErrorMessage(
+                                  error,
+                                  fallback: l10n.notificationsDismissFailed,
+                                ),
+                              );
+                            }
+                          }
+                        },
                         child: GlassContainer(
                           padding: const EdgeInsets.all(16),
                           backgroundColor: item.isRead
@@ -176,6 +241,12 @@ class NotificationInboxScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+void _showError(BuildContext context, String message) {
+  ScaffoldMessenger.of(context)
+    ..hideCurrentSnackBar()
+    ..showSnackBar(SnackBar(content: Text(message)));
 }
 
 IconData _categoryIcon(String category) => switch (category) {

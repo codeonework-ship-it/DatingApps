@@ -203,6 +203,7 @@ Future<void> showBlogRewardsSheet(BuildContext context) =>
               Align(
                 alignment: Alignment.centerLeft,
                 child: FilledButton.icon(
+                  key: const ValueKey('qa.blog.rewards.see_my_level'),
                   style: FilledButton.styleFrom(
                     minimumSize: const Size(48, 48),
                   ),

@@ -65,10 +65,12 @@ class _CityPilotScreenState extends ConsumerState<CityPilotScreen> {
         content: Text(l10n.cityPilotLeaveBody),
         actions: [
           TextButton(
+            key: const ValueKey('qa.city_pilot.leave_stay'),
             onPressed: () => Navigator.pop(context, false),
             child: Text(l10n.cityPilotStay),
           ),
           FilledButton(
+            key: const ValueKey('qa.city_pilot.leave_confirm'),
             onPressed: () => Navigator.pop(context, true),
             child: Text(l10n.cityPilotLeave),
           ),
@@ -102,10 +104,12 @@ class _CityPilotScreenState extends ConsumerState<CityPilotScreen> {
         ),
         actions: [
           TextButton(
+            key: const ValueKey('qa.city_pilot.booking_not_now'),
             onPressed: () => Navigator.pop(context, false),
             child: Text(l10n.debriefNotNow),
           ),
           FilledButton(
+            key: const ValueKey('qa.city_pilot.booking_accept'),
             onPressed: () => Navigator.pop(context, true),
             child: Text(l10n.cityPilotAcceptReserve),
           ),
@@ -142,6 +146,7 @@ class _CityPilotScreenState extends ConsumerState<CityPilotScreen> {
                   children: [
                     for (final value in [true, false])
                       ChoiceChip(
+                        key: ValueKey('qa.city_pilot.attended.$value'),
                         label: Text(
                           value
                               ? l10n.cityPilotAttendedYes
@@ -163,6 +168,7 @@ class _CityPilotScreenState extends ConsumerState<CityPilotScreen> {
                     children: [
                       for (final value in [true, false])
                         ChoiceChip(
+                          key: ValueKey('qa.city_pilot.worthwhile.$value'),
                           label: Text(
                             value ? l10n.commonYes : l10n.cityPilotNotThisTime,
                           ),
@@ -179,10 +185,12 @@ class _CityPilotScreenState extends ConsumerState<CityPilotScreen> {
           ),
           actions: [
             TextButton(
+              key: const ValueKey('qa.city_pilot.feedback_skip'),
               onPressed: () => Navigator.pop(dialogContext),
               child: Text(l10n.cityPilotSkip),
             ),
             FilledButton(
+              key: const ValueKey('qa.city_pilot.feedback_share'),
               onPressed: attended == null
                   ? null
                   : () => Navigator.pop(dialogContext, {
@@ -232,6 +240,7 @@ class _CityPilotScreenState extends ConsumerState<CityPilotScreen> {
         title: Text(l10n.cityPilotTitle),
         actions: [
           IconButton(
+            key: const ValueKey('qa.city_pilot.refresh'),
             tooltip: l10n.cityPilotRefreshTooltip,
             onPressed: _busy ? null : () => ref.invalidate(cityPilotProvider),
             icon: const Icon(Icons.refresh_rounded),
@@ -302,6 +311,7 @@ class _CityPilotScreenState extends ConsumerState<CityPilotScreen> {
                 error: (_, _) => _panel(l10n.cityPilotUnavailableTitle, [
                   Text(l10n.cityPilotUnavailableBody),
                   TextButton(
+                    key: const ValueKey('qa.city_pilot.retry'),
                     onPressed: () => ref.invalidate(cityPilotProvider),
                     child: Text(l10n.chatTryAgain),
                   ),
@@ -341,6 +351,7 @@ class _CityPilotScreenState extends ConsumerState<CityPilotScreen> {
                           Text(l10n.cityPilotPrivacy),
                           if (data['can_join'] == true) ...[
                             CheckboxListTile(
+                              key: const ValueKey('qa.city_pilot.consent'),
                               contentPadding: EdgeInsets.zero,
                               title: Text(l10n.cityPilotConsent),
                               value: _consent,
@@ -351,6 +362,7 @@ class _CityPilotScreenState extends ConsumerState<CityPilotScreen> {
                               controlAffinity: ListTileControlAffinity.leading,
                             ),
                             FilledButton.icon(
+                              key: const ValueKey('qa.city_pilot.join'),
                               onPressed: _busy || !_consent
                                   ? null
                                   : () => _save((dio) async {
@@ -368,6 +380,7 @@ class _CityPilotScreenState extends ConsumerState<CityPilotScreen> {
                           ] else if (joined) ...[
                             const SizedBox(height: 12),
                             OutlinedButton(
+                              key: const ValueKey('qa.city_pilot.leave'),
                               onPressed: _busy
                                   ? null
                                   : () => _leave(pilot['id'] as String),
@@ -428,6 +441,9 @@ class _CityPilotScreenState extends ConsumerState<CityPilotScreen> {
                                 const SizedBox(height: 12),
                                 Text(l10n.cityPilotPlaceReserved),
                                 OutlinedButton(
+                                  key: ValueKey(
+                                    'qa.city_pilot.cancel.${event['id']}',
+                                  ),
                                   onPressed: _busy
                                       ? null
                                       : () => _save((dio) async {
@@ -439,11 +455,17 @@ class _CityPilotScreenState extends ConsumerState<CityPilotScreen> {
                                 ),
                               ] else if (event['can_register'] == true)
                                 FilledButton(
+                                  key: ValueKey(
+                                    'qa.city_pilot.reserve.${event['id']}',
+                                  ),
                                   onPressed: _busy ? null : () => _book(event),
                                   child: Text(l10n.cityPilotReserveFree),
                                 ),
                               if (event['can_feedback'] == true)
                                 TextButton(
+                                  key: ValueKey(
+                                    'qa.city_pilot.feedback.${event['id']}',
+                                  ),
                                   onPressed: _busy
                                       ? null
                                       : () => _feedback(event),

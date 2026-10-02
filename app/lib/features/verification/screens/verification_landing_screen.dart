@@ -53,6 +53,9 @@ class VerificationLandingScreen extends ConsumerWidget {
                       const SizedBox(height: 24),
                       if (submitted || verified)
                         GlassButton(
+                          key: const ValueKey(
+                            'qa.verification.landing.status_button',
+                          ),
                           label: verified
                               ? l10n.verificationViewVerifiedStatus
                               : l10n.verificationViewReviewStatus,
@@ -67,6 +70,9 @@ class VerificationLandingScreen extends ConsumerWidget {
                           label: 'qa.verification.landing.start_button',
                           button: true,
                           child: GlassButton(
+                            key: const ValueKey(
+                              'qa.verification.landing.start_button',
+                            ),
                             label: l10n.verificationStartButton,
                             onPressed: () => Navigator.of(context).push(
                               MaterialPageRoute<void>(

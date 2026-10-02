@@ -16,9 +16,13 @@ import '../../friends/friend_actions.dart';
 import '../../profile/widgets/cinematic_profile.dart';
 import '../../profile/widgets/profile_scenes.dart';
 import '../models/discovery_profile.dart';
+import '../profile_actions.dart';
 import '../providers/profile_details_provider.dart';
 
-enum ProfileDetailsAction { none, love, message }
+/// What happened on the profile, for the screen that opened it to refresh.
+/// Only a saved Love is reported: Message opens the chat itself, so there is
+/// deliberately no "message" result for an opener to (forget to) handle.
+enum ProfileDetailsAction { none, love }
 
 /// Another member's profile, as a title sequence: the main photo full-bleed
 /// with their name over its dissolve, a film strip of the other photos, then
@@ -26,11 +30,28 @@ enum ProfileDetailsAction { none, love, message }
 /// Message and Love in a floating dock.
 ///
 /// The hero shows straight away from the card that was tapped; the scenes
-/// and the dock arrive with the full profile. Closing returns the chosen
-/// [ProfileDetailsAction] to the screen that opened it.
+/// and the dock arrive with the full profile.
+///
+/// Message and Love act here, on this member, through [ProfileActions] —
+/// they never depend on the screen that opened the profile (that design
+/// silently did nothing from Spotlight, Today and the liked/passed lists).
+/// A saved Love closes the profile and returns [ProfileDetailsAction.love]
+/// so the opener can refresh; Message opens the chat on top.
 class ProfileDetailsScreen extends ConsumerStatefulWidget {
-  const ProfileDetailsScreen({required this.profile, super.key});
+  const ProfileDetailsScreen({
+    required this.profile,
+    super.key,
+    this.onLove,
+    this.onMessage,
+  });
   final DiscoveryProfile profile;
+
+  /// Replaces the default Love for a screen with its own rule (Liked you
+  /// answers through its own endpoint). Returns true when the like saved.
+  final Future<bool> Function(BuildContext context)? onLove;
+
+  /// Replaces the default Message, as [onLove].
+  final Future<void> Function(BuildContext context)? onMessage;
 
   @override
   ConsumerState<ProfileDetailsScreen> createState() =>
@@ -40,6 +61,52 @@ class ProfileDetailsScreen extends ConsumerStatefulWidget {
 class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
   final ScrollController _scroll = ScrollController();
   bool _precached = false;
+
+  /// A Love or Message is in flight: the dock is disabled so a double tap
+  /// cannot send twice.
+  bool _acting = false;
+
+  Future<void> _love() async {
+    if (_acting) {
+      return;
+    }
+    setState(() => _acting = true);
+    try {
+      final saved = await (widget.onLove != null
+          ? widget.onLove!(context)
+          : ProfileActions.love(context, ref, widget.profile));
+      if (saved && mounted) {
+        final route = ModalRoute.of(context);
+        if (route == null || route.isCurrent) {
+          Navigator.of(context).pop(ProfileDetailsAction.love);
+        } else {
+          // The match screen's Send Message put the chat on top: close the
+          // profile underneath. A plain pop would close the chat instead.
+          Navigator.of(context).removeRoute(route, ProfileDetailsAction.love);
+        }
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _acting = false);
+      }
+    }
+  }
+
+  Future<void> _message() async {
+    if (_acting) {
+      return;
+    }
+    setState(() => _acting = true);
+    try {
+      await (widget.onMessage != null
+          ? widget.onMessage!(context)
+          : ProfileActions.message(context, ref, widget.profile));
+    } finally {
+      if (mounted) {
+        setState(() => _acting = false);
+      }
+    }
+  }
 
   @override
   void didChangeDependencies() {
@@ -137,6 +204,9 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(AppLocalizations.of(context).discoverReportSubmitted),
+        // Flutter keeps snack bars with an action up until tapped;
+        // let this one time out so it never covers the screen.
+        persist: false,
         action: SnackBarAction(
           label: AppLocalizations.of(context).discoverAppeal,
           onPressed: () {
@@ -321,10 +391,9 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
                     visible: loaded,
                     messageLabel: l10n.memberProfileMessage,
                     loveLabel: l10n.memberProfileLove,
-                    onMessage: () =>
-                        Navigator.of(context).pop(ProfileDetailsAction.message),
-                    onLove: () =>
-                        Navigator.of(context).pop(ProfileDetailsAction.love),
+                    busy: _acting,
+                    onMessage: _message,
+                    onLove: _love,
                   ),
                 ),
               ],
@@ -387,8 +456,16 @@ class _UnavailablePanel extends StatelessWidget {
               alignment: WrapAlignment.center,
               spacing: 8,
               children: [
-                TextButton(onPressed: onRetry, child: Text(l10n.commonRetry)),
-                TextButton(onPressed: onBack, child: Text(l10n.discoverGoBack)),
+                TextButton(
+                  key: const ValueKey('qa.profile_detail.retry'),
+                  onPressed: onRetry,
+                  child: Text(l10n.commonRetry),
+                ),
+                TextButton(
+                  key: const ValueKey('qa.profile_detail.go_back'),
+                  onPressed: onBack,
+                  child: Text(l10n.discoverGoBack),
+                ),
               ],
             ),
           ],
@@ -407,9 +484,11 @@ class _ActionDock extends StatelessWidget {
     required this.loveLabel,
     required this.onMessage,
     required this.onLove,
+    this.busy = false,
   });
 
   final bool visible;
+  final bool busy;
   final String messageLabel;
   final String loveLabel;
   final VoidCallback onMessage;
@@ -431,7 +510,8 @@ class _ActionDock extends StatelessWidget {
         icon: narrow ? null : Icons.chat_bubble_outline_rounded,
         backgroundColor: scheme.secondaryContainer,
         textColor: scheme.onSecondaryContainer,
-        onPressed: onMessage,
+        isLoading: busy,
+        onPressed: busy ? null : onMessage,
       ),
     );
     final love = Semantics(
@@ -441,7 +521,8 @@ class _ActionDock extends StatelessWidget {
         key: const ValueKey('qa.profile_detail.love_button'),
         label: loveLabel,
         icon: narrow ? null : Icons.favorite_rounded,
-        onPressed: onLove,
+        isLoading: busy,
+        onPressed: busy ? null : onLove,
       ),
     );
     return IgnorePointer(

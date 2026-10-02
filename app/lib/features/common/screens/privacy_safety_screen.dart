@@ -55,6 +55,7 @@ class PrivacySafetyScreen extends ConsumerWidget {
                       const Center(child: CircularProgressIndicator()),
                   error: (_, _) => Center(
                     child: TextButton(
+                      key: const ValueKey('qa.privacy.retry'),
                       onPressed: () => ref.invalidate(userSettingsProvider),
                       child: Text(l10n.commonRetry),
                     ),
@@ -67,28 +68,41 @@ class PrivacySafetyScreen extends ConsumerWidget {
                       child: Column(
                         children: [
                           SwitchListTile(
+                            key: const ValueKey('qa.privacy.show_age'),
                             title: Text(l10n.privacyShowAge),
                             subtitle: Text(l10n.privacyShowAgeSubtitle),
                             value: s.showAge,
-                            onChanged: (v) => ref
-                                .read(userSettingsProvider.notifier)
-                                .patchSettings(showAge: v),
+                            onChanged: (v) => _saveVisibility(
+                              context,
+                              ref,
+                              (n) => n.patchSettings(showAge: v),
+                            ),
                           ),
                           SwitchListTile(
+                            key: const ValueKey(
+                              'qa.privacy.show_exact_distance',
+                            ),
                             title: Text(l10n.privacyShowDistance),
                             subtitle: Text(l10n.privacyShowDistanceSubtitle),
                             value: s.showExactDistance,
-                            onChanged: (v) => ref
-                                .read(userSettingsProvider.notifier)
-                                .patchSettings(showExactDistance: v),
+                            onChanged: (v) => _saveVisibility(
+                              context,
+                              ref,
+                              (n) => n.patchSettings(showExactDistance: v),
+                            ),
                           ),
                           SwitchListTile(
+                            key: const ValueKey(
+                              'qa.privacy.show_online_status',
+                            ),
                             title: Text(l10n.privacyShowOnline),
                             subtitle: Text(l10n.privacyShowOnlineSubtitle),
                             value: s.showOnlineStatus,
-                            onChanged: (v) => ref
-                                .read(userSettingsProvider.notifier)
-                                .patchSettings(showOnlineStatus: v),
+                            onChanged: (v) => _saveVisibility(
+                              context,
+                              ref,
+                              (n) => n.patchSettings(showOnlineStatus: v),
+                            ),
                           ),
                           const _FriendSearchTile(),
                           const _ProfileShowcaseTile(),
@@ -115,6 +129,9 @@ class PrivacySafetyScreen extends ConsumerWidget {
                               },
                             ),
                           ListTile(
+                            key: const ValueKey(
+                              'qa.privacy.emergency_contacts',
+                            ),
                             contentPadding: EdgeInsets.zero,
                             leading: const Icon(Icons.contact_phone_outlined),
                             title: Text(l10n.privacyEmergencyContacts),
@@ -132,6 +149,7 @@ class PrivacySafetyScreen extends ConsumerWidget {
                             },
                           ),
                           ListTile(
+                            key: const ValueKey('qa.privacy.blocked_users'),
                             contentPadding: EdgeInsets.zero,
                             leading: const Icon(Icons.block_outlined),
                             title: Text(l10n.privacyBlockedUsers),
@@ -146,6 +164,9 @@ class PrivacySafetyScreen extends ConsumerWidget {
                             },
                           ),
                           ListTile(
+                            key: const ValueKey(
+                              'qa.privacy.moderation_appeals',
+                            ),
                             contentPadding: EdgeInsets.zero,
                             leading: const Icon(Icons.gavel_outlined),
                             title: Text(l10n.privacyModerationAppeals),
@@ -171,6 +192,31 @@ class PrivacySafetyScreen extends ConsumerWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  /// Saves one visibility switch. A failed save re-reads the account so the
+  /// switch shows what is really stored, and says why it did not save.
+  Future<void> _saveVisibility(
+    BuildContext context,
+    WidgetRef ref,
+    Future<void> Function(UserSettingsNotifier notifier) save,
+  ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final fallback = AppLocalizations.of(context).privacyChoiceSaveFailed;
+    await save(ref.read(userSettingsProvider.notifier));
+    if (!context.mounted) {
+      return;
+    }
+    final result = ref.read(userSettingsProvider);
+    if (!result.hasError) {
+      return;
+    }
+    ref.invalidate(userSettingsProvider);
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(apiErrorMessage(result.error!, fallback: fallback)),
       ),
     );
   }

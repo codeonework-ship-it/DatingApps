@@ -159,30 +159,35 @@ class _SocialChatScreenState extends ConsumerState<SocialChatScreen> {
           children: [
             if (m.failed)
               ListTile(
+                key: const ValueKey('qa.social_chat.action.retry'),
                 leading: const Icon(Icons.refresh_rounded),
                 title: Text(l.chatRetrySend),
                 onTap: () => Navigator.pop(sheet, 'retry'),
               ),
             if (!m.deleted)
               ListTile(
+                key: const ValueKey('qa.social_chat.action.copy'),
                 leading: const Icon(Icons.copy_rounded),
                 title: Text(l.chatCopyText),
                 onTap: () => Navigator.pop(sheet, 'copy'),
               ),
             if (canRemove)
               ListTile(
+                key: const ValueKey('qa.social_chat.action.delete'),
                 leading: const Icon(Icons.delete_outline_rounded),
                 title: Text(m.mine ? l.chatDeleteMine : l.chatRemoveMessage),
                 onTap: () => Navigator.pop(sheet, 'delete'),
               ),
             if (!m.mine && !m.deleted && !m.failed && !m.pending)
               ListTile(
+                key: const ValueKey('qa.social_chat.action.report'),
                 leading: const Icon(Icons.flag_outlined),
                 title: Text(l.chatReportMessage),
                 onTap: () => Navigator.pop(sheet, 'report'),
               ),
             if (!m.mine && widget.onSenderTap != null)
               ListTile(
+                key: const ValueKey('qa.social_chat.action.sender'),
                 leading: const Icon(Icons.person_outline_rounded),
                 title: Text(
                   m.senderName.isEmpty ? l.chatThisMember : m.senderName,
@@ -751,6 +756,7 @@ class _ChatError extends StatelessWidget {
           Text(message, textAlign: TextAlign.center),
           const SizedBox(height: 16),
           FilledButton(
+            key: const ValueKey('qa.social_chat.retry'),
             onPressed: onRetry,
             child: Text(chatL10n(context).chatTryAgain),
           ),

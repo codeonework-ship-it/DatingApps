@@ -64,6 +64,9 @@ class _VerificationUploadIdScreenState
                           label: 'qa.verification.id.gallery_button',
                           button: true,
                           child: OutlinedButton.icon(
+                            key: const ValueKey(
+                              'qa.verification.id.gallery_button',
+                            ),
                             onPressed: () async {
                               final picked = await notifier.pickIdPhoto(
                                 fromCamera: false,
@@ -80,6 +83,9 @@ class _VerificationUploadIdScreenState
                       const SizedBox(width: 12),
                       Expanded(
                         child: OutlinedButton.icon(
+                          key: const ValueKey(
+                            'qa.verification.id.camera_button',
+                          ),
                           onPressed: () async {
                             final picked = await notifier.pickIdPhoto(
                               fromCamera: true,
@@ -99,6 +105,7 @@ class _VerificationUploadIdScreenState
                     label: 'qa.verification.id.next_button',
                     button: true,
                     child: ElevatedButton(
+                      key: const ValueKey('qa.verification.id.next_button'),
                       onPressed: _id == null
                           ? null
                           : () {

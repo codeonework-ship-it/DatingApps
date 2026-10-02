@@ -1,33 +1,39 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
 import '../../../l10n/app_localizations.dart';
 import '../models/discovery_profile.dart';
+import '../profile_actions.dart';
+import '../providers/swipe_provider.dart';
+import 'passed_profiles_screen.dart';
 import '../widgets/swipe_buttons.dart';
 import '../widgets/swipe_card.dart';
 import 'profile_details_screen.dart';
 
 /// Spotlight profiles viewer with local filtering.
-class SpotlightProfilesScreen extends StatefulWidget {
+class SpotlightProfilesScreen extends ConsumerStatefulWidget {
   const SpotlightProfilesScreen({super.key, required this.profiles});
   final List<DiscoveryProfile> profiles;
 
   @override
-  State<SpotlightProfilesScreen> createState() =>
+  ConsumerState<SpotlightProfilesScreen> createState() =>
       _SpotlightProfilesScreenState();
 }
 
-class _SpotlightProfilesScreenState extends State<SpotlightProfilesScreen>
+class _SpotlightProfilesScreenState
+    extends ConsumerState<SpotlightProfilesScreen>
     with TickerProviderStateMixin {
   int _currentIndex = 0;
   int _passedCount = 0;
   int _unreadCount = 0;
   final List<_SpotlightSwipeAction> _history = <_SpotlightSwipeAction>[];
   bool _verifiedOnly = false;
-  RangeValues _ageRange = const RangeValues(20, 50);
+  static const _defaultAgeRange = RangeValues(20, 50);
+  RangeValues _ageRange = _defaultAgeRange;
   late AnimationController _likeBurstController;
   bool _showLikeBurst = false;
   bool _isSuperLikeBurst = false;
@@ -129,6 +135,7 @@ class _SpotlightProfilesScreenState extends State<SpotlightProfilesScreen>
                     ),
                     const SizedBox(height: 10),
                     SwitchListTile(
+                      key: const ValueKey('qa.spotlight.filters.verified_only'),
                       contentPadding: EdgeInsets.zero,
                       title: Text(l10n.discoverVerifiedOnly),
                       value: localVerifiedOnly,
@@ -144,6 +151,7 @@ class _SpotlightProfilesScreenState extends State<SpotlightProfilesScreen>
                       ),
                     ),
                     RangeSlider(
+                      key: const ValueKey('qa.spotlight.filters.age_range'),
                       values: localAgeRange,
                       min: 18,
                       max: 60,
@@ -157,18 +165,26 @@ class _SpotlightProfilesScreenState extends State<SpotlightProfilesScreen>
                       children: [
                         Expanded(
                           child: OutlinedButton(
-                            onPressed: () {
-                              setSheetState(() {
-                                localVerifiedOnly = false;
-                                localAgeRange = const RangeValues(20, 50);
-                              });
-                            },
+                            key: const ValueKey('qa.spotlight.filters.reset'),
+                            // Off while the filters already are the defaults:
+                            // there is nothing to reset.
+                            onPressed:
+                                !localVerifiedOnly &&
+                                    localAgeRange == _defaultAgeRange
+                                ? null
+                                : () {
+                                    setSheetState(() {
+                                      localVerifiedOnly = false;
+                                      localAgeRange = _defaultAgeRange;
+                                    });
+                                  },
                             child: Text(l10n.commonReset),
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: ElevatedButton(
+                            key: const ValueKey('qa.spotlight.filters.apply'),
                             onPressed: () {
                               setState(() {
                                 _verifiedOnly = localVerifiedOnly;
@@ -193,6 +209,37 @@ class _SpotlightProfilesScreenState extends State<SpotlightProfilesScreen>
         );
       },
     );
+  }
+
+  bool _deciding = false;
+
+  /// Saves a like or pass for [profile], then moves to the next card.
+  Future<void> _decide(
+    DiscoveryProfile profile,
+    _SpotlightSwipeAction action,
+  ) async {
+    if (_deciding) {
+      return;
+    }
+    _deciding = true;
+    try {
+      final like = action != _SpotlightSwipeAction.pass;
+      final saved = like
+          ? await ProfileActions.love(context, ref, profile)
+          : await ProfileActions.pass(context, ref, profile);
+      if (!saved || !mounted) {
+        return;
+      }
+      if (like) {
+        await _triggerLikeBurst(
+          isSuperLike: action == _SpotlightSwipeAction.superLike,
+          waitForCompletion: false,
+        );
+      }
+      _advance(action);
+    } finally {
+      _deciding = false;
+    }
   }
 
   void _advance(_SpotlightSwipeAction action) {
@@ -222,6 +269,10 @@ class _SpotlightProfilesScreenState extends State<SpotlightProfilesScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Passes and likes made here are recorded in the swipe state, which is
+    // also what "Passed (n)" opens: keep it alive while Spotlight is open,
+    // whatever screen it was opened from.
+    ref.listen(swipeNotifierProvider, (_, _) {});
     final filteredProfiles = _applyFilters(widget.profiles);
     final currentProfile = _currentIndex < filteredProfiles.length
         ? filteredProfiles[_currentIndex]
@@ -255,28 +306,35 @@ class _SpotlightProfilesScreenState extends State<SpotlightProfilesScreen>
                             index: _currentIndex,
                             total: filteredProfiles.length,
                             canUndo: _currentIndex > 0,
-                            onPass: () {
-                              _advance(_SpotlightSwipeAction.pass);
-                            },
-                            onLike: () async {
-                              await _triggerLikeBurst(
-                                isSuperLike: false,
-                                waitForCompletion: false,
-                              );
-                              _advance(_SpotlightSwipeAction.like);
-                            },
-                            onSuperLike: () async {
-                              await _triggerLikeBurst(
-                                isSuperLike: true,
-                                waitForCompletion: false,
-                              );
-                              _advance(_SpotlightSwipeAction.superLike);
-                            },
-                            onMessage: () {
-                              _advance(_SpotlightSwipeAction.message);
-                            },
+                            // Every button acts on this member through
+                            // ProfileActions (these used to only move a local
+                            // counter and never reached the server); the card
+                            // advances only once the decision is saved.
+                            onPass: () => _decide(
+                              currentProfile,
+                              _SpotlightSwipeAction.pass,
+                            ),
+                            onLike: () => _decide(
+                              currentProfile,
+                              _SpotlightSwipeAction.like,
+                            ),
+                            onSuperLike: () => _decide(
+                              currentProfile,
+                              _SpotlightSwipeAction.superLike,
+                            ),
+                            onMessage: () => ProfileActions.message(
+                              context,
+                              ref,
+                              currentProfile,
+                            ),
                             onUndo: _undo,
                             onOpenProfile: () async {
+                              // Every other way into a profile records the
+                              // view ("who viewed me"); Spotlight did not.
+                              ref
+                                  .read(swipeNotifierProvider.notifier)
+                                  .recordProfileView(currentProfile.id)
+                                  .ignore();
                               final action = await Navigator.of(context)
                                   .push<ProfileDetailsAction>(
                                     MaterialPageRoute<ProfileDetailsAction>(
@@ -285,6 +343,7 @@ class _SpotlightProfilesScreenState extends State<SpotlightProfilesScreen>
                                       ),
                                     ),
                                   );
+                              // The profile page saved the Love itself.
                               if (!context.mounted) return;
                               if (action == ProfileDetailsAction.love) {
                                 await _triggerLikeBurst(
@@ -292,9 +351,6 @@ class _SpotlightProfilesScreenState extends State<SpotlightProfilesScreen>
                                   waitForCompletion: false,
                                 );
                                 _advance(_SpotlightSwipeAction.superLike);
-                              } else if (action ==
-                                  ProfileDetailsAction.message) {
-                                _advance(_SpotlightSwipeAction.message);
                               }
                             },
                           ),
@@ -373,6 +429,7 @@ class _SpotlightHeader extends StatelessWidget {
                   button: true,
                   label: l10n.commonBack,
                   child: GestureDetector(
+                    key: const ValueKey('qa.spotlight.back_button'),
                     behavior: HitTestBehavior.opaque,
                     onTap: onBack,
                     // The 32pt tile sits inside a full 48pt tap target.
@@ -441,15 +498,23 @@ class _SpotlightHeader extends StatelessWidget {
                 Expanded(
                   child: _actionButton(
                     context,
+                    qaKey: 'qa.spotlight.passed_button',
                     icon: Icons.history,
                     label: l10n.discoverPassedCount(passedCount),
-                    onTap: () {},
+                    // The members passed on (here and on Discover), where a
+                    // pass can be reconsidered.
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const PassedProfilesScreen(),
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: _actionButton(
                     context,
+                    qaKey: 'qa.spotlight.messages_button',
                     icon: Icons.chat_bubble_outline_rounded,
                     label: l10n.discoverMessages,
                     onTap: () {
@@ -465,6 +530,7 @@ class _SpotlightHeader extends StatelessWidget {
                 Expanded(
                   child: _actionButton(
                     context,
+                    qaKey: 'qa.spotlight.filters_button',
                     icon: Icons.tune_rounded,
                     label: l10n.discoverFilters,
                     onTap: onFilters,
@@ -503,6 +569,7 @@ class _SpotlightHeader extends StatelessWidget {
       button: true,
       label: AppLocalizations.of(context).notificationsTitle,
       child: GestureDetector(
+        key: const ValueKey('qa.spotlight.notifications_button'),
         behavior: HitTestBehavior.opaque,
         onTap: () {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -573,11 +640,13 @@ class _SpotlightHeader extends StatelessWidget {
 
   Widget _actionButton(
     BuildContext context, {
+    required String qaKey,
     required IconData icon,
     required String label,
     required VoidCallback onTap,
   }) {
     return GestureDetector(
+      key: ValueKey(qaKey),
       onTap: onTap,
       child: Container(
         constraints: const BoxConstraints(minHeight: 48),
@@ -682,6 +751,7 @@ class _SpotlightCardArea extends StatelessWidget {
                     constraints: const BoxConstraints(maxWidth: 680),
                     child: SwipeCard(
                       profile: profile,
+                      qaScope: 'qa.spotlight',
                       isActionLocked: false,
                       onPassTap: onPass,
                       onLikeTap: onLike,

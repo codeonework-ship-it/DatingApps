@@ -83,6 +83,7 @@ class _SosScreenState extends ConsumerState<SosScreen> {
                       ),
                       const SizedBox(height: 20),
                       SegmentedButton<String>(
+                        key: const ValueKey('qa.safety.sos_level'),
                         segments: [
                           ButtonSegment(
                             value: 'high',
@@ -99,6 +100,7 @@ class _SosScreenState extends ConsumerState<SosScreen> {
                       ),
                       const SizedBox(height: 16),
                       TextField(
+                        key: const ValueKey('qa.safety.sos_message'),
                         controller: _messageController,
                         minLines: 2,
                         maxLines: 4,
@@ -250,10 +252,12 @@ class _SosScreenState extends ConsumerState<SosScreen> {
         content: Text(l10n.safetySosConfirmBody),
         actions: [
           TextButton(
+            key: const ValueKey('qa.safety.sos_confirm.cancel'),
             onPressed: () => Navigator.pop(dialogContext, false),
             child: Text(l10n.safetySosCancel),
           ),
           FilledButton(
+            key: const ValueKey('qa.safety.sos_confirm.activate'),
             style: FilledButton.styleFrom(
               backgroundColor: Theme.of(dialogContext).colorScheme.error,
               foregroundColor: Theme.of(dialogContext).colorScheme.onError,
@@ -282,6 +286,7 @@ class _SosScreenState extends ConsumerState<SosScreen> {
         ),
         actions: [
           FilledButton(
+            key: const ValueKey('qa.safety.sos_done'),
             onPressed: () => Navigator.pop(dialogContext),
             child: Text(l10n.safetySosDone),
           ),

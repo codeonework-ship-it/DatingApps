@@ -30,9 +30,21 @@ class _EmergencyContactsScreenState
             child: contactsAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (_, _) => Center(
-                child: TextButton(
-                  onPressed: () => ref.invalidate(emergencyContactsProvider),
-                  child: Text(l10n.commonRetry),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      l10n.commonSomethingWentWrongTryAgain,
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    TextButton(
+                      key: const ValueKey('qa.emergency.retry'),
+                      onPressed: () =>
+                          ref.invalidate(emergencyContactsProvider),
+                      child: Text(l10n.commonRetry),
+                    ),
+                  ],
                 ),
               ),
               data: (contacts) => Column(
@@ -64,6 +76,7 @@ class _EmergencyContactsScreenState
                   ),
                   const SizedBox(height: 12),
                   GlassButton(
+                    key: const ValueKey('qa.emergency.add'),
                     label: contacts.length >= 3
                         ? l10n.emergencyMaxReached
                         : l10n.emergencyAddContact,
@@ -117,10 +130,12 @@ class _EmergencyContactsScreenState
               ),
             ),
             IconButton(
+              key: ValueKey('qa.emergency.edit.${contact.id}'),
               icon: const Icon(Icons.edit_outlined),
               onPressed: () => _onEditContact(context, contact),
             ),
             IconButton(
+              key: ValueKey('qa.emergency.delete.${contact.id}'),
               icon: Icon(
                 Icons.delete_outline,
                 color: Theme.of(context).colorScheme.error,
@@ -189,16 +204,18 @@ class _EmergencyContactsScreenState
     final l10n = AppLocalizations.of(context);
     final shouldDelete = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: Text(l10n.emergencyRemoveTitle),
         content: Text(l10n.emergencyRemoveBody(contact.name)),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
+            key: const ValueKey('qa.emergency.remove_cancel'),
+            onPressed: () => Navigator.of(dialogContext).pop(false),
             child: Text(l10n.commonCancel),
           ),
           TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
+            key: const ValueKey('qa.emergency.remove_confirm'),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
             child: Text(l10n.commonRemove),
           ),
         ],
@@ -238,12 +255,14 @@ class _EmergencyContactsScreenState
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
+              key: const ValueKey('qa.emergency.name_field'),
               controller: nameController,
               textCapitalization: TextCapitalization.words,
               decoration: InputDecoration(labelText: l10n.emergencyNameLabel),
             ),
             const SizedBox(height: 8),
             TextField(
+              key: const ValueKey('qa.emergency.phone_field'),
               controller: phoneController,
               keyboardType: TextInputType.phone,
               decoration: InputDecoration(labelText: l10n.emergencyPhoneLabel),
@@ -252,10 +271,12 @@ class _EmergencyContactsScreenState
         ),
         actions: [
           TextButton(
+            key: const ValueKey('qa.emergency.editor_cancel'),
             onPressed: () => Navigator.of(dialogContext).pop(),
             child: Text(l10n.commonCancel),
           ),
           TextButton(
+            key: const ValueKey('qa.emergency.editor_save'),
             onPressed: () {
               Navigator.of(dialogContext).pop(
                 _ContactDraft(

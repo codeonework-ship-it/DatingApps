@@ -124,6 +124,7 @@ class _CallSessionScreenState extends ConsumerState<CallSessionScreen> {
                             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
                               _ControlButton(
+                                key: const ValueKey('qa.calls.join_live_room'),
                                 icon: Icons.open_in_new_rounded,
                                 label: l.callsJoinLiveRoom,
                                 color: scheme.primary,
@@ -135,6 +136,7 @@ class _CallSessionScreenState extends ConsumerState<CallSessionScreen> {
                                           .openLiveRoom(state.activeSession!),
                               ),
                               _ControlButton(
+                                key: const ValueKey('qa.calls.end'),
                                 icon: Icons.call_end,
                                 label: l.callsEnd,
                                 color: scheme.error,
@@ -145,6 +147,7 @@ class _CallSessionScreenState extends ConsumerState<CallSessionScreen> {
                           )
                         else if (!state.isStarting)
                           FilledButton.icon(
+                            key: const ValueKey('qa.calls.try_again'),
                             onPressed: () => ref
                                 .read(callProvider.notifier)
                                 .startCall(
@@ -177,6 +180,7 @@ class _CallSessionScreenState extends ConsumerState<CallSessionScreen> {
 
 class _ControlButton extends StatelessWidget {
   const _ControlButton({
+    super.key,
     required this.icon,
     required this.label,
     required this.onPressed,

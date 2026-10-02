@@ -426,52 +426,110 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
     _reconnectTimer = Timer(delay, () => unawaited(_connect()));
   }
 
-  Future<void> markRead(String id) async {
+  /// Marks [id] read at once and on the server. A failed request puts the
+  /// notification back to unread (it really is still unread) and reports
+  /// false; it never throws, so callers may fire and forget.
+  Future<bool> markRead(String id) async {
     final userId = _userId;
     final item = state.items.where((entry) => entry.id == id).firstOrNull;
     if (userId == null || item == null || item.isRead) {
-      return;
+      return true;
     }
-    await ref
-        .read(apiClientProvider)
-        .post<dynamic>('/notifications/$userId/$id/read');
+    _setRead(id, isRead: true);
+    try {
+      await ref
+          .read(apiClientProvider)
+          .post<dynamic>('/notifications/$userId/$id/read');
+      return true;
+    } on Object {
+      if (!_disposed) {
+        _setRead(id, isRead: false);
+      }
+      return false;
+    }
+  }
+
+  void _setRead(String id, {required bool isRead}) {
     state = state.copyWith(
       items: state.items
-          .map((entry) => entry.id == id ? entry.copyWith(isRead: true) : entry)
+          .map(
+            (entry) => entry.id == id ? entry.copyWith(isRead: isRead) : entry,
+          )
           .toList(),
-      unreadCount: (state.unreadCount - 1).clamp(0, 1 << 31),
+      unreadCount: (state.unreadCount + (isRead ? -1 : 1)).clamp(0, 1 << 31),
     );
   }
 
+  /// Marks everything read at once (so "Read all" cannot be sent twice) and
+  /// on the server. On failure the previous read states come back and the
+  /// error is rethrown for the screen to explain.
   Future<void> markAllRead() async {
     final userId = _userId;
     if (userId == null) {
       return;
     }
-    await ref
-        .read(apiClientProvider)
-        .post<dynamic>('/notifications/$userId/read-all');
+    final previous = state.items;
+    final previousCount = state.unreadCount;
     state = state.copyWith(
       items: state.items.map((item) => item.copyWith(isRead: true)).toList(),
       unreadCount: 0,
     );
+    try {
+      await ref
+          .read(apiClientProvider)
+          .post<dynamic>('/notifications/$userId/read-all');
+    } on Object {
+      if (!_disposed) {
+        final wasUnread = {
+          for (final item in previous)
+            if (!item.isRead) item.id,
+        };
+        state = state.copyWith(
+          items: state.items
+              .map(
+                (item) => wasUnread.contains(item.id)
+                    ? item.copyWith(isRead: false)
+                    : item,
+              )
+              .toList(),
+          unreadCount: previousCount,
+        );
+      }
+      rethrow;
+    }
   }
 
+  /// Removes [id] at once (its row was swiped away and must leave the list
+  /// in the same frame) and deletes it on the server. On failure the
+  /// notification is put back where it was and the error is rethrown.
   Future<void> dismiss(String id) async {
     final userId = _userId;
     if (userId == null) {
       return;
     }
-    await ref
-        .read(apiClientProvider)
-        .delete<dynamic>('/notifications/$userId/$id');
-    final removed = state.items.where((item) => item.id == id).firstOrNull;
+    final index = state.items.indexWhere((item) => item.id == id);
+    final removed = index < 0 ? null : state.items[index];
     state = state.copyWith(
       items: state.items.where((item) => item.id != id).toList(),
       unreadCount: removed != null && !removed.isRead
           ? (state.unreadCount - 1).clamp(0, 1 << 31)
           : state.unreadCount,
     );
+    try {
+      await ref
+          .read(apiClientProvider)
+          .delete<dynamic>('/notifications/$userId/$id');
+    } on Object {
+      if (removed != null && !_disposed) {
+        final items = [...state.items]
+          ..insert(index.clamp(0, state.items.length), removed);
+        state = state.copyWith(
+          items: items,
+          unreadCount: state.unreadCount + (removed.isRead ? 0 : 1),
+        );
+      }
+      rethrow;
+    }
   }
 
   Future<void> updatePreferences(NotificationPreferences next) async {

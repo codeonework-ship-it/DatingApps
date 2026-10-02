@@ -105,6 +105,9 @@ class _CallHistoryScreenState extends ConsumerState<CallHistoryScreen> {
                                 ),
                                 if (session.status != 'ended')
                                   IconButton(
+                                    key: ValueKey(
+                                      'qa.calls.history.join.${session.id}',
+                                    ),
                                     tooltip: l.callsJoinLiveRoom,
                                     onPressed: session.joinUrl == null
                                         ? null

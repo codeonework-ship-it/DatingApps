@@ -64,18 +64,21 @@ class UserSettingsNotifier extends AsyncNotifier<UserSettings> {
 
     final dio = ref.read(apiClientProvider);
     try {
+      // Only what changed: the copy loaded earlier can be stale (the theme
+      // and notification switches save through their own endpoints), and the
+      // server applies every field it is sent.
       final response = await dio.patch<Map<String, dynamic>>(
         '/settings/${current.userId}',
         data: {
-          'show_age': next.showAge,
-          'show_exact_distance': next.showExactDistance,
-          'show_online_status': next.showOnlineStatus,
-          'notify_new_match': next.notifyNewMatch,
-          'notify_new_message': next.notifyNewMessage,
-          'notify_likes': next.notifyLikes,
-          'theme': next.theme,
+          'show_age': ?showAge,
+          'show_exact_distance': ?showExactDistance,
+          'show_online_status': ?showOnlineStatus,
+          'notify_new_match': ?notifyNewMatch,
+          'notify_new_message': ?notifyNewMessage,
+          'notify_likes': ?notifyLikes,
+          'theme': ?theme,
           // Empty returns the member to the device language (stored NULL).
-          'locale': next.locale,
+          'locale': ?locale,
         },
       );
       state = AsyncData(_fromApi(current.userId, response.data));

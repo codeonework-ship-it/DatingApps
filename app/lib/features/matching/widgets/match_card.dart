@@ -129,6 +129,7 @@ class MatchCard extends StatelessWidget {
               ),
               if (onOptions != null)
                 IconButton(
+                  key: ValueKey('qa.matches.match_row.${match.id}.options'),
                   tooltip: l10n.matchesConversationOptionsTooltip(displayName),
                   onPressed: onOptions,
                   icon: Icon(

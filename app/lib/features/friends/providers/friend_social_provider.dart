@@ -232,6 +232,8 @@ final publicVouchesProvider = FutureProvider.family<List<PublicVouch>, String>((
   ref,
   userId,
 ) async {
+  // Per viewer: rebuilt when someone else signs in on this device.
+  watchSignedInUserId(ref);
   if (kUseMockAuth) {
     return const <PublicVouch>[
       PublicVouch(

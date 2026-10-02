@@ -493,7 +493,8 @@ final activitySessionProvider =
       ActivitySessionNotifier,
       ActivitySessionState,
       ({String matchId, String otherUserId})
-    >(
-      (ref, args) =>
-          ActivitySessionNotifier(ref, args.matchId, args.otherUserId),
-    );
+    >((ref, args) {
+      // Per member: rebuilt when someone else signs in on this device.
+      watchSignedInUserId(ref);
+      return ActivitySessionNotifier(ref, args.matchId, args.otherUserId);
+    });

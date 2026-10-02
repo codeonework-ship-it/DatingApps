@@ -100,6 +100,7 @@ class MatchNudgesScreen extends ConsumerWidget {
                             ),
                           ),
                           FilledButton.tonalIcon(
+                            key: ValueKey('qa.nudges.send.${match.id}'),
                             style: FilledButton.styleFrom(
                               minimumSize: const Size(0, 40),
                             ),

@@ -101,32 +101,36 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('appearance saves light dark and system themes', (tester) async {
-    await mount(tester, const SettingsScreen());
-    final picker = find.byKey(const ValueKey('qa.settings.theme_selector'));
-    await tester.scrollUntilVisible(
-      picker,
-      400,
-      scrollable: find.byType(Scrollable).first,
-    );
-    for (final choice in [
-      AppThemeChoice.dark,
-      AppThemeChoice.light,
-      AppThemeChoice.auto,
-    ]) {
-      await tester.tap(
-        find.descendant(of: picker, matching: find.text(choice.label)),
+  testWidgets(
+    'appearance saves light dark and system themes '
+    '[case:common.settings.settings_theme_selector_selectionchanged.action]',
+    (tester) async {
+      await mount(tester, const SettingsScreen());
+      final picker = find.byKey(const ValueKey('qa.settings.theme_selector'));
+      await tester.scrollUntilVisible(
+        picker,
+        400,
+        scrollable: find.byType(Scrollable).first,
       );
-      await tester.pumpAndSettle();
-      expect(api.saved['theme'], choice.wireValue);
-      expect(tester.widget<SegmentedButton<AppThemeChoice>>(picker).selected, {
-        choice,
-      });
-    }
-  });
-  testWidgets('appearance saves and previews the Deep Field preset', (
-    tester,
-  ) async {
+      for (final choice in [
+        AppThemeChoice.dark,
+        AppThemeChoice.light,
+        AppThemeChoice.auto,
+      ]) {
+        await tester.tap(
+          find.descendant(of: picker, matching: find.text(choice.label)),
+        );
+        await tester.pumpAndSettle();
+        expect(api.saved['theme'], choice.wireValue);
+        expect(
+          tester.widget<SegmentedButton<AppThemeChoice>>(picker).selected,
+          {choice},
+        );
+      }
+    },
+  );
+  testWidgets('appearance saves and previews the Deep Field preset '
+      '[case:common.settings.settings_theme_preset_x.action]', (tester) async {
     await mount(tester, const SettingsScreen());
     final preset = find.byKey(
       const ValueKey('qa.settings.theme_preset.deepfield'),
@@ -146,7 +150,9 @@ void main() {
     await tester.pumpAndSettle();
   });
   testWidgets(
-    'appearance failed save restores previous selection and shows error',
+    'appearance failed save restores previous selection and shows error '
+    // ignore: lines_longer_than_80_chars
+    '[case:common.settings.settings_theme_selector_selectionchanged.api_failure]',
     (tester) async {
       await mount(tester, const SettingsScreen());
       final picker = find.byKey(const ValueKey('qa.settings.theme_selector'));
@@ -210,7 +216,8 @@ void main() {
       },
     );
   }
-  testWidgets('notification save failure rolls back and shows error', (
+  testWidgets('notification save failure rolls back and shows error '
+      '[case:common.notification_settings.push_notifications.api_failure]', (
     tester,
   ) async {
     await mount(tester, const NotificationSettingsScreen());
@@ -239,25 +246,23 @@ void main() {
       expect(api.saved[entry.value], before);
     });
   }
-  testWidgets(
-    'privacy save failure displays retry and reloads persisted value',
-    (tester) async {
-      await mount(tester, const PrivacySafetyScreen());
-      api.reject = true;
-      await tester.tap(find.widgetWithText(SwitchListTile, 'Show age'));
-      await tester.pumpAndSettle();
-      expect(find.text('Retry'), findsOneWidget);
-      api.reject = false;
-      await tester.tap(find.text('Retry'));
-      await tester.pumpAndSettle();
-      expect(
-        tester
-            .widget<SwitchListTile>(
-              find.widgetWithText(SwitchListTile, 'Show age'),
-            )
-            .value,
-        isTrue,
-      );
-    },
-  );
+  testWidgets('privacy save failure displays retry and reloads persisted value '
+      '[case:common.privacy_safety.retry.action]', (tester) async {
+    await mount(tester, const PrivacySafetyScreen());
+    api.reject = true;
+    await tester.tap(find.widgetWithText(SwitchListTile, 'Show age'));
+    await tester.pumpAndSettle();
+    expect(find.text('Retry'), findsOneWidget);
+    api.reject = false;
+    await tester.tap(find.text('Retry'));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<SwitchListTile>(
+            find.widgetWithText(SwitchListTile, 'Show age'),
+          )
+          .value,
+      isTrue,
+    );
+  });
 }

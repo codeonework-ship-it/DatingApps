@@ -17,6 +17,7 @@ class SwipeCard extends StatefulWidget {
     this.isActionLocked = false,
     this.maxHeight,
     this.flipToken = 0,
+    this.qaScope = 'qa.discovery',
   });
   final DiscoveryProfile profile;
   final VoidCallback? onTap;
@@ -32,6 +33,10 @@ class SwipeCard extends StatefulWidget {
   /// consecutive likes must each produce their own spin rather than the second
   /// one being swallowed because the flag was already set.
   final int flipToken;
+
+  /// Prefix of the card's automation handles: `qa.discovery` on the deck,
+  /// `qa.spotlight` on the full Spotlight screen.
+  final String qaScope;
 
   @override
   State<SwipeCard> createState() => _SwipeCardState();
@@ -134,7 +139,7 @@ class _SwipeCardState extends State<SwipeCard>
     final scheme = Theme.of(context).colorScheme;
 
     return Semantics(
-      label: 'qa.discovery.card_root',
+      label: '${widget.qaScope}.card_root',
       child: AnimatedBuilder(
         animation: _flip,
         builder: (context, child) {
@@ -163,7 +168,7 @@ class _SwipeCardState extends State<SwipeCard>
           );
         },
         child: GlassContainer(
-          key: const ValueKey('qa.discovery.card_root'),
+          key: ValueKey('${widget.qaScope}.card_root'),
           width: cardWidth,
           height: cardHeight,
           margin: EdgeInsets.zero,
@@ -362,11 +367,11 @@ class _SwipeCardState extends State<SwipeCard>
                             // phone; letting it shrink is what keeps it on-card.
                             Flexible(
                               child: Semantics(
-                                label: 'qa.discovery.view_more_button',
+                                label: '${widget.qaScope}.view_more_button',
                                 button: true,
                                 child: GestureDetector(
-                                  key: const ValueKey(
-                                    'qa.discovery.view_more_button',
+                                  key: ValueKey(
+                                    '${widget.qaScope}.view_more_button',
                                   ),
                                   onTap: onTap,
                                   child: Row(
@@ -404,11 +409,11 @@ class _SwipeCardState extends State<SwipeCard>
                             if (onMessageTap != null) ...[
                               const SizedBox(width: 12),
                               Semantics(
-                                label: 'qa.discovery.card_message_button',
+                                label: '${widget.qaScope}.card_message_button',
                                 button: true,
                                 child: GestureDetector(
-                                  key: const ValueKey(
-                                    'qa.discovery.card_message_button',
+                                  key: ValueKey(
+                                    '${widget.qaScope}.card_message_button',
                                   ),
                                   onTap: onMessageTap,
                                   child: Row(

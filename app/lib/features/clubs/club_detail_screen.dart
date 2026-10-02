@@ -122,7 +122,10 @@ class _ClubDetailScreenState extends ConsumerState<ClubDetailScreen> {
         child: detail == null
             ? Center(child: Text(l10n.clubsSignInToSee))
             : detail.when(
-                skipLoadingOnRefresh: false,
+                // Keep the club (and the reader's place in the discussion)
+                // while it reloads after a post, a join or a pull; spin only
+                // when there is nothing to show yet.
+                skipLoadingOnRefresh: detail.hasValue,
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (e, _) => Center(
                   child: Padding(

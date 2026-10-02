@@ -98,6 +98,9 @@ class PassedProfilesScreen extends ConsumerWidget {
                           ),
                           const SizedBox(width: 8),
                           IconButton(
+                            key: ValueKey(
+                              'qa.passed_profiles.open.${profile.id}',
+                            ),
                             icon: const Icon(Icons.chevron_right),
                             onPressed: () {
                               Navigator.of(context).push(

@@ -169,6 +169,12 @@ void main() {
     testWidgets('renders in German', (tester) async {
       await pumpHub(tester, const Locale('de'));
       expect(find.text('Einstellungen'), findsOneWidget);
+      // Below the Account section at the top: scroll to it.
+      await tester.scrollUntilVisible(
+        find.text('Sprache'),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
       expect(find.text('Sprache'), findsOneWidget);
       expect(find.text('Settings'), findsNothing);
     });
@@ -176,6 +182,12 @@ void main() {
     testWidgets('renders in Russian', (tester) async {
       await pumpHub(tester, const Locale('ru'));
       expect(find.text('Настройки'), findsOneWidget);
+      // Below the Account section at the top: scroll to it.
+      await tester.scrollUntilVisible(
+        find.text('Язык'),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
       expect(find.text('Язык'), findsOneWidget);
       expect(find.text('Settings'), findsNothing);
     });

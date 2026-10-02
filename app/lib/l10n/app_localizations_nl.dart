@@ -64,10 +64,10 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsLooksClassicDescription =>
-      'Warm ivory and forest by day. Soft mint and deep forest by night.';
+      'Overdag warm ivoor en bosgroen. ’s Avonds zachte munt en diep bosgroen.';
 
   @override
-  String get settingsLooksClassicLabel => 'Today';
+  String get settingsLooksClassicLabel => 'Vandaag';
 
   @override
   String get settingsThemeSaveFailed =>
@@ -12617,4 +12617,62 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get themeTaglineBluelotus =>
       'Maanverlicht water, saffierblauwe blaadjes en een gouden hart.';
+
+  @override
+  String discoverMessageLikeSent(String name) {
+    return 'Love verstuurd naar $name. Jullie kunnen chatten zodra $name jou ook liket.';
+  }
+
+  @override
+  String get notificationsDismissFailed =>
+      'Kon die melding niet verwijderen. Probeer het opnieuw.';
+
+  @override
+  String get notificationsReadAllFailed =>
+      'Kon niet alles als gelezen markeren. Probeer het opnieuw.';
+
+  @override
+  String get blogReportSubmitted => 'Melding verstuurd. Bedankt.';
+
+  @override
+  String get settingsSectionAccount => 'Account';
+
+  @override
+  String settingsSignedInAs(String username) {
+    return 'Ingelogd als @$username';
+  }
+
+  @override
+  String get settingsSignOut => 'Uitloggen';
+
+  @override
+  String get settingsSignOutSubtitle => 'Beëindig je sessie op dit apparaat';
+
+  @override
+  String get settingsSignOutAllTitle => 'Uitloggen op alle apparaten';
+
+  @override
+  String get settingsSignOutAllSubtitle =>
+      'Beëindig elke sessie, op elke telefoon en in elke browser';
+
+  @override
+  String get settingsSignOutConfirmTitle => 'Uitloggen?';
+
+  @override
+  String get settingsSignOutConfirmBody =>
+      'Je hebt je gebruikersnaam en wachtwoord nodig om op dit apparaat opnieuw in te loggen.';
+
+  @override
+  String get settingsSignOutAllConfirmTitle => 'Uitloggen op alle apparaten?';
+
+  @override
+  String get settingsSignOutAllConfirmBody =>
+      'Je sessie wordt beëindigd op elke telefoon, tablet en browser, ook op dit apparaat. Iedereen die elders op je account is ingelogd, wordt uitgelogd.';
+
+  @override
+  String get settingsSignOutAllConfirmAction => 'Overal uitloggen';
+
+  @override
+  String get settingsSignOutAllFailed =>
+      'Je andere apparaten konden niet worden uitgelogd. Controleer je verbinding en probeer het opnieuw.';
 }

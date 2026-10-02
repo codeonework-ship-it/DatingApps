@@ -148,6 +148,18 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
     final likedMeCount = ref.watch(likedMeProvider.select((s) => s.count));
     final authId = ref.watch(authNotifierProvider.select((s) => s.userId));
     final l10n = AppLocalizations.of(context);
+    // With a profile already on screen a failed reload has no error card
+    // (the last good profile stays), so say it failed instead of nothing.
+    ref.listen<ProfileState>(profileNotifierProvider, (previous, next) {
+      if (next.error != null &&
+          previous?.error == null &&
+          next.user != null &&
+          !next.isLoading) {
+        ScaffoldMessenger.maybeOf(context)
+          ?..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text(_errorMessage(l10n, next))));
+      }
+    });
     final bottomClearance = MediaQuery.paddingOf(context).bottom + 104;
     // The stat tiles grow with large text instead of clipping their label.
     final textScale = MediaQuery.textScalerOf(context).scale(16) / 16;
@@ -232,6 +244,7 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
                         headline: headline,
                         eyebrow: l10n.memberProfileStarring,
                         photoHeight: photoHeight,
+                        photoKey: const ValueKey('qa.profile.hero_photo'),
                         onOpenPhoto: preview == null
                             ? null
                             : () => openGallery(0),
@@ -309,6 +322,7 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
                                   icon: Icons.error_outline_rounded,
                                   message: _errorMessage(l10n, profileState),
                                   action: GlassButton(
+                                    key: const ValueKey('qa.profile.retry'),
                                     label: l10n.commonRetry,
                                     onPressed: () => _refresh(userId),
                                   ),
@@ -339,6 +353,9 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
                                     height: statHeight,
                                     child: _buildStatCard(
                                       context,
+                                      key: const ValueKey(
+                                        'qa.profile.stat.liked',
+                                      ),
                                       icon: Icons.favorite_rounded,
                                       tint: colors.secondary,
                                       value: '${profileState.likesCount}',
@@ -360,6 +377,9 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
                                     height: statHeight,
                                     child: _buildStatCard(
                                       context,
+                                      key: const ValueKey(
+                                        'qa.profile.stat.matches',
+                                      ),
                                       icon: Icons.done_rounded,
                                       tint: colors.primary,
                                       value: '${profileState.matchesCount}',
@@ -375,6 +395,9 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
                                     height: statHeight,
                                     child: _buildStatCard(
                                       context,
+                                      key: const ValueKey(
+                                        'qa.profile.stat.messages',
+                                      ),
                                       icon: Icons.chat_bubble_outline_rounded,
                                       tint: colors.tertiary,
                                       value: '${profileState.messagesCount}',
@@ -414,6 +437,7 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
                             ),
                             const SizedBox(height: ConnectMetrics.cardGap),
                             ConnectNavTile(
+                              key: const ValueKey('qa.profile.who_viewed'),
                               icon: Icons.remove_red_eye_outlined,
                               title: l10n.memberProfileWhoViewedTitle,
                               subtitle: l10n.memberProfileWhoViewedSubtitle,
@@ -477,11 +501,13 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
                     title: headline.name,
                     actions: [
                       ProfileBarButton(
+                        buttonKey: const ValueKey('qa.profile.bar.viewers'),
                         icon: Icons.remove_red_eye_outlined,
                         tooltip: l10n.memberProfileWhoViewedTooltip,
                         onPressed: openViewers,
                       ),
                       ProfileBarButton(
+                        buttonKey: const ValueKey('qa.profile.bar.refresh'),
                         icon: Icons.refresh_rounded,
                         tooltip: l10n.memberProfileRefreshTooltip,
                         onPressed: () => _refresh(userId),
@@ -543,6 +569,7 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
 
   Widget _buildStatCard(
     BuildContext context, {
+    required Key key,
     required IconData icon,
     required Color tint,
     required String value,
@@ -554,6 +581,7 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
         ? null
         : AppLocalizations.of(context).memberProfileOpenStat(label),
     child: GestureDetector(
+      key: key,
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: GlassContainer(

@@ -5,6 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:verified_dating_app/core/providers/api_client_provider.dart';
 import 'package:verified_dating_app/l10n/app_localizations.dart';
 
+import '../../support/qa_api.dart' show qaAuth;
+
 /// A canned server answer: a status code and a JSON body.
 typedef FakeReply = ({int status, Object body});
 
@@ -123,7 +125,13 @@ Map<String, dynamic> messageJson({
 /// Hosts [child] with the fake API and the app's localisations.
 Widget supportHost(FakeSupportApi api, Widget child, {List<Override>? extra}) =>
     ProviderScope(
-      overrides: [apiClientProvider.overrideWithValue(api.dio), ...?extra],
+      overrides: [
+        // Support screens are only reachable signed in; the ticket list is
+        // per member and empty without one.
+        qaAuth(),
+        apiClientProvider.overrideWithValue(api.dio),
+        ...?extra,
+      ],
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,

@@ -60,6 +60,10 @@ class _SetupPreviewScreenState extends ConsumerState<SetupPreviewScreen> {
   // ---------------------------------------------------------------------------
 
   Future<void> _complete() async {
+    // A second tap before the button rebuilds must not complete twice.
+    if (_isCompleting) {
+      return;
+    }
     final draft = ref.read(profileSetupNotifierProvider).valueOrNull;
     if (draft == null) {
       return;

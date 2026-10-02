@@ -64,10 +64,10 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get settingsLooksClassicDescription =>
-      'Warm ivory and forest by day. Soft mint and deep forest by night.';
+      'W dzień ciepła kość słoniowa i leśna zieleń. Nocą delikatna mięta i głęboki las.';
 
   @override
-  String get settingsLooksClassicLabel => 'Today';
+  String get settingsLooksClassicLabel => 'Dziś';
 
   @override
   String get settingsThemeSaveFailed =>
@@ -12790,4 +12790,63 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get themeTaglineBluelotus =>
       'Woda w blasku księżyca, szafirowe płatki i złote serce.';
+
+  @override
+  String discoverMessageLikeSent(String name) {
+    return 'Wysłano love do: $name. Porozmawiacie, gdy $name odwzajemni polubienie.';
+  }
+
+  @override
+  String get notificationsDismissFailed =>
+      'Nie udało się usunąć powiadomienia. Spróbuj ponownie.';
+
+  @override
+  String get notificationsReadAllFailed =>
+      'Nie udało się oznaczyć wszystkich jako przeczytane. Spróbuj ponownie.';
+
+  @override
+  String get blogReportSubmitted => 'Zgłoszenie wysłane. Dziękujemy.';
+
+  @override
+  String get settingsSectionAccount => 'Konto';
+
+  @override
+  String settingsSignedInAs(String username) {
+    return 'Zalogowano jako @$username';
+  }
+
+  @override
+  String get settingsSignOut => 'Wyloguj się';
+
+  @override
+  String get settingsSignOutSubtitle => 'Zakończ sesję na tym urządzeniu';
+
+  @override
+  String get settingsSignOutAllTitle => 'Wyloguj się ze wszystkich urządzeń';
+
+  @override
+  String get settingsSignOutAllSubtitle =>
+      'Zakończ wszystkie sesje na każdym telefonie i w każdej przeglądarce';
+
+  @override
+  String get settingsSignOutConfirmTitle => 'Wylogować się?';
+
+  @override
+  String get settingsSignOutConfirmBody =>
+      'Aby ponownie zalogować się na tym urządzeniu, potrzebujesz nazwy użytkownika i hasła.';
+
+  @override
+  String get settingsSignOutAllConfirmTitle =>
+      'Wylogować się ze wszystkich urządzeń?';
+
+  @override
+  String get settingsSignOutAllConfirmBody =>
+      'Twoja sesja zakończy się na każdym telefonie, tablecie i w każdej przeglądarce, także na tym urządzeniu. Każdy, kto jest zalogowany na Twoje konto gdzie indziej, zostanie wylogowany.';
+
+  @override
+  String get settingsSignOutAllConfirmAction => 'Wyloguj się wszędzie';
+
+  @override
+  String get settingsSignOutAllFailed =>
+      'Nie udało się wylogować innych urządzeń. Sprawdź połączenie i spróbuj ponownie.';
 }

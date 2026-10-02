@@ -59,7 +59,11 @@ class TermsAcceptance extends _$TermsAcceptance {
   }
 
   Future<bool> accept() async {
-    state = const AsyncLoading();
+    // Saving is a refresh of the current answer, not a fresh load: the app
+    // gate keeps showing the terms screen (with its button busy) instead of
+    // swapping in a loading page, so a failed save can still tell the member
+    // and keep their tick.
+    state = const AsyncLoading<bool>().copyWithPrevious(state);
     final prefs = await SharedPreferences.getInstance();
     final authState = ref.read(authNotifierProvider);
     final userId = authState.userId?.trim() ?? '';

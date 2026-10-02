@@ -124,10 +124,11 @@ class ChatWelcome extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  for (final starter in localizedStarters)
+                  for (final (i, starter) in localizedStarters.indexed)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8),
                       child: OutlinedButton(
+                        key: ValueKey('qa.chat.starter.$i'),
                         onPressed: () => onStarter!(starter),
                         child: Text(starter, textAlign: TextAlign.center),
                       ),
@@ -177,6 +178,7 @@ class ChatConversationSidebar extends StatelessWidget {
           Align(
             alignment: Alignment.centerLeft,
             child: TextButton.icon(
+              key: const ValueKey('qa.chat.sidebar.back'),
               onPressed: onBack,
               icon: const Icon(Icons.arrow_back_rounded, size: 18),
               label: Text(l.chatAllConversations),
@@ -217,6 +219,7 @@ class ChatConversationSidebar extends StatelessWidget {
           const SizedBox(height: 24),
           if (onCopilot != null)
             OutlinedButton.icon(
+              key: const ValueKey('qa.chat.sidebar.copilot'),
               onPressed: onCopilot,
               icon: const Icon(Icons.auto_awesome_outlined, size: 18),
               label: Text(l.chatFindTheWords),
@@ -225,6 +228,7 @@ class ChatConversationSidebar extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: OutlinedButton.icon(
+                key: const ValueKey('qa.chat.sidebar.gift'),
                 onPressed: onGift,
                 icon: const Icon(Icons.card_giftcard_rounded, size: 18),
                 label: Text(l.chatSendJoy),
@@ -417,6 +421,7 @@ class ChatComposer extends StatelessWidget {
                       ),
                     ),
                   IconButton(
+                    key: const ValueKey('qa.chat.emoji_button'),
                     tooltip: l.chatAddEmojiTooltip,
                     onPressed: enabled && !sending ? onEmoji : null,
                     icon: const Icon(Icons.sentiment_satisfied_alt_rounded),

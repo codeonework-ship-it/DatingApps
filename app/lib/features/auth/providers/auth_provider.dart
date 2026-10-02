@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart' show Ref;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../core/auth/auth_session_store.dart';
@@ -91,6 +92,16 @@ class AuthState {
         : pendingSignup as SignupDraft?,
   );
 }
+
+/// Ties the calling provider to the signed-in member and returns their id.
+///
+/// The provider is rebuilt from scratch whenever the member signs out, the
+/// server ends the session, or someone else signs in on this device, so
+/// nothing cached for one member is ever shown to the next. Every provider
+/// that holds member data must call this (directly or through a provider
+/// that does) instead of only `ref.read`-ing the auth state.
+String? watchSignedInUserId(Ref ref) =>
+    ref.watch(authNotifierProvider.select((s) => s.userId));
 
 /// Shown on the sign-in screen after the server ended the session.
 const kSessionExpiredMessage = 'You were signed out. Please sign in again.';
@@ -260,21 +271,61 @@ class AuthNotifier extends _$AuthNotifier {
     }
   }
 
-  Future<void> logout() async {
+  /// Signs the member out on this device. Never depends on the network: when
+  /// the server cannot be reached the local session is still cleared.
+  ///
+  /// Every sign-out path (Settings, the introducer menu, the terms screen,
+  /// the web workspace) goes through here. Member data is not reset by the
+  /// caller: providers that hold it are tied to the signed-in member through
+  /// [watchSignedInUserId] and rebuild as soon as the member id changes, so
+  /// callers need no `ref` after this returns (the gate has usually unmounted
+  /// them by then).
+  Future<void> logout() => _signOut(serverSessionEnded: false);
+
+  /// Sign out of all devices: ends every session of this member on the
+  /// server (phones, tablets, browsers, this device too), then signs out
+  /// here.
+  ///
+  /// Returns false and leaves the member signed in when the server could not
+  /// end the sessions, so this device never claims the others were signed
+  /// out when they were not.
+  Future<bool> logoutAllDevices() async {
+    if (state.isLoading || !state.isAuthenticated) return false;
+    try {
+      await ref
+          .read(apiClientProvider)
+          .post<dynamic>(
+            '/auth/sessions/revoke',
+            data: const <String, dynamic>{'all_sessions': true},
+          );
+    } on Object catch (error, stackTrace) {
+      log.warning('Signing out of all devices failed', error, stackTrace);
+      return false;
+    }
+    await _signOut(serverSessionEnded: true);
+    return true;
+  }
+
+  Future<void> _signOut({required bool serverSessionEnded}) async {
     final attempt =
         ++_attempt; // Invalidate pending login/signup responses before any await.
     final userId = state.userId;
     state = const AuthState(isLoading: true);
     try {
       if (userId != null && userId.isNotEmpty) {
-        await ref.read(pushNotificationServiceProvider).unregister(userId);
+        final push = ref.read(pushNotificationServiceProvider);
+        // A revoked session cannot delete the device record any more.
+        await (serverSessionEnded
+            ? push.forgetDevice(userId)
+            : push.unregister(userId));
       }
     } on Object catch (error, stackTrace) {
       log.warning('Push unregister failed during logout', error, stackTrace);
     }
     if (attempt != _attempt) return;
     try {
-      if (AuthSessionStore.instance.accessToken?.isNotEmpty ?? false) {
+      if (!serverSessionEnded &&
+          (AuthSessionStore.instance.accessToken?.isNotEmpty ?? false)) {
         await ref.read(apiClientProvider).post<dynamic>('/auth/logout');
       }
     } on Object catch (error, stackTrace) {

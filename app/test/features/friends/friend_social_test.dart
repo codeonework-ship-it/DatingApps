@@ -157,7 +157,8 @@ Widget _host(_FakeFriendsApi api) => ProviderScope(
 );
 
 void main() {
-  testWidgets('an incoming intro shows the other person and can be accepted', (
+  testWidgets('an incoming intro shows the other person and can be accepted '
+      '[case:friends.friends.friends_intro_accept_x_decide.action]', (
     tester,
   ) async {
     final api = _FakeFriendsApi();
@@ -189,7 +190,8 @@ void main() {
     expect(find.text('Intros for you'), findsNothing);
   });
 
-  testWidgets('a pending vouch can be approved for the profile', (
+  testWidgets('a pending vouch can be approved for the profile '
+      '[case:friends.friends.friends_vouch_approve_x_decide.action]', (
     tester,
   ) async {
     final api = _FakeFriendsApi();
@@ -224,7 +226,11 @@ void main() {
     expect(find.text('Meera vouched for you'), findsOneWidget);
   });
 
-  testWidgets('the intro sheet needs two different friends', (tester) async {
+  testWidgets('the intro sheet needs two different friends '
+      '[case:friends.friends.friends_intro_action.action] '
+      '[case:friends.friend_social_sheets.friends_intro_submit.action]', (
+    tester,
+  ) async {
     final api = _FakeFriendsApi();
     await tester.pumpWidget(_host(api));
     await tester.pumpAndSettle();
@@ -255,6 +261,9 @@ void main() {
     final made = api.commands.firstWhere((c) => c.path == '/friends/me/intros');
     expect(made.body['first_user_id'], 'meera');
     expect(made.body['second_user_id'], 'dev');
+    // The sheet closes and the member is told the intro was made.
+    expect(find.text('Introduce two friends'), findsNothing);
+    expect(find.text('Intro made. Both friends will hear from you.'), findsOneWidget);
   });
 
   test('models parse the BFF payloads', () {

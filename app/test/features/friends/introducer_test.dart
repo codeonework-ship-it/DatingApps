@@ -301,9 +301,9 @@ void main() {
     },
   );
 
-  testWidgets('removing permission requires the clear in-app choice', (
-    tester,
-  ) async {
+  testWidgets('removing permission requires the clear in-app choice '
+      '[case:friends.introducer.remove_permission_for_name.action] '
+      '[case:friends.introducer.remove_permission.action]', (tester) async {
     final api = _Api()..status = 'active';
     await _show(tester, api);
     await tester.scrollUntilVisible(

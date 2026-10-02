@@ -332,6 +332,7 @@ class _ProposeDatePlanSheetState extends ConsumerState<_ProposeDatePlanSheet> {
                     spacing: 8,
                     children: [
                       TextButton(
+                        key: const ValueKey('qa.plan.refresh_shared_times'),
                         onPressed: _submitting
                             ? null
                             : () => ref.invalidate(
@@ -340,6 +341,7 @@ class _ProposeDatePlanSheetState extends ConsumerState<_ProposeDatePlanSheet> {
                         child: Text(l10n.planRefreshSharedTimes),
                       ),
                       TextButton(
+                        key: const ValueKey('qa.plan.set_availability'),
                         onPressed: _submitting
                             ? null
                             : () async {
@@ -580,6 +582,7 @@ class _ProposeDatePlanSheetState extends ConsumerState<_ProposeDatePlanSheet> {
               ),
               if (_counterTo != null)
                 TextButton(
+                  key: const ValueKey('qa.plan.reload_latest'),
                   onPressed: _submitting ? null : _reloadPlan,
                   child: Text(l10n.planReloadLatest),
                 ),

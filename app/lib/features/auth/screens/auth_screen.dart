@@ -199,6 +199,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                                   Align(
                                     alignment: Alignment.centerLeft,
                                     child: GoldBackButton(
+                                      key: const ValueKey('qa.signin.back'),
                                       tooltip: l10n.authBackTooltip,
                                       onTap: () => _goBack(authNotifier),
                                     ),
@@ -390,6 +391,7 @@ class _CredentialForm extends StatelessWidget {
             hint: l10n.authPasswordHint,
             prefixIcon: Icons.password_rounded,
             suffixIcon: IconButton(
+              key: const ValueKey('qa.signin.password_visibility'),
               tooltip: obscurePassword
                   ? l10n.authShowPassword
                   : l10n.authHidePassword,

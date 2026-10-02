@@ -64,10 +64,10 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get settingsLooksClassicDescription =>
-      'Warm ivory and forest by day. Soft mint and deep forest by night.';
+      'De dia, marfim quente e verde-floresta. À noite, menta suave e floresta profunda.';
 
   @override
-  String get settingsLooksClassicLabel => 'Today';
+  String get settingsLooksClassicLabel => 'Hoje';
 
   @override
   String get settingsThemeSaveFailed =>
@@ -1422,7 +1422,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get supportQuickAnswersSection => 'RESPOSTAS RÁPIDAS';
 
   @override
-  String get supportFaqLoginTitle => 'Login';
+  String get supportFaqLoginTitle => 'Início de sessão';
 
   @override
   String get supportFaqLoginBody =>
@@ -12652,4 +12652,66 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get themeTaglineBluelotus =>
       'Água ao luar, pétalas safira e um coração dourado.';
+
+  @override
+  String discoverMessageLikeSent(String name) {
+    return 'Love enviado a $name. Podem conversar assim que $name retribuir o like.';
+  }
+
+  @override
+  String get notificationsDismissFailed =>
+      'Não foi possível remover a notificação. Tenta de novo.';
+
+  @override
+  String get notificationsReadAllFailed =>
+      'Não foi possível marcar tudo como lido. Tenta de novo.';
+
+  @override
+  String get blogReportSubmitted => 'Denúncia enviada. Obrigado.';
+
+  @override
+  String get settingsSectionAccount => 'Conta';
+
+  @override
+  String settingsSignedInAs(String username) {
+    return 'Sessão iniciada como @$username';
+  }
+
+  @override
+  String get settingsSignOut => 'Terminar sessão';
+
+  @override
+  String get settingsSignOutSubtitle =>
+      'Termina a tua sessão neste dispositivo';
+
+  @override
+  String get settingsSignOutAllTitle =>
+      'Terminar sessão em todos os dispositivos';
+
+  @override
+  String get settingsSignOutAllSubtitle =>
+      'Termina todas as sessões, em cada telemóvel e navegador';
+
+  @override
+  String get settingsSignOutConfirmTitle => 'Terminar sessão?';
+
+  @override
+  String get settingsSignOutConfirmBody =>
+      'Vais precisar do teu nome de utilizador e da tua palavra-passe para voltares a iniciar sessão neste dispositivo.';
+
+  @override
+  String get settingsSignOutAllConfirmTitle =>
+      'Terminar sessão em todos os dispositivos?';
+
+  @override
+  String get settingsSignOutAllConfirmBody =>
+      'A tua sessão termina em todos os telemóveis, tablets e navegadores, incluindo este. Quem tiver sessão iniciada na tua conta noutro lado será desligado.';
+
+  @override
+  String get settingsSignOutAllConfirmAction =>
+      'Terminar sessão em todo o lado';
+
+  @override
+  String get settingsSignOutAllFailed =>
+      'Não foi possível terminar a sessão nos teus outros dispositivos. Verifica a ligação e tenta novamente.';
 }

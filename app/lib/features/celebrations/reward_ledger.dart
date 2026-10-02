@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/i18n/app_l10n.dart';
 import '../../l10n/app_localizations.dart';
+import '../auth/providers/auth_provider.dart';
 import '../engagement/providers/level_progression_provider.dart';
 import '../engagement/providers/trust_badges_provider.dart';
 
@@ -79,9 +80,11 @@ class RewardSnapshot {
 /// the reload after a reward is claimed) report it here, so the burst host can
 /// celebrate the moment the screen shows something new without fetching it
 /// again. Listening has no side effects.
-final rewardSnapshotReportsProvider = StateProvider<RewardSnapshot?>(
-  (ref) => null,
-);
+final rewardSnapshotReportsProvider = StateProvider<RewardSnapshot?>((ref) {
+  // Per member: a report about one member never celebrates for the next.
+  watchSignedInUserId(ref);
+  return null;
+});
 
 /// What has already been celebrated for one member, kept on the device.
 ///

@@ -64,10 +64,10 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get settingsLooksClassicDescription =>
-      'Warm ivory and forest by day. Soft mint and deep forest by night.';
+      'De día, marfil cálido y verde bosque. De noche, menta suave y bosque profundo.';
 
   @override
-  String get settingsLooksClassicLabel => 'Today';
+  String get settingsLooksClassicLabel => 'Hoy';
 
   @override
   String get settingsThemeSaveFailed =>
@@ -12628,4 +12628,64 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get themeTaglineBluelotus =>
       'Agua a la luz de la luna, pétalos zafiro y un corazón dorado.';
+
+  @override
+  String discoverMessageLikeSent(String name) {
+    return 'Love enviado a $name. Podréis chatear en cuanto $name te dé like también.';
+  }
+
+  @override
+  String get notificationsDismissFailed =>
+      'No se pudo quitar esa notificación. Inténtalo de nuevo.';
+
+  @override
+  String get notificationsReadAllFailed =>
+      'No se pudieron marcar todas como leídas. Inténtalo de nuevo.';
+
+  @override
+  String get blogReportSubmitted => 'Denuncia enviada. Gracias.';
+
+  @override
+  String get settingsSectionAccount => 'Cuenta';
+
+  @override
+  String settingsSignedInAs(String username) {
+    return 'Sesión iniciada como @$username';
+  }
+
+  @override
+  String get settingsSignOut => 'Cerrar sesión';
+
+  @override
+  String get settingsSignOutSubtitle => 'Cierra tu sesión en este dispositivo';
+
+  @override
+  String get settingsSignOutAllTitle =>
+      'Cerrar sesión en todos los dispositivos';
+
+  @override
+  String get settingsSignOutAllSubtitle =>
+      'Cierra todas tus sesiones, en cada móvil y navegador';
+
+  @override
+  String get settingsSignOutConfirmTitle => '¿Cerrar sesión?';
+
+  @override
+  String get settingsSignOutConfirmBody =>
+      'Necesitarás tu nombre de usuario y tu contraseña para volver a iniciar sesión en este dispositivo.';
+
+  @override
+  String get settingsSignOutAllConfirmTitle =>
+      '¿Cerrar sesión en todos los dispositivos?';
+
+  @override
+  String get settingsSignOutAllConfirmBody =>
+      'Se cerrará tu sesión en todos los móviles, tabletas y navegadores, incluido este. Quien haya iniciado sesión con tu cuenta en otro lugar quedará desconectado.';
+
+  @override
+  String get settingsSignOutAllConfirmAction => 'Cerrar sesión en todas partes';
+
+  @override
+  String get settingsSignOutAllFailed =>
+      'No se pudo cerrar la sesión en tus otros dispositivos. Comprueba tu conexión e inténtalo de nuevo.';
 }

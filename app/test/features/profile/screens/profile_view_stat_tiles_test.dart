@@ -48,9 +48,8 @@ void main() {
     return container;
   }
 
-  testWidgets('Matches tile opens the Matches tab on Your matches', (
-    tester,
-  ) async {
+  testWidgets('Matches tile opens the Matches tab on Your matches '
+      '[case:profile.profile_view.matches.action]', (tester) async {
     final container = await pumpProfile(tester);
     container.read(mainNavigationIndexProvider.notifier).state = 3;
 
@@ -64,9 +63,8 @@ void main() {
     expect(container.read(matchesViewProvider), MatchesView.people);
   });
 
-  testWidgets('Messages tile opens the Matches tab on Conversations', (
-    tester,
-  ) async {
+  testWidgets('Messages tile opens the Matches tab on Conversations '
+      '[case:profile.profile_view.messages.action]', (tester) async {
     final container = await pumpProfile(tester);
     container.read(mainNavigationIndexProvider.notifier).state = 3;
 

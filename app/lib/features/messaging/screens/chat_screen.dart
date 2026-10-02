@@ -280,6 +280,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                       children: [
                                         if (!wide)
                                           IconButton(
+                                            key: const ValueKey(
+                                              'qa.chat.back_button',
+                                            ),
                                             tooltip: l.chatBackToConversations,
                                             onPressed: _goBack,
                                             icon: const Icon(
@@ -391,6 +394,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                     children: [
                                                       if (voiceEnabled)
                                                         TextButton.icon(
+                                                          key: const ValueKey(
+                                                            'qa.chat.voice_hello',
+                                                          ),
                                                           onPressed: () =>
                                                               Navigator.of(
                                                                 context,
@@ -490,6 +496,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                               height: 16,
                                                             ),
                                                             OutlinedButton.icon(
+                                                              key: const ValueKey(
+                                                                'qa.chat.retry',
+                                                              ),
                                                               onPressed: () =>
                                                                   ref.invalidate(
                                                                     messageNotifierProvider(
@@ -871,6 +880,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     ),
                   ),
                   IconButton(
+                    key: const ValueKey('qa.chat.gift_tray_close'),
                     tooltip: l.chatCloseGifts,
                     onPressed: _toggleGiftTray,
                     icon: const Icon(Icons.close_rounded),
@@ -889,6 +899,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         Padding(
                           padding: const EdgeInsets.only(right: 8),
                           child: ChoiceChip(
+                            key: ValueKey(
+                              'qa.chat.gift_category.${category ?? 'all'}',
+                            ),
                             label: Text(
                               category == null
                                   ? l.chatAllGifts
@@ -1206,6 +1219,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 ),
                 const SizedBox(height: 8),
                 TextButton(
+                  key: const ValueKey('qa.chat.gift_confirm.not_now'),
                   onPressed: () => Navigator.of(sheetContext).pop(false),
                   child: Text(l.chatNotNow),
                 ),
@@ -1288,6 +1302,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 ),
               ),
               TextButton(
+                key: const ValueKey('qa.chat.delete_message_cancel'),
                 onPressed: () => Navigator.of(context).pop(false),
                 child: Text(chatL10n(context).commonCancel),
               ),
@@ -1318,6 +1333,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         SnackBar(
           content: Text(chatL10n(context).chatMessageDeletedSnack),
           duration: _deleteUndoWindow,
+          // Flutter keeps snack bars with an action up until tapped;
+          // let this one time out so it never covers the screen.
+          persist: false,
           action: SnackBarAction(
             label: chatL10n(context).chatUndo,
             onPressed: () {
@@ -1386,6 +1404,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   onTap: () => Navigator.of(sheetContext).pop('report'),
                 ),
                 TextButton(
+                  key: const ValueKey('qa.chat.gift_receiver_cancel'),
                   onPressed: () => Navigator.of(sheetContext).pop(),
                   child: Text(chatL10n(sheetContext).commonCancel),
                 ),
@@ -1502,6 +1521,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   ),
                   const SizedBox(height: 8),
                   TextButton(
+                    key: const ValueKey('qa.chat.gift_report_cancel'),
                     onPressed: () => Navigator.of(context).pop(),
                     child: Text(chatL10n(context).commonCancel),
                   ),
@@ -1556,6 +1576,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 children: _quickEmojis
                     .map(
                       (emoji) => GestureDetector(
+                        key: ValueKey('qa.chat.emoji.$emoji'),
                         onTap: () {
                           _appendToController(_messageController, emoji);
                           ref
@@ -1599,6 +1620,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       Tooltip(
         message: chatL10n(context).chatWalletTooltip(walletCoins),
         child: TextButton.icon(
+          key: const ValueKey('qa.chat.wallet_button'),
           onPressed: onTap,
           icon: const Icon(Icons.toll_outlined, size: 18),
           label: Text('$walletCoins'),
@@ -1652,7 +1674,11 @@ class _DailyLimitBanner extends StatelessWidget {
                 ],
               ),
             ),
-            TextButton(onPressed: onSeePlans, child: Text(l.chatSeePlans)),
+            TextButton(
+              key: const ValueKey('qa.chat.daily_limit.see_plans'),
+              onPressed: onSeePlans,
+              child: Text(l.chatSeePlans),
+            ),
           ],
         ),
       ),

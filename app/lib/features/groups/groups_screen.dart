@@ -76,7 +76,11 @@ class _GroupsScreenState extends ConsumerState<GroupsScreen> {
   Future<void> refresh() async {
     invalidateGroups(ref);
     ref.invalidate(socialChannelsProvider);
-    await ref.read(myGroupsProvider.future);
+    try {
+      await ref.read(myGroupsProvider.future);
+    } on Object {
+      // The section shows what went wrong, with Try again.
+    }
   }
 
   @override

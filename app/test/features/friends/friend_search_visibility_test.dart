@@ -97,7 +97,8 @@ Widget _app(_Api api, Widget home) => ProviderScope(
 void main() {
   final tile = find.byKey(const ValueKey('qa.privacy.friend_search'));
 
-  testWidgets('privacy switch turns friend search off and back on', (
+  testWidgets('privacy switch turns friend search off and back on '
+      '[case:common.privacy_safety.privacy_friend_search.action]', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(800, 1400);
@@ -119,7 +120,8 @@ void main() {
     expect(tester.widget<SwitchListTile>(tile).value, isTrue);
   });
 
-  testWidgets('a failed save puts the switch back and explains', (
+  testWidgets('a failed save puts the switch back and explains '
+      '[case:common.privacy_safety.privacy_friend_search.api_failure]', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(800, 1400);

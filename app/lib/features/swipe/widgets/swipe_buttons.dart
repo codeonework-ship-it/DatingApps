@@ -114,6 +114,12 @@ class _SwipeButtonsState extends State<SwipeButtons>
     }
   }
 
+  /// Automation handle for [control]: the full Spotlight screen has its own
+  /// `qa.spotlight.*` handles so it never shares ids with the Discover deck
+  /// underneath it.
+  String _qa(String control) =>
+      '${widget.isSpotlightContext ? 'qa.spotlight' : 'qa.discovery'}.$control';
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -147,11 +153,11 @@ class _SwipeButtonsState extends State<SwipeButtons>
                 ),
               ),
               child: Semantics(
-                label: 'qa.discovery.undo_button',
+                label: _qa('undo_button'),
                 button: true,
                 enabled: widget.canUndo && !_isBusy,
                 child: GestureDetector(
-                  key: const ValueKey('qa.discovery.undo_button'),
+                  key: ValueKey(_qa('undo_button')),
                   onTap: _isBusy ? null : _onUndoPressed,
                   child: Container(
                     width: 56,
@@ -187,11 +193,11 @@ class _SwipeButtonsState extends State<SwipeButtons>
                 ),
               ),
               child: Semantics(
-                label: 'qa.discovery.pass_button',
+                label: _qa('pass_button'),
                 button: true,
                 enabled: !_isBusy,
                 child: GestureDetector(
-                  key: const ValueKey('qa.discovery.pass_button'),
+                  key: ValueKey(_qa('pass_button')),
                   onTap: _isBusy ? null : () => unawaited(_onPassPressed()),
                   child: Container(
                     width: 60,
@@ -228,11 +234,11 @@ class _SwipeButtonsState extends State<SwipeButtons>
                 onEnter: (_) => setState(() => _isLikeHovered = true),
                 onExit: (_) => setState(() => _isLikeHovered = false),
                 child: Semantics(
-                  label: 'qa.discovery.like_button',
+                  label: _qa('like_button'),
                   button: true,
                   enabled: !_isBusy,
                   child: GestureDetector(
-                    key: const ValueKey('qa.discovery.like_button'),
+                    key: ValueKey(_qa('like_button')),
                     onTap: _isBusy ? null : () => unawaited(_onLikePressed()),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 220),
@@ -331,11 +337,11 @@ class _SwipeButtonsState extends State<SwipeButtons>
                 ),
               ),
               child: Semantics(
-                label: 'qa.discovery.superlike_button',
+                label: _qa('superlike_button'),
                 button: true,
                 enabled: !_isBusy,
                 child: GestureDetector(
-                  key: const ValueKey('qa.discovery.superlike_button'),
+                  key: ValueKey(_qa('superlike_button')),
                   onTap: _isBusy
                       ? null
                       : () => unawaited(_onSuperLikePressed()),
@@ -371,11 +377,11 @@ class _SwipeButtonsState extends State<SwipeButtons>
                 ),
               ),
               child: Semantics(
-                label: 'qa.discovery.message_button',
+                label: _qa('message_button'),
                 button: true,
                 enabled: !_isBusy,
                 child: GestureDetector(
-                  key: const ValueKey('qa.discovery.message_button'),
+                  key: ValueKey(_qa('message_button')),
                   onTap: _isBusy ? null : () => unawaited(_onMessagePressed()),
                   child: Container(
                     width: 56,

@@ -106,6 +106,7 @@ class _ComfortCardsState extends ConsumerState<ComfortCardsScreen> {
         title: Text(l10n.firstChapterInMyWords),
         actions: [
           IconButton(
+            key: const ValueKey('qa.comfort.reload'),
             tooltip: l10n.firstChapterComfortReloadSaved,
             onPressed: busy
                 ? null
@@ -122,6 +123,7 @@ class _ComfortCardsState extends ConsumerState<ComfortCardsScreen> {
               .when(
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (_, _) => TextButton(
+                  key: const ValueKey('qa.comfort.retry'),
                   onPressed: () =>
                       ref.invalidate(chapterResourceProvider(path)),
                   child: Text(l10n.firstChapterComfortReloadCards),
@@ -142,6 +144,7 @@ class _ComfortCardsState extends ConsumerState<ComfortCardsScreen> {
                       const SizedBox(height: 12),
                       Text(l10n.firstChapterComfortIntro),
                       SwitchListTile(
+                        key: const ValueKey('qa.comfort.shared'),
                         contentPadding: EdgeInsets.zero,
                         title: Text(l10n.firstChapterComfortShareTitle),
                         subtitle: Text(l10n.firstChapterComfortShareSubtitle),
@@ -159,6 +162,9 @@ class _ComfortCardsState extends ConsumerState<ComfortCardsScreen> {
                               children: [
                                 ComfortCardText(card: card),
                                 TextButton(
+                                  key: ValueKey(
+                                    'qa.comfort.remove.${card['topic']}',
+                                  ),
                                   onPressed: busy
                                       ? null
                                       : () => setState(
@@ -179,6 +185,7 @@ class _ComfortCardsState extends ConsumerState<ComfortCardsScreen> {
                         ),
                       const SizedBox(height: 20),
                       DropdownButtonFormField<String>(
+                        key: const ValueKey('qa.comfort.topic'),
                         initialValue: topic,
                         decoration: InputDecoration(
                           labelText: l10n.firstChapterComfortTopicLabel,
@@ -196,6 +203,7 @@ class _ComfortCardsState extends ConsumerState<ComfortCardsScreen> {
                       ),
                       const SizedBox(height: 12),
                       TextField(
+                        key: const ValueKey('qa.comfort.language'),
                         controller: language,
                         maxLength: 35,
                         decoration: InputDecoration(
@@ -203,6 +211,7 @@ class _ComfortCardsState extends ConsumerState<ComfortCardsScreen> {
                         ),
                       ),
                       TextField(
+                        key: const ValueKey('qa.comfort.original'),
                         controller: original,
                         maxLength: 280,
                         minLines: 2,
@@ -213,6 +222,7 @@ class _ComfortCardsState extends ConsumerState<ComfortCardsScreen> {
                         ),
                       ),
                       TextField(
+                        key: const ValueKey('qa.comfort.translation'),
                         controller: translation,
                         maxLength: 280,
                         minLines: 1,
@@ -222,6 +232,7 @@ class _ComfortCardsState extends ConsumerState<ComfortCardsScreen> {
                         ),
                       ),
                       TextField(
+                        key: const ValueKey('qa.comfort.translation_language'),
                         controller: translatedLanguage,
                         maxLength: 35,
                         decoration: InputDecoration(
@@ -232,6 +243,7 @@ class _ComfortCardsState extends ConsumerState<ComfortCardsScreen> {
                       Text(l10n.firstChapterComfortTranslationNote),
                       const SizedBox(height: 12),
                       OutlinedButton(
+                        key: const ValueKey('qa.comfort.add'),
                         onPressed: busy
                             ? null
                             : () {
@@ -275,12 +287,14 @@ class _ComfortCardsState extends ConsumerState<ComfortCardsScreen> {
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           child: Text(
                             error!,
+                            key: const ValueKey('qa.comfort.error'),
                             style: TextStyle(
                               color: Theme.of(context).colorScheme.error,
                             ),
                           ),
                         ),
                       FilledButton(
+                        key: const ValueKey('qa.comfort.save'),
                         onPressed: busy
                             ? null
                             : () async {

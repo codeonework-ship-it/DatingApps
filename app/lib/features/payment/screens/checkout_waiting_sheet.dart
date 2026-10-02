@@ -13,8 +13,11 @@ Future<bool?> showCheckoutWaitingSheet(
   context: context,
   isDismissible: false,
   enableDrag: false,
+  // Longer languages (German) need more than the default 9/16 height on a
+  // phone; let the sheet size to its content and scroll if it must.
+  isScrollControlled: true,
   backgroundColor: Colors.transparent,
-  builder: (sheetContext) => Padding(
+  builder: (sheetContext) => SingleChildScrollView(
     padding: const EdgeInsets.all(16),
     child: GlassContainer(
       padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
@@ -43,6 +46,7 @@ Future<bool?> showCheckoutWaitingSheet(
           ),
           const SizedBox(height: 20),
           GlassButton(
+            key: const ValueKey('qa.checkout.waiting.check_confirmation'),
             label: AppLocalizations.of(
               sheetContext,
             ).paymentCheckoutCheckConfirmation,
@@ -50,6 +54,7 @@ Future<bool?> showCheckoutWaitingSheet(
             onPressed: () => Navigator.of(sheetContext).pop(true),
           ),
           TextButton(
+            key: const ValueKey('qa.checkout.waiting.back_to_account'),
             onPressed: () => Navigator.of(sheetContext).pop(false),
             child: Text(
               AppLocalizations.of(sheetContext).paymentCheckoutBackToAccount,

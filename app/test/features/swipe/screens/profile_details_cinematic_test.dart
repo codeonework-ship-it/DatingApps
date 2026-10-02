@@ -293,17 +293,10 @@ void main() {
     );
   });
 
-  for (final (label, expected) in [
-    ('Love', ProfileDetailsAction.love),
-    ('Message', ProfileDetailsAction.message),
-  ]) {
-    testWidgets('the dock returns $expected exactly as before', (tester) async {
-      final results = await _pump(tester);
-      await tester.tap(find.text(label));
-      await tester.pumpAndSettle();
-      expect(results, [expected]);
-    });
-  }
+  // The dock's real behaviour (Love saves a like for this member and
+  // closes; Message opens the chat or explains) is covered end to end in
+  // profile_actions_test.dart. It used to only pop an enum that several
+  // openers ignored, so this file no longer asserts the pop alone.
 
   testWidgets('back returns none', (tester) async {
     final results = await _pump(tester);

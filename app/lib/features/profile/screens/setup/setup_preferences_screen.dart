@@ -145,6 +145,7 @@ class _SetupPreferencesScreenState extends ConsumerState<SetupPreferencesScreen>
                 ),
                 const SizedBox(height: 12),
                 GlassButton(
+                  key: const ValueKey('qa.setup.preferences.retry_button'),
                   label: AppLocalizations.of(context).profileSetupRetry,
                   onPressed: () => ref.invalidate(profileSetupNotifierProvider),
                 ),
@@ -268,6 +269,7 @@ class _SetupPreferencesScreenState extends ConsumerState<SetupPreferencesScreen>
               child: Row(
                 children: [
                   IconButton(
+                    key: const ValueKey('qa.setup.preferences.back_button'),
                     icon: Icon(
                       Icons.arrow_back_ios_new,
                       color: Theme.of(context).colorScheme.onSurface,
@@ -431,6 +433,10 @@ class _SetupPreferencesScreenState extends ConsumerState<SetupPreferencesScreen>
   // ─────────────────────────────────────────────────────────────────────────
 
   Future<void> _handlePrimaryAction(ProfileDraft draft) async {
+    // A second tap before the button rebuilds must not save twice.
+    if (_isSaving) {
+      return;
+    }
     if (_seeking.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -474,6 +480,9 @@ class _SetupPreferencesScreenState extends ConsumerState<SetupPreferencesScreen>
   }
 
   Future<void> _handleBackFromPreferences(ProfileDraft draft) async {
+    if (_isSaving) {
+      return;
+    }
     if (_isSetupFlow) {
       setState(() => _isSaving = true);
       try {
@@ -737,6 +746,7 @@ class _BasicTab extends StatelessWidget {
                 ).colorScheme.outlineVariant,
               ),
               child: RangeSlider(
+                key: const ValueKey('qa.setup.preferences.age_range'),
                 values: age,
                 min: PreferenceLimits.minAge,
                 max: PreferenceLimits.maxAge,
@@ -768,6 +778,7 @@ class _BasicTab extends StatelessWidget {
                 ).colorScheme.outlineVariant,
               ),
               child: Slider(
+                key: const ValueKey('qa.setup.preferences.distance'),
                 value: distance,
                 min: PreferenceLimits.minDistanceKm,
                 max: PreferenceLimits.maxDistanceKm,
@@ -930,6 +941,7 @@ class _AdvancedTab extends StatelessWidget {
       );
 
   Widget _dropdown({
+    required String qaId,
     required ColorScheme scheme,
     required String label,
     required String? value,
@@ -938,6 +950,7 @@ class _AdvancedTab extends StatelessWidget {
   }) {
     final resolvedValue = options.contains(value) ? value : null;
     return DropdownButtonFormField<String>(
+      key: ValueKey<String>('qa.setup.preferences.$qaId'),
       initialValue: resolvedValue,
       isExpanded: true,
       dropdownColor: scheme.surface,
@@ -977,6 +990,7 @@ class _AdvancedTab extends StatelessWidget {
             child: Column(
               children: [
                 _dropdown(
+                  qaId: 'country',
                   scheme: scheme,
                   label: l10n.profileSetupCountry,
                   value: selectedCountry,
@@ -985,6 +999,7 @@ class _AdvancedTab extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 _dropdown(
+                  qaId: 'state',
                   scheme: scheme,
                   label: l10n.profileSetupStateRegion,
                   value: states.contains(selectedState) ? selectedState : null,
@@ -993,6 +1008,7 @@ class _AdvancedTab extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 _dropdown(
+                  qaId: 'city',
                   scheme: scheme,
                   label: l10n.profileSetupCity,
                   value: resolvedCity,
@@ -1012,6 +1028,7 @@ class _AdvancedTab extends StatelessWidget {
             child: Column(
               children: [
                 _dropdown(
+                  qaId: 'religion',
                   scheme: scheme,
                   label: l10n.profileSetupReligionPreference,
                   value: selectedReligion,
@@ -1020,6 +1037,7 @@ class _AdvancedTab extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 _dropdown(
+                  qaId: 'mother_tongue',
                   scheme: scheme,
                   label: l10n.profileSetupMotherTongue,
                   value: selectedMotherTongue,
@@ -1028,6 +1046,7 @@ class _AdvancedTab extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 _dropdown(
+                  qaId: 'language',
                   scheme: scheme,
                   label: l10n.profileSetupLanguage,
                   value: selectedLanguage,
@@ -1047,6 +1066,7 @@ class _AdvancedTab extends StatelessWidget {
             child: Column(
               children: [
                 _dropdown(
+                  qaId: 'diet_preference',
                   scheme: scheme,
                   label: l10n.profileSetupDietPreference,
                   value: selectedDietPreference,
@@ -1055,6 +1075,7 @@ class _AdvancedTab extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 _dropdown(
+                  qaId: 'workout_frequency',
                   scheme: scheme,
                   label: l10n.profileSetupWorkoutFrequency,
                   value: selectedWorkoutFrequency,
@@ -1063,6 +1084,7 @@ class _AdvancedTab extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 _dropdown(
+                  qaId: 'diet_type',
                   scheme: scheme,
                   label: l10n.profileSetupDietType,
                   value: selectedDietType,
@@ -1071,6 +1093,7 @@ class _AdvancedTab extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 _dropdown(
+                  qaId: 'sleep_schedule',
                   scheme: scheme,
                   label: l10n.profileSetupSleepSchedule,
                   value: selectedSleepSchedule,
@@ -1079,6 +1102,7 @@ class _AdvancedTab extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 _dropdown(
+                  qaId: 'travel_style',
                   scheme: scheme,
                   label: l10n.profileSetupTravelStyle,
                   value: selectedTravelStyle,
@@ -1087,6 +1111,7 @@ class _AdvancedTab extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 _dropdown(
+                  qaId: 'political_comfort_range',
                   scheme: scheme,
                   label: l10n.profileSetupPoliticalComfortRange,
                   value: selectedPoliticalComfortRange,
@@ -1106,6 +1131,7 @@ class _AdvancedTab extends StatelessWidget {
             child: Column(
               children: [
                 TextField(
+                  key: const ValueKey('qa.setup.preferences.instagram_field'),
                   controller: instagramController,
                   style: TextStyle(color: scheme.onSurface),
                   decoration: _fieldDecor(
@@ -1115,12 +1141,14 @@ class _AdvancedTab extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 TextField(
+                  key: const ValueKey('qa.setup.preferences.intent_tags_field'),
                   controller: intentTagsController,
                   style: TextStyle(color: scheme.onSurface),
                   decoration: _fieldDecor(scheme, l10n.profileSetupIntentTags),
                 ),
                 const SizedBox(height: 10),
                 TextField(
+                  key: const ValueKey('qa.setup.preferences.hobbies_field'),
                   controller: hobbiesController,
                   style: TextStyle(color: scheme.onSurface),
                   decoration: _fieldDecor(
@@ -1130,6 +1158,7 @@ class _AdvancedTab extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 TextField(
+                  key: const ValueKey('qa.setup.preferences.books_field'),
                   controller: booksController,
                   style: TextStyle(color: scheme.onSurface),
                   decoration: _fieldDecor(
@@ -1139,6 +1168,7 @@ class _AdvancedTab extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 TextField(
+                  key: const ValueKey('qa.setup.preferences.novels_field'),
                   controller: novelsController,
                   style: TextStyle(color: scheme.onSurface),
                   decoration: _fieldDecor(
@@ -1148,6 +1178,7 @@ class _AdvancedTab extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 TextField(
+                  key: const ValueKey('qa.setup.preferences.songs_field'),
                   controller: songsController,
                   style: TextStyle(color: scheme.onSurface),
                   decoration: _fieldDecor(
@@ -1157,6 +1188,9 @@ class _AdvancedTab extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 TextField(
+                  key: const ValueKey(
+                    'qa.setup.preferences.extra_curriculars_field',
+                  ),
                   controller: extraCurricularController,
                   style: TextStyle(color: scheme.onSurface),
                   decoration: _fieldDecor(
@@ -1166,6 +1200,9 @@ class _AdvancedTab extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 TextField(
+                  key: const ValueKey(
+                    'qa.setup.preferences.additional_info_field',
+                  ),
                   controller: additionalInfoController,
                   style: TextStyle(color: scheme.onSurface),
                   minLines: 2,
@@ -1177,6 +1214,9 @@ class _AdvancedTab extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 TextField(
+                  key: const ValueKey(
+                    'qa.setup.preferences.pet_preference_field',
+                  ),
                   controller: petPreferenceController,
                   style: TextStyle(color: scheme.onSurface),
                   decoration: _fieldDecor(
@@ -1195,6 +1235,7 @@ class _AdvancedTab extends StatelessWidget {
             icon: Icons.block_outlined,
             title: l10n.profileSetupDealBreakers,
             child: TextField(
+              key: const ValueKey('qa.setup.preferences.deal_breakers_field'),
               controller: dealBreakerTagsController,
               style: TextStyle(color: scheme.onSurface),
               minLines: 2,
@@ -1288,6 +1329,7 @@ class _GenderChip extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final foreground = selected ? scheme.onPrimaryContainer : scheme.onSurface;
     return GestureDetector(
+      key: ValueKey<String>('qa.setup.preferences.seeking_$code'),
       onTap: () => onToggled(code, selected: !selected),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
@@ -1376,6 +1418,9 @@ class _ToggleTile extends StatelessWidget {
             label: semanticLabel ?? label,
             toggled: value,
             child: Switch(
+              key: semanticLabel == null
+                  ? null
+                  : ValueKey<String>(semanticLabel!),
               value: value,
               onChanged: onChanged,
               activeThumbColor: scheme.onPrimary,

@@ -210,12 +210,14 @@ class _MatchesListScreenState extends ConsumerState<MatchesListScreen> {
                           spacing: 8,
                           children: [
                             ChoiceChip(
+                              key: const ValueKey('qa.matches.filter_all'),
                               label: Text(l10n.matchesFilterAllConversations),
                               selected: !_unreadOnly,
                               onSelected: (_) =>
                                   setState(() => _unreadOnly = false),
                             ),
                             ChoiceChip(
+                              key: const ValueKey('qa.matches.filter_unread'),
                               label: Text(
                                 l10n.matchesFilterUnread(unreadCount),
                               ),
@@ -294,6 +296,7 @@ class _MatchesListScreenState extends ConsumerState<MatchesListScreen> {
                           ),
                           const SizedBox(height: 20),
                           GlassButton(
+                            key: const ValueKey('qa.matches.retry'),
                             label: l10n.matchesRetry,
                             onPressed: () => matchNotifier.refresh(),
                           ),
@@ -700,17 +703,30 @@ class _MatchesListScreenState extends ConsumerState<MatchesListScreen> {
                     content: Text(l10n.matchesCloseDialogBody),
                     actions: [
                       TextButton(
+                        key: const ValueKey('qa.matches.close_dialog.keep'),
                         onPressed: () => Navigator.pop(dialog, false),
                         child: Text(l10n.matchesCloseDialogKeep),
                       ),
                       FilledButton(
+                        key: const ValueKey('qa.matches.close_dialog.confirm'),
                         onPressed: () => Navigator.pop(dialog, true),
                         child: Text(l10n.matchesActionClose),
                       ),
                     ],
                   ),
                 );
-                if (close == true) await matchNotifier.unmatch(match.id);
+                if (close != true) return;
+                final closed = await matchNotifier.unmatch(match.id);
+                // A refused close used to fail silently: the row stayed and
+                // nothing said why.
+                if (closed || !pageContext.mounted) return;
+                ScaffoldMessenger.of(pageContext).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      localizeMatchesError(l10n, kMatchesUnmatchError)!,
+                    ),
+                  ),
+                );
               },
             ),
           ),
@@ -748,6 +764,9 @@ class _MatchesListScreenState extends ConsumerState<MatchesListScreen> {
                   ScaffoldMessenger.of(pageContext).showSnackBar(
                     SnackBar(
                       content: Text(l10n.matchesReportSubmitted),
+                      // Flutter keeps snack bars with an action up until tapped;
+                      // let this one time out so it never covers the screen.
+                      persist: false,
                       action: SnackBarAction(
                         label: l10n.matchesReportAppeal,
                         onPressed: () {

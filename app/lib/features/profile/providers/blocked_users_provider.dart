@@ -49,11 +49,19 @@ class BlockedUsersNotifier extends AsyncNotifier<List<BlockedUserItem>> {
       await ref
           .read(safetyActionsProvider)
           .unblockUser(blockedUserId: blockedUserId);
-      state = AsyncData(await _fetchBlockedUsers(userId));
     } catch (e, stackTrace) {
       log.error('Failed to unblock user', e, stackTrace);
       state = AsyncData(previous);
       rethrow;
+    }
+    // The unblock went through. If the list cannot be re-read right now,
+    // drop that member locally rather than keep showing them as blocked.
+    try {
+      state = AsyncData(await _fetchBlockedUsers(userId));
+    } on DioException {
+      state = AsyncData(
+        previous.where((user) => user.id != blockedUserId).toList(),
+      );
     }
   }
 
@@ -83,8 +91,10 @@ class BlockedUsersNotifier extends AsyncNotifier<List<BlockedUserItem>> {
           .where((item) => item.id.isNotEmpty)
           .toList();
     } on DioException catch (e, stackTrace) {
+      // Surface the failure: an empty list here would tell the member they
+      // have blocked nobody, which is a safety-relevant falsehood.
       log.error('Failed to fetch blocked users', e, stackTrace);
-      return state.valueOrNull ?? const <BlockedUserItem>[];
+      rethrow;
     }
   }
 

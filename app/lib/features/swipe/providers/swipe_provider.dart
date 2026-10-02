@@ -7,6 +7,7 @@ import '../../../core/config/feature_flags.dart';
 import '../../../core/providers/api_client_provider.dart';
 import '../../../core/utils/logger.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../payment/providers/entitlements_provider.dart';
 import '../models/discovery_profile.dart';
 import '../discover_l10n.dart';
 
@@ -265,6 +266,83 @@ class SwipeNotifier extends _$SwipeNotifier {
         isLoading: false,
       );
     }
+  }
+
+  /// Likes or passes [profile] wherever the member saw them: a profile
+  /// page, Spotlight, Today, the liked/passed lists. Unlike [likeProfile] it
+  /// never depends on which card the deck is showing, so a decision always
+  /// reaches the person on screen. A member still in the deck or Spotlight
+  /// leaves it so they are not dealt again.
+  Future<ProfileDecision> decideOn(
+    DiscoveryProfile profile, {
+    required bool like,
+  }) async {
+    final me = ref.read(authNotifierProvider).userId;
+    if (me == null || me.isEmpty) {
+      return const ProfileDecision(error: DiscoverMessages.sessionUnavailable);
+    }
+    try {
+      String? matchId;
+      if (kUseMockAuth || kUseMockDiscoveryData) {
+        if (like && _mockMatchedProfileIds.contains(profile.id)) {
+          matchId = 'mock-match-${profile.id}';
+        }
+      } else {
+        final body = await _postSwipeDecision(
+          currentUserId: me,
+          targetUserId: profile.id,
+          isLike: like,
+        );
+        final id = body['match_id']?.toString().trim();
+        matchId = (id == null || id.isEmpty) ? null : id;
+      }
+      _recordDecision(profile, like: like);
+      return ProfileDecision(matchId: matchId, recorded: true);
+    } on DioException catch (e, stackTrace) {
+      log.error('Failed to decide on profile', e, stackTrace);
+      final refusal = (e.response?.data as Map?)?.cast<String, dynamic>();
+      if (like &&
+          e.response?.statusCode == 429 &&
+          refusal?['error_code'] == 'DAILY_LIKE_LIMIT_REACHED') {
+        state = state.copyWith(dailyLimit: refusal);
+        return ProfileDecision(dailyLimit: DailyLimit.fromRefusal(refusal));
+      }
+      return ProfileDecision(
+        error: like ? DiscoverMessages.likeRetry : DiscoverMessages.passRetry,
+      );
+    } on Object catch (e, stackTrace) {
+      log.error('Failed to decide on profile', e, stackTrace);
+      return ProfileDecision(
+        error: like ? DiscoverMessages.likeRetry : DiscoverMessages.passRetry,
+      );
+    }
+  }
+
+  void _recordDecision(DiscoveryProfile profile, {required bool like}) {
+    final index = state.profiles.indexWhere((p) => p.id == profile.id);
+    var profiles = state.profiles;
+    var current = state.currentIndex;
+    if (index >= 0) {
+      profiles = [...state.profiles]..removeAt(index);
+      if (index < current) {
+        current -= 1;
+      }
+    }
+    List<DiscoveryProfile> without(List<DiscoveryProfile> list) =>
+        list.where((p) => p.id != profile.id).toList();
+    state = state.copyWith(
+      profiles: profiles,
+      currentIndex: current,
+      spotlightProfiles: without(state.spotlightProfiles),
+      likedProfiles: like
+          ? [profile, ...without(state.likedProfiles)]
+          : without(state.likedProfiles),
+      passedProfiles: like
+          ? without(state.passedProfiles)
+          : [profile, ...without(state.passedProfiles)],
+      likeCount: like ? state.likeCount + 1 : state.likeCount,
+      passCount: like ? state.passCount : state.passCount + 1,
+    );
   }
 
   /// Like current profile
@@ -798,4 +876,26 @@ List<DiscoveryProfile> _generateMockProfiles() {
   );
 
   return <DiscoveryProfile>[...females, ...males];
+}
+
+/// The outcome of [SwipeNotifier.decideOn].
+class ProfileDecision {
+  const ProfileDecision({
+    this.matchId,
+    this.dailyLimit,
+    this.error,
+    this.recorded = false,
+  });
+
+  /// Set when a like created a match.
+  final String? matchId;
+
+  /// Set when the daily like allowance is used up.
+  final DailyLimit? dailyLimit;
+
+  /// A [DiscoverMessages] constant when the decision could not be saved.
+  final String? error;
+
+  /// The server accepted the decision.
+  final bool recorded;
 }

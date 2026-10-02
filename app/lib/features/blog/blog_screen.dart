@@ -109,6 +109,7 @@ class _BlogScreenState extends ConsumerState<BlogScreen> {
             icon: const Icon(Icons.favorite_border_rounded),
           ),
           IconButton(
+            key: const ValueKey('qa.blog.connections'),
             tooltip: l10n.blogConnectionsTooltip,
             onPressed: () => openBlogConnections(context),
             icon: const Icon(Icons.mark_email_unread_outlined),
@@ -156,11 +157,13 @@ class _BlogScreenState extends ConsumerState<BlogScreen> {
                         runSpacing: 8,
                         children: [
                           TextButton.icon(
+                            key: const ValueKey('qa.blog.private_responses'),
                             onPressed: () => openBlogConnections(context),
                             icon: const Icon(Icons.forum_outlined),
                             label: Text(l10n.blogPrivateResponses),
                           ),
                           TextButton.icon(
+                            key: const ValueKey('qa.blog.shared_links'),
                             onPressed: () => openBlogConnections(
                               context,
                               section: 'publications',
@@ -169,6 +172,7 @@ class _BlogScreenState extends ConsumerState<BlogScreen> {
                             label: Text(l10n.blogSharedLinks),
                           ),
                           TextButton.icon(
+                            key: const ValueKey('qa.blog.review_notices'),
                             onPressed: () => openBlogConnections(
                               context,
                               section: 'notices',
@@ -272,6 +276,9 @@ class _BlogScreenState extends ConsumerState<BlogScreen> {
                                   children: [
                                     if (cursors.length > 1)
                                       OutlinedButton(
+                                        key: const ValueKey(
+                                          'qa.blog.previous_page',
+                                        ),
                                         onPressed: () => setState(
                                           () => cursors.removeLast(),
                                         ),
@@ -279,6 +286,9 @@ class _BlogScreenState extends ConsumerState<BlogScreen> {
                                       ),
                                     if (page.next.isNotEmpty)
                                       OutlinedButton(
+                                        key: const ValueKey(
+                                          'qa.blog.more_chapters',
+                                        ),
                                         onPressed: () => setState(
                                           () => cursors.add(page.next),
                                         ),
@@ -387,6 +397,7 @@ class BlogPostCard extends StatelessWidget {
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
+        key: ValueKey('qa.blog.post.${post.id}'),
         onTap: () => openBlogPost(context, post.id),
         child: Padding(
           padding: const EdgeInsets.all(20),
@@ -547,6 +558,7 @@ class BlogImage extends ConsumerWidget {
                       const Center(child: CircularProgressIndicator()),
                   error: (_, __) => Center(
                     child: TextButton.icon(
+                      key: ValueKey('qa.blog.photo_retry.${photo.id}'),
                       onPressed: () => ref.invalidate(provider),
                       icon: const Icon(Icons.broken_image_outlined),
                       label: Text(
@@ -576,6 +588,7 @@ class BlogError extends StatelessWidget {
         Text(message),
         const SizedBox(height: 8),
         OutlinedButton(
+          key: const ValueKey('qa.blog.retry'),
           onPressed: retry,
           child: Text(AppLocalizations.of(context).blogTryAgain),
         ),
@@ -665,6 +678,7 @@ class BlogDetailScreen extends ConsumerWidget {
                             Padding(
                               padding: const EdgeInsets.only(top: 16),
                               child: FilledButton.icon(
+                                key: const ValueKey('qa.blog.detail.respond'),
                                 icon: const Icon(Icons.mail_outline),
                                 label: Text(l10n.blogRespondPrivately),
                                 onPressed: () =>
@@ -677,6 +691,9 @@ class BlogDetailScreen extends ConsumerWidget {
                             Padding(
                               padding: const EdgeInsets.only(top: 16),
                               child: OutlinedButton.icon(
+                                key: const ValueKey(
+                                  'qa.blog.detail.public_preview',
+                                ),
                                 icon: const Icon(Icons.ios_share_outlined),
                                 label: Text(l10n.blogCreatePublicPreview),
                                 onPressed: () => Navigator.push<void>(
@@ -703,6 +720,7 @@ class BlogDetailScreen extends ConsumerWidget {
                               runSpacing: 12,
                               children: [
                                 FilledButton.icon(
+                                  key: const ValueKey('qa.blog.detail.edit'),
                                   icon: const Icon(Icons.edit_outlined),
                                   label: Text(l10n.blogEditChapter),
                                   onPressed: () =>
@@ -716,6 +734,7 @@ class BlogDetailScreen extends ConsumerWidget {
                                       ),
                                 ),
                                 OutlinedButton.icon(
+                                  key: const ValueKey('qa.blog.detail.delete'),
                                   icon: const Icon(Icons.delete_outline),
                                   label: Text(l10n.blogDeleteChapter),
                                   onPressed: () async {
@@ -763,39 +782,56 @@ class BlogDetailScreen extends ConsumerWidget {
                             )
                           else
                             OutlinedButton.icon(
+                              key: const ValueKey('qa.blog.detail.report'),
                               icon: const Icon(Icons.flag_outlined),
                               label: Text(l10n.blogReportChapter),
-                              onPressed: () => showReportUserSheet(
-                                context: context,
-                                onSubmit:
-                                    ({required reason, description}) async {
-                                      try {
-                                        final response = await ref
-                                            .read(apiClientProvider)
-                                            .post<dynamic>(
-                                              '/blog/posts/$id/report',
-                                              data: {
-                                                'reason': reason,
-                                                'description':
-                                                    description ?? '',
-                                              },
-                                            );
-                                        return ((response.data as Map)['report']
-                                                as Map?)?['id']
-                                            ?.toString();
-                                      } on Object catch (e) {
-                                        throw Exception(
-                                          apiErrorMessage(
-                                            e,
-                                            fallback: l10n.blogReportFailed,
-                                          ),
-                                        );
-                                      }
-                                    },
-                              ),
+                              onPressed: () async {
+                                // The report id may be null, so it cannot tell
+                                // a sent report from a dismissed sheet; only
+                                // confirm what was actually sent.
+                                var submitted = false;
+                                await showReportUserSheet(
+                                  context: context,
+                                  onSubmit:
+                                      ({required reason, description}) async {
+                                        try {
+                                          final response = await ref
+                                              .read(apiClientProvider)
+                                              .post<dynamic>(
+                                                '/blog/posts/$id/report',
+                                                data: {
+                                                  'reason': reason,
+                                                  'description':
+                                                      description ?? '',
+                                                },
+                                              );
+                                          submitted = true;
+                                          return ((response.data
+                                                      as Map)['report']
+                                                  as Map?)?['id']
+                                              ?.toString();
+                                        } on Object catch (e) {
+                                          throw Exception(
+                                            apiErrorMessage(
+                                              e,
+                                              fallback: l10n.blogReportFailed,
+                                            ),
+                                          );
+                                        }
+                                      },
+                                );
+                                if (submitted && context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(l10n.blogReportSubmitted),
+                                    ),
+                                  );
+                                }
+                              },
                             ),
                           if (post.authorId != user)
                             TextButton.icon(
+                              key: const ValueKey('qa.blog.detail.block'),
                               icon: const Icon(Icons.block_outlined),
                               label: Text(l10n.blogBlockThisMember),
                               onPressed: () async {
@@ -851,10 +887,12 @@ Future<bool> confirmBlogAction(
         content: Text(message),
         actions: [
           TextButton(
+            key: const ValueKey('qa.blog.confirm.cancel'),
             onPressed: () => Navigator.pop(context, false),
             child: Text(AppLocalizations.of(context).blogCancel),
           ),
           FilledButton(
+            key: const ValueKey('qa.blog.confirm.ok'),
             onPressed: () => Navigator.pop(context, true),
             child: Text(action),
           ),

@@ -353,6 +353,10 @@ const _mockView = LevelProgressionView(
 );
 
 final levelProgressionProvider =
-    StateNotifierProvider<LevelProgressionNotifier, LevelProgressionState>(
-      LevelProgressionNotifier.new,
-    );
+    StateNotifierProvider<LevelProgressionNotifier, LevelProgressionState>((
+      ref,
+    ) {
+      // Per member: rebuilt when someone else signs in on this device.
+      watchSignedInUserId(ref);
+      return LevelProgressionNotifier(ref);
+    });

@@ -181,9 +181,11 @@ class TrustBadgesNotifier extends StateNotifier<TrustBadgesState> {
 }
 
 final trustBadgesProvider =
-    StateNotifierProvider<TrustBadgesNotifier, TrustBadgesState>(
-      TrustBadgesNotifier.new,
-    );
+    StateNotifierProvider<TrustBadgesNotifier, TrustBadgesState>((ref) {
+      // Per member: rebuilt when someone else signs in on this device.
+      watchSignedInUserId(ref);
+      return TrustBadgesNotifier(ref);
+    });
 
 String _extractApiError(DioException e, {required String fallback}) {
   final data = e.response?.data;

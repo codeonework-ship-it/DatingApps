@@ -335,6 +335,8 @@ String _extractApiError(DioException e, {required String fallback}) {
 }
 
 final groupCoffeePollProvider =
-    StateNotifierProvider<GroupCoffeePollNotifier, GroupCoffeePollState>(
-      GroupCoffeePollNotifier.new,
-    );
+    StateNotifierProvider<GroupCoffeePollNotifier, GroupCoffeePollState>((ref) {
+      // Per member: rebuilt when someone else signs in on this device.
+      watchSignedInUserId(ref);
+      return GroupCoffeePollNotifier(ref);
+    });

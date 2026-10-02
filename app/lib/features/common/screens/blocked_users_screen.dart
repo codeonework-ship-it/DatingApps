@@ -22,9 +22,20 @@ class BlockedUsersScreen extends ConsumerWidget {
             child: blockedAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (_, _) => Center(
-                child: TextButton(
-                  onPressed: () => ref.invalidate(blockedUsersProvider),
-                  child: Text(l10n.commonRetry),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      l10n.commonSomethingWentWrongTryAgain,
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    TextButton(
+                      key: const ValueKey('qa.blocked.retry'),
+                      onPressed: () => ref.invalidate(blockedUsersProvider),
+                      child: Text(l10n.commonRetry),
+                    ),
+                  ],
                 ),
               ),
               data: (users) {
@@ -80,6 +91,7 @@ class BlockedUsersScreen extends ConsumerWidget {
                             ),
                           ),
                           TextButton(
+                            key: ValueKey('qa.blocked.unblock.${user.id}'),
                             onPressed: () => _onUnblock(
                               context: context,
                               ref: ref,
@@ -110,16 +122,18 @@ class BlockedUsersScreen extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final shouldUnblock = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: Text(l10n.blockedUnblockTitle),
         content: Text(l10n.blockedUnblockBody(name)),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
+            key: const ValueKey('qa.blocked.unblock_cancel'),
+            onPressed: () => Navigator.of(dialogContext).pop(false),
             child: Text(l10n.commonCancel),
           ),
           TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
+            key: const ValueKey('qa.blocked.unblock_confirm'),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
             child: Text(l10n.blockedUnblock),
           ),
         ],

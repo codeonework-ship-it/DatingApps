@@ -29,7 +29,10 @@ Future<void> copyBlogLink(BuildContext context, String id) async {
         context: context,
         builder: (_) => AlertDialog(
           title: Text(l10n.blogYourPublicLink),
-          content: SelectableText(url),
+          content: SelectableText(
+            url,
+            key: const ValueKey('qa.blog.public_link.text'),
+          ),
         ),
       );
   }
@@ -72,8 +75,15 @@ class _BlogShareState extends ConsumerState<BlogShareScreen> {
 
   AppLocalizations get l10n => AppLocalizations.of(context);
 
+  /// A solo copy needs words: the server only accepts an exact, non-empty
+  /// excerpt. A joint page is built from both contributions.
+  bool get hasExcerpt => joint || excerpt.text.trim().isNotEmpty;
+
   Future<void> share() async {
-    if (!approved || busy || ref.read(authNotifierProvider).userId != user)
+    if (!approved ||
+        !hasExcerpt ||
+        busy ||
+        ref.read(authNotifierProvider).userId != user)
       return;
     setState(() {
       busy = true;
@@ -142,9 +152,13 @@ class _BlogShareState extends ConsumerState<BlogShareScreen> {
               ),
               const SizedBox(height: 16),
               if (joint || finished)
-                SelectableText(excerpt.text)
+                SelectableText(
+                  excerpt.text,
+                  key: const ValueKey('qa.blog.share.preview'),
+                )
               else
                 TextField(
+                  key: const ValueKey('qa.blog.share.excerpt'),
                   controller: excerpt,
                   enabled: !busy,
                   maxLength: 1500,
@@ -165,6 +179,7 @@ class _BlogShareState extends ConsumerState<BlogShareScreen> {
                         children: [
                           BlogImage(post: widget.post, photo: photo),
                           CheckboxListTile(
+                            key: ValueKey('qa.blog.share.photo.${photo.id}'),
                             title: Text(l10n.blogIncludePhoto(photo.alt)),
                             value: selected.contains(photo.id),
                             onChanged: busy
@@ -190,6 +205,7 @@ class _BlogShareState extends ConsumerState<BlogShareScreen> {
               if (!finished) ...[
                 const SizedBox(height: 16),
                 CheckboxListTile(
+                  key: const ValueKey('qa.blog.share.approve'),
                   contentPadding: EdgeInsets.zero,
                   title: Text(l10n.blogApproveCopy),
                   subtitle: Text(l10n.blogApproveCopyNote),
@@ -199,7 +215,8 @@ class _BlogShareState extends ConsumerState<BlogShareScreen> {
                       : (v) => setState(() => approved = v ?? false),
                 ),
                 FilledButton(
-                  onPressed: approved && !busy ? share : null,
+                  key: const ValueKey('qa.blog.share.create'),
+                  onPressed: approved && hasExcerpt && !busy ? share : null,
                   child: Text(
                     busy
                         ? l10n.blogSaving
@@ -217,11 +234,13 @@ class _BlogShareState extends ConsumerState<BlogShareScreen> {
                 ),
                 if (!joint)
                   FilledButton.icon(
+                    key: const ValueKey('qa.blog.share.copy_link'),
                     onPressed: () => copyBlogLink(context, id),
                     icon: const Icon(Icons.copy),
                     label: Text(l10n.blogCopyPublicLink),
                   ),
                 OutlinedButton(
+                  key: const ValueKey('qa.blog.share.manage_links'),
                   onPressed: () =>
                       openBlogConnections(context, section: 'publications'),
                   child: Text(l10n.blogManageSharedLinks),

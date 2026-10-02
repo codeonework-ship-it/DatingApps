@@ -53,7 +53,12 @@ class MyListsScreen extends ConsumerWidget {
                     ref
                         .watch(myListsProvider)
                         .when(
-                          skipLoadingOnRefresh: false,
+                          // Keep the shelf (and the scroll position) while it
+                          // reloads after a change; spin only when there is
+                          // nothing to show yet.
+                          skipLoadingOnRefresh: ref
+                              .watch(myListsProvider)
+                              .hasValue,
                           loading: () => const Padding(
                             padding: EdgeInsets.all(32),
                             child: Center(child: CircularProgressIndicator()),
@@ -142,7 +147,7 @@ class _MemberListCardState extends ConsumerState<MemberListCard> {
         await run(
           () => api.put<dynamic>(
             '/clubs/lists/${list.id}/items/${title.id}',
-            data: {'note': ''},
+            data: {'note': list.noteFor(title.id)},
           ),
           failure: l10n.clubsAddToThisListFailed,
         );

@@ -222,9 +222,14 @@ class MatchPlansNotifier extends StateNotifier<MatchPlansState> {
 }
 
 final matchPlansProvider =
-    StateNotifierProvider.family<MatchPlansNotifier, MatchPlansState, String>(
-      MatchPlansNotifier.new,
-    );
+    StateNotifierProvider.family<MatchPlansNotifier, MatchPlansState, String>((
+      ref,
+      matchId,
+    ) {
+      // Per member: rebuilt when someone else signs in on this device.
+      watchSignedInUserId(ref);
+      return MatchPlansNotifier(ref, matchId);
+    });
 
 // ── Cross-match feeds: my plans and my friends' plans ────────────────────────
 
@@ -317,9 +322,11 @@ class PlansFeedNotifier extends StateNotifier<PlansFeedState> {
 }
 
 final plansFeedProvider =
-    StateNotifierProvider<PlansFeedNotifier, PlansFeedState>(
-      PlansFeedNotifier.new,
-    );
+    StateNotifierProvider<PlansFeedNotifier, PlansFeedState>((ref) {
+      // Per member: rebuilt when someone else signs in on this device.
+      watchSignedInUserId(ref);
+      return PlansFeedNotifier(ref);
+    });
 
 // ── Errors ───────────────────────────────────────────────────────────────────
 

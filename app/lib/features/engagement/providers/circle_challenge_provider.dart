@@ -336,6 +336,8 @@ String _extractApiError(DioException e, {required String fallback}) {
 }
 
 final circleChallengeProvider =
-    StateNotifierProvider<CircleChallengeNotifier, CircleChallengeState>(
-      CircleChallengeNotifier.new,
-    );
+    StateNotifierProvider<CircleChallengeNotifier, CircleChallengeState>((ref) {
+      // Per member: rebuilt when someone else signs in on this device.
+      watchSignedInUserId(ref);
+      return CircleChallengeNotifier(ref);
+    });

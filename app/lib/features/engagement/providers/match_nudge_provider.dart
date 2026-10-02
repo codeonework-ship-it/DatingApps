@@ -150,6 +150,8 @@ class MatchNudgeNotifier extends StateNotifier<MatchNudgeState> {
 }
 
 final matchNudgeProvider =
-    StateNotifierProvider<MatchNudgeNotifier, MatchNudgeState>(
-      (ref) => MatchNudgeNotifier(ref),
-    );
+    StateNotifierProvider<MatchNudgeNotifier, MatchNudgeState>((ref) {
+      // Per member: rebuilt when someone else signs in on this device.
+      watchSignedInUserId(ref);
+      return MatchNudgeNotifier(ref);
+    });

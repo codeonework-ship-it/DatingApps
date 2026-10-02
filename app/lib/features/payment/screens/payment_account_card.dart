@@ -114,11 +114,13 @@ class PaymentAccountCard extends StatelessWidget {
                 runSpacing: 8,
                 children: [
                   OutlinedButton.icon(
+                    key: ValueKey('qa.payment.check_status.${checkout.id}'),
                     onPressed: busy ? null : () => onCheck(checkout),
                     icon: const Icon(Icons.refresh),
                     label: Text(l10n.paymentAccountCheckStatus),
                   ),
                   FilledButton.icon(
+                    key: ValueKey('qa.payment.resume_checkout.${checkout.id}'),
                     onPressed: busy || !account.cardAvailable
                         ? null
                         : () => onResume(checkout),

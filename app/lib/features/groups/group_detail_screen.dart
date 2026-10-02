@@ -270,7 +270,11 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
               return RefreshIndicator(
                 onRefresh: () async {
                   ref.invalidate(groupDetailProvider(id));
-                  await ref.read(groupDetailProvider(id).future);
+                  try {
+                    await ref.read(groupDetailProvider(id).future);
+                  } on Object {
+                    // The page shows what went wrong, with Try again.
+                  }
                 },
                 child: Center(
                   child: ConstrainedBox(

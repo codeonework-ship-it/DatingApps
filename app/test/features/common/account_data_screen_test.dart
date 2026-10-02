@@ -58,15 +58,16 @@ void main() {
       expect(find.text('Delete my account'), findsWidgets);
     });
 
-    testWidgets('a paused account is told it is hidden and offered a way back', (
-      tester,
-    ) async {
-      await _pumpScreen(tester, _paused);
+    testWidgets(
+      'a paused account is told it is hidden and offered a way back',
+      (tester) async {
+        await _pumpScreen(tester, _paused);
 
-      expect(find.text('Your profile is hidden'), findsOneWidget);
-      expect(find.text('Unhide my profile'), findsOneWidget);
-      expect(find.text('Hide my profile'), findsNothing);
-    });
+        expect(find.text('Your profile is hidden'), findsOneWidget);
+        expect(find.text('Unhide my profile'), findsOneWidget);
+        expect(find.text('Hide my profile'), findsNothing);
+      },
+    );
 
     // The countdown is the member's window to change their mind, so it must be
     // present and actionable whenever a deletion is pending.
@@ -119,7 +120,8 @@ void main() {
     // Deletion is the only irreversible action in the app. It must never be a
     // single tap, and the reversible alternative belongs in the same dialog —
     // a member who wants to disappear usually wants to be hidden, not erased.
-    testWidgets('delete asks for confirmation and offers hiding instead', (
+    testWidgets('delete asks for confirmation and offers hiding instead '
+        '[case:common.account_data.delete_your_account.action]', (
       tester,
     ) async {
       await _pumpScreen(tester, _normal);

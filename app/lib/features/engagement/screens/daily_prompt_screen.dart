@@ -105,6 +105,7 @@ class _DailyPromptScreenState extends ConsumerState<DailyPromptScreen> {
                         ),
                         const SizedBox(height: 8),
                         TextField(
+                          key: const ValueKey('qa.daily_prompt.answer'),
                           controller: _answerController,
                           minLines: 3,
                           maxLines: 4,
@@ -146,6 +147,7 @@ class _DailyPromptScreenState extends ConsumerState<DailyPromptScreen> {
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
+                            key: const ValueKey('qa.daily_prompt.submit'),
                             onPressed:
                                 state.isSubmitting ||
                                     (answer != null && !answer.canEdit)

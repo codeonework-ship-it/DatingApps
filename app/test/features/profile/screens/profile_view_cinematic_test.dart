@@ -133,9 +133,7 @@ class _TabHarness extends StatelessWidget {
 void main() {
   // AND-11: the tab stack keeps Profile alive; coming back to it must start
   // at the title sequence, not where the member last scrolled.
-  testWidgets('returning to the Profile tab starts at the top', (
-    tester,
-  ) async {
+  testWidgets('returning to the Profile tab starts at the top', (tester) async {
     final active = ValueNotifier<bool>(true);
     addTearDown(active.dispose);
     await _pump(tester, _TabHarness(active));

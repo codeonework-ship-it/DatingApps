@@ -146,8 +146,10 @@ class EmergencyContactsNotifier extends AsyncNotifier<List<EmergencyContact>> {
       );
       return _contactsFromApi(userId, response.data);
     } on DioException catch (e, stackTrace) {
+      // Surface the failure: an empty list would invite the member to add
+      // contacts they already have (and hit the 3-contact limit).
       log.error('Failed to fetch emergency contacts', e, stackTrace);
-      return state.valueOrNull ?? const <EmergencyContact>[];
+      rethrow;
     }
   }
 

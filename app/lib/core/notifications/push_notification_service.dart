@@ -32,9 +32,14 @@ final pushNotificationServiceProvider = Provider<PushNotificationService>(
 );
 
 class PushNotificationService {
-  PushNotificationService(this._api);
+  /// [deleteDeviceToken] replaces the Firebase token deletion in tests.
+  PushNotificationService(
+    this._api, {
+    @visibleForTesting Future<void> Function()? deleteDeviceToken,
+  }) : _deleteDeviceTokenOverride = deleteDeviceToken;
 
   final Dio _api;
+  final Future<void> Function()? _deleteDeviceTokenOverride;
   StreamSubscription<String>? _tokenRefresh;
   StreamSubscription<RemoteMessage>? _opened;
   String? _activeUserId;
@@ -103,6 +108,13 @@ class PushNotificationService {
     }
   }
 
+  /// Stops this device receiving [userId]'s pushes when they sign out.
+  ///
+  /// Deletes the device record on the server, then deletes the device's push
+  /// token itself. The second step matters when the first fails (offline, or
+  /// the server is down): the record would otherwise keep delivering this
+  /// member's pushes to the next person who uses the device. A new token is
+  /// issued when someone signs in again.
   Future<void> unregister(String userId) async {
     if (!AppRuntimeConfig.pushNotificationsConfigured) {
       if (_activeUserId == userId) {
@@ -119,10 +131,55 @@ class PushNotificationService {
         log.warning('push_unregister_failed', error, stackTrace);
       }
     }
+    await _forget(userId, preferences);
+  }
+
+  /// Like [unregister], for when the server has already ended every session
+  /// (sign out of all devices): a revoked credential cannot delete the device
+  /// record, so only the device's push token is deleted.
+  Future<void> forgetDevice(String userId) async {
+    if (!AppRuntimeConfig.pushNotificationsConfigured) {
+      if (_activeUserId == userId) {
+        _activeUserId = null;
+      }
+      return;
+    }
+    await _forget(userId, await SharedPreferences.getInstance());
+  }
+
+  Future<void> _forget(String userId, SharedPreferences preferences) async {
     await preferences.remove(_deviceIdKey(userId));
     await preferences.remove(_tokenKey(userId));
     if (_activeUserId == userId) {
+      // Before the token is deleted: a refreshed token must not be
+      // registered for the member who is leaving.
       _activeUserId = null;
+    }
+    await _deleteDeviceToken();
+  }
+
+  /// Deletes the FCM token so nothing sent to it reaches this device again.
+  /// Never fails sign-out: errors are logged and swallowed. Skipped on the
+  /// web and desktop, where this service never registers a token.
+  Future<void> _deleteDeviceToken() async {
+    final override = _deleteDeviceTokenOverride;
+    if (override == null && !_supported) {
+      return;
+    }
+    try {
+      if (override != null) {
+        await override();
+        return;
+      }
+      // Only when this process set up Firebase (it does so whenever a
+      // member is signed in to the main app): starting it just to sign out
+      // could stall sign-out on a missing or slow platform plugin.
+      if (Firebase.apps.isEmpty) {
+        return;
+      }
+      await FirebaseMessaging.instance.deleteToken();
+    } on Object catch (error, stackTrace) {
+      log.warning('push_token_delete_failed', error, stackTrace);
     }
   }
 

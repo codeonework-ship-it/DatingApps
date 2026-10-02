@@ -34,6 +34,7 @@ class VerificationStatusScreen extends ConsumerWidget {
                         const Center(child: CircularProgressIndicator()),
                     error: (_, _) => Center(
                       child: TextButton(
+                        key: const ValueKey('qa.verification.status.retry'),
                         onPressed: () =>
                             ref.invalidate(verificationNotifierProvider),
                         child: Text(l10n.verificationRetry),

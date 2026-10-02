@@ -4,11 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:record/record.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../matching/providers/match_provider.dart';
 import '../engagement_l10n.dart';
+import '../providers/voice_audio_devices.dart';
 import '../providers/voice_icebreaker_provider.dart';
 
 class VoiceIcebreakersScreen extends ConsumerStatefulWidget {
@@ -27,7 +27,7 @@ class VoiceIcebreakersScreen extends ConsumerStatefulWidget {
 class _VoiceIcebreakersScreenState
     extends ConsumerState<VoiceIcebreakersScreen> {
   final _transcriptController = TextEditingController();
-  final AudioRecorder _recorder = AudioRecorder();
+  late final VoiceRecorder _recorder;
   String? _matchId, _receiverId, _partnerName, _selectedPromptId;
   int _durationSeconds = 0;
   XFile? _recording;
@@ -37,6 +37,7 @@ class _VoiceIcebreakersScreenState
   @override
   void initState() {
     super.initState();
+    _recorder = ref.read(voiceRecorderFactoryProvider)();
     _matchId = widget.matchId;
     _receiverId = widget.receiverUserId;
     _partnerName = widget.partnerName;
@@ -99,6 +100,7 @@ class _VoiceIcebreakersScreenState
                     children: [
                       Text(l.engagementVoiceConversationsLoadFailed),
                       TextButton(
+                        key: const ValueKey('qa.voice.retry_conversations'),
                         onPressed: () => ref.invalidate(matchNotifierProvider),
                         child: Text(l.chatTryAgain),
                       ),
@@ -160,6 +162,7 @@ class _VoiceIcebreakersScreenState
                             const LinearProgressIndicator()
                           else
                             DropdownButtonFormField<String>(
+                              key: const ValueKey('qa.voice.prompt'),
                               isExpanded: true,
                               initialValue: promptId,
                               decoration: InputDecoration(
@@ -228,6 +231,7 @@ class _VoiceIcebreakersScreenState
                                   : l.engagementVoiceRecordingShort,
                             ),
                             TextButton(
+                              key: const ValueKey('qa.voice.discard'),
                               onPressed: state.isSubmitting
                                   ? null
                                   : () => setState(() {
@@ -246,6 +250,7 @@ class _VoiceIcebreakersScreenState
                             ),
                           const SizedBox(height: 16),
                           FilledButton(
+                            key: const ValueKey('qa.voice.share'),
                             onPressed:
                                 state.isSubmitting ||
                                     _isRecording ||
@@ -319,6 +324,7 @@ class _VoiceIcebreakersScreenState
                           children: [
                             Text(l.engagementVoiceIntrosLoadFailed),
                             TextButton(
+                              key: const ValueKey('qa.voice.retry_intros'),
                               onPressed: () => ref.invalidate(
                                 voiceIntroductionsProvider(_matchId!),
                               ),
@@ -375,6 +381,9 @@ class _VoiceIcebreakersScreenState
                                             SelectableText(item.transcript),
                                             const SizedBox(height: 12),
                                             OutlinedButton.icon(
+                                              key: ValueKey(
+                                                'qa.voice.listen.${item.id}',
+                                              ),
                                               onPressed:
                                                   state.isPlaying &&
                                                       state.lastItem?.id ==
@@ -420,6 +429,7 @@ class _VoiceIcebreakersScreenState
                   ),
                   if (prompts.isEmpty)
                     TextButton(
+                      key: const ValueKey('qa.voice.reload_prompts'),
                       onPressed: notifier.loadPrompts,
                       child: Text(l.engagementVoiceReloadPrompts),
                     ),
@@ -454,15 +464,7 @@ class _VoiceIcebreakersScreenState
       final outputPath = kIsWeb
           ? filename
           : '${(await getTemporaryDirectory()).path}/$filename';
-      await _recorder.start(
-        RecordConfig(
-          encoder: kIsWeb ? AudioEncoder.opus : AudioEncoder.aacLc,
-          numChannels: 1,
-          sampleRate: 48000,
-          bitRate: 96000,
-        ),
-        path: outputPath,
-      );
+      await _recorder.start(outputPath);
       if (!mounted) return;
       setState(() => _isRecording = true);
       _recordingTimer?.cancel();

@@ -686,7 +686,10 @@ class _CommentThreadSectionState extends ConsumerState<CommentThreadSection> {
 
   Future<void> send() async {
     final text = composer.text.trim();
-    if (sending || text.isEmpty || text.length > blogCommentMaxLength) return;
+    // The server counts characters (runes), not UTF-16 units: an emoji is one.
+    if (sending || text.isEmpty || text.runes.length > blogCommentMaxLength) {
+      return;
+    }
     if (idFor != text) {
       commentId = const Uuid().v4();
       idFor = text;
@@ -767,22 +770,29 @@ class _CommentThreadSectionState extends ConsumerState<CommentThreadSection> {
     }
   }
 
-  Future<void> report(BlogComment comment) => showReportUserSheet(
-    context: context,
-    onSubmit: ({required reason, description}) async {
-      try {
-        final response = await ref
-            .read(apiClientProvider)
-            .post<dynamic>(
-              '/blog/reports/${thread.reportKind}/${comment.id}',
-              data: {'reason': reason, 'description': description ?? ''},
-            );
-        return ((response.data as Map)['report'] as Map?)?['id']?.toString();
-      } on Object catch (e) {
-        throw Exception(apiErrorMessage(e, fallback: l10n.blogReportFailed));
-      }
-    },
-  );
+  Future<void> report(BlogComment comment) async {
+    // The report id may legitimately be null, so only confirm what was sent.
+    var submitted = false;
+    await showReportUserSheet(
+      context: context,
+      onSubmit: ({required reason, description}) async {
+        try {
+          final response = await ref
+              .read(apiClientProvider)
+              .post<dynamic>(
+                '/blog/reports/${thread.reportKind}/${comment.id}',
+                data: {'reason': reason, 'description': description ?? ''},
+              );
+          submitted = true;
+          return ((response.data as Map)['report'] as Map?)?['id']?.toString();
+        } on Object catch (e) {
+          throw Exception(apiErrorMessage(e, fallback: l10n.blogReportFailed));
+        }
+      },
+    );
+    // The sheet closes on success; say so, as the other report flows do.
+    if (submitted && mounted) _snack(context, l10n.communityReportSubmitted);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -791,7 +801,7 @@ class _CommentThreadSectionState extends ConsumerState<CommentThreadSection> {
     final user = ref.watch(authNotifierProvider.select((s) => s.userId));
     final isAuthor = thread.authorId == user;
     final canComment = user != null && !isAuthor && thread.open;
-    final length = composer.text.trim().length;
+    final length = composer.text.trim().runes.length;
     final comments = ref.watch(thread.comments);
     return Column(
       key: ValueKey('$prefix.comments'),
@@ -970,6 +980,9 @@ class _BlogCommentTile extends StatelessWidget {
                 ),
                 if (canDelete || canReport)
                   PopupMenuButton<String>(
+                    key: ValueKey(
+                      'qa.$keyPrefix.comment.options.${comment.id}',
+                    ),
                     tooltip: l10n.blogCommentOptions,
                     icon: const Icon(Icons.more_vert_rounded),
                     onSelected: (v) => v == 'delete' ? onDelete() : onReport(),

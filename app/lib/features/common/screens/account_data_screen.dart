@@ -84,7 +84,11 @@ class _LoadFailure extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: AppLayout.space3),
-          TextButton(onPressed: onRetry, child: Text(l10n.commonRetry)),
+          TextButton(
+            key: const ValueKey('qa.account.retry'),
+            onPressed: onRetry,
+            child: Text(l10n.commonRetry),
+          ),
         ],
       ),
     );
@@ -303,12 +307,14 @@ class _ExportDialog extends StatelessWidget {
         child: SingleChildScrollView(
           child: SelectableText(
             pretty,
+            key: const ValueKey('qa.account.export_text'),
             style: Theme.of(context).textTheme.bodySmall,
           ),
         ),
       ),
       actions: [
         TextButton(
+          key: const ValueKey('qa.account.export_copy'),
           onPressed: () async {
             await Clipboard.setData(ClipboardData(text: pretty));
             if (context.mounted) {
@@ -318,6 +324,7 @@ class _ExportDialog extends StatelessWidget {
           child: Text(l10n.commonCopy),
         ),
         TextButton(
+          key: const ValueKey('qa.account.export_close'),
           onPressed: () => Navigator.of(context).pop(),
           child: Text(l10n.commonClose),
         ),
@@ -372,10 +379,12 @@ class _DeleteCard extends ConsumerWidget {
         content: Text(l10n.accountDeleteConfirmBody),
         actions: [
           TextButton(
+            key: const ValueKey('qa.account.delete_keep'),
             onPressed: () => Navigator.of(dialogContext).pop('cancel'),
             child: Text(l10n.accountKeepMyAccount),
           ),
           TextButton(
+            key: const ValueKey('qa.account.delete_hide_instead'),
             onPressed: () => Navigator.of(dialogContext).pop('hide'),
             child: Text(l10n.accountHideInstead),
           ),

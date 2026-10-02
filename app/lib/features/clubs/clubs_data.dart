@@ -234,6 +234,12 @@ class MemberList {
   final int version;
   final bool mine;
   final List<ListItem> items;
+
+  /// The note on [titleId] when it is already on this list, else ''.
+  ///
+  /// Adding a title sends this back: the server's PUT replaces the note.
+  String noteFor(String titleId) =>
+      items.where((i) => i.title.id == titleId).firstOrNull?.note ?? '';
 }
 
 class ClubsPage {

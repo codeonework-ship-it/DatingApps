@@ -206,9 +206,11 @@ class TrustFilterNotifier extends StateNotifier<TrustFilterState> {
 }
 
 final trustFilterNotifierProvider =
-    StateNotifierProvider<TrustFilterNotifier, TrustFilterState>(
-      TrustFilterNotifier.new,
-    );
+    StateNotifierProvider<TrustFilterNotifier, TrustFilterState>((ref) {
+      // Per member: rebuilt when someone else signs in on this device.
+      watchSignedInUserId(ref);
+      return TrustFilterNotifier(ref);
+    });
 
 List<String> _asStringList(dynamic raw) {
   final list = (raw as List?) ?? const [];

@@ -113,20 +113,73 @@ class _LayoutDraft extends ProfileSetupNotifier {
   Future<ProfileDraft> build() async => qaProfileDraft();
 }
 
-Dio _layoutApi() {
+/// The fixture draft, fetched through the API like the real notifier does
+/// (`GET /profile/<id>/draft`), so the dead-control audit sees a reload of
+/// the draft (for example Edit Profile's Refresh) as the request it is.
+class _AuditDraft extends ProfileSetupNotifier {
+  @override
+  Future<ProfileDraft> build() async {
+    final userId = ref.watch(authNotifierProvider).userId;
+    await ref.read(apiClientProvider).get<dynamic>('/profile/$userId/draft');
+    return qaProfileDraft();
+  }
+}
+
+Dio _layoutApi({
+  void Function(RequestOptions request)? onRequest,
+  bool fixtures = false,
+}) {
   final dio = Dio(BaseOptions(baseUrl: 'https://layout.invalid'));
   dio.interceptors.add(
     InterceptorsWrapper(
-      onRequest: (o, h) => h.resolve(
-        Response<dynamic>(
-          requestOptions: o,
-          statusCode: 200,
-          data: <String, dynamic>{},
-        ),
-      ),
+      onRequest: (o, h) {
+        onRequest?.call(o);
+        h.resolve(
+          Response<dynamic>(
+            requestOptions: o,
+            statusCode: 200,
+            data: fixtures
+                ? screenMatrixFixture(o.method, o.path) ?? <String, dynamic>{}
+                : <String, dynamic>{},
+          ),
+        );
+      },
     ),
   );
   return dio;
+}
+
+/// Canned API answers that let screens show the controls they render only
+/// with data (list rows, cards, actions). Keyed `'METHOD /path'`; a `*`
+/// segment matches any one segment. Opt-in via
+/// `screenMatrixOverrides(fixtures: true)` so the layout and golden suites
+/// keep their empty-answer baseline.
+final Map<String, Object? Function()> screenMatrixFixtures = {};
+
+/// The fixture for a request, or null for the default empty answer.
+Object? screenMatrixFixture(String method, String path) {
+  var p = path;
+  final q = p.indexOf('?');
+  if (q >= 0) p = p.substring(0, q);
+  if (p.startsWith('/v1/')) p = p.substring(3);
+  final exact = screenMatrixFixtures['$method $p'];
+  if (exact != null) return exact();
+  final segments = p.split('/');
+  for (final entry in screenMatrixFixtures.entries) {
+    final space = entry.key.indexOf(' ');
+    if (entry.key.substring(0, space) != method) continue;
+    final pattern = entry.key.substring(space + 1).split('/');
+    if (pattern.length != segments.length) continue;
+    var match = true;
+    for (var i = 0; i < pattern.length; i++) {
+      if (pattern[i] != '*' && pattern[i] != segments[i]) {
+        match = false;
+        break;
+      }
+    }
+    if (match) return entry.value();
+  }
+  return null;
 }
 
 /// Every device size the app ships to.
@@ -300,14 +353,25 @@ Map<String, Widget Function()> buildScreenMatrix() {
 
 /// Offline fixtures (signed-in member, draft, master data, canned API) so a
 /// screen renders its real content without a backend.
-List<Override> screenMatrixOverrides() => [
+///
+/// [onRequest] sees every API request (the dead-control audit records them);
+/// [fixtures] answers known endpoints from [screenMatrixFixtures] instead of
+/// an empty object.
+List<Override> screenMatrixOverrides({
+  void Function(RequestOptions request)? onRequest,
+  bool fixtures = false,
+}) => [
   authNotifierProvider.overrideWith(_LayoutAuth.new),
-  profileSetupNotifierProvider.overrideWith(_LayoutDraft.new),
+  profileSetupNotifierProvider.overrideWith(
+    fixtures ? _AuditDraft.new : _LayoutDraft.new,
+  ),
   preferenceMasterDataProvider.overrideWith(
     (ref) async => PreferenceMasterData.localFallback(),
   ),
   preferenceMasterDataOfflineProvider.overrideWith((ref) => false),
-  apiClientProvider.overrideWithValue(_layoutApi()),
+  apiClientProvider.overrideWithValue(
+    _layoutApi(onRequest: onRequest, fixtures: fixtures),
+  ),
 ];
 
 /// True for the errors this harness exists to catch.

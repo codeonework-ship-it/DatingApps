@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/network/api_error_message.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
 import '../../../l10n/app_localizations.dart';
@@ -63,6 +64,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     ),
                     actions: [
                       IconButton(
+                        key: const ValueKey('qa.edit_profile.refresh'),
                         tooltip: AppLocalizations.of(
                           context,
                         ).profileEditRefreshTooltip,
@@ -85,7 +87,12 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                           child: Padding(
                             padding: const EdgeInsets.all(4),
                             child: SetupErrorState(
-                              message: error.toString(),
+                              message: apiErrorMessage(
+                                error,
+                                fallback: AppLocalizations.of(
+                                  context,
+                                ).commonSomethingWentWrongTryAgain,
+                              ),
                               onRetry: () =>
                                   ref.invalidate(profileSetupNotifierProvider),
                             ),
@@ -134,6 +141,7 @@ class _EditProfileContent extends StatelessWidget {
         _PhotoGallerySection(draft: draft),
         const SizedBox(height: 16),
         _InfoSection(
+          actionKey: const ValueKey('qa.edit_profile.about_you'),
           title: l10n.profileEditAboutYou,
           icon: Icons.person_outline_rounded,
           actionLabel: l10n.profileEditEditAbout,
@@ -161,6 +169,7 @@ class _EditProfileContent extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         _InfoSection(
+          actionKey: const ValueKey('qa.edit_profile.location_social'),
           title: l10n.profileEditLocationSocial,
           icon: Icons.location_on_outlined,
           actionLabel: l10n.profileEditEditPreferences,
@@ -174,6 +183,7 @@ class _EditProfileContent extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         _InfoSection(
+          actionKey: const ValueKey('qa.edit_profile.dating_preferences'),
           title: l10n.profileEditDatingPreferences,
           icon: Icons.favorite_border_rounded,
           actionLabel: l10n.profileEditEditPreferences,
@@ -218,6 +228,7 @@ class _EditProfileContent extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         _InfoSection(
+          actionKey: const ValueKey('qa.edit_profile.lifestyle'),
           title: l10n.profileSetupLifestyleTitle,
           icon: Icons.spa_outlined,
           actionLabel: l10n.profileEditEditPreferences,
@@ -241,6 +252,7 @@ class _EditProfileContent extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         _InfoSection(
+          actionKey: const ValueKey('qa.edit_profile.interests_details'),
           title: l10n.profileEditInterestsDetails,
           icon: Icons.auto_awesome_rounded,
           actionLabel: l10n.profileEditEditPreferences,
@@ -467,6 +479,7 @@ class _PhotoGallerySection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _SectionHeader(
+          actionKey: const ValueKey('qa.edit_profile.photo_gallery'),
           title: AppLocalizations.of(context).profileEditPhotoGallery,
           icon: Icons.photo_library_outlined,
           actionLabel: AppLocalizations.of(context).profileEditManagePhotos,
@@ -549,6 +562,7 @@ class _PhotoGallerySection extends StatelessWidget {
 
 class _InfoSection extends StatelessWidget {
   const _InfoSection({
+    required this.actionKey,
     required this.title,
     required this.icon,
     required this.actionLabel,
@@ -562,6 +576,9 @@ class _InfoSection extends StatelessWidget {
   final VoidCallback onAction;
   final List<_InfoRow> rows;
 
+  /// Automation key for the section's edit action.
+  final Key actionKey;
+
   @override
   Widget build(BuildContext context) => GlassContainer(
     padding: const EdgeInsets.all(16),
@@ -569,6 +586,7 @@ class _InfoSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _SectionHeader(
+          actionKey: actionKey,
           title: title,
           icon: icon,
           actionLabel: actionLabel,
@@ -583,6 +601,7 @@ class _InfoSection extends StatelessWidget {
 
 class _SectionHeader extends StatelessWidget {
   const _SectionHeader({
+    required this.actionKey,
     required this.title,
     required this.icon,
     required this.actionLabel,
@@ -593,6 +612,9 @@ class _SectionHeader extends StatelessWidget {
   final IconData icon;
   final String actionLabel;
   final VoidCallback onAction;
+
+  /// Automation key for the edit action.
+  final Key actionKey;
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
@@ -625,6 +647,7 @@ class _SectionHeader extends StatelessWidget {
         ],
       );
       final action = TextButton(
+        key: actionKey,
         onPressed: onAction,
         child: Text(
           actionLabel,

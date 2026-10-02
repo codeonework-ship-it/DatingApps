@@ -20,6 +20,7 @@ import '../models/discovery_profile.dart';
 import '../models/discovery_notification_item.dart';
 import '../../payment/providers/entitlements_provider.dart';
 import '../../payment/screens/subscription_screen.dart';
+import '../profile_actions.dart';
 import '../providers/curated_daily_set_provider.dart';
 import '../providers/liked_me_provider.dart';
 import '../providers/swipe_provider.dart';
@@ -167,77 +168,29 @@ class _HomeDiscoveryScreenState extends ConsumerState<HomeDiscoveryScreen>
     }
   }
 
-  Future<void> _openConversation({
-    required DiscoveryProfile profile,
-    required SwipeNotifier notifier,
-  }) async {
-    final matchState = ref.read(matchNotifierProvider);
-    Match? selected;
-    for (final m in matchState.matches) {
-      if (m.userId == profile.id) {
-        selected = m;
-        break;
-      }
-    }
-    if (selected == null) {
-      final matchId = await notifier.likeProfile();
-      if (!mounted) return;
-      final result = ref.read(swipeNotifierProvider);
-      if (result.error != null || result.dailyLimit != null) {
-        if (result.error != null)
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                localizeDiscoverMessage(
-                  AppLocalizations.of(context),
-                  result.error!,
-                ),
-              ),
-            ),
-          );
-        return;
-      }
-      ref.invalidate(curatedDailySetProvider);
-      if (matchId != null && matchId.trim().isNotEmpty) {
-        selected = Match(
-          id: matchId,
-          userId: profile.id,
-          userName: profile.name,
-          userPhoto: profile.photoUrls.isNotEmpty
-              ? profile.photoUrls.first
-              : '',
-          lastMessage: AppLocalizations.of(
-            context,
-          ).discoverMatchPlaceholderMessage,
-          lastMessageTime: DateTime.now(),
-          unreadCount: 0,
-          isOnline: false,
-        );
-        await ref.read(matchNotifierProvider.notifier).refresh();
-      }
-    }
+  /// Passes on the top card. A pass the server refused puts the card back;
+  /// say so, or the member sees the same face again with no explanation.
+  Future<void> _handlePass(SwipeNotifier notifier) async {
+    await notifier.passProfile();
     if (!mounted) return;
-    if (selected == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
+    final error = ref.read(swipeNotifierProvider).error;
+    if (error == null) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
         SnackBar(
           content: Text(
-            AppLocalizations.of(context).discoverChatNeedsMatch(profile.name),
+            localizeDiscoverMessage(AppLocalizations.of(context), error),
           ),
         ),
       );
-      return;
-    }
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => ChatScreen(
-          matchId: selected!.id,
-          otherUserId: selected.userId,
-          userName: selected.userName,
-          userPhotoUrl: selected.userPhoto,
-        ),
-      ),
-    );
   }
+
+  /// The deck's Message button: the same action as the profile page.
+  Future<void> _openConversation({
+    required DiscoveryProfile profile,
+    required SwipeNotifier notifier,
+  }) => ProfileActions.message(context, ref, profile);
 
   Future<void> _showDailyLimitSheet(
     BuildContext context,
@@ -275,6 +228,7 @@ class _HomeDiscoveryScreenState extends ConsumerState<HomeDiscoveryScreen>
             ),
             const SizedBox(height: 20),
             FilledButton(
+              key: const ValueKey('qa.discovery.daily_limit.see_plans'),
               onPressed: () {
                 Navigator.of(sheetContext).pop();
                 Navigator.of(context).push(
@@ -286,6 +240,7 @@ class _HomeDiscoveryScreenState extends ConsumerState<HomeDiscoveryScreen>
               child: Text(l10n.discoverSeePlans),
             ),
             TextButton(
+              key: const ValueKey('qa.discovery.daily_limit.not_now'),
               onPressed: () => Navigator.of(sheetContext).pop(),
               child: Text(l10n.discoverNotNow),
             ),
@@ -352,6 +307,7 @@ class _HomeDiscoveryScreenState extends ConsumerState<HomeDiscoveryScreen>
           appBar: _browsing && !widget.browseOnly
               ? AppBar(
                   leading: IconButton(
+                    key: const ValueKey('qa.discovery.back_to_today'),
                     tooltip: AppLocalizations.of(context).discoverBackToToday,
                     onPressed: () => setState(() => _browsing = false),
                     icon: const Icon(Icons.arrow_back_rounded),
@@ -406,39 +362,24 @@ class _HomeDiscoveryScreenState extends ConsumerState<HomeDiscoveryScreen>
     );
   }
 
-  Future<void> _openSpotlightProfile(DiscoveryProfile p) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => ProfileDetailsScreen(profile: p)),
-    );
-  }
+  Future<void> _openSpotlightProfile(DiscoveryProfile p) =>
+      _openTodayProfile(p);
 
   /// A curated pick opens the same profile detail the deck uses. When the
   /// member is still in the deck the deck jumps to their card, so a love or
   /// message chosen on the detail screen acts on that member and not on
   /// whoever happened to be on top.
   Future<void> _openTodayProfile(DiscoveryProfile p) async {
-    final notifier = ref.read(swipeNotifierProvider.notifier);
-    notifier.selectIntroduction(p);
-    unawaited(notifier.recordProfileView(p.id));
+    unawaited(ref.read(swipeNotifierProvider.notifier).recordProfileView(p.id));
+    // The profile page performs Love and Message itself (ProfileActions);
+    // a saved Love only needs the celebration here.
     final action = await Navigator.of(context).push<ProfileDetailsAction>(
       MaterialPageRoute<ProfileDetailsAction>(
         builder: (_) => ProfileDetailsScreen(profile: p),
       ),
     );
-    if (!mounted || !notifier.selectProfile(p.id)) {
-      return;
-    }
-    if (action == ProfileDetailsAction.love) {
-      await _runLocked(
-        () => _handleLike(
-          notifier: notifier,
-          profile: p,
-          isSuperLike: true,
-          showSnack: true,
-        ),
-      );
-    } else if (action == ProfileDetailsAction.message) {
-      await _runLocked(() => _openConversation(profile: p, notifier: notifier));
+    if (mounted && action == ProfileDetailsAction.love) {
+      await _triggerLikeBurst(isSuperLike: true);
     }
   }
 
@@ -643,7 +584,7 @@ class _HomeDiscoveryScreenState extends ConsumerState<HomeDiscoveryScreen>
       swipeNotifier: swipeNotifier,
       isActionBusy: _isActionBusy,
       cardMaxWidth: cardMaxWidth,
-      onPass: () => _runLocked(swipeNotifier.passProfile),
+      onPass: () => _runLocked(() => _handlePass(swipeNotifier)),
       onLike: () => _runLocked(
         () => _handleLike(
           notifier: swipeNotifier,
@@ -667,28 +608,15 @@ class _HomeDiscoveryScreenState extends ConsumerState<HomeDiscoveryScreen>
       cardFlipToken: _cardFlipToken,
       onOpenProfile: () async {
         swipeNotifier.recordProfileView(currentProfile.id);
+        // The profile page performs Love and Message itself and takes the
+        // member out of the deck; only the celebration happens here.
         final action = await Navigator.of(context).push<ProfileDetailsAction>(
           MaterialPageRoute<ProfileDetailsAction>(
             builder: (_) => ProfileDetailsScreen(profile: currentProfile),
           ),
         );
-        if (!context.mounted) return;
-        if (action == ProfileDetailsAction.love) {
-          await _runLocked(
-            () => _handleLike(
-              notifier: swipeNotifier,
-              profile: currentProfile,
-              isSuperLike: true,
-              showSnack: true,
-            ),
-          );
-        } else if (action == ProfileDetailsAction.message) {
-          await _runLocked(
-            () => _openConversation(
-              profile: currentProfile,
-              notifier: swipeNotifier,
-            ),
-          );
+        if (context.mounted && action == ProfileDetailsAction.love) {
+          await _triggerLikeBurst(isSuperLike: true);
         }
       },
     );
@@ -851,6 +779,7 @@ class _DesktopDiscoverHeader extends StatelessWidget {
             label: Text(count > 9 ? '9+' : '$count'),
             backgroundColor: scheme.primary,
             child: IconButton.outlined(
+              key: const ValueKey('qa.discovery.notifications_button'),
               onPressed: () => showDialog<void>(
                 context: context,
                 builder: (_) => Dialog(
@@ -1034,14 +963,16 @@ class _DesktopDiscoverAside extends StatelessWidget {
                         ),
                       ),
                       TextButton(
+                        key: const ValueKey('qa.spotlight.rail.view_all'),
                         onPressed: onViewSpotlight,
                         child: Text(l10n.discoverViewAll),
                       ),
                     ],
                   ),
                   const SizedBox(height: 4),
-                  for (final p in spotlightProfiles.take(4))
+                  for (final (i, p) in spotlightProfiles.take(4).indexed)
                     _SpotlightRow(
+                      key: ValueKey('qa.spotlight.rail.row.$i'),
                       profile: p,
                       onTap: () => onOpenSpotlightProfile(p),
                     ),
@@ -1132,7 +1063,7 @@ class _DeckStat extends StatelessWidget {
 }
 
 class _SpotlightRow extends StatelessWidget {
-  const _SpotlightRow({required this.profile, required this.onTap});
+  const _SpotlightRow({required this.profile, required this.onTap, super.key});
   final DiscoveryProfile profile;
   final VoidCallback onTap;
 
@@ -1841,6 +1772,7 @@ class _NotificationBell extends StatelessWidget {
           ? AppLocalizations.of(context).discoverNotificationsUnread(count)
           : AppLocalizations.of(context).notificationsTitle,
       child: GestureDetector(
+        key: const ValueKey('qa.discovery.notifications_button'),
         onTap: onTap,
         child: Container(
           constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
@@ -2087,6 +2019,7 @@ class _SpotlightRail extends StatelessWidget {
                 ),
               ),
               TextButton(
+                key: const ValueKey('qa.spotlight.rail.view_more'),
                 onPressed: onViewMore,
                 style: TextButton.styleFrom(
                   visualDensity: VisualDensity.compact,
@@ -2116,6 +2049,7 @@ class _SpotlightRail extends StatelessWidget {
               itemBuilder: (context, index) {
                 final p = items[index];
                 return GestureDetector(
+                  key: ValueKey('qa.spotlight.rail.card.$index'),
                   onTap: () => onOpenProfile(p),
                   child: SizedBox(
                     width: cardW,
@@ -2243,6 +2177,7 @@ class _TodayRail extends ConsumerWidget {
           Align(
             alignment: Alignment.centerRight,
             child: TextButton.icon(
+              key: const ValueKey('qa.discover.today.fits_your_week'),
               onPressed: () => openDatingRhythm(context),
               icon: const Icon(Icons.tune, size: 18),
               label: Text(l10n.discoverFitsYourWeek),

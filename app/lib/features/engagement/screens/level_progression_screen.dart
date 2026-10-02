@@ -23,89 +23,108 @@ class LevelProgressionScreen extends ConsumerWidget {
       body: PostLoginBackdrop(
         child: SafeArea(
           top: false,
-          child: RefreshIndicator(
-            onRefresh: ref.read(levelProgressionProvider.notifier).load,
-            child: ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(16),
-              children: [
-                if (state.isLoading && view == null)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 80),
-                    child: Center(child: CircularProgressIndicator()),
-                  )
-                else if (view != null) ...[
-                  _LevelHero(view: view),
-                  if (view.frozen)
-                    _Notice(
-                      icon: Icons.shield_outlined,
-                      text: l.engagementLevelFrozen,
-                    ),
-                  if (!view.trustGateSatisfied && view.currentLevel >= 4)
-                    _Notice(
-                      icon: Icons.verified_user_outlined,
-                      text: l.engagementLevelTrustGate,
-                    ),
-                  const SizedBox(height: 16),
-                  _SectionTitle(
-                    title: l.engagementLevelPathTitle,
-                    subtitle: l.engagementLevelPathSubtitle,
-                  ),
-                  ...view.levels.map(
-                    (item) => _LevelRow(
-                      definition: item,
-                      currentLevel: view.currentLevel,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  _SectionTitle(
-                    title: l.engagementLevelRewardsTitle,
-                    subtitle: l.engagementLevelRewardsSubtitle,
-                  ),
-                  ...view.rewards.map(
-                    (reward) => _RewardCard(
-                      reward: reward,
-                      unlocked: view.currentLevel >= reward.level,
-                      trustSatisfied: view.trustGateSatisfied,
-                      frozen: view.frozen,
-                      claiming: state.claimingReward == reward.key,
-                      onClaim: () async {
-                        final claimed = await ref
-                            .read(levelProgressionProvider.notifier)
-                            .claimReward(reward.key);
-                        if (context.mounted && claimed) {
-                          unawaited(
-                            showRewardBurst(
-                              context,
-                              RewardBurst.rewardClaimed(
-                                reward.name,
-                                description: reward.description,
-                              ),
-                            ),
-                          );
-                        }
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  _SectionTitle(
-                    title: l.engagementLevelRecentTitle,
-                    subtitle: l.engagementLevelRecentSubtitle,
-                  ),
-                  if (state.ledger.isEmpty)
-                    const _EmptyLedger()
-                  else
-                    ...state.ledger.map(_XPRow.new),
-                ],
-                if (state.error != null) ...[
-                  const SizedBox(height: 12),
-                  _ErrorCard(
+          child: Column(
+            children: [
+              // With progress on screen, an error (a failed claim or
+              // refresh) stays in view above it; it used to appear after the
+              // last ledger row, off screen.
+              if (state.error != null && view != null)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                  child: _ErrorCard(
                     message: state.error!,
                     onRetry: ref.read(levelProgressionProvider.notifier).load,
                   ),
-                ],
-              ],
-            ),
+                ),
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: ref.read(levelProgressionProvider.notifier).load,
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      if (state.isLoading && view == null)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 80),
+                          child: Center(child: CircularProgressIndicator()),
+                        )
+                      else if (view != null) ...[
+                        _LevelHero(view: view),
+                        if (view.frozen)
+                          _Notice(
+                            icon: Icons.shield_outlined,
+                            text: l.engagementLevelFrozen,
+                          ),
+                        if (!view.trustGateSatisfied && view.currentLevel >= 4)
+                          _Notice(
+                            icon: Icons.verified_user_outlined,
+                            text: l.engagementLevelTrustGate,
+                          ),
+                        const SizedBox(height: 16),
+                        _SectionTitle(
+                          title: l.engagementLevelPathTitle,
+                          subtitle: l.engagementLevelPathSubtitle,
+                        ),
+                        ...view.levels.map(
+                          (item) => _LevelRow(
+                            definition: item,
+                            currentLevel: view.currentLevel,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        _SectionTitle(
+                          title: l.engagementLevelRewardsTitle,
+                          subtitle: l.engagementLevelRewardsSubtitle,
+                        ),
+                        ...view.rewards.map(
+                          (reward) => _RewardCard(
+                            reward: reward,
+                            unlocked: view.currentLevel >= reward.level,
+                            trustSatisfied: view.trustGateSatisfied,
+                            frozen: view.frozen,
+                            claiming: state.claimingReward == reward.key,
+                            onClaim: () async {
+                              final claimed = await ref
+                                  .read(levelProgressionProvider.notifier)
+                                  .claimReward(reward.key);
+                              if (context.mounted && claimed) {
+                                unawaited(
+                                  showRewardBurst(
+                                    context,
+                                    RewardBurst.rewardClaimed(
+                                      reward.name,
+                                      description: reward.description,
+                                    ),
+                                  ),
+                                );
+                              }
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        _SectionTitle(
+                          title: l.engagementLevelRecentTitle,
+                          subtitle: l.engagementLevelRecentSubtitle,
+                        ),
+                        if (state.ledger.isEmpty)
+                          const _EmptyLedger()
+                        else
+                          ...state.ledger.map(_XPRow.new),
+                      ],
+                      if (state.error != null && view == null) ...[
+                        const SizedBox(height: 12),
+                        _ErrorCard(
+                          message: state.error!,
+                          onRetry: ref
+                              .read(levelProgressionProvider.notifier)
+                              .load,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -361,6 +380,7 @@ class _RewardCard extends StatelessWidget {
             Align(
               alignment: Alignment.centerRight,
               child: FilledButton.tonalIcon(
+                key: ValueKey('qa.level.claim.${reward.key}'),
                 onPressed: canClaim && !claiming ? onClaim : null,
                 icon: claiming
                     ? const SizedBox.square(
@@ -449,6 +469,7 @@ class _ErrorCard extends StatelessWidget {
       leading: const Icon(Icons.error_outline_rounded),
       title: Text(message),
       trailing: TextButton(
+        key: const ValueKey('qa.level.retry'),
         onPressed: onRetry,
         child: Text(engagementL10n(context).commonRetry),
       ),

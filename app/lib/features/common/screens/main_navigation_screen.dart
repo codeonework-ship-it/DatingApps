@@ -21,6 +21,7 @@ import '../../engagement/screens/engagement_hub_screen.dart';
 import '../../engagement/screens/match_nudges_screen.dart';
 import '../../friends/screens/friends_screen.dart';
 import '../../matching/providers/match_provider.dart';
+import '../../matching/matching_l10n.dart';
 import '../../matching/providers/trust_filter_provider.dart';
 import '../../matching/screens/matches_list_screen.dart';
 import '../../notifications/providers/notification_provider.dart';
@@ -28,6 +29,7 @@ import '../../notifications/screens/notification_inbox_screen.dart';
 import '../../plans/screens/plans_screen.dart';
 import '../../profile/providers/preference_master_data_provider.dart';
 import '../../profile/screens/edit_profile_screen.dart';
+import '../../auth/providers/auth_provider.dart';
 import '../../profile/screens/profile_view_screen.dart';
 import '../../profile/providers/profile_setup_provider.dart';
 import '../../profile/screens/setup/setup_preferences_screen.dart';
@@ -37,7 +39,12 @@ import '../../swipe/screens/liked_me_screen.dart';
 import '../../support/support_routes.dart';
 import '../../verification/screens/verification_upload_id_screen.dart';
 
-final mainNavigationIndexProvider = StateProvider<int>((ref) => 0);
+/// The selected tab. Every member's session starts on Today: signing out,
+/// or someone else signing in on this device, returns it to 0.
+final mainNavigationIndexProvider = StateProvider<int>((ref) {
+  watchSignedInUserId(ref);
+  return 0;
+});
 
 class MainNavigationScreen extends ConsumerStatefulWidget {
   const MainNavigationScreen({super.key});
@@ -552,6 +559,9 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
     final banner = _banner = messenger.showSnackBar(
       SnackBar(
         content: Text('${notification.title}: ${notification.body}'),
+        // Flutter keeps snack bars with an action up until tapped;
+        // let this one time out so it never covers the screen.
+        persist: false,
         action: SnackBarAction(
           label: AppLocalizations.of(context).commonOpen,
           onPressed: () {
@@ -1394,7 +1404,12 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                                         final selected = requiredBadgeCodes
                                             .contains(badge.code);
                                         return FilterChip(
-                                          label: Text(badge.label),
+                                          label: Text(
+                                            localizedTrustBadgeLabel(
+                                              l10n,
+                                              badge,
+                                            ),
+                                          ),
                                           selected: selected,
                                           onSelected: trustEnabled
                                               ? (value) {

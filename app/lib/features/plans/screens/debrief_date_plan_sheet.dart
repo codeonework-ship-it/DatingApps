@@ -261,6 +261,7 @@ Future<void> offerReportAfterUnsafeDebrief({
       content: Text(l10n.debriefUnsafeBody(plan.partnerName)),
       actions: [
         TextButton(
+          key: const ValueKey('qa.debrief.not_now'),
           onPressed: () => Navigator.of(dialogContext).pop(false),
           child: Text(l10n.debriefNotNow),
         ),

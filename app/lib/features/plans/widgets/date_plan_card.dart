@@ -64,6 +64,7 @@ class DatePlanCard extends ConsumerWidget {
               Text(l10n.planSecondYesCardBody),
               if (state.snapshot.canPropose)
                 TextButton(
+                  key: const ValueKey('qa.plan.another_hello'),
                   onPressed: () => showProposeDatePlanSheet(
                     context: context,
                     matchId: matchId,
@@ -482,6 +483,7 @@ class _Actions extends ConsumerWidget {
         content: Text(l10n.planCancelDialogBody(plan.partnerName)),
         actions: [
           TextButton(
+            key: const ValueKey('qa.plan.keep_it'),
             onPressed: () => Navigator.of(dialogContext).pop(false),
             child: Text(l10n.planKeepIt),
           ),

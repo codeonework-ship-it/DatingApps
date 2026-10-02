@@ -38,7 +38,8 @@ Dio _api() {
 }
 
 void main() {
-  testWidgets('Share crash reports is on by default and persists toggles', (
+  testWidgets('Share crash reports is on by default and persists toggles '
+      '[case:common.privacy_safety.privacy_crash_reports.action]', (
     tester,
   ) async {
     final store = MemoryClientErrorStore();

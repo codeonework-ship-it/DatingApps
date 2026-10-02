@@ -447,4 +447,8 @@ final gestureTimelineProvider =
       GestureTimelineNotifier,
       GestureTimelineState,
       String
-    >(GestureTimelineNotifier.new);
+    >((ref, matchId) {
+      // Per member: rebuilt when someone else signs in on this device.
+      watchSignedInUserId(ref);
+      return GestureTimelineNotifier(ref, matchId);
+    });

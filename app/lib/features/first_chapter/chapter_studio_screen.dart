@@ -162,10 +162,12 @@ class _ChapterStudioState extends ConsumerState<ChapterStudioScreen> {
         ),
         actions: [
           TextButton(
+            key: const ValueKey('qa.chapter.preview_keep_private'),
             onPressed: () => Navigator.pop(context, false),
             child: Text(l10n.firstChapterKeepPrivate),
           ),
           FilledButton(
+            key: const ValueKey('qa.chapter.preview_share'),
             onPressed: () => Navigator.pop(context, true),
             child: Text(
               joint
@@ -202,6 +204,7 @@ class _ChapterStudioState extends ConsumerState<ChapterStudioScreen> {
         title: Text(l10n.firstChapterStudioTitle),
         actions: [
           IconButton(
+            key: const ValueKey('qa.chapter.refresh'),
             tooltip: l10n.firstChapterRefresh,
             onPressed: busy
                 ? null
@@ -277,6 +280,7 @@ class _ChapterStudioState extends ConsumerState<ChapterStudioScreen> {
                     children: [
                       Text(l10n.firstChapterLoadFailed),
                       TextButton(
+                        key: const ValueKey('qa.chapter.retry'),
                         onPressed: () => ref.invalidate(
                           chapterResourceProvider(
                             widget.matchId == null
@@ -305,6 +309,7 @@ class _ChapterStudioState extends ConsumerState<ChapterStudioScreen> {
                           Padding(
                             padding: const EdgeInsets.only(bottom: 8),
                             child: OutlinedButton(
+                              key: ValueKey('qa.chapter.scene.${scene['id']}'),
                               onPressed: busy
                                   ? null
                                   : () => setState(() {
@@ -353,6 +358,7 @@ class _ChapterStudioState extends ConsumerState<ChapterStudioScreen> {
                             children: [
                               if (widget.matchId != null)
                                 FilledButton.icon(
+                                  key: const ValueKey('qa.chapter.start'),
                                   onPressed: busy || beginning == null
                                       ? null
                                       : () async {
@@ -370,6 +376,7 @@ class _ChapterStudioState extends ConsumerState<ChapterStudioScreen> {
                                   label: Text(l10n.firstChapterStartOurChapter),
                                 ),
                               OutlinedButton.icon(
+                                key: const ValueKey('qa.chapter.pass'),
                                 onPressed: busy || beginning == null
                                     ? null
                                     : () => previewShare(selected, beginning!),
@@ -404,6 +411,7 @@ class _ChapterStudioState extends ConsumerState<ChapterStudioScreen> {
                                 ),
                                 const SizedBox(height: 20),
                                 FilledButton.icon(
+                                  key: const ValueKey('qa.chapter.date_idea'),
                                   onPressed: busy
                                       ? null
                                       : () => showProposeDatePlanSheet(
@@ -431,6 +439,9 @@ class _ChapterStudioState extends ConsumerState<ChapterStudioScreen> {
                                   Padding(
                                     padding: const EdgeInsets.only(bottom: 8),
                                     child: OutlinedButton(
+                                      key: ValueKey(
+                                        'qa.chapter.surprise.$choice',
+                                      ),
                                       onPressed: busy
                                           ? null
                                           : () => send(pairPath, {
@@ -446,6 +457,7 @@ class _ChapterStudioState extends ConsumerState<ChapterStudioScreen> {
                                 Text(l10n.firstChapterBeginningSaved),
                               const SizedBox(height: 8),
                               TextButton(
+                                key: const ValueKey('qa.chapter.close'),
                                 onPressed: busy
                                     ? null
                                     : () => send(pairPath, {
@@ -468,6 +480,7 @@ class _ChapterStudioState extends ConsumerState<ChapterStudioScreen> {
                                 Text(l10n.firstChapterGiveBackBody),
                                 const SizedBox(height: 12),
                                 OutlinedButton(
+                                  key: const ValueKey('qa.chapter.give_back'),
                                   onPressed: busy
                                       ? null
                                       : () => previewShare(
@@ -504,6 +517,7 @@ class _ChapterStudioState extends ConsumerState<ChapterStudioScreen> {
               title(l10n.firstChapterInMyWords),
               panel(
                 ListTile(
+                  key: const ValueKey('qa.chapter.comfort_cards'),
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.chat_outlined),
                   title: Text(l10n.firstChapterMakeRoomTitle),
@@ -525,6 +539,7 @@ class _ChapterStudioState extends ConsumerState<ChapterStudioScreen> {
                     .map(
                       (m) => panel(
                         ListTile(
+                          key: ValueKey('qa.chapter.match.${m.id}'),
                           contentPadding: EdgeInsets.zero,
                           title: Text(m.userName),
                           subtitle: Text(l10n.firstChapterCreateTogether),
@@ -546,6 +561,7 @@ class _ChapterStudioState extends ConsumerState<ChapterStudioScreen> {
                   .when(
                     loading: () => const LinearProgressIndicator(),
                     error: (_, _) => TextButton(
+                      key: const ValueKey('qa.chapter.reload_shared'),
                       onPressed: () => ref.invalidate(
                         chapterResourceProvider(publicationsPath),
                       ),
@@ -591,6 +607,7 @@ class _ChapterStudioState extends ConsumerState<ChapterStudioScreen> {
           children: [
             for (final entry in labels.entries)
               FilterChip(
+                key: ValueKey('qa.chapter.green.${entry.key}'),
                 label: Text(entry.value),
                 selected: selected.contains(entry.key),
                 onSelected: busy
@@ -610,6 +627,7 @@ class _ChapterStudioState extends ConsumerState<ChapterStudioScreen> {
         ),
         const SizedBox(height: 12),
         FilledButton(
+          key: const ValueKey('qa.chapter.save_green'),
           onPressed: busy
               ? null
               : () async {
@@ -665,6 +683,7 @@ class _ChapterStudioState extends ConsumerState<ChapterStudioScreen> {
             children: [
               if (p['published'] == true)
                 TextButton.icon(
+                  key: ValueKey('qa.chapter.copy.${p['id']}'),
                   onPressed: () async {
                     await Clipboard.setData(
                       ClipboardData(text: chapterShareUrl(p['id'].toString())),
@@ -679,6 +698,7 @@ class _ChapterStudioState extends ConsumerState<ChapterStudioScreen> {
                 ),
               if (p['my_approval'] != true)
                 TextButton(
+                  key: ValueKey('qa.chapter.approve.${p['id']}'),
                   onPressed: busy
                       ? null
                       : () => send(publicationsPath, {
@@ -689,6 +709,7 @@ class _ChapterStudioState extends ConsumerState<ChapterStudioScreen> {
                   child: Text(l10n.firstChapterApproveStory),
                 ),
               TextButton(
+                key: ValueKey('qa.chapter.revoke.${p['id']}'),
                 onPressed: busy
                     ? null
                     : () => send(

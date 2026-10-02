@@ -238,7 +238,10 @@ void main() {
     });
   }
 
-  testWidgets('tapping a room joins it and opens its chat', (tester) async {
+  testWidgets('tapping a room joins it and opens its chat '
+      '[case:engagement.conversation_rooms.rooms_tile_x.action]', (
+    tester,
+  ) async {
     final api = _Api();
     await _mount(tester, api);
     await _enterLateNight(tester);
@@ -250,9 +253,13 @@ void main() {
     expect(find.byKey(const ValueKey('room.chat.presence')), findsOneWidget);
     expect(find.text('3 here now · 5 in the room'), findsOneWidget);
 
-    // Leaving the chat screen tells the server the member is away.
+    // Leaving the chat screen tells the server the member is away, and the
+    // list reloads.
+    final listLoads = api.calls('GET', '/rooms').length;
     await tester.pageBack();
     await tester.pumpAndSettle();
+    expect(find.byType(SocialChatScreen), findsNothing);
+    expect(api.calls('GET', '/rooms').length, listLoads + 1);
     expect(
       api
           .calls('POST', '/rooms/r1/presence')
@@ -262,9 +269,9 @@ void main() {
     await _unmount(tester);
   });
 
-  testWidgets('members sheet offers Add friend and hides moderation', (
-    tester,
-  ) async {
+  testWidgets('members sheet offers Add friend and hides moderation '
+      '[case:engagement.room_chat.room_chat_people.action] '
+      '[case:engagement.room_chat.room_member_x.action]', (tester) async {
     final api = _Api();
     await _mount(tester, api);
     await _enterLateNight(tester);
@@ -307,7 +314,8 @@ void main() {
     await _unmount(tester);
   });
 
-  testWidgets('a host can warn a participant with warn_user', (tester) async {
+  testWidgets('a host can warn a participant with warn_user '
+      '[case:engagement.room_chat.room_member_warn.action]', (tester) async {
     final api = _Api(myRole: 'host');
     await _mount(tester, api);
     await _enterLateNight(tester);
@@ -330,12 +338,13 @@ void main() {
     expect(body['target_user_id'], 'asha');
     expect(body.containsKey('moderator_user_id'), isFalse);
     expect(find.text('Warning sent to Asha.'), findsOneWidget);
+    expect(find.byKey(const ValueKey('room.member.warn')), findsNothing);
     await _unmount(tester);
   });
 
-  testWidgets('a host mutes a participant for an hour with mute_user', (
-    tester,
-  ) async {
+  testWidgets('a host mutes a participant for an hour with mute_user '
+      '[case:engagement.room_chat.room_member_mute.action] '
+      '[case:engagement.room_chat.room_mute_x.action]', (tester) async {
     final api = _Api(myRole: 'host');
     await _mount(tester, api);
     await _enterLateNight(tester);
@@ -361,12 +370,13 @@ void main() {
     expect(body['duration'], '1h');
     expect(body['target_user_id'], 'asha');
     expect(find.text('Asha is muted.'), findsOneWidget);
+    expect(find.text('Mute Asha?'), findsNothing);
+    expect(find.byKey(const ValueKey('room.member.mute')), findsNothing);
     await _unmount(tester);
   });
 
-  testWidgets('a muted member shows as muted with Unmute for the host', (
-    tester,
-  ) async {
+  testWidgets('a muted member shows as muted with Unmute for the host '
+      '[case:engagement.room_chat.room_member_unmute.action]', (tester) async {
     final until = DateTime.now().add(const Duration(minutes: 30));
     final api = _Api(
       myRole: 'host',
@@ -384,7 +394,9 @@ void main() {
     await tester.pumpAndSettle();
     final body = api.calls('POST', '/rooms/r1/moderate').single.data as Map;
     expect(body['action'], 'unmute_user');
+    expect(body['target_user_id'], 'asha');
     expect(find.text('Asha can post again.'), findsOneWidget);
+    expect(find.byKey(const ValueKey('room.member.unmute')), findsNothing);
     await _unmount(tester);
   });
 

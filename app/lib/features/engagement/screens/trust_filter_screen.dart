@@ -43,6 +43,7 @@ class _TrustFilterScreenState extends ConsumerState<TrustFilterScreen> {
               )
             else ...[
               SwitchListTile(
+                key: const ValueKey('qa.trust_filter.enabled'),
                 value: enabled,
                 title: Text(l.engagementTrustFiltersEnable),
                 subtitle: Text(l.engagementTrustFiltersEnableSubtitle),
@@ -53,6 +54,7 @@ class _TrustFilterScreenState extends ConsumerState<TrustFilterScreen> {
               const SizedBox(height: 12),
               Text(l.engagementTrustFiltersMinimum(minimumBadges)),
               Slider(
+                key: const ValueKey('qa.trust_filter.minimum'),
                 min: 0,
                 max: 4,
                 divisions: 4,
@@ -72,9 +74,9 @@ class _TrustFilterScreenState extends ConsumerState<TrustFilterScreen> {
               const SizedBox(height: 8),
               ...state.availableBadges.map(
                 (badge) => CheckboxListTile(
+                  key: ValueKey('qa.trust_filter.badge.${badge.code}'),
                   value: requiredBadgeCodes.contains(badge.code),
                   title: Text(localizedTrustBadgeLabel(l, badge)),
-                  subtitle: Text(badge.code),
                   onChanged: state.isSaving
                       ? null
                       : (checked) {
@@ -92,6 +94,7 @@ class _TrustFilterScreenState extends ConsumerState<TrustFilterScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
+                  key: const ValueKey('qa.trust_filter.save'),
                   onPressed: state.isSaving
                       ? null
                       : () async {

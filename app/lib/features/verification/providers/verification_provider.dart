@@ -45,8 +45,10 @@ class VerificationNotifier extends _$VerificationNotifier {
         rejectionReason: data['rejection_reason']?.toString(),
       );
     } on DioException catch (e, stackTrace) {
+      // Surface the failure (the status screen offers Retry). Reporting
+      // "not started" here told a member under review to start again.
       log.error('Failed to fetch verification state', e, stackTrace);
-      return const VerificationState(status: null, rejectionReason: null);
+      rethrow;
     }
   }
 

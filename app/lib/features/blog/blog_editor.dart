@@ -141,15 +141,21 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
             : l10n.blogPublishedTo(target);
       });
       if (firstShare) {
+        // The snack bar outlives the editor when the member leaves first,
+        // so its action opens the level screen from the navigator.
+        final navigator = Navigator.of(context);
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
           ..showSnackBar(
             SnackBar(
               key: const ValueKey('blog.shared_snack'),
               content: Text(l10n.blogSharedSnack),
+              // Flutter keeps snack bars with an action up until tapped;
+              // let this one time out so it never covers the screen.
+              persist: false,
               action: SnackBarAction(
                 label: l10n.blogSeeMyLevel,
-                onPressed: () => openMyLevel(context),
+                onPressed: () => openMyLevel(navigator.context),
               ),
             ),
           );
@@ -190,6 +196,7 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
         builder: (context) => FractionallySizedBox(
           heightFactor: .85,
           child: ListView(
+            key: const ValueKey('qa.blog.editor.saved_version_sheet'),
             padding: const EdgeInsets.all(24),
             children: [
               Text(
@@ -215,6 +222,7 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
               Text(l10n.blogSavedVersionNote),
               const SizedBox(height: 16),
               OutlinedButton(
+                key: const ValueKey('qa.blog.editor.keep_edits'),
                 onPressed: () {
                   Navigator.pop(context);
                   setState(() {
@@ -226,6 +234,7 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
                 child: Text(l10n.blogKeepMyEdits),
               ),
               OutlinedButton(
+                key: const ValueKey('qa.blog.editor.use_saved'),
                 onPressed: () {
                   Navigator.pop(context);
                   setState(() {
@@ -272,36 +281,41 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
     var altText = '';
     final alt = await showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.blogDescribePhotoTitle),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(l10n.blogDescribePhotoBody),
-            const SizedBox(height: 12),
-            TextField(
-              onChanged: (value) => altText = value,
-              maxLength: 160,
-              decoration: InputDecoration(
-                labelText: l10n.blogDescribePhotoLabel,
+      // The add button stays disabled until there is a description, rather
+      // than looking ready and ignoring the tap.
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(l10n.blogDescribePhotoTitle),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(l10n.blogDescribePhotoBody),
+              const SizedBox(height: 12),
+              TextField(
+                key: const ValueKey('qa.blog.editor.photo_alt'),
+                onChanged: (value) => setDialogState(() => altText = value),
+                maxLength: 160,
+                decoration: InputDecoration(
+                  labelText: l10n.blogDescribePhotoLabel,
+                ),
               ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              key: const ValueKey('qa.blog.editor.photo_cancel'),
+              onPressed: () => Navigator.pop(context),
+              child: Text(l10n.blogCancel),
+            ),
+            FilledButton(
+              key: const ValueKey('qa.blog.editor.photo_add'),
+              onPressed: altText.trim().isEmpty
+                  ? null
+                  : () => Navigator.pop(context, altText.trim()),
+              child: Text(l10n.blogAddToPrivateDraft),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(l10n.blogCancel),
-          ),
-          FilledButton(
-            onPressed: () {
-              if (altText.trim().isNotEmpty) {
-                Navigator.pop(context, altText.trim());
-              }
-            },
-            child: Text(l10n.blogAddToPrivateDraft),
-          ),
-        ],
       ),
     );
     if (alt == null || !mounted) return;
@@ -436,6 +450,7 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
                       ),
                     ),
                     TextButton.icon(
+                      key: const ValueKey('qa.blog.editor.preview'),
                       onPressed: busy
                           ? null
                           : () => setState(() => preview = !preview),
@@ -472,6 +487,7 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
                   Align(
                     alignment: Alignment.centerLeft,
                     child: OutlinedButton(
+                      key: const ValueKey('qa.blog.editor.check_saved'),
                       onPressed: busy ? null : checkSaved,
                       child: Text(l10n.blogCheckSavedVersion),
                     ),
@@ -507,6 +523,7 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
                     ),
                 ] else ...[
                   TextField(
+                    key: const ValueKey('qa.blog.editor.title'),
                     controller: title,
                     enabled: !busy,
                     maxLength: 100,
@@ -571,6 +588,9 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
                         BlogImage(post: saved!, photo: photo),
                         if (!preview && saved!.audience == 'private')
                           TextButton.icon(
+                            key: ValueKey(
+                              'qa.blog.editor.remove_photo.${photo.id}',
+                            ),
                             onPressed: busy || uncertain
                                 ? null
                                 : () => removePhoto(photo),
@@ -583,6 +603,7 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
                 const SizedBox(height: 24),
                 if (!preview) ...[
                   OutlinedButton.icon(
+                    key: const ValueKey('qa.blog.editor.add_photo'),
                     onPressed:
                         busy ||
                             uncertain ||
@@ -607,6 +628,7 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
                     children: [
                       for (final id in blogAudiences)
                         ChoiceChip(
+                          key: ValueKey('qa.blog.editor.audience.$id'),
                           label: Text(blogAudienceLabel(l10n, id)),
                           selected: audience == id,
                           onSelected: busy
@@ -670,6 +692,7 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
                     ),
                     if (audience != 'private')
                       OutlinedButton(
+                        key: const ValueKey('qa.blog.editor.save_private'),
                         onPressed: busy ? null : () => save(target: 'private'),
                         child: Text(l10n.blogSaveAsOnlyMe),
                       ),

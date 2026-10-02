@@ -212,6 +212,7 @@ class DailyPromptState {
     String? error,
     bool clearError = false,
     DailyPromptView? view,
+    bool clearView = false,
     List<DailyPromptResponderPreview>? responders,
     bool? respondersHasMore,
     int? respondersNextOffset,
@@ -220,7 +221,7 @@ class DailyPromptState {
     isSubmitting: isSubmitting ?? this.isSubmitting,
     isRespondersLoading: isRespondersLoading ?? this.isRespondersLoading,
     error: clearError ? null : (error ?? this.error),
-    view: view ?? this.view,
+    view: clearView ? null : (view ?? this.view),
     responders: responders ?? this.responders,
     respondersHasMore: respondersHasMore ?? this.respondersHasMore,
     respondersNextOffset: respondersNextOffset ?? this.respondersNextOffset,
@@ -306,9 +307,11 @@ class DailyPromptNotifier extends StateNotifier<DailyPromptState> {
     } on DioException catch (e, stackTrace) {
       log.error('Failed to load daily prompt', e, stackTrace);
       if (e.response?.statusCode == 404) {
+        // No prompt today: drop the one still on screen (e.g. yesterday's,
+        // kept open past midnight), which the server would now refuse.
         state = state.copyWith(
           isLoading: false,
-          view: null,
+          clearView: true,
           responders: const <DailyPromptResponderPreview>[],
           respondersHasMore: false,
           respondersNextOffset: 0,
@@ -511,6 +514,8 @@ String _extractApiError(DioException e, {required String fallback}) {
 }
 
 final dailyPromptProvider =
-    StateNotifierProvider<DailyPromptNotifier, DailyPromptState>(
-      DailyPromptNotifier.new,
-    );
+    StateNotifierProvider<DailyPromptNotifier, DailyPromptState>((ref) {
+      // Per member: rebuilt when someone else signs in on this device.
+      watchSignedInUserId(ref);
+      return DailyPromptNotifier(ref);
+    });

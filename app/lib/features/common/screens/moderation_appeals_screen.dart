@@ -71,6 +71,7 @@ class _ModerationAppealsScreenState
                       ),
                       const SizedBox(height: 12),
                       TextField(
+                        key: const ValueKey('qa.appeals.reason'),
                         controller: _reasonController,
                         enabled: !_submitting,
                         decoration: InputDecoration(
@@ -80,6 +81,7 @@ class _ModerationAppealsScreenState
                       ),
                       const SizedBox(height: 10),
                       TextField(
+                        key: const ValueKey('qa.appeals.report_id'),
                         controller: _reportIdController,
                         enabled: !_submitting,
                         decoration: InputDecoration(
@@ -88,6 +90,7 @@ class _ModerationAppealsScreenState
                       ),
                       const SizedBox(height: 10),
                       TextField(
+                        key: const ValueKey('qa.appeals.context'),
                         controller: _descriptionController,
                         enabled: !_submitting,
                         maxLines: 3,
@@ -99,6 +102,7 @@ class _ModerationAppealsScreenState
                       SizedBox(
                         width: double.infinity,
                         child: FilledButton(
+                          key: const ValueKey('qa.appeals.submit'),
                           onPressed: _submitting ? null : _onSubmitAppeal,
                           child: _submitting
                               ? const SizedBox(
@@ -120,10 +124,21 @@ class _ModerationAppealsScreenState
                     loading: () =>
                         const Center(child: CircularProgressIndicator()),
                     error: (_, _) => Center(
-                      child: TextButton(
-                        onPressed: () =>
-                            ref.invalidate(moderationAppealsProvider),
-                        child: Text(l10n.commonRetry),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            l10n.commonSomethingWentWrongTryAgain,
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 8),
+                          TextButton(
+                            key: const ValueKey('qa.appeals.retry'),
+                            onPressed: () =>
+                                ref.invalidate(moderationAppealsProvider),
+                            child: Text(l10n.commonRetry),
+                          ),
+                        ],
                       ),
                     ),
                     data: (appeals) {
@@ -147,9 +162,7 @@ class _ModerationAppealsScreenState
                       }
 
                       return RefreshIndicator(
-                        onRefresh: () => ref
-                            .read(moderationAppealsProvider.notifier)
-                            .refresh(),
+                        onRefresh: _refresh,
                         child: ListView.separated(
                           itemCount: appeals.length,
                           separatorBuilder: (_, _) => const SizedBox(height: 8),
@@ -228,6 +241,24 @@ class _ModerationAppealsScreenState
         ),
       ),
     );
+  }
+
+  /// Pull to refresh: keeps the list on screen and says so if it fails.
+  Future<void> _refresh() async {
+    try {
+      await ref.read(moderationAppealsProvider.notifier).refresh();
+    } on Object {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context).commonSomethingWentWrongTryAgain,
+          ),
+        ),
+      );
+    }
   }
 
   Future<void> _onSubmitAppeal() async {

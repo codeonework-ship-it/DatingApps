@@ -64,10 +64,10 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsLooksClassicDescription =>
-      'Warm ivory and forest by day. Soft mint and deep forest by night.';
+      'Le jour, ivoire chaud et vert forêt. La nuit, menthe douce et forêt profonde.';
 
   @override
-  String get settingsLooksClassicLabel => 'Today';
+  String get settingsLooksClassicLabel => 'Aujourd’hui';
 
   @override
   String get settingsThemeSaveFailed =>
@@ -12705,4 +12705,63 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get themeTaglineBluelotus =>
       'Eau au clair de lune, pétales saphir et un cœur doré.';
+
+  @override
+  String discoverMessageLikeSent(String name) {
+    return 'Love envoyé à $name. Vous pourrez discuter dès que $name te likera en retour.';
+  }
+
+  @override
+  String get notificationsDismissFailed =>
+      'Impossible de supprimer cette notification. Réessaie.';
+
+  @override
+  String get notificationsReadAllFailed =>
+      'Impossible de tout marquer comme lu. Réessaie.';
+
+  @override
+  String get blogReportSubmitted => 'Signalement envoyé. Merci.';
+
+  @override
+  String get settingsSectionAccount => 'Compte';
+
+  @override
+  String settingsSignedInAs(String username) {
+    return 'Session ouverte en tant que @$username';
+  }
+
+  @override
+  String get settingsSignOut => 'Se déconnecter';
+
+  @override
+  String get settingsSignOutSubtitle => 'Termine ta session sur cet appareil';
+
+  @override
+  String get settingsSignOutAllTitle => 'Se déconnecter de tous les appareils';
+
+  @override
+  String get settingsSignOutAllSubtitle =>
+      'Termine toutes tes sessions, sur chaque téléphone et navigateur';
+
+  @override
+  String get settingsSignOutConfirmTitle => 'Se déconnecter ?';
+
+  @override
+  String get settingsSignOutConfirmBody =>
+      'Tu auras besoin de ton nom d’utilisateur et de ton mot de passe pour te reconnecter sur cet appareil.';
+
+  @override
+  String get settingsSignOutAllConfirmTitle =>
+      'Se déconnecter de tous les appareils ?';
+
+  @override
+  String get settingsSignOutAllConfirmBody =>
+      'Ta session prendra fin sur chaque téléphone, tablette et navigateur, y compris celui-ci. Toute personne connectée à ton compte ailleurs sera déconnectée.';
+
+  @override
+  String get settingsSignOutAllConfirmAction => 'Se déconnecter partout';
+
+  @override
+  String get settingsSignOutAllFailed =>
+      'Impossible de déconnecter tes autres appareils. Vérifie ta connexion et réessaie.';
 }

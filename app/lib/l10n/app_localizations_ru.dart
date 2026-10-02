@@ -64,10 +64,10 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get settingsLooksClassicDescription =>
-      'Warm ivory and forest by day. Soft mint and deep forest by night.';
+      'Днём — тёплая слоновая кость и лесная зелень. Ночью — нежная мята и глубокий лес.';
 
   @override
-  String get settingsLooksClassicLabel => 'Today';
+  String get settingsLooksClassicLabel => 'Сегодня';
 
   @override
   String get settingsThemeSaveFailed =>
@@ -12719,4 +12719,62 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get themeTaglineBluelotus =>
       'Вода в лунном свете, сапфировые лепестки и золотое сердце.';
+
+  @override
+  String discoverMessageLikeSent(String name) {
+    return 'Лайк отправлен: $name. Чат откроется, как только тебе ответят взаимностью.';
+  }
+
+  @override
+  String get notificationsDismissFailed =>
+      'Не удалось удалить уведомление. Попробуй ещё раз.';
+
+  @override
+  String get notificationsReadAllFailed =>
+      'Не удалось отметить всё как прочитанное. Попробуй ещё раз.';
+
+  @override
+  String get blogReportSubmitted => 'Жалоба отправлена. Спасибо.';
+
+  @override
+  String get settingsSectionAccount => 'Аккаунт';
+
+  @override
+  String settingsSignedInAs(String username) {
+    return 'Вход выполнен: @$username';
+  }
+
+  @override
+  String get settingsSignOut => 'Выйти';
+
+  @override
+  String get settingsSignOutSubtitle => 'Заверши сеанс на этом устройстве';
+
+  @override
+  String get settingsSignOutAllTitle => 'Выйти на всех устройствах';
+
+  @override
+  String get settingsSignOutAllSubtitle =>
+      'Заверши все сеансы на всех телефонах и в браузерах';
+
+  @override
+  String get settingsSignOutConfirmTitle => 'Выйти?';
+
+  @override
+  String get settingsSignOutConfirmBody =>
+      'Чтобы снова войти на этом устройстве, понадобятся имя пользователя и пароль.';
+
+  @override
+  String get settingsSignOutAllConfirmTitle => 'Выйти на всех устройствах?';
+
+  @override
+  String get settingsSignOutAllConfirmBody =>
+      'Сеанс завершится на всех телефонах, планшетах и в браузерах, включая это устройство. Все, кто вошёл в твой аккаунт в другом месте, будут отключены.';
+
+  @override
+  String get settingsSignOutAllConfirmAction => 'Выйти везде';
+
+  @override
+  String get settingsSignOutAllFailed =>
+      'Не удалось выйти на других устройствах. Проверь подключение и попробуй ещё раз.';
 }

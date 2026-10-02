@@ -64,10 +64,10 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get settingsLooksClassicDescription =>
-      'Warm ivory and forest by day. Soft mint and deep forest by night.';
+      'Di giorno avorio caldo e verde foresta. Di notte menta tenue e foresta profonda.';
 
   @override
-  String get settingsLooksClassicLabel => 'Today';
+  String get settingsLooksClassicLabel => 'Oggi';
 
   @override
   String get settingsThemeSaveFailed => 'Impossibile salvare il tema. Riprova.';
@@ -12648,4 +12648,63 @@ class AppLocalizationsIt extends AppLocalizations {
   @override
   String get themeTaglineBluelotus =>
       'Acqua al chiaro di luna, petali zaffiro e un cuore d’oro.';
+
+  @override
+  String discoverMessageLikeSent(String name) {
+    return 'Love inviato a $name. Potrete chattare appena $name ricambierà il like.';
+  }
+
+  @override
+  String get notificationsDismissFailed =>
+      'Impossibile rimuovere la notifica. Riprova.';
+
+  @override
+  String get notificationsReadAllFailed =>
+      'Impossibile segnare tutto come letto. Riprova.';
+
+  @override
+  String get blogReportSubmitted => 'Segnalazione inviata. Grazie.';
+
+  @override
+  String get settingsSectionAccount => 'Account';
+
+  @override
+  String settingsSignedInAs(String username) {
+    return 'Accesso effettuato come @$username';
+  }
+
+  @override
+  String get settingsSignOut => 'Esci';
+
+  @override
+  String get settingsSignOutSubtitle =>
+      'Termina la sessione su questo dispositivo';
+
+  @override
+  String get settingsSignOutAllTitle => 'Esci da tutti i dispositivi';
+
+  @override
+  String get settingsSignOutAllSubtitle =>
+      'Termina tutte le sessioni, su ogni telefono e browser';
+
+  @override
+  String get settingsSignOutConfirmTitle => 'Vuoi uscire?';
+
+  @override
+  String get settingsSignOutConfirmBody =>
+      'Per accedere di nuovo su questo dispositivo ti serviranno nome utente e password.';
+
+  @override
+  String get settingsSignOutAllConfirmTitle => 'Uscire da tutti i dispositivi?';
+
+  @override
+  String get settingsSignOutAllConfirmBody =>
+      'La tua sessione terminerà su ogni telefono, tablet e browser, compreso questo. Chi ha effettuato l’accesso al tuo account altrove verrà disconnesso.';
+
+  @override
+  String get settingsSignOutAllConfirmAction => 'Esci ovunque';
+
+  @override
+  String get settingsSignOutAllFailed =>
+      'Impossibile disconnettere gli altri dispositivi. Controlla la connessione e riprova.';
 }

@@ -8,6 +8,7 @@ import 'package:uuid/uuid.dart';
 import '../../core/providers/api_client_provider.dart';
 import '../../core/telemetry/client_error_reporter.dart';
 import '../../core/utils/logger.dart';
+import '../auth/providers/auth_provider.dart';
 import 'support_models.dart';
 
 /// The member support API (`/v1/support/...`). The shared client's base URL
@@ -200,7 +201,8 @@ final supportApiProvider = Provider<SupportApi>(
 );
 
 /// The member's tickets and unread count, shared by the support centre and
-/// "My tickets".
+/// "My tickets". Per member: signing out, or someone else signing in on this
+/// device, drops the list instead of showing it to the next member.
 final supportTicketsProvider =
     AsyncNotifierProvider<SupportTicketsNotifier, SupportTicketList>(
       SupportTicketsNotifier.new,
@@ -208,8 +210,12 @@ final supportTicketsProvider =
 
 class SupportTicketsNotifier extends AsyncNotifier<SupportTicketList> {
   @override
-  Future<SupportTicketList> build() =>
-      ref.watch(supportApiProvider).listTickets();
+  Future<SupportTicketList> build() async {
+    if (watchSignedInUserId(ref) == null) {
+      return const SupportTicketList(tickets: <SupportTicket>[]);
+    }
+    return ref.watch(supportApiProvider).listTickets();
+  }
 
   Future<void> refresh() async {
     state = const AsyncLoading<SupportTicketList>().copyWithPrevious(state);

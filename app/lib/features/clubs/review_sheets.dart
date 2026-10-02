@@ -183,7 +183,7 @@ class _AddToListSheetState extends ConsumerState<_AddToListSheet> {
           .read(apiClientProvider)
           .put<dynamic>(
             '/clubs/lists/${list.id}/items/${widget.title.id}',
-            data: {'note': ''},
+            data: {'note': list.noteFor(widget.title.id)},
           );
       ref.invalidate(myListsProvider);
       if (mounted) {

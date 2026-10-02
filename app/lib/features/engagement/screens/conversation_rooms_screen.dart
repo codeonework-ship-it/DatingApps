@@ -87,6 +87,18 @@ class _ConversationRoomsScreenState
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     final l = chatL10n(context);
+    // A refresh that fails while rooms are on screen keeps them, and says so
+    // (an empty list shows the error in place instead).
+    ref.listen<String?>(conversationRoomsProvider.select((s) => s.error), (
+      previous,
+      next,
+    ) {
+      if (next != null &&
+          next != previous &&
+          ref.read(conversationRoomsProvider).rooms.isNotEmpty) {
+        showCommunitySnack(context, next);
+      }
+    });
     final hereTotal = state.rooms.fold<int>(0, (n, r) => n + r.hereNow);
     final liveRooms = state.liveNow;
     final joinedIds = {for (final r in state.joined) r.id};
@@ -137,6 +149,7 @@ class _ConversationRoomsScreenState
                       subtitle: l.roomsSubtitle,
                       leading: Navigator.of(context).canPop()
                           ? IconButton(
+                              key: const ValueKey('qa.rooms.back'),
                               tooltip: MaterialLocalizations.of(
                                 context,
                               ).backButtonTooltip,
@@ -179,6 +192,7 @@ class _ConversationRoomsScreenState
                               ),
                               const SizedBox(height: AppLayout.space3),
                               FilledButton(
+                                key: const ValueKey('qa.rooms.retry'),
                                 onPressed: notifier.loadRooms,
                                 child: Text(l.chatTryAgain),
                               ),
@@ -560,6 +574,7 @@ class _StartRoomSheetState extends ConsumerState<_StartRoomSheet> {
                 children: [
                   for (final key in roomCategories.keys)
                     ChoiceChip(
+                      key: ValueKey('qa.rooms.start.category.$key'),
                       label: Text(roomCategoryLabel(l, key)),
                       selected: _category == key,
                       onSelected: (_) => setState(() => _category = key),
@@ -570,6 +585,7 @@ class _StartRoomSheetState extends ConsumerState<_StartRoomSheet> {
               Text(l.roomsStartHowLong, style: theme.textTheme.labelLarge),
               const SizedBox(height: AppLayout.space2),
               SegmentedButton<int>(
+                key: const ValueKey('qa.rooms.start.length'),
                 segments: [
                   ButtonSegment(value: 30, label: Text(l.roomsLength30Min)),
                   ButtonSegment(value: 60, label: Text(l.roomsLength1Hour)),

@@ -162,7 +162,11 @@ final matchGraduationProvider =
       MatchGraduationNotifier,
       MatchGraduationState,
       String
-    >(MatchGraduationNotifier.new);
+    >((ref, matchId) {
+      // Per member: rebuilt when someone else signs in on this device.
+      watchSignedInUserId(ref);
+      return MatchGraduationNotifier(ref, matchId);
+    });
 
 // ── The member's own discovery pause ─────────────────────────────────────────
 
@@ -325,9 +329,11 @@ class DiscoveryPauseNotifier extends StateNotifier<DiscoveryPauseState> {
 }
 
 final discoveryPauseProvider =
-    StateNotifierProvider<DiscoveryPauseNotifier, DiscoveryPauseState>(
-      DiscoveryPauseNotifier.new,
-    );
+    StateNotifierProvider<DiscoveryPauseNotifier, DiscoveryPauseState>((ref) {
+      // Per member: rebuilt when someone else signs in on this device.
+      watchSignedInUserId(ref);
+      return DiscoveryPauseNotifier(ref);
+    });
 
 // ── Errors ───────────────────────────────────────────────────────────────────
 
