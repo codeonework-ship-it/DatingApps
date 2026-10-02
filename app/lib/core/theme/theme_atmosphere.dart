@@ -119,6 +119,8 @@ class ThemeAtmospherePainter extends CustomPainter {
     'deepfield',
     'love',
     'rose',
+    'bluerose',
+    'bluelotus',
     'petal',
     'snow',
     'gothic',
@@ -282,6 +284,10 @@ class _Scene {
         _loveBack(c);
       case 'rose':
         _roseBack(c);
+      case 'bluerose':
+        _blueRoseBack(c);
+      case 'bluelotus':
+        _lotusBack(c);
       case 'petal':
         _petalBack(c);
       case 'snow':
@@ -309,6 +315,10 @@ class _Scene {
         _loveMotion(c, t);
       case 'rose':
         _roseMotion(c, t);
+      case 'bluerose':
+        _blueRoseMotion(c, t);
+      case 'bluelotus':
+        _lotusMotion(c, t);
       case 'petal':
         _petalMotion(c, t);
       case 'snow':
@@ -1139,6 +1149,156 @@ class _Scene {
   }
 
   // ---------------------------------------------------------------------------
+  // Blue Rose: sapphire glow, two blue roses in the corners with ice-lit
+  // rims, cool petals tumbling down, platinum glints and a slow lamp sweep.
+  // ---------------------------------------------------------------------------
+
+  static const Color _sapphire = Color(0xFF1E4FD8);
+
+  void _blueRoseBack(Canvas c) {
+    _bloom(c, Offset(w * 0.9, h * 0.05), w * 0.6, p.primary, alpha: 0.3);
+    _bloom(c, Offset(w * 0.05, h * 0.95), w * 0.55, p.jewel, alpha: 0.14);
+    ThemeMotifs.drawRose(
+      c,
+      Offset(w * 0.96, h * 0.06),
+      w * 0.3,
+      heart: _sapphire,
+      edge: p.primary,
+      alpha: 0.3,
+      petals: 34,
+    );
+    ThemeMotifs.drawRose(
+      c,
+      Offset(w * 0.02, h * 0.9),
+      w * 0.24,
+      heart: _sapphire,
+      edge: p.jewel,
+      alpha: 0.2,
+      petals: 34,
+    );
+  }
+
+  void _blueRoseMotion(Canvas c, double t) {
+    _fallingPetals(
+      c,
+      t,
+      seed: 21,
+      count: 14,
+      colors: [p.primary, p.jewel, _sapphire],
+      minLength: 10,
+      maxLength: 26,
+      alpha: 0.14,
+      drift: 0.08,
+    );
+    _twinkles(c, t, seed: 22, count: 20, color: p.tertiary, alpha: 0.45);
+    _sweep(c, t, period: 13, length: 2.4, color: p.trim, alpha: 0.05);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Blue Lotus: looking down on a moonlit pond. Lily pads and two open
+  // blooms sit in the corners; rings spread slowly over the water from each
+  // bloom, gold pollen drifts up and the moon's light crosses now and then.
+  // ---------------------------------------------------------------------------
+
+  /// x, y, radius (as a share of the width) and where the pad's notch points.
+  static const List<(double, double, double, double)> _lilyPads = [
+    (0.32, 0.99, 0.16, -1.1),
+    (-0.03, 0.7, 0.13, 0.5),
+    (0.74, 0.0, 0.12, 2.2),
+    (1.03, 0.2, 0.1, -2.8),
+  ];
+
+  /// x, y, radius (as a share of the width) and strength of each bloom.
+  static const List<(double, double, double, double)> _lotuses = [
+    (0.06, 0.91, 0.2, 0.36),
+    (0.95, 0.06, 0.14, 0.26),
+  ];
+
+  void _lotusBack(Canvas c) {
+    _bloom(c, Offset(w * 0.9, h * 0.04), w * 0.7, p.secondary, alpha: 0.2);
+    _bloom(c, Offset(w * 0.08, h * 0.96), w * 0.75, p.primary, alpha: 0.26);
+    for (final (x, y, r, notch) in _lilyPads) {
+      _lilyPad(c, Offset(w * x, h * y), w * r, notch);
+    }
+    for (final (x, y, r, strength) in _lotuses) {
+      final at = Offset(w * x, h * y);
+      // Light pooling on the water under the bloom.
+      _bloom(c, at, w * r * 1.7, p.tertiary, alpha: 0.1);
+      ThemeMotifs.drawLotus(
+        c,
+        at,
+        w * r,
+        heart: Color.lerp(p.secondary, Colors.white, 0.4)!,
+        edge: p.primary,
+        stamen: p.tertiary,
+        alpha: strength,
+        twist: x * 2,
+      );
+    }
+  }
+
+  void _lilyPad(Canvas c, Offset at, double r, double notch) {
+    const gap = 0.2;
+    final rect = Rect.fromCircle(center: at, radius: r);
+    final pad = Path()
+      ..moveTo(at.dx, at.dy)
+      ..arcTo(rect, notch + gap, math.pi * 2 - gap * 2, false)
+      ..close();
+    final leaf = Color.lerp(const Color(0xFF1C6B63), p.primary, 0.18)!;
+    c
+      ..drawPath(
+        pad,
+        Paint()
+          ..shader = RadialGradient(
+            colors: [
+              leaf.withValues(alpha: 0.36),
+              leaf.withValues(alpha: 0.16),
+            ],
+          ).createShader(rect),
+      )
+      ..drawPath(
+        pad,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1
+          ..color = p.primary.withValues(alpha: 0.18),
+      );
+    final vein = Paint()
+      ..strokeWidth = 0.8
+      ..color = p.ink.withValues(alpha: 0.05);
+    for (var k = 1; k < 9; k++) {
+      final a = notch + gap + (math.pi * 2 - gap * 2) * k / 9;
+      c.drawLine(at, at + Offset(math.cos(a), math.sin(a)) * r * 0.92, vein);
+    }
+  }
+
+  void _lotusMotion(Canvas c, double t) {
+    final ring = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+    for (var i = 0; i < _lotuses.length; i++) {
+      final (x, y, r, _) = _lotuses[i];
+      final at = Offset(w * x, h * y);
+      for (var k = 0; k < 3; k++) {
+        final q = _loop(t / 9 + k / 3 + i * 0.17);
+        ring.color = p.primary.withValues(alpha: 0.2 * math.sin(math.pi * q));
+        c.drawCircle(at, w * r * (1.05 + 1.6 * q), ring);
+      }
+    }
+    _embers(
+      c,
+      t,
+      seed: 31,
+      count: 12,
+      cool: p.tertiary,
+      hot: const Color(0xFFFFF1C2),
+      rate: 0.45,
+    );
+    _twinkles(c, t, seed: 32, count: 22, color: p.ink, alpha: 0.3);
+    _sweep(c, t, period: 14, length: 3, color: p.secondary, alpha: 0.045);
+  }
+
+  // ---------------------------------------------------------------------------
   // Petal: blush light with petals and sage leaves falling on a gentle
   // diagonal, turning over as they go.
   // ---------------------------------------------------------------------------
@@ -1802,8 +1962,8 @@ const Duration kThemeTitleCardHold = Duration(milliseconds: 1700);
 /// look's name tracks in from a soft focus in its display face over its own
 /// moving atmosphere, a light effect tuned to the look crosses the frame (an
 /// anamorphic streak for the metal and space looks, a warm light leak for
-/// the romantic ones, a frost glint for Snow, candle glow and a moonbeam for
-/// Gothic), then the card dissolves into the newly coloured app. The app's
+/// the romantic ones, a frost glint for Snow and Blue Rose, candle glow and a
+/// moonbeam for Gothic and Blue Lotus), then the card dissolves into the newly coloured app. The app's
 /// theme morphs underneath ([MaterialApp]'s theme animation), so the reveal
 /// lands on the new palette. Auto dismisses; a tap dismisses early.
 ///
@@ -2050,9 +2210,9 @@ class TitleFlarePainter extends CustomPainter {
     switch (preset.id) {
       case 'love' || 'rose' || 'petal':
         _lightLeak(canvas, size, strength, warm: true);
-      case 'snow':
+      case 'snow' || 'bluerose':
         _frostGlint(canvas, size, strength);
-      case 'gothic':
+      case 'gothic' || 'bluelotus':
         _lightLeak(canvas, size, strength, warm: false);
       default:
         _anamorphic(canvas, size, strength);

@@ -168,15 +168,25 @@ class _RoseRainOverlayState extends State<RoseRainOverlay>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
+    final preset = theme.extension<ConnectPalette>()?.preset;
     // Rose tones lead so it always reads as roses; the theme adds a hint.
+    // Blue Rose rains its own sapphire petals.
     const rose = Color(0xFFD81B4A);
-    final palette = <Color>[
-      rose,
-      const Color(0xFFFF8FAB),
-      const Color(0xFFE8456B),
-      const Color(0xFFFFB3C6),
-      Color.lerp(colors.primary, rose, 0.6)!,
-    ];
+    final palette = preset?.id == 'bluerose'
+        ? <Color>[
+            const Color(0xFF1E4FD8),
+            preset!.primary,
+            preset.jewel,
+            const Color(0xFFBFDCFF),
+            Color.lerp(preset.primary, Colors.white, 0.5)!,
+          ]
+        : <Color>[
+            rose,
+            const Color(0xFFFF8FAB),
+            const Color(0xFFE8456B),
+            const Color(0xFFFFB3C6),
+            Color.lerp(colors.primary, rose, 0.6)!,
+          ];
     // The shower follows the look: Rose and Petal get the rose burst on top
     // of the petal rain, Snow and Gothic their own burst instead, and every
     // other look keeps the classic petal rain.
@@ -184,7 +194,6 @@ class _RoseRainOverlayState extends State<RoseRainOverlay>
     final rain =
         style == RewardBurstStyle.confetti || style == RewardBurstStyle.roses;
     final burst = style != RewardBurstStyle.confetti;
-    final preset = theme.extension<ConnectPalette>()?.preset;
     return Material(
       type: MaterialType.transparency,
       child: Stack(

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'app_theme.dart';
-import 'cinematic_effects.dart';
+import 'couture.dart';
 
 /// Named looks a member can pick in Settings → Appearance.
 ///
@@ -32,6 +32,8 @@ class ThemePreset {
     required this.secondaryTint,
     required this.tertiary,
     required this.tertiaryTint,
+    required this.jewel,
+    required this.trim,
     required this.swatch,
     this.displayFamily = AppTheme.displayFamily,
     this.reducedMotion = false,
@@ -60,6 +62,15 @@ class ThemePreset {
   final Color tertiary;
   final Color tertiaryTint;
 
+  /// The colour a primary action rolls into from [primary]: a second hue, so
+  /// buttons are a pairing (rose into champagne gold, sapphire into
+  /// amethyst) rather than one flat accent. [onPrimary] must read on it.
+  final Color jewel;
+
+  /// The look's trim: the metal of its hairlines (gold, chrome, platinum),
+  /// used on button rims, outlined buttons and the lit edge of cards.
+  final Color trim;
+
   /// Three colours shown on the picker chip.
   final List<Color> swatch;
   final String displayFamily;
@@ -79,6 +90,13 @@ class ThemePreset {
   );
 
   Gradient get accentGradient => LinearGradient(colors: [primary, secondary]);
+
+  /// Fill of a primary action: [primary] rolling into [jewel].
+  Gradient get actionGradient => LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [primary, jewel],
+  );
 }
 
 /// Palette hooks for widgets that want the preset's accents without reaching
@@ -132,6 +150,8 @@ abstract final class ThemePresets {
     secondaryTint: Color(0xFFFFE2CE),
     tertiary: Color(0xFF685B32),
     tertiaryTint: Color(0xFFF1EACF),
+    jewel: Color(0xFF1F7A80),
+    trim: Color(0xFFB08A3C),
     swatch: [Color(0xFFF8F4ED), Color(0xFF194C3F), Color(0xFFFFE2CE)],
   );
   static const realLifeNight = ThemePreset(
@@ -155,6 +175,8 @@ abstract final class ThemePresets {
     secondaryTint: Color(0xFF493526),
     tertiary: Color(0xFFE7D997),
     tertiaryTint: Color(0xFF403D28),
+    jewel: Color(0xFFE7D997),
+    trim: Color(0xFFE7D997),
     swatch: [Color(0xFF121E1A), Color(0xFFBAE5CF), Color(0xFFFFCCA8)],
   );
 
@@ -181,6 +203,8 @@ abstract final class ThemePresets {
     secondaryTint: AppTheme.violetTint,
     tertiary: AppTheme.gold,
     tertiaryTint: AppTheme.goldTint,
+    jewel: AppTheme.violet,
+    trim: AppTheme.gold,
     swatch: [AppTheme.ground, AppTheme.ember, AppTheme.ink],
   );
 
@@ -206,6 +230,8 @@ abstract final class ThemePresets {
     secondaryTint: AppTheme.violetTintDark,
     tertiary: AppTheme.goldBright,
     tertiaryTint: Color(0xFF3A2A12),
+    jewel: AppTheme.violetBright,
+    trim: AppTheme.goldBright,
     swatch: [AppTheme.groundDark, AppTheme.emberBright, AppTheme.violetBright],
   );
 
@@ -231,6 +257,8 @@ abstract final class ThemePresets {
     secondaryTint: Color(0xFF14264A),
     tertiary: Color(0xFFC9D3E6),
     tertiaryTint: Color(0xFF26314A),
+    jewel: Color(0xFF2F6BDC),
+    trim: Color(0xFFC9D3E6),
     swatch: [Color(0xFF0B1020), Color(0xFFE53935), Color(0xFF3D8BFF)],
     displayFamily: 'Orbitron',
   );
@@ -257,6 +285,8 @@ abstract final class ThemePresets {
     secondaryTint: Color(0xFF3A2206),
     tertiary: Color(0xFFBFF6FF),
     tertiaryTint: Color(0xFF0B3A44),
+    jewel: Color(0xFF6C9BFF),
+    trim: Color(0xFFFF8A00),
     swatch: [Color(0xFF02070C), Color(0xFF00E5FF), Color(0xFFFF8A00)],
     displayFamily: 'Orbitron',
   );
@@ -283,6 +313,8 @@ abstract final class ThemePresets {
     secondaryTint: Color(0xFF3F2E06),
     tertiary: Color(0xFF7FE9FF),
     tertiaryTint: Color(0xFF0E2F38),
+    jewel: Color(0xFFA8500F),
+    trim: Color(0xFFFFB300),
     swatch: [Color(0xFF140507), Color(0xFFD32F2F), Color(0xFFFFB300)],
   );
 
@@ -308,6 +340,8 @@ abstract final class ThemePresets {
     secondaryTint: Color(0xFF2A1A4A),
     tertiary: Color(0xFFFFE066),
     tertiaryTint: Color(0xFF3A3210),
+    jewel: Color(0xFF3DE8FF),
+    trim: Color(0xFFA36BFF),
     swatch: [Color(0xFF030A07), Color(0xFF00FF88), Color(0xFFA36BFF)],
     displayFamily: 'Orbitron',
   );
@@ -336,6 +370,8 @@ abstract final class ThemePresets {
     secondaryTint: Color(0xFF3C1019),
     tertiary: Color(0xFFFFD54A),
     tertiaryTint: Color(0xFF372D08),
+    jewel: Color(0xFFB48CFF),
+    trim: Color(0xFFFFD54A),
     swatch: [Color(0xFF02040A), Color(0xFF58B8FF), Color(0xFFFFD54A)],
     displayFamily: 'Orbitron',
   );
@@ -362,6 +398,8 @@ abstract final class ThemePresets {
     secondaryTint: Color(0xFFFFE8F1),
     tertiary: Color(0xFFD69E2E),
     tertiaryTint: Color(0xFFFFF3D6),
+    jewel: Color(0xFF9C36C9),
+    trim: Color(0xFFD69E2E),
     swatch: [Color(0xFFFFF0F4), Color(0xFFE0245E), Color(0xFFFF7EB3)],
   );
 
@@ -388,7 +426,68 @@ abstract final class ThemePresets {
     secondaryTint: Color(0xFF3D1422),
     tertiary: Color(0xFFE8B86D),
     tertiaryTint: Color(0xFF3A2A12),
+    jewel: Color(0xFFE8B86D),
+    trim: Color(0xFFFFE2A8),
     swatch: [Color(0xFF1A0710), Color(0xFFFF4F7B), Color(0xFFE8B86D)],
+  );
+
+  /// A rose that does not exist: sapphire blooms on midnight velvet, frost
+  /// pink for the second accent and platinum for the trim. The backdrop
+  /// paints blue roses in the corners with ice-edged petals tumbling down.
+  static const blueRose = ThemePreset(
+    id: 'bluerose',
+    label: 'Blue Rose',
+    tagline: 'Midnight velvet, sapphire roses and a platinum edge.',
+    brightness: Brightness.dark,
+    ground: Color(0xFF050C1C),
+    groundGlow: Color(0xFF0C2148),
+    paper: Color(0xFF0D1730),
+    paperSunk: Color(0xFF091124),
+    ink: Color(0xFFF2F6FF),
+    inkMuted: Color(0xFFBCC8E4),
+    inkFaint: Color(0xFF8E9CC0),
+    rule: Color(0xFF1F2D52),
+    ruleStrong: Color(0xFF31457A),
+    primary: Color(0xFF5AA2FF),
+    onPrimary: Color(0xFF04101F),
+    primaryTint: Color(0xFF12284F),
+    secondary: Color(0xFFFF9EC4),
+    secondaryTint: Color(0xFF3A1830),
+    tertiary: Color(0xFFD9E2F2),
+    tertiaryTint: Color(0xFF262E42),
+    jewel: Color(0xFF6FE0FF),
+    trim: Color(0xFFE6ECF7),
+    swatch: [Color(0xFF050C1C), Color(0xFF5AA2FF), Color(0xFFFF9EC4)],
+  );
+
+  /// The sacred blue water lily on a moonlit pond: indigo water, periwinkle
+  /// petals fading to lilac and a golden heart. The backdrop looks down on
+  /// lily pads and two open blooms, with slow ripples and gold pollen
+  /// drifting over the water. Rewards burst out as lotus blooms.
+  static const blueLotus = ThemePreset(
+    id: 'bluelotus',
+    label: 'Blue Lotus',
+    tagline: 'Moonlit water, sapphire petals and a golden heart.',
+    brightness: Brightness.dark,
+    ground: Color(0xFF070B1E),
+    groundGlow: Color(0xFF141B45),
+    paper: Color(0xFF121838),
+    paperSunk: Color(0xFF0C1129),
+    ink: Color(0xFFF1F3FF),
+    inkMuted: Color(0xFFBFC6EA),
+    inkFaint: Color(0xFF8F98C4),
+    rule: Color(0xFF262F5E),
+    ruleStrong: Color(0xFF3A4686),
+    primary: Color(0xFF7C9BFF),
+    onPrimary: Color(0xFF070B1E),
+    primaryTint: Color(0xFF1B2557),
+    secondary: Color(0xFFC6A6FF),
+    secondaryTint: Color(0xFF2A1F52),
+    tertiary: Color(0xFFF2C562),
+    tertiaryTint: Color(0xFF3A2F12),
+    jewel: Color(0xFFC08CFF),
+    trim: Color(0xFFF2C562),
+    swatch: [Color(0xFF070B1E), Color(0xFF7C9BFF), Color(0xFFF2C562)],
   );
 
   /// Morning garden: blush paper, petal pinks and sage leaves. The backdrop
@@ -414,6 +513,8 @@ abstract final class ThemePresets {
     secondaryTint: Color(0xFFFFEDF3),
     tertiary: Color(0xFF6B8F71),
     tertiaryTint: Color(0xFFE6F0E7),
+    jewel: Color(0xFF8A2A8C),
+    trim: Color(0xFF6B8F71),
     swatch: [Color(0xFFFFF6F4), Color(0xFFF48FB1), Color(0xFF6B8F71)],
   );
 
@@ -443,6 +544,8 @@ abstract final class ThemePresets {
     secondaryTint: Color(0xFFE1F0F8),
     tertiary: Color(0xFF2B6E62),
     tertiaryTint: Color(0xFFDCF0EA),
+    jewel: Color(0xFF217A6E),
+    trim: Color(0xFF8FA9C4),
     swatch: [Color(0xFFEEF4FA), Color(0xFF1F5F99), Color(0xFF8EC9E0)],
   );
 
@@ -472,6 +575,8 @@ abstract final class ThemePresets {
     secondaryTint: Color(0xFF2A1B3D),
     tertiary: Color(0xFFCDA95E),
     tertiaryTint: Color(0xFF33270F),
+    jewel: Color(0xFFB094E0),
+    trim: Color(0xFFCDA95E),
     swatch: [Color(0xFF0B0810), Color(0xFFEC5577), Color(0xFFCDA95E)],
   );
 
@@ -504,6 +609,8 @@ abstract final class ThemePresets {
     secondaryTint: Color(0xFFE3ECF2),
     tertiary: Color(0xFF5C6670),
     tertiaryTint: Color(0xFFECEEF0),
+    jewel: Color(0xFF244B66),
+    trim: Color(0xFFB8B4AC),
     swatch: [Color(0xFFF7F6F3), Color(0xFF2F5D7C), Color(0xFF0D0F12)],
     reducedMotion: true,
   );
@@ -518,6 +625,8 @@ abstract final class ThemePresets {
     deepField,
     love,
     rose,
+    blueRose,
+    blueLotus,
     petal,
     snow,
     gothic,
@@ -585,17 +694,26 @@ abstract final class ThemePresets {
             ? preset.onPrimary.withValues(alpha: 0.55)
             : preset.onPrimary,
       ),
+      // The light under the button takes both colours of its fill.
       shadowColor: WidgetStatePropertyAll<Color>(
-        preset.primary.withValues(alpha: preset.isDark ? 0.45 : 0.35),
+        preset.reducedMotion
+            ? preset.primary.withValues(alpha: 0.35)
+            : Couture.glow(preset),
       ),
-      // Cinematic looks: a band of light glides over primary buttons every
-      // few seconds. Everyday looks and reduced motion get none.
-      // A static tear-off (not a closure) keeps ThemeData equal between
+      // Every look: the couture fill (primary rolling into the look's jewel
+      // under a trim hairline). Cinematic looks add a band of light gliding
+      // over it every few seconds; everyday looks and reduced motion do not.
+      // Static tear-offs (not closures) keep ThemeData equal between
       // rebuilds, so an unrelated rebuild never replays the theme morph.
       backgroundBuilder: isEveryday(preset) || preset.reducedMotion
-          ? null
+          ? _coutureBackground
           : _sheenBackground,
     );
+    // Outlined buttons and the lit edge of cards share the look's trim.
+    final trimLine = Color.lerp(preset.ruleStrong, preset.trim, 0.6)!;
+    // On a dark look the second accent reads on its own tint; on a light
+    // look the tint carries ink.
+    final chipInk = preset.isDark ? preset.secondary : preset.ink;
     return base.copyWith(
       colorScheme: scheme,
       scaffoldBackgroundColor: preset.ground,
@@ -608,9 +726,9 @@ abstract final class ThemePresets {
       ),
       cardTheme: base.cardTheme.copyWith(
         color: preset.paper,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppTheme.radiusL),
-          side: BorderSide(color: preset.rule),
+        shape: Couture.rim(
+          preset,
+          radius: BorderRadius.circular(AppTheme.radiusL),
         ),
       ),
       filledButtonTheme: FilledButtonThemeData(style: primaryButton),
@@ -624,7 +742,7 @@ abstract final class ThemePresets {
         style: base.outlinedButtonTheme.style?.copyWith(
           foregroundColor: WidgetStatePropertyAll<Color>(preset.ink),
           side: WidgetStatePropertyAll<BorderSide>(
-            BorderSide(color: preset.ruleStrong),
+            BorderSide(color: trimLine, width: 1.2),
           ),
         ),
       ),
@@ -635,27 +753,37 @@ abstract final class ThemePresets {
       navigationBarTheme: base.navigationBarTheme.copyWith(
         indicatorColor: preset.primaryTint,
       ),
+      // A chosen chip wears the look's second accent, so a screen with a
+      // primary action and a row of choices carries two colours, not one.
       chipTheme: base.chipTheme.copyWith(
         backgroundColor: preset.paperSunk,
-        selectedColor: preset.primaryTint,
-        checkmarkColor: preset.primary,
+        selectedColor: preset.secondaryTint,
+        checkmarkColor: chipInk,
         side: BorderSide(color: preset.rule),
         labelStyle: text.bodySmall?.copyWith(
           color: preset.inkMuted,
           fontWeight: FontWeight.w600,
         ),
         secondaryLabelStyle: text.bodySmall?.copyWith(
-          color: preset.primary,
-          fontWeight: FontWeight.w600,
+          color: chipInk,
+          fontWeight: FontWeight.w700,
         ),
       ),
-      dialogTheme: base.dialogTheme.copyWith(backgroundColor: preset.paper),
+      dialogTheme: base.dialogTheme.copyWith(
+        backgroundColor: preset.paper,
+        shape: Couture.rim(
+          preset,
+          radius: BorderRadius.circular(AppTheme.radiusXL),
+        ),
+      ),
       bottomSheetTheme: base.bottomSheetTheme.copyWith(
         backgroundColor: preset.paper,
         dragHandleColor: preset.ruleStrong,
       ),
+      // The floating action wears the jewel, not the primary: a second
+      // colour of the look on the screen's loudest control.
       floatingActionButtonTheme: base.floatingActionButtonTheme.copyWith(
-        backgroundColor: preset.primary,
+        backgroundColor: preset.jewel,
         foregroundColor: preset.onPrimary,
       ),
       iconTheme: base.iconTheme.copyWith(color: preset.inkMuted),
@@ -673,7 +801,7 @@ abstract final class ThemePresets {
       sliderTheme: base.sliderTheme.copyWith(
         activeTrackColor: preset.primary,
         inactiveTrackColor: preset.rule,
-        thumbColor: preset.primary,
+        thumbColor: preset.jewel,
         overlayColor: preset.primary.withValues(alpha: 0.12),
       ),
       progressIndicatorTheme: base.progressIndicatorTheme.copyWith(
@@ -683,7 +811,7 @@ abstract final class ThemePresets {
       tabBarTheme: base.tabBarTheme.copyWith(
         labelColor: preset.ink,
         unselectedLabelColor: preset.inkFaint,
-        indicatorColor: preset.primary,
+        indicatorColor: preset.jewel,
         dividerColor: preset.rule,
       ),
       dividerTheme: DividerThemeData(color: preset.rule, thickness: 1),
@@ -716,8 +844,18 @@ abstract final class ThemePresets {
     BuildContext context,
     Set<WidgetState> states,
     Widget? child,
-  ) => CinematicSheen(
-    enabled: !states.contains(WidgetState.disabled),
+  ) => CoutureActionFill(
+    states: states,
+    sheen: true,
+    child: child ?? const SizedBox.shrink(),
+  );
+
+  static Widget _coutureBackground(
+    BuildContext context,
+    Set<WidgetState> states,
+    Widget? child,
+  ) => CoutureActionFill(
+    states: states,
     child: child ?? const SizedBox.shrink(),
   );
 

@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/config/feature_flags.dart';
 import '../../../core/providers/network_quality_provider.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/couture.dart';
 import '../../../core/theme/cinematic_motion.dart';
 import '../../../core/widgets/glass_widgets.dart';
 import '../../../l10n/app_localizations.dart';
@@ -298,13 +299,20 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                       backgroundColor: Theme.of(
                         context,
                       ).colorScheme.surface.withValues(alpha: 0.94),
-                      border: Border.all(
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? Theme.of(
-                                context,
-                              ).colorScheme.primary.withValues(alpha: 0.22)
-                            : Theme.of(context).colorScheme.outlineVariant,
-                      ),
+                      // A look brings its own bevelled hairline (Couture);
+                      // the bare theme keeps the plain one.
+                      border: Couture.presetOf(context) != null
+                          ? null
+                          : Border.all(
+                              color:
+                                  Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Theme.of(context).colorScheme.primary
+                                        .withValues(alpha: 0.22)
+                                  : Theme.of(
+                                      context,
+                                    ).colorScheme.outlineVariant,
+                            ),
                       shadows: Theme.of(context).brightness == Brightness.dark
                           ? [
                               BoxShadow(
@@ -349,7 +357,15 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                               icon: Semantics(
                                 label: 'qa.nav.discover',
                                 button: true,
-                                child: const Icon(Icons.home_rounded),
+                                child: const CoutureNavIcon(Icons.home_rounded),
+                              ),
+                              activeIcon: Semantics(
+                                label: 'qa.nav.discover',
+                                button: true,
+                                child: const CoutureNavIcon(
+                                  Icons.home_rounded,
+                                  selected: true,
+                                ),
                               ),
                               label:
                                   ref
@@ -367,7 +383,17 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                               icon: Semantics(
                                 label: 'qa.nav.matches',
                                 button: true,
-                                child: const Icon(Icons.favorite_rounded),
+                                child: const CoutureNavIcon(
+                                  Icons.favorite_rounded,
+                                ),
+                              ),
+                              activeIcon: Semantics(
+                                label: 'qa.nav.matches',
+                                button: true,
+                                child: const CoutureNavIcon(
+                                  Icons.favorite_rounded,
+                                  selected: true,
+                                ),
                               ),
                               label: l10n.navMatches,
                             ),
@@ -375,7 +401,15 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                               icon: Semantics(
                                 label: 'qa.nav.engage',
                                 button: true,
-                                child: const Icon(Icons.bolt_rounded),
+                                child: const CoutureNavIcon(Icons.bolt_rounded),
+                              ),
+                              activeIcon: Semantics(
+                                label: 'qa.nav.engage',
+                                button: true,
+                                child: const CoutureNavIcon(
+                                  Icons.bolt_rounded,
+                                  selected: true,
+                                ),
                               ),
                               label: l10n.navEngage,
                             ),
@@ -383,7 +417,17 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                               icon: Semantics(
                                 label: 'qa.nav.profile',
                                 button: true,
-                                child: const Icon(Icons.person_rounded),
+                                child: const CoutureNavIcon(
+                                  Icons.person_rounded,
+                                ),
+                              ),
+                              activeIcon: Semantics(
+                                label: 'qa.nav.profile',
+                                button: true,
+                                child: const CoutureNavIcon(
+                                  Icons.person_rounded,
+                                  selected: true,
+                                ),
                               ),
                               label: l10n.navProfile,
                             ),
@@ -394,7 +438,21 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                                 child: Badge(
                                   isLabelVisible: notifications.unreadCount > 0,
                                   label: Text('${notifications.unreadCount}'),
-                                  child: const Icon(Icons.settings_rounded),
+                                  child: const CoutureNavIcon(
+                                    Icons.settings_rounded,
+                                  ),
+                                ),
+                              ),
+                              activeIcon: Semantics(
+                                label: 'qa.nav.settings',
+                                button: true,
+                                child: Badge(
+                                  isLabelVisible: notifications.unreadCount > 0,
+                                  label: Text('${notifications.unreadCount}'),
+                                  child: const CoutureNavIcon(
+                                    Icons.settings_rounded,
+                                    selected: true,
+                                  ),
                                 ),
                               ),
                               label: l10n.navSettings,

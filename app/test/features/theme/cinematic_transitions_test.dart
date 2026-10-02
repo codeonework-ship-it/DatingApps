@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:verified_dating_app/core/theme/cinematic_effects.dart';
 import 'package:verified_dating_app/core/theme/cinematic_motion.dart';
 import 'package:verified_dating_app/core/theme/theme_presets.dart';
 
@@ -81,8 +82,39 @@ void main() {
       ).filledButtonTheme.style?.backgroundBuilder,
       same(builder),
     );
-    expect(everyday.filledButtonTheme.style?.backgroundBuilder, isNull);
-    expect(calm.filledButtonTheme.style?.backgroundBuilder, isNull);
+    // Everyday looks and Calm keep the couture fill but get no sheen: a
+    // different builder from the cinematic one.
+    final quiet = everyday.filledButtonTheme.style?.backgroundBuilder;
+    expect(quiet, isNotNull);
+    expect(quiet, isNot(same(builder)));
+    expect(calm.filledButtonTheme.style?.backgroundBuilder, same(quiet));
+  });
+
+  testWidgets('only cinematic looks mount a sheen on primary buttons', (
+    tester,
+  ) async {
+    for (final (preset, sheens) in [
+      (ThemePresets.forge, 1),
+      (ThemePresets.realLife, 0),
+      (ThemePresets.calm, 0),
+    ]) {
+      // A fresh app per look, so no theme morph is in flight.
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemePresets.themeFor(preset),
+          home: Scaffold(
+            body: FilledButton(onPressed: () {}, child: const Text('Go')),
+          ),
+        ),
+      );
+      expect(
+        find.byType(CinematicSheen),
+        findsNWidgets(sheens),
+        reason: preset.id,
+      );
+    }
+    await tester.pumpWidget(const SizedBox.shrink());
   });
 
   test('every platform uses the cinematic builder', () {

@@ -132,6 +132,79 @@ abstract final class ThemeMotifs {
       ..restore();
   }
 
+  /// One water-lily petal: a slim pointed blade with its base on the origin
+  /// and its tip [length] straight up.
+  static Path lotusPetal(double length) {
+    final w = length * 0.3;
+    return Path()
+      ..moveTo(0, 0)
+      ..cubicTo(w, -length * 0.22, w * 0.95, -length * 0.68, 0, -length)
+      ..cubicTo(-w * 0.95, -length * 0.68, -w, -length * 0.22, 0, 0)
+      ..close();
+  }
+
+  /// A blue lotus seen from above: three rings of pointed petals, [edge] at
+  /// the rim deepening to [heart] at the centre, around a [stamen] crown.
+  /// [twist] turns the whole bloom.
+  static void drawLotus(
+    Canvas canvas,
+    Offset center,
+    double radius, {
+    required Color heart,
+    required Color edge,
+    required Color stamen,
+    double alpha = 1,
+    double twist = 0,
+  }) {
+    // (petals, length as a share of the radius, turn in petal widths)
+    const rings = [(14, 1.0, 0.0), (11, 0.74, 0.5), (8, 0.5, 0.0)];
+    for (var ring = 0; ring < rings.length; ring++) {
+      final (count, share, turn) = rings[ring];
+      final length = radius * share;
+      final color = Color.lerp(edge, heart, ring / (rings.length - 1))!;
+      final petal = lotusPetal(length);
+      final bounds = Rect.fromLTRB(-length * 0.3, -length, length * 0.3, 0);
+      // Translucent at the base, full at the tip: petals overlap like silk.
+      final fill = Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.bottomCenter,
+          end: Alignment.topCenter,
+          colors: [
+            color.withValues(alpha: (alpha * 0.3).clamp(0.0, 1.0)),
+            color.withValues(alpha: alpha.clamp(0.0, 1.0)),
+          ],
+        ).createShader(bounds);
+      final vein = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = math.max(0.6, radius * 0.012)
+        ..color = Color.lerp(
+          color,
+          Colors.white,
+          0.5,
+        )!.withValues(alpha: (alpha * 0.55).clamp(0.0, 1.0));
+      for (var k = 0; k < count; k++) {
+        canvas
+          ..save()
+          ..translate(center.dx, center.dy)
+          ..rotate(twist + (k + turn) * 2 * math.pi / count)
+          ..drawPath(petal, fill)
+          ..drawPath(petal, vein)
+          ..restore();
+      }
+    }
+    final gold = Paint()
+      ..color = stamen.withValues(alpha: (alpha * 0.95).clamp(0.0, 1.0));
+    canvas.drawCircle(center, radius * 0.12, gold);
+    for (var k = 0; k < 12; k++) {
+      final a = twist + k * math.pi / 6;
+      canvas.drawCircle(
+        center + Offset(math.cos(a), math.sin(a)) * radius * 0.19,
+        math.max(0.8, radius * 0.028),
+        gold,
+      );
+    }
+  }
+
   /// A full rose bloom: petals spiralling out on the golden angle, darker and
   /// tighter at the heart ([heart]) and opening to [edge] at the rim.
   /// [twist] turns the whole bloom, so a spinning rose is one parameter.

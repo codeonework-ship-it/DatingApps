@@ -3,13 +3,16 @@ import 'package:flutter/services.dart';
 
 import '../theme/app_theme.dart';
 import '../theme/cinematic_effects.dart';
+import '../theme/couture.dart';
 import '../theme/theme_atmosphere.dart';
 import '../theme/theme_presets.dart';
 
 /// Shared bordered surface, drawn the way Today draws its cards: the
-/// theme's paper colour, a hairline border and a 20pt radius. Legacy name and
-/// parameters retained for existing consumers; [blur], [opacity] and
-/// [crystalEffect] no longer change the look.
+/// theme's paper colour, a hairline border and a 20pt radius, finished by
+/// [Couture] (satin fill, bevelled hairline, a soft lift) unless the call
+/// site brings its own [border]. Legacy name and parameters retained for
+/// existing consumers; [blur], [opacity] and [crystalEffect] no longer change
+/// the look.
 class GlassContainer extends StatelessWidget {
   const GlassContainer({
     required this.child,
@@ -49,12 +52,22 @@ class GlassContainer extends StatelessWidget {
       height: height,
       margin: margin,
       clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: backgroundColor ?? scheme.surface,
-        borderRadius: borderRadius,
-        border: border ?? Border.all(color: scheme.outlineVariant),
-        boxShadow: shadows ?? const <BoxShadow>[],
-      ),
+      decoration: border == null
+          ? Couture.panel(
+              context,
+              radius: borderRadius,
+              color: backgroundColor,
+              shadows: shadows,
+            )
+          : BoxDecoration(
+              color: backgroundColor ?? scheme.surface,
+              borderRadius: borderRadius,
+              border: border,
+              boxShadow: shadows ?? const <BoxShadow>[],
+            ),
+      foregroundDecoration: border == null
+          ? Couture.panelRim(context, radius: borderRadius)
+          : null,
       padding: padding,
       child: child,
     );
@@ -188,13 +201,35 @@ class _GlassButtonState extends State<GlassButton>
               ],
             ),
     );
+    // A button in the look's own primary gets the couture finish (primary
+    // rolling into the jewel, a trim hairline, coloured light underneath); a
+    // call site that chose its own fill keeps it flat.
+    final preset = Couture.presetOf(context);
+    final dressed =
+        preset != null && widget.backgroundColor == null && isEnabled;
     // The fill, then the cinematic looks' passing sheen, then the label.
     final buttonChild = DecoratedBox(
-      decoration: BoxDecoration(borderRadius: radius, color: fill),
-      child: CinematicSheen(
-        enabled: isEnabled,
+      decoration: BoxDecoration(
         borderRadius: radius,
-        child: content,
+        color: fill,
+        boxShadow: dressed && !preset.reducedMotion
+            ? [
+                BoxShadow(
+                  color: Couture.glow(preset).withValues(alpha: 0.34),
+                  blurRadius: 18,
+                  spreadRadius: -6,
+                  offset: const Offset(0, 8),
+                ),
+              ]
+            : null,
+      ),
+      child: CustomPaint(
+        painter: dressed ? CoutureActionPainter(preset: preset) : null,
+        child: CinematicSheen(
+          enabled: isEnabled,
+          borderRadius: radius,
+          child: content,
+        ),
       ),
     );
 
@@ -240,7 +275,12 @@ class GoldBackButton extends StatelessWidget {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: scheme.surface,
-            border: Border.all(color: scheme.outlineVariant),
+            border: Border.all(
+              color: switch (Couture.presetOf(context)) {
+                final p? => Color.lerp(p.ruleStrong, p.trim, 0.6)!,
+                null => scheme.outlineVariant,
+              },
+            ),
           ),
           child: Icon(
             Icons.arrow_back_ios_new_rounded,

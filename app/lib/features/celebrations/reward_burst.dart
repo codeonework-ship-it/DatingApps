@@ -18,8 +18,13 @@ enum RewardBurstStyle {
   /// Snow: crystals radiate out, twinkle and drift down.
   snow,
 
-  /// Rose and Petal: whole roses and loose petals spin out and tumble.
+  /// Rose, Blue Rose and Petal: whole roses and loose petals spin out and
+  /// tumble. Blue Rose throws sapphire blooms.
   roses,
+
+  /// Blue Lotus: open lotus blooms, loose petals and lily pads spin out and
+  /// settle slowly, as if onto water.
+  lotus,
 
   /// Gothic: bats swirl out past a flash of moonlight with crimson embers
   /// and candle sparks rising.
@@ -31,7 +36,8 @@ enum RewardBurstStyle {
   static RewardBurstStyle forPreset(ThemePreset? preset) =>
       switch (preset?.id) {
         'snow' => snow,
-        'rose' || 'petal' => roses,
+        'rose' || 'petal' || 'bluerose' => roses,
+        'bluelotus' => lotus,
         'gothic' => gothic,
         _ => confetti,
       };
@@ -42,6 +48,7 @@ enum RewardBurstStyle {
   IconData get icon => switch (this) {
     snow => Icons.ac_unit_rounded,
     roses => Icons.local_florist_rounded,
+    lotus => Icons.spa_rounded,
     gothic => Icons.nights_stay_rounded,
     confetti => Icons.celebration_rounded,
   };
@@ -425,10 +432,15 @@ class RewardBurstPalette {
     required this.tertiary,
     required this.ink,
     required this.glow,
+    this.bloomHeart,
+    this.bloomEdge,
   });
 
   factory RewardBurstPalette.from(ThemePreset? preset, ColorScheme colors) =>
       RewardBurstPalette(
+        // Blue Rose throws blue roses; every other look keeps the red ones.
+        bloomHeart: preset?.id == 'bluerose' ? const Color(0xFF1E4FD8) : null,
+        bloomEdge: preset?.id == 'bluerose' ? preset?.jewel : null,
         primary: preset?.primary ?? colors.primary,
         secondary: preset?.secondary ?? colors.secondary,
         tertiary: preset?.tertiary ?? colors.tertiary,
@@ -439,6 +451,9 @@ class RewardBurstPalette {
       );
 
   final Color primary, secondary, tertiary, ink, glow;
+
+  /// Colours of a thrown rose, heart and rim. Null for the classic red rose.
+  final Color? bloomHeart, bloomEdge;
 }
 
 /// One particle in normalised units: [angle] and [speed] set where it flies,
@@ -490,7 +505,7 @@ List<_Particle> _particles(RewardBurstStyle style, int seed) {
       for (var i = 0; i < 40; i++)
         make(kind: 1, minSize: 1.5, maxSize: 3.5, maxDelay: 0.3),
     ],
-    RewardBurstStyle.roses => [
+    RewardBurstStyle.roses || RewardBurstStyle.lotus => [
       for (var i = 0; i < 9; i++)
         make(kind: 0, minSize: 18, maxSize: 30, minSpeed: 0.45),
       for (var i = 0; i < 44; i++)
@@ -554,6 +569,8 @@ class RewardBurstPainter extends CustomPainter {
           _snowflake(canvas, p, at, local, fade);
         case RewardBurstStyle.roses:
           _rose(canvas, p, at, local, fade);
+        case RewardBurstStyle.lotus:
+          _lotus(canvas, p, at, local, fade);
         case RewardBurstStyle.gothic:
           _gothic(canvas, p, at, heading, local, fade);
         case RewardBurstStyle.confetti:
@@ -583,6 +600,8 @@ class RewardBurstPainter extends CustomPainter {
         drop = local * local * size.height * 0.32;
       case RewardBurstStyle.roses:
         drop = local * local * size.height * 0.55;
+      case RewardBurstStyle.lotus:
+        drop = local * local * size.height * 0.38;
       case RewardBurstStyle.gothic:
         if (p.kind == 0) {
           // Bats spiral outward and climb away.
@@ -665,6 +684,7 @@ class RewardBurstPainter extends CustomPainter {
             ).createShader(Rect.fromCircle(center: center, radius: r)),
         );
       case RewardBurstStyle.roses:
+      case RewardBurstStyle.lotus:
       case RewardBurstStyle.confetti:
         canvas.drawCircle(
           center,
@@ -745,10 +765,12 @@ class RewardBurstPainter extends CustomPainter {
   }
 
   void _rose(Canvas canvas, _Particle p, Offset at, double local, double fade) {
-    const deepRose = Color(0xFFB0123F);
-    const blush = Color(0xFFFF8FAB);
+    final deepRose = palette.bloomHeart ?? const Color(0xFFB0123F);
+    final blush = palette.bloomEdge ?? const Color(0xFFFF8FAB);
     final heart = Color.lerp(deepRose, palette.primary, 0.3)!;
-    final edge = Color.lerp(blush, palette.secondary, 0.4)!;
+    final edge = palette.bloomEdge == null
+        ? Color.lerp(blush, palette.secondary, 0.4)!
+        : blush;
     switch (p.kind) {
       case 0:
         ThemeMotifs.drawRose(
@@ -793,6 +815,61 @@ class RewardBurstPainter extends CustomPainter {
           0.85 * fade,
         );
         canvas.restore();
+    }
+  }
+
+  void _lotus(
+    Canvas canvas,
+    _Particle p,
+    Offset at,
+    double local,
+    double fade,
+  ) {
+    switch (p.kind) {
+      case 0:
+        // A bloom opening as it flies: it swells and turns slowly.
+        ThemeMotifs.drawLotus(
+          canvas,
+          at,
+          p.size * (0.75 + 0.45 * _ease(math.min(local * 3, 1))),
+          heart: Color.lerp(palette.secondary, Colors.white, 0.45)!,
+          edge: palette.primary,
+          stamen: palette.tertiary,
+          alpha: 0.95 * fade,
+          twist: local * p.spin * math.pi * 0.5,
+        );
+      case 1:
+        // A loose petal, turning over as it drifts.
+        final color = [
+          palette.primary,
+          palette.secondary,
+          Color.lerp(palette.primary, Colors.white, 0.5)!,
+          palette.secondary,
+        ][p.tone];
+        canvas
+          ..save()
+          ..translate(at.dx, at.dy)
+          ..rotate(local * p.spin * math.pi * 2)
+          ..scale(0.5 + 0.5 * math.cos(local * p.spin * 5).abs(), 1)
+          ..translate(0, p.size * 0.6)
+          ..drawPath(
+            ThemeMotifs.lotusPetal(p.size * 1.2),
+            Paint()..color = color.withValues(alpha: 0.9 * fade),
+          )
+          ..restore();
+      default:
+        // Gold pollen.
+        canvas
+          ..drawCircle(
+            at,
+            p.size * 0.42,
+            Paint()..color = palette.tertiary.withValues(alpha: 0.18 * fade),
+          )
+          ..drawCircle(
+            at,
+            p.size * 0.14,
+            Paint()..color = palette.tertiary.withValues(alpha: 0.95 * fade),
+          );
     }
   }
 

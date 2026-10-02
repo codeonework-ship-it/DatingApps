@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
+import '../theme/couture.dart';
 
 /// The Today look, shared by every screen: a flat ground, a tracked eyebrow
 /// over a serif title, quiet paper cards with a hairline border, and colours
@@ -62,6 +63,7 @@ class ConnectPageHeader extends StatelessWidget {
         Row(
           children: [
             if (leading != null) ...[leading!, const SizedBox(width: 4)],
+            const CoutureRule(width: 20),
             Expanded(
               child: Text(
                 eyebrow,
@@ -128,16 +130,24 @@ class ConnectSectionHeader extends StatelessWidget {
     final text = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Semantics(
-          header: title == null,
-          child: Text(
-            label,
-            style: theme.textTheme.labelMedium?.copyWith(
-              letterSpacing: 2,
-              fontWeight: FontWeight.w700,
-              color: colors.primary,
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CoutureRule(),
+            Flexible(
+              child: Semantics(
+                header: title == null,
+                child: Text(
+                  label,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    letterSpacing: 2,
+                    fontWeight: FontWeight.w700,
+                    color: colors.primary,
+                  ),
+                ),
+              ),
             ),
-          ),
+          ],
         ),
         if (title != null) ...[
           const SizedBox(height: 4),
@@ -177,7 +187,8 @@ class ConnectSectionHeader extends StatelessWidget {
   }
 }
 
-/// A quiet surface card with the card radius and a hairline border.
+/// A quiet surface card with the card radius and the look's bevelled
+/// hairline (see [Couture]).
 class ConnectPanel extends StatelessWidget {
   const ConnectPanel({
     required this.child,
@@ -193,14 +204,11 @@ class ConnectPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
+    final corners = BorderRadius.circular(radius);
     return Container(
       clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: color ?? colors.surface,
-        borderRadius: BorderRadius.circular(radius),
-        border: Border.all(color: colors.outlineVariant),
-      ),
+      decoration: Couture.panel(context, radius: corners, color: color),
+      foregroundDecoration: Couture.panelRim(context, radius: corners),
       padding: padding,
       child: child,
     );
@@ -238,14 +246,21 @@ class ConnectNavTile extends StatelessWidget {
     final colors = theme.colorScheme;
     final accent = tint ?? colors.primary;
     final radius = BorderRadius.circular(ConnectMetrics.cardRadius);
+    final preset = Couture.presetOf(context);
     final tile = Material(
       color: Colors.transparent,
       child: Ink(
-        decoration: BoxDecoration(
-          color: colors.surface,
-          borderRadius: radius,
-          border: Border.all(color: colors.outlineVariant),
-        ),
+        decoration: preset == null
+            ? BoxDecoration(
+                color: colors.surface,
+                borderRadius: radius,
+                border: Border.all(color: colors.outlineVariant),
+              )
+            : ShapeDecoration(
+                gradient: Couture.satin(preset),
+                color: Couture.satin(preset) == null ? preset.paper : null,
+                shape: Couture.rim(preset, radius: radius),
+              ),
         child: InkWell(
           borderRadius: radius,
           onTap: onTap,
@@ -264,6 +279,12 @@ class ConnectNavTile extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: accent.withValues(alpha: 0.12),
                       shape: BoxShape.circle,
+                      // A ring in the look's trim, like a set stone.
+                      border: preset == null
+                          ? null
+                          : Border.all(
+                              color: preset.trim.withValues(alpha: 0.38),
+                            ),
                     ),
                     child: Icon(icon, color: accent, size: 22),
                   ),

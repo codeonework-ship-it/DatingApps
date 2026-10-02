@@ -85,6 +85,14 @@ void main() {
       RewardBurstStyle.forPreset(ThemePresets.gothic),
       RewardBurstStyle.gothic,
     );
+    expect(
+      RewardBurstStyle.forPreset(ThemePresets.blueRose),
+      RewardBurstStyle.roses,
+    );
+    expect(
+      RewardBurstStyle.forPreset(ThemePresets.blueLotus),
+      RewardBurstStyle.lotus,
+    );
     for (final other in [
       ThemePresets.love,
       ThemePresets.realLife,
@@ -126,6 +134,8 @@ void main() {
     ThemePresets.rose: RewardBurstStyle.roses,
     ThemePresets.petal: RewardBurstStyle.roses,
     ThemePresets.gothic: RewardBurstStyle.gothic,
+    ThemePresets.blueRose: RewardBurstStyle.roses,
+    ThemePresets.blueLotus: RewardBurstStyle.lotus,
     ThemePresets.deepField: RewardBurstStyle.confetti,
   };
   for (final MapEntry(key: preset, value: style) in cases.entries) {
