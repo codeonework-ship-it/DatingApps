@@ -22,14 +22,14 @@ class UserListAndDetailTest(ConsoleCaseTest):
                        "created_at": "2026-09-01T10:00:00Z"}],
             "total": 1, "kpis": {"active": 1, "suspended": 0, "banned": 0, "verified_pct": 100, "scope": "all_users"},
         })
-        response = self.client.get(reverse("user_list"), {"q": "asha", "status": "active", "offset": "50"})
+        response = self.client.get(reverse("user_list"), {"q": "asha", "status": "active", "page": "3"})
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "User Management")
         self.assertContains(response, "asha_k")
         self.assertContains(response, "&lt;script&gt;x()&lt;/script&gt;")
         self.assertNotContains(response, "<script>x()</script>")
         self.assertContains(response, reverse("user_detail", args=[MEMBER]))
-        api.list_users.assert_called_once_with(limit=50, offset=50, q="asha", status="active", gender="", verified="")
+        api.list_users.assert_called_once_with(limit=25, offset=50, q="asha", status="active", gender="", verified="")
 
     def test_user_list_bff_failure_shows_banner_not_500(self):
         """A BFF outage renders the page with a readable banner, not a server error. [case:console.users.user_list.renders]"""

@@ -67,6 +67,15 @@ def operator_error_message(
     )
 
 
+# The shared admin-list contract (backend M/admin_list_query.go): search,
+# sort, order and a UTC date range, passed through when set.
+LIST_CONTRACT_PARAMS = ("q", "sort", "order", "from", "to", "source", "provider")
+
+
+def _list_extras(extra: dict[str, Any]) -> dict[str, Any]:
+    return {k: str(v).strip() for k, v in extra.items() if k in LIST_CONTRACT_PARAMS and str(v or "").strip()}
+
+
 def bff_failure_status(status_code: int | None) -> int:
     """HTTP status for a console page or proxy whose BFF call failed.
 
@@ -717,13 +726,14 @@ class GoBFFClient:
     def force_verify_user(self, user_id: str) -> APIResult:
         return self._request("POST", f"/admin/users/{user_id}/verify", payload={})
 
-    def list_billing_transactions(self, *, limit: int = 50, offset: int = 0, user_id: str = "") -> APIResult:
+    def list_billing_transactions(self, *, limit: int = 50, offset: int = 0, user_id: str = "", **extra: Any) -> APIResult:
         """Coin purchases, newest first. ``user_id`` asks Go for one member's
         rows (CON-04, filtered by the BFF); callers still drop any row for
         another member as a defence against an older BFF."""
         params: dict[str, Any] = {"limit": limit, "offset": offset}
         if user_id.strip():
             params["user_id"] = user_id.strip()
+        params.update(_list_extras(extra))
         return self._request("GET", "/admin/billing/transactions", params=params)
 
     def create_coin_package(self, payload: dict[str, Any]) -> APIResult:
@@ -865,18 +875,20 @@ class GoBFFClient:
             payload={"user_id": user_id, "amount": amount, "reason": reason},
         )
 
-    def list_subscriptions(self, *, limit: int = 50, offset: int = 0, status: str = "", plan_code: str = "") -> APIResult:
+    def list_subscriptions(self, *, limit: int = 50, offset: int = 0, status: str = "", plan_code: str = "", **extra: Any) -> APIResult:
         params: dict[str, Any] = {"limit": limit, "offset": offset}
         if status.strip():
             params["status"] = status.strip()
         if plan_code.strip():
             params["plan_code"] = plan_code.strip()
+        params.update(_list_extras(extra))
         return self._request("GET", "/admin/billing/subscriptions", params=params)
 
-    def list_payments(self, *, limit: int = 50, offset: int = 0, status: str = "") -> APIResult:
+    def list_payments(self, *, limit: int = 50, offset: int = 0, status: str = "", **extra: Any) -> APIResult:
         params: dict[str, Any] = {"limit": limit, "offset": offset}
         if status.strip():
             params["status"] = status.strip()
+        params.update(_list_extras(extra))
         return self._request("GET", "/admin/billing/payments", params=params)
 
     def get_revenue_analytics(self, params: dict[str, Any] | None = None) -> APIResult:
@@ -890,12 +902,13 @@ class GoBFFClient:
             params["until"] = until.strip()
         return self._request("GET", "/admin/billing/reconciliation", params=params)
 
-    def list_billing_webhook_events(self, *, limit: int = 50, offset: int = 0, status: str = "", event_type: str = "") -> APIResult:
+    def list_billing_webhook_events(self, *, limit: int = 50, offset: int = 0, status: str = "", event_type: str = "", **extra: Any) -> APIResult:
         params: dict[str, Any] = {"limit": limit, "offset": offset}
         if status.strip():
             params["status"] = status.strip()
         if event_type.strip():
             params["event_type"] = event_type.strip()
+        params.update(_list_extras(extra))
         return self._request("GET", "/admin/billing/webhook-events", params=params)
 
     def get_wallet_balance(self, user_id: str) -> APIResult:

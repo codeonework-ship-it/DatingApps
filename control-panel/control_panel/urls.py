@@ -5,8 +5,12 @@ from . import views_client_errors
 from . import views_support
 from . import views_business
 from . import views_analytics
+from . import views_reports
 
 urlpatterns = [
+    # ── Report server (catalog, parameters, groups, Excel/CSV/PDF) ────────────
+    path("reports/", views_reports.report_catalog, name="report_catalog"),
+    path("reports/<slug:report_id>/", views_reports.report_view, name="report_view"),
     # ── Product analytics (durable snapshots; analyst/admin) ──────────────────
     path("analytics/", views_analytics.analytics_overview, name="analytics_overview"),
     path("analytics/funnel/", views_analytics.analytics_funnel, name="analytics_funnel"),

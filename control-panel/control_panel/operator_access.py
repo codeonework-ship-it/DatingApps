@@ -117,6 +117,10 @@ NAV_ITEMS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     ("support_queue", "support", ("support/tickets",)),
     ("support_dashboard", "support", ("support/dashboard",)),
     ("support_canned_responses", "support", ("support/canned-responses",)),
+    ("report_catalog", "analytics", (
+        "business/revenue", "business/subscriptions", "business/conversion", "business/coins",
+        "business/referrals", "business/marketing-spend", "analytics/kpis", "analytics/trends",
+    )),
     ("analytics_overview", "analytics", ("analytics/kpis", "analytics/trends")),
     ("analytics_funnel", "analytics", ("analytics/funnel",)),
     ("analytics_retention", "analytics", ("analytics/retention",)),

@@ -12,7 +12,7 @@ from control_panel.services.go_client import APIResult
 # Go-rule mirror or the nav map shows up here.
 ANALYST_LINKS = {
     "dashboard", "city_pilot", "user_list", "support_dashboard",
-    "analytics_overview", "analytics_funnel", "analytics_retention", "analytics_engagement",
+    "report_catalog", "analytics_overview", "analytics_funnel", "analytics_retention", "analytics_engagement",
     "analytics_liquidity", "analytics_safety", "analytics_data",
     "business_revenue", "business_subscriptions", "business_conversion", "business_coins",
     "business_referrals", "business_markets", "business_investor_pack", "business_spend",

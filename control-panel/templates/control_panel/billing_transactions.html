@@ -17,6 +17,10 @@
 <div class="alert-glass warning"><i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}</div>
 {% endif %}
 
+<div class="glass-card mb-4">
+  {% include "control_panel/partials/_list_controls.html" with list_label="Filter coin purchases" %}
+</div>
+
 <div class="glass-card">
   {% if transactions %}
   <div class="table-responsive">
@@ -61,22 +65,7 @@
     </table>
   </div>
 
-  <!-- Pagination -->
-  <div class="d-flex justify-content-between align-items-center mt-3">
-    <span class="text-muted small">{{ total }} transaction{{ total|pluralize }}</span>
-    <div class="d-flex gap-2 flex-wrap">
-      {% if offset > 0 %}
-      <a href="?offset={{ prev_offset }}" class="btn btn-glass btn-sm">
-        <i class="bi bi-chevron-left me-1"></i>Prev
-      </a>
-      {% endif %}
-      {% if transactions|length >= limit %}
-      <a href="?offset={{ next_offset }}" class="btn btn-glass btn-sm">
-        Next<i class="bi bi-chevron-right ms-1"></i>
-      </a>
-      {% endif %}
-    </div>
-  </div>
+  {% include "control_panel/partials/_pagination.html" %}
   {% else %}
   <div class="text-center py-5 text-muted">
     <i class="bi bi-clock-history empty-icon-sm"></i>

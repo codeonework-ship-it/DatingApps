@@ -1694,3 +1694,160 @@ input:focus-visible + .toggle-slider {
   flex: none;
   margin-inline-start: auto;
 }
+
+/* ── Server-side lists (partials/_list_controls, _pagination) ───────── */
+.input-icon {
+  position: relative;
+}
+.input-icon > .bi {
+  position: absolute;
+  inset-inline-start: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--c-text-muted);
+  pointer-events: none;
+}
+.input-icon > .form-control {
+  padding-inline-start: 2.25rem;
+}
+.list-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--c-border);
+}
+.list-footer .list-summary {
+  flex: 1 1 14rem;
+  min-width: 0;
+  color: var(--c-text-muted);
+  font-size: 0.85rem;
+}
+.list-footer .list-summary strong {
+  color: var(--c-text);
+}
+.pagination {
+  --bs-pagination-bg: var(--c-surface);
+  --bs-pagination-color: var(--c-text);
+  --bs-pagination-border-color: var(--c-border);
+  --bs-pagination-hover-bg: rgba(255, 255, 255, 0.1);
+  --bs-pagination-hover-color: #fff;
+  --bs-pagination-hover-border-color: var(--c-border);
+  --bs-pagination-focus-box-shadow: 0 0 0 0.2rem rgba(245, 200, 66, 0.35);
+  --bs-pagination-active-bg: var(--c-gold);
+  --bs-pagination-active-color: #0a0a1a;
+  --bs-pagination-active-border-color: var(--c-gold);
+  --bs-pagination-disabled-bg: transparent;
+  --bs-pagination-disabled-color: var(--c-text-muted);
+  --bs-pagination-disabled-border-color: var(--c-border);
+  flex-wrap: wrap;
+}
+.pagination .page-link {
+  min-width: 2rem;
+  text-align: center;
+}
+.glass-table th a.sort-link {
+  color: inherit;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* ── Report server (/reports/) ──────────────────────────────────────── */
+.report-grid {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+}
+.report-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  color: var(--c-text);
+  text-decoration: none;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.report-card:hover,
+.report-card:focus-visible {
+  border-color: rgba(245, 200, 66, 0.5);
+  transform: translateY(-1px);
+  color: var(--c-text);
+}
+.report-card-title {
+  font-weight: 700;
+  font-size: 1rem;
+}
+.report-card-text {
+  flex: 1;
+  color: var(--c-text-muted);
+  font-size: 0.85rem;
+}
+.report-card-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--c-aqua);
+  font-size: 0.75rem;
+}
+.report-toolbar {
+  align-items: center;
+}
+.report-groupby {
+  display: flex;
+  align-items: center;
+  margin: 0;
+}
+.report-groupby .form-select {
+  width: auto;
+  min-width: 8rem;
+}
+.report-chart {
+  --chart-h: 18rem;
+}
+.report-params .filter-grid {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 10.5rem), 1fr));
+}
+.report-table td.num,
+.report-table th.num {
+  white-space: nowrap;
+}
+.report-table .report-group-head th {
+  padding-block: var(--space-1);
+  background: rgba(255, 255, 255, 0.04);
+}
+.report-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0;
+  color: var(--c-text);
+  font-weight: 700;
+  text-decoration: none;
+}
+.report-toggle .bi {
+  transition: transform 0.15s ease;
+}
+.report-toggle[aria-expanded="false"] .bi {
+  transform: rotate(-90deg);
+}
+.report-table .report-subtotal td {
+  font-weight: 700;
+  background: rgba(167, 139, 250, 0.08);
+}
+.report-table .report-total td {
+  font-weight: 800;
+  border-top: 2px solid var(--c-border);
+  background: rgba(245, 200, 66, 0.08);
+}
+.breadcrumb {
+  --bs-breadcrumb-divider-color: var(--c-text-muted);
+  --bs-breadcrumb-item-active-color: var(--c-text-muted);
+}
+@media print {
+  .sidebar, .topbar, .report-params, .report-toolbar, .report-groupby, .console-toasts { display: none !important; }
+  .layout.has-sidebar { grid-template-columns: 1fr !important; }
+  body { background: #fff !important; color: #000 !important; }
+  .glass-card { border: 1px solid #ccc !important; background: #fff !important; box-shadow: none !important; }
+  .glass-table, .glass-table td, .glass-table th { color: #000 !important; }
+}

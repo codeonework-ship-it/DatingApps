@@ -51,73 +51,13 @@
   </div>
 </div>
 
-<!-- Search + Filters -->
+<!-- Search, filters, paging: server side (control_panel/listing.py) -->
 <div class="glass-card mb-4">
-  <form method="get" class="row g-3 align-items-end">
-    <div class="col-lg-3 col-md-6">
-      <label class="form-label">Search (Name / Phone / ID)</label>
-      <div class="input-group">
-        <span class="input-group-text text-faint">
-          <i class="bi bi-search"></i>
-        </span>
-        <input type="text" name="q" class="form-control glass-input rounded-end" placeholder="Name, phone, user ID…"
-          value="{{ q }}">
-      </div>
-    </div>
-    <div class="col-lg-2 col-md-3 col-6">
-      <label class="form-label">Status</label>
-      <select name="status" class="form-select glass-select">
-        <option value="">All</option>
-        <option value="active" {% if status_filter == "active" %}selected{% endif %}>Active</option>
-        <option value="suspended" {% if status_filter == "suspended" %}selected{% endif %}>Suspended</option>
-        <option value="banned" {% if status_filter == "banned" %}selected{% endif %}>Banned</option>
-      </select>
-    </div>
-    <div class="col-lg-2 col-md-3 col-6">
-      <label class="form-label">Gender</label>
-      <select name="gender" class="form-select glass-select">
-        <option value="">All</option>
-        <option value="male" {% if gender_filter == "male" %}selected{% endif %}>Male</option>
-        <option value="female" {% if gender_filter == "female" %}selected{% endif %}>Female</option>
-        <option value="other" {% if gender_filter == "other" %}selected{% endif %}>Other</option>
-      </select>
-    </div>
-    <div class="col-lg-2 col-md-3 col-6">
-      <label class="form-label">Verified</label>
-      <select name="verified" class="form-select glass-select">
-        <option value="">All</option>
-        <option value="yes" {% if verified_filter == "yes" %}selected{% endif %}>Yes</option>
-        <option value="no" {% if verified_filter == "no" %}selected{% endif %}>No</option>
-      </select>
-    </div>
-    <div class="col-lg-3 col-md-3 col-6 d-flex gap-2 flex-wrap">
-      <button type="submit" class="btn btn-glow"><i class="bi bi-funnel-fill me-1"></i>Search</button>
-      <a href="{% url 'user_list' %}" class="btn btn-glass">Clear</a>
-    </div>
-  </form>
+  {% include "control_panel/partials/_list_controls.html" with list_label="Filter users" search_placeholder="Name, phone, user ID…" %}
 </div>
 
 <!-- Users Table -->
 <div class="glass-card">
-  <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-    <span class="text-muted small">
-      Showing {{ users|length }} of {{ total }} user{{ total|pluralize }}
-      {% if offset > 0 %} (offset {{ offset }}){% endif %}
-    </span>
-    <div class="d-flex gap-2 align-items-center flex-wrap">
-      {% if offset > 0 %}
-      <a href="?q={{ q }}&status={{ status_filter }}&gender={{ gender_filter }}&verified={{ verified_filter }}&offset={{ prev_offset }}" class="btn btn-glass btn-sm">
-        <i class="bi bi-chevron-left"></i> Prev
-      </a>
-      {% endif %}
-      {% if users|length == limit %}
-      <a href="?q={{ q }}&status={{ status_filter }}&gender={{ gender_filter }}&verified={{ verified_filter }}&offset={{ next_offset }}" class="btn btn-glass btn-sm">
-        Next <i class="bi bi-chevron-right"></i>
-      </a>
-      {% endif %}
-    </div>
-  </div>
-
   {% if users %}
   <div class="table-responsive">
     <table class="glass-table">
@@ -191,26 +131,7 @@
     </table>
   </div>
 
-  <!-- Bottom Pagination -->
-  <div class="d-flex justify-content-between align-items-center mt-3 pt-3 divider-top"
-   >
-    <span class="text-muted small">
-      {% widthratio offset limit 1 as page_num %}
-      Page {{ page_num|add:"1" }}
-    </span>
-    <div class="d-flex gap-2 flex-wrap">
-      {% if offset > 0 %}
-      <a href="?q={{ q }}&status={{ status_filter }}&gender={{ gender_filter }}&verified={{ verified_filter }}&offset={{ prev_offset }}" class="btn btn-glass btn-sm">
-        <i class="bi bi-chevron-left"></i> Previous
-      </a>
-      {% endif %}
-      {% if users|length == limit %}
-      <a href="?q={{ q }}&status={{ status_filter }}&gender={{ gender_filter }}&verified={{ verified_filter }}&offset={{ next_offset }}" class="btn btn-glass btn-sm">
-        Next <i class="bi bi-chevron-right"></i>
-      </a>
-      {% endif %}
-    </div>
-  </div>
+  {% include "control_panel/partials/_pagination.html" %}
   {% else %}
   <div class="text-center py-5 text-muted">
     <i class="bi bi-people empty-icon"></i>

@@ -11,6 +11,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_POST
 from django.views.decorators.http import require_http_methods
 
+from . import listing
 from .live_sessions import end_session_sockets
 from .observability_links import observability_links
 from .operator_access import ROLES_SESSION_KEY, resolve_operator_roles
@@ -844,53 +845,61 @@ def catalog_delete(request: HttpRequest, gift_id: str) -> HttpResponse:
 
 # ── User Management ───────────────────────────────────────────────────────────
 
+USER_LIST = listing.ListSpec(
+    name="users",
+    search_label="Search name, phone or ID",
+    filters=(
+        listing.Filter("status", "Status", (("active", "Active"), ("suspended", "Suspended"), ("banned", "Banned"))),
+        listing.Filter("gender", "Gender", (("male", "Male"), ("female", "Female"), ("other", "Other"))),
+        listing.Filter("verified", "Verified", (("yes", "Yes"), ("no", "No"))),
+    ),
+    columns=(
+        listing.Column("id", "User ID", width=38),
+        listing.Column("name", "Name", width=24),
+        listing.Column("username", "Username", width=20),
+        listing.Column("phone_number", "Phone", width=18),
+        listing.Column("gender", "Gender", width=10),
+        listing.Column("created_at", "Joined (UTC)", width=22),
+        listing.Column("status", "Status", lambda u: "Banned" if u.get("is_banned") else ("Suspended" if u.get("suspended_at") else "Active"), width=12),
+        listing.Column("is_verified", "Verified", width=10),
+    ),
+)
+
+
 @require_GET
 def user_list(request: HttpRequest) -> HttpResponse:
-    q = request.GET.get("q", "").strip()
-    status = request.GET.get("status", "").strip()
-    gender = request.GET.get("gender", "").strip()
-    verified = request.GET.get("verified", "").strip()
-    try:
-        offset = int(request.GET.get("offset", "0"))
-    except ValueError:
-        offset = 0
-    limit = 50
-
     client = GoBFFClient()
-    result = client.list_users(limit=limit, offset=offset, q=q, status=status, gender=gender, verified=verified)
+    kpis: dict = {}
 
-    users = result.data.get("users", []) if result.ok else []
-    total = result.data.get("total", 0) if result.ok else 0
+    def fetch(query: listing.ListQuery, limit: int, offset: int):
+        f = query.filters
+        result = client.list_users(limit=limit, offset=offset, q=query.q, status=f.get("status", ""),
+                                   gender=f.get("gender", ""), verified=f.get("verified", ""))
+        if not result.ok:
+            return [], None, result.error
+        kpis.update(result.data.get("kpis") or {})
+        return result.data.get("users") or [], result.data.get("total"), ""
 
-    kpis = result.data.get("kpis", {}) if result.ok else {}
-    active_count = kpis.get("active", sum(1 for u in users if not u.get("suspended_at") and not u.get("is_banned")))
-    suspended_count = kpis.get("suspended", sum(1 for u in users if u.get("suspended_at")))
-    banned_count = kpis.get("banned", sum(1 for u in users if u.get("is_banned")))
-    verified_count = sum(1 for u in users if u.get("is_verified"))
-    verified_pct = round(float(kpis.get("verified_pct", verified_count / len(users) * 100 if users else 0)))
+    def render_page(page: listing.Page) -> HttpResponse:
+        users = page.rows
+        verified_count = sum(1 for u in users if u.get("is_verified"))
+        context = _base_context()
+        context.update(listing.context(page))
+        context.update(
+            {
+                "users": users,
+                "total": page.total or 0,
+                "active_count": kpis.get("active", sum(1 for u in users if not u.get("suspended_at") and not u.get("is_banned"))),
+                "suspended_count": kpis.get("suspended", sum(1 for u in users if u.get("suspended_at"))),
+                "banned_count": kpis.get("banned", sum(1 for u in users if u.get("is_banned"))),
+                "verified_pct": round(float(kpis.get("verified_pct", verified_count / len(users) * 100 if users else 0))),
+                "kpi_scope": kpis.get("scope", "returned_page"),
+                "error": page.error,
+            }
+        )
+        return render(request, "control_panel/users.html", context)
 
-    context = _base_context()
-    context.update(
-        {
-            "q": q,
-            "status_filter": status,
-            "gender_filter": gender,
-            "verified_filter": verified,
-            "offset": offset,
-            "limit": limit,
-            "users": users,
-            "total": total,
-            "active_count": active_count,
-            "suspended_count": suspended_count,
-            "banned_count": banned_count,
-            "verified_pct": verified_pct,
-            "kpi_scope": kpis.get("scope", "returned_page"),
-            "error": result.error,
-            "prev_offset": max(0, offset - limit),
-            "next_offset": offset + limit,
-        }
-    )
-    return render(request, "control_panel/users.html", context)
+    return listing.respond(request, USER_LIST, fetch, title="Users", render_page=render_page)
 
 
 @require_http_methods(["GET", "POST"])
@@ -1345,30 +1354,61 @@ def billing_package_toggle(request: HttpRequest, package_id: str) -> HttpRespons
     return redirect("billing_dashboard")
 
 
+# ── Billing lists: server-side paging, search, filters, Excel ────────────────
+
+def _money_minor(row: dict, key: str = "amount_minor"):
+    value = row.get(key)
+    return round(value / 100, 2) if isinstance(value, (int, float)) and not isinstance(value, bool) else None
+
+
+BILLING_TRANSACTIONS = listing.ListSpec(
+    name="coin-purchases", search_label="Search member ID or reference",
+    filters=(listing.Filter("source", "Source", kind="text", max_length=40),
+             listing.Filter("provider", "Provider", kind="text", max_length=40), listing.Filter("from", "From (UTC)", kind="date"), listing.Filter("to", "To (UTC)", kind="date")),
+    columns=(listing.Column("purchase_ref", "Purchase reference", width=30), listing.Column("user_id", "Member ID", width=38),
+             listing.Column("coins", "Coins", width=10), listing.Column("amount", "Amount", _money_minor, width=12),
+             listing.Column("currency", "Currency", width=10), listing.Column("source", "Source"),
+             listing.Column("provider", "Provider"), listing.Column("created_at", "Created (UTC)", width=22)),
+)
+BILLING_SUBSCRIPTIONS = listing.ListSpec(
+    name="subscriptions", search_label="Search member ID or reference",
+    filters=(listing.Filter("status", "Status", (("active", "Active"), ("cancelled", "Cancelled"), ("expired", "Expired"),
+                                                  ("past_due", "Past due"), ("incomplete", "Incomplete"), ("paused", "Paused"))),
+             listing.Filter("plan_code", "Plan", kind="text", max_length=60), listing.Filter("from", "From (UTC)", kind="date"), listing.Filter("to", "To (UTC)", kind="date")),
+    columns=(listing.Column("user_id", "Member ID", width=38), listing.Column("plan_code", "Plan", width=18),
+             listing.Column("billing_cycle", "Cycle"), listing.Column("status", "Status"),
+             listing.Column("provider", "Provider"), listing.Column("provider_subscription_id", "Provider reference", width=30),
+             listing.Column("start_date", "Started (UTC)", width=22), listing.Column("current_period_end", "Period end (UTC)", width=22),
+             listing.Column("end_date", "Ended (UTC)", width=22), listing.Column("auto_renew", "Auto-renew", width=10),
+             listing.Column("cancel_at_period_end", "Ending", width=10)),
+)
+BILLING_PAYMENTS = listing.ListSpec(
+    name="payments", search_label="Search member ID or reference",
+    filters=(listing.Filter("status", "Status", (("created", "Created"), ("captured", "Captured"), ("success", "Success"),
+                                                  ("failed", "Failed"), ("refunded", "Refunded"))), listing.Filter("from", "From (UTC)", kind="date"), listing.Filter("to", "To (UTC)", kind="date")),
+    columns=(listing.Column("user_id", "Member ID", width=38),
+             listing.Column("amount", "Amount", lambda r: _money_minor(r, "amount_paise"), width=12),
+             listing.Column("currency", "Currency", width=10), listing.Column("status", "Status"),
+             listing.Column("provider_order_id", "Provider order", width=30),
+             listing.Column("provider_payment_id", "Provider payment", width=30),
+             listing.Column("created_at", "Created (UTC)", width=22), listing.Column("paid_at", "Paid (UTC)", width=22)),
+)
+BILLING_WEBHOOKS = listing.ListSpec(
+    name="webhook-events", search_label="Search event ID or reference",
+    filters=(listing.Filter("status", "Status", (("processed", "Processed"), ("ignored", "Ignored"), ("failed", "Failed"),
+                                                  ("received", "Received"))),
+             listing.Filter("event_type", "Event type", kind="text", max_length=80), listing.Filter("from", "From (UTC)", kind="date"), listing.Filter("to", "To (UTC)", kind="date")),
+    columns=(listing.Column("event_id", "Event ID", width=38), listing.Column("provider", "Provider"),
+             listing.Column("event_type", "Event type", width=30), listing.Column("status", "Status"),
+             listing.Column("error", "Error", width=40), listing.Column("received_at", "Received (UTC)", width=22)),
+)
+
+
 @require_GET
 def billing_transactions(request: HttpRequest) -> HttpResponse:
-    try:
-        offset = int(request.GET.get("offset", "0"))
-    except ValueError:
-        offset = 0
-    limit = 50
-
-    client = GoBFFClient()
-    result = client.list_billing_transactions(limit=limit, offset=offset)
-
-    context = _base_context()
-    context.update(
-        {
-            "transactions": result.data.get("transactions", []) if result.ok else [],
-            "total": result.data.get("total", 0) if result.ok else 0,
-            "offset": offset,
-            "limit": limit,
-            "error": result.error,
-            "prev_offset": max(0, offset - limit),
-            "next_offset": offset + limit,
-        }
-    )
-    return render(request, "control_panel/billing_transactions.html", context)
+    return listing.simple_view(request, BILLING_TRANSACTIONS, GoBFFClient().list_billing_transactions,
+                               items_key="transactions", template="control_panel/billing_transactions.html",
+                               title="Coin purchases", base_context=_base_context, context_name="transactions")
 
 
 @require_http_methods(["GET", "POST"])
@@ -1504,62 +1544,18 @@ def billing_grant_coins(request: HttpRequest) -> HttpResponse:
 
 @require_GET
 def billing_subscriptions(request: HttpRequest) -> HttpResponse:
-    try:
-        offset = int(request.GET.get("offset", "0"))
-    except ValueError:
-        offset = 0
-    limit = 50
-    status_filter = request.GET.get("status", "").strip()
-    plan_filter = request.GET.get("plan_code", "").strip()
-
-    client = GoBFFClient()
-    result = client.list_subscriptions(limit=limit, offset=offset, status=status_filter, plan_code=plan_filter)
-
-    context = _base_context()
-    context.update(
-        {
-            "subscriptions": result.data.get("subscriptions", []) if result.ok else [],
-            "total": result.data.get("total", 0) if result.ok else 0,
-            "offset": offset,
-            "limit": limit,
-            "status_filter": status_filter,
-            "plan_filter": plan_filter,
-            "error": result.error,
-            "prev_offset": max(0, offset - limit),
-            "next_offset": offset + limit,
-        }
-    )
-    return render(request, "control_panel/billing_subscriptions.html", context)
+    return listing.simple_view(request, BILLING_SUBSCRIPTIONS, GoBFFClient().list_subscriptions,
+                               items_key="subscriptions", template="control_panel/billing_subscriptions.html",
+                               title="Subscriptions", base_context=_base_context, context_name="subscriptions")
 
 
 # ── Billing: Payments (FR-09) ─────────────────────────────────────────────────
 
 @require_GET
 def billing_payments(request: HttpRequest) -> HttpResponse:
-    try:
-        offset = int(request.GET.get("offset", "0"))
-    except ValueError:
-        offset = 0
-    limit = 50
-    status_filter = request.GET.get("status", "").strip()
-
-    client = GoBFFClient()
-    result = client.list_payments(limit=limit, offset=offset, status=status_filter)
-
-    context = _base_context()
-    context.update(
-        {
-            "payments": result.data.get("payments", []) if result.ok else [],
-            "total": result.data.get("total", 0) if result.ok else 0,
-            "offset": offset,
-            "limit": limit,
-            "status_filter": status_filter,
-            "error": result.error,
-            "prev_offset": max(0, offset - limit),
-            "next_offset": offset + limit,
-        }
-    )
-    return render(request, "control_panel/billing_payments.html", context)
+    return listing.simple_view(request, BILLING_PAYMENTS, GoBFFClient().list_payments,
+                               items_key="payments", template="control_panel/billing_payments.html",
+                               title="Payments", base_context=_base_context, context_name="payments")
 
 
 # ── Billing: reconciliation (PEN-02) ─────────────────────────────────────────
@@ -1694,34 +1690,9 @@ def billing_fraud_rule_update(request: HttpRequest, rule_code: str) -> HttpRespo
 
 @require_GET
 def billing_webhook_events(request: HttpRequest) -> HttpResponse:
-    try:
-        offset = int(request.GET.get("offset", "0"))
-    except ValueError:
-        offset = 0
-    limit = 50
-    status_filter = request.GET.get("status", "").strip()
-    type_filter = request.GET.get("event_type", "").strip()
-
-    client = GoBFFClient()
-    result = client.list_billing_webhook_events(
-        limit=limit, offset=offset, status=status_filter, event_type=type_filter
-    )
-
-    context = _base_context()
-    context.update(
-        {
-            "events": result.data.get("events", []) if result.ok else [],
-            "total": result.data.get("total", 0) if result.ok else 0,
-            "offset": offset,
-            "limit": limit,
-            "status_filter": status_filter,
-            "type_filter": type_filter,
-            "error": result.error,
-            "prev_offset": max(0, offset - limit),
-            "next_offset": offset + limit,
-        }
-    )
-    return render(request, "control_panel/billing_webhook_events.html", context)
+    return listing.simple_view(request, BILLING_WEBHOOKS, GoBFFClient().list_billing_webhook_events,
+                               items_key="events", template="control_panel/billing_webhook_events.html",
+                               title="Webhook events", base_context=_base_context, context_name="events")
 
 
 # ── Revenue Analytics (FR-10) ─────────────────────────────────────────────────

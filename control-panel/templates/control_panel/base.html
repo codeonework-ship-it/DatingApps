@@ -74,6 +74,7 @@
         {% if not nav_hidden.support_canned_responses %}<a href="{% url 'support_canned_responses' %}" class="nav-item-link {% if '/support/canned' in request.path %}active{% endif %}"><i class="bi bi-chat-square-quote nav-icon"></i><span class="nav-label">Canned responses</span></a>{% endif %}
 
         {% if not nav_hidden.section_analytics %}<div class="sidebar-section-label">Analytics</div>{% endif %}
+        {% if not nav_hidden.report_catalog %}<a href="{% url 'report_catalog' %}" class="nav-item-link {% if '/reports/' in request.path %}active{% endif %}"><i class="bi bi-file-earmark-bar-graph nav-icon"></i><span class="nav-label">Reports</span></a>{% endif %}
         {% if not nav_hidden.analytics_overview %}<a href="{% url 'analytics_overview' %}" class="nav-item-link {% if request.path == '/analytics/' %}active{% endif %}"><i class="bi bi-bar-chart-line nav-icon"></i><span class="nav-label">Overview</span></a>{% endif %}
         {% if not nav_hidden.analytics_funnel %}<a href="{% url 'analytics_funnel' %}" class="nav-item-link {% if '/analytics/funnel' in request.path %}active{% endif %}"><i class="bi bi-funnel-fill nav-icon"></i><span class="nav-label">Activation funnel</span></a>{% endif %}
         {% if not nav_hidden.analytics_retention %}<a href="{% url 'analytics_retention' %}" class="nav-item-link {% if '/analytics/retention' in request.path %}active{% endif %}"><i class="bi bi-arrow-return-left nav-icon"></i><span class="nav-label">Retention</span></a>{% endif %}

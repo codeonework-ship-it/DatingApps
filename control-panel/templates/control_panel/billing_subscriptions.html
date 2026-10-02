@@ -18,35 +18,11 @@
 <div class="alert-glass warning mb-3"><i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}</div>
 {% endif %}
 
-<!-- Filters -->
 <div class="glass-card mb-4">
-  <form method="get" class="row g-2 align-items-end">
-    <div class="col-sm-4">
-      <label class="form-label small text-muted">Status</label>
-      <select name="status" class="glass-input">
-        <option value="">All</option>
-        {% for s in "active,cancelled,expired,paused"|make_list %}{% endfor %}
-        <option value="active" {% if status_filter == "active" %}selected{% endif %}>Active</option>
-        <option value="cancelled" {% if status_filter == "cancelled" %}selected{% endif %}>Cancelled</option>
-        <option value="expired" {% if status_filter == "expired" %}selected{% endif %}>Expired</option>
-        <option value="past_due" {% if status_filter == "past_due" %}selected{% endif %}>Past due</option>
-        <option value="incomplete" {% if status_filter == "incomplete" %}selected{% endif %}>Incomplete</option>
-        <option value="paused" {% if status_filter == "paused" %}selected{% endif %}>Paused</option>
-      </select>
-    </div>
-    <div class="col-sm-4">
-      <label class="form-label small text-muted">Plan Code</label>
-      <input type="text" name="plan_code" class="glass-input" value="{{ plan_filter }}" placeholder="e.g. Gold">
-    </div>
-    <div class="col-sm-4">
-      <button type="submit" class="btn btn-glass w-100"><i class="bi bi-funnel me-1"></i>Filter</button>
-    </div>
-  </form>
+  {% include "control_panel/partials/_list_controls.html" with list_label="Filter subscriptions" %}
 </div>
 
 <div class="glass-card">
-  <div class="mb-3 text-muted small">Showing {{ subscriptions|length }} of {{ total }} subscriptions (offset {{ offset }})</div>
-
   {% if subscriptions %}
   <div class="table-responsive">
     <table class="glass-table w-100">
@@ -99,22 +75,7 @@
     </table>
   </div>
 
-  <!-- Pagination -->
-  <div class="d-flex justify-content-between align-items-center mt-3">
-    {% if offset > 0 %}
-    <a href="?offset={{ prev_offset }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if plan_filter %}&plan_code={{ plan_filter }}{% endif %}" class="btn btn-glass btn-sm">
-      <i class="bi bi-chevron-left me-1"></i>Prev
-    </a>
-    {% else %}
-    <span></span>
-    {% endif %}
-
-    {% if subscriptions|length >= limit %}
-    <a href="?offset={{ next_offset }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if plan_filter %}&plan_code={{ plan_filter }}{% endif %}" class="btn btn-glass btn-sm">
-      Next<i class="bi bi-chevron-right ms-1"></i>
-    </a>
-    {% endif %}
-  </div>
+  {% include "control_panel/partials/_pagination.html" %}
   {% else %}
   <div class="text-center py-4 text-muted">
     <i class="bi bi-person-badge empty-icon-sm"></i>

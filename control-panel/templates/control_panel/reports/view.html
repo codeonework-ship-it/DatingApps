@@ -1,0 +1,114 @@
+{% extends "control_panel/base.html" %}
+{% load static %}
+{% block title %}{{ report.title }} · Reports · {{ project_name }}{% endblock %}
+{% block topbar_title %}Reports · {{ report.title }}{% endblock %}
+{% block content %}
+<nav aria-label="Breadcrumb" class="mb-2"><ol class="breadcrumb small mb-0">
+  <li class="breadcrumb-item"><a href="{% url 'report_catalog' %}">Reports</a></li>
+  <li class="breadcrumb-item active" aria-current="page">{{ report.title }}</li>
+</ol></nav>
+<div class="page-header">
+  <div>
+    <h1>{{ report.title }}</h1>
+    <p class="text-muted mb-0">{{ report.description }}</p>
+  </div>
+  <div class="page-actions report-toolbar" role="toolbar" aria-label="Report actions">
+    <div class="btn-group">
+      <a class="btn btn-glow" href="{{ export_base }}xlsx" download><i class="bi bi-file-earmark-excel" aria-hidden="true"></i>Excel</a>
+      <button type="button" class="btn btn-glow dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false"><span class="visually-hidden">More export formats</span></button>
+      <ul class="dropdown-menu dropdown-menu-end">
+        <li><a class="dropdown-item" href="{{ export_base }}xlsx" download><i class="bi bi-file-earmark-excel me-2" aria-hidden="true"></i>Excel workbook (all tables)</a></li>
+        <li><a class="dropdown-item" href="{{ export_base }}pdf" download><i class="bi bi-file-earmark-pdf me-2" aria-hidden="true"></i>PDF</a></li>
+        <li><hr class="dropdown-divider"></li>
+        {% for d in datasets %}<li><a class="dropdown-item" href="{{ d.csv_url }}" download><i class="bi bi-filetype-csv me-2" aria-hidden="true"></i>CSV · {{ d.result.spec.title }}</a></li>{% endfor %}
+      </ul>
+    </div>
+    <button type="button" class="btn btn-glass" data-copy-link title="Copy a link to this report with these parameters"><i class="bi bi-link-45deg" aria-hidden="true"></i>Copy link</button>
+    <button type="button" class="btn btn-glass btn-icon" data-print title="Print" aria-label="Print"><i class="bi bi-printer" aria-hidden="true"></i></button>
+  </div>
+</div>
+
+<div class="glass-card mb-4 report-params">
+  <form method="get" class="filter-grid" aria-label="Report parameters">
+    {% for p in params %}
+    <div class="filter-field{% if p.spec.kind == 'date' %} filter-field-date-1{% endif %}">
+      <label class="form-label" for="rp-{{ p.spec.name }}">{{ p.spec.label }}</label>
+      {% if p.spec.kind == "date" %}<input id="rp-{{ p.spec.name }}" type="date" name="{{ p.spec.name }}" value="{{ p.value }}" class="form-control">
+      {% elif p.spec.kind == "int" %}<input id="rp-{{ p.spec.name }}" type="number" name="{{ p.spec.name }}" value="{{ p.value }}" min="{{ p.spec.min }}" max="{{ p.spec.max }}" class="form-control">
+      {% elif p.spec.kind == "text" %}<input id="rp-{{ p.spec.name }}" type="text" name="{{ p.spec.name }}" value="{{ p.value }}" maxlength="100" class="form-control" placeholder="Any">
+      {% else %}<select id="rp-{{ p.spec.name }}" name="{{ p.spec.name }}" class="form-select">
+        {% if not p.spec.default %}<option value="">All</option>{% endif %}
+        {% for value, label in p.spec.choices %}<option value="{{ value }}"{% if value == p.value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>{% endif %}
+    </div>
+    {% endfor %}
+    <div class="filter-actions">
+      <a class="btn btn-glass" href="?">Reset</a>
+      <button class="btn btn-glow" type="submit"><i class="bi bi-play-fill" aria-hidden="true"></i>View report</button>
+    </div>
+  </form>
+  {% with helps=params %}<p class="form-text mt-3 mb-0">{% for p in helps %}{% if p.spec.help %}<strong>{{ p.spec.label }}:</strong> {{ p.spec.help }} {% endif %}{% endfor %}Rates and per-member values are not totalled.</p>{% endwith %}
+</div>
+
+{% if result.denied %}
+<div class="alert-glass warning mb-4" role="alert"><i class="bi bi-shield-lock-fill" aria-hidden="true"></i>This report is not available to your role.</div>
+{% else %}{% for err in result.errors %}
+<div class="alert-glass warning mb-4" role="alert"><i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>{{ err }}</div>
+{% endfor %}{% endif %}
+
+{% for d in datasets %}{% with ds=d.result %}
+<section class="glass-card mb-4 report-dataset" aria-labelledby="ds-{{ ds.spec.key }}">
+  <div class="card-title-row">
+    <h2 class="h5 mb-0" id="ds-{{ ds.spec.key }}">{{ ds.spec.title }}</h2>
+    <div class="d-flex flex-wrap gap-2 align-items-end">
+      {% if d.group_options %}
+      <form method="get" class="report-groupby">
+        {% for key, values in request.GET.lists %}{% if key != "group_"|add:ds.spec.key and key != "export" and key != "dataset" %}{% for v in values %}<input type="hidden" name="{{ key }}" value="{{ v }}">{% endfor %}{% endif %}{% endfor %}
+        <label class="form-label mb-0 me-2" for="gb-{{ ds.spec.key }}">Group by</label>
+        <select id="gb-{{ ds.spec.key }}" name="group_{{ ds.spec.key }}" class="form-select form-select-sm" data-autosubmit>
+          <option value="">None</option>
+          {% for o in d.group_options %}<option value="{{ o.key }}"{% if o.selected %} selected{% endif %}>{{ o.label }}</option>{% endfor %}
+        </select>
+        <noscript><button class="btn btn-glass btn-sm" type="submit">Apply</button></noscript>
+      </form>
+      {% endif %}
+      <a class="btn btn-glass btn-sm" href="{{ d.csv_url }}" download><i class="bi bi-filetype-csv" aria-hidden="true"></i>CSV</a>
+    </div>
+  </div>
+  {% if d.chart and d.chart.labels %}
+  <div class="chart-frame report-chart mb-3" role="img" aria-label="{{ d.chart.title|default:ds.spec.title }} chart">
+    <canvas data-report-chart="{{ d.chart_id }}"></canvas>
+    {{ d.chart|json_script:d.chart_id }}
+  </div>
+  {% endif %}
+  {% if ds.rows %}
+  <div class="table-responsive">
+    <table class="glass-table report-table">
+      <thead><tr>{% for f in ds.fields %}<th scope="col"{% if f.type != "text" and f.type != "date" and f.type != "bool" %} class="num"{% endif %}>{{ f.label }}</th>{% endfor %}</tr></thead>
+      {% if ds.groups %}
+        {% for g in ds.groups %}
+        <tbody class="report-group">
+          <tr class="report-group-head"><th colspan="{{ ds.fields|length }}" scope="rowgroup">
+            <button type="button" class="btn btn-link report-toggle" data-bs-toggle="collapse" data-bs-target=".grp-{{ ds.spec.key }}-{{ forloop.counter }}" aria-expanded="true">
+              <i class="bi bi-chevron-down" aria-hidden="true"></i>{{ g.label }} <span class="text-muted">({{ g.count }})</span>
+            </button></th></tr>
+          {% for row in g.rows %}<tr class="collapse show grp-{{ ds.spec.key }}-{{ forloop.parentloop.counter }}">{% for c in row.cells %}<td{% if c.numeric %} class="num"{% endif %}>{% if c.href %}<a href="{{ c.href }}">{{ c.text }}</a>{% else %}{{ c.text }}{% endif %}</td>{% endfor %}</tr>{% endfor %}
+          {% if g.subtotal %}<tr class="report-subtotal">{% for c in g.subtotal.cells %}<td{% if c.numeric %} class="num"{% endif %}>{{ c.text }}</td>{% endfor %}</tr>{% endif %}
+        </tbody>
+        {% endfor %}
+      {% else %}
+        <tbody>{% for row in ds.rows %}{% if row.kind == "data" %}<tr>{% for c in row.cells %}<td{% if c.numeric %} class="num"{% endif %}>{% if c.href %}<a href="{{ c.href }}">{{ c.text }}</a>{% else %}{{ c.text }}{% endif %}</td>{% endfor %}</tr>{% endif %}{% endfor %}</tbody>
+      {% endif %}
+      {% if ds.total %}<tfoot><tr class="report-total">{% for c in ds.total.cells %}<td{% if c.numeric %} class="num"{% endif %}>{{ c.text }}</td>{% endfor %}</tr></tfoot>{% endif %}
+    </table>
+  </div>
+  {% else %}
+  <p class="text-muted mb-0">No data for these parameters.</p>
+  {% endif %}
+  {% if ds.spec.note or ds.truncated or ds.mixed_currency %}
+  <p class="form-text mt-2 mb-0">{{ ds.spec.note }}{% if ds.truncated %} Showing the first 5,000 rows; narrow the parameters for the rest.{% endif %}{% if ds.mixed_currency %} Totals across currencies are not added.{% endif %}</p>
+  {% endif %}
+</section>
+{% endwith %}{% endfor %}
+{% endblock %}
+{% block extra_js %}<script src="{% static 'control_panel/reports.js' %}" defer></script>{% endblock %}

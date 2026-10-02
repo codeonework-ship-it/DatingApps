@@ -33,7 +33,8 @@ const pages = [
   'analytics/engagement/', 'analytics/liquidity/', 'analytics/safety/',
   'analytics/data/', 'business/', 'business/subscriptions/', 'business/conversion/',
   'business/coins/', 'business/referrals/', 'business/markets/',
-  'business/investor-pack/', 'business/spend/',
+  'business/investor-pack/', 'business/spend/', 'reports/', 'reports/revenue/?mode=all', 'reports/retention/',
+  'billing/transactions/',
 ];
 
 async function consoleUp() {

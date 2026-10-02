@@ -1,0 +1,54 @@
+{% comment %}Search, filters, sort and page size for a server-side list
+(control_panel/listing.py). Everything is a GET parameter, so a filtered
+view can be bookmarked and shared; changing anything returns to page 1.{% endcomment %}
+<form method="get" class="filter-grid list-controls" role="search" aria-label="{{ list_label|default:'Filter list' }}">
+  {% if list_spec.searchable %}
+  <div class="filter-field filter-field-wide">
+    <label class="form-label" for="lc-q">{{ list_spec.search_label }}</label>
+    <div class="input-icon">
+      <i class="bi bi-search" aria-hidden="true"></i>
+      <input id="lc-q" type="search" name="q" value="{{ list_query.q }}" class="form-control" maxlength="200" placeholder="{{ search_placeholder|default:'Search…' }}">
+    </div>
+  </div>
+  {% endif %}
+  {% for f in list_filters %}
+  <div class="filter-field{% if f.spec.kind == 'date' %} filter-field-date-1{% endif %}">
+    <label class="form-label" for="lc-{{ f.spec.name }}">{{ f.spec.label }}</label>
+    {% if f.spec.kind == "choice" %}
+    <select id="lc-{{ f.spec.name }}" name="{{ f.spec.name }}" class="form-select">
+      <option value="">All</option>
+      {% for value, label in f.spec.choices %}<option value="{{ value }}"{% if value == f.value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+    {% elif f.spec.kind == "date" %}
+    <input id="lc-{{ f.spec.name }}" type="date" name="{{ f.spec.name }}" value="{{ f.value }}" class="form-control">
+    {% else %}
+    <input id="lc-{{ f.spec.name }}" type="text" name="{{ f.spec.name }}" value="{{ f.value }}" maxlength="{{ f.spec.max_length }}" class="form-control">
+    {% endif %}
+  </div>
+  {% endfor %}
+  {% if sorts|length > 1 %}
+  <div class="filter-field">
+    <label class="form-label" for="lc-sort">Sort by</label>
+    <select id="lc-sort" name="sort" class="form-select">
+      {% for s in sorts %}<option value="{{ s.value }}"{% if s.selected %} selected{% endif %}>{{ s.label }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="filter-field">
+    <label class="form-label" for="lc-dir">Order</label>
+    <select id="lc-dir" name="dir" class="form-select">
+      <option value="desc"{% if list_query.direction == "desc" %} selected{% endif %}>Descending</option>
+      <option value="asc"{% if list_query.direction == "asc" %} selected{% endif %}>Ascending</option>
+    </select>
+  </div>
+  {% endif %}
+  <div class="filter-field">
+    <label class="form-label" for="lc-size">Rows per page</label>
+    <select id="lc-size" name="page_size" class="form-select">
+      {% for n in page_sizes %}<option value="{{ n }}"{% if n == list_query.page_size %} selected{% endif %}>{{ n }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="filter-actions">
+    <a class="btn btn-glass" href="{{ reset_url }}">Reset</a>
+    <button class="btn btn-glow" type="submit"><i class="bi bi-funnel" aria-hidden="true"></i>Apply</button>
+  </div>
+</form>

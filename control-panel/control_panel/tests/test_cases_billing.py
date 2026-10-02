@@ -114,17 +114,18 @@ class BillingListsTest(ConsoleCaseTest):
         api.list_billing_transactions.return_value = APIResult(True, {"total": 51, "transactions": [
             {"user_id": MEMBER, "coins": 100, "amount_minor": 19900, "currency": "INR", "provider": "sandbox",
              "source": "purchase", "purchase_ref": "<ref>", "created_at": "2026-09-30T10:00:00Z"}]})
-        response = self.client.get(reverse("billing_transactions"), {"offset": "50"})
+        response = self.client.get(reverse("billing_transactions"), {"page": "3"})
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Billing Transactions")
         self.assertContains(response, MEMBER)
         self.assertContains(response, "&lt;ref&gt;")
-        api.list_billing_transactions.assert_called_once_with(limit=50, offset=50)
+        api.list_billing_transactions.assert_called_once_with(limit=25, offset=50)
+        self.assertContains(response, "of <strong>51</strong>")
         api.list_billing_transactions.return_value = bff_error()
-        failed = self.client.get(reverse("billing_transactions"), {"offset": "nope"})
+        failed = self.client.get(reverse("billing_transactions"), {"page": "nope"})
         self.assertEqual(failed.status_code, 200)
         self.assertContains(failed, "alert-glass warning")
-        api.list_billing_transactions.assert_called_with(limit=50, offset=0)
+        api.list_billing_transactions.assert_called_with(limit=25, offset=0)
 
     def test_subscriptions_render_with_filters(self):
         """[case:console.billing.billing_subscriptions.renders]"""
@@ -135,7 +136,7 @@ class BillingListsTest(ConsoleCaseTest):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Subscriptions")
         self.assertContains(response, "plus_monthly")
-        api.list_subscriptions.assert_called_once_with(limit=50, offset=0, status="active", plan_code="plus_monthly")
+        api.list_subscriptions.assert_called_once_with(limit=25, offset=0, status="active", plan_code="plus_monthly")
         api.list_subscriptions.return_value = bff_error()
         self.assertContains(self.client.get(reverse("billing_subscriptions")), "alert-glass warning")
 
@@ -148,7 +149,7 @@ class BillingListsTest(ConsoleCaseTest):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Payments")
         self.assertContains(response, "captured")
-        api.list_payments.assert_called_once_with(limit=50, offset=0, status="captured")
+        api.list_payments.assert_called_once_with(limit=25, offset=0, status="captured")
         api.list_payments.return_value = bff_error()
         self.assertContains(self.client.get(reverse("billing_payments")), "alert-glass warning")
 
@@ -163,7 +164,7 @@ class BillingListsTest(ConsoleCaseTest):
         self.assertContains(response, "Payment webhooks")
         self.assertContains(response, "evt_1")
         self.assertContains(response, "&lt;b&gt;signature&lt;/b&gt;")
-        api.list_billing_webhook_events.assert_called_once_with(limit=50, offset=0, status="failed", event_type="payment_intent.succeeded")
+        api.list_billing_webhook_events.assert_called_once_with(limit=25, offset=0, status="failed", event_type="payment_intent.succeeded")
         api.list_billing_webhook_events.return_value = bff_error()
         self.assertContains(self.client.get(reverse("billing_webhook_events")), "alert-glass warning")
 

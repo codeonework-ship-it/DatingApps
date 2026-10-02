@@ -1,0 +1,40 @@
+{% extends "control_panel/base.html" %}
+{% block title %}Reports · {{ project_name }}{% endblock %}
+{% block topbar_title %}Reports{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1><i class="bi bi-file-earmark-bar-graph header-icon" aria-hidden="true"></i> Reports</h1>
+    <p class="text-muted mb-0">Business and product reports with parameters, groups and totals. Export any report to Excel, CSV or PDF. Every number is computed by the platform from durable records; counts from 1 to 4 show as &lt;5.</p>
+  </div>
+</div>
+
+<form method="get" class="filter-bar" role="search" aria-label="Find a report">
+  <div class="filter-grow">
+    <label class="form-label" for="report-search">Find a report</label>
+    <div class="input-icon">
+      <i class="bi bi-search" aria-hidden="true"></i>
+      <input id="report-search" type="search" name="q" value="{{ q }}" class="form-control" placeholder="Revenue, churn, retention, city…">
+    </div>
+  </div>
+  <a class="btn btn-glass" href="?">Reset</a>
+  <button class="btn btn-glow" type="submit"><i class="bi bi-search" aria-hidden="true"></i>Search</button>
+</form>
+
+{% for section in sections %}{% if section.reports %}
+<section class="mb-4" aria-labelledby="cat-{{ forloop.counter }}">
+  <h2 class="h5 mb-3" id="cat-{{ forloop.counter }}">{{ section.name }}</h2>
+  <div class="auto-grid report-grid">
+    {% for r in section.reports %}
+    <a class="glass-card report-card" href="{% url 'report_view' r.id %}">
+      <span class="report-card-title">{{ r.title }}</span>
+      <span class="report-card-text">{{ r.description }}</span>
+      <span class="report-card-meta"><i class="bi bi-sliders" aria-hidden="true"></i>{{ r.params|length }} parameter{{ r.params|length|pluralize }}
+        <span aria-hidden="true">·</span> Excel · CSV · PDF</span>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}{% endfor %}
+{% if not count %}<div class="glass-card text-center text-muted py-5">No reports match “{{ q }}”.</div>{% endif %}
+{% endblock %}
