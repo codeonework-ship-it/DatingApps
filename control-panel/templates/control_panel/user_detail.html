@@ -326,9 +326,9 @@
   <div class="activity-summary mb-3">
     {% if activity_summary.first_seen %}<span><strong>First seen</strong> {{ activity_summary.first_seen|isodate|date:"M d, Y H:i" }}</span>{% endif %}
     {% if activity_summary.last_seen %}<span><strong>Last seen</strong> {{ activity_summary.last_seen|isodate|date:"M d, Y H:i" }}</span>{% endif %}
-    {% if activity_summary.devices is not None %}<span><strong>Devices</strong> {{ activity_summary.devices }}</span>{% endif %}
-    {% if activity_summary.ips is not None %}<span><strong>IP addresses</strong> {{ activity_summary.ips }}</span>{% endif %}
-    {% for c in activity_summary.by_category %}<span class="badge badge-inactive">{{ c.category }} · {{ c.count }}</span>{% endfor %}
+    {% if activity_summary.distinct_devices is not None %}<span><strong>Devices</strong> {{ activity_summary.distinct_devices }}</span>{% endif %}
+    {% if activity_summary.distinct_ips is not None %}<span><strong>IP addresses</strong> {{ activity_summary.distinct_ips }}</span>{% endif %}
+    {% for category, count in activity_summary.by_category.items %}{% if count %}<span class="badge badge-inactive">{{ category }} · {{ count|thousands }}</span>{% endif %}{% endfor %}
   </div>
   {% endif %}
   {% if activity_actions %}
@@ -338,7 +338,7 @@
       <tbody>{% for a in activity_actions %}{% include "control_panel/activity/_row.html" %}{% endfor %}</tbody>
     </table>
   </div>
-  {% if activity_total and activity_total > activity_actions|length %}<p class="form-text mt-2 mb-0">Showing the latest {{ activity_actions|length }} of {{ activity_total|thousands }} actions.</p>{% endif %}
+  {% if activity_total and activity_total > activity_actions|length %}<p class="form-text mt-2 mb-0">Showing the latest {{ activity_actions|length }} of {{ activity_total|thousands }}{% if activity_total_capped %}+{% endif %} actions.</p>{% endif %}
   {% else %}
   <p class="text-muted mb-0">No recorded actions yet.</p>
   {% endif %}

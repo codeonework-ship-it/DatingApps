@@ -207,7 +207,7 @@ class LiveConsoleConsumer(AsyncJsonWebsocketConsumer):
 
 _ACTIVITY_CATEGORIES = frozenset(("Auth", "Profile", "Discovery", "Matches & chat", "Dates", "Social", "Safety",
                                   "Billing & coins", "Engagement", "Support", "Settings", "Other"))
-_ACTIVITY_SOURCES = frozenset(("request", "event", "security", "domain"))
+_ACTIVITY_SOURCES = frozenset(("request", "event", "security", "domain", "all", "request,event,security"))
 _UUIDISH = re.compile(r"^[0-9a-fA-F-]{8,36}$")
 
 

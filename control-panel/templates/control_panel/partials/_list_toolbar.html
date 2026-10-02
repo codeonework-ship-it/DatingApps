@@ -2,7 +2,7 @@
 of the whole filtered result (control_panel/listing.py).{% endcomment %}
 <div class="list-toolbar">
   <p class="list-summary mb-0" role="status">
-    {% if page.rows %}Showing <strong>{{ page.start|thousands }}–{{ page.end|thousands }}</strong>{% if page.total is not None %} of <strong>{{ page.total|thousands }}</strong>{% endif %}
+    {% if page.rows %}Showing <strong>{{ page.start|thousands }}–{{ page.end|thousands }}</strong>{% if page.total is not None %} of <strong>{{ page.total|thousands }}{% if total_capped %}+{% endif %}</strong>{% endif %}
     {% else %}No results{% endif %}{% if list_query.active_filter_count %} · {{ list_query.active_filter_count }} filter{{ list_query.active_filter_count|pluralize }} applied{% endif %}
   </p>
   {% if list_spec.columns %}

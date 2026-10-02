@@ -18,8 +18,11 @@ from .views import _base_context
 
 CATEGORIES = ("Auth", "Profile", "Discovery", "Matches & chat", "Dates", "Social", "Safety",
               "Billing & coins", "Engagement", "Support", "Settings", "Other")
-SOURCES = (("request", "Member requests"), ("event", "Named events"), ("security", "Security events"),
-           ("domain", "Data changes"))
+# Without a choice the log shows what members did (requests, named events,
+# security events); the database's row-change events are one choice away.
+ACTION_SOURCES = "request,event,security"
+SOURCES = (("actions", "Member actions"), ("request", "Member requests"), ("event", "Named events"), ("security", "Security events"),
+           ("domain", "Data changes"), ("all", "Everything, incl. data changes"))
 OUTCOMES = (("success", "Succeeded"), ("client_error", "Refused (4xx)"), ("server_error", "Failed (5xx)"))
 METHODS = tuple((m, m) for m in ("POST", "PUT", "PATCH", "DELETE", "GET"))
 
@@ -40,7 +43,7 @@ ACTIVITY_LIST = listing.ListSpec(
         listing.Filter("category", "Area", tuple((c, c) for c in CATEGORIES)),
         listing.Filter("action", "Action key", kind="text", max_length=80),
         listing.Filter("outcome", "Outcome", OUTCOMES),
-        listing.Filter("source", "Source", SOURCES),
+        listing.Filter("source", "Source", SOURCES, allow_all=False),
         listing.Filter("method", "Method", METHODS),
         listing.Filter("include_reads", "Include reads", (("true", "Yes"),)),
         listing.Filter("from", "From (UTC)", kind="date"),
@@ -64,16 +67,24 @@ ACTIVITY_LIST = listing.ListSpec(
 def member_activity(request: HttpRequest) -> HttpResponse:
     client = GoBFFClient()
 
+    def go(query: listing.ListQuery) -> dict:
+        params = query.go_params()
+        if params.get("source") in (None, "", "actions"):
+            params["source"] = ACTION_SOURCES
+        return params
+
     def extra(page: listing.Page, data: dict) -> dict:
         f = page.query.filters
         return {
-            "live_filters": {k: f.get(k, "") for k in ("member", "category", "source")} | {"include_reads": f.get("include_reads") == "true"},
+            "total_capped": bool(data.get("total_capped")),
+            "live_filters": {k: f.get(k, "") for k in ("member", "category")} | {
+                "source": f.get("source") or ACTION_SOURCES, "include_reads": f.get("include_reads") == "true"},
             "member_filter": f.get("member", ""),
         }
 
     return listing.simple_view(request, ACTIVITY_LIST, client.list_member_actions, items_key="actions",
                                template="control_panel/member_activity.html", title="Member activity",
-                               base_context=_base_context, context_name="actions", extra=extra)
+                               base_context=_base_context, context_name="actions", map_filters=go, extra=extra)
 
 
 def member_timeline_context(client: GoBFFClient, user_id: str) -> dict:
@@ -84,6 +95,7 @@ def member_timeline_context(client: GoBFFClient, user_id: str) -> dict:
     return {
         "activity_actions": [a for a in data.get("actions") or [] if isinstance(a, dict)],
         "activity_total": data.get("total"),
+        "activity_total_capped": bool(data.get("total_capped")),
         "activity_summary": data.get("summary") if isinstance(data.get("summary"), dict) else {},
         "activity_error": "" if result.ok else (result.error or "Activity is unavailable."),
         "activity_denied": result.status_code == 403,

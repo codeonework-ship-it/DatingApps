@@ -40,6 +40,8 @@ class MemberActivityPageTest(ConsoleCaseTest):
         self.assertNotContains(response, "<script>ua</script>")
         self.assertContains(response, reverse("user_detail", args=[MEMBER]))
         self.assertContains(response, 'data-live-topic="activity"')
+        # Default view: member actions, not raw data changes.
+        self.assertEqual(api.list_member_actions.call_args.kwargs["source"], "request,event,security")
 
     def test_filters_reach_go(self):
         """Member, area, outcome, source, reads and dates are server-side filters. [case:console.activity.explorer.filters]"""
@@ -76,12 +78,15 @@ class MemberPageActivityTest(ConsoleCaseTest):
         api = self.bff()
         api.get_user.return_value = APIResult(True, {"user": {"id": MEMBER, "username": "asha"}})
         api.member_activity.return_value = APIResult(True, {"actions": [ACTION], "total": 120, "summary": {
-            "first_seen": "2026-09-01T08:00:00Z", "last_seen": "2026-10-02T10:15:00Z", "devices": 2, "ips": 3,
-            "by_category": [{"category": "Safety", "count": 4}]}})
+            "first_seen": "2026-09-01T08:00:00Z", "last_seen": "2026-10-02T10:15:00Z", "distinct_devices": 2, "distinct_ips": 3,
+            "by_category": {"Safety": 4, "Billing & coins": 0}}})
         response = self.client.get(reverse("user_detail", args=[MEMBER]))
         self.assertContains(response, "Reported a member")
         self.assertContains(response, "Showing the latest 1 of 120 actions.")
         self.assertContains(response, "Safety · 4")
+        self.assertNotContains(response, "Billing &amp; coins · 0")
+        self.assertContains(response, "<strong>Devices</strong> 2")
+        self.assertContains(response, "<strong>IP addresses</strong> 3")
         self.assertContains(response, reverse("member_activity") + "?member=" + MEMBER)
         api.member_activity.assert_called_once_with(MEMBER, limit=25)
 
