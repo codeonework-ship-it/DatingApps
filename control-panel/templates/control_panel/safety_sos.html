@@ -23,7 +23,12 @@
 {% endif %}
 {% endwith %}
 
+<div class="glass-card mb-4">
+  {% include "control_panel/partials/_list_controls.html" with list_label="Filter SOS alerts" %}
+</div>
+
 <div class="glass-card">
+  {% include "control_panel/partials/_list_toolbar.html" %}
   {% if alerts %}
   <div class="table-responsive">
     <table class="glass-table">
@@ -46,7 +51,7 @@
           <td>
             <span class="badge badge-danger">
               <i class="bi bi-exclamation-triangle-fill me-1"></i>
-              {{ alert.alert_type|default:"SOS"|upper }}
+              {{ alert.emergency_level|default:"SOS"|upper }}
             </span>
           </td>
           <td class="text-muted small">
@@ -84,6 +89,7 @@
       </tbody>
     </table>
   </div>
+  {% include "control_panel/partials/_pagination.html" %}
   {% else %}
   <div class="text-center py-5 text-muted">
     <i class="bi bi-shield-check empty-icon text-success-soft"></i>

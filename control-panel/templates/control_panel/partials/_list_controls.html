@@ -16,7 +16,7 @@ view can be bookmarked and shared; changing anything returns to page 1.{% endcom
     <label class="form-label" for="lc-{{ f.spec.name }}">{{ f.spec.label }}</label>
     {% if f.spec.kind == "choice" %}
     <select id="lc-{{ f.spec.name }}" name="{{ f.spec.name }}" class="form-select">
-      <option value="">All</option>
+      {% if f.spec.allow_all %}<option value="">All</option>{% endif %}
       {% for value, label in f.spec.choices %}<option value="{{ value }}"{% if value == f.value %} selected{% endif %}>{{ label }}</option>{% endfor %}
     </select>
     {% elif f.spec.kind == "date" %}

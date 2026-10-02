@@ -14,18 +14,12 @@
 {% endif %}
 
 <div class="glass-card mb-4">
-  <form method="get" class="d-flex flex-wrap gap-3 align-items-end">
-    <div>
-      <label class="form-label">Queue</label>
-      <select name="status" class="glass-select">
-        <option value="review_required" {% if status_filter == "review_required" %}selected{% endif %}>Manual review</option>
-        <option value="provider_error" {% if status_filter == "provider_error" %}selected{% endif %}>Provider errors</option>
-      </select>
-    </div>
-    <button type="submit" class="btn btn-glow"><i class="bi bi-funnel-fill me-1"></i>Filter</button>
-  </form>
+  {% include "control_panel/partials/_list_controls.html" with list_label="Filter the media queue" %}
 </div>
 
+<div class="glass-card mb-4">
+  {% include "control_panel/partials/_list_toolbar.html" %}
+</div>
 <div class="row g-4">
   {% for item in items %}
   <div class="col-12 col-lg-6 col-xl-4">
@@ -72,5 +66,8 @@
     </div>
   </div>
   {% endfor %}
+</div>
+<div class="mt-4">
+  {% include "control_panel/partials/_pagination.html" %}
 </div>
 {% endblock %}

@@ -33,7 +33,7 @@ const pages = [
   'analytics/engagement/', 'analytics/liquidity/', 'analytics/safety/',
   'analytics/data/', 'business/', 'business/subscriptions/', 'business/conversion/',
   'business/coins/', 'business/referrals/', 'business/markets/',
-  'business/investor-pack/', 'business/spend/', 'reports/', 'reports/revenue/?mode=all', 'reports/retention/',
+  'business/investor-pack/', 'business/spend/', 'reports/', 'reports/revenue/?mode=all', 'reports/retention/', 'activity/',
   'billing/transactions/',
 ];
 

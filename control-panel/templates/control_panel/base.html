@@ -106,8 +106,7 @@
             <i class="bi bi-key-fill nav-icon"></i><span class="nav-label">Account recovery</span></a>{% endif %}
 
         {% if not nav_hidden.section_logs %}<div class="sidebar-section-label">Logs</div>{% endif %}
-        {% if not nav_hidden.activity_feed %}<a href="/activities/" class="nav-item-link {% if '/activities' in request.path %}active{% endif %}">
-            <i class="bi bi-activity nav-icon"></i><span class="nav-label">Activity Feed</span></a>{% endif %}
+        {% if not nav_hidden.member_activity %}<a href="{% url 'member_activity' %}" class="nav-item-link {% if request.path == '/activity/' or '/activities' in request.path %}active{% endif %}"><i class="bi bi-activity nav-icon"></i><span class="nav-label">Member activity</span></a>{% endif %}
         {% if not nav_hidden.audit_log %}<a href="/audit/" class="nav-item-link {% if '/audit' in request.path %}active{% endif %}">
             <i class="bi bi-fingerprint nav-icon"></i><span class="nav-label">Operator Audit</span></a>{% endif %}
         {% if not nav_hidden.domain_events %}<a href="/events/" class="nav-item-link {% if '/events' in request.path %}active{% endif %}">

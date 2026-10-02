@@ -8,8 +8,20 @@ from control_panel.services.go_client import APIResult, BinaryAPIResult
 from control_panel.tests.case_support import ConsoleCaseTest, bff_error, flash
 
 OPERATOR = "00000000-0000-0000-0000-0000000000aa"  # case_support.login's operator_user_id
-REPORT = {"id": "rep-1", "reporter_id": "u-reporter", "reported_user_id": "u-reported", "category": "harassment",
+# Field names exactly as Go's moderationReport (backend store.go) sends them.
+REPORT = {"id": "rep-1", "reporter_user_id": "u-reporter", "reported_user_id": "u-reported", "reason": "harassment",
           "description": "<img src=x onerror=alert(1)>", "status": "pending", "created_at": "2026-09-30T08:00:00Z"}
+
+
+class VerifiedStatusTest(ConsoleCaseTest):
+    def test_verified_rows_show_as_verified_and_the_filter_uses_gos_value(self):
+        """Go stores approvals as "verified". Regression: red badge, empty "Approved" filter. [case:console.verifications.status_value]"""
+        api = self.bff()
+        api.list_verifications.return_value = APIResult(True, {"verifications": [
+            {"user_id": "u-1", "status": "verified", "submitted_at": "2026-09-30T08:00:00Z"}], "total": 1})
+        response = self.client.get(reverse("verification_queue"), {"status": "verified"})
+        self.assertContains(response, '<span class="badge badge-active">Verified</span>')
+        self.assertEqual(api.list_verifications.call_args.kwargs["status"], "verified")
 
 
 class ModerationReportsTest(ConsoleCaseTest):
@@ -23,8 +35,10 @@ class ModerationReportsTest(ConsoleCaseTest):
         self.assertContains(response, "Moderation Reports")
         self.assertContains(response, "&lt;img src=x onerror=alert(1)&gt;")
         self.assertContains(response, "Sep 30, 2026")
+        self.assertContains(response, "u-report…")  # reporter shown (was blank: wrong key)
+        self.assertContains(response, "Harassment")  # reason shown (was always "General")
         self.assertContains(response, reverse("action_report", args=["rep-1"]))
-        api.list_reports.assert_called_once_with(status="pending", limit=100)
+        api.list_reports.assert_called_once_with(limit=25, offset=0, status="pending")
 
     def test_reports_bff_failure_shows_banner(self):
         """[case:console.moderation_reports.moderation_reports.renders]"""
@@ -71,10 +85,10 @@ class MediaModerationTest(ConsoleCaseTest):
         """[case:console.moderation_media.media_moderation_queue.renders]"""
         api = self.bff()
         api.list_media_moderation.return_value = APIResult(True, {"items": [{"photo_id": "photo-1", "username": "<b>u</b>"}]})
-        response = self.client.get(reverse("media_moderation_queue"), {"status": "provider_error", "limit": "999"})
+        response = self.client.get(reverse("media_moderation_queue"), {"status": "provider_error", "page_size": "999"})
         self.assertContains(response, "&lt;b&gt;u&lt;/b&gt;")
         self.assertContains(response, reverse("media_moderation_content", args=["photo-1"]))
-        api.list_media_moderation.assert_called_once_with(status="provider_error", limit=200)
+        api.list_media_moderation.assert_called_once_with(limit=25, offset=0, status="provider_error")
         api.list_media_moderation.return_value = bff_error()
         self.assertContains(self.client.get(reverse("media_moderation_queue")), "alert-glass warning")
 
@@ -116,12 +130,12 @@ class VerificationsTest(ConsoleCaseTest):
         api = self.bff()
         api.list_verifications.return_value = APIResult(True, {"verifications": [
             {"user_id": "u-1", "status": "pending", "submitted_at": "2026-09-29T10:00:00Z"}]})
-        response = self.client.get(reverse("verification_queue"), {"status": "pending", "limit": "25"})
+        response = self.client.get(reverse("verification_queue"), {"status": "pending", "page_size": "10"})
         self.assertContains(response, "Verification Queue")
         self.assertContains(response, "Sep 29, 2026")
         self.assertContains(response, reverse("approve_verification", args=["u-1"]))
         self.assertContains(response, reverse("reject_verification", args=["u-1"]))
-        api.list_verifications.assert_called_once_with(status="pending", limit=25)
+        api.list_verifications.assert_called_once_with(limit=10, offset=0, status="pending", sort="submitted_at", order="desc")
         api.list_verifications.return_value = bff_error()
         self.assertContains(self.client.get(reverse("verification_queue")), "alert-glass warning")
 
@@ -167,7 +181,7 @@ class AppealsTest(ConsoleCaseTest):
         self.assertContains(response, "&lt;i&gt;I was hacked&lt;/i&gt;")
         self.assertContains(response, "Oct 04")
         self.assertContains(response, reverse("action_appeal", args=["apl-1"]))
-        api.list_appeals.assert_called_once_with(status="submitted", limit=100)
+        api.list_appeals.assert_called_once_with(limit=25, offset=0, status="submitted", sort="created_at", order="desc")
         api.list_appeals.return_value = bff_error()
         self.assertContains(self.client.get(reverse("appeal_queue")), "alert-glass warning")
 

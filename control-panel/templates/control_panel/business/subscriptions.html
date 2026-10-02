@@ -8,7 +8,7 @@
   <div class="col-lg-6"><div class="glass-card">
     <div class="d-flex justify-content-between align-items-center"><h6 class="mb-0">MRR movements waterfall{% if charts.waterfall %} · {{ charts.waterfall.currency }}{% endif %}</h6>
       {% if currencies|length > 1 %}<form method="get" class="biz-noprint">{% for k, v in filters.items %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}
-        <select name="currency" class="glass-input" onchange="this.form.submit()">{% for c in currencies %}<option {% if c == currency %}selected{% endif %}>{{ c }}</option>{% endfor %}</select></form>{% endif %}
+        <select name="currency" class="glass-input" data-autosubmit>{% for c in currencies %}<option {% if c == currency %}selected{% endif %}>{{ c }}</option>{% endfor %}</select></form>{% endif %}
     </div>
     {% if charts.waterfall %}<div class="biz-chart"><canvas id="chart-waterfall" aria-label="MRR waterfall"></canvas></div>{% else %}<div class="empty-command-state">No subscription revenue in this window.</div>{% endif %}
   </div></div>

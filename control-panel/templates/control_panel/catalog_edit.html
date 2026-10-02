@@ -116,7 +116,7 @@
                   <label class="form-label mb-1">Upload File</label>
                   <input type="file" name="image_file" class="form-control glass-input"
                     accept=".gif,.png,.jpg,.jpeg,.webp,image/gif,image/png,image/jpeg,image/webp"
-                    onchange="previewUpload(this)">
+                    data-preview-upload>
                   <div class="text-muted mt-1 fs-xs">Accepts: GIF, PNG, JPG, WebP — max 5 MB</div>
                 </div>
               </div>
@@ -153,6 +153,9 @@
 </div>
 
 <script>
+document.addEventListener('change', function (event) {
+  if (event.target.matches && event.target.matches('input[data-preview-upload]')) previewUpload(event.target);
+});
 function previewUpload(input) {
   const img = document.getElementById('preview-img');
   if (input.files && input.files[0]) {

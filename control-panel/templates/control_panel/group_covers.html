@@ -10,7 +10,7 @@
     <div class="col-md-4"><a href="{% url 'group_cover_content' cover.cover_id %}"><img src="{% url 'group_cover_content' cover.cover_id %}" alt="Cover photo uploaded for {{ cover.group_name|default:'a group' }}" class="img-fluid rounded" width="320" loading="lazy"></a></div>
     <div class="col-md-8">
       <h2 class="h5">{{ cover.group_name|default:"Deleted group" }}{% if cover.group_kind %} <small>· {{ cover.group_kind|title }}</small>{% endif %}</h2>
-      <p>Owner: {% if cover.owner_id %}<a href="{% url 'user_detail' cover.owner_id %}"><code>{{ cover.owner_id }}</code></a>{% else %}—{% endif %}{% if cover.uploaded_by and cover.uploaded_by != cover.owner_id %}<br>Uploaded by: <a href="{% url 'user_detail' cover.uploaded_by %}"><code>{{ cover.uploaded_by }}</code></a>{% endif %}<br>
+      <p>Owner: {% if cover.owner_user_id %}<a href="{% url 'user_detail' cover.owner_user_id %}"><code>{{ cover.owner_user_id }}</code></a>{% else %}—{% endif %}{% if cover.uploaded_by and cover.uploaded_by != cover.owner_user_id %}<br>Uploaded by: <a href="{% url 'user_detail' cover.uploaded_by %}"><code>{{ cover.uploaded_by }}</code></a>{% endif %}<br>
       Uploaded: {{ cover.uploaded_at }}<br>
       {{ cover.mime_type }} · {{ cover.width_px }}×{{ cover.height_px }} · {{ cover.size_bytes|filesizeformat }}<br>
       Cover <code>{{ cover.cover_id }}</code> · Group <code>{{ cover.group_id }}</code>{% if cover.provider %} · Checked by {{ cover.provider }}{% endif %}</p>

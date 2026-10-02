@@ -1,0 +1,11 @@
+{% load custom_filters %}{% comment %}Above a server-side list's grid: the range and total, and Excel export
+of the whole filtered result (control_panel/listing.py).{% endcomment %}
+<div class="list-toolbar">
+  <p class="list-summary mb-0" role="status">
+    {% if page.rows %}Showing <strong>{{ page.start|thousands }}–{{ page.end|thousands }}</strong>{% if page.total is not None %} of <strong>{{ page.total|thousands }}</strong>{% endif %}
+    {% else %}No results{% endif %}{% if list_query.active_filter_count %} · {{ list_query.active_filter_count }} filter{{ list_query.active_filter_count|pluralize }} applied{% endif %}
+  </p>
+  {% if list_spec.columns %}
+  <a class="btn btn-glass btn-sm" href="{{ export_url }}" download title="Every row matching these filters, up to 50,000"><i class="bi bi-file-earmark-excel" aria-hidden="true"></i>Export Excel</a>
+  {% endif %}
+</div>

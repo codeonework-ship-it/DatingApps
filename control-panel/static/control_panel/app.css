@@ -967,6 +967,10 @@ code {
 
 /* ── Tables ─────────────────────────────────────────────────────────── */
 .table-responsive {
+  /* A positioning context, so absolutely positioned content (e.g.
+     .visually-hidden labels) scrolls with the table instead of widening the
+     page. */
+  position: relative;
   border-radius: var(--radius);
 }
 .glass-table {
@@ -1710,10 +1714,28 @@ input:focus-visible + .toggle-slider {
 .input-icon > .form-control {
   padding-inline-start: 2.25rem;
 }
+.list-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-3);
+}
+.list-toolbar .list-summary {
+  flex: 1 1 14rem;
+  min-width: 0;
+  color: var(--c-text-muted);
+  font-size: 0.85rem;
+}
+.list-toolbar .list-summary strong {
+  color: var(--c-text);
+}
 .list-footer {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: space-between;
   gap: var(--space-2) var(--space-3);
   margin-top: var(--space-3);
   padding-top: var(--space-3);
@@ -1850,4 +1872,59 @@ input:focus-visible + .toggle-slider {
   body { background: #fff !important; color: #000 !important; }
   .glass-card { border: 1px solid #ccc !important; background: #fff !important; box-shadow: none !important; }
   .glass-table, .glass-table td, .glass-table th { color: #000 !important; }
+}
+
+/* ── Member activity (/activity/) ───────────────────────────────────── */
+.activity-table .activity-row.is-new td {
+  animation: activity-new 4s ease-out;
+}
+@keyframes activity-new {
+  from { background: rgba(45, 212, 191, 0.18); }
+  to { background: transparent; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .activity-table .activity-row.is-new td { animation: none; background: rgba(45, 212, 191, 0.12); }
+}
+.activity-table .outcome-server_error td:first-child {
+  box-shadow: inset 3px 0 0 var(--c-danger);
+}
+.activity-table .outcome-client_error td:first-child {
+  box-shadow: inset 3px 0 0 var(--c-warning);
+}
+.activity-detail td {
+  background: rgba(255, 255, 255, 0.03);
+}
+.activity-dl {
+  display: grid;
+  grid-template-columns: minmax(7rem, max-content) minmax(0, 1fr);
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  font-size: 0.85rem;
+}
+.activity-dl dt {
+  color: var(--c-text-muted);
+  font-weight: 600;
+}
+.activity-dl dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.live-tail-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--control-h);
+}
+.activity-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+  font-size: 0.85rem;
+  color: var(--c-text-muted);
+}
+.activity-summary strong {
+  color: var(--c-text);
+  margin-inline-end: 0.25rem;
 }

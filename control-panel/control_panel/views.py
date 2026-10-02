@@ -288,27 +288,21 @@ def dashboard(request: HttpRequest) -> HttpResponse:
 
 # ── Verifications ─────────────────────────────────────────────────────────────
 
+VERIFICATION_LIST = listing.ListSpec(
+    name="verifications", search_label="Search member ID or username",
+    filters=(listing.Filter("status", "Status", (("pending", "Pending"), ("verified", "Verified"), ("rejected", "Rejected"))), listing.Filter("from", "From (UTC)", kind="date"), listing.Filter("to", "To (UTC)", kind="date")),
+    sorts=(("submitted_at", "Submitted"), ("updated_at", "Last updated")),
+    columns=(listing.Column("user_id", "Member ID", width=38), listing.Column("status", "Status"), listing.Column("submitted_at", "Submitted (UTC)", width=22),
+             listing.Column("reviewed_at", "Reviewed (UTC)", width=22), listing.Column("rejection_reason", "Rejection reason", width=40)),
+)
+
+
 @require_GET
 def verification_queue(request: HttpRequest) -> HttpResponse:
-    status = request.GET.get("status", "").strip()
-    try:
-        limit = int(request.GET.get("limit", "100"))
-    except ValueError:
-        limit = 100
-
-    client = GoBFFClient()
-    result = client.list_verifications(status=status, limit=limit)
-
-    context = _base_context()
-    context.update(
-        {
-            "status_filter": status,
-            "limit": limit,
-            "verifications": result.data.get("verifications", []) if result.ok else [],
-            "error": result.error,
-        }
-    )
-    return render(request, "control_panel/verifications.html", context)
+    return listing.simple_view(request, VERIFICATION_LIST, GoBFFClient().list_verifications, items_key="verifications",
+                               template="control_panel/verifications.html", title="Verifications",
+                               base_context=_base_context, context_name="verifications",
+                               extra=lambda page, data: {"status_filter": page.query.filters.get("status", "")})
 
 
 @require_POST
@@ -372,84 +366,78 @@ def activity_feed(request: HttpRequest) -> HttpResponse:
     return render(request, "control_panel/activities.html", context)
 
 
+AUDIT_LIST = listing.ListSpec(
+    name="operator-audit", search_label="Search event or resource type", default_page_size=50,
+    filters=(listing.Filter("event_type", "Event type", kind="text", max_length=80),
+             listing.Filter("actor_user_id", "Actor ID", kind="text", max_length=36),
+             listing.Filter("subject_user_id", "Subject member ID", kind="text", max_length=36),
+             listing.Filter("resource_type", "Resource type", kind="text", max_length=60), listing.Filter("from", "From (UTC)", kind="date"), listing.Filter("to", "To (UTC)", kind="date")),
+    columns=(listing.Column("occurred_at", "Occurred (UTC)", width=22), listing.Column("event_type", "Event", width=30), listing.Column("actor_user_id", "Actor ID", width=38),
+             listing.Column("actor_role", "Actor role"), listing.Column("subject_user_id", "Subject ID", width=38), listing.Column("resource_type", "Resource"),
+             listing.Column("resource_id", "Resource ID", width=38), listing.Column("correlation_id", "Correlation ID", width=38), listing.Column("txid", "Transaction"),
+             listing.Column("payload", "Payload", width=60)),
+)
+
+
 @require_GET
 def audit_log(request: HttpRequest) -> HttpResponse:
-    limit = _bounded_int(request.GET.get("limit", "100"), 100)
-    filters = {
-        "event_type": (request.GET.get("event_type") or "").strip(),
-        "actor_user_id": (request.GET.get("actor_user_id") or "").strip(),
-        "subject_user_id": (request.GET.get("subject_user_id") or "").strip(),
-        "resource_type": (request.GET.get("resource_type") or "").strip(),
-    }
-    result = GoBFFClient().list_audit_events(limit=limit, **filters)
-    context = _base_context()
-    context.update(
-        {
-            "events": result.data.get("events", []) if result.ok else [],
-            "source": result.data.get("source", "audit.operator_action_log") if result.ok else "audit.operator_action_log",
-            "append_only": result.data.get("append_only", True) if result.ok else True,
-            "limit": limit,
-            "filters": filters,
-            "error": result.error,
-            "snapshot_at": datetime.now(timezone.utc),
-        }
-    )
-    return render(request, "control_panel/audit_log.html", context)
+    return listing.simple_view(request, AUDIT_LIST, GoBFFClient().list_audit_events, items_key="events",
+                               template="control_panel/audit_log.html", title="Operator audit",
+                               base_context=_base_context, context_name="events",
+                               extra=lambda page, data: {"source": data.get("source", "audit.operator_action_log"),
+                                                         "append_only": data.get("append_only", True),
+                                                         "filters": page.query.filters, "snapshot_at": datetime.now(timezone.utc)})
+
+
+DOMAIN_EVENT_LIST = listing.ListSpec(
+    name="domain-events", search_label="Search event, aggregate or producer", default_page_size=50,
+    filters=(listing.Filter("event_name", "Event", kind="text", max_length=120),
+             listing.Filter("aggregate_type", "Aggregate type", kind="text", max_length=80),
+             listing.Filter("aggregate_id", "Aggregate ID", kind="text", max_length=80),
+             listing.Filter("producer", "Producer", kind="text", max_length=80),
+             listing.Filter("correlation_id", "Correlation ID", kind="text", max_length=80),
+             listing.Filter("subject_user_id", "Subject member ID", kind="text", max_length=36),
+             listing.Filter("actor_user_id", "Actor ID", kind="text", max_length=36), listing.Filter("from", "From (UTC)", kind="date"), listing.Filter("to", "To (UTC)", kind="date")),
+    columns=(listing.Column("sequence_id", "Sequence", width=12), listing.Column("occurred_at", "Occurred (UTC)", width=22), listing.Column("event_name", "Event", width=40),
+             listing.Column("event_version", "Version", width=8), listing.Column("aggregate_type", "Aggregate"), listing.Column("aggregate_id", "Aggregate ID", width=38),
+             listing.Column("producer", "Producer"), listing.Column("actor_user_id", "Actor ID", width=38), listing.Column("correlation_id", "Correlation ID", width=38),
+             listing.Column("event_id", "Event ID", width=38)),
+)
 
 
 @require_GET
 def domain_events(request: HttpRequest) -> HttpResponse:
-    limit = _bounded_int(request.GET.get("limit", "100"), 100, maximum=500)
-    filters = {
-        "event_name": (request.GET.get("event_name") or "").strip(),
-        "aggregate_type": (request.GET.get("aggregate_type") or "").strip(),
-        "aggregate_id": (request.GET.get("aggregate_id") or "").strip(),
-        "producer": (request.GET.get("producer") or "").strip(),
-        "correlation_id": (request.GET.get("correlation_id") or "").strip(),
-        "subject_user_id": (request.GET.get("subject_user_id") or "").strip(),
-        "after_sequence": (request.GET.get("after_sequence") or "").strip(),
-    }
     client = GoBFFClient()
-    result = client.list_domain_events(limit=limit, **filters)
-    metrics = client.domain_event_metrics()
-    context = _base_context()
-    context.update(
-        {
-            "events": result.data.get("events", []) if result.ok else [],
-            "metrics": metrics.data if metrics.ok else {},
-            "source": result.data.get("source", "platform.domain_event_outbox") if result.ok else "platform.domain_event_outbox",
-            "limit": limit,
-            "filters": filters,
-            "error": result.error or metrics.error,
-            "snapshot_at": datetime.now(timezone.utc),
-        }
-    )
-    return render(request, "control_panel/domain_events.html", context)
+
+    def extra(page: listing.Page, data: dict) -> dict:
+        metrics = client.domain_event_metrics()
+        return {"metrics": metrics.data if metrics.ok else {}, "source": data.get("source", "platform.domain_event_outbox"),
+                "filters": page.query.filters, "snapshot_at": datetime.now(timezone.utc),
+                "error": page.error or metrics.error}
+
+    return listing.simple_view(request, DOMAIN_EVENT_LIST, client.list_domain_events, items_key="events",
+                               template="control_panel/domain_events.html", title="Domain events",
+                               base_context=_base_context, context_name="events", extra=extra)
 
 
 # ── Appeals ───────────────────────────────────────────────────────────────────
 
+APPEAL_LIST = listing.ListSpec(
+    name="appeals", search_label="Search reason",
+    filters=(listing.Filter("status", "Status", (("submitted", "Submitted"), ("under_review", "Under review"),
+                                                  ("resolved_upheld", "Resolved – upheld"), ("resolved_reversed", "Resolved – reversed"))), listing.Filter("from", "From (UTC)", kind="date"), listing.Filter("to", "To (UTC)", kind="date")),
+    sorts=(("created_at", "Submitted"), ("sla_deadline_at", "SLA deadline")),
+    columns=(listing.Column("id", "Appeal ID", width=38), listing.Column("user_id", "Member ID", width=38), listing.Column("reason", "Reason", width=50),
+             listing.Column("status", "Status"), listing.Column("sla_deadline_at", "SLA deadline (UTC)", width=22), listing.Column("created_at", "Submitted (UTC)", width=22)),
+)
+
+
 @require_GET
 def appeal_queue(request: HttpRequest) -> HttpResponse:
-    status = request.GET.get("status", "").strip()
-    try:
-        limit = int(request.GET.get("limit", "100"))
-    except ValueError:
-        limit = 100
-
-    client = GoBFFClient()
-    result = client.list_appeals(status=status, limit=limit)
-
-    context = _base_context()
-    context.update(
-        {
-            "status_filter": status,
-            "limit": limit,
-            "appeals": result.data.get("appeals", []) if result.ok else [],
-            "error": result.error,
-        }
-    )
-    return render(request, "control_panel/appeals.html", context)
+    return listing.simple_view(request, APPEAL_LIST, GoBFFClient().list_appeals, items_key="appeals",
+                               template="control_panel/appeals.html", title="Appeals",
+                               base_context=_base_context, context_name="appeals",
+                               extra=lambda page, data: {"status_filter": page.query.filters.get("status", "")})
 
 
 @require_POST
@@ -491,26 +479,23 @@ def growth_governance(request: HttpRequest) -> HttpResponse:
 
 # ── Moderation Reports ────────────────────────────────────────────────────────
 
+REPORT_LIST = listing.ListSpec(
+    name="moderation-reports", search_label="Search description or reason",
+    filters=(listing.Filter("status", "Status", (("pending", "Pending"), ("under_review", "Under review"), ("resolved", "Resolved"),
+                                                  ("rejected", "Dismissed"))),
+             listing.Filter("category", "Reason", kind="text", max_length=60), listing.Filter("from", "From (UTC)", kind="date"), listing.Filter("to", "To (UTC)", kind="date")),
+    columns=(listing.Column("id", "Report ID", width=38), listing.Column("reporter_user_id", "Reporter ID", width=38),
+             listing.Column("reported_user_id", "Reported member ID", width=38), listing.Column("reason", "Reason"),
+             listing.Column("description", "Description", width=50), listing.Column("status", "Status"), listing.Column("created_at", "Reported (UTC)", width=22)),
+)
+
+
 @require_GET
 def moderation_reports(request: HttpRequest) -> HttpResponse:
-    status = request.GET.get("status", "").strip()
-    try:
-        limit = int(request.GET.get("limit", "100"))
-    except ValueError:
-        limit = 100
-
-    client = GoBFFClient()
-    result = client.list_reports(status=status, limit=limit)
-
-    context = _base_context()
-    context.update(
-        {
-            "status_filter": status,
-            "reports": result.data.get("reports", []) if result.ok else [],
-            "error": result.error,
-        }
-    )
-    return render(request, "control_panel/moderation_reports.html", context)
+    return listing.simple_view(request, REPORT_LIST, GoBFFClient().list_reports, items_key="reports",
+                               template="control_panel/moderation_reports.html", title="Moderation reports",
+                               base_context=_base_context, context_name="reports",
+                               extra=lambda page, data: {"status_filter": page.query.filters.get("status", "")})
 
 
 # Console report actions -> the report status Go records (under_review,
@@ -556,24 +541,27 @@ def action_report(request: HttpRequest, report_id: str) -> HttpResponse:
     return redirect("moderation_reports")
 
 
+MEDIA_LIST = listing.ListSpec(
+    name="profile-media", search_label="Search username", default_page_size=25,
+    filters=(listing.Filter("status", "Queue", (("review_required", "Manual review"), ("provider_error", "Provider errors")), allow_all=False), listing.Filter("from", "From (UTC)", kind="date"), listing.Filter("to", "To (UTC)", kind="date")),
+    columns=(listing.Column("photo_id", "Photo ID", width=38), listing.Column("username", "Username"), listing.Column("status", "Status"),
+             listing.Column("reason", "Reason", width=40), listing.Column("provider", "Provider"), listing.Column("model_version", "Model"),
+             listing.Column("max_confidence", "Max confidence"), listing.Column("mime_type", "Type"), listing.Column("width_px", "Width"),
+             listing.Column("height_px", "Height"), listing.Column("size_bytes", "Bytes"), listing.Column("uploaded_at", "Uploaded (UTC)", width=22)),
+)
+
+
 @require_GET
 def media_moderation_queue(request: HttpRequest) -> HttpResponse:
-    status = (request.GET.get("status") or "review_required").strip()
-    try:
-        limit = min(max(int(request.GET.get("limit", "50")), 1), 200)
-    except ValueError:
-        limit = 50
-    result = GoBFFClient().list_media_moderation(status=status, limit=limit)
-    context = _base_context()
-    context.update(
-        {
-            "status_filter": status,
-            "limit": limit,
-            "items": result.data.get("items", []) if result.ok else [],
-            "error": result.error,
-        }
-    )
-    return render(request, "control_panel/media_moderation.html", context)
+    def go(query: listing.ListQuery) -> dict:
+        params = query.go_params()
+        params["status"] = params.get("status") or "review_required"  # Go needs a queue
+        return params
+
+    return listing.simple_view(request, MEDIA_LIST, GoBFFClient().list_media_moderation, items_key="items",
+                               template="control_panel/media_moderation.html", title="Profile media",
+                               base_context=_base_context, context_name="items", map_filters=go,
+                               extra=lambda page, data: {"status_filter": page.query.filters.get("status") or "review_required"})
 
 
 @require_GET
@@ -623,7 +611,7 @@ def catalog_list(request: HttpRequest) -> HttpResponse:
     result = client.list_catalog_gifts(category=category, tier=tier, active=active, q=q, limit=limit, offset=offset)
 
     gifts = result.data.get("gifts", []) if result.ok else []
-    total = result.data.get("count", len(gifts)) if result.ok else 0
+    total = result.data.get("total", result.data.get("count", len(gifts))) if result.ok else 0
     active_count = sum(1 for g in gifts if g.get("is_active"))
 
     context = _base_context()
@@ -1047,6 +1035,10 @@ def user_detail(request: HttpRequest, user_id: str) -> HttpResponse:
             "error": result.error,
         }
     )
+    if result.ok:
+        from .views_activity import member_timeline_context  # views_activity imports this module
+
+        context.update(member_timeline_context(client, user_id))
     # An unknown member is a 404, not a 200 page that only says "user not found".
     status = 404 if not result.ok and result.status_code == 404 else 200
     return render(request, "control_panel/user_detail.html", context, status=status)
@@ -1738,22 +1730,23 @@ def billing_revenue_analytics(request: HttpRequest) -> HttpResponse:
 
 # ── Safety / SOS ──────────────────────────────────────────────────────────────
 
+SOS_LIST = listing.ListSpec(
+    name="sos-alerts", search_label="Search message or note",
+    filters=(listing.Filter("status", "Status", (("active", "Active"), ("open", "Open"), ("acknowledged", "Acknowledged"),
+                                                  ("resolved", "Resolved"))), listing.Filter("from", "From (UTC)", kind="date"), listing.Filter("to", "To (UTC)", kind="date")),
+    columns=(listing.Column("id", "Alert ID", width=38), listing.Column("user_id", "Member ID", width=38), listing.Column("emergency_level", "Level"),
+             listing.Column("status", "Status"), listing.Column("latitude", "Latitude"), listing.Column("longitude", "Longitude"),
+             listing.Column("triggered_at", "Triggered (UTC)", width=22), listing.Column("resolved_at", "Resolved (UTC)", width=22)),
+)
+
+
 @require_GET
 def safety_sos(request: HttpRequest) -> HttpResponse:
-    client = GoBFFClient()
-    result = client.list_sos_alerts()
-    alerts = [a for a in (result.data.get("alerts") or [] if result.ok and isinstance(result.data, dict) else []) if isinstance(a, dict)]
-
-    context = _base_context()
-    context.update(
-        {
-            "alerts": alerts,
-            # The banner counts alerts still open, not resolved ones.
-            "active_count": sum(1 for a in alerts if not a.get("resolved_at")),
-            "error": result.error,
-        }
-    )
-    return render(request, "control_panel/safety_sos.html", context)
+    return listing.simple_view(request, SOS_LIST, GoBFFClient().list_sos_alerts, items_key="alerts",
+                               template="control_panel/safety_sos.html", title="SOS alerts",
+                               base_context=_base_context, context_name="alerts",
+                               extra=lambda page, data: {"active_count": sum(1 for a in page.rows if not a.get("resolved_at")),
+                                                         "delivery_metrics": data.get("delivery_metrics") or {}})
 
 
 @require_POST
@@ -1776,21 +1769,27 @@ RECOVERY_IDENTITY_CHECKS = [
 ]
 
 
+RECOVERY_LIST = listing.ListSpec(
+    name="account-recovery", search_label="Search username or message",
+    filters=(listing.Filter("status", "Status", (("open", "Open"), ("code_issued", "Code issued"), ("declined", "Declined"),
+                                                  ("expired", "Expired")), allow_all=False), listing.Filter("from", "From (UTC)", kind="date"), listing.Filter("to", "To (UTC)", kind="date")),
+    columns=(listing.Column("id", "Request ID", width=38), listing.Column("username", "Username"), listing.Column("status", "Status"),
+             listing.Column("member_message", "Member message", width=50), listing.Column("created_at", "Requested (UTC)", width=22)),
+)
+
+
 @require_GET
 def account_recovery_queue(request: HttpRequest) -> HttpResponse:
-    status = (request.GET.get("status") or "open").strip()
-    client = GoBFFClient()
-    result = client.list_account_recovery(status=status)
-    context = _base_context()
-    context.update(
-        {
-            "status_filter": status,
-            "requests": result.data.get("requests", []) if result.ok else [],
-            "identity_checks": RECOVERY_IDENTITY_CHECKS,
-            "error": result.error,
-        }
-    )
-    return render(request, "control_panel/account_recovery.html", context)
+    def go(query: listing.ListQuery) -> dict:
+        params = query.go_params()
+        params["status"] = params.get("status") or "open"
+        return params
+
+    return listing.simple_view(request, RECOVERY_LIST, GoBFFClient().list_account_recovery, items_key="requests",
+                               template="control_panel/account_recovery.html", title="Account recovery",
+                               base_context=_base_context, context_name="requests", map_filters=go,
+                               extra=lambda page, data: {"status_filter": page.query.filters.get("status") or "open",
+                                                         "identity_checks": RECOVERY_IDENTITY_CHECKS})
 
 
 @require_POST

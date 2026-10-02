@@ -49,3 +49,12 @@ def isodate_filter(value):
     except ValueError:
         return ""
     return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+
+
+@register.filter(name="thousands")
+def thousands_filter(value):
+    """4961582 -> "4,961,582"; anything that is not a whole number is returned as is."""
+    try:
+        return f"{int(value):,}"
+    except (TypeError, ValueError):
+        return value

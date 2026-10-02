@@ -6,8 +6,11 @@ from . import views_support
 from . import views_business
 from . import views_analytics
 from . import views_reports
+from . import views_activity
 
 urlpatterns = [
+    # ── Member activity (every member action, live tail) ──────────────────────
+    path("activity/", views_activity.member_activity, name="member_activity"),
     # ── Report server (catalog, parameters, groups, Excel/CSV/PDF) ────────────
     path("reports/", views_reports.report_catalog, name="report_catalog"),
     path("reports/<slug:report_id>/", views_reports.report_view, name="report_view"),

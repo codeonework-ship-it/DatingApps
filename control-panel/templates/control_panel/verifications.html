@@ -11,22 +11,7 @@
 </div>
 
 <div class="glass-card mb-4">
-  <form method="get" class="d-flex flex-wrap gap-3 align-items-end">
-    <div>
-      <label class="form-label">Status</label>
-      <select name="status" class="glass-select minw-col">
-        <option value="" {% if not status_filter %}selected{% endif %}>All</option>
-        <option value="pending" {% if status_filter == "pending" %}selected{% endif %}>Pending</option>
-        <option value="approved" {% if status_filter == "approved" %}selected{% endif %}>Approved</option>
-        <option value="rejected" {% if status_filter == "rejected" %}selected{% endif %}>Rejected</option>
-      </select>
-    </div>
-    <div>
-      <label class="form-label">Limit</label>
-      <input type="number" name="limit" value="{{ limit }}" min="1" max="500" class="glass-input w-num-sm">
-    </div>
-    <button type="submit" class="btn btn-glow"><i class="bi bi-funnel-fill me-1"></i>Filter</button>
-  </form>
+  {% include "control_panel/partials/_list_controls.html" with list_label="Filter verifications" %}
 </div>
 
 {% if error %}
@@ -34,7 +19,7 @@
 {% endif %}
 
 <div class="glass-card">
-  <div class="mb-3 text-muted small">{{ verifications|length }} record{{ verifications|length|pluralize }}</div>
+  {% include "control_panel/partials/_list_toolbar.html" %}
   {% if verifications %}
   <div class="table-responsive">
     <table class="glass-table">
@@ -47,7 +32,7 @@
           <td class="font-monospace small">{{ item.user_id }}</td>
           <td>
             {% if item.status == "pending" %}<span class="badge badge-warning">Pending</span>
-            {% elif item.status == "approved" %}<span class="badge badge-active">Approved</span>
+            {% elif item.status == "verified" or item.status == "approved" %}<span class="badge badge-active">Verified</span>
             {% else %}<span class="badge badge-danger">{{ item.status|capfirst }}</span>
             {% endif %}
           </td>
@@ -79,6 +64,7 @@
       </tbody>
     </table>
   </div>
+  {% include "control_panel/partials/_pagination.html" %}
   {% else %}
   <div class="text-center py-5 text-muted">
     <i class="bi bi-person-check empty-icon"></i>

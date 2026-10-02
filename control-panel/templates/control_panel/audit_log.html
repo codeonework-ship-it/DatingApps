@@ -12,19 +12,14 @@
 </div>
 
 <div class="glass-card mb-4">
-  <form method="get" class="row g-3 align-items-end">
-    <div class="col-md-3"><label class="form-label">Event type</label><input name="event_type" value="{{ filters.event_type }}" class="glass-input" placeholder="admin.request"></div>
-    <div class="col-md-3"><label class="form-label">Actor user ID</label><input name="actor_user_id" value="{{ filters.actor_user_id }}" class="glass-input" placeholder="UUID"></div>
-    <div class="col-md-2"><label class="form-label">Resource</label><input name="resource_type" value="{{ filters.resource_type }}" class="glass-input" placeholder="users"></div>
-    <div class="col-md-2"><label class="form-label">Limit</label><input type="number" name="limit" value="{{ limit }}" min="1" max="500" class="glass-input"></div>
-    <div class="col-md-2 d-flex gap-2 flex-wrap"><button class="btn btn-glow" type="submit"><i class="bi bi-funnel me-1"></i>Apply</button><a href="{% url 'audit_log' %}" class="btn btn-glass">Clear</a></div>
-  </form>
+  {% include "control_panel/partials/_list_controls.html" with list_label="Filter operator audit" %}
 </div>
 
 {% if error %}<div class="alert-glass warning"><i class="bi bi-exclamation-triangle"></i>{{ error }}</div>{% endif %}
 
 <div class="glass-card">
-  <div class="d-flex justify-content-between mb-3"><span class="text-muted small">{{ events|length }} event{{ events|length|pluralize }}</span><span class="text-muted small">Snapshot {{ snapshot_at|date:"M d, H:i:s" }} UTC</span></div>
+  {% include "control_panel/partials/_list_toolbar.html" %}
+  <div class="d-flex justify-content-between mb-3"><span class="text-muted small">Newest first</span><span class="text-muted small">Snapshot {{ snapshot_at|date:"M d, H:i:s" }} UTC</span></div>
   {% if events %}
   <div class="table-responsive">
     <table class="glass-table">
@@ -47,6 +42,7 @@
       </tbody>
     </table>
   </div>
+  {% include "control_panel/partials/_pagination.html" %}
   {% else %}<div class="empty-command-state">No audit events matched these filters.</div>{% endif %}
 </div>
 {% endblock %}

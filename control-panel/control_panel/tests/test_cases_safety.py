@@ -5,7 +5,7 @@ from control_panel.services.go_client import APIResult
 from control_panel.tests.case_support import ConsoleCaseTest, bff_error, flash
 
 ALERT = {"id": "a1b2c3d4-0000-4000-8000-000000000001", "user_id": "u9u9u9u9-0000-4000-8000-000000000009",
-         "alert_type": "sos", "latitude": 18.52, "longitude": 73.85, "triggered_at": "2026-10-02T09:15:00Z"}
+         "emergency_level": "sos", "latitude": 18.52, "longitude": 73.85, "triggered_at": "2026-10-02T09:15:00Z"}
 RESOLVE = {"action": "decline", "identity_check": "", "resolution_note": "Could not confirm identity."}
 
 
@@ -57,7 +57,7 @@ class AccountRecoveryTest(ConsoleCaseTest):
             {"id": "req-1", "username": "member_one", "member_message": "<b>Lost phone</b>", "status": "declined",
              "created_at": "2026-09-27T10:00:00Z"}]})
         response = self.client.get(reverse("account_recovery_queue"), {"status": "declined"})
-        api.list_account_recovery.assert_called_once_with(status="declined")
+        api.list_account_recovery.assert_called_once_with(limit=25, offset=0, status="declined")
         self.assertContains(response, "&lt;b&gt;Lost phone&lt;/b&gt;")
         api.list_account_recovery.return_value = bff_error()
         failed = self.client.get(reverse("account_recovery_queue"))

@@ -26,7 +26,7 @@ from .operator_context import OPERATOR_ROLE_LABELS
 ROLES_SESSION_KEY = "operator_roles"
 
 _READ_METHODS = {"GET", "HEAD", "OPTIONS"}
-_LOG_READ_PREFIXES = ("users", "activities", "audit-events", "events", "analytics/")
+_LOG_READ_PREFIXES = ("users", "activities", "activity", "members/", "audit-events", "events", "analytics/")
 _TS_ROUTE_PREFIXES = ("moderation/", "verifications", "safety/", "support/", "growth/fraud-graph")
 _TS_USER_ACTIONS = ("/suspend", "/unsuspend", "/ban", "/unban", "/verify")
 _FINANCE_READ_PREFIXES = (
@@ -36,7 +36,7 @@ _FINANCE_READ_PREFIXES = (
 )
 _OPS_ADMIN_PREFIXES = ("catalog/", "config/", "engagement/", "billing/", "progression", "support/", "growth/")
 _ANALYST_READ_PREFIXES = (
-    "analytics/", "activities", "audit-events", "events", "billing/stats", "billing/transactions",
+    "analytics/", "activities", "activity", "members/", "audit-events", "events", "billing/stats", "billing/transactions",
     "billing/subscriptions", "billing/payments", "billing/webhook-events", "billing/reconciliation",
     "billing/revenue-analytics", "users",
 )
@@ -141,7 +141,7 @@ NAV_ITEMS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     ("growth_governance", "platform", ("growth/fraud-graph",)),
     ("safety_sos", "safety", ("safety/sos-alerts",)),
     ("account_recovery_queue", "safety", ("safety/account-recovery",)),
-    ("activity_feed", "logs", ("activities",)),
+    ("member_activity", "logs", ("activity",)),
     ("audit_log", "logs", ("audit-events",)),
     ("domain_events", "logs", ("events", "events/metrics")),
     ("client_errors", "logs", ("client-errors",)),

@@ -138,7 +138,7 @@ class BusinessViewsTest(TestCase):
         }], inputs={"marketing_spend": {"recorded": False}, "burn": "not available from product data"}, definitions={"north_star": "weekly plans kept per active member"})
         response = self.client.get(reverse("business_investor_pack"), {"months": "6"})
         self.assertEqual(cls.return_value.business_report.call_args.args[1], {"months": "6"})
-        self.assertContains(response, "window.print()")
+        self.assertContains(response, "data-print")
         self.assertContains(response, "CAC and payback need spend data")
         self.assertContains(response, "needs spend data")
         self.assertContains(response, "not available")

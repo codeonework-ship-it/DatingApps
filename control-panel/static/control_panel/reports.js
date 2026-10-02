@@ -30,10 +30,6 @@
     });
   });
 
-  document.querySelectorAll('select[data-autosubmit]').forEach(function (select) {
-    select.addEventListener('change', function () { select.form.requestSubmit ? select.form.requestSubmit() : select.form.submit(); });
-  });
-
   var copy = document.querySelector('[data-copy-link]');
   if (copy) {
     copy.addEventListener('click', function () {
@@ -43,7 +39,4 @@
       else window.prompt('Copy this link', url);
     });
   }
-
-  var print = document.querySelector('[data-print]');
-  if (print) print.addEventListener('click', function () { window.print(); });
 })();

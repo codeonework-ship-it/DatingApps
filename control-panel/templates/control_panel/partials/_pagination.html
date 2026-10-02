@@ -1,14 +1,9 @@
-{% comment %}Footer of a server-side list: range and total, Excel export,
-numbered pages (control_panel/listing.py).{% endcomment %}
+{% load custom_filters %}{% comment %}Below a server-side list's grid: numbered pages
+(control_panel/listing.py). The summary and export sit above the grid
+(_list_toolbar.html).{% endcomment %}
+{% if page.has_previous or page.has_next %}
 <div class="list-footer">
-  <p class="list-summary mb-0" role="status">
-    {% if page.rows %}Showing <strong>{{ page.start }}–{{ page.end }}</strong>{% if page.total is not None %} of <strong>{{ page.total }}</strong>{% endif %}
-    {% else %}No results{% endif %}{% if list_query.active_filter_count %} · {{ list_query.active_filter_count }} filter{{ list_query.active_filter_count|pluralize }} applied{% endif %}
-  </p>
-  {% if list_spec.columns %}
-  <a class="btn btn-glass btn-sm" href="{{ export_url }}" download><i class="bi bi-file-earmark-excel" aria-hidden="true"></i>Export Excel</a>
-  {% endif %}
-  {% if page.has_previous or page.has_next %}
+  {% if page.pages %}<span class="list-summary">Page {{ list_query.page|thousands }} of {{ page.pages|thousands }}</span>{% endif %}
   <nav aria-label="Pages">
     <ul class="pagination pagination-sm mb-0">
       <li class="page-item{% if not page.has_previous %} disabled{% endif %}">
@@ -17,8 +12,8 @@ numbered pages (control_panel/listing.py).{% endcomment %}
       </li>
       {% for link in page.links %}
         {% if link.gap %}<li class="page-item disabled"><span class="page-link">…</span></li>
-        {% elif link.current %}<li class="page-item active" aria-current="page"><span class="page-link">{{ link.number }}</span></li>
-        {% else %}<li class="page-item"><a class="page-link" href="{{ link.url }}">{{ link.number }}</a></li>{% endif %}
+        {% elif link.current %}<li class="page-item active" aria-current="page"><span class="page-link">{{ link.number|thousands }}</span></li>
+        {% else %}<li class="page-item"><a class="page-link" href="{{ link.url }}">{{ link.number|thousands }}</a></li>{% endif %}
       {% endfor %}
       <li class="page-item{% if not page.has_next %} disabled{% endif %}">
         {% if page.has_next %}<a class="page-link" href="{{ page.next_url }}" rel="next" aria-label="Next page"><i class="bi bi-chevron-right" aria-hidden="true"></i></a>
@@ -26,5 +21,5 @@ numbered pages (control_panel/listing.py).{% endcomment %}
       </li>
     </ul>
   </nav>
-  {% endif %}
 </div>
+{% endif %}

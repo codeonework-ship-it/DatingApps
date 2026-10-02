@@ -13,7 +13,7 @@ OWNER = '33333333-3333-3333-3333-333333333333'
 def _item(**overrides):
     item = {
         'cover_id': COVER, 'group_id': GROUP, 'group_name': '<b>Sunday hikers</b>', 'group_kind': 'community',
-        'owner_id': OWNER, 'uploaded_by': OWNER, 'status': 'pending', 'reason': 'Needs a human look',
+        'owner_user_id': OWNER, 'uploaded_by': OWNER, 'status': 'pending', 'reason': 'Needs a human look',
         'provider': 'sandbox', 'mime_type': 'image/jpeg', 'width_px': 1200, 'height_px': 675, 'size_bytes': 204800,
         'uploaded_at': '2026-10-01T09:00:00Z',
         'content_url': f'/v1/admin/moderation/group-covers/{COVER}/content',

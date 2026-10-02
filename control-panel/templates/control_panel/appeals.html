@@ -11,23 +11,7 @@
 </div>
 
 <div class="glass-card mb-4">
-  <form method="get" class="d-flex flex-wrap gap-3 align-items-end">
-    <div>
-      <label class="form-label">Status</label>
-      <select name="status" class="glass-select minw-col-md">
-        <option value="" {% if not status_filter %}selected{% endif %}>All</option>
-        <option value="submitted" {% if status_filter == "submitted" %}selected{% endif %}>Submitted</option>
-        <option value="under_review" {% if status_filter == "under_review" %}selected{% endif %}>Under Review</option>
-        <option value="resolved_upheld" {% if status_filter == "resolved_upheld" %}selected{% endif %}>Resolved – Upheld</option>
-        <option value="resolved_reversed" {% if status_filter == "resolved_reversed" %}selected{% endif %}>Resolved – Reversed</option>
-      </select>
-    </div>
-    <div>
-      <label class="form-label">Limit</label>
-      <input type="number" name="limit" value="{{ limit }}" min="1" max="500" class="glass-input w-num-sm">
-    </div>
-    <button type="submit" class="btn btn-glow"><i class="bi bi-funnel-fill me-1"></i>Filter</button>
-  </form>
+  {% include "control_panel/partials/_list_controls.html" with list_label="Filter appeals" %}
 </div>
 
 {% if error %}
@@ -35,7 +19,7 @@
 {% endif %}
 
 <div class="glass-card">
-  <div class="mb-3 text-muted small">{{ appeals|length }} appeal{{ appeals|length|pluralize }}</div>
+  {% include "control_panel/partials/_list_toolbar.html" %}
   {% if appeals %}
   <div class="table-responsive">
     <table class="glass-table">
@@ -87,6 +71,7 @@
       </tbody>
     </table>
   </div>
+  {% include "control_panel/partials/_pagination.html" %}
   {% else %}
   <div class="text-center py-5 text-muted">
     <i class="bi bi-flag empty-icon"></i>

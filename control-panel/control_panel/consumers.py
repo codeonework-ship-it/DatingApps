@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 import time
 from importlib import import_module
 from typing import Any
@@ -51,6 +52,7 @@ class LiveConsoleConsumer(AsyncJsonWebsocketConsumer):
         self.sent: dict[str, str] = {}
         self.last_refresh = 0.0
         self.task: asyncio.Task | None = None
+        self.state: dict[str, dict] = {}  # per-connection topic state (activity cursor, filters)
         if not self.session_key or await self._load() is None:
             await self.close(code=SIGNED_OUT)
             return
@@ -74,6 +76,8 @@ class LiveConsoleConsumer(AsyncJsonWebsocketConsumer):
             self.topics = {t for t in requested if t in live.TOPICS} if isinstance(requested, list) else set()
             self.next_due = {t: 0.0 for t in self.topics}
             self.sent = {t: v for t, v in self.sent.items() if t in self.topics}
+            if "activity" in self.topics:
+                self.state["activity"] = {"cursor": None, "filters": _activity_filters(content.get("activity"))}
             if self.task is None:
                 self.task = asyncio.create_task(self._run())
         elif kind == "pause":
@@ -127,6 +131,9 @@ class LiveConsoleConsumer(AsyncJsonWebsocketConsumer):
         stale: list[str] = []
         now = time.monotonic()
         for topic in due:
+            if topic in live.PER_CONNECTION:
+                stale.append(topic)
+                continue
             cached = _recent.get((self.group, topic))
             if cached and now - cached[0] < live.INTERVAL_SECONDS[topic] - 1:
                 payloads[topic] = cached[1]
@@ -137,7 +144,8 @@ class LiveConsoleConsumer(AsyncJsonWebsocketConsumer):
             if state is None:
                 await self._signed_out()
                 return False
-            fresh, tokens, cleared = await sync_to_async(_read, thread_sensitive=False)(state, stale)
+            states = {t: dict(self.state.get(t) or {}) for t in stale if t in live.PER_CONNECTION}
+            fresh, tokens, cleared = await sync_to_async(_read, thread_sensitive=False)(state, stale, states)
             if cleared:
                 await self._signed_out()
                 return False
@@ -147,6 +155,11 @@ class LiveConsoleConsumer(AsyncJsonWebsocketConsumer):
             for key in [k for k, (at, _) in _recent.items() if read_at - at > 300]:
                 _recent.pop(key, None)
             for topic, payload in fresh.items():
+                if topic in live.PER_CONNECTION:
+                    self.state.setdefault(topic, {})["cursor"] = payload.get("cursor", "")
+                    if payload.get("rows"):
+                        await self.send_json({"type": "topic", "topic": topic, "data": {"rows": payload["rows"]}})
+                    continue
                 _recent[(self.group, topic)] = (read_at, payload)
                 payloads[topic] = payload
         for topic, payload in payloads.items():
@@ -192,7 +205,29 @@ class LiveConsoleConsumer(AsyncJsonWebsocketConsumer):
         store.save()
 
 
-def _read(state: dict, topics: list[str]) -> tuple[dict[str, dict], tuple[str, str] | None, bool]:
+_ACTIVITY_CATEGORIES = frozenset(("Auth", "Profile", "Discovery", "Matches & chat", "Dates", "Social", "Safety",
+                                  "Billing & coins", "Engagement", "Support", "Settings", "Other"))
+_ACTIVITY_SOURCES = frozenset(("request", "event", "security", "domain"))
+_UUIDISH = re.compile(r"^[0-9a-fA-F-]{8,36}$")
+
+
+def _activity_filters(raw: Any) -> dict[str, str]:
+    """The activity page's filters, allow-listed (they reach Go)."""
+    raw = raw if isinstance(raw, dict) else {}
+    out: dict[str, str] = {}
+    member = str(raw.get("member") or "").strip()
+    if _UUIDISH.match(member):
+        out["member"] = member
+    if raw.get("category") in _ACTIVITY_CATEGORIES:
+        out["category"] = raw["category"]
+    if raw.get("source") in _ACTIVITY_SOURCES:
+        out["source"] = raw["source"]
+    if raw.get("include_reads") is True:
+        out["include_reads"] = "true"
+    return out
+
+
+def _read(state: dict, topics: list[str], states: dict[str, dict] | None = None) -> tuple[dict[str, dict], tuple[str, str] | None, bool]:
     """Runs in a worker thread: the BFF reads for ``topics`` as this operator.
     Returns (payloads, refreshed tokens or None, whether Go ended the session)."""
     rotated: list[tuple[str, str]] = []
@@ -211,7 +246,7 @@ def _read(state: dict, topics: list[str]) -> tuple[dict[str, dict], tuple[str, s
         payloads: dict[str, dict] = {}
         for topic in topics:
             try:
-                payloads[topic] = live.build(topic, client, state["roles"])
+                payloads[topic] = live.build(topic, client, state["roles"], (states or {}).get(topic))
             except Exception:
                 logger.exception("live topic %s failed", topic)
             if ended:

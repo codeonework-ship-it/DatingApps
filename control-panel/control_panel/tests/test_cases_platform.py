@@ -170,7 +170,7 @@ class LogPagesTest(ConsoleCaseTest):
         response = self.client.get(reverse("audit_log"), {"limit": "0"})
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "audit store unavailable")
-        self.bff().list_audit_events.assert_called_once_with(limit=1, event_type="", actor_user_id="", subject_user_id="", resource_type="")
+        self.bff().list_audit_events.assert_called_once_with(limit=50, offset=0)
 
     def test_domain_events_failure_banner(self):
         """[case:console.events.domain_events.renders]"""

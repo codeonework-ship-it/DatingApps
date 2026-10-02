@@ -311,6 +311,39 @@
     </div>
   </div>
 </div>
+<!-- Activity: every action by or about this member -->
+<section class="glass-card mt-4" aria-labelledby="member-activity-heading">
+  <div class="card-title-row">
+    <h2 class="h5 mb-0" id="member-activity-heading"><i class="bi bi-activity me-2" aria-hidden="true"></i>Activity</h2>
+    <a class="btn btn-glass btn-sm" href="{% url 'member_activity' %}?member={{ user_id|urlencode }}">Open full activity<i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+  </div>
+  {% if activity_denied %}
+  <p class="text-muted mb-0">Member activity is not available to your role.</p>
+  {% elif activity_error %}
+  <p class="text-muted mb-0">{{ activity_error }}</p>
+  {% else %}
+  {% if activity_summary %}
+  <div class="activity-summary mb-3">
+    {% if activity_summary.first_seen %}<span><strong>First seen</strong> {{ activity_summary.first_seen|isodate|date:"M d, Y H:i" }}</span>{% endif %}
+    {% if activity_summary.last_seen %}<span><strong>Last seen</strong> {{ activity_summary.last_seen|isodate|date:"M d, Y H:i" }}</span>{% endif %}
+    {% if activity_summary.devices is not None %}<span><strong>Devices</strong> {{ activity_summary.devices }}</span>{% endif %}
+    {% if activity_summary.ips is not None %}<span><strong>IP addresses</strong> {{ activity_summary.ips }}</span>{% endif %}
+    {% for c in activity_summary.by_category %}<span class="badge badge-inactive">{{ c.category }} · {{ c.count }}</span>{% endfor %}
+  </div>
+  {% endif %}
+  {% if activity_actions %}
+  <div class="table-responsive">
+    <table class="glass-table activity-table">
+      <thead><tr><th scope="col">Time (UTC)</th><th scope="col">Member</th><th scope="col">Action</th><th scope="col">Area</th><th scope="col">Outcome</th><th scope="col">Device · IP</th><th scope="col"><span class="visually-hidden">Details</span></th></tr></thead>
+      <tbody>{% for a in activity_actions %}{% include "control_panel/activity/_row.html" %}{% endfor %}</tbody>
+    </table>
+  </div>
+  {% if activity_total and activity_total > activity_actions|length %}<p class="form-text mt-2 mb-0">Showing the latest {{ activity_actions|length }} of {{ activity_total|thousands }} actions.</p>{% endif %}
+  {% else %}
+  <p class="text-muted mb-0">No recorded actions yet.</p>
+  {% endif %}
+  {% endif %}
+</section>
 {% else %}
 <div class="text-center py-5 text-muted">
   <i class="bi bi-person-x empty-icon"></i>

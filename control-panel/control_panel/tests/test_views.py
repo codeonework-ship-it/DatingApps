@@ -100,7 +100,7 @@ class DashboardViewsTest(TestCase):
 
         response = self.client.get(
             reverse("audit_log"),
-            {"event_type": "admin.request", "resource_type": "users", "limit": "25"},
+            {"event_type": "admin.request", "resource_type": "users", "page_size": "25"},
         )
 
         self.assertEqual(response.status_code, 200)
@@ -108,9 +108,8 @@ class DashboardViewsTest(TestCase):
         self.assertContains(response, "trust_safety")
         client_cls.return_value.list_audit_events.assert_called_once_with(
             limit=25,
+            offset=0,
             event_type="admin.request",
-            actor_user_id="",
-            subject_user_id="",
             resource_type="users",
         )
 
@@ -142,7 +141,7 @@ class DashboardViewsTest(TestCase):
 
         response = self.client.get(
             reverse("domain_events"),
-            {"event_name": "matching.messages.created", "producer": "matching", "limit": "25"},
+            {"event_name": "matching.messages.created", "producer": "matching", "page_size": "25"},
         )
 
         self.assertEqual(response.status_code, 200)
@@ -151,13 +150,9 @@ class DashboardViewsTest(TestCase):
         self.assertContains(response, "115")
         client.list_domain_events.assert_called_once_with(
             limit=25,
+            offset=0,
             event_name="matching.messages.created",
-            aggregate_type="",
-            aggregate_id="",
             producer="matching",
-            correlation_id="",
-            subject_user_id="",
-            after_sequence="",
         )
 
     @patch("control_panel.views.GoBFFClient")
@@ -601,7 +596,7 @@ class AccountRecoveryViewsTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "member_one")
         self.assertContains(response, "Issue recovery code")
-        client.list_account_recovery.assert_called_once_with(status="open")
+        client.list_account_recovery.assert_called_once_with(limit=25, offset=0, status="open")
 
     @patch("control_panel.views.GoBFFClient")
     def test_issued_code_is_shown_once_and_never_cached_or_flashed(self, client_cls):

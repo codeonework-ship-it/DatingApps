@@ -34,7 +34,9 @@ def _bff() -> AutoOKClient:
     return api
 
 
-class LiveSocketTest(TransactionTestCase):
+class LiveSocketBase(TransactionTestCase):
+    """Session, BFF stub and socket helpers for live-socket tests."""
+
     def setUp(self):
         consumers._recent.clear()
         self.api = _bff()
@@ -56,6 +58,9 @@ class LiveSocketTest(TransactionTestCase):
         connected, _ = await socket.connect()
         self.assertTrue(connected)
         await socket.send_json_to({"type": "subscribe", "topics": list(topics)})
+
+
+class LiveSocketTest(LiveSocketBase):
 
     async def test_signed_out_visitors_are_refused(self):
         """No console session, no socket. [case:console.live.socket.requires_session]"""

@@ -134,7 +134,7 @@
 <div class="glass-card">
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h2 class="h5 mb-0">XP fraud review queue</h2>
-    <form method="get"><select class="glass-select" name="status" onchange="this.form.submit()">
+    <form method="get"><select class="glass-select" name="status" data-autosubmit>
       <option value="open" {% if status_filter == "open" %}selected{% endif %}>Open</option>
       <option value="reviewing" {% if status_filter == "reviewing" %}selected{% endif %}>Reviewing</option>
       <option value="confirmed" {% if status_filter == "confirmed" %}selected{% endif %}>Confirmed</option>

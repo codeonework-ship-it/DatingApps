@@ -16,7 +16,7 @@ ANALYST_LINKS = {
     "analytics_liquidity", "analytics_safety", "analytics_data",
     "business_revenue", "business_subscriptions", "business_conversion", "business_coins",
     "business_referrals", "business_markets", "business_investor_pack", "business_spend",
-    "billing_dashboard", "activity_feed", "audit_log", "domain_events", "client_errors",
+    "billing_dashboard", "member_activity", "audit_log", "domain_events", "client_errors",
 }
 ALL_LINKS = {name for name, _, _ in NAV_ITEMS}
 

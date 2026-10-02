@@ -7,21 +7,18 @@
     <h1><i class="bi bi-key-fill header-icon"></i> Account recovery</h1>
     <p class="text-muted mb-0">Members who lost their recovery code and cannot sign in. Confirm identity before issuing a code; the code is shown once, expires in 72 hours and signs the member out everywhere.</p>
   </div>
-  <form method="get" class="d-flex gap-2 flex-wrap">
-    <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
-      <option value="open" {% if status_filter == "open" %}selected{% endif %}>Open</option>
-      <option value="code_issued" {% if status_filter == "code_issued" %}selected{% endif %}>Code issued</option>
-      <option value="declined" {% if status_filter == "declined" %}selected{% endif %}>Declined</option>
-      <option value="expired" {% if status_filter == "expired" %}selected{% endif %}>Expired</option>
-    </select>
-  </form>
 </div>
 
 {% if error %}
 <div class="alert-glass warning mb-3"><i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}</div>
 {% endif %}
 
+<div class="glass-card mb-4">
+  {% include "control_panel/partials/_list_controls.html" with list_label="Filter recovery requests" %}
+</div>
+
 <div class="glass-card">
+  {% include "control_panel/partials/_list_toolbar.html" %}
   {% if requests %}
   <div class="table-responsive">
     <table class="glass-table">
@@ -75,6 +72,7 @@
       </tbody>
     </table>
   </div>
+  {% include "control_panel/partials/_pagination.html" %}
   {% else %}
   <p class="text-muted mb-0">No {{ status_filter|default:"open" }} recovery requests.</p>
   {% endif %}

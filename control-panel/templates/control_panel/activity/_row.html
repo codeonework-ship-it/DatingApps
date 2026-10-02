@@ -1,0 +1,29 @@
+{% load custom_filters %}{% comment %}One member action and its detail row (also rendered by the live tail).{% endcomment %}
+<tr class="activity-row outcome-{{ a.outcome|default:'success' }}" data-activity-id="{{ a.id }}">
+  <td class="text-nowrap small">{{ a.at|isodate|date:"M d, H:i:s"|default:a.at }}</td>
+  <td>{% if a.member_id %}<a class="font-monospace small" href="{% url 'user_detail' a.member_id %}">{{ a.member_id|slice:":8" }}…</a>{% else %}<span class="text-muted">—</span>{% endif %}</td>
+  <td><span class="fw-semibold">{{ a.action_label|default:a.action_key|default:"—" }}</span>{% if a.action_key %}<div class="small text-muted font-monospace">{{ a.action_key }}</div>{% endif %}</td>
+  <td>{% if a.category %}<span class="badge badge-inactive">{{ a.category }}</span>{% endif %}</td>
+  <td>{% if a.outcome == "server_error" %}<span class="badge badge-danger">Failed{% if a.status_code %} · {{ a.status_code }}{% endif %}</span>
+      {% elif a.outcome == "client_error" %}<span class="badge badge-warning">Refused{% if a.status_code %} · {{ a.status_code }}{% endif %}</span>
+      {% else %}<span class="badge badge-active">OK{% if a.status_code %} · {{ a.status_code }}{% endif %}</span>{% endif %}</td>
+  <td class="small text-muted">{{ a.platform|default:"" }}{% if a.app_version %} {{ a.app_version }}{% endif %}{% if a.ip %}<div class="font-monospace">{{ a.ip }}</div>{% endif %}</td>
+  <td class="text-end"><button type="button" class="btn btn-glass btn-sm btn-icon" data-bs-toggle="collapse" data-bs-target="#act-{{ a.id|slugify }}" aria-expanded="false" aria-controls="act-{{ a.id|slugify }}" aria-label="Show details"><i class="bi bi-chevron-down" aria-hidden="true"></i></button></td>
+</tr>
+<tr class="collapse activity-detail" id="act-{{ a.id|slugify }}">
+  <td colspan="7">
+    <dl class="activity-dl">
+      <dt>Source</dt><dd>{{ a.source|default:"—" }}</dd>
+      <dt>Actor</dt><dd class="font-monospace">{{ a.actor_id|default:"—" }}{% if a.actor_role %} ({{ a.actor_role }}){% endif %}</dd>
+      <dt>Request</dt><dd class="font-monospace">{{ a.method|default:"" }} {{ a.route|default:"—" }}{% if a.duration_ms is not None %} · {{ a.duration_ms }} ms{% endif %}</dd>
+      <dt>Entity</dt><dd class="font-monospace">{{ a.entity_type|default:"—" }}{% if a.entity_id %} · {{ a.entity_id }}{% endif %}</dd>
+      <dt>Device</dt><dd class="font-monospace">{{ a.device_id|default:"—" }}</dd>
+      <dt>User agent</dt><dd class="small">{{ a.user_agent|default:"—" }}</dd>
+      <dt>Session</dt><dd class="font-monospace">{{ a.session_id|default:"—" }}</dd>
+      <dt>Request ID</dt><dd class="font-monospace">{{ a.request_id|default:"—" }}</dd>
+      <dt>Correlation</dt><dd class="font-monospace">{% if a.correlation_id %}<a href="{% url 'domain_events' %}?correlation_id={{ a.correlation_id|urlencode }}">{{ a.correlation_id }}</a>{% else %}—{% endif %}</dd>
+      {% if a.details %}<dt>Details</dt><dd><code class="code-block">{% for k, v in a.details.items %}{{ k }}: {{ v }}{% if not forloop.last %}
+{% endif %}{% endfor %}</code></dd>{% endif %}
+    </dl>
+  </td>
+</tr>

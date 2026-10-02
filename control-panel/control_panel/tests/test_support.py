@@ -68,7 +68,7 @@ def _detail(**ticket_overrides):
         ],
         'member_context': {
             'member_id': MEMBER, 'name': 'Priya', 'username': 'priya_k', 'account_status': 'suspended',
-            'joined_at': '2025-01-10T00:00:00Z', 'verification_status': 'approved',
+            'joined_at': '2025-01-10T00:00:00Z', 'verification_status': 'verified',
             'reports_against_90d': 2, 'open_reports_against': 1, 'reports_filed_90d': 0, 'tickets_total': 4,
         },
         'related_tickets': [{'id': OTHER, 'reference': 'CN-2026-000099', 'subject': 'Old crash',

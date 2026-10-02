@@ -19,20 +19,14 @@
 </div>
 
 <div class="glass-card mb-4">
-  <form method="get" class="row g-3 align-items-end">
-    <div class="col-md-3"><label class="form-label">Event name</label><input name="event_name" value="{{ filters.event_name }}" class="glass-input" placeholder="matching.messages.created"></div>
-    <div class="col-md-2"><label class="form-label">Aggregate type</label><input name="aggregate_type" value="{{ filters.aggregate_type }}" class="glass-input" placeholder="matching.messages"></div>
-    <div class="col-md-2"><label class="form-label">Aggregate ID</label><input name="aggregate_id" value="{{ filters.aggregate_id }}" class="glass-input" placeholder="ID or key"></div>
-    <div class="col-md-2"><label class="form-label">Producer</label><input name="producer" value="{{ filters.producer }}" class="glass-input" placeholder="matching"></div>
-    <div class="col-md-1"><label class="form-label">Limit</label><input type="number" name="limit" value="{{ limit }}" min="1" max="500" class="glass-input"></div>
-    <div class="col-md-2 d-flex gap-2 flex-wrap"><button class="btn btn-glow" type="submit"><i class="bi bi-funnel me-1"></i>Apply</button><a href="{% url 'domain_events' %}" class="btn btn-glass">Clear</a></div>
-  </form>
+  {% include "control_panel/partials/_list_controls.html" with list_label="Filter domain events" %}
 </div>
 
 {% if error %}<div class="alert-glass warning"><i class="bi bi-exclamation-triangle"></i>{{ error }}</div>{% endif %}
 
 <div class="glass-card">
-  <div class="d-flex justify-content-between mb-3"><span class="text-muted small">{{ events|length }} event{{ events|length|pluralize }}</span><span class="text-muted small">Snapshot {{ snapshot_at|date:"M d, H:i:s" }} UTC</span></div>
+  {% include "control_panel/partials/_list_toolbar.html" %}
+  <div class="d-flex justify-content-between mb-3"><span class="text-muted small">Newest first</span><span class="text-muted small">Snapshot {{ snapshot_at|date:"M d, H:i:s" }} UTC</span></div>
   {% if events %}
   <div class="table-responsive">
     <table class="glass-table">
@@ -51,6 +45,7 @@
       </tbody>
     </table>
   </div>
+  {% include "control_panel/partials/_pagination.html" %}
   {% else %}<div class="empty-command-state">No domain events matched these filters.</div>{% endif %}
 </div>
 {% endblock %}

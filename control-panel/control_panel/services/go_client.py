@@ -72,8 +72,17 @@ def operator_error_message(
 LIST_CONTRACT_PARAMS = ("q", "sort", "order", "from", "to", "source", "provider")
 
 
-def _list_extras(extra: dict[str, Any]) -> dict[str, Any]:
-    return {k: str(v).strip() for k, v in extra.items() if k in LIST_CONTRACT_PARAMS and str(v or "").strip()}
+def _list_extras(extra: dict[str, Any], allowed: tuple[str, ...] = ()) -> dict[str, Any]:
+    keys = set(LIST_CONTRACT_PARAMS) | set(allowed)
+    return {k: str(v).strip() for k, v in extra.items() if k in keys and str(v or "").strip()}
+
+
+def _page_extras(offset: int, extra: dict[str, Any], allowed: tuple[str, ...] = ()) -> dict[str, Any]:
+    """offset (when paging) plus the contract and endpoint filters that are set."""
+    out = _list_extras(extra, allowed)
+    if offset:
+        out["offset"] = int(offset)
+    return out
 
 
 def bff_failure_status(status_code: int | None) -> int:
@@ -254,10 +263,11 @@ class GoBFFClient:
 
     # ── Verifications ─────────────────────────────────────────────────────────
 
-    def list_verifications(self, *, status: str = "", limit: int = 100) -> APIResult:
+    def list_verifications(self, *, status: str = "", limit: int = 100, offset: int = 0, **extra: Any) -> APIResult:
         params: dict[str, Any] = {"limit": limit}
         if status.strip():
             params["status"] = status.strip()
+        params.update(_page_extras(offset, extra, ("user_id",)))
         return self._request("GET", "/admin/verifications", params=params)
 
     def approve_verification(self, user_id: str) -> APIResult:
@@ -275,6 +285,34 @@ class GoBFFClient:
     def list_activities(self, *, limit: int = 100) -> APIResult:
         return self._request("GET", "/admin/activities", params={"limit": limit})
 
+    # ── Member activity (every member action, all sources) ────────────────────
+
+    ACTIVITY_FILTERS = ("member", "actor_user_id", "action", "category", "method", "outcome", "source", "include_reads")
+
+    def list_member_actions(self, *, limit: int = 100, offset: int = 0, **extra: Any) -> APIResult:
+        """GET /admin/activity: request actions, named events, security and
+        domain events merged, newest first, with the paging contract."""
+        params: dict[str, Any] = {"limit": limit}
+        params.update(_page_extras(offset, extra, self.ACTIVITY_FILTERS))
+        return self._request("GET", "/admin/activity", params=params)
+
+    def member_activity(self, user_id: str, *, limit: int = 50, offset: int = 0, **extra: Any) -> APIResult:
+        """One member's timeline (as subject or actor) plus a summary."""
+        params: dict[str, Any] = {"limit": limit}
+        params.update(_page_extras(offset, extra, self.ACTIVITY_FILTERS))
+        return self._request("GET", f"/admin/members/{user_id}/activity", params=params)
+
+    def activity_stream(self, *, after: str = "", limit: int = 100, **extra: Any) -> APIResult:
+        """Actions newer than the opaque cursor ``after``, oldest first."""
+        params: dict[str, Any] = {"limit": limit}
+        if after:
+            params["after"] = after
+        params.update(_list_extras(extra, ("member", "category", "include_reads", "source")))
+        return self._request("GET", "/admin/activity/stream", params=params)
+
+    def activity_catalog(self) -> APIResult:
+        return self._request("GET", "/admin/activity/catalog")
+
     def list_audit_events(
         self,
         *,
@@ -283,8 +321,11 @@ class GoBFFClient:
         actor_user_id: str = "",
         subject_user_id: str = "",
         resource_type: str = "",
+        offset: int = 0,
+        **extra: Any,
     ) -> APIResult:
         params: dict[str, Any] = {"limit": limit}
+        params.update(_page_extras(offset, extra))
         for key, value in {
             "event_type": event_type,
             "actor_user_id": actor_user_id,
@@ -306,8 +347,11 @@ class GoBFFClient:
         correlation_id: str = "",
         subject_user_id: str = "",
         after_sequence: str = "",
+        offset: int = 0,
+        **extra: Any,
     ) -> APIResult:
         params: dict[str, Any] = {"limit": limit}
+        params.update(_page_extras(offset, extra, ("actor_user_id",)))
         for key, value in {
             "event_name": event_name,
             "aggregate_type": aggregate_type,
@@ -326,10 +370,11 @@ class GoBFFClient:
 
     # ── Appeals / Moderation ──────────────────────────────────────────────────
 
-    def list_appeals(self, *, status: str = "", limit: int = 100) -> APIResult:
+    def list_appeals(self, *, status: str = "", limit: int = 100, offset: int = 0, **extra: Any) -> APIResult:
         params: dict[str, Any] = {"limit": limit}
         if status.strip():
             params["status"] = status.strip()
+        params.update(_page_extras(offset, extra, ("user_id", "report_id")))
         return self._request("GET", "/admin/moderation/appeals", params=params)
 
     def action_appeal(self, appeal_id: str, status: str, resolution_reason: str, *, reviewed_by: str = "") -> APIResult:
@@ -499,10 +544,11 @@ class GoBFFClient:
             "POST", f"/admin/growth/fraud-graph/{edge_id}/resolve", payload={"status": status}
         )
 
-    def list_reports(self, *, status: str = "", limit: int = 100) -> APIResult:
+    def list_reports(self, *, status: str = "", limit: int = 100, offset: int = 0, **extra: Any) -> APIResult:
         params: dict[str, Any] = {"limit": limit}
         if status.strip():
             params["status"] = status.strip()
+        params.update(_page_extras(offset, extra, ("category", "reporter_user_id", "reported_user_id")))
         return self._request("GET", "/admin/moderation/reports", params=params)
 
     def action_report(
@@ -515,12 +561,10 @@ class GoBFFClient:
             payload["reviewed_by"] = reviewed_by
         return self._request("POST", f"/admin/moderation/reports/{report_id}/action", payload=payload)
 
-    def list_media_moderation(self, *, status: str = "review_required", limit: int = 50) -> APIResult:
-        return self._request(
-            "GET",
-            "/admin/moderation/media",
-            params={"status": status, "limit": limit},
-        )
+    def list_media_moderation(self, *, status: str = "review_required", limit: int = 50, offset: int = 0, **extra: Any) -> APIResult:
+        params: dict[str, Any] = {"status": status, "limit": limit}
+        params.update(_page_extras(offset, extra))
+        return self._request("GET", "/admin/moderation/media", params=params)
 
     def decide_media_moderation(self, photo_id: str, decision: str, reason: str) -> APIResult:
         return self._request(
@@ -945,16 +989,22 @@ class GoBFFClient:
 
     # ── Safety / SOS ──────────────────────────────────────────────────────────
 
-    def list_sos_alerts(self) -> APIResult:
-        return self._request("GET", "/admin/safety/sos-alerts")
+    def list_sos_alerts(self, *, limit: int = 0, offset: int = 0, **extra: Any) -> APIResult:
+        params: dict[str, Any] = {"limit": limit} if limit else {}
+        params.update(_page_extras(offset, extra, ("status", "level", "user_id")))
+        return self._request("GET", "/admin/safety/sos-alerts", params=params or None)
 
     def resolve_sos_alert(self, alert_id: str) -> APIResult:
         return self._request("POST", f"/admin/safety/sos-alerts/{alert_id}/resolve", payload={})
 
     # ── Account recovery (PEN-06) ─────────────────────────────────────────────
 
-    def list_account_recovery(self, *, status: str = "open") -> APIResult:
-        return self._request("GET", "/admin/safety/account-recovery", params={"status": status})
+    def list_account_recovery(self, *, status: str = "open", limit: int = 0, offset: int = 0, **extra: Any) -> APIResult:
+        params: dict[str, Any] = {"status": status}
+        if limit:
+            params["limit"] = limit
+        params.update(_page_extras(offset, extra))
+        return self._request("GET", "/admin/safety/account-recovery", params=params)
 
     def resolve_account_recovery(
         self, request_id: str, *, action: str, identity_check: str, resolution_note: str

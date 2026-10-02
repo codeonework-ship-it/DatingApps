@@ -9,7 +9,7 @@
   </div>
   <form method="get" class="d-flex gap-2 align-items-end flex-wrap" aria-label="Dashboard window">
     <div><label for="sd-days" class="form-label mb-0">Window</label>
-      <select id="sd-days" name="days" class="form-select glass-select" onchange="this.form.submit()">{% for d in day_options %}<option value="{{ d }}"{% if d == days %} selected{% endif %}>Last {{ d }} days</option>{% endfor %}</select></div>
+      <select id="sd-days" name="days" class="form-select glass-select" data-autosubmit>{% for d in day_options %}<option value="{{ d }}"{% if d == days %} selected{% endif %}>Last {{ d }} days</option>{% endfor %}</select></div>
     <noscript><button type="submit" class="btn btn-glass">Apply</button></noscript>
   </form>
 </div>

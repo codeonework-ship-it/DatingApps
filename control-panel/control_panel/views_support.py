@@ -76,7 +76,7 @@ ACCOUNT_STATUS_CLASSES = {
     'banned': 'badge-danger', 'deletion_pending': 'badge-warning', 'erased': 'badge-inactive',
 }
 VERIFICATION_CLASSES = {
-    'approved': 'badge-active', 'pending': 'badge-warning', 'rejected': 'badge-danger', 'unverified': 'badge-inactive',
+    'verified': 'badge-active', 'approved': 'badge-active', 'pending': 'badge-warning', 'rejected': 'badge-danger', 'unverified': 'badge-inactive',
 }
 EVENT_VERBS = {
     'created': 'raised the ticket',

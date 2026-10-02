@@ -11,6 +11,8 @@ Topics:
                  Every console page subscribes to it.
   ``dashboard``  the command center's live region, rendered from the same
                  snapshot the page itself renders.
+  ``activity``   new member actions after this connection's cursor, matching
+                 the activity page's filters, as rendered table rows.
 """
 from __future__ import annotations
 
@@ -26,10 +28,12 @@ from .operator_access import nav_visibility
 from .services.go_client import GoBFFClient
 from .views import _queue_status, dashboard_snapshot
 
-TOPICS = frozenset({"nav", "dashboard"})
+TOPICS = frozenset({"nav", "dashboard", "activity"})
 
 # How often each topic is re-read while a page is open and visible.
-INTERVAL_SECONDS = {"nav": 15, "dashboard": 15}
+INTERVAL_SECONDS = {"nav": 15, "dashboard": 15, "activity": 3}
+# Topics read per connection (their own cursor and filters), never shared.
+PER_CONNECTION = frozenset({"activity"})
 
 
 @dataclass(frozen=True)
@@ -114,11 +118,29 @@ def dashboard_region(client: GoBFFClient) -> dict:
     return {"html": html, "stamp": f"Snapshot {snapshot['snapshot_at']:%b %d, %H:%M:%S} UTC."}
 
 
-def build(topic: str, client: GoBFFClient, roles: list[str] | None) -> dict:
+def activity_tail(client: GoBFFClient, state: dict) -> dict:
+    """New member actions since ``state["cursor"]``. The first read only
+    finds the newest cursor: the page already shows the newest rows."""
+    filters = state.get("filters") or {}
+    if state.get("cursor") is None:
+        result = client.activity_stream(limit=1, **filters)
+        data = result.data if result.ok and isinstance(result.data, dict) else {}
+        return {"cursor": data.get("cursor") or "", "rows": [], "primed": result.ok}
+    result = client.activity_stream(after=state["cursor"], limit=100, **filters)
+    if not result.ok or not isinstance(result.data, dict):
+        return {"cursor": state["cursor"], "rows": [], "error": result.error or "unavailable"}
+    actions = [a for a in result.data.get("actions") or [] if isinstance(a, dict)]
+    rows = [render_to_string("control_panel/activity/_row.html", {"a": a}) for a in actions]
+    return {"cursor": result.data.get("cursor") or state["cursor"], "rows": rows}
+
+
+def build(topic: str, client: GoBFFClient, roles: list[str] | None, state: dict | None = None) -> dict:
     if topic == "nav":
         return nav_snapshot(client, roles)
     if topic == "dashboard":
         return dashboard_region(client)
+    if topic == "activity":
+        return activity_tail(client, state or {})
     raise ValueError(f"unknown live topic {topic!r}")
 
 

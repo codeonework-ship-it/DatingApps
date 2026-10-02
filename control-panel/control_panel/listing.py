@@ -42,6 +42,7 @@ class Filter:
     choices: tuple[tuple[str, str], ...] = ()  # (value, label); empty = free text
     kind: str = "choice"  # choice | text | date
     max_length: int = 100
+    allow_all: bool = True  # offer "All" (off when Go needs one value)
 
 
 @dataclass(frozen=True)
@@ -324,15 +325,20 @@ def respond(request: HttpRequest, spec: ListSpec, fetch: Fetch, *, title: str,
 
 def simple_view(request: HttpRequest, spec: ListSpec, call: Callable[..., Any], *, items_key: str, template: str,
                 title: str, base_context: Callable[[], dict], context_name: str,
-                map_filters: Callable[[ListQuery], dict[str, Any]] | None = None) -> HttpResponse:
+                map_filters: Callable[[ListQuery], dict[str, Any]] | None = None,
+                extra: Callable[[Page, dict], dict] | None = None) -> HttpResponse:
     """A list page whose Go method takes ``limit``, ``offset``, its filters
     and the contract extras (q, sort, order, from, to)."""
+    last_response: dict = {}  # the last page's full response (counts, metrics…)
+
     def fetch(query: ListQuery, limit: int, offset: int):
         kwargs = map_filters(query) if map_filters else query.go_params()
         result = call(limit=limit, offset=offset, **kwargs)
         if not result.ok:
             return [], None, result.error
         data = result.data if isinstance(result.data, dict) else {}
+        last_response.clear()
+        last_response.update(data)
         rows = [r for r in data.get(items_key) or [] if isinstance(r, dict)]
         total = data.get("total")
         return rows, total if isinstance(total, int) and not isinstance(total, bool) else None, ""
@@ -341,6 +347,8 @@ def simple_view(request: HttpRequest, spec: ListSpec, call: Callable[..., Any], 
         ctx = base_context()
         ctx.update(context(page))
         ctx.update({context_name: page.rows, "total": page.total, "error": page.error})
+        if extra:
+            ctx.update(extra(page, last_response))
         return render(request, template, ctx)
 
     return respond(request, spec, fetch, title=title, render_page=render_page)

@@ -16,28 +16,12 @@
 
 <!-- Filter -->
 <div class="glass-card mb-4">
-  <form method="get" class="d-flex flex-wrap gap-3 align-items-end">
-    <div>
-      <label class="form-label">Status</label>
-      <select name="status" class="glass-select minw-col">
-        <option value="">All Reports</option>
-        <option value="pending" {% if status_filter == "pending" %}selected{% endif %}>Pending</option>
-        <option value="resolved" {% if status_filter == "resolved" %}selected{% endif %}>Resolved</option>
-        <option value="dismissed" {% if status_filter == "dismissed" %}selected{% endif %}>Dismissed</option>
-      </select>
-    </div>
-    <div class="d-flex gap-2 flex-wrap">
-      <button type="submit" class="btn btn-glow"><i class="bi bi-funnel-fill me-1"></i>Filter</button>
-      <a href="{% url 'moderation_reports' %}" class="btn btn-glass">Clear</a>
-    </div>
-  </form>
+  {% include "control_panel/partials/_list_controls.html" with list_label="Filter reports" %}
 </div>
 
 <!-- Reports Table -->
 <div class="glass-card">
-  <div class="mb-3">
-    <span class="text-muted small">{{ reports|length }} report{{ reports|length|pluralize }}</span>
-  </div>
+  {% include "control_panel/partials/_list_toolbar.html" %}
 
   {% if reports %}
   <div class="table-responsive">
@@ -56,9 +40,9 @@
       <tbody>
         {% for report in reports %}
         <tr>
-          <td class="font-monospace small text-muted">{{ report.reporter_id|slice:":8" }}…</td>
+          <td class="font-monospace small text-muted">{{ report.reporter_user_id|slice:":8" }}…</td>
           <td class="font-monospace small text-muted">{{ report.reported_user_id|slice:":8" }}…</td>
-          <td><span class="badge badge-warning">{{ report.category|default:"general"|capfirst }}</span></td>
+          <td><span class="badge badge-warning">{{ report.reason|default:"general"|capfirst }}</span></td>
           <td class="text-muted small">{{ report.description|default:"—"|truncatechars:80 }}</td>
           <td>
             {% if report.status == "pending" %}
@@ -88,7 +72,7 @@
                       <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                      <p class="form-text mt-0 mb-3">Report {{ report.id|slice:":8" }}… · {{ report.category|default:"general"|capfirst }}</p>
+                      <p class="form-text mt-0 mb-3">Report {{ report.id|slice:":8" }}… · {{ report.reason|default:"general"|capfirst }}</p>
                       <div class="mb-3">
                         <label class="form-label" for="report-action-{{ forloop.counter }}">Action <span class="text-danger-light" aria-hidden="true">*</span></label>
                         <select id="report-action-{{ forloop.counter }}" name="action" class="form-select" required>
@@ -121,6 +105,7 @@
       </tbody>
     </table>
   </div>
+  {% include "control_panel/partials/_pagination.html" %}
   {% else %}
   <div class="text-center py-5 text-muted">
     <i class="bi bi-flag empty-icon"></i>
