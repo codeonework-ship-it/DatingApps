@@ -561,29 +561,56 @@ func (s *Server) adminListFraudGraph(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusServiceUnavailable, err)
 		return
 	}
-	status := strings.TrimSpace(r.URL.Query().Get("status"))
-	rows, err := db.QueryContext(r.Context(), `SELECT id::text,left_member_id::text,right_member_id::text,signal_type,confidence::float8,evidence,review_status,action_mode,reviewed_by::text,reviewed_at,created_at FROM growth.fraud_graph_edges WHERE ($1='' OR review_status=$1) ORDER BY confidence DESC,created_at LIMIT $2`, status, boundedQueryLimit(r, 100, 500))
+	page, err := parseAdminListParams(r, adminFraudGraphSpec)
+	if err != nil {
+		writeAdminListParamError(w, err)
+		return
+	}
+	member, err := adminUUIDParam(r, "member")
+	if err != nil {
+		writeAdminListParamError(w, err)
+		return
+	}
+	filter := newSQLFilter()
+	filter.Eq("review_status", r.URL.Query().Get("status")).Eq("signal_type", r.URL.Query().Get("signal_type"))
+	if member != "" {
+		arg := filter.Arg(member)
+		filter.Where("(left_member_id = " + arg + " OR right_member_id = " + arg + ")")
+	}
+	filter.Search(page.Q, "signal_type", "action_mode")
+	filter.TimeRange("created_at", page)
+	items := make([]map[string]any, 0)
+	total, err := queryAdminPage(r.Context(), db,
+		`id::text,left_member_id::text,right_member_id::text,signal_type,confidence::float8,evidence,review_status,action_mode,reviewed_by::text,reviewed_at,created_at`,
+		` FROM growth.fraud_graph_edges`, filter, page, func(rows *sql.Rows) error {
+			var id, left, right, signal, evidence, status, action string
+			var confidence float64
+			var reviewer sql.NullString
+			var reviewed sql.NullTime
+			var created time.Time
+			if err := rows.Scan(&id, &left, &right, &signal, &confidence, &evidence, &status, &action, &reviewer, &reviewed, &created); err != nil {
+				return err
+			}
+			var evidenceMap map[string]any
+			_ = json.Unmarshal([]byte(evidence), &evidenceMap)
+			items = append(items, map[string]any{"id": id, "left_member_id": left, "right_member_id": right, "signal_type": signal, "confidence": confidence, "evidence": evidenceMap, "review_status": status, "action_mode": action, "reviewed_by": nullString(reviewer), "reviewed_at": nullTime(reviewed), "created_at": created})
+			return nil
+		})
 	if err != nil {
 		writeError(w, http.StatusServiceUnavailable, err)
 		return
 	}
-	defer rows.Close()
-	items := make([]map[string]any, 0)
-	for rows.Next() {
-		var id, left, right, signal, evidence, status, action string
-		var confidence float64
-		var reviewer sql.NullString
-		var reviewed sql.NullTime
-		var created time.Time
-		if err = rows.Scan(&id, &left, &right, &signal, &confidence, &evidence, &status, &action, &reviewer, &reviewed, &created); err != nil {
-			writeError(w, http.StatusServiceUnavailable, err)
-			return
-		}
-		var evidenceMap map[string]any
-		_ = json.Unmarshal([]byte(evidence), &evidenceMap)
-		items = append(items, map[string]any{"id": id, "left_member_id": left, "right_member_id": right, "signal_type": signal, "confidence": confidence, "evidence": evidenceMap, "review_status": status, "action_mode": action, "reviewed_by": nullString(reviewer), "reviewed_at": nullTime(reviewed), "created_at": created})
-	}
-	writeJSON(w, http.StatusOK, map[string]any{"success": true, "edges": items, "automatic_enforcement": false})
+	writeJSON(w, http.StatusOK, page.Page(map[string]any{"success": true, "edges": items, "automatic_enforcement": false}, total))
+}
+
+// The default keeps the old order: strongest signal first, then oldest.
+var adminFraudGraphSpec = adminListSpec{
+	DefaultLimit: 100, MaxLimit: 500,
+	Sorts: map[string]string{
+		"confidence": "confidence {dir}, created_at",
+		"created_at": "created_at",
+	},
+	DefaultSort: "confidence", TieBreak: "id",
 }
 
 func (s *Server) adminResolveFraudGraphEdge(w http.ResponseWriter, r *http.Request) {

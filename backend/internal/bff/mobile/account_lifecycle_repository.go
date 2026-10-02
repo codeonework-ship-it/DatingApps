@@ -567,8 +567,16 @@ func accountExportSections() []struct {
 		{"api_activity_summary", `SELECT COALESCE(jsonb_agg(jsonb_build_object('day',t.day,'requests',t.requests) ORDER BY t.day),'[]'::jsonb) FROM (
 			SELECT (created_at AT TIME ZONE 'UTC')::date AS day, COUNT(*) AS requests
 			FROM matching.activity_events
-			WHERE event_domain='api_request' AND (user_id=$1::uuid OR actor_user_id=$1::uuid)
+			WHERE event_domain IN ('api_request','member_action') AND (user_id=$1::uuid OR actor_user_id=$1::uuid)
 			GROUP BY 1) t`},
+		// Member actions (migration 132), per day and action: what the member
+		// did, without network or device context.
+		{"member_action_summary", `SELECT COALESCE(jsonb_agg(jsonb_build_object('day',t.day,'action',t.action,'count',t.n) ORDER BY t.day,t.action),'[]'::jsonb) FROM (
+			SELECT (created_at AT TIME ZONE 'UTC')::date AS day,
+			       COALESCE(payload#>>'{details,action_key}', payload#>>'{details,route}', 'other') AS action, COUNT(*) AS n
+			FROM matching.activity_events
+			WHERE event_domain='member_action' AND actor_user_id=$1::uuid
+			GROUP BY 1,2) t`},
 	}
 }
 

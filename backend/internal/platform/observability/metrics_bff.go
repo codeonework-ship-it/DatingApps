@@ -82,6 +82,11 @@ func NewBFFMetrics(reg prometheus.Registerer) *HTTPMetrics {
 		Help: "Rows purged or redacted by trust retention, by retention class.",
 	}, []string{"class"})
 
+	metrics.ActivityCaptureWrites = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: "verified_dating", Subsystem: "activity", Name: "capture_writes_total",
+		Help: "Member activity rows written by the request middleware, by domain and result (durable = synchronous insert, fallback_queue = handed to the async activity queue).",
+	}, []string{"domain", "result"})
+
 	metrics.RealtimeDeliveryLag = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Namespace: "verified_dating", Subsystem: "realtime", Name: "delivery_lag_seconds",
 		Help:    "Time from a realtime outbox event being written to it being pushed to a connected socket.",
@@ -120,6 +125,7 @@ func NewBFFMetrics(reg prometheus.Registerer) *HTTPMetrics {
 		metrics.SOSDeliveryDeadLetters,
 		metrics.SOSDeliveryOldestPendingAge,
 		metrics.TrustRetentionRuns,
+		metrics.ActivityCaptureWrites,
 		metrics.RealtimeDeliveryLag,
 		metrics.queues,
 	)

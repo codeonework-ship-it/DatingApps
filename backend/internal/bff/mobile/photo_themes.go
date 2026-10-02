@@ -577,6 +577,11 @@ func (s *Server) adminPhotoThemesHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	w.Header().Set("Cache-Control", "private, no-store")
+	page, err := parseAdminListParams(r, adminPhotoThemesSpec)
+	if err != nil {
+		writeAdminListParamError(w, err)
+		return
+	}
 	if r.Method == http.MethodPost {
 		body, ok := readJSON(w, r)
 		if !ok {
@@ -622,26 +627,36 @@ func (s *Server) adminPhotoThemesHandler(w http.ResponseWriter, r *http.Request)
 			return
 		}
 	}
-	rows, err := db.QueryContext(r.Context(), `SELECT t.id::text,t.slug,t.title,t.prompt,t.status,t.sort_order,
- (SELECT COUNT(*) FROM matching.photo_theme_entries e WHERE e.theme_id=t.id AND e.deleted_at IS NULL AND e.moderation_state='active')
- FROM matching.photo_themes t ORDER BY t.status,t.sort_order,t.title`)
+	filter := newSQLFilter()
+	filter.Eq("t.status", r.URL.Query().Get("status"))
+	filter.Search(page.Q, "t.slug", "t.title", "t.prompt")
+	filter.TimeRange("t.created_at", page)
+	themes := []photoTheme{}
+	total, err := queryAdminPage(r.Context(), db, `t.id::text,t.slug,t.title,t.prompt,t.status,t.sort_order,
+ (SELECT COUNT(*) FROM matching.photo_theme_entries e WHERE e.theme_id=t.id AND e.deleted_at IS NULL AND e.moderation_state='active')`,
+		` FROM matching.photo_themes t`, filter, page, func(rows *sql.Rows) error {
+			var t photoTheme
+			if err := rows.Scan(&t.ID, &t.Slug, &t.Title, &t.Prompt, &t.Status, &t.SortOrder, &t.EntryCount); err != nil {
+				return err
+			}
+			themes = append(themes, t)
+			return nil
+		})
 	if err != nil {
 		writeError(w, 503, err)
 		return
 	}
-	defer rows.Close()
-	themes := []photoTheme{}
-	for rows.Next() {
-		var t photoTheme
-		if err = rows.Scan(&t.ID, &t.Slug, &t.Title, &t.Prompt, &t.Status, &t.SortOrder, &t.EntryCount); err != nil {
-			writeError(w, 503, err)
-			return
-		}
-		themes = append(themes, t)
-	}
-	if err = rows.Err(); err != nil {
-		writeError(w, 503, err)
-		return
-	}
-	writeJSON(w, 200, map[string]any{"themes": themes})
+	writeJSON(w, 200, page.Page(map[string]any{"themes": themes}, total))
+}
+
+// This list used to be unbounded; the default page (500) still covers every
+// theme an operator manages today.
+var adminPhotoThemesSpec = adminListSpec{
+	DefaultLimit: 500, MaxLimit: 500,
+	Sorts: map[string]string{
+		"sort_order": "t.status ASC, t.sort_order {dir}, t.title {dir}",
+		"title":      "t.title",
+		"created_at": "t.created_at",
+	},
+	DefaultSort: "sort_order", DefaultOrder: "asc", TieBreak: "t.id {dir}",
 }

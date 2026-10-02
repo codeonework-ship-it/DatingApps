@@ -161,6 +161,9 @@ type activityEvent struct {
 	// Domain is stored as event_domain; empty means "mobile_bff". Request
 	// telemetry uses activityDomainAPIRequest (90-day retention, migration 122).
 	Domain string `json:"domain,omitempty"`
+	// Request carries the columns only the activity middleware can fill
+	// (ip, device, platform, request/correlation ids, entity). Not serialised.
+	Request *activityRequestColumns `json:"-"`
 }
 
 type videoCallSession struct {

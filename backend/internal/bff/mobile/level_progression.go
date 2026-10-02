@@ -946,12 +946,48 @@ func (s *Server) adminListProgressionFraud(w http.ResponseWriter, r *http.Reques
 		writeError(w, http.StatusUnauthorized, err)
 		return
 	}
-	items, err := queryJSONRows(r.Context(), s.progression.db, `SELECT jsonb_build_object('id',f.id,'user_id',f.user_id,'username',u.username,'rule_code',f.rule_code,'severity',f.severity,'status',f.status,'evidence',f.evidence,'created_at',f.created_at) FROM progression.fraud_cases f JOIN user_management.users u ON u.id=f.user_id WHERE ($1='' OR f.status=$1) ORDER BY f.created_at DESC LIMIT 200`, r.URL.Query().Get("status"))
+	page, err := parseAdminListParams(r, adminProgressionFraudSpec)
+	if err != nil {
+		writeAdminListParamError(w, err)
+		return
+	}
+	userID, err := adminUUIDParam(r, "user_id")
+	if err != nil {
+		writeAdminListParamError(w, err)
+		return
+	}
+	filter := newSQLFilter()
+	filter.Eq("f.status", r.URL.Query().Get("status")).Eq("f.severity", r.URL.Query().Get("severity"))
+	filter.Eq("f.rule_code", r.URL.Query().Get("rule_code")).Eq("f.user_id", userID)
+	filter.Search(page.Q, "u.username", "f.rule_code")
+	filter.TimeRange("f.created_at", page)
+	items := []map[string]any{}
+	total, err := queryAdminPage(r.Context(), s.progression.db,
+		`jsonb_build_object('id',f.id,'user_id',f.user_id,'username',u.username,'rule_code',f.rule_code,'severity',f.severity,'status',f.status,'evidence',f.evidence,'created_at',f.created_at)`,
+		` FROM progression.fraud_cases f JOIN user_management.users u ON u.id=f.user_id`, filter, page,
+		func(rows *sql.Rows) error {
+			var raw []byte
+			if err := rows.Scan(&raw); err != nil {
+				return err
+			}
+			var item map[string]any
+			if err := json.Unmarshal(raw, &item); err != nil {
+				return err
+			}
+			items = append(items, item)
+			return nil
+		})
 	if err != nil {
 		writeError(w, http.StatusServiceUnavailable, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"cases": items, "count": len(items)})
+	writeJSON(w, http.StatusOK, page.Page(map[string]any{"cases": items, "count": len(items)}, total))
+}
+
+var adminProgressionFraudSpec = adminListSpec{
+	DefaultLimit: 200, MaxLimit: 500,
+	Sorts:       map[string]string{"created_at": "f.created_at"},
+	DefaultSort: "created_at", TieBreak: "f.id {dir}",
 }
 
 func (s *Server) adminUpdateProgressionFraudPolicy(w http.ResponseWriter, r *http.Request) {

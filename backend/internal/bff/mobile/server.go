@@ -109,6 +109,9 @@ type Server struct {
 	idempotencyCleanupCancel context.CancelFunc
 	idempotencyCleanupDone   chan struct{}
 	httpMetrics              *observability.HTTPMetrics
+	// actionCoverage is the member action catalog's coverage of the router,
+	// computed once the routes are registered (member_action_catalog.go).
+	actionCoverage memberActionCoverage
 }
 
 const aliasRouteSunset = "Wed, 31 Dec 2026 23:59:59 GMT"
@@ -925,6 +928,12 @@ func NewServer(cfg config.Config, log *zap.Logger, httpMetrics *observability.HT
 		v1.Post("/growth/admirer-gifts", growthUnavailableHandler("admirer_gifts"))
 		v1.Post("/growth/paid-xp", growthUnavailableHandler("paid_xp"))
 		v1.Get("/admin/activities", s.listAdminActivities)
+		// Member action log across request, event, security and domain
+		// sources (admin_member_activity.go, migration 132).
+		v1.Get("/admin/activity", s.adminListMemberActivity)
+		v1.Get("/admin/activity/stream", s.adminStreamMemberActivity)
+		v1.Get("/admin/activity/catalog", s.adminMemberActionCatalog)
+		v1.Get("/admin/members/{userID}/activity", s.adminMemberActivity)
 		v1.Get("/admin/audit-events", s.adminListAuditEvents)
 		v1.Get("/admin/events", s.adminListDomainEvents)
 		v1.Get("/admin/events/metrics", s.adminDomainEventMetrics)
@@ -1052,6 +1061,10 @@ func NewServer(cfg config.Config, log *zap.Logger, httpMetrics *observability.HT
 	})
 
 	s.router = r
+	s.actionCoverage = computeMemberActionCoverage(r, cfg.APIPrefix)
+	if len(s.actionCoverage.Uncatalogued) > 0 {
+		log.Warn("member_action_catalog_incomplete", zap.Strings("uncatalogued", s.actionCoverage.Uncatalogued))
+	}
 	s.startMediaLifecycleCleanup()
 	s.startIdempotencyCleanup()
 	if s.notificationWorker != nil {
@@ -1141,6 +1154,7 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, errors.New(message))
 		return
 	}
+	noteActivityMember(r, toString(resp["user_id"]), toString(resp["account_kind"]))
 	writeJSON(w, http.StatusOK, resp)
 }
 
@@ -1187,6 +1201,7 @@ func (s *Server) signup(w http.ResponseWriter, r *http.Request) {
 		writeError(w, code, errors.New(message))
 		return
 	}
+	noteActivityMember(r, toString(resp["user_id"]), toString(resp["account_kind"]))
 	writeJSON(w, http.StatusOK, resp)
 }
 
@@ -1296,14 +1311,25 @@ func (s *Server) activityMiddleware(next http.Handler) http.Handler {
 			status:         http.StatusOK,
 		}
 
+		// Public handlers (sign-in, sign-up) name the member they verified
+		// through this note; see noteActivityMember.
+		r = r.WithContext(withMemberActivityNote(r.Context()))
 		next.ServeHTTP(recorder, r)
 
 		if !strings.HasPrefix(r.URL.Path, s.cfg.APIPrefix) {
 			return
 		}
-		// Request telemetry is minimised: route template instead of the
-		// concrete path, no query string, no client IP (activity_repository.go).
-		s.enqueueNonCriticalActivity(s.apiRequestActivityEvent(r, recorder.status, time.Since(start)))
+		// Route template instead of the concrete path, never the query string
+		// or bodies (activity_repository.go, requestActivityEvent). A signed-in
+		// member's mutating request is a member action: written synchronously
+		// with IP and device context. Everything else is best-effort request
+		// telemetry without an IP address.
+		event, memberAction := s.requestActivityEvent(r, recorder.status, time.Since(start))
+		if memberAction {
+			s.recordMemberAction(r.Context(), event)
+			return
+		}
+		s.enqueueNonCriticalActivity(event)
 	})
 }
 
@@ -5539,17 +5565,33 @@ func (s *Server) submitVerification(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) listAdminActivities(w http.ResponseWriter, r *http.Request) {
-	limit := 100
-	if raw := strings.TrimSpace(r.URL.Query().Get("limit")); raw != "" {
-		if parsed, err := strconv.Atoi(raw); err == nil {
-			limit = parsed
-		}
+	params, err := parseAdminListParams(r, adminActivitiesSpec)
+	if err != nil {
+		writeAdminListParamError(w, err)
+		return
+	}
+	filter, err := parseActivityListFilter(r)
+	if err != nil {
+		writeAdminListParamError(w, err)
+		return
 	}
 
 	ctx, cancel := s.withRequestTimeout(r.Context())
 	defer cancel()
 
-	respAny, err := s.mediator.Send(ctx, adminapp.ListActivitiesCommandName, adminapp.ListActivitiesCommand{Limit: limit})
+	if db := s.adminListDB(); db != nil {
+		items, total, listErr := listActivityEventsPage(ctx, db, filter, params)
+		if listErr != nil {
+			writeError(w, http.StatusBadGateway, listErr)
+			return
+		}
+		writeJSON(w, http.StatusOK, params.Page(map[string]any{"activities": items}, total))
+		return
+	}
+
+	// Without SQL the repository or in-memory path returns its newest rows
+	// (at most 1000) and the same filters are applied to them here.
+	respAny, err := s.mediator.Send(ctx, adminapp.ListActivitiesCommandName, adminapp.ListActivitiesCommand{Limit: 1000})
 	if err != nil {
 		if errors.Is(err, adminapp.ErrValidation) {
 			writeError(w, http.StatusBadRequest, err)
@@ -5564,20 +5606,38 @@ func (s *Server) listAdminActivities(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadGateway, errors.New("unexpected admin activities response payload"))
 		return
 	}
-	writeJSON(w, http.StatusOK, resp)
+	rows, _ := resp["activities"].([]map[string]any)
+	page, total := filterActivityMaps(rows, filter, params)
+	resp["activities"] = page
+	writeJSON(w, http.StatusOK, params.Page(resp, total))
 }
 
 func (s *Server) listAdminVerifications(w http.ResponseWriter, r *http.Request) {
-	limit := 100
-	if raw := strings.TrimSpace(r.URL.Query().Get("limit")); raw != "" {
-		if parsed, err := strconv.Atoi(raw); err == nil {
-			limit = parsed
-		}
+	params, err := parseAdminListParams(r, adminVerificationsSpec)
+	if err != nil {
+		writeAdminListParamError(w, err)
+		return
 	}
+	userID, err := adminUUIDParam(r, "user_id")
+	if err != nil {
+		writeAdminListParamError(w, err)
+		return
+	}
+	limit := params.Limit
 	status := strings.TrimSpace(r.URL.Query().Get("status"))
 
 	ctx, cancel := s.withRequestTimeout(r.Context())
 	defer cancel()
+
+	if db := s.adminListDB(); db != nil {
+		items, total, listErr := listVerificationsPage(ctx, db, status, userID, params)
+		if listErr != nil {
+			writeError(w, http.StatusBadGateway, listErr)
+			return
+		}
+		writeJSON(w, http.StatusOK, params.Page(map[string]any{"verifications": items}, total))
+		return
+	}
 
 	respAny, err := s.mediator.Send(
 		ctx,
@@ -5598,6 +5658,7 @@ func (s *Server) listAdminVerifications(w http.ResponseWriter, r *http.Request) 
 		writeError(w, http.StatusBadGateway, errors.New("unexpected admin verifications response payload"))
 		return
 	}
+	resp = withUnpagedTotal(resp, "verifications", params)
 	writeJSON(w, http.StatusOK, resp)
 }
 
@@ -5608,10 +5669,7 @@ func (s *Server) approveVerification(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	reviewedBy := strings.TrimSpace(r.Header.Get("X-Admin-User"))
-	if reviewedBy == "" {
-		reviewedBy = "control-panel"
-	}
+	reviewedBy := operatorReviewerID(r)
 
 	ctx, cancel := s.withRequestTimeout(r.Context())
 	defer cancel()
@@ -5669,10 +5727,7 @@ func (s *Server) rejectVerification(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	reviewedBy := strings.TrimSpace(r.Header.Get("X-Admin-User"))
-	if reviewedBy == "" {
-		reviewedBy = "control-panel"
-	}
+	reviewedBy := operatorReviewerID(r)
 
 	ctx, cancel := s.withRequestTimeout(r.Context())
 	defer cancel()
@@ -5704,16 +5759,39 @@ func (s *Server) rejectVerification(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) listAdminReports(w http.ResponseWriter, r *http.Request) {
-	limit := 100
-	if raw := strings.TrimSpace(r.URL.Query().Get("limit")); raw != "" {
-		if parsed, err := strconv.Atoi(raw); err == nil {
-			limit = parsed
-		}
+	params, err := parseAdminListParams(r, adminReportsSpec)
+	if err != nil {
+		writeAdminListParamError(w, err)
+		return
 	}
-	status := strings.TrimSpace(r.URL.Query().Get("status"))
+	filter := reportListFilter{Status: strings.TrimSpace(r.URL.Query().Get("status"))}
+	filter.Category = strings.TrimSpace(r.URL.Query().Get("category"))
+	if filter.Category == "" {
+		filter.Category = strings.TrimSpace(r.URL.Query().Get("reason"))
+	}
+	if filter.ReporterUserID, err = adminUUIDParam(r, "reporter_user_id"); err != nil {
+		writeAdminListParamError(w, err)
+		return
+	}
+	if filter.ReportedID, err = adminUUIDParam(r, "reported_user_id"); err != nil {
+		writeAdminListParamError(w, err)
+		return
+	}
+	limit := params.Limit
+	status := filter.Status
 
 	ctx, cancel := s.withRequestTimeout(r.Context())
 	defer cancel()
+
+	if db := s.adminListDB(); db != nil {
+		items, total, listErr := listReportsPage(ctx, db, filter, params)
+		if listErr != nil {
+			writeError(w, http.StatusBadGateway, listErr)
+			return
+		}
+		writeJSON(w, http.StatusOK, params.Page(map[string]any{"reports": items}, total))
+		return
+	}
 
 	respAny, err := s.mediator.Send(
 		ctx,
@@ -5734,6 +5812,7 @@ func (s *Server) listAdminReports(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadGateway, errors.New("unexpected admin reports response payload"))
 		return
 	}
+	resp = withUnpagedTotal(resp, "reports", params)
 	writeJSON(w, http.StatusOK, resp)
 }
 
@@ -5751,13 +5830,7 @@ func (s *Server) actionAdminReport(w http.ResponseWriter, r *http.Request) {
 
 	status := strings.TrimSpace(toString(payload["status"]))
 	action := strings.TrimSpace(toString(payload["action"]))
-	reviewedBy := strings.TrimSpace(r.Header.Get("X-Admin-User"))
-	if reviewedBy == "" {
-		reviewedBy = strings.TrimSpace(toString(payload["reviewed_by"]))
-	}
-	if reviewedBy == "" {
-		reviewedBy = "control-panel"
-	}
+	reviewedBy := operatorReviewerID(r, toString(payload["reviewed_by"]))
 
 	ctx, cancel := s.withRequestTimeout(r.Context())
 	defer cancel()
@@ -5882,16 +5955,37 @@ func (s *Server) getModerationAppealStatus(w http.ResponseWriter, r *http.Reques
 }
 
 func (s *Server) listAdminModerationAppeals(w http.ResponseWriter, r *http.Request) {
-	limit := 100
-	if raw := strings.TrimSpace(r.URL.Query().Get("limit")); raw != "" {
-		if parsed, err := strconv.Atoi(raw); err == nil {
-			limit = parsed
-		}
+	params, err := parseAdminListParams(r, adminAppealsSpec)
+	if err != nil {
+		writeAdminListParamError(w, err)
+		return
+	}
+	userID, err := adminUUIDParam(r, "user_id")
+	if err != nil {
+		writeAdminListParamError(w, err)
+		return
+	}
+	reportID, err := adminUUIDParam(r, "report_id")
+	if err != nil {
+		writeAdminListParamError(w, err)
+		return
 	}
 	status := strings.TrimSpace(r.URL.Query().Get("status"))
 
-	appeals := s.store.listModerationAppeals(status, limit)
-	writeJSON(w, http.StatusOK, map[string]any{"appeals": appeals})
+	if db := s.adminListDB(); db != nil {
+		ctx, cancel := s.withRequestTimeout(r.Context())
+		defer cancel()
+		appeals, total, listErr := listModerationAppealsPage(ctx, db, status, userID, reportID, params)
+		if listErr != nil {
+			writeError(w, http.StatusBadGateway, listErr)
+			return
+		}
+		writeJSON(w, http.StatusOK, params.Page(map[string]any{"appeals": appeals}, total))
+		return
+	}
+
+	appeals := s.store.listModerationAppeals(status, params.Limit)
+	writeJSON(w, http.StatusOK, map[string]any{"appeals": appeals, "total": len(appeals), "limit": params.Limit, "offset": 0})
 }
 
 func (s *Server) actionAdminModerationAppeal(w http.ResponseWriter, r *http.Request) {
@@ -5908,13 +6002,7 @@ func (s *Server) actionAdminModerationAppeal(w http.ResponseWriter, r *http.Requ
 
 	status := strings.TrimSpace(toString(payload["status"]))
 	resolutionReason := strings.TrimSpace(toString(payload["resolution_reason"]))
-	reviewedBy := strings.TrimSpace(r.Header.Get("X-Admin-User"))
-	if reviewedBy == "" {
-		reviewedBy = strings.TrimSpace(toString(payload["reviewed_by"]))
-	}
-	if reviewedBy == "" {
-		reviewedBy = "control-panel"
-	}
+	reviewedBy := operatorReviewerID(r, toString(payload["reviewed_by"]))
 
 	appeal, err := s.store.actionModerationAppeal(appealID, status, resolutionReason, reviewedBy)
 	if err != nil {

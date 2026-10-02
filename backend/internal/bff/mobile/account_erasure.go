@@ -436,13 +436,17 @@ func accountErasureSteps() []accountErasureStep {
 		// go entirely; any other activity event about them keeps the fact
 		// but loses network, device and location context.
 		{label: "api_request_telemetry", query: `DELETE FROM matching.activity_events WHERE event_domain='api_request' AND (user_id=$1::uuid OR actor_user_id=$1::uuid)`},
+		// Member actions (migration 132) are kept as facts too; their
+		// IP, device id and user agent go with the rest of the context.
 		{label: "activity_event_context", query: `UPDATE matching.activity_events
 		                            SET ip_address=NULL,source_device_id=NULL,geo_country=NULL,geo_state=NULL,geo_city=NULL,
 		                                geo_latitude=NULL,geo_longitude=NULL,
 		                                payload=payload #- '{details,remote_addr}' #- '{details,query}'
+		                                               #- '{details,user_agent}' #- '{details,device_id}'
 		                            WHERE (user_id=$1::uuid OR actor_user_id=$1::uuid)
 		                              AND (ip_address IS NOT NULL OR source_device_id IS NOT NULL OR geo_city IS NOT NULL
-		                                   OR geo_latitude IS NOT NULL OR payload->'details' ? 'remote_addr' OR payload->'details' ? 'query')`},
+		                                   OR geo_latitude IS NOT NULL OR payload->'details' ? 'remote_addr' OR payload->'details' ? 'query'
+		                                   OR payload->'details' ? 'user_agent' OR payload->'details' ? 'device_id')`},
 		// Support tickets (migration 126) stay as anonymous records for SLA
 		// reporting. What the member wrote, every message on their tickets
 		// (agents quote them) and their attachments go; the support SLA worker

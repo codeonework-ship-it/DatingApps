@@ -1,6 +1,7 @@
 package mobile
 
 import (
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -57,38 +58,25 @@ func (s *Server) adminListDomainEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	limit := 100
-	if raw := strings.TrimSpace(r.URL.Query().Get("limit")); raw != "" {
-		if parsed, err := strconv.Atoi(raw); err == nil && parsed > 0 && parsed <= 500 {
-			limit = parsed
-		}
+	page, err := parseAdminListParams(r, adminDomainEventsSpec)
+	if err != nil {
+		writeAdminListParamError(w, err)
+		return
 	}
 	whereSQL, args := eventFilterSQL(r.URL.Query())
-	args = append(args, limit)
-	order := "DESC"
-	if strings.TrimSpace(r.URL.Query().Get("after_sequence")) != "" {
-		order = "ASC"
-	}
+	filter := &sqlFilter{clauses: []string{whereSQL}, args: args}
+	filter.UUIDEq("actor_user_id", r.URL.Query().Get("actor_user_id"))
+	filter.Search(page.Q, "event_name", "aggregate_type", "producer")
+	filter.TimeRange("occurred_at", page)
+	// after_sequence is the consumer cursor: ascending, no offset and no
+	// count, exactly as before. Other callers page with offset and total.
+	cursor := strings.TrimSpace(r.URL.Query().Get("after_sequence")) != ""
 
 	ctx, cancel := s.withRequestTimeout(r.Context())
 	defer cancel()
-	rows, err := s.store.adminRepo.pg.QueryContext(ctx, fmt.Sprintf(`
-		SELECT sequence_id,event_id::text,event_name,event_version,aggregate_type,
-		       aggregate_id,producer,COALESCE(subject_user_id::text,''),
-		       COALESCE(actor_user_id::text,''),COALESCE(correlation_id,''),
-		       COALESCE(causation_id::text,''),payload,metadata,occurred_at
-		FROM platform.domain_event_outbox
-		WHERE %s
-		ORDER BY sequence_id %s
-		LIMIT $%d`, whereSQL, order, len(args)), args...)
-	if err != nil {
-		writeError(w, http.StatusBadGateway, err)
-		return
-	}
-	defer rows.Close()
 
-	events := make([]map[string]any, 0, limit)
-	for rows.Next() {
+	events := make([]map[string]any, 0, page.Limit)
+	scan := func(rows *sql.Rows) error {
 		var sequence int64
 		var version int
 		var eventID, eventName, aggregateType, aggregateID, producer string
@@ -100,8 +88,7 @@ func (s *Server) adminListDomainEvents(w http.ResponseWriter, r *http.Request) {
 			&producer, &subjectID, &actorID, &correlationID, &causationID,
 			&rawPayload, &rawMetadata, &occurredAt,
 		); err != nil {
-			writeError(w, http.StatusBadGateway, err)
-			return
+			return err
 		}
 		payload, metadata := map[string]any{}, map[string]any{}
 		_ = json.Unmarshal(rawPayload, &payload)
@@ -113,16 +100,54 @@ func (s *Server) adminListDomainEvents(w http.ResponseWriter, r *http.Request) {
 			"correlation_id": correlationID, "causation_id": causationID,
 			"payload": payload, "metadata": metadata, "occurred_at": occurredAt.UTC(),
 		})
+		return nil
 	}
-	if err := rows.Err(); err != nil {
-		writeError(w, http.StatusBadGateway, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, map[string]any{
-		"events": events, "count": len(events), "limit": limit,
+	const columns = `sequence_id,event_id::text,event_name,event_version,aggregate_type,
+		       aggregate_id,producer,COALESCE(subject_user_id::text,''),
+		       COALESCE(actor_user_id::text,''),COALESCE(correlation_id,''),
+		       COALESCE(causation_id::text,''),payload,metadata,occurred_at`
+	const from = ` FROM platform.domain_event_outbox`
+	response := map[string]any{
 		"source": "platform.domain_event_outbox", "append_only": true,
-		"delivery": "at_least_once", "as_of": time.Now().UTC(),
-	})
+		"delivery": "at_least_once",
+	}
+	if cursor {
+		rows, queryErr := s.store.adminRepo.pg.QueryContext(ctx, `SELECT `+columns+from+filter.SQL()+
+			fmt.Sprintf(` ORDER BY sequence_id ASC LIMIT %d`, page.Limit), filter.Args()...)
+		if queryErr != nil {
+			writeError(w, http.StatusBadGateway, queryErr)
+			return
+		}
+		defer rows.Close()
+		for rows.Next() {
+			if err := scan(rows); err != nil {
+				writeError(w, http.StatusBadGateway, err)
+				return
+			}
+		}
+		if err := rows.Err(); err != nil {
+			writeError(w, http.StatusBadGateway, err)
+			return
+		}
+		response["limit"] = page.Limit
+	} else {
+		total, queryErr := queryAdminPage(ctx, s.store.adminRepo.pg, columns, from, filter, page, scan)
+		if queryErr != nil {
+			writeError(w, http.StatusBadGateway, queryErr)
+			return
+		}
+		page.Page(response, total)
+	}
+	response["events"] = events
+	response["count"] = len(events)
+	response["as_of"] = time.Now().UTC()
+	writeJSON(w, http.StatusOK, response)
+}
+
+var adminDomainEventsSpec = adminListSpec{
+	DefaultLimit: 100, MaxLimit: 500,
+	Sorts:       map[string]string{"sequence_id": "sequence_id", "occurred_at": "sequence_id"},
+	DefaultSort: "sequence_id",
 }
 
 func (s *Server) adminDomainEventMetrics(w http.ResponseWriter, r *http.Request) {

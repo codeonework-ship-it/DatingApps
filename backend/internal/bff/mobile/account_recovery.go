@@ -87,17 +87,7 @@ func (r *profileRepository) listRecoveryRequests(ctx context.Context, status str
 	if err := r.expireRecoveryRequests(ctx); err != nil {
 		return nil, err
 	}
-	rows, err := r.pg.QueryContext(ctx, `
-		SELECT q.id::text, q.user_id::text, COALESCE(c.username,''), COALESCE(q.member_message,''),
-		       q.status, q.created_at,
-		       EXISTS(SELECT 1 FROM matching.verification_states v
-		              WHERE v.user_id = q.user_id AND v.status = 'verified'),
-		       (u.erased_at IS NULL AND u.deletion_effective_at IS NULL
-		        AND NOT COALESCE(c.is_disabled, TRUE)),
-		       COALESCE(q.identity_check,''), COALESCE(q.resolved_by::text,''), q.resolved_at
-		FROM user_management.account_recovery_requests q
-		JOIN user_management.users u ON u.id = q.user_id
-		LEFT JOIN user_management.auth_credentials c ON c.user_id = q.user_id
+	rows, err := r.pg.QueryContext(ctx, `SELECT `+recoveryRequestColumns+recoveryRequestFrom+`
 		WHERE ($1 = '' OR q.status = $1)
 		ORDER BY q.created_at
 		LIMIT $2`, strings.TrimSpace(status), limit)
@@ -107,17 +97,9 @@ func (r *profileRepository) listRecoveryRequests(ctx context.Context, status str
 	defer rows.Close()
 	out := []recoveryRequestView{}
 	for rows.Next() {
-		var view recoveryRequestView
-		var created time.Time
-		var resolved sql.NullTime
-		if err := rows.Scan(&view.ID, &view.UserID, &view.Username, &view.MemberMessage, &view.Status,
-			&created, &view.IdentityVerified, &view.AccountRecoverable, &view.IdentityCheck,
-			&view.ResolvedBy, &resolved); err != nil {
+		view, err := scanRecoveryRequestView(rows)
+		if err != nil {
 			return nil, err
-		}
-		view.CreatedAt = created.UTC().Format(time.RFC3339)
-		if resolved.Valid {
-			view.ResolvedAt = resolved.Time.UTC().Format(time.RFC3339)
 		}
 		out = append(out, view)
 	}
@@ -297,14 +279,19 @@ func (s *Server) adminListAccountRecoveryRequests(w http.ResponseWriter, r *http
 		writeError(w, http.StatusServiceUnavailable, errors.New("account recovery is unavailable"))
 		return
 	}
+	page, err := parseAdminListParams(r, adminRecoverySpec)
+	if err != nil {
+		writeAdminListParamError(w, err)
+		return
+	}
 	ctx, cancel := s.withRequestTimeout(r.Context())
 	defer cancel()
-	items, err := s.store.profileRepo.listRecoveryRequests(ctx, r.URL.Query().Get("status"), 100)
+	items, total, err := s.store.profileRepo.listRecoveryRequestsPage(ctx, strings.TrimSpace(r.URL.Query().Get("status")), page)
 	if err != nil {
 		writeError(w, http.StatusBadGateway, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"requests": items, "count": len(items)})
+	writeJSON(w, http.StatusOK, page.Page(map[string]any{"requests": items, "count": len(items)}, total))
 }
 
 func (s *Server) adminResolveAccountRecoveryRequest(w http.ResponseWriter, r *http.Request) {

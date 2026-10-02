@@ -479,7 +479,13 @@ type groupCoverReviewItem struct {
 	ContentURL string `json:"content_url"`
 }
 
-// GET /v1/admin/moderation/group-covers?status=pending|approved&limit=
+var adminGroupCoversSpec = adminListSpec{
+	DefaultLimit: 50, MaxLimit: 200,
+	Sorts:       map[string]string{"created_at": "cv.created_at"},
+	DefaultSort: "created_at", DefaultOrder: "asc", TieBreak: "cv.id",
+}
+
+// GET /v1/admin/moderation/group-covers?status=pending|approved&limit=&offset=&q=&from=&to=&order=
 func (s *Server) adminGroupCoversHandler(w http.ResponseWriter, r *http.Request) {
 	if _, err := blogModerator(r); err != nil {
 		writeError(w, http.StatusForbidden, err)
@@ -499,36 +505,40 @@ func (s *Server) adminGroupCoversHandler(w http.ResponseWriter, r *http.Request)
 		writeError(w, http.StatusBadRequest, errors.New("status must be pending or approved"))
 		return
 	}
-	order := "cv.created_at ASC"
+	// The pending queue reads oldest first; the approved history newest first.
+	spec := adminGroupCoversSpec
 	if status == "approved" {
-		order = "cv.created_at DESC"
+		spec.DefaultOrder = "desc"
 	}
-	rows, err := db.QueryContext(r.Context(), `SELECT cv.id::text,cv.group_id::text,COALESCE(g.name,''),COALESCE(g.kind,''),COALESCE(g.created_by_user_id::text,''),
+	page, err := parseAdminListParams(r, spec)
+	if err != nil {
+		writeAdminListParamError(w, err)
+		return
+	}
+	filter := newSQLFilter("cv.deleted_at IS NULL")
+	filter.Eq("cv.moderation_status", status)
+	filter.Search(page.Q, "g.name")
+	filter.TimeRange("cv.created_at", page)
+	items := []groupCoverReviewItem{}
+	total, err := queryAdminPage(r.Context(), db, `cv.id::text,cv.group_id::text,COALESCE(g.name,''),COALESCE(g.kind,''),COALESCE(g.created_by_user_id::text,''),
  COALESCE(cv.uploaded_by::text,''),cv.moderation_status,cv.moderation_reason,cv.moderation_provider,cv.mime_type,cv.width_px,cv.height_px,cv.size_bytes,
- to_char(cv.created_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS"Z"')
- FROM matching.community_group_covers cv LEFT JOIN matching.community_groups g ON g.id=cv.group_id
- WHERE cv.deleted_at IS NULL AND cv.moderation_status=$1 ORDER BY `+order+`,cv.id LIMIT $2`, status, boundedQueryLimit(r, 50, 200))
+ to_char(cv.created_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS"Z"')`,
+		` FROM matching.community_group_covers cv LEFT JOIN matching.community_groups g ON g.id=cv.group_id`, filter, page,
+		func(rows *sql.Rows) error {
+			var item groupCoverReviewItem
+			if err := rows.Scan(&item.CoverID, &item.GroupID, &item.GroupName, &item.GroupKind, &item.OwnerID, &item.UploadedBy, &item.Status, &item.Reason,
+				&item.Provider, &item.MimeType, &item.WidthPx, &item.HeightPx, &item.SizeBytes, &item.UploadedAt); err != nil {
+				return err
+			}
+			item.ContentURL = "/v1/admin/moderation/group-covers/" + item.CoverID + "/content"
+			items = append(items, item)
+			return nil
+		})
 	if err != nil {
 		writeError(w, http.StatusServiceUnavailable, err)
 		return
 	}
-	defer rows.Close()
-	items := []groupCoverReviewItem{}
-	for rows.Next() {
-		var item groupCoverReviewItem
-		if err = rows.Scan(&item.CoverID, &item.GroupID, &item.GroupName, &item.GroupKind, &item.OwnerID, &item.UploadedBy, &item.Status, &item.Reason,
-			&item.Provider, &item.MimeType, &item.WidthPx, &item.HeightPx, &item.SizeBytes, &item.UploadedAt); err != nil {
-			writeError(w, http.StatusServiceUnavailable, err)
-			return
-		}
-		item.ContentURL = "/v1/admin/moderation/group-covers/" + item.CoverID + "/content"
-		items = append(items, item)
-	}
-	if err = rows.Err(); err != nil {
-		writeError(w, http.StatusServiceUnavailable, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, map[string]any{"items": items, "count": len(items), "status": status})
+	writeJSON(w, http.StatusOK, page.Page(map[string]any{"items": items, "count": len(items), "status": status}, total))
 }
 
 // GET /v1/admin/moderation/group-covers/{coverID}/content

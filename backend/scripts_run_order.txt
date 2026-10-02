@@ -222,3 +222,9 @@ scripts/129_capacity_hot_path_indexes.sql
 
 # Profile showcase: opt-in to show public chapters and wall photos on the profile (default off)
 scripts/130_profile_showcase_consent.sql
+
+# Admin list paging: timestamp-leading indexes for paged/filtered admin lists (additive; CONCURRENTLY in production)
+scripts/131_admin_list_paging.sql
+
+# Member action log: member_action retention (400 days), per-member indexes, remaining domain event sources (additive; CONCURRENTLY in production)
+scripts/132_member_activity.sql

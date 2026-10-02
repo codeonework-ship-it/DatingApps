@@ -115,6 +115,8 @@ migrations=(
 	128_graduation_friend_recipients.sql
 	129_capacity_hot_path_indexes.sql
 	130_profile_showcase_consent.sql
+	131_admin_list_paging.sql
+	132_member_activity.sql
 )
 
 for migration in "${migrations[@]}"; do

@@ -170,7 +170,7 @@ func principalCanAccessAdminRoute(principal securityPrincipal, prefix, method, r
 			strings.HasPrefix(path, "growth/fraud-graph") {
 			return true
 		}
-		if isRead && (strings.HasPrefix(path, "users") || strings.HasPrefix(path, "activities") || strings.HasPrefix(path, "audit-events") || strings.HasPrefix(path, "events") || strings.HasPrefix(path, "analytics/")) {
+		if isRead && (strings.HasPrefix(path, "users") || strings.HasPrefix(path, "activities") || isMemberActivityAdminPath(path) || strings.HasPrefix(path, "audit-events") || strings.HasPrefix(path, "events") || strings.HasPrefix(path, "analytics/")) {
 			return true
 		}
 		if strings.HasPrefix(path, "users/") {
@@ -217,19 +217,31 @@ func principalCanAccessAdminRoute(principal securityPrincipal, prefix, method, r
 			strings.HasPrefix(path, "growth/") {
 			return true
 		}
-		if isRead && (strings.HasPrefix(path, "users") || strings.HasPrefix(path, "activities") || strings.HasPrefix(path, "audit-events") || strings.HasPrefix(path, "events") || strings.HasPrefix(path, "analytics/")) {
+		if isRead && (strings.HasPrefix(path, "users") || strings.HasPrefix(path, "activities") || isMemberActivityAdminPath(path) || strings.HasPrefix(path, "audit-events") || strings.HasPrefix(path, "events") || strings.HasPrefix(path, "analytics/")) {
 			return true
 		}
 	}
 
 	if principal.Roles["analyst"] && isRead {
-		return strings.HasPrefix(path, "analytics/") || strings.HasPrefix(path, "activities") || strings.HasPrefix(path, "audit-events") || strings.HasPrefix(path, "events") ||
+		return strings.HasPrefix(path, "analytics/") || strings.HasPrefix(path, "activities") || isMemberActivityAdminPath(path) || strings.HasPrefix(path, "audit-events") || strings.HasPrefix(path, "events") ||
 			strings.HasPrefix(path, "billing/stats") || strings.HasPrefix(path, "billing/transactions") ||
 			strings.HasPrefix(path, "billing/subscriptions") || strings.HasPrefix(path, "billing/payments") ||
 			strings.HasPrefix(path, "billing/webhook-events") || strings.HasPrefix(path, "billing/reconciliation") ||
 			strings.HasPrefix(path, "billing/revenue-analytics") || strings.HasPrefix(path, "users")
 	}
 	return false
+}
+
+// isMemberActivityAdminPath matches the member action log
+// (admin_member_activity.go): activity, activity/stream, activity/catalog and
+// members/{userID}/activity. They are read by the same roles as activities
+// and audit-events.
+func isMemberActivityAdminPath(path string) bool {
+	if path == "activity" || strings.HasPrefix(path, "activity/") {
+		return true
+	}
+	parts := strings.Split(path, "/")
+	return len(parts) == 3 && parts[0] == "members" && parts[1] != "" && parts[2] == "activity"
 }
 
 func isPublicSecurityPath(prefix, requestPath, method string) bool {

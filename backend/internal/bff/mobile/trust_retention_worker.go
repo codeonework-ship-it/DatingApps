@@ -49,6 +49,8 @@ type trustRetentionResult struct {
 	APIRequestEvents       int
 	ClientErrorOccurrences int
 	ClientErrorIssues      int
+	// Migration 132: 400-day member action history.
+	MemberActionEvents int
 }
 
 func newTrustRetentionWorker(
@@ -141,11 +143,12 @@ func (w *trustRetentionWorker) RunOnce(ctx context.Context) (trustRetentionResul
 	purged, err := w.purgeIdentityEvidence(ctx)
 	result.IdentityEvidence = purged
 	keep(err)
-	apiRequests, occurrences, issues, err := runClientTelemetryRetention(ctx, w.db, w.batch)
+	apiRequests, occurrences, issues, memberActions, err := runActivityTelemetryRetention(ctx, w.db, w.batch)
 	if err != nil && strings.Contains(err.Error(), "run_client_telemetry_retention") && strings.Contains(err.Error(), "does not exist") {
 		err = nil // migration 122 not applied yet
 	}
 	result.APIRequestEvents, result.ClientErrorOccurrences, result.ClientErrorIssues = apiRequests, occurrences, issues
+	result.MemberActionEvents = memberActions
 	keep(err)
 	keep(w.refreshSOSGauges(ctx))
 
@@ -267,6 +270,7 @@ func (w *trustRetentionWorker) record(result trustRetentionResult) {
 			"api_request_telemetry":  result.APIRequestEvents,
 			"client_error_reports":   result.ClientErrorOccurrences,
 			"client_error_issues":    result.ClientErrorIssues,
+			"member_action_history":  result.MemberActionEvents,
 		} {
 			if count > 0 {
 				w.metrics.TrustRetentionRuns.WithLabelValues(class).Add(float64(count))
@@ -275,7 +279,7 @@ func (w *trustRetentionWorker) record(result trustRetentionResult) {
 	}
 	total := result.RevokedSessions + result.DisabledPushTokens + result.SOSDeliverySnapshots +
 		result.SecurityEvents + result.RowChanges + result.ActivityEvents + result.IdentityEvidence +
-		result.APIRequestEvents + result.ClientErrorOccurrences + result.ClientErrorIssues
+		result.APIRequestEvents + result.ClientErrorOccurrences + result.ClientErrorIssues + result.MemberActionEvents
 	if total > 0 {
 		w.log.Info("trust_retention_cycle",
 			zap.Int("revoked_sessions", result.RevokedSessions),
@@ -287,6 +291,7 @@ func (w *trustRetentionWorker) record(result trustRetentionResult) {
 			zap.Int("identity_evidence", result.IdentityEvidence),
 			zap.Int("api_request_telemetry", result.APIRequestEvents),
 			zap.Int("client_error_reports", result.ClientErrorOccurrences),
-			zap.Int("client_error_issues", result.ClientErrorIssues))
+			zap.Int("client_error_issues", result.ClientErrorIssues),
+			zap.Int("member_action_history", result.MemberActionEvents))
 	}
 }

@@ -242,23 +242,26 @@ func (s *Server) blogReviewHandler(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 400, blogInputError("Invalid queue page"))
 		return
 	}
-	rows, err := db.QueryContext(r.Context(), `SELECT jsonb_build_object('id',id,'content_type',content_type,'content_id',content_id,'subject_id',subject_id,'reason',reason,'description',description,'snapshot',snapshot,'photo_ids',photo_ids,'status',status,'decision_note',decision_note,'appeal',appeal,'version',version,'created_at',created_at,'review_due_at',review_due_at,'overdue',status='pending' AND review_due_at<NOW(),'evidence_purged',evidence_purged_at IS NOT NULL) FROM matching.blog_cases WHERE status=$1 ORDER BY review_due_at,id LIMIT 100 OFFSET $2`, status, offset)
+	page, err := parseAdminListParams(r, adminBlogCasesSpec)
 	if err != nil {
-		writeBlogError(w, err)
+		writeAdminListParamError(w, err)
 		return
 	}
+	page.Offset = offset
+	filter := newSQLFilter()
+	filter.Eq("status", status).Eq("content_type", r.URL.Query().Get("content_type"))
+	filter.Search(page.Q, "reason", "COALESCE(description,'')")
+	filter.TimeRange("created_at", page)
 	items := []json.RawMessage{}
-	for rows.Next() {
-		var raw json.RawMessage
-		if err = rows.Scan(&raw); err != nil {
-			break
-		}
-		items = append(items, raw)
-	}
-	if err == nil {
-		err = rows.Err()
-	}
-	rows.Close()
+	total, err := queryAdminPage(r.Context(), db, `jsonb_build_object('id',id,'content_type',content_type,'content_id',content_id,'subject_id',subject_id,'reason',reason,'description',description,'snapshot',snapshot,'photo_ids',photo_ids,'status',status,'decision_note',decision_note,'appeal',appeal,'version',version,'created_at',created_at,'review_due_at',review_due_at,'overdue',status='pending' AND review_due_at<NOW(),'evidence_purged',evidence_purged_at IS NOT NULL)`,
+		` FROM matching.blog_cases`, filter, page, func(rows *sql.Rows) error {
+			var raw json.RawMessage
+			if err := rows.Scan(&raw); err != nil {
+				return err
+			}
+			items = append(items, raw)
+			return nil
+		})
 	if err != nil {
 		writeBlogError(w, err)
 		return
@@ -285,8 +288,20 @@ func (s *Server) blogReviewHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		metrics[key] = n
 	}
-	writeJSON(w, 200, map[string]any{"cases": items, "metrics": metrics, "limit": 100, "offset": offset, "has_more": len(items) == 100})
+	writeJSON(w, 200, map[string]any{"cases": items, "metrics": metrics, "limit": page.Limit, "offset": offset,
+		"total": total, "has_more": offset+len(items) < total})
 }
+
+// The queue reads the case due soonest first.
+var adminBlogCasesSpec = adminListSpec{
+	DefaultLimit: 100, MaxLimit: 200,
+	Sorts: map[string]string{
+		"review_due_at": "review_due_at",
+		"created_at":    "created_at",
+	},
+	DefaultSort: "review_due_at", DefaultOrder: "asc", TieBreak: "id {dir}",
+}
+
 func decideBlogCase(ctx context.Context, db *sql.DB, actor, id, decision, note string, version int) error {
 	if decision != "removed" && decision != "dismissed" && decision != "restored" {
 		return blogInputError("Choose remove, dismiss or restore")

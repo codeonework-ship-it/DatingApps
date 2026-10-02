@@ -96,6 +96,27 @@ func authenticatedOperatorID(r *http.Request) (string, error) {
 	return principal.UserID, nil
 }
 
+// operatorReviewerID names the operator recorded on a review decision
+// (verifications, reports, appeals). The verified principal's user id wins for
+// every operator role: the security middleware sets X-Admin-User only for the
+// admin role, so trust_safety and moderator reviewers used to be recorded as
+// "control-panel" or not at all. The header, then any caller-supplied label,
+// remain fallbacks for deployments without the middleware.
+func operatorReviewerID(r *http.Request, fallbacks ...string) string {
+	if operatorID, err := authenticatedOperatorID(r); err == nil {
+		return operatorID
+	}
+	if header := strings.TrimSpace(r.Header.Get("X-Admin-User")); header != "" {
+		return header
+	}
+	for _, fallback := range fallbacks {
+		if value := strings.TrimSpace(fallback); value != "" {
+			return value
+		}
+	}
+	return "control-panel"
+}
+
 // adminListAuditEvents exposes the append-only operator audit view to
 // authenticated operators. Product activities and operator mutations are
 // separate evidence streams; the command center needs both to explain what
@@ -111,78 +132,65 @@ func (s *Server) adminListAuditEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	limit := 100
-	if raw := strings.TrimSpace(r.URL.Query().Get("limit")); raw != "" {
-		if parsed, err := strconv.Atoi(raw); err == nil && parsed > 0 && parsed <= 500 {
-			limit = parsed
-		}
+	page, err := parseAdminListParams(r, adminAuditEventsSpec)
+	if err != nil {
+		writeAdminListParamError(w, err)
+		return
 	}
-	clauses := []string{"TRUE"}
-	args := []any{}
-	addFilter := func(column, value string) {
-		value = strings.TrimSpace(value)
-		if value == "" {
-			return
-		}
-		args = append(args, value)
-		clauses = append(clauses, fmt.Sprintf("%s = $%d", column, len(args)))
-	}
-	addFilter("event_type", r.URL.Query().Get("event_type"))
-	addFilter("actor_user_id::text", r.URL.Query().Get("actor_user_id"))
-	addFilter("subject_user_id::text", r.URL.Query().Get("subject_user_id"))
-	addFilter("resource_type", r.URL.Query().Get("resource_type"))
-	args = append(args, limit)
+	filter := newSQLFilter()
+	filter.Eq("event_type", r.URL.Query().Get("event_type"))
+	// Compare the uuid columns directly so their indexes apply; a malformed id
+	// matches nothing, as the old text comparison did.
+	filter.UUIDEq("actor_user_id", r.URL.Query().Get("actor_user_id"))
+	filter.UUIDEq("subject_user_id", r.URL.Query().Get("subject_user_id"))
+	filter.Eq("resource_type", r.URL.Query().Get("resource_type"))
+	filter.Search(page.Q, "event_type", "resource_type")
+	filter.TimeRange("occurred_at", page)
 
 	ctx, cancel := s.withRequestTimeout(r.Context())
 	defer cancel()
-	query := fmt.Sprintf(`
-		SELECT id, occurred_at, txid, event_type,
+	events := make([]map[string]any, 0, page.Limit)
+	total, err := queryAdminPage(ctx, repo.pg, `id, occurred_at, txid, event_type,
 		       COALESCE(actor_user_id::text,''), actor_role,
 		       COALESCE(subject_user_id::text,''), resource_type,
-		       COALESCE(resource_id,''), COALESCE(correlation_id,''), payload
-		FROM audit.operator_action_log
-		WHERE %s
-		ORDER BY occurred_at DESC, id DESC
-		LIMIT $%d`, strings.Join(clauses, " AND "), len(args))
-	rows, err := repo.pg.QueryContext(ctx, query, args...)
+		       COALESCE(resource_id,''), COALESCE(correlation_id,''), payload`,
+		` FROM audit.operator_action_log`, filter, page, func(rows *sql.Rows) error {
+			var id, txid int64
+			var occurredAt time.Time
+			var eventType, actorUserID, actorRole, subjectUserID string
+			var resourceType, resourceID, correlationID string
+			var rawPayload []byte
+			if err := rows.Scan(
+				&id, &occurredAt, &txid, &eventType, &actorUserID, &actorRole,
+				&subjectUserID, &resourceType, &resourceID, &correlationID, &rawPayload,
+			); err != nil {
+				return err
+			}
+			payload := map[string]any{}
+			_ = json.Unmarshal(rawPayload, &payload)
+			events = append(events, map[string]any{
+				"id": id, "occurred_at": occurredAt.UTC(), "txid": txid,
+				"event_type": eventType, "actor_user_id": actorUserID, "actor_role": actorRole,
+				"subject_user_id": subjectUserID, "resource_type": resourceType,
+				"resource_id": resourceID, "correlation_id": correlationID, "payload": payload,
+			})
+			return nil
+		})
 	if err != nil {
 		writeError(w, http.StatusBadGateway, err)
 		return
 	}
-	defer rows.Close()
-
-	events := make([]map[string]any, 0, limit)
-	for rows.Next() {
-		var id, txid int64
-		var occurredAt time.Time
-		var eventType, actorUserID, actorRole, subjectUserID string
-		var resourceType, resourceID, correlationID string
-		var rawPayload []byte
-		if err := rows.Scan(
-			&id, &occurredAt, &txid, &eventType, &actorUserID, &actorRole,
-			&subjectUserID, &resourceType, &resourceID, &correlationID, &rawPayload,
-		); err != nil {
-			writeError(w, http.StatusBadGateway, err)
-			return
-		}
-		payload := map[string]any{}
-		_ = json.Unmarshal(rawPayload, &payload)
-		events = append(events, map[string]any{
-			"id": id, "occurred_at": occurredAt.UTC(), "txid": txid,
-			"event_type": eventType, "actor_user_id": actorUserID, "actor_role": actorRole,
-			"subject_user_id": subjectUserID, "resource_type": resourceType,
-			"resource_id": resourceID, "correlation_id": correlationID, "payload": payload,
-		})
-	}
-	if err := rows.Err(); err != nil {
-		writeError(w, http.StatusBadGateway, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, map[string]any{
-		"events": events, "count": len(events), "limit": limit,
+	writeJSON(w, http.StatusOK, page.Page(map[string]any{
+		"events": events, "count": len(events),
 		"source": "audit.operator_action_log", "append_only": true,
 		"as_of": time.Now().UTC(),
-	})
+	}, total))
+}
+
+var adminAuditEventsSpec = adminListSpec{
+	DefaultLimit: 100, MaxLimit: 500,
+	Sorts:       map[string]string{"occurred_at": "occurred_at"},
+	DefaultSort: "occurred_at", TieBreak: "id {dir}",
 }
 
 // ─── Gift Catalog Admin ───────────────────────────────────────────────────────
@@ -207,6 +215,23 @@ func (s *Server) adminListCatalogGifts(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+	page, err := parseAdminListParams(r, adminGiftCatalogSpec)
+	if err != nil {
+		writeAdminListParamError(w, err)
+		return
+	}
+	if repo.pg != nil {
+		rows, total, listErr := listGiftCatalogPage(ctx, repo.pg, qualifiedTable(repo.cfg.MatchingSchema, repo.cfg.GiftCatalogTable), r, page)
+		if listErr == nil {
+			writeJSON(w, http.StatusOK, page.Page(map[string]any{"gifts": rows, "count": len(rows), "source": "db"}, total))
+			return
+		}
+		// Same fallback as the client path below.
+		catalog := s.store.listRoseGiftCatalog()
+		writeJSON(w, http.StatusOK, map[string]any{"gifts": catalog, "count": len(catalog), "source": "memory"})
+		return
+	}
+
 	params := url.Values{}
 	params.Set("select", "id,name,gif_url,tier,price_coins,icon_key,icon_emoji,category,description,max_per_match_per_day,is_active,sort_order,start_date,end_date,created_at,updated_at")
 	params.Set("order", "sort_order.asc,created_at.asc")
@@ -261,6 +286,9 @@ func (s *Server) adminListCatalogGifts(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{
 		"gifts":  rows,
 		"count":  len(rows),
+		"total":  len(rows),
+		"limit":  limit,
+		"offset": offset,
 		"source": "db",
 	})
 }
@@ -1084,23 +1112,37 @@ func (s *Server) adminListEngagementPrompts(w http.ResponseWriter, r *http.Reque
 	ctx, cancel := s.withRequestTimeout(r.Context())
 	defer cancel()
 
+	page, err := parseAdminListParams(r, adminPromptsSpec)
+	if err != nil {
+		writeAdminListParamError(w, err)
+		return
+	}
 	repo := s.store.adminRepo
 	if repo == nil {
 		writeJSON(w, http.StatusOK, map[string]any{"prompts": []any{}, "count": 0})
+		return
+	}
+	if repo.pg != nil {
+		rows, total, listErr := listEngagementPromptsPage(ctx, repo.pg, repo.cfg.MatchingSchema, r, page)
+		if listErr != nil {
+			writeJSON(w, http.StatusOK, map[string]any{"prompts": []any{}, "count": 0, "error": listErr.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, page.Page(map[string]any{"prompts": rows, "count": len(rows)}, total))
 		return
 	}
 
 	params := url.Values{}
 	params.Set("select", "id,question_text,category,active_date,is_active,response_count,created_by,created_at")
 	params.Set("order", "created_at.desc")
-	params.Set("limit", "100")
+	params.Set("limit", strconv.Itoa(page.Limit))
 
 	rows, err := repo.db.SelectRead(ctx, repo.cfg.MatchingSchema, "admin_daily_prompts", params)
 	if err != nil {
 		writeJSON(w, http.StatusOK, map[string]any{"prompts": []any{}, "count": 0, "error": err.Error()})
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"prompts": rows, "count": len(rows)})
+	writeJSON(w, http.StatusOK, withUnpagedTotal(map[string]any{"prompts": rows, "count": len(rows)}, "prompts", page))
 }
 
 func (s *Server) adminListEngagementNudges(w http.ResponseWriter, r *http.Request) {
@@ -1110,19 +1152,34 @@ func (s *Server) adminListEngagementNudges(w http.ResponseWriter, r *http.Reques
 	}
 	ctx, cancel := s.withRequestTimeout(r.Context())
 	defer cancel()
+	page, err := parseAdminListParams(r, adminNudgesSpec)
+	if err != nil {
+		writeAdminListParamError(w, err)
+		return
+	}
 	repo := s.store.adminRepo
 	if repo == nil {
 		writeJSON(w, http.StatusOK, map[string]any{"nudges": []any{}, "count": 0, "by_type": map[string]int{}})
 		return
 	}
-	params := url.Values{}
-	params.Set("select", "id,match_id,user_id,counterparty_user_id,nudge_type,created_at,clicked_at")
-	params.Set("order", "created_at.desc")
-	params.Set("limit", "100")
-	rows, err := repo.db.SelectRead(ctx, repo.cfg.MatchingSchema, "match_nudges", params)
+	var rows []map[string]any
+	total := -1
+	if repo.pg != nil {
+		rows, total, err = listEngagementNudgesPage(ctx, repo.pg, repo.cfg.MatchingSchema, r, page)
+	} else {
+		params := url.Values{}
+		params.Set("select", "id,match_id,user_id,counterparty_user_id,nudge_type,created_at,clicked_at")
+		params.Set("order", "created_at.desc")
+		params.Set("limit", strconv.Itoa(page.Limit))
+		rows, err = repo.db.SelectRead(ctx, repo.cfg.MatchingSchema, "match_nudges", params)
+	}
 	if err != nil {
 		writeError(w, http.StatusBadGateway, err)
 		return
+	}
+	if total < 0 {
+		total = len(rows)
+		page.Offset = 0
 	}
 	byType := map[string]int{}
 	clicked := 0
@@ -1133,10 +1190,12 @@ func (s *Server) adminListEngagementNudges(w http.ResponseWriter, r *http.Reques
 		}
 	}
 	enabled, _ := s.runtimeFeatureEnabled(ctx, "match_nudges_enabled", true)
-	writeJSON(w, http.StatusOK, map[string]any{
+	// count, clicked and by_type describe the returned page; total is the
+	// number of nudges matching the filters.
+	writeJSON(w, http.StatusOK, page.Page(map[string]any{
 		"nudges": rows, "count": len(rows), "clicked": clicked,
 		"by_type": byType, "enabled": enabled,
-	})
+	}, total))
 }
 
 func (s *Server) adminCreateEngagementPrompt(w http.ResponseWriter, r *http.Request) {
@@ -1315,7 +1374,9 @@ func (s *Server) adminListCoinPackages(w http.ResponseWriter, r *http.Request) {
 	}
 
 	params := url.Values{}
-	params.Set("select", "id,label,coin_amount,price_usd,is_active,sort_order")
+	// bonus_percent and description too: the console's edit form saves
+	// them back, so leaving them out wiped them on every edit.
+	params.Set("select", "id,label,coin_amount,price_usd,bonus_percent,description,is_active,sort_order")
 	params.Set("order", "sort_order.asc")
 
 	rows, err := repo.db.SelectRead(ctx, repo.cfg.MatchingSchema, "coin_packages", params)
@@ -1514,18 +1575,12 @@ func (s *Server) adminListBillingTransactions(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	limit := 50
-	if raw := strings.TrimSpace(r.URL.Query().Get("limit")); raw != "" {
-		if v, err := strconv.Atoi(raw); err == nil && v > 0 && v <= 500 {
-			limit = v
-		}
+	page, err := parseAdminListParams(r, adminBillingTransactionsSpec)
+	if err != nil {
+		writeAdminListParamError(w, err)
+		return
 	}
-	offset := 0
-	if raw := strings.TrimSpace(r.URL.Query().Get("offset")); raw != "" {
-		if v, err := strconv.Atoi(raw); err == nil && v >= 0 {
-			offset = v
-		}
-	}
+	limit, offset := page.Limit, page.Offset
 
 	ctx, cancel := s.withRequestTimeout(r.Context())
 	defer cancel()
@@ -1533,6 +1588,20 @@ func (s *Server) adminListBillingTransactions(w http.ResponseWriter, r *http.Req
 	repo := s.store.adminRepo
 	if repo == nil {
 		writeJSON(w, http.StatusOK, map[string]any{"transactions": []any{}, "total": 0})
+		return
+	}
+	userID, err := adminUUIDParam(r, "user_id")
+	if err != nil {
+		writeError(w, http.StatusBadRequest, errors.New("user_id must be a member UUID"))
+		return
+	}
+	if repo.pg != nil {
+		rows, total, listErr := listBillingTransactionsPage(ctx, repo.pg, repo.cfg.MatchingSchema, userID, r, page)
+		if listErr != nil {
+			writeJSON(w, http.StatusOK, map[string]any{"transactions": []any{}, "total": 0, "note": "table not found", "limit": limit, "offset": offset})
+			return
+		}
+		writeJSON(w, http.StatusOK, page.Page(map[string]any{"transactions": rows}, total))
 		return
 	}
 
@@ -1563,7 +1632,7 @@ func (s *Server) adminListBillingTransactions(w http.ResponseWriter, r *http.Req
 		writeJSON(w, http.StatusOK, map[string]any{"transactions": []any{}, "total": 0, "note": "table not found"})
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"transactions": rows, "total": len(rows)})
+	writeJSON(w, http.StatusOK, map[string]any{"transactions": rows, "total": len(rows), "limit": limit, "offset": offset})
 }
 
 // ─── Coin Package CRUD ─────────────────────────────────────────────────────
@@ -1661,6 +1730,17 @@ func (s *Server) adminListSOSAlerts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	page, err := parseAdminListParams(r, adminSOSSpec)
+	if err != nil {
+		writeAdminListParamError(w, err)
+		return
+	}
+	userID, err := adminUUIDParam(r, "user_id")
+	if err != nil {
+		writeAdminListParamError(w, err)
+		return
+	}
+
 	ctx, cancel := s.withRequestTimeout(r.Context())
 	defer cancel()
 
@@ -1670,9 +1750,14 @@ func (s *Server) adminListSOSAlerts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if repo.pg != nil && s.store.safetyRepo != nil {
-		alerts, listErr := s.store.safetyRepo.listSOSAlerts(ctx, "", 100)
+		alerts, total, listErr := listSOSAlertsPage(ctx, repo.pg, r.URL.Query().Get("status"),
+			r.URL.Query().Get("level"), userID, page)
 		if listErr != nil {
-			writeError(w, http.StatusBadGateway, listErr)
+			status := http.StatusBadGateway
+			if errors.Is(listErr, errAdminSOSStatus) {
+				status = http.StatusBadRequest
+			}
+			writeError(w, status, listErr)
 			return
 		}
 		metrics, metricsErr := s.store.safetyRepo.sosDeliveryMetrics(ctx)
@@ -1680,14 +1765,14 @@ func (s *Server) adminListSOSAlerts(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusBadGateway, metricsErr)
 			return
 		}
-		writeJSON(w, http.StatusOK, map[string]any{"alerts": alerts, "count": len(alerts), "delivery_metrics": metrics})
+		writeJSON(w, http.StatusOK, page.Page(map[string]any{"alerts": alerts, "count": len(alerts), "delivery_metrics": metrics}, total))
 		return
 	}
 
 	params := url.Values{}
 	params.Set("select", "id,user_id,status,created_at,resolved_at,resolved_by")
 	params.Set("order", "created_at.desc")
-	params.Set("limit", "100")
+	params.Set("limit", strconv.Itoa(page.Limit))
 
 	// The SOS table name — try user schema first
 	rows, err := repo.db.SelectRead(ctx, repo.cfg.UserSchema, "safety_alerts", params)
@@ -1695,7 +1780,7 @@ func (s *Server) adminListSOSAlerts(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]any{"alerts": []any{}, "count": 0, "note": "table not found"})
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"alerts": rows, "count": len(rows)})
+	writeJSON(w, http.StatusOK, withUnpagedTotal(map[string]any{"alerts": rows, "count": len(rows)}, "alerts", page))
 }
 
 func (s *Server) adminResolveSOSAlert(w http.ResponseWriter, r *http.Request) {
@@ -1849,18 +1934,12 @@ func (s *Server) adminListSubscriptions(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	limit := 50
-	if raw := strings.TrimSpace(r.URL.Query().Get("limit")); raw != "" {
-		if v, err := strconv.Atoi(raw); err == nil && v > 0 && v <= 500 {
-			limit = v
-		}
+	page, err := parseAdminListParams(r, adminSubscriptionsSpec)
+	if err != nil {
+		writeAdminListParamError(w, err)
+		return
 	}
-	offset := 0
-	if raw := strings.TrimSpace(r.URL.Query().Get("offset")); raw != "" {
-		if v, err := strconv.Atoi(raw); err == nil && v >= 0 {
-			offset = v
-		}
-	}
+	limit, offset := page.Limit, page.Offset
 
 	ctx, cancel := s.withRequestTimeout(r.Context())
 	defer cancel()
@@ -1868,6 +1947,20 @@ func (s *Server) adminListSubscriptions(w http.ResponseWriter, r *http.Request) 
 	repo := s.store.adminRepo
 	if repo == nil {
 		writeJSON(w, http.StatusOK, map[string]any{"subscriptions": []any{}, "total": 0})
+		return
+	}
+	userID, err := adminUUIDParam(r, "user_id")
+	if err != nil {
+		writeError(w, http.StatusBadRequest, errors.New("user_id must be a member UUID"))
+		return
+	}
+	if repo.pg != nil {
+		rows, total, listErr := listSubscriptionsPage(ctx, repo.pg, repo.cfg.MatchingSchema, userID, r, page)
+		if listErr != nil {
+			writeJSON(w, http.StatusOK, map[string]any{"subscriptions": []any{}, "total": 0, "note": "table not found", "limit": limit, "offset": offset})
+			return
+		}
+		writeJSON(w, http.StatusOK, page.Page(map[string]any{"subscriptions": rows}, total))
 		return
 	}
 
@@ -1889,7 +1982,7 @@ func (s *Server) adminListSubscriptions(w http.ResponseWriter, r *http.Request) 
 		writeJSON(w, http.StatusOK, map[string]any{"subscriptions": []any{}, "total": 0, "note": "table not found"})
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"subscriptions": rows, "total": len(rows)})
+	writeJSON(w, http.StatusOK, map[string]any{"subscriptions": rows, "total": len(rows), "limit": limit, "offset": offset})
 }
 
 func (s *Server) adminListPayments(w http.ResponseWriter, r *http.Request) {
@@ -1898,18 +1991,12 @@ func (s *Server) adminListPayments(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	limit := 50
-	if raw := strings.TrimSpace(r.URL.Query().Get("limit")); raw != "" {
-		if v, err := strconv.Atoi(raw); err == nil && v > 0 && v <= 500 {
-			limit = v
-		}
+	page, err := parseAdminListParams(r, adminPaymentsSpec)
+	if err != nil {
+		writeAdminListParamError(w, err)
+		return
 	}
-	offset := 0
-	if raw := strings.TrimSpace(r.URL.Query().Get("offset")); raw != "" {
-		if v, err := strconv.Atoi(raw); err == nil && v >= 0 {
-			offset = v
-		}
-	}
+	limit, offset := page.Limit, page.Offset
 
 	ctx, cancel := s.withRequestTimeout(r.Context())
 	defer cancel()
@@ -1919,9 +2006,23 @@ func (s *Server) adminListPayments(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]any{"payments": []any{}, "total": 0})
 		return
 	}
+	userID, err := adminUUIDParam(r, "user_id")
+	if err != nil {
+		writeError(w, http.StatusBadRequest, errors.New("user_id must be a member UUID"))
+		return
+	}
+	if repo.pg != nil {
+		rows, total, listErr := listPaymentsPage(ctx, repo.pg, repo.cfg.MatchingSchema, userID, r, page)
+		if listErr != nil {
+			writeJSON(w, http.StatusOK, map[string]any{"payments": []any{}, "total": 0, "note": "table not found", "limit": limit, "offset": offset})
+			return
+		}
+		writeJSON(w, http.StatusOK, page.Page(map[string]any{"payments": rows}, total))
+		return
+	}
 
 	params := url.Values{}
-	params.Set("select", "id,user_id,subscription_id,amount_paise,currency,status,provider,provider_payment_id,provider_invoice_id,billing_reason,payment_method_brand,payment_method_last4,refunded_amount_paise,failure_reason,paid_at,created_at,metadata")
+	params.Set("select", "id,user_id,subscription_id,amount_paise,currency,status,provider,provider_order_id,provider_payment_id,provider_invoice_id,billing_reason,payment_method_brand,payment_method_last4,refunded_amount_paise,failure_reason,paid_at,created_at,metadata")
 	params.Set("order", "created_at.desc")
 	params.Set("limit", strconv.Itoa(limit))
 	params.Set("offset", strconv.Itoa(offset))
@@ -1935,7 +2036,7 @@ func (s *Server) adminListPayments(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]any{"payments": []any{}, "total": 0, "note": "table not found"})
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"payments": rows, "total": len(rows)})
+	writeJSON(w, http.StatusOK, map[string]any{"payments": rows, "total": len(rows), "limit": limit, "offset": offset})
 }
 
 // ─── Revenue Analytics (FR-10) ───────────────────────────────────────────────
@@ -2027,24 +2128,27 @@ func (s *Server) adminListBillingWebhookEvents(w http.ResponseWriter, r *http.Re
 		writeError(w, http.StatusUnauthorized, err)
 		return
 	}
-	limit := 50
-	if raw := strings.TrimSpace(r.URL.Query().Get("limit")); raw != "" {
-		if v, err := strconv.Atoi(raw); err == nil && v > 0 && v <= 500 {
-			limit = v
-		}
+	page, err := parseAdminListParams(r, adminWebhookEventsSpec)
+	if err != nil {
+		writeAdminListParamError(w, err)
+		return
 	}
-	offset := 0
-	if raw := strings.TrimSpace(r.URL.Query().Get("offset")); raw != "" {
-		if v, err := strconv.Atoi(raw); err == nil && v >= 0 {
-			offset = v
-		}
-	}
+	limit, offset := page.Limit, page.Offset
 	ctx, cancel := s.withRequestTimeout(r.Context())
 	defer cancel()
 
 	repo := s.store.adminRepo
 	if repo == nil {
 		writeJSON(w, http.StatusOK, map[string]any{"events": []any{}, "total": 0})
+		return
+	}
+	if repo.pg != nil {
+		rows, total, listErr := listWebhookEventsPage(ctx, repo.pg, repo.cfg.MatchingSchema, r, page)
+		if listErr != nil {
+			writeJSON(w, http.StatusOK, map[string]any{"events": []any{}, "total": 0, "note": "table not found", "limit": limit, "offset": offset})
+			return
+		}
+		writeJSON(w, http.StatusOK, page.Page(map[string]any{"events": rows}, total))
 		return
 	}
 	params := url.Values{}
@@ -2063,5 +2167,5 @@ func (s *Server) adminListBillingWebhookEvents(w http.ResponseWriter, r *http.Re
 		writeJSON(w, http.StatusOK, map[string]any{"events": []any{}, "total": 0, "note": "table not found"})
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"events": rows, "total": len(rows)})
+	writeJSON(w, http.StatusOK, map[string]any{"events": rows, "total": len(rows), "limit": limit, "offset": offset})
 }

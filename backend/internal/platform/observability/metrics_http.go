@@ -86,8 +86,11 @@ type HTTPMetrics struct {
 	SOSDeliveryDeadLetters       prometheus.Gauge
 	SOSDeliveryOldestPendingAge  prometheus.Gauge
 	TrustRetentionRuns           *prometheus.CounterVec
-	RealtimeDeliveryLag          *prometheus.HistogramVec
-	Workers                      *WorkerMetrics
+	// ActivityCaptureWrites counts member activity writes by domain and
+	// result (durable, fallback_queue); see the mobile BFF activity middleware.
+	ActivityCaptureWrites *prometheus.CounterVec
+	RealtimeDeliveryLag   *prometheus.HistogramVec
+	Workers               *WorkerMetrics
 
 	queues *queueCollector
 	routes *routeLabeler

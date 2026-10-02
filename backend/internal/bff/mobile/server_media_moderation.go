@@ -3,7 +3,6 @@ package mobile
 import (
 	"errors"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
@@ -14,27 +13,26 @@ func (s *Server) listAdminMediaModeration(w http.ResponseWriter, r *http.Request
 		writeError(w, http.StatusServiceUnavailable, errors.New("media moderation persistence is unavailable"))
 		return
 	}
-	limit := 50
-	if raw := strings.TrimSpace(r.URL.Query().Get("limit")); raw != "" {
-		if parsed, err := strconv.Atoi(raw); err == nil {
-			limit = parsed
-		}
+	page, err := parseAdminListParams(r, adminMediaModerationSpec)
+	if err != nil {
+		writeAdminListParamError(w, err)
+		return
 	}
 	ctx, cancel := s.withRequestTimeout(r.Context())
 	defer cancel()
-	items, err := s.store.profileRepo.listMediaModerationReviewsPostgres(
+	items, total, err := s.store.profileRepo.listMediaModerationReviewsPage(
 		ctx,
 		strings.TrimSpace(r.URL.Query().Get("status")),
-		limit,
+		page,
 	)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{
+	writeJSON(w, http.StatusOK, page.Page(map[string]any{
 		"items": items,
 		"count": len(items),
-	})
+	}, total))
 }
 
 func (s *Server) decideAdminMediaModeration(w http.ResponseWriter, r *http.Request) {

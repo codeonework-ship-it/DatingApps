@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"errors"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -29,43 +28,59 @@ func (s *Server) adminListEconomyFraudCases(w http.ResponseWriter, r *http.Reque
 		writeError(w, http.StatusBadRequest, errors.New("invalid case status"))
 		return
 	}
-	limit := 100
-	if n, e := strconv.Atoi(r.URL.Query().Get("limit")); e == nil && n > 0 && n <= 500 {
-		limit = n
+	page, err := parseAdminListParams(r, adminEconomyFraudSpec)
+	if err != nil {
+		writeAdminListParamError(w, err)
+		return
 	}
-	query := `SELECT id::text,user_id::text,rule_code,event_type,status,severity,recommended_action,action_taken,observed_value,trigger_value,window_seconds,occurrence_count,COALESCE(match_id::text,''),COALESCE(receiver_user_id::text,''),first_detected_at,last_detected_at,lock_until,COALESCE(resolution_note,'') FROM matching.coin_economy_fraud_cases`
-	args := []any{}
+	userID, err := adminUUIDParam(r, "user_id")
+	if err != nil {
+		writeAdminListParamError(w, err)
+		return
+	}
+	filter := newSQLFilter()
 	if status != "all" {
-		query += " WHERE status=$1"
-		args = append(args, status)
+		filter.Eq("status", status)
 	}
-	args = append(args, limit)
-	query += " ORDER BY CASE severity WHEN 'critical' THEN 0 WHEN 'high' THEN 1 WHEN 'medium' THEN 2 ELSE 3 END,last_detected_at DESC LIMIT $" + strconv.Itoa(len(args))
+	filter.Eq("severity", r.URL.Query().Get("severity")).Eq("rule_code", r.URL.Query().Get("rule_code")).Eq("user_id", userID)
+	filter.Search(page.Q, "rule_code", "event_type")
+	filter.TimeRange("last_detected_at", page)
 	ctx, cancel := s.withRequestTimeout(r.Context())
 	defer cancel()
-	rows, err := s.store.billingRepo.db.QueryContext(ctx, query, args...)
+	cases := []map[string]any{}
+	total, err := queryAdminPage(ctx, s.store.billingRepo.db,
+		`id::text,user_id::text,rule_code,event_type,status,severity,recommended_action,action_taken,observed_value,trigger_value,window_seconds,occurrence_count,COALESCE(match_id::text,''),COALESCE(receiver_user_id::text,''),first_detected_at,last_detected_at,lock_until,COALESCE(resolution_note,'')`,
+		` FROM matching.coin_economy_fraud_cases`, filter, page, func(rows *sql.Rows) error {
+			var id, user, rule, event, st, severity, recommended, taken, match, receiver, note string
+			var observed, trigger, window, count int
+			var first, last time.Time
+			var lock sql.NullTime
+			if err := rows.Scan(&id, &user, &rule, &event, &st, &severity, &recommended, &taken, &observed, &trigger, &window, &count, &match, &receiver, &first, &last, &lock, &note); err != nil {
+				return err
+			}
+			item := map[string]any{"id": id, "user_id": user, "rule_code": rule, "event_type": event, "status": st, "severity": severity, "recommended_action": recommended, "action_taken": taken, "observed_value": observed, "trigger_value": trigger, "window_seconds": window, "occurrence_count": count, "match_id": match, "receiver_user_id": receiver, "first_detected_at": first.UTC().Format(time.RFC3339), "last_detected_at": last.UTC().Format(time.RFC3339), "resolution_note": note}
+			if lock.Valid {
+				item["lock_until"] = lock.Time.UTC().Format(time.RFC3339)
+			}
+			cases = append(cases, item)
+			return nil
+		})
 	if err != nil {
 		writeError(w, http.StatusBadGateway, err)
 		return
 	}
-	defer rows.Close()
-	cases := []map[string]any{}
-	for rows.Next() {
-		var id, user, rule, event, st, severity, recommended, taken, match, receiver, note string
-		var observed, trigger, window, count int
-		var first, last time.Time
-		var lock sql.NullTime
-		if err = rows.Scan(&id, &user, &rule, &event, &st, &severity, &recommended, &taken, &observed, &trigger, &window, &count, &match, &receiver, &first, &last, &lock, &note); err != nil {
-			writeError(w, http.StatusBadGateway, err)
-			return
-		}
-		item := map[string]any{"id": id, "user_id": user, "rule_code": rule, "event_type": event, "status": st, "severity": severity, "recommended_action": recommended, "action_taken": taken, "observed_value": observed, "trigger_value": trigger, "window_seconds": window, "occurrence_count": count, "match_id": match, "receiver_user_id": receiver, "first_detected_at": first.UTC().Format(time.RFC3339), "last_detected_at": last.UTC().Format(time.RFC3339), "resolution_note": note}
-		if lock.Valid {
-			item["lock_until"] = lock.Time.UTC().Format(time.RFC3339)
-		}
-		cases = append(cases, item)
-	}
-	writeJSON(w, http.StatusOK, map[string]any{"cases": cases, "count": len(cases), "status": status})
+	writeJSON(w, http.StatusOK, page.Page(map[string]any{"cases": cases, "count": len(cases), "status": status}, total))
+}
+
+// The default keeps the old order: most severe first, then most recent.
+var adminEconomyFraudSpec = adminListSpec{
+	DefaultLimit: 100, MaxLimit: 500,
+	Sorts: map[string]string{
+		"severity":          "CASE severity WHEN 'critical' THEN 3 WHEN 'high' THEN 2 WHEN 'medium' THEN 1 ELSE 0 END {dir}, last_detected_at DESC",
+		"last_detected_at":  "last_detected_at",
+		"first_detected_at": "first_detected_at",
+	},
+	DefaultSort: "severity", TieBreak: "id {dir}",
 }
 
 func (s *Server) adminListEconomyFraudRules(w http.ResponseWriter, r *http.Request) {

@@ -1085,7 +1085,25 @@ func (s *Server) adminSetClientErrorStatus(w http.ResponseWriter, r *http.Reques
 
 // runClientTelemetryRetention applies the 90-day classes of migration 122.
 func runClientTelemetryRetention(ctx context.Context, db *sql.DB, batch int) (apiRequests, occurrences, issues int, err error) {
-	err = db.QueryRowContext(ctx, `SELECT * FROM platform.run_client_telemetry_retention($1)`, batch).
-		Scan(&apiRequests, &occurrences, &issues)
+	apiRequests, occurrences, issues, _, err = runActivityTelemetryRetention(ctx, db, batch)
+	return
+}
+
+// runActivityTelemetryRetention applies the classes of
+// platform.run_client_telemetry_retention: 90-day request telemetry and
+// client crash reports (migration 122) and 400-day member actions (132).
+// Columns are selected by name; against the 122 version of the function,
+// which has no member_action_events, member actions are reported as 0.
+func runActivityTelemetryRetention(ctx context.Context, db *sql.DB, batch int) (apiRequests, occurrences, issues, memberActions int, err error) {
+	err = db.QueryRowContext(ctx, `SELECT api_request_events, client_error_occurrences, client_error_issues, member_action_events
+		FROM platform.run_client_telemetry_retention($1)`, batch).
+		Scan(&apiRequests, &occurrences, &issues, &memberActions)
+	if err != nil && strings.Contains(err.Error(), "member_action_events") {
+		// Migration 132 not applied: the statement failed before running.
+		memberActions = 0
+		err = db.QueryRowContext(ctx, `SELECT api_request_events, client_error_occurrences, client_error_issues
+			FROM platform.run_client_telemetry_retention($1)`, batch).
+			Scan(&apiRequests, &occurrences, &issues)
+	}
 	return
 }

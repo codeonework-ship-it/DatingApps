@@ -43,56 +43,25 @@ func (r *profileRepository) recordRejectedMediaModerationPostgres(
 	return err
 }
 
-func (r *profileRepository) listMediaModerationReviewsPostgres(
-	ctx context.Context,
-	status string,
-	limit int,
-) ([]mediaModerationReviewItem, error) {
-	status = strings.TrimSpace(status)
-	if status == "" {
-		status = mediaModerationReviewRequired
+// scanMediaModerationReviewItem reads one review-queue row in the column
+// order shared by the queue queries.
+func scanMediaModerationReviewItem(rows *sql.Rows) (mediaModerationReviewItem, error) {
+	var item mediaModerationReviewItem
+	var labelsJSON []byte
+	var uploadedAt time.Time
+	if err := rows.Scan(
+		&item.PhotoID, &item.UserID, &item.Username, &item.PhotoURL, &item.MimeType,
+		&item.WidthPx, &item.HeightPx, &item.SizeBytes, &item.Status, &item.Reason,
+		&item.Provider, &item.ModelVersion, &item.MaxConfidence, &labelsJSON, &uploadedAt,
+	); err != nil {
+		return mediaModerationReviewItem{}, err
 	}
-	if status != mediaModerationReviewRequired && status != "provider_error" {
-		return nil, errors.New("status must be review_required or provider_error")
+	item.Labels = []mediaModerationLabel{}
+	if len(labelsJSON) > 0 {
+		_ = json.Unmarshal(labelsJSON, &item.Labels)
 	}
-	if limit <= 0 || limit > 200 {
-		limit = 50
-	}
-	rows, err := r.pg.QueryContext(ctx, `
-		SELECT p.id::text,p.user_id::text,u.username,p.photo_url,COALESCE(p.mime_type,''),
-		       COALESCE(p.width_px,0),COALESCE(p.height_px,0),COALESCE(p.size_bytes,0),
-		       p.moderation_status,COALESCE(p.moderation_reason,''),
-		       COALESCE(p.moderation_provider,''),COALESCE(p.moderation_model_version,''),
-		       COALESCE(p.moderation_confidence,0)::real,p.moderation_labels,p.uploaded_at
-		FROM user_management.photos p
-		JOIN user_management.users u ON u.id=p.user_id
-		WHERE p.deleted_at IS NULL AND p.moderation_status=$1
-		ORDER BY p.uploaded_at,p.id
-		LIMIT $2`, status, limit)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := make([]mediaModerationReviewItem, 0, limit)
-	for rows.Next() {
-		var item mediaModerationReviewItem
-		var labelsJSON []byte
-		var uploadedAt time.Time
-		if err := rows.Scan(
-			&item.PhotoID, &item.UserID, &item.Username, &item.PhotoURL, &item.MimeType,
-			&item.WidthPx, &item.HeightPx, &item.SizeBytes, &item.Status, &item.Reason,
-			&item.Provider, &item.ModelVersion, &item.MaxConfidence, &labelsJSON, &uploadedAt,
-		); err != nil {
-			return nil, err
-		}
-		item.Labels = []mediaModerationLabel{}
-		if len(labelsJSON) > 0 {
-			_ = json.Unmarshal(labelsJSON, &item.Labels)
-		}
-		item.UploadedAt = uploadedAt.UTC().Format(time.RFC3339)
-		items = append(items, item)
-	}
-	return items, rows.Err()
+	item.UploadedAt = uploadedAt.UTC().Format(time.RFC3339)
+	return item, nil
 }
 
 func (r *profileRepository) decideMediaModerationPostgres(

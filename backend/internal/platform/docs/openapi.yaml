@@ -3787,6 +3787,170 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /v1/admin/activity:
+    get:
+      tags: [admin]
+      summary: Member action log
+      description: "Every member action merged from request records (member_action, and api_request reads with include_reads), named activity events, security events and domain events. Response keys: actions, total, limit, offset. Readable by admin, ops_admin, trust_safety, moderator and analyst; analysts do not see IP, device id or user agent."
+      parameters:
+        - {in: query, name: limit, schema: {type: integer, minimum: 1, maximum: 500, default: 100}}
+        - {in: query, name: offset, schema: {type: integer, minimum: 0}}
+        - {in: query, name: q, description: "Matches the action label, route or key", schema: {type: string}}
+        - {in: query, name: order, schema: {type: string, enum: [asc, desc], default: desc}}
+        - {in: query, name: from, description: "Inclusive UTC date", schema: {type: string, format: date}}
+        - {in: query, name: to, description: "Inclusive UTC date", schema: {type: string, format: date}}
+        - {in: query, name: member, description: "Subject or actor", schema: {type: string, format: uuid}}
+        - {in: query, name: actor_user_id, schema: {type: string, format: uuid}}
+        - {in: query, name: action, description: "Catalog key or event name", schema: {type: string}}
+        - {in: query, name: category, schema: {type: string}}
+        - {in: query, name: method, schema: {type: string, enum: [GET, POST, PUT, PATCH, DELETE]}}
+        - {in: query, name: outcome, schema: {type: string, enum: [success, client_error, server_error]}}
+        - {in: query, name: source, description: "request, event, security, domain or all (comma-separated)", schema: {type: string, default: all}}
+        - {in: query, name: include_reads, schema: {type: boolean, default: false}}
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Operator role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v1/admin/activity/stream:
+    get:
+      tags: [admin]
+      summary: Live tail of the member action log
+      description: "Actions strictly newer than the opaque cursor, oldest first; without a cursor the latest limit actions. Response keys: actions, cursor, limit, settle_ms."
+      parameters:
+        - {in: query, name: after, description: "Opaque cursor from the previous response", schema: {type: string}}
+        - {in: query, name: limit, schema: {type: integer, minimum: 1, maximum: 200, default: 50}}
+        - {in: query, name: member, schema: {type: string, format: uuid}}
+        - {in: query, name: actor_user_id, schema: {type: string, format: uuid}}
+        - {in: query, name: action, description: "Catalog key or event name", schema: {type: string}}
+        - {in: query, name: category, schema: {type: string}}
+        - {in: query, name: method, schema: {type: string, enum: [GET, POST, PUT, PATCH, DELETE]}}
+        - {in: query, name: outcome, schema: {type: string, enum: [success, client_error, server_error]}}
+        - {in: query, name: source, description: "request, event, security, domain or all (comma-separated)", schema: {type: string, default: all}}
+        - {in: query, name: include_reads, schema: {type: boolean, default: false}}
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Operator role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v1/admin/activity/catalog:
+    get:
+      tags: [admin]
+      summary: Member action catalog and its coverage
+      description: "Response keys: categories, actions (key, label, category, method, route), coverage (mutating_routes, catalogued, uncatalogued, catalogued_reads, stale), capture, sources_unregistered."
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Operator role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v1/admin/members/{userID}/activity:
+    get:
+      tags: [admin]
+      summary: One member's action log with a summary
+      description: "The /v1/admin/activity log fixed to one member (subject or actor) plus summary (by_category, total, first_seen, last_seen, distinct_devices, distinct_ips)."
+      parameters:
+        - in: path
+          name: userID
+          required: true
+          schema: {type: string, format: uuid}
+        - {in: query, name: limit, schema: {type: integer, minimum: 1, maximum: 500, default: 100}}
+        - {in: query, name: offset, schema: {type: integer, minimum: 0}}
+        - {in: query, name: q, description: "Matches the action label, route or key", schema: {type: string}}
+        - {in: query, name: order, schema: {type: string, enum: [asc, desc], default: desc}}
+        - {in: query, name: from, description: "Inclusive UTC date", schema: {type: string, format: date}}
+        - {in: query, name: to, description: "Inclusive UTC date", schema: {type: string, format: date}}
+        - {in: query, name: actor_user_id, schema: {type: string, format: uuid}}
+        - {in: query, name: action, description: "Catalog key or event name", schema: {type: string}}
+        - {in: query, name: category, schema: {type: string}}
+        - {in: query, name: method, schema: {type: string, enum: [GET, POST, PUT, PATCH, DELETE]}}
+        - {in: query, name: outcome, schema: {type: string, enum: [success, client_error, server_error]}}
+        - {in: query, name: source, description: "request, event, security, domain or all (comma-separated)", schema: {type: string, default: all}}
+        - {in: query, name: include_reads, schema: {type: boolean, default: false}}
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Operator role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /v1/admin/audit-events:
     get:
       tags: [admin]
