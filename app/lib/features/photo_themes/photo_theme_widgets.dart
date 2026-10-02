@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/api_error_message.dart';
 import '../../core/providers/api_client_provider.dart';
+import '../../core/widgets/sheet_close_bar.dart';
 import '../../l10n/app_localizations.dart';
 import '../auth/providers/auth_provider.dart';
 import '../blog/blog_data.dart';
@@ -287,146 +288,165 @@ class _ThemeEntrySheetState extends ConsumerState<ThemeEntrySheet> {
       comments = groups.approved.length;
       waiting = groups.awaitingMyApproval.length;
     }
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxHeight: MediaQuery.sizeOf(context).height * 0.55,
-              ),
-              child: AspectRatio(
-                aspectRatio: 4 / 5,
-                child: ThemeEntryPhoto(entry: entry, fit: BoxFit.contain),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          if (entry.themeTitle.isNotEmpty) ...[
-            Text(
-              entry.themeTitle,
-              style: text.labelLarge?.copyWith(color: scheme.primary),
-            ),
-            const SizedBox(height: 4),
-          ],
-          Text(entry.caption, style: text.titleMedium),
-          const SizedBox(height: 8),
-          Text(
-            entry.mine
-                ? l10n.photoThemesSharedByYou
-                : l10n.photoThemesSharedBy(entry.authorName),
-            style: text.bodyMedium,
-          ),
-          if (entry.altText.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Text(
-              l10n.photoThemesPhotoDescription(entry.altText),
-              style: text.bodyMedium,
-            ),
-          ],
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: SocialEngagementRow(
-                  likeButton: PhotoLikeButton(entry: entry),
-                  reactions: ref
-                      .watch(photoLikesProvider.notifier)
-                      .of(entry)
-                      .reactions,
-                  comments: comments,
-                  waiting: waiting,
+    // The sheet opens full height, so the close button stays pinned above
+    // the scrolling content (Android back also closes it).
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SheetCloseBar(closeKey: ValueKey('qa.photo_entry.close')),
+        Flexible(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxHeight: MediaQuery.sizeOf(context).height * 0.55,
+                    ),
+                    child: AspectRatio(
+                      aspectRatio: 4 / 5,
+                      child: ThemeEntryPhoto(entry: entry, fit: BoxFit.contain),
+                    ),
+                  ),
                 ),
-              ),
-              if (entry.featured) const BlogFeaturedChip(),
-            ],
-          ),
-          if (isAuthor) ...[
-            const SizedBox(height: 8),
-            SwitchListTile(
-              key: ValueKey('photo.featuring.${entry.id}'),
-              contentPadding: EdgeInsets.zero,
-              value: entry.allowFeaturing,
-              onChanged: savingReach ? null : (allow) => setReach(allow: allow),
-              title: Text(l10n.photoThemesReachSwitch),
-              subtitle: Text(l10n.photoThemesWallHelp),
-            ),
-            const SizedBox(height: 8),
-            WallReachCard(
-              cardKey: ValueKey('photo.reach.${entry.id}'),
-              visible: entry.allowFeaturing,
-              wallReach: entry.wallReach,
-              nextTier: entry.nextTier,
-              idleTitle: l10n.photoThemesReachIdle,
-              liveCaption: l10n.photoThemesReachLive,
-            ),
-          ],
-          const SizedBox(height: 16),
-          if (busy) const LinearProgressIndicator(),
-          Wrap(
-            spacing: 12,
-            runSpacing: 8,
-            children: entry.mine
-                ? [
-                    OutlinedButton.icon(
-                      onPressed: busy ? null : remove,
-                      icon: const Icon(Icons.delete_outline),
-                      label: Text(l10n.photoThemesRemoveMine),
-                    ),
-                  ]
-                : [
-                    OutlinedButton.icon(
-                      onPressed: () => reportCommunityItem(
-                        context,
-                        ref,
-                        kind: 'theme_entry',
-                        id: entry.id,
+                const SizedBox(height: 16),
+                if (entry.themeTitle.isNotEmpty) ...[
+                  Text(
+                    entry.themeTitle,
+                    style: text.labelLarge?.copyWith(color: scheme.primary),
+                  ),
+                  const SizedBox(height: 4),
+                ],
+                Text(entry.caption, style: text.titleMedium),
+                const SizedBox(height: 8),
+                Text(
+                  entry.mine
+                      ? l10n.photoThemesSharedByYou
+                      : l10n.photoThemesSharedBy(entry.authorName),
+                  style: text.bodyMedium,
+                ),
+                if (entry.altText.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    l10n.photoThemesPhotoDescription(entry.altText),
+                    style: text.bodyMedium,
+                  ),
+                ],
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: SocialEngagementRow(
+                        likeButton: PhotoLikeButton(entry: entry),
+                        reactions: ref
+                            .watch(photoLikesProvider.notifier)
+                            .of(entry)
+                            .reactions,
+                        comments: comments,
+                        waiting: waiting,
                       ),
-                      icon: const Icon(Icons.flag_outlined),
-                      label: Text(l10n.photoThemesReport),
                     ),
-                    TextButton.icon(
-                      onPressed: block,
-                      icon: const Icon(Icons.block_outlined),
-                      label: Text(l10n.photoThemesBlock(entry.authorName)),
-                    ),
+                    if (entry.featured) const BlogFeaturedChip(),
                   ],
-          ),
-          const SizedBox(height: 24),
-          CommentThreadSection(
-            thread: CommentThread(
-              keyPrefix: 'photo',
-              noun: 'photo',
-              authorId: entry.authorId,
-              open: true,
-              comments: themeEntryCommentsProvider(thread),
-              reportKind: 'photo_comment',
-              hint: l10n.photoThemesCommentHint,
-              approvedNotice: l10n.photoThemesCommentApproved,
-              create: (api, id, body) => createThemeEntryComment(
-                api,
-                entry: entry,
-                commentId: id,
-                body: body,
-              ),
-              decide: (api, id, {required approve}) => decideThemeEntryComment(
-                api,
-                entry: entry,
-                commentId: id,
-                approve: approve,
-              ),
-              delete: (api, id) =>
-                  deleteThemeEntryComment(api, entry: entry, commentId: id),
-              onChanged: (ref) => ref
-                ..invalidate(themeEntriesProvider)
-                ..invalidate(photoWallProvider),
+                ),
+                if (isAuthor) ...[
+                  const SizedBox(height: 8),
+                  SwitchListTile(
+                    key: ValueKey('photo.featuring.${entry.id}'),
+                    contentPadding: EdgeInsets.zero,
+                    value: entry.allowFeaturing,
+                    onChanged: savingReach
+                        ? null
+                        : (allow) => setReach(allow: allow),
+                    title: Text(l10n.photoThemesReachSwitch),
+                    subtitle: Text(l10n.photoThemesWallHelp),
+                  ),
+                  const SizedBox(height: 8),
+                  WallReachCard(
+                    cardKey: ValueKey('photo.reach.${entry.id}'),
+                    visible: entry.allowFeaturing,
+                    wallReach: entry.wallReach,
+                    nextTier: entry.nextTier,
+                    idleTitle: l10n.photoThemesReachIdle,
+                    liveCaption: l10n.photoThemesReachLive,
+                  ),
+                ],
+                const SizedBox(height: 16),
+                if (busy) const LinearProgressIndicator(),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 8,
+                  children: entry.mine
+                      ? [
+                          OutlinedButton.icon(
+                            onPressed: busy ? null : remove,
+                            icon: const Icon(Icons.delete_outline),
+                            label: Text(l10n.photoThemesRemoveMine),
+                          ),
+                        ]
+                      : [
+                          OutlinedButton.icon(
+                            onPressed: () => reportCommunityItem(
+                              context,
+                              ref,
+                              kind: 'theme_entry',
+                              id: entry.id,
+                            ),
+                            icon: const Icon(Icons.flag_outlined),
+                            label: Text(l10n.photoThemesReport),
+                          ),
+                          TextButton.icon(
+                            onPressed: block,
+                            icon: const Icon(Icons.block_outlined),
+                            label: Text(
+                              l10n.photoThemesBlock(entry.authorName),
+                            ),
+                          ),
+                        ],
+                ),
+                const SizedBox(height: 24),
+                CommentThreadSection(
+                  thread: CommentThread(
+                    keyPrefix: 'photo',
+                    noun: 'photo',
+                    authorId: entry.authorId,
+                    open: true,
+                    comments: themeEntryCommentsProvider(thread),
+                    reportKind: 'photo_comment',
+                    hint: l10n.photoThemesCommentHint,
+                    approvedNotice: l10n.photoThemesCommentApproved,
+                    create: (api, id, body) => createThemeEntryComment(
+                      api,
+                      entry: entry,
+                      commentId: id,
+                      body: body,
+                    ),
+                    decide: (api, id, {required approve}) =>
+                        decideThemeEntryComment(
+                          api,
+                          entry: entry,
+                          commentId: id,
+                          approve: approve,
+                        ),
+                    delete: (api, id) => deleteThemeEntryComment(
+                      api,
+                      entry: entry,
+                      commentId: id,
+                    ),
+                    onChanged: (ref) => ref
+                      ..invalidate(themeEntriesProvider)
+                      ..invalidate(photoWallProvider),
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

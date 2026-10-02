@@ -520,6 +520,11 @@ void main() {
       await t.tap(find.text('Pancakes, then nowhere to be.'));
       await t.pumpAndSettle();
       expect(find.byType(ThemeEntrySheet), findsOneWidget);
+
+      // The full-height sheet has a visible way back, not just a handle.
+      await t.tap(find.byKey(const ValueKey('qa.photo_entry.close')));
+      await t.pumpAndSettle();
+      expect(find.byType(ThemeEntrySheet), findsNothing);
     });
 
     testWidgets('renders nothing for an empty wall', (t) async {
