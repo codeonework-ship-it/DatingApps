@@ -430,6 +430,44 @@ void main() {
     await _settle(tester);
     final report = api.posts('/blog/reports/group/g1').single;
     expect((report.data as Map)['reason'], 'inappropriate');
+    // Android QA AND-07: the sheet used to close with no confirmation.
+    expect(find.text('Report submitted. Thank you.'), findsOneWidget);
+  });
+
+  // Android QA AND-06: an owner's group was loaded alone, a friend then
+  // accepted the invitation; Leave still warned that the group would be
+  // deleted although the server hands it to the new member.
+  testWidgets('leave warns from the current member count, not the loaded one', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(430, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    var members = 1;
+    final api = _Api(
+      (r) => {
+        'group': {
+          ...groupJson(
+            kind: 'private',
+            role: 'owner',
+            channel: 'c1',
+            canInvite: true,
+            canManage: true,
+          ),
+          'member_count': members,
+        },
+      },
+    );
+    await tester.pumpWidget(_app(api, const GroupDetailScreen(groupId: 'g1')));
+    await _settle(tester);
+
+    members = 2; // A friend joined after the screen loaded.
+    await tester.ensureVisible(find.text('Leave'));
+    await tester.tap(find.text('Leave'));
+    await _settle(tester);
+
+    expect(find.textContaining('Ownership passes'), findsOneWidget);
+    expect(find.textContaining('will be deleted'), findsNothing);
   });
 
   testWidgets('owners get owner tools instead of Report', (tester) async {

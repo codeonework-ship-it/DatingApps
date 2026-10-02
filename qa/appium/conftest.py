@@ -94,6 +94,40 @@ def app(driver, appium_config):
     return DatingApp(driver, appium_config)
 
 
+@pytest.fixture(scope="function")
+def device_member(appium_config):
+    """The member the device is signed in as (QA_EXISTING_USERNAME), via the API."""
+    from seed_members import Member
+
+    client = ApiClient(appium_config.api_base_url)
+    client.authenticate(appium_config.existing_username, appium_config.existing_password)
+    return Member(
+        username=appium_config.existing_username,
+        user_id=client.authenticated_user_id or "",
+        name="",
+        api=client,
+    )
+
+
+@pytest.fixture(scope="function")
+def counterpart_factory():
+    """Creates synthetic counterpart members; runs registered cleanups afterwards."""
+    from seed_members import create_member
+
+    cleanups: list = []
+
+    def make(role: str, display_name: str | None = None):
+        return create_member(role, display_name)
+
+    make.cleanups = cleanups  # type: ignore[attr-defined]
+    yield make
+    for cleanup in reversed(cleanups):
+        try:
+            cleanup()
+        except Exception as exc:  # noqa: BLE001 - cleanup must not mask the test result
+            print(f"[counterpart cleanup failed] {exc!r}")
+
+
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(item, call):
     outcome = yield

@@ -1,0 +1,22 @@
+<style>
+  .support-chip-row .badge { margin: 0 2px 2px 0; display: inline-block; }
+  .support-awaiting { color: var(--aqua); font-size: .72rem; font-weight: 600; white-space: nowrap; }
+  .support-table td { vertical-align: top; }
+  .support-table tr.is-breached td:first-child { box-shadow: inset 3px 0 0 #ef4444; }
+  .support-table tr.is-at-risk td:first-child { box-shadow: inset 3px 0 0 #f59e0b; }
+  .support-count { font-size: 1.6rem; font-weight: 700; }
+  .support-thread { display: flex; flex-direction: column; gap: 12px; }
+  .support-msg { border-radius: 14px; padding: 12px 14px; border: 1px solid var(--glass-border); background: var(--glass-bg); max-width: 92%; }
+  .support-msg.from-requester { align-self: flex-start; }
+  .support-msg.from-agent { align-self: flex-end; background: rgba(138,92,246,0.12); border-color: rgba(138,92,246,0.35); }
+  .support-msg.is-internal { align-self: stretch; max-width: 100%; background: rgba(245,200,66,0.08); border: 1px dashed rgba(245,200,66,0.55); }
+  .support-msg.from-system { align-self: center; background: transparent; font-size: .85rem; }
+  .support-msg-body { white-space: pre-wrap; word-break: break-word; margin: 6px 0 0; }
+  .support-event { align-self: center; font-size: .78rem; color: var(--text-muted); display: flex; gap: 6px; align-items: center; }
+  .support-event::before, .support-event::after { content: ""; flex: 0 0 24px; border-top: 1px solid var(--glass-border); }
+  .support-attachment-thumb { max-height: 140px; max-width: 220px; border-radius: 8px; border: 1px solid var(--glass-border); }
+  .support-kpi { text-align: center; padding: 14px 8px; }
+  .support-kpi .value { font-size: 1.6rem; font-weight: 700; }
+  .support-kpi .label { font-size: .78rem; color: var(--text-muted); }
+  .support-placeholder code { color: var(--gold-light); }
+</style>

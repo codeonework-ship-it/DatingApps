@@ -705,18 +705,24 @@ class _MatchesListScreenState extends ConsumerState<MatchesListScreen> {
             onTap: () {
               Navigator.pop(sheetContext);
               Future<void>.delayed(Duration.zero, () async {
+                // Confirm only a report that was sent, not a dismissed sheet.
+                var submitted = false;
                 final reportId = await showReportUserSheet(
                   context: pageContext,
-                  onSubmit: ({required reason, description}) async => ref
-                      .read(safetyActionsProvider)
-                      .reportUser(
-                        reportedUserId: match.userId,
-                        reason: reason,
-                        description: description,
-                      ),
+                  onSubmit: ({required reason, description}) async {
+                    final id = await ref
+                        .read(safetyActionsProvider)
+                        .reportUser(
+                          reportedUserId: match.userId,
+                          reason: reason,
+                          description: description,
+                        );
+                    submitted = true;
+                    return id;
+                  },
                 );
 
-                if (!pageContext.mounted) return;
+                if (!pageContext.mounted || !submitted) return;
                 ScaffoldMessenger.of(pageContext).showSnackBar(
                   SnackBar(
                     content: const Text('Report submitted. Thank you.'),

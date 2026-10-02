@@ -2,7 +2,7 @@
 set -euo pipefail
 
 psql_bin="${PSQL_BIN:-/opt/homebrew/opt/postgresql@17/bin/psql}"
-database_url="${LOCAL_DATABASE_URL:-postgresql://dating_app@127.0.0.1:55432/dating_app?sslmode=disable}"
+database_url="${LOCAL_DATABASE_URL:-postgresql://dating_app@127.0.0.1:55433/dating_app?sslmode=disable}"
 max_depth="${NOTIFICATION_SLO_MAX_QUEUE_DEPTH:-1000}"
 max_age="${NOTIFICATION_SLO_MAX_OLDEST_AGE_SEC:-30}"
 min_success="${NOTIFICATION_SLO_MIN_SUCCESS_PCT:-99}"

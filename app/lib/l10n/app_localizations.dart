@@ -2152,6 +2152,1476 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{name} can post again.'**
   String roomsUnmutedDone(String name);
+
+  /// Rich text editor: accessible label of the formatting toolbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Formatting'**
+  String get richFormattingToolbar;
+
+  /// Rich text editor: toolbar button to undo the last change.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get richUndo;
+
+  /// Rich text editor: toolbar button to redo a change.
+  ///
+  /// In en, this message translates to:
+  /// **'Redo'**
+  String get richRedo;
+
+  /// Rich text editor: toolbar toggle for bold text.
+  ///
+  /// In en, this message translates to:
+  /// **'Bold'**
+  String get richBold;
+
+  /// Rich text editor: toolbar toggle for italic text.
+  ///
+  /// In en, this message translates to:
+  /// **'Italic'**
+  String get richItalic;
+
+  /// Rich text editor: toolbar toggle for underlined text.
+  ///
+  /// In en, this message translates to:
+  /// **'Underline'**
+  String get richUnderline;
+
+  /// Rich text editor: toolbar toggle for struck-through text.
+  ///
+  /// In en, this message translates to:
+  /// **'Strikethrough'**
+  String get richStrikethrough;
+
+  /// Rich text editor: toolbar toggle that highlights text with a soft background.
+  ///
+  /// In en, this message translates to:
+  /// **'Highlight'**
+  String get richHighlight;
+
+  /// Rich text editor: toolbar button to add or edit a web link on the selected words.
+  ///
+  /// In en, this message translates to:
+  /// **'Link'**
+  String get richLink;
+
+  /// Rich text editor: toolbar menu to choose paragraph, heading, quote or callout.
+  ///
+  /// In en, this message translates to:
+  /// **'Text style'**
+  String get richTextStyleMenu;
+
+  /// Rich text editor: plain body text (menu item).
+  ///
+  /// In en, this message translates to:
+  /// **'Paragraph'**
+  String get richParagraph;
+
+  /// Rich text editor: large heading (menu item).
+  ///
+  /// In en, this message translates to:
+  /// **'Heading'**
+  String get richHeading;
+
+  /// Rich text editor: smaller heading (menu item).
+  ///
+  /// In en, this message translates to:
+  /// **'Subheading'**
+  String get richSubheading;
+
+  /// Rich text editor: quotation block (menu item).
+  ///
+  /// In en, this message translates to:
+  /// **'Quote'**
+  String get richQuote;
+
+  /// Rich text editor: a softly boxed note that stands out from the story (menu item).
+  ///
+  /// In en, this message translates to:
+  /// **'Callout'**
+  String get richCallout;
+
+  /// Rich text editor: toolbar toggle for a bulleted list.
+  ///
+  /// In en, this message translates to:
+  /// **'Bulleted list'**
+  String get richBulletList;
+
+  /// Rich text editor: toolbar toggle for a numbered list.
+  ///
+  /// In en, this message translates to:
+  /// **'Numbered list'**
+  String get richNumberedList;
+
+  /// Rich text editor: toolbar button that adds a section break; also the screen-reader label of a rendered break.
+  ///
+  /// In en, this message translates to:
+  /// **'Section break'**
+  String get richDivider;
+
+  /// Rich text editor: toolbar menu for text alignment.
+  ///
+  /// In en, this message translates to:
+  /// **'Alignment'**
+  String get richAlignMenu;
+
+  /// Rich text editor: align text to the start of the line (left in left-to-right languages).
+  ///
+  /// In en, this message translates to:
+  /// **'Align to start'**
+  String get richAlignStart;
+
+  /// Rich text editor: centre text.
+  ///
+  /// In en, this message translates to:
+  /// **'Center'**
+  String get richAlignCenter;
+
+  /// Rich text editor: align text to the end of the line (right in left-to-right languages).
+  ///
+  /// In en, this message translates to:
+  /// **'Align to end'**
+  String get richAlignEnd;
+
+  /// Rich text editor: toolbar button that removes formatting from the selection.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear formatting'**
+  String get richClearFormatting;
+
+  /// Rich text editor: heading above the writing style choices (the overall look of a chapter or story).
+  ///
+  /// In en, this message translates to:
+  /// **'Writing style'**
+  String get richWritingStyle;
+
+  /// Writing style name: elegant serif.
+  ///
+  /// In en, this message translates to:
+  /// **'Classic'**
+  String get richStyleClassic;
+
+  /// Writing style description for Classic.
+  ///
+  /// In en, this message translates to:
+  /// **'Elegant serif, like a printed page'**
+  String get richStyleClassicHint;
+
+  /// Writing style name: clean sans-serif.
+  ///
+  /// In en, this message translates to:
+  /// **'Modern'**
+  String get richStyleModern;
+
+  /// Writing style description for Modern.
+  ///
+  /// In en, this message translates to:
+  /// **'Clean and easy to read'**
+  String get richStyleModernHint;
+
+  /// Writing style name: italic serif, like a diary.
+  ///
+  /// In en, this message translates to:
+  /// **'Journal'**
+  String get richStyleJournal;
+
+  /// Writing style description for Journal.
+  ///
+  /// In en, this message translates to:
+  /// **'Warm italic, like a diary entry'**
+  String get richStyleJournalHint;
+
+  /// Writing style name: squared, evenly spaced letters.
+  ///
+  /// In en, this message translates to:
+  /// **'Typewriter'**
+  String get richStyleTypewriter;
+
+  /// Writing style description for Typewriter.
+  ///
+  /// In en, this message translates to:
+  /// **'Squared letters with extra spacing'**
+  String get richStyleTypewriterHint;
+
+  /// Writing style name: centred serif with generous spacing.
+  ///
+  /// In en, this message translates to:
+  /// **'Poetic'**
+  String get richStylePoetic;
+
+  /// Writing style description for Poetic.
+  ///
+  /// In en, this message translates to:
+  /// **'Centered lines with room to breathe'**
+  String get richStylePoeticHint;
+
+  /// Rich text editor: word count under the editor.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 word} other{{count} words}}'**
+  String richWordCount(int count);
+
+  /// Rich text editor: helper under the editor explaining that alignment and spacing appear in the preview and for readers.
+  ///
+  /// In en, this message translates to:
+  /// **'Alignment and spacing show in Preview and for readers.'**
+  String get richAlignmentNote;
+
+  /// Rich text editor: title of the dialog for adding a link.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a link'**
+  String get richLinkTitle;
+
+  /// Rich text editor: label of the web address field in the link dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Web address'**
+  String get richLinkField;
+
+  /// Rich text editor: error when the link is not a complete https address.
+  ///
+  /// In en, this message translates to:
+  /// **'Use a complete https:// address.'**
+  String get richLinkInvalid;
+
+  /// Rich text editor: confirm button in the link dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Add link'**
+  String get richLinkApply;
+
+  /// Rich text editor: removes the link from the selected words.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove link'**
+  String get richLinkRemove;
+
+  /// Rich text editor: message when the member taps Link without selecting words.
+  ///
+  /// In en, this message translates to:
+  /// **'Select the words you want to link first.'**
+  String get richLinkNeedsSelection;
+
+  /// Rich text editor: cancel button in dialogs.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get richCancel;
+
+  /// Reading view: title of the confirmation before opening a link someone wrote in their story.
+  ///
+  /// In en, this message translates to:
+  /// **'Open this link?'**
+  String get richOpenLinkTitle;
+
+  /// Reading view: explains the link leaves the app. {host} is the website name.
+  ///
+  /// In en, this message translates to:
+  /// **'{host} opens outside Connect. Only open links you trust.'**
+  String richOpenLinkBody(String host);
+
+  /// Reading view: confirm button that opens the link in the browser.
+  ///
+  /// In en, this message translates to:
+  /// **'Open link'**
+  String get richOpenLink;
+
+  /// Support centre: uppercase eyebrow above the page title.
+  ///
+  /// In en, this message translates to:
+  /// **'HELP & SUPPORT'**
+  String get supportCentreEyebrow;
+
+  /// Support centre: page title.
+  ///
+  /// In en, this message translates to:
+  /// **'How can we help?'**
+  String get supportCentreTitle;
+
+  /// Support centre: one-line promise under the title.
+  ///
+  /// In en, this message translates to:
+  /// **'Find a quick answer, or ask our team. Every request and reply stays in one private conversation.'**
+  String get supportCentreSubtitle;
+
+  /// Support centre: uppercase section label above the contact actions.
+  ///
+  /// In en, this message translates to:
+  /// **'CONTACT US'**
+  String get supportContactSection;
+
+  /// Support centre: action that opens the new support request form.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact support'**
+  String get supportContactTitle;
+
+  /// Support centre: caption of the Contact support action.
+  ///
+  /// In en, this message translates to:
+  /// **'Tell us what happened. We reply here and let you know.'**
+  String get supportContactSubtitle;
+
+  /// Support centre: action that opens the member's list of support requests.
+  ///
+  /// In en, this message translates to:
+  /// **'My tickets'**
+  String get supportMyTicketsTitle;
+
+  /// Support centre: caption of My tickets when nothing is open or unread.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow your requests and our replies'**
+  String get supportMyTicketsSubtitle;
+
+  /// Support centre: caption of My tickets with the number of open requests.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 open request} other{{count} open requests}}'**
+  String supportOpenRequests(int count);
+
+  /// Support: number of unread replies from the support team (badge label and ticket row).
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 new reply} other{{count} new replies}}'**
+  String supportUnreadReplies(int count);
+
+  /// Support centre: uppercase section label above the self-help answers.
+  ///
+  /// In en, this message translates to:
+  /// **'QUICK ANSWERS'**
+  String get supportQuickAnswersSection;
+
+  /// Support centre quick answer title about signing in.
+  ///
+  /// In en, this message translates to:
+  /// **'Login'**
+  String get supportFaqLoginTitle;
+
+  /// Support centre quick answer about signing in.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in with your unique username and password.'**
+  String get supportFaqLoginBody;
+
+  /// Support centre quick answer title about identity verification.
+  ///
+  /// In en, this message translates to:
+  /// **'Verification'**
+  String get supportFaqVerificationTitle;
+
+  /// Support centre quick answer about identity verification.
+  ///
+  /// In en, this message translates to:
+  /// **'Identity verification is optional while the provider is paused.'**
+  String get supportFaqVerificationBody;
+
+  /// Support centre quick answer title about reporting abuse.
+  ///
+  /// In en, this message translates to:
+  /// **'Abuse'**
+  String get supportFaqAbuseTitle;
+
+  /// Support centre quick answer about reporting abuse.
+  ///
+  /// In en, this message translates to:
+  /// **'Use Report on a profile or conversation for faster safety triage.'**
+  String get supportFaqAbuseBody;
+
+  /// Support centre quick answer title about billing.
+  ///
+  /// In en, this message translates to:
+  /// **'Billing'**
+  String get supportFaqBillingTitle;
+
+  /// Support centre quick answer about billing questions.
+  ///
+  /// In en, this message translates to:
+  /// **'Include the transaction reference, never your card details.'**
+  String get supportFaqBillingBody;
+
+  /// Support centre: note that tickets are not an emergency service.
+  ///
+  /// In en, this message translates to:
+  /// **'If someone is in immediate danger, contact local emergency services. Support tickets do not replace emergency help.'**
+  String get supportEmergencyNote;
+
+  /// Support: shown when support requests are switched off on the server.
+  ///
+  /// In en, this message translates to:
+  /// **'Support requests are not available right now'**
+  String get supportUnavailableTitle;
+
+  /// Support: explains the fallback when support requests are switched off. Keep the email address unchanged.
+  ///
+  /// In en, this message translates to:
+  /// **'The answers on this page still work. For anything urgent, email support@connect.example.'**
+  String get supportUnavailableBody;
+
+  /// Support: button returning from the request form to the support centre.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to Help & Support'**
+  String get supportBackToHelp;
+
+  /// Support request form: uppercase eyebrow above the title.
+  ///
+  /// In en, this message translates to:
+  /// **'NEW REQUEST'**
+  String get supportFormEyebrow;
+
+  /// Support request form: page title.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact support'**
+  String get supportFormTitle;
+
+  /// Support request form: guidance under the title.
+  ///
+  /// In en, this message translates to:
+  /// **'Give us enough detail to act. Never include a password, recovery code, card number or identity document.'**
+  String get supportFormSubtitle;
+
+  /// Support request form: uppercase section label above the topic choices.
+  ///
+  /// In en, this message translates to:
+  /// **'TOPIC'**
+  String get supportFormCategorySection;
+
+  /// Support request form: question above the topic choices.
+  ///
+  /// In en, this message translates to:
+  /// **'What do you need help with?'**
+  String get supportFormCategoryLabel;
+
+  /// Support topic: account and sign-in problems.
+  ///
+  /// In en, this message translates to:
+  /// **'Account & login'**
+  String get supportCategoryAccountLogin;
+
+  /// Support topic: identity verification.
+  ///
+  /// In en, this message translates to:
+  /// **'Verification'**
+  String get supportCategoryVerification;
+
+  /// Support topic: payments, subscriptions and billing.
+  ///
+  /// In en, this message translates to:
+  /// **'Payments & billing'**
+  String get supportCategoryPaymentsBilling;
+
+  /// Support topic: safety concerns and harassment.
+  ///
+  /// In en, this message translates to:
+  /// **'Safety & harassment'**
+  String get supportCategorySafetyHarassment;
+
+  /// Support topic: matches and chat.
+  ///
+  /// In en, this message translates to:
+  /// **'Matches & chat'**
+  String get supportCategoryMatchesChat;
+
+  /// Support topic: technical problems and bugs.
+  ///
+  /// In en, this message translates to:
+  /// **'Technical problem or bug'**
+  String get supportCategoryTechnical;
+
+  /// Support topic: suggesting a feature.
+  ///
+  /// In en, this message translates to:
+  /// **'Feature request'**
+  String get supportCategoryFeatureRequest;
+
+  /// Support topic: privacy and personal data requests.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy & data request'**
+  String get supportCategoryPrivacyData;
+
+  /// Support topic: anything else.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get supportCategoryOther;
+
+  /// Support request form: note shown when the safety topic is chosen.
+  ///
+  /// In en, this message translates to:
+  /// **'If you or someone else is in immediate danger, use SOS in the app or call your local emergency services. Safety requests are prioritized, but a ticket is not an emergency line.'**
+  String get supportSafetyNote;
+
+  /// Support request form: button opening the in-app SOS screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Open SOS'**
+  String get supportOpenSos;
+
+  /// Support request form: uppercase section label above subject and description.
+  ///
+  /// In en, this message translates to:
+  /// **'DETAILS'**
+  String get supportFormDetailsSection;
+
+  /// Support request form: subject field label.
+  ///
+  /// In en, this message translates to:
+  /// **'Subject'**
+  String get supportFormSubjectLabel;
+
+  /// Support request form: subject field hint.
+  ///
+  /// In en, this message translates to:
+  /// **'Briefly describe the issue'**
+  String get supportFormSubjectHint;
+
+  /// Support request form: description field label.
+  ///
+  /// In en, this message translates to:
+  /// **'What happened?'**
+  String get supportFormDescriptionLabel;
+
+  /// Support request form: description field hint.
+  ///
+  /// In en, this message translates to:
+  /// **'What you did, what you expected and what happened instead'**
+  String get supportFormDescriptionHint;
+
+  /// Support request form: uppercase section label above screenshots.
+  ///
+  /// In en, this message translates to:
+  /// **'SCREENSHOTS'**
+  String get supportFormScreenshotsSection;
+
+  /// Support request form: caption with the maximum number of screenshots.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional. Up to {max} images.'**
+  String supportFormScreenshotsCaption(int max);
+
+  /// Support request form: button to pick screenshots.
+  ///
+  /// In en, this message translates to:
+  /// **'Add screenshot'**
+  String get supportAddScreenshot;
+
+  /// Support: tooltip of the button removing a chosen screenshot.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove {name}'**
+  String supportRemoveAttachment(String name);
+
+  /// Support: screen-reader label while a screenshot uploads.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploading'**
+  String get supportAttachmentUploading;
+
+  /// Support: tooltip of the button retrying a failed screenshot upload.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry upload'**
+  String get supportRetryUpload;
+
+  /// Support request form: explains which device details are attached.
+  ///
+  /// In en, this message translates to:
+  /// **'We’ll include your app version ({version}), platform, system version and language to help us troubleshoot.'**
+  String supportFormDeviceNote(String version);
+
+  /// Support request form: submit button.
+  ///
+  /// In en, this message translates to:
+  /// **'Send request'**
+  String get supportSubmit;
+
+  /// Support request form: error when no topic is chosen.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a topic.'**
+  String get supportErrorCategoryRequired;
+
+  /// Support request form: error when the subject is too short or long.
+  ///
+  /// In en, this message translates to:
+  /// **'Use {min} to {max} characters for the subject.'**
+  String supportErrorSubjectLength(int min, int max);
+
+  /// Support request form: error when the description is empty.
+  ///
+  /// In en, this message translates to:
+  /// **'Describe what happened.'**
+  String get supportErrorDescriptionRequired;
+
+  /// Support: error when a message is too long.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep it under {max} characters.'**
+  String supportErrorDescriptionTooLong(int max);
+
+  /// Support: error when screenshots are still uploading or failed.
+  ///
+  /// In en, this message translates to:
+  /// **'Wait for your screenshots to finish uploading, or remove any that failed.'**
+  String get supportErrorUploadsPending;
+
+  /// Support: snack bar after a request is created, with its reference number.
+  ///
+  /// In en, this message translates to:
+  /// **'Request {reference} sent. We’ll reply here.'**
+  String supportCreatedSnack(String reference);
+
+  /// Support: snack bar when the same request was already sent in the last few minutes.
+  ///
+  /// In en, this message translates to:
+  /// **'You already sent this request, so we opened it: {reference}.'**
+  String supportDuplicateSnack(String reference);
+
+  /// Support: error when too many requests were sent; minutes until retry.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes, plural, =1{You’ve sent several requests in a short time. Try again in 1 minute.} other{You’ve sent several requests in a short time. Try again in {minutes} minutes.}}'**
+  String supportErrorRateLimited(int minutes);
+
+  /// Support: error when too many requests were sent, without a wait time.
+  ///
+  /// In en, this message translates to:
+  /// **'You’ve sent several requests in a short time. Please try again later.'**
+  String get supportErrorRateLimitedGeneric;
+
+  /// Support: error when the member already has the maximum of 10 open requests.
+  ///
+  /// In en, this message translates to:
+  /// **'You already have 10 open requests. Close one you no longer need, or wait for our replies.'**
+  String get supportErrorTooManyOpen;
+
+  /// Support: error replying to a request that can no longer be reopened.
+  ///
+  /// In en, this message translates to:
+  /// **'This request is closed and can no longer be reopened. Please start a new request.'**
+  String get supportErrorTicketClosed;
+
+  /// Support: error when the 14-day reopen window has passed.
+  ///
+  /// In en, this message translates to:
+  /// **'The time to reopen this request has passed. Please start a new request.'**
+  String get supportErrorReopenWindowPassed;
+
+  /// Support: error when the request was already rated.
+  ///
+  /// In en, this message translates to:
+  /// **'You’ve already rated this request.'**
+  String get supportErrorAlreadyRated;
+
+  /// Support: error when rating a request that is not resolved.
+  ///
+  /// In en, this message translates to:
+  /// **'You can rate a request once it’s resolved.'**
+  String get supportErrorNotResolved;
+
+  /// Support: error for an unsupported attachment type.
+  ///
+  /// In en, this message translates to:
+  /// **'Only JPEG or PNG images and PDF files can be attached.'**
+  String get supportErrorAttachmentType;
+
+  /// Support: error for an attachment that is too large.
+  ///
+  /// In en, this message translates to:
+  /// **'That file is too large. Images can be up to 8 MB.'**
+  String get supportErrorAttachmentTooLarge;
+
+  /// Support: error when the server cannot be reached.
+  ///
+  /// In en, this message translates to:
+  /// **'Can’t reach Connect right now. Check your connection and try again.'**
+  String get supportErrorOffline;
+
+  /// Support: error when a request does not exist or is not the member's.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn’t find this request.'**
+  String get supportErrorNotFound;
+
+  /// Support: fallback error message.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong. Please try again.'**
+  String get supportErrorGeneric;
+
+  /// Support: retry button after a failed load.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get supportTryAgain;
+
+  /// My tickets: uppercase eyebrow above the page title.
+  ///
+  /// In en, this message translates to:
+  /// **'SUPPORT'**
+  String get supportTicketsEyebrow;
+
+  /// My tickets: page title.
+  ///
+  /// In en, this message translates to:
+  /// **'My tickets'**
+  String get supportTicketsTitle;
+
+  /// My tickets: line under the title.
+  ///
+  /// In en, this message translates to:
+  /// **'Your requests and our replies.'**
+  String get supportTicketsSubtitle;
+
+  /// My tickets: uppercase section label for requests still in progress.
+  ///
+  /// In en, this message translates to:
+  /// **'ACTIVE'**
+  String get supportTicketsActiveSection;
+
+  /// My tickets: uppercase section label for resolved and closed requests.
+  ///
+  /// In en, this message translates to:
+  /// **'RESOLVED & CLOSED'**
+  String get supportTicketsClosedSection;
+
+  /// My tickets: empty state title.
+  ///
+  /// In en, this message translates to:
+  /// **'No requests yet'**
+  String get supportTicketsEmptyTitle;
+
+  /// My tickets: empty state message.
+  ///
+  /// In en, this message translates to:
+  /// **'When you contact support, your request and our replies appear here.'**
+  String get supportTicketsEmptyBody;
+
+  /// My tickets: title when the list fails to load.
+  ///
+  /// In en, this message translates to:
+  /// **'Your requests couldn’t load'**
+  String get supportTicketsLoadErrorTitle;
+
+  /// My tickets: when a request last changed; when is a time or date.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated {when}'**
+  String supportTicketUpdated(String when);
+
+  /// My tickets: button to start a new request.
+  ///
+  /// In en, this message translates to:
+  /// **'New request'**
+  String get supportNewTicket;
+
+  /// Support request status: new or being worked on.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get supportStatusOpen;
+
+  /// Support request status: support is waiting for the member's answer.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for you'**
+  String get supportStatusWaitingForYou;
+
+  /// Support request status: paused by the support team.
+  ///
+  /// In en, this message translates to:
+  /// **'On hold'**
+  String get supportStatusOnHold;
+
+  /// Support request status: resolved.
+  ///
+  /// In en, this message translates to:
+  /// **'Resolved'**
+  String get supportStatusResolved;
+
+  /// Support request status: closed.
+  ///
+  /// In en, this message translates to:
+  /// **'Closed'**
+  String get supportStatusClosed;
+
+  /// Support: screen-reader label of a status chip.
+  ///
+  /// In en, this message translates to:
+  /// **'Status: {status}'**
+  String supportStatusSemantics(String status);
+
+  /// Support thread: name shown on replies from the support team. Keep the brand name Connect.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect Support'**
+  String get supportThreadAgentName;
+
+  /// Support thread: author label on the member's own messages.
+  ///
+  /// In en, this message translates to:
+  /// **'You'**
+  String get supportThreadYou;
+
+  /// Support thread: topic and the date the request was opened.
+  ///
+  /// In en, this message translates to:
+  /// **'{category} · Opened {date}'**
+  String supportTicketMeta(String category, String date);
+
+  /// Support thread banner for an open request.
+  ///
+  /// In en, this message translates to:
+  /// **'We have your request. Our team will reply here and let you know.'**
+  String get supportBannerOpen;
+
+  /// Support thread banner when support is waiting for the member.
+  ///
+  /// In en, this message translates to:
+  /// **'Support replied and is waiting for your answer.'**
+  String get supportBannerWaiting;
+
+  /// Support thread banner for a request on hold.
+  ///
+  /// In en, this message translates to:
+  /// **'Your request is paused while we look into it. We’ll update you here.'**
+  String get supportBannerOnHold;
+
+  /// Support thread banner for a resolved request.
+  ///
+  /// In en, this message translates to:
+  /// **'Marked as resolved. Reply to reopen it; otherwise it closes automatically after 7 days.'**
+  String get supportBannerResolved;
+
+  /// Support thread banner for a closed request that can still be reopened.
+  ///
+  /// In en, this message translates to:
+  /// **'This request is closed. You can reopen it until {date}.'**
+  String supportBannerClosedUntil(String date);
+
+  /// Support thread banner for a closed request.
+  ///
+  /// In en, this message translates to:
+  /// **'This request is closed.'**
+  String get supportBannerClosed;
+
+  /// Support thread banner when the request was merged into another.
+  ///
+  /// In en, this message translates to:
+  /// **'This request was merged into {reference}. The conversation continues there.'**
+  String supportBannerMerged(String reference);
+
+  /// Support thread: reply field hint.
+  ///
+  /// In en, this message translates to:
+  /// **'Write a reply'**
+  String get supportReplyHint;
+
+  /// Support thread: reply field hint when replies are not possible.
+  ///
+  /// In en, this message translates to:
+  /// **'Replies are closed for this request'**
+  String get supportReplyDisabledHint;
+
+  /// Support thread: tooltip of the send button.
+  ///
+  /// In en, this message translates to:
+  /// **'Send reply'**
+  String get supportSendReply;
+
+  /// Support thread: tooltip of the attach screenshot button.
+  ///
+  /// In en, this message translates to:
+  /// **'Attach screenshot'**
+  String get supportAttachScreenshot;
+
+  /// Support thread: button and dialog action closing the request.
+  ///
+  /// In en, this message translates to:
+  /// **'Close request'**
+  String get supportCloseTicket;
+
+  /// Support thread: close confirmation dialog title.
+  ///
+  /// In en, this message translates to:
+  /// **'Close this request?'**
+  String get supportCloseConfirmTitle;
+
+  /// Support thread: close confirmation dialog message.
+  ///
+  /// In en, this message translates to:
+  /// **'Close it if your problem is solved. You can reopen it for 14 days.'**
+  String get supportCloseConfirmBody;
+
+  /// Support: cancel button in a dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get supportCancel;
+
+  /// Support thread: snack bar after closing a request.
+  ///
+  /// In en, this message translates to:
+  /// **'Request closed.'**
+  String get supportClosedSnack;
+
+  /// Support thread: button reopening a closed request.
+  ///
+  /// In en, this message translates to:
+  /// **'Reopen request'**
+  String get supportReopen;
+
+  /// Support thread: snack bar after reopening a request.
+  ///
+  /// In en, this message translates to:
+  /// **'Request reopened.'**
+  String get supportReopenedSnack;
+
+  /// Support thread: heading of the satisfaction rating card.
+  ///
+  /// In en, this message translates to:
+  /// **'How did we do?'**
+  String get supportRateTitle;
+
+  /// Support thread: caption of the satisfaction rating card.
+  ///
+  /// In en, this message translates to:
+  /// **'Rate your experience with this request.'**
+  String get supportRateCaption;
+
+  /// Support thread: tooltip of a rating star button.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 star} other{{count} stars}}'**
+  String supportRateStar(int count);
+
+  /// Support thread: optional rating comment field label.
+  ///
+  /// In en, this message translates to:
+  /// **'Anything to add? (optional)'**
+  String get supportRateCommentLabel;
+
+  /// Support thread: button sending the rating.
+  ///
+  /// In en, this message translates to:
+  /// **'Send rating'**
+  String get supportRateSubmit;
+
+  /// Support thread: heading once the member has rated the request.
+  ///
+  /// In en, this message translates to:
+  /// **'Thanks for your feedback'**
+  String get supportRatedTitle;
+
+  /// Support thread: the rating the member gave, out of five.
+  ///
+  /// In en, this message translates to:
+  /// **'You rated this {rating} out of 5.'**
+  String supportRatedValue(int rating);
+
+  /// Support thread: snack bar after sending a rating.
+  ///
+  /// In en, this message translates to:
+  /// **'Thanks for rating your experience.'**
+  String get supportRatingSnack;
+
+  /// Support thread: screen-reader label of an attached screenshot.
+  ///
+  /// In en, this message translates to:
+  /// **'Screenshot {name}'**
+  String supportAttachmentImage(String name);
+
+  /// Support thread: tooltip when an attachment cannot be loaded.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn’t load attachment'**
+  String get supportAttachmentLoadFailed;
+
+  /// Support thread: title when the request fails to load.
+  ///
+  /// In en, this message translates to:
+  /// **'This request couldn’t load'**
+  String get supportThreadLoadErrorTitle;
+
+  /// Chat connection card: secondary action that opens the private "A little chemistry" moment sheet (pick an answer, both answers are revealed together).
+  ///
+  /// In en, this message translates to:
+  /// **'A little chemistry?'**
+  String get chemistryCardEntry;
+
+  /// Member profile hero: small eyebrow above another member's name, like a film credit.
+  ///
+  /// In en, this message translates to:
+  /// **'Introducing'**
+  String get memberProfileIntroducing;
+
+  /// Own profile hero: small eyebrow above the member's own name, like a film credit.
+  ///
+  /// In en, this message translates to:
+  /// **'Starring'**
+  String get memberProfileStarring;
+
+  /// Member profile: screen-reader word added after the name when the member is verified.
+  ///
+  /// In en, this message translates to:
+  /// **'Verified'**
+  String get memberProfileVerified;
+
+  /// Member profile: screen-reader label of a photo.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}, photo {index} of {count}'**
+  String memberProfilePhotoLabel(String name, int index, int count);
+
+  /// Member profile: screen-reader label of the initials placeholder shown when there is no photo.
+  ///
+  /// In en, this message translates to:
+  /// **'No photo yet'**
+  String get memberProfileNoPhoto;
+
+  /// Member profile: screen-reader hint for tapping a photo (read as 'Double tap to …').
+  ///
+  /// In en, this message translates to:
+  /// **'view full screen'**
+  String get memberProfileViewPhotoHint;
+
+  /// Full-screen photo gallery: tooltip of the close button.
+  ///
+  /// In en, this message translates to:
+  /// **'Close photos'**
+  String get memberProfileCloseGallery;
+
+  /// Member profile: eyebrow of the film-strip of photos.
+  ///
+  /// In en, this message translates to:
+  /// **'Photos'**
+  String get memberProfilePhotos;
+
+  /// Member profile: count beside the photo strip of the photos after the main one.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 more photo} other{{count} more photos}}'**
+  String memberProfileMorePhotos(int count);
+
+  /// Member profile: eyebrow of the About section (the member's bio).
+  ///
+  /// In en, this message translates to:
+  /// **'About'**
+  String get memberProfileSceneAbout;
+
+  /// Member profile: eyebrow of the profile stories section.
+  ///
+  /// In en, this message translates to:
+  /// **'Stories'**
+  String get memberProfileSceneStories;
+
+  /// Member profile: title of the profile stories section, in the member's voice.
+  ///
+  /// In en, this message translates to:
+  /// **'A little more me'**
+  String get memberProfileSceneStoriesTitle;
+
+  /// Member profile: eyebrow of the interests section.
+  ///
+  /// In en, this message translates to:
+  /// **'Interests'**
+  String get memberProfileSceneInterests;
+
+  /// Member profile: eyebrow of the facts grid (height, work, education...).
+  ///
+  /// In en, this message translates to:
+  /// **'The basics'**
+  String get memberProfileSceneBasics;
+
+  /// Member profile: eyebrow of the lifestyle section.
+  ///
+  /// In en, this message translates to:
+  /// **'Lifestyle'**
+  String get memberProfileSceneLifestyle;
+
+  /// Member profile: eyebrow of the verification and vouches section.
+  ///
+  /// In en, this message translates to:
+  /// **'Trust'**
+  String get memberProfileSceneTrust;
+
+  /// Member profile: button that unfolds a long bio.
+  ///
+  /// In en, this message translates to:
+  /// **'Read more'**
+  String get memberProfileReadMore;
+
+  /// Member profile: button that folds an unfolded bio.
+  ///
+  /// In en, this message translates to:
+  /// **'Read less'**
+  String get memberProfileReadLess;
+
+  /// Member profile: label of the hobbies pills.
+  ///
+  /// In en, this message translates to:
+  /// **'Hobbies'**
+  String get memberProfileHobbies;
+
+  /// Member profile: label of the activities pills.
+  ///
+  /// In en, this message translates to:
+  /// **'Activities'**
+  String get memberProfileActivities;
+
+  /// Member profile: label of the favourite songs pills.
+  ///
+  /// In en, this message translates to:
+  /// **'On repeat'**
+  String get memberProfileSongs;
+
+  /// Member profile: label of the favourite books and novels pills.
+  ///
+  /// In en, this message translates to:
+  /// **'Books & novels'**
+  String get memberProfileBooks;
+
+  /// Member profile: label of the relationship intent pills.
+  ///
+  /// In en, this message translates to:
+  /// **'Looking for'**
+  String get memberProfileLookingFor;
+
+  /// Member profile: label of the languages pills.
+  ///
+  /// In en, this message translates to:
+  /// **'Languages'**
+  String get memberProfileLanguages;
+
+  /// Member profile: label of the deal-breaker pills.
+  ///
+  /// In en, this message translates to:
+  /// **'Deal breakers'**
+  String get memberProfileDealBreakers;
+
+  /// Member profile: label of the pills the viewer and the member share.
+  ///
+  /// In en, this message translates to:
+  /// **'In common'**
+  String get memberProfileInCommon;
+
+  /// Member profile fact label.
+  ///
+  /// In en, this message translates to:
+  /// **'Height'**
+  String get memberProfileFactHeight;
+
+  /// Member profile: a height in centimetres.
+  ///
+  /// In en, this message translates to:
+  /// **'{cm} cm'**
+  String memberProfileHeightCm(int cm);
+
+  /// Member profile fact label: profession.
+  ///
+  /// In en, this message translates to:
+  /// **'Work'**
+  String get memberProfileFactWork;
+
+  /// Member profile fact label.
+  ///
+  /// In en, this message translates to:
+  /// **'Education'**
+  String get memberProfileFactEducation;
+
+  /// Member profile fact label: city, region and country.
+  ///
+  /// In en, this message translates to:
+  /// **'Lives in'**
+  String get memberProfileFactLivesIn;
+
+  /// Member profile fact label.
+  ///
+  /// In en, this message translates to:
+  /// **'Mother tongue'**
+  String get memberProfileFactMotherTongue;
+
+  /// Member profile fact label.
+  ///
+  /// In en, this message translates to:
+  /// **'Religion'**
+  String get memberProfileFactReligion;
+
+  /// Member profile fact label.
+  ///
+  /// In en, this message translates to:
+  /// **'Personality'**
+  String get memberProfileFactPersonality;
+
+  /// Member profile fact label: relationship status.
+  ///
+  /// In en, this message translates to:
+  /// **'Relationship'**
+  String get memberProfileFactRelationship;
+
+  /// Member profile fact label: Instagram handle.
+  ///
+  /// In en, this message translates to:
+  /// **'Instagram'**
+  String get memberProfileFactInstagram;
+
+  /// Member profile lifestyle label.
+  ///
+  /// In en, this message translates to:
+  /// **'Drinking'**
+  String get memberProfileFactDrinking;
+
+  /// Member profile lifestyle label.
+  ///
+  /// In en, this message translates to:
+  /// **'Smoking'**
+  String get memberProfileFactSmoking;
+
+  /// Member profile lifestyle label.
+  ///
+  /// In en, this message translates to:
+  /// **'Workout'**
+  String get memberProfileFactWorkout;
+
+  /// Member profile lifestyle label: diet preference.
+  ///
+  /// In en, this message translates to:
+  /// **'Diet'**
+  String get memberProfileFactDiet;
+
+  /// Member profile lifestyle label.
+  ///
+  /// In en, this message translates to:
+  /// **'Diet type'**
+  String get memberProfileFactDietType;
+
+  /// Member profile lifestyle label: sleep schedule.
+  ///
+  /// In en, this message translates to:
+  /// **'Sleep'**
+  String get memberProfileFactSleep;
+
+  /// Member profile lifestyle label: travel style.
+  ///
+  /// In en, this message translates to:
+  /// **'Travel'**
+  String get memberProfileFactTravel;
+
+  /// Member profile lifestyle label: pet preference.
+  ///
+  /// In en, this message translates to:
+  /// **'Pets'**
+  String get memberProfileFactPets;
+
+  /// Member profile lifestyle label: political comfort range.
+  ///
+  /// In en, this message translates to:
+  /// **'Politics'**
+  String get memberProfileFactPolitics;
+
+  /// Member profile lifestyle label (value is yes or no).
+  ///
+  /// In en, this message translates to:
+  /// **'Open to casual'**
+  String get memberProfileFactOpenToCasual;
+
+  /// Member profile lifestyle label (shown only when yes).
+  ///
+  /// In en, this message translates to:
+  /// **'Loves a party'**
+  String get memberProfileFactPartyLover;
+
+  /// Member profile trust section: title when the member is verified.
+  ///
+  /// In en, this message translates to:
+  /// **'Verified profile'**
+  String get memberProfileVerifiedTitle;
+
+  /// Member profile trust section: line under the verified title.
+  ///
+  /// In en, this message translates to:
+  /// **'Identity verification completed.'**
+  String get memberProfileVerifiedBody;
+
+  /// Member profile trust section: heading of the vouches written by the member's friends.
+  ///
+  /// In en, this message translates to:
+  /// **'Vouched for by friends'**
+  String get memberProfileVouchesTitle;
+
+  /// Member profile hero: pill when the member is in the Spotlight.
+  ///
+  /// In en, this message translates to:
+  /// **'Spotlight'**
+  String get memberProfileSpotlight;
+
+  /// Member profile hero: pill when the member's availability overlaps the viewer's.
+  ///
+  /// In en, this message translates to:
+  /// **'Free when you are'**
+  String get memberProfileFreeWhenYouAre;
+
+  /// Member profile action dock: opens a conversation.
+  ///
+  /// In en, this message translates to:
+  /// **'Message'**
+  String get memberProfileMessage;
+
+  /// Member profile action dock: sends a love (super like).
+  ///
+  /// In en, this message translates to:
+  /// **'Love'**
+  String get memberProfileLove;
+
+  /// Member profile top bar: tooltip of the report button.
+  ///
+  /// In en, this message translates to:
+  /// **'Report'**
+  String get memberProfileReport;
+
+  /// Own profile: eyebrow of the owner tools panel under the hero.
+  ///
+  /// In en, this message translates to:
+  /// **'This is how you appear'**
+  String get memberProfileOwnerTitle;
+
+  /// Own profile: line under the owner tools eyebrow.
+  ///
+  /// In en, this message translates to:
+  /// **'Members see your profile just like this.'**
+  String get memberProfileOwnerCaption;
+
+  /// Own profile: completeness meter label.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile {percent}% complete'**
+  String memberProfileCompleteness(int percent);
+
+  /// Own profile: hint under the completeness meter when below 100%.
+  ///
+  /// In en, this message translates to:
+  /// **'Add photos, stories and details to stand out.'**
+  String get memberProfileCompletenessHint;
+
+  /// Own profile: line under the completeness meter at 100%.
+  ///
+  /// In en, this message translates to:
+  /// **'Your profile is complete.'**
+  String get memberProfileCompletenessDone;
+
+  /// Own profile owner tool: opens Edit profile.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit profile'**
+  String get memberProfileToolEdit;
+
+  /// Own profile owner tool: opens the photo manager.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit photos'**
+  String get memberProfileToolPhotos;
+
+  /// Own profile owner tool: opens the profile stories editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Your stories'**
+  String get memberProfileToolStories;
+
+  /// Own profile owner tool: opens who viewed the profile.
+  ///
+  /// In en, this message translates to:
+  /// **'Who viewed you'**
+  String get memberProfileToolViewers;
+
+  /// Own profile: heading of the owner-only part (stats, likes, preferences).
+  ///
+  /// In en, this message translates to:
+  /// **'Behind the scenes'**
+  String get memberProfileBehindTheScenes;
+
+  /// Own profile: line under Behind the scenes.
+  ///
+  /// In en, this message translates to:
+  /// **'Only you can see this.'**
+  String get memberProfileOnlyYou;
+
+  /// Own profile: title in the collapsed top bar and placeholder name while loading.
+  ///
+  /// In en, this message translates to:
+  /// **'My profile'**
+  String get memberProfileMine;
+
+  /// Profile: eyebrow of the section with the member's public chapters and wall photos.
+  ///
+  /// In en, this message translates to:
+  /// **'Writing & moments'**
+  String get profileShowcaseLabel;
+
+  /// Profile: title of that section on another member's profile.
+  ///
+  /// In en, this message translates to:
+  /// **'In their own words'**
+  String get profileShowcaseTitleOther;
+
+  /// Own profile: title of that section.
+  ///
+  /// In en, this message translates to:
+  /// **'Your public writing & photos'**
+  String get profileShowcaseTitleSelf;
+
+  /// Profile: sub-heading above the public chapters.
+  ///
+  /// In en, this message translates to:
+  /// **'Chapters'**
+  String get profileShowcaseChapters;
+
+  /// Profile: sub-heading above the wall photos.
+  ///
+  /// In en, this message translates to:
+  /// **'Wall photos'**
+  String get profileShowcasePhotos;
+
+  /// Profile: link to all of the member's chapters.
+  ///
+  /// In en, this message translates to:
+  /// **'Read all their chapters'**
+  String get profileShowcaseReadAll;
+
+  /// Own profile: the section is a private preview because consent is off.
+  ///
+  /// In en, this message translates to:
+  /// **'Only you can see this'**
+  String get profileShowcaseHiddenTitle;
+
+  /// Own profile: explains that public writing is hidden until the member turns it on.
+  ///
+  /// In en, this message translates to:
+  /// **'Your public chapters and wall photos are hidden from your profile. Turn this on to let members see them here.'**
+  String get profileShowcaseHiddenBody;
+
+  /// Own profile: explains what members see with consent on.
+  ///
+  /// In en, this message translates to:
+  /// **'Members can see these on your profile. Only chapters shared with the community and photos on the wall appear.'**
+  String get profileShowcaseShownBody;
+
+  /// Own profile and privacy: switch to show public writing and wall photos on the profile.
+  ///
+  /// In en, this message translates to:
+  /// **'Show on my profile'**
+  String get profileShowcaseSwitch;
+
+  /// Snack bar when the choice could not be saved.
+  ///
+  /// In en, this message translates to:
+  /// **'Your choice could not be saved.'**
+  String get profileShowcaseSaveFailed;
 }
 
 class _AppLocalizationsDelegate

@@ -88,6 +88,6 @@ go test ./...
 ```
 
 The migration was applied to
-`postgresql://dating_app@127.0.0.1:55432/dating_app?sslmode=disable`, rerun
+`postgresql://dating_app@127.0.0.1:55433/dating_app?sslmode=disable`, rerun
 successfully to prove idempotency, and recorded as
 `055_safety_moderation_enforcement`.

@@ -1,0 +1,38 @@
+/* Contact / support page. Loaded only by contact.html (all locales) after styles.css. */
+.contact-help .card h2{font-family:inherit;font-size:23px;letter-spacing:-.5px;line-height:1.25;margin:24px 0 12px}
+.contact-emergency{margin:28px 0 0}
+.contact-layout{display:grid;grid-template-columns:1fr 1.4fr;gap:80px;align-items:start}
+.contact-layout>div>h2{margin-top:0}
+.contact-lede{color:var(--muted);font-size:16px;line-height:1.7}
+.contact-panel{position:relative;background:var(--white);border:1px solid var(--line);border-radius:var(--radius);padding:36px}
+.contact-form{display:grid;gap:24px}
+.field{display:grid;gap:8px;min-width:0}
+.field label{font-weight:600;font-size:15px}
+.field-required{color:#b8143f;margin-left:2px}
+.field-optional{font-weight:400;color:var(--muted)}
+.field-hint{margin:0;font-size:13px;line-height:1.5;color:var(--muted)}
+.field-error{margin:0;font-size:13px;line-height:1.5;font-weight:600;color:#a3123a}
+.contact-form input,.contact-form select,.contact-form textarea{font:inherit;font-size:15px;width:100%;min-width:0;min-height:52px;padding:14px 18px;border:1px solid #ddc4ca;border-radius:12px;background:var(--white);color:var(--ink)}
+.contact-form select{cursor:pointer;text-overflow:ellipsis}
+.contact-form textarea{min-height:180px;resize:vertical;line-height:1.6}
+.contact-form input:hover,.contact-form select:hover,.contact-form textarea:hover{border-color:#c9a9b1}
+.contact-form [aria-invalid=true]{border-color:#b8143f;box-shadow:0 0 0 1px #b8143f}
+.contact-form select:focus-visible,.contact-form textarea:focus-visible,.contact-form input:focus-visible{outline:3px solid #6d3fd6;outline-offset:2px}
+.contact-counter{text-align:right;font-variant-numeric:tabular-nums}
+.contact-form .button{justify-self:start;justify-content:center;min-width:180px}
+.contact-form .button:disabled{opacity:.6;cursor:progress;transform:none}
+/* Honeypot: off-screen for people, still present for naive bots. */
+.contact-hp{position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden}
+.form-alert{margin:0 0 24px;padding:20px 24px;background:#ffeef1;border-left:3px solid #b8143f;border-radius:0 16px 16px 0;font-size:14px;line-height:1.6;color:var(--ink)}
+.form-alert:focus{outline:3px solid #6d3fd6;outline-offset:3px}
+.form-alert-title{margin:0;font-weight:600}
+.form-alert ul{margin:10px 0 0;padding-left:20px}
+.form-alert a{text-decoration:underline;text-underline-offset:3px}
+.contact-success:focus{outline:3px solid #6d3fd6;outline-offset:6px;border-radius:8px}
+.contact-success h3{font-size:26px;letter-spacing:-.5px;margin:0 0 12px}
+.contact-success p{color:var(--muted);font-size:16px;line-height:1.7}
+.contact-reference strong{color:var(--ink);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.contact-success .button{margin-top:12px}
+@media(max-width:1000px){.contact-layout{gap:48px}}
+@media(max-width:760px){.contact-layout{grid-template-columns:1fr;gap:24px}.contact-panel{padding:24px}.contact-form .button{justify-self:stretch}}
+@media(max-width:360px){.contact-panel{padding:20px 16px}}

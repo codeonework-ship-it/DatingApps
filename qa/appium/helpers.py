@@ -686,7 +686,31 @@ class DatingApp:
         except TimeoutException:
             return False
 
+    def skip_if_signed_in_session(self) -> None:
+        """Signed-out journeys need the welcome screen.
+
+        With APPIUM_NO_RESET=true the suite reuses the device's signed-in QA
+        session, so signup / first sign-in / setup specs have no welcome
+        screen to start from. Skip them explicitly instead of failing on a
+        missing button (run them with APPIUM_NO_RESET=false, which clears
+        app data first).
+        """
+        if not self.config.no_reset:
+            return
+        deadline = time.time() + 6
+        while time.time() < deadline:
+            if self.selected_tab() is not None:
+                import pytest
+
+                pytest.skip("Device is signed in (APPIUM_NO_RESET=true); signed-out journey needs a reset session")
+            if self.driver.find_elements(*self.ui_desc_contains("Already a member?")) or self.driver.find_elements(
+                *self.ui_text_contains("Already a member?")
+            ):
+                return
+            time.sleep(0.5)
+
     def open_welcome_signup(self) -> None:
+        self.skip_if_signed_in_session()
         # Prefer the stable handle. Matching on display copy made the wording
         # load-bearing: retitling the cover for a new type treatment silently
         # cut off every signed-in test. The copy branches stay as a fallback
@@ -709,6 +733,7 @@ class DatingApp:
                 self.tap_text("Create Account")
 
     def open_welcome_signin(self) -> None:
+        self.skip_if_signed_in_session()
         if self.is_text_visible("Account credentials", timeout=2):
             return
         try:
@@ -728,6 +753,15 @@ class DatingApp:
             self.tap_text("SIGN IN")
 
     def sign_in_existing_user(self) -> None:
+        if self.is_authenticated_surface_visible(timeout=3):
+            return
+        # With APPIUM_NO_RESET the live app may still show a screen pushed by
+        # an earlier spec; pop back to the signed-in shell before assuming
+        # the device is signed out (never press back on the welcome screen).
+        for _ in range(4):
+            if self.is_text_visible("Already a member?", timeout=1) or self.selected_tab() is not None:
+                break
+            self.press_back()
         if self.is_authenticated_surface_visible(timeout=3):
             return
         self.open_welcome_signin()
@@ -792,6 +826,247 @@ class DatingApp:
             self.tap_text(label, timeout=6)
         except TimeoutException:
             self.tap_text_contains(label, timeout=6)
+
+    # ------------------------------------------------------------------
+    # Social-feature helpers (specs 19-24). They read only real widgets:
+    # bottom-navigation tab state comes from Flutter's own "Tab N of 5"
+    # nodes, and texts from visible text/content-desc attributes.
+    # ------------------------------------------------------------------
+
+    TAB_INDEX = {"today": 1, "discover": 1, "matches": 2, "engage": 3, "profile": 4, "settings": 5}
+
+    def selected_tab(self) -> int | None:
+        """1-based index of the selected bottom tab, or None off the shell."""
+        nodes = self.driver.find_elements(
+            AppiumBy.XPATH, '//*[starts-with(@content-desc, "Tab ") and contains(@content-desc, " of 5")]'
+        )
+        for node in nodes:
+            try:
+                if (node.get_attribute("selected") or "").lower() == "true":
+                    return int((node.get_attribute("content-desc") or "Tab 0").split()[1])
+            except Exception:  # noqa: BLE001 - node went stale mid-transition
+                continue
+        return None
+
+    def wait_for_tab(self, name: str, timeout: int = 15) -> None:
+        expected = self.TAB_INDEX[name.lower()]
+        deadline = time.time() + timeout
+        last = None
+        while time.time() < deadline:
+            last = self.selected_tab()
+            if last == expected:
+                return
+            time.sleep(0.4)
+        raise AssertionError(f"Expected bottom tab {name!r} (#{expected}) to be selected, got #{last}")
+
+    def press_back(self, settle: float = 1.0) -> None:
+        self.driver.back()
+        time.sleep(settle)
+
+    def ensure_app_foreground(self) -> None:
+        if self.app_state() != 4:
+            self.driver.activate_app(self.config.app_package)
+            time.sleep(3)
+
+    def go_today(self, max_backs: int = 6) -> None:
+        """Pop pushed screens/sheets until the shell is visible, then pick Today.
+
+        Never presses back while the shell is showing: back on Today leaves
+        the app by design.
+        """
+        self.ensure_app_foreground()
+        for _ in range(max_backs):
+            deadline = time.time() + 2.5
+            while time.time() < deadline and self.selected_tab() is None:
+                time.sleep(0.4)
+            if self.selected_tab() is not None:
+                break
+            if self.driver.find_elements(*self.ui_text_contains("Already a member?")) or self.driver.find_elements(
+                *self.ui_desc_contains("Already a member?")
+            ):
+                raise AssertionError("The device is signed out (welcome screen); sign the QA member back in")
+            self.press_back()
+            self.ensure_app_foreground()
+        self.open_tab("discover")
+        self.wait_for_tab("today")
+
+    DECK_TITLES = ("Discover Matches", "Find meaningful verified matches")
+
+    def open_discovery_deck(self) -> None:
+        """Open the swipe deck ("Explore").
+
+        With `intentional_dating_enabled` on, bottom tab 1 is Today, not the
+        deck. Today's "Explore profiles" / "Explore more profiles" switch to
+        the Matches tab, whose "Discover" view embeds the deck
+        (matches_list_screen.dart, MatchesView.discover). The Matches tab
+        remembers its last view, so pick the Discover chip explicitly.
+        """
+        self.sign_in_existing_user()
+        self.go_today()
+        self.open_tab("Matches")
+        self.wait_for_tab("matches")
+        if not any(self.is_text_visible(t, timeout=2) for t in self.DECK_TITLES):
+            chip = self._wait_for_first_present(
+                [(AppiumBy.XPATH, '//android.widget.Button[@content-desc="Discover"]')],
+                timeout=10,
+            )
+            self._tap_element_center(chip)
+        self.assert_any_text_visible(*self.DECK_TITLES, timeout=25)
+
+    def open_matches_view(self, chip: str = "Your matches") -> None:
+        """Matches tab, then one of its view chips: Discover / Your matches / Conversations."""
+        self.sign_in_existing_user()
+        self.go_today()
+        self.open_tab("Matches")
+        self.wait_for_tab("matches")
+        element = self._wait_for_first_present(
+            # Flutter exposes the ChoiceChips as Buttons with `selected`.
+            [(AppiumBy.XPATH, f'//android.widget.Button[@content-desc="{self._escape(chip)}"]')],
+            timeout=15,
+        )
+        if (element.get_attribute("selected") or "").lower() != "true":
+            self._tap_element_center(element)
+            time.sleep(0.8)
+
+    def dismiss_sheet(self) -> None:
+        """Close a modal bottom sheet by tapping its scrim above the sheet.
+
+        Flutter's "Dismiss" barrier node spans the whole screen, so tapping
+        its centre lands on the sheet itself; system back is avoided because
+        it also drops the sheet's text field focus.
+        """
+        size = self.driver.get_window_size()
+        self.driver.execute_script(
+            "mobile: clickGesture", {"x": size["width"] // 2, "y": int(size["height"] * 0.12)}
+        )
+        time.sleep(0.8)
+
+    def scroll_into_middle(self, text: str, timeout: int = 40) -> WebElement:
+        """Scroll until `text` is visible and away from the bottom bar/banners."""
+        self.wait_for_snackbar_gone()
+        element = self.scroll_to_text(text, timeout=timeout)
+        size = self.driver.get_window_size()
+        for _ in range(3):
+            rect = element.rect
+            centre = rect["y"] + rect["height"] / 2
+            if centre < size["height"] * 0.65:
+                break
+            x = size["width"] // 2
+            self.driver.swipe(x, int(size["height"] * 0.6), x, int(size["height"] * 0.35), 900)
+            # Let any fling settle: a tap on a moving Flutter list only stops it.
+            time.sleep(1.0)
+            element = self.wait_for_text(text, timeout=3)
+        time.sleep(0.8)  # scroll_to_text's swipes can leave a fling running
+        return self.wait_for_text(text, timeout=3)
+
+    def open_settings_entry(self, title: str) -> None:
+        self.go_today()
+        self.open_tab("Settings")
+        self.wait_for_tab("settings")
+        self.scroll_into_middle(title)
+        self.tap_text(title)
+
+    def open_engage_entry(self, title: str) -> None:
+        self.go_today()
+        self.open_tab("Engage")
+        self.wait_for_tab("engage")
+        self.scroll_into_middle(title)
+        self.tap_text(title)
+
+    def type_into_hint(self, hint: str, text: str, timeout: int = 10) -> WebElement:
+        self.wait_for_snackbar_gone(timeout=4)
+        field = self._wait_for_first_present(
+            [(AppiumBy.XPATH, f'//android.widget.EditText[@hint="{self._escape(hint)}"]')],
+            timeout=timeout,
+        )
+        field.click()
+        self._clear_if_populated(field)
+        if not self._type_focused_text(text):
+            field.send_keys(text)
+        time.sleep(0.5)
+        if not self._element_or_child_contains(field, text):
+            raise TimeoutException(f"Text was not entered into the field hinted {hint!r}")
+        return field
+
+    def wait_for_snackbar_gone(self, timeout: int = 12) -> None:
+        """Clear an in-app notification banner (SnackBar with an "Open" action).
+
+        Banners for seeded counterpart activity sit over the bottom of the
+        screen and swallow taps meant for buttons underneath. With an
+        accessibility service attached (UiAutomator2) Flutter keeps a SnackBar
+        that has an action on screen until it is used, so use it: "Open"
+        dismisses the banner and pushes the notification inbox, and back
+        returns to the screen under test.
+        """
+        locator = (AppiumBy.XPATH, '//android.widget.Button[@content-desc="Open" or @text="Open"]')
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            actions = self.driver.find_elements(*locator)
+            if not actions:
+                return
+            actions[0].click()
+            if self.is_text_visible("Read all", timeout=5):
+                self.press_back()
+            time.sleep(0.5)
+
+    def wait_for_field_hint(self, hint: str, timeout: int = 10) -> WebElement:
+        """An EditText whose hint is `hint` (Flutter exposes the hint attribute)."""
+        return self._wait_for_first_present(
+            [(AppiumBy.XPATH, f'//android.widget.EditText[@hint="{self._escape(hint)}"]')],
+            timeout=timeout,
+        )
+
+    def wait_for_text_gone(self, text: str, timeout: int = 15) -> None:
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            if not self.is_text_visible(text, timeout=1):
+                return
+            time.sleep(0.4)
+        raise AssertionError(f"{text!r} was still on screen after {timeout}s")
+
+    def visible_labels(self) -> list[str]:
+        """Text and content-desc of every displayed node, newline-joined parts split."""
+        source = self.driver.page_source
+        labels: list[str] = []
+        for raw in re.findall(r'(?:text|content-desc)="([^"]+)"', source):
+            value = (
+                raw.replace("&#10;", "\n").replace("&amp;", "&").replace("&quot;", '"')
+                .replace("&lt;", "<").replace("&gt;", ">").replace("&#39;", "'")
+            )
+            labels.extend(part.strip() for part in value.split("\n") if part.strip())
+        return labels
+
+    def element_desc_contains(self, text: str, timeout: int = 10) -> WebElement:
+        return self._wait_for_first_present(
+            [self.ui_desc_contains(text), self.ui_text_contains(text)], timeout=timeout
+        )
+
+    def app_state(self) -> int:
+        """Appium app state: 4 foreground, 3 background, 1 not running."""
+        return int(self.driver.query_app_state(self.config.app_package))
+
+    def shared_preferences_xml(self) -> str:
+        """Flutter shared preferences of the debug build (run-as needs a debuggable app)."""
+        return str(
+            self.shell(
+                "run-as",
+                [self.config.app_package, "cat", "shared_prefs/FlutterSharedPreferences.xml"],
+                timeout=10000,
+            )
+        )
+
+    def save_artifact(self, name: str) -> None:
+        import os
+        from pathlib import Path
+
+        out = Path(os.getenv("QA_RESULTS_DIR", str(Path(__file__).resolve().parents[1] / "results" / "appium")))
+        out.mkdir(parents=True, exist_ok=True)
+        safe = re.sub(r"[^A-Za-z0-9_.-]+", "_", name)
+        try:
+            self.driver.save_screenshot(str(out / f"{safe}.png"))
+            (out / f"{safe}.xml").write_text(self.driver.page_source, encoding="utf-8")
+        except Exception:  # noqa: BLE001 - evidence capture is best effort
+            pass
 
     def _escape(self, text: str) -> str:
         return text.replace('\\', '\\\\').replace('"', '\\"')

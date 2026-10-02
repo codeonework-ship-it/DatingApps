@@ -864,13 +864,13 @@ func (m *runtimeStore) durableEngagementRequired() bool {
 
 func (m *runtimeStore) unlockPolicyVariant() string {
 	if m == nil {
-		return unlockPolicyRequireQuestTemplate
-	}
-	variant := strings.ToLower(strings.TrimSpace(m.cfg.DefaultUnlockPolicyVariant))
-	if variant == unlockPolicyAllowWithoutTemplate {
 		return unlockPolicyAllowWithoutTemplate
 	}
-	return unlockPolicyRequireQuestTemplate
+	variant := strings.ToLower(strings.TrimSpace(m.cfg.DefaultUnlockPolicyVariant))
+	if variant == unlockPolicyRequireQuestTemplate {
+		return unlockPolicyRequireQuestTemplate
+	}
+	return unlockPolicyAllowWithoutTemplate
 }
 
 func (m *runtimeStore) requiresQuestTemplateByDefault() bool {
@@ -1171,15 +1171,11 @@ func (m *runtimeStore) submitQuestResponse(
 	template, ok := m.questTemplates[trimmedMatchID]
 	if !ok {
 		m.mu.Unlock()
-		return questSubmissionWorkflow{}, errors.New("quest template not found for match")
+		return questSubmissionWorkflow{}, errQuestTemplateNotFound
 	}
 	if len(trimmedResponse) < template.MinChars || len(trimmedResponse) > template.MaxChars {
 		m.mu.Unlock()
-		return questSubmissionWorkflow{}, fmt.Errorf(
-			"response text must be between %d and %d characters",
-			template.MinChars,
-			template.MaxChars,
-		)
+		return questSubmissionWorkflow{}, questResponseLengthError(template.MinChars, template.MaxChars)
 	}
 
 	workflow := m.questWorkflows[trimmedMatchID]
@@ -1192,7 +1188,7 @@ func (m *runtimeStore) submitQuestResponse(
 		workflow.Status = questWorkflowStatusCooldown
 		m.questWorkflows[trimmedMatchID] = workflow
 		m.mu.Unlock()
-		return questSubmissionWorkflow{}, errors.New("quest submission is in cooldown period")
+		return questSubmissionWorkflow{}, errQuestCooldown
 	}
 
 	windowStart := parseRFC3339OrZero(workflow.WindowStartedAt)
@@ -1205,7 +1201,7 @@ func (m *runtimeStore) submitQuestResponse(
 		workflow.CooldownUntil = now.Add(questRateLimitCooldown).Format(time.RFC3339)
 		m.questWorkflows[trimmedMatchID] = workflow
 		m.mu.Unlock()
-		return questSubmissionWorkflow{}, errors.New("quest submission rate limit exceeded")
+		return questSubmissionWorkflow{}, errQuestRateLimited
 	}
 
 	workflow.UnlockState = transitionUnlockState(workflow.UnlockState, matchingdomain.ActionSubmitQuest)
@@ -1279,10 +1275,13 @@ func (m *runtimeStore) reviewQuestResponse(
 
 	workflow, ok := m.questWorkflows[trimmedMatchID]
 	if !ok || workflow.MatchID == "" {
-		return questSubmissionWorkflow{}, errors.New("quest submission not found for match")
+		return questSubmissionWorkflow{}, errQuestSubmissionNotFound
 	}
 	if workflow.Status != questWorkflowStatusPending {
-		return questSubmissionWorkflow{}, errors.New("quest submission is not pending review")
+		return questSubmissionWorkflow{}, errQuestNotPending
+	}
+	if workflow.SubmitterUserID != "" && workflow.SubmitterUserID == trimmedReviewer {
+		return questSubmissionWorkflow{}, errQuestSelfReview
 	}
 
 	workflow.ReviewerUserID = trimmedReviewer
@@ -1300,7 +1299,7 @@ func (m *runtimeStore) reviewQuestResponse(
 		workflow.CooldownUntil = now.Add(questCooldownDuration).Format(time.RFC3339)
 		workflow.UnlockState = transitionUnlockState(workflow.UnlockState, matchingdomain.ActionRejectQuest)
 	default:
-		return questSubmissionWorkflow{}, errors.New("invalid decision status")
+		return questSubmissionWorkflow{}, errQuestInvalidDecision
 	}
 
 	m.questWorkflows[trimmedMatchID] = workflow
@@ -2053,7 +2052,27 @@ func (m *runtimeStore) completeProfile(userID string) (profileDraft, error) {
 	return snapshot, nil
 }
 
+// profileCompletionError is a reason the member can fix before their profile
+// can be published (missing basics, too few photos, bio length, terms). It
+// used to reach the client as a plain error and therefore a 502 "temporarily
+// unavailable", which invites a retry instead of an edit (API-15).
+type profileCompletionError struct{ err error }
+
+func (e *profileCompletionError) Error() string { return e.err.Error() }
+func (e *profileCompletionError) Unwrap() error { return e.err }
+
+func completionProblem(err error) error {
+	if err == nil {
+		return nil
+	}
+	return &profileCompletionError{err: err}
+}
+
 func validateDraftReadyForCompletion(draft profileDraft) error {
+	return completionProblem(draftCompletionProblem(draft))
+}
+
+func draftCompletionProblem(draft profileDraft) error {
 	if err := validateProfileBasics(draft.Name, draft.DateOfBirth, normalizeSignupGender(draft.Gender), time.Now().UTC()); err != nil {
 		return err
 	}

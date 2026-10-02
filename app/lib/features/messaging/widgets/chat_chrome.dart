@@ -306,7 +306,7 @@ class ChatComposer extends StatelessWidget {
               ),
             ],
           ),
-          padding: const EdgeInsets.fromLTRB(16, 8, 8, 6),
+          padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -368,7 +368,7 @@ class ChatComposer extends StatelessWidget {
                       final canSend =
                           enabled && !sending && value.text.trim().isNotEmpty;
                       return Padding(
-                        padding: const EdgeInsets.only(bottom: 2),
+                        padding: const EdgeInsets.only(bottom: 4),
                         child: IconButton.filled(
                           key: const ValueKey('qa.chat.send_button'),
                           tooltip: sending ? 'Sending message' : 'Send message',

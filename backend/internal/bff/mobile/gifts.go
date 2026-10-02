@@ -361,6 +361,28 @@ func (m *runtimeStore) getWalletCoins(userID string) userWalletView {
 	}
 }
 
+// readWalletCoins reads a member's wallet without creating one (GO-02). A
+// member without a wallet row has a zero balance.
+func (m *runtimeStore) readWalletCoins(ctx context.Context, userID string) (userWalletView, error) {
+	trimmedUserID := strings.TrimSpace(userID)
+	if trimmedUserID == "" {
+		return userWalletView{}, errors.New("user_id is required")
+	}
+	if m.giftsRepo != nil {
+		wallet, _, err := m.giftsRepo.readWallet(ctx, trimmedUserID)
+		if err == nil {
+			return wallet, nil
+		}
+		if m.durableEngagementRequired() || !isGiftRepoPersistenceUnavailable(err) {
+			return userWalletView{}, err
+		}
+	}
+
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return userWalletView{UserID: trimmedUserID, CoinBalance: m.walletCoinsByUser[trimmedUserID]}, nil
+}
+
 func (m *runtimeStore) topUpWalletCoins(userID string, amount int, _ string) (userWalletView, error) {
 	trimmedUserID := strings.TrimSpace(userID)
 	if trimmedUserID == "" {

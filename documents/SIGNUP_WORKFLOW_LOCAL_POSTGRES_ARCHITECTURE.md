@@ -60,7 +60,7 @@ scripts/migrate_local_postgres.sh
 The default DSN is:
 
 ```text
-postgresql://dating_app@127.0.0.1:55432/dating_app?sslmode=disable
+postgresql://dating_app@127.0.0.1:55433/dating_app?sslmode=disable
 ```
 
 The rebuild script is destructive only to this dedicated `dating_app` database.

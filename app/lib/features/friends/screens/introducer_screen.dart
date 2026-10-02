@@ -149,7 +149,7 @@ class _IntroducerScreenState extends ConsumerState<IntroducerScreen> {
             padding: const EdgeInsets.all(24),
             children: [
               Container(
-                padding: const EdgeInsets.all(26),
+                padding: const EdgeInsets.all(28),
                 decoration: BoxDecoration(
                   color: colors.primaryContainer,
                   borderRadius: BorderRadius.circular(28),
@@ -232,9 +232,9 @@ class _IntroducerScreenState extends ConsumerState<IntroducerScreen> {
                       ),
                     for (final c in items)
                       Card(
-                        margin: const EdgeInsets.symmetric(vertical: 6),
+                        margin: const EdgeInsets.symmetric(vertical: 8),
                         child: Padding(
-                          padding: const EdgeInsets.all(18),
+                          padding: const EdgeInsets.all(20),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -505,7 +505,7 @@ class _IntroducerScreenState extends ConsumerState<IntroducerScreen> {
   Widget _composer(List<IntroducerConnection> people) {
     if (people.length < 2)
       return const Padding(
-        padding: EdgeInsets.only(top: 22),
+        padding: EdgeInsets.only(top: 24),
         child: Text(
           'Once two friends give permission, you can suggest an introduction here.',
         ),
@@ -515,7 +515,7 @@ class _IntroducerScreenState extends ConsumerState<IntroducerScreen> {
         ? _second
         : null;
     return Padding(
-      padding: const EdgeInsets.only(top: 26),
+      padding: const EdgeInsets.only(top: 28),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

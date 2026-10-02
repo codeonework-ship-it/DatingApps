@@ -2,6 +2,7 @@ from django.urls import path
 
 from . import views, views_city_pilot, views_blog, views_group_covers, views_photo_themes, views_rooms
 from . import views_client_errors
+from . import views_support
 from . import views_business
 from . import views_analytics
 
@@ -70,9 +71,27 @@ urlpatterns = [
     path("appeals/", views.appeal_queue, name="appeal_queue"),
     path("appeals/<str:appeal_id>/action/", views.action_appeal, name="action_appeal"),
 
-    # ── Member support / growth governance ───────────────────────────────────
-    path("support/", views.support_queue, name="support_queue"),
-    path("support/<str:ticket_id>/action/", views.support_ticket_action, name="support_ticket_action"),
+    # ── Support tickets (views_support.py) ───────────────────────────────────
+    path("support/", views_support.support_queue, name="support_queue"),
+    path("support/export/", views_support.support_export, name="support_export"),
+    path("support/bulk/", views_support.support_bulk, name="support_bulk"),
+    path("support/dashboard/", views_support.support_dashboard, name="support_dashboard"),
+    path("support/canned/", views_support.support_canned_responses, name="support_canned_responses"),
+    path("support/canned/save/", views_support.support_canned_save, name="support_canned_save"),
+    path("support/canned/<uuid:response_id>/deactivate/", views_support.support_canned_deactivate, name="support_canned_deactivate"),
+    path("support/attachments/<uuid:attachment_id>/", views_support.support_attachment, name="support_attachment"),
+    path("support/tickets/<uuid:ticket_id>/", views_support.support_ticket_detail, name="support_ticket_detail"),
+    path("support/tickets/<uuid:ticket_id>/reply/", views_support.support_ticket_reply, name="support_ticket_reply"),
+    path("support/tickets/<uuid:ticket_id>/update/", views_support.support_ticket_update, name="support_ticket_update"),
+    path("support/tickets/<uuid:ticket_id>/claim/", views_support.support_ticket_claim, name="support_ticket_claim"),
+    path("support/tickets/<uuid:ticket_id>/merge/", views_support.support_ticket_merge, name="support_ticket_merge"),
+    path(
+        "support/tickets/<uuid:ticket_id>/canned/<uuid:response_id>/preview/",
+        views_support.support_canned_preview,
+        name="support_canned_preview",
+    ),
+    # ── Growth governance (P2 launch register) ────────────────────────────────
+    path("growth/governance/", views.growth_governance, name="growth_governance"),
 
     # ── Moderation Reports ────────────────────────────────────────────────────
     path("moderation/reports/", views.moderation_reports, name="moderation_reports"),

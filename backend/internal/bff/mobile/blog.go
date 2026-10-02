@@ -18,11 +18,14 @@ type blogPhoto struct {
 	Alt string `json:"alt_text"`
 }
 type blogPost struct {
-	ID         string      `json:"id"`
-	AuthorID   string      `json:"author_id"`
-	AuthorName string      `json:"author_name"`
-	Title      string      `json:"title"`
-	Body       string      `json:"body"`
+	ID         string `json:"id"`
+	AuthorID   string `json:"author_id"`
+	AuthorName string `json:"author_name"`
+	Title      string `json:"title"`
+	Body       string `json:"body"`
+	// Content is the formatted chapter (rich_text.go), or null for plain-text
+	// chapters. Body is always its derived plain text.
+	Content    *richDoc    `json:"content"`
 	Audience   string      `json:"audience"`
 	Invitation string      `json:"invitation"`
 	Version    int         `json:"version"`
@@ -52,6 +55,7 @@ type blogDraft struct {
 	Version                           int
 	AllowFeaturing                    bool
 	Topic                             string
+	Content                           *richDoc
 }
 
 // Shared by list, detail and image reads. Each side must be an active adult
@@ -72,7 +76,7 @@ const blogVisible = `p.deleted_at IS NULL
       AND (SELECT COUNT(*) FROM user_management.photos ph WHERE ph.user_id=u.id AND ph.deleted_at IS NULL AND ph.lifecycle_status='active' AND ph.moderation_status='approved')>=2)
       AND EXISTS(SELECT 1 FROM user_management.users v WHERE v.id=$1::uuid AND v.profile_completion=100 AND (SELECT COUNT(*) FROM user_management.photos vp WHERE vp.user_id=v.id AND vp.deleted_at IS NULL AND vp.lifecycle_status='active' AND vp.moderation_status='approved')>=2)))
  ))`
-const blogSelect = `SELECT p.id::text,p.author_id::text,COALESCE(u.name,''),p.title,p.body,p.audience,p.invitation,p.version,p.created_at,p.updated_at,p.moderation_state
+const blogSelect = `SELECT p.id::text,p.author_id::text,COALESCE(u.name,''),p.title,p.body,p.audience,p.invitation,p.version,p.created_at,p.updated_at,p.moderation_state,p.content
  FROM matching.blog_posts p JOIN user_management.users u ON u.id=p.author_id WHERE ` + blogVisible
 
 func parseBlogDraft(body map[string]any) (blogDraft, error) {
@@ -83,6 +87,17 @@ func parseBlogDraft(body map[string]any) (blogDraft, error) {
 	}
 	d.Version = int(version)
 	d.Topic = strings.TrimSpace(toString(body["topic"]))
+	// Formatted clients send content; the stored body is always derived from it
+	// so search, excerpts and older clients read the same words. Clients that
+	// send only body keep working and save a plain-text chapter.
+	content, err := parseRichDoc(body["content"], blogRichLimits)
+	if err != nil {
+		return d, err
+	}
+	if content != nil {
+		d.Content = content
+		d.Body = strings.TrimSpace(richPlainText(content))
+	}
 	// Featuring is opt-in and only meaningful for community chapters.
 	if allow, isBool := body["allow_featuring"].(bool); isBool {
 		d.AllowFeaturing = allow && d.Audience == "community"
@@ -104,10 +119,12 @@ func parseBlogDraft(body map[string]any) (blogDraft, error) {
 
 func scanBlog(row interface{ Scan(...any) error }) (blogPost, error) {
 	p := blogPost{Photos: []blogPhoto{}}
-	err := row.Scan(&p.ID, &p.AuthorID, &p.AuthorName, &p.Title, &p.Body, &p.Audience, &p.Invitation, &p.Version, &p.Created, &p.Updated, &p.Moderation)
+	var content []byte
+	err := row.Scan(&p.ID, &p.AuthorID, &p.AuthorName, &p.Title, &p.Body, &p.Audience, &p.Invitation, &p.Version, &p.Created, &p.Updated, &p.Moderation, &content)
 	if errors.Is(err, sql.ErrNoRows) {
 		return p, errDatePlanNotFound
 	}
+	p.Content = decodeStoredRichDoc(content)
 	return p, err
 }
 
@@ -142,9 +159,15 @@ func readBlog(ctx context.Context, q blogQuerier, actor, id string) (blogPost, e
 	}
 	return p, fillBlogSocial(ctx, q, actor, &p)
 }
+// lockBlogAuthor serialises one member's writes and checks they are active.
+// FOR NO KEY UPDATE, not FOR UPDATE: it still excludes the member's other
+// writes, an account update and a delete, but lets another member's
+// transaction insert rows that reference this member (a foreign key check takes
+// FOR KEY SHARE). With FOR UPDATE two members friending each other at the same
+// moment deadlocked on each other's users row (API-09).
 func lockBlogAuthor(ctx context.Context, tx *sql.Tx, actor string) error {
 	var id string
-	err := tx.QueryRowContext(ctx, `SELECT u.id::text FROM user_management.users u WHERE u.id=$1 AND `+blogActive+` FOR UPDATE`, actor).Scan(&id)
+	err := tx.QueryRowContext(ctx, `SELECT u.id::text FROM user_management.users u WHERE u.id=$1 AND `+blogActive+` FOR NO KEY UPDATE`, actor).Scan(&id)
 	if errors.Is(err, sql.ErrNoRows) {
 		return errDatePlanForbidden
 	}
@@ -196,7 +219,7 @@ func saveBlog(ctx context.Context, db *sql.DB, actor, id string, d blogDraft) (b
 				return blogPost{}, err
 			}
 			// Lost-success retry with the exact same representation is a readback.
-			if existing.Version == d.Version+1 && existing.Title == d.Title && existing.Body == d.Body && existing.Audience == d.Audience && existing.Invitation == d.Invitation && existing.AllowFeaturing == d.AllowFeaturing && existing.Topic == d.Topic {
+			if existing.Version == d.Version+1 && existing.Title == d.Title && existing.Body == d.Body && existing.Audience == d.Audience && existing.Invitation == d.Invitation && existing.AllowFeaturing == d.AllowFeaturing && existing.Topic == d.Topic && richDocEqual(existing.Content, d.Content) {
 				return readBlog(ctx, tx, actor, id)
 			}
 			return blogPost{}, errDatingConflict
@@ -227,7 +250,13 @@ func saveBlog(ctx context.Context, db *sql.DB, actor, id string, d blogDraft) (b
 	if err = tx.QueryRowContext(ctx, `SELECT published_at IS NOT NULL FROM matching.blog_posts WHERE id=$1`, id).Scan(&publishedBefore); err != nil {
 		return blogPost{}, err
 	}
-	_, err = tx.ExecContext(ctx, `UPDATE matching.blog_posts SET title=$2,body=$3,audience=$4,invitation=$5,version=version+CASE WHEN $6 THEN 0 ELSE 1 END,updated_at=NOW(),published_at=CASE WHEN $4<>'private' THEN COALESCE(published_at,NOW()) ELSE published_at END,allow_featuring=$7,topic_slug=NULLIF($8,'') WHERE id=$1`, id, d.Title, d.Body, d.Audience, d.Invitation, created, d.AllowFeaturing, d.Topic)
+	content, err := richDocJSON(d.Content)
+	if err != nil {
+		return blogPost{}, err
+	}
+	// A plain-text save (older client) clears formatting so content never
+	// disagrees with body.
+	_, err = tx.ExecContext(ctx, `UPDATE matching.blog_posts SET title=$2,body=$3,audience=$4,invitation=$5,version=version+CASE WHEN $6 THEN 0 ELSE 1 END,updated_at=NOW(),published_at=CASE WHEN $4<>'private' THEN COALESCE(published_at,NOW()) ELSE published_at END,allow_featuring=$7,topic_slug=NULLIF($8,''),content=$9::jsonb WHERE id=$1`, id, d.Title, d.Body, d.Audience, d.Invitation, created, d.AllowFeaturing, d.Topic, content)
 	if err != nil {
 		return blogPost{}, err
 	}

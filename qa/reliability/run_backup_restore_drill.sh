@@ -2,7 +2,7 @@
 set -euo pipefail
 
 root_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-source_url="${LOCAL_DATABASE_URL:-postgresql://dating_app@127.0.0.1:55432/dating_app?sslmode=disable}"
+source_url="${LOCAL_DATABASE_URL:-postgresql://dating_app@127.0.0.1:55433/dating_app?sslmode=disable}"
 psql_bin="${PSQL_BIN:-/opt/homebrew/opt/postgresql@17/bin/psql}"
 pg_dump_bin="${PG_DUMP_BIN:-/opt/homebrew/opt/postgresql@17/bin/pg_dump}"
 createdb_bin="${CREATEDB_BIN:-/opt/homebrew/opt/postgresql@17/bin/createdb}"
@@ -15,7 +15,7 @@ case "$source_url" in
 esac
 
 host="${LOCAL_POSTGRES_HOST:-127.0.0.1}"
-port="${LOCAL_POSTGRES_PORT:-55432}"
+port="${LOCAL_POSTGRES_PORT:-55433}"
 user="${LOCAL_POSTGRES_USER:-dating_app}"
 restore_db="dating_app_restore_drill_$$"
 artifact="${QA_BACKUP_ARTIFACT:-${TMPDIR:-/tmp}/local-backup-$restore_db.dump}"

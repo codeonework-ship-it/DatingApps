@@ -6,13 +6,7 @@ from api_client import extract_items
 
 
 def _open_discovery(app) -> None:
-    app.sign_in_existing_user()
-    app.open_tab("Discover")
-    app.assert_any_text_visible(
-        "Discover Matches",
-        "Find meaningful verified matches",
-        timeout=25,
-    )
+    app.open_discovery_deck()
 
 
 def _open_filters(app) -> None:

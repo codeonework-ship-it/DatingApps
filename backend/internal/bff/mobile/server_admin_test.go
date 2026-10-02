@@ -217,7 +217,7 @@ func TestServer_AdminAnalyticsOverviewIncludesFeatureFlagsAndFunnelMetrics(t *te
 			Status:   "success",
 			Resource: "/v1/matches/match-analytics-1/quest-workflow/submit",
 			Details: map[string]any{
-				"unlock_policy_variant": "require_quest_template",
+				"unlock_policy_variant": "allow_without_template",
 			},
 			CreatedAt: now,
 		},
@@ -227,7 +227,7 @@ func TestServer_AdminAnalyticsOverviewIncludesFeatureFlagsAndFunnelMetrics(t *te
 			Status:   "client_error",
 			Resource: "/chat/match-analytics-1/messages",
 			Details: map[string]any{
-				"unlock_policy_variant": "require_quest_template",
+				"unlock_policy_variant": "allow_without_template",
 			},
 			CreatedAt: now,
 		},
@@ -250,8 +250,8 @@ func TestServer_AdminAnalyticsOverviewIncludesFeatureFlagsAndFunnelMetrics(t *te
 	if !ok {
 		t.Fatalf("expected metrics payload")
 	}
-	if got := toString(metricsMap["unlock_policy_variant"]); got != "require_quest_template" {
-		t.Fatalf("expected unlock_policy_variant require_quest_template, got %q", got)
+	if got := toString(metricsMap["unlock_policy_variant"]); got != "allow_without_template" {
+		t.Fatalf("expected unlock_policy_variant allow_without_template, got %q", got)
 	}
 	compliance, ok := metricsMap["monetization_policy_compliance"].(map[string]any)
 	if !ok {

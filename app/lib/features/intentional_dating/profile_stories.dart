@@ -4,6 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/api_error_message.dart';
 import '../../core/providers/api_client_provider.dart';
+import '../../core/rich_text/rich_document.dart';
+import '../../core/rich_text/rich_document_view.dart';
+import '../../core/rich_text/rich_text_controller.dart';
+import '../../core/rich_text/rich_text_editor.dart';
 import '../../core/theme/app_theme.dart';
 import '../auth/providers/auth_provider.dart';
 
@@ -79,6 +83,36 @@ class _StoryEditorState extends ConsumerState<_StoryEditor> {
   bool saving = false, preview = false;
   int sequence = 0;
   String? error;
+
+  /// One formatted editor per story, keyed by the story's local `_key`.
+  final editors = <Object?, RichTextController>{};
+  RichTextController editorFor(Map<String, dynamic> story) =>
+      editors.putIfAbsent(
+        story['_key'],
+        () => RichTextController(
+          document: storyDocument(story),
+          style: defaultStoryStyle,
+        ),
+      );
+
+  @override
+  void dispose() {
+    for (final c in editors.values) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  /// The story as the server will store it (text derived from the editor).
+  Map<String, dynamic> current(Map<String, dynamic> story) {
+    final editor = editorFor(story);
+    return {
+      ...story,
+      'text': editor.text.trim(),
+      'content': editor.document.toJson(),
+    };
+  }
+
   List<Map<String, dynamic>> get photos =>
       (widget.initial['photos'] as List? ?? [])
           .whereType<Map<dynamic, dynamic>>()
@@ -102,7 +136,7 @@ class _StoryEditorState extends ConsumerState<_StoryEditor> {
   Future<void> save() async {
     final invalid = stories.any(
       (s) =>
-          (s['text'] as String? ?? '').trim().isEmpty ||
+          editorFor(s).text.trim().isEmpty ||
           ((s['photo_id'] as String? ?? '').isNotEmpty &&
               (s['photo_description'] as String? ?? '').trim().isEmpty),
     );
@@ -127,10 +161,13 @@ class _StoryEditorState extends ConsumerState<_StoryEditor> {
               'expected_version': widget.initial['version'] ?? 0,
               'published': stories.isNotEmpty && published,
               'stories': stories
+                  .map(current)
                   .map(
                     (s) => {
                       'prompt_id': s['prompt_id'],
+                      // Derived from content on the server.
                       'text': s['text'] ?? '',
+                      'content': s['content'],
                       if ((s['photo_id'] as String? ?? '').isNotEmpty)
                         'photo_id': s['photo_id'],
                       if ((s['photo_id'] as String? ?? '').isNotEmpty)
@@ -212,7 +249,8 @@ class _StoryEditorState extends ConsumerState<_StoryEditor> {
             if (preview) ...[
               const Text('PREVIEW · THIS DOES NOT PUBLISH'),
               const SizedBox(height: 12),
-              for (final story in stories) StoryMomentCard(story: story),
+              for (final story in stories)
+                StoryMomentCard(story: current(story)),
             ] else ...[
               for (var i = 0; i < stories.length; i++) _editor(stories[i], i),
               if (stories.length < 3)
@@ -286,7 +324,10 @@ class _StoryEditorState extends ConsumerState<_StoryEditor> {
                 tooltip: 'Remove story ${index + 1}',
                 onPressed: saving
                     ? null
-                    : () => setState(() => stories.remove(story)),
+                    : () => setState(() {
+                        stories.remove(story);
+                        editors.remove(story['_key'])?.dispose();
+                      }),
                 icon: const Icon(Icons.close_rounded),
               ),
             ],
@@ -317,21 +358,19 @@ class _StoryEditorState extends ConsumerState<_StoryEditor> {
                 : (v) => setState(() => story['prompt_id'] = v),
           ),
           const SizedBox(height: 16),
-          TextFormField(
-            key: ValueKey('qa.stories.text.${story['_key']}'),
-            initialValue: story['text'] as String? ?? '',
+          RichTextEditor(
+            controller: editorFor(story),
+            fieldKey: ValueKey('qa.stories.text.${story['_key']}'),
+            keyPrefix: 'stories.editor.${story['_key']}',
             minLines: 3,
             maxLines: 7,
             maxLength: 400,
             enabled: !saving,
-            decoration: const InputDecoration(
-              labelText: 'In your words',
-              hintText: 'A real detail makes it yours.',
-            ),
+            label: 'In your words',
+            hint: 'A real detail makes it yours.',
             validator: (v) => (v ?? '').trim().isEmpty
                 ? 'Add a few words, or remove this story.'
                 : null,
-            onChanged: (v) => story['text'] = v,
           ),
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
@@ -379,52 +418,115 @@ class _StoryEditorState extends ConsumerState<_StoryEditor> {
   );
 }
 
+/// A story's formatting. With [plainFallback], plain-text stories open as
+/// paragraphs in the default story style (for editing); otherwise null.
+RichDocument? storyDocument(
+  Map<String, dynamic> story, {
+  bool plainFallback = true,
+}) =>
+    RichDocument.tryParse(story['content'], fallbackStyle: defaultStoryStyle) ??
+    (plainFallback
+        ? RichDocument.fromPlainText(
+            story['text'] as String? ?? '',
+            style: defaultStoryStyle,
+          )
+        : null);
+
+/// One story as a scene card: a widescreen still (when the story has a
+/// photo), the prompt as a small title and the member's words in their
+/// writing style.
 class StoryMomentCard extends StatelessWidget {
-  const StoryMomentCard({super.key, required this.story});
+  const StoryMomentCard({required this.story, super.key});
   final Map<String, dynamic> story;
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final photo = story['photo_url'] as String? ?? '';
-    return Card(
+    final description = (story['photo_description'] as String? ?? '').trim();
+    return Container(
       clipBehavior: Clip.antiAlias,
       margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: scheme.outlineVariant),
+      ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (photo.isNotEmpty)
             Semantics(
               image: true,
-              label:
-                  story['photo_description'] as String? ??
-                  'Profile story photo',
+              label: description.isEmpty ? 'Profile story photo' : description,
               child: ExcludeSemantics(
                 child: AspectRatio(
-                  aspectRatio: 1.5,
+                  // A widescreen still, like a frame from the member's day.
+                  aspectRatio: 1.85,
                   child: Image.network(
                     photo,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const Center(
-                      child: Icon(Icons.image_not_supported_outlined),
+                    errorBuilder: (_, _, _) => DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            scheme.primaryContainer,
+                            scheme.tertiaryContainer,
+                          ],
+                        ),
+                      ),
+                      child: Center(
+                        child: Icon(
+                          Icons.photo_camera_back_outlined,
+                          size: 32,
+                          color: scheme.onPrimaryContainer.withValues(
+                            alpha: 0.6,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
           Padding(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  storyPrompts[story['prompt_id']] ?? 'A little more me',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8, right: 8),
+                      child: Container(
+                        width: 16,
+                        height: 2,
+                        color: scheme.primary,
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        storyPrompts[story['prompt_id']] ?? 'A little more me',
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          color: scheme.primary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 12),
-                Text(
-                  story['text'] as String? ?? '',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                // Formatted stories use their writing style; plain stories
+                // keep the original look.
+                RichBody(
+                  document: storyDocument(story, plainFallback: false),
+                  plainText: story['text'] as String? ?? '',
+                  selectable: false,
+                  scale: 1.2,
+                  legacyStyle: theme.textTheme.titleLarge?.copyWith(
                     fontFamily: AppTheme.displayFamily,
                     height: 1.4,
                   ),
@@ -438,9 +540,16 @@ class StoryMomentCard extends StatelessWidget {
   }
 }
 
+/// A member's published stories on their profile. Renders nothing while
+/// loading, when there are none, or when they are not published (so a
+/// member previewing their own profile sees what others see).
+///
+/// [frame] wraps the cards in the host's own section styling; by default
+/// they sit under a "A little more me" heading.
 class ProfileStoriesSection extends ConsumerWidget {
-  const ProfileStoriesSection({super.key, required this.userId});
+  const ProfileStoriesSection({required this.userId, super.key, this.frame});
   final String userId;
+  final Widget Function(BuildContext context, Widget stories)? frame;
   @override
   Widget build(BuildContext context, WidgetRef ref) => ref
       .watch(profileStoriesProvider(userId))
@@ -457,18 +566,32 @@ class ProfileStoriesSection extends ConsumerWidget {
           final stories = (data['stories'] as List? ?? [])
               .whereType<Map<dynamic, dynamic>>()
               .toList();
-          if (stories.isEmpty) return const SizedBox.shrink();
+          if (stories.isEmpty || data['published'] == false) {
+            return const SizedBox.shrink();
+          }
+          final cards = Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (final story in stories)
+                StoryMomentCard(story: story.cast<String, dynamic>()),
+            ],
+          );
+          final framed = frame;
+          if (framed != null) {
+            return framed(context, cards);
+          }
           return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 24),
               Text(
                 'A little more me',
-                style: Theme.of(context).textTheme.headlineSmall,
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontFamily: AppTheme.displayFamily,
+                ),
               ),
               const SizedBox(height: 12),
-              for (final story in stories)
-                StoryMomentCard(story: story.cast<String, dynamic>()),
+              cards,
             ],
           );
         },

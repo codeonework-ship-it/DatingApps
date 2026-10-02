@@ -94,12 +94,12 @@
 </div>
 <div class="queue-grid mb-5">
   {% for queue in queue_cards %}
-  <a href="{% url queue.url_name %}" class="queue-card {{ queue.tone }}">
+  <a href="{% if queue.href %}{{ queue.href }}{% else %}{% url queue.url_name %}{% endif %}" class="queue-card {{ queue.tone }}">
     <div class="queue-count">{{ queue.count }}</div>
     <div class="queue-name">{{ queue.label }}</div>
     <div class="queue-meta">
       <span>{{ queue.overdue }} overdue</span>
-      <span>Oldest {{ queue.oldest_minutes }}m</span>
+      {% if queue.at_risk is not None %}<span>{{ queue.at_risk }} at risk</span>{% else %}<span>Oldest {{ queue.oldest_minutes }}m</span>{% endif %}
       <span>Target {{ queue.target }}</span>
     </div>
   </a>

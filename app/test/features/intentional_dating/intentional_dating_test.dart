@@ -210,6 +210,39 @@ void main() {
     await tester.pumpAndSettle();
     expect(api.saves.last['intent'], 'relationship');
   });
+  // WEB-11: the chat's connection card opens First Chapter Studio, and the
+  // chemistry moment must still be reachable from the same card.
+  testWidgets('connection card keeps a way into A little chemistry', (
+    tester,
+  ) async {
+    final updates = StreamController<Map<String, dynamic>>();
+    addTearDown(updates.close);
+    await tester.pumpWidget(
+      host(
+        const Scaffold(body: DatingConnectionCard(matchId: 'm')),
+        _Api(),
+        connection: updates.stream,
+      ),
+    );
+    updates.add({
+      'reasons': ['You both enjoy coffee'],
+      'moment': null,
+    });
+    await tester.pumpAndSettle();
+    // First Chapter Studio stays the primary action.
+    expect(find.text('Create your first chapter'), findsOneWidget);
+    final entry = find.byKey(const ValueKey('qa.connection.chemistry'));
+    expect(entry, findsOneWidget);
+    expect(find.text('A little chemistry?'), findsOneWidget);
+
+    await tester.tap(entry);
+    await tester.pumpAndSettle();
+    expect(find.byType(ChemistrySheet), findsOneWidget);
+    expect(find.text('A little chemistry'), findsOneWidget);
+    expect(find.text('You both enjoy coffee'), findsOneWidget);
+    expect(find.text('Build a Sunday'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
   testWidgets('chemistry reveals answers together without gating chat', (
     tester,
   ) async {

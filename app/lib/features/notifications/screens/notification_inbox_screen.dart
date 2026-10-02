@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
 import '../../friends/screens/friends_screen.dart';
+import '../../support/support_routes.dart';
 import '../../swipe/screens/liked_me_screen.dart';
 import '../providers/notification_provider.dart';
 
@@ -91,6 +92,11 @@ class NotificationInboxScreen extends ConsumerWidget {
                                     builder: (_) => const LikedMeScreen(),
                                   ),
                                 );
+                              }
+                              // Support replies and status changes open
+                              // the ticket thread.
+                              if (item.eventType.startsWith('support.')) {
+                                openSupportRoute(context, item.actionRoute);
                               }
                               // Friend requests and accepts open Friends.
                               if (item.eventType.startsWith(

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	profileapp "github.com/verified-dating/backend/internal/modules/profile/application"
 )
 
@@ -310,7 +311,7 @@ func (r *profileRepository) reorderPhotosPostgres(
 		return profileDraft{}, err
 	}
 	if len(photoIDs) != len(draft.Photos) {
-		return profileDraft{}, errors.New("photo_ids must include every active photo")
+		return profileDraft{}, &photoOrderError{msg: "photo_ids must include every active photo"}
 	}
 	byID := make(map[string]profilePhoto, len(draft.Photos))
 	for _, photo := range draft.Photos {
@@ -320,7 +321,7 @@ func (r *profileRepository) reorderPhotosPostgres(
 	for index, photoID := range photoIDs {
 		photo, ok := byID[photoID]
 		if !ok {
-			return profileDraft{}, errors.New("photo_ids contain an unknown or duplicate photo")
+			return profileDraft{}, &photoOrderError{msg: "photo_ids contain an unknown or duplicate photo"}
 		}
 		delete(byID, photoID)
 		photo.Ordering = index
@@ -505,10 +506,47 @@ func (r *profileRepository) bootstrapSignupPostgres(ctx context.Context, input s
 	return copyDraft(draft), !exists, nil
 }
 
+// serializableAttempts bounds how often a SERIALIZABLE transaction is re-run
+// after Postgres cancels it with a serialization failure.
+const serializableAttempts = 3
+
+// isSerializationFailure reports SQLSTATE 40001. Postgres asks the client to
+// retry the whole transaction; nothing of the failed attempt was committed.
+func isSerializationFailure(err error) bool {
+	var pgErr *pgconn.PgError
+	return errors.As(err, &pgErr) && pgErr.Code == "40001"
+}
+
+// retrySerializable runs fn (one complete transaction) again when it fails
+// with a serialization failure, up to attempts times, with a short backoff.
+func retrySerializable(ctx context.Context, attempts int, fn func() error) error {
+	var err error
+	for attempt := 1; ; attempt++ {
+		if err = fn(); err == nil || !isSerializationFailure(err) || attempt >= attempts {
+			return err
+		}
+		select {
+		case <-ctx.Done():
+			return err
+		case <-time.After(time.Duration(attempt) * 15 * time.Millisecond):
+		}
+	}
+}
+
+// completeProfilePostgres is the last signup step. Its SERIALIZABLE
+// transaction fires audit and outbox triggers that write shared tables, so
+// concurrent signups can cancel it with 40001; that is retried instead of
+// surfacing as a 502 (API-23).
 func (r *profileRepository) completeProfilePostgres(ctx context.Context, draft profileDraft) error {
 	if err := validateDraftReadyForCompletion(draft); err != nil {
 		return err
 	}
+	return retrySerializable(ctx, serializableAttempts, func() error {
+		return r.completeProfilePostgresOnce(ctx, draft)
+	})
+}
+
+func (r *profileRepository) completeProfilePostgresOnce(ctx context.Context, draft profileDraft) error {
 	draft.ProfileCompletion = 100
 	payload, err := json.Marshal(draft)
 	if err != nil {
@@ -527,7 +565,7 @@ func (r *profileRepository) completeProfilePostgres(ctx context.Context, draft p
 		return err
 	}
 	if !termsAccepted {
-		return errors.New("terms must be accepted before completing profile")
+		return completionProblem(errors.New("terms must be accepted before completing profile"))
 	}
 	var approvedPhotos int
 	if err = tx.QueryRowContext(ctx, `
@@ -537,7 +575,7 @@ func (r *profileRepository) completeProfilePostgres(ctx context.Context, draft p
 		return err
 	}
 	if approvedPhotos < len(draft.Photos) {
-		return errors.New("all profile photos must be approved before profile completion")
+		return completionProblem(errors.New("all profile photos must be approved before profile completion"))
 	}
 	if _, err = tx.ExecContext(ctx, `
 		UPDATE user_management.users SET

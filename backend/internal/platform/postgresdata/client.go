@@ -15,6 +15,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -76,6 +77,8 @@ func Open(ctx context.Context, databaseURL string, options ...Options) (*Client,
 	setRuntimeTimeout(cfg.ConnConfig.RuntimeParams, "statement_timeout", settings.StatementTimeout)
 	setRuntimeTimeout(cfg.ConnConfig.RuntimeParams, "lock_timeout", settings.LockTimeout)
 	setRuntimeTimeout(cfg.ConnConfig.RuntimeParams, "idle_in_transaction_session_timeout", settings.IdleTransactionTimeout)
+	setSessionTimeZoneUTC(cfg.ConnConfig.RuntimeParams)
+	cfg.AfterConnect = scanTimestamptzInUTC
 
 	pool, err := pgxpool.NewWithConfig(ctx, cfg)
 	if err != nil {
@@ -215,6 +218,15 @@ func (c *Client) Delete(ctx context.Context, schema, table string, filters url.V
 		return nil, errors.New("refusing unfiltered delete")
 	}
 	return c.queryMaps(ctx, "DELETE FROM "+qualified+whereSQL+" RETURNING *", args...)
+}
+
+// QueryRows runs a fixed, caller-written statement with bound arguments and
+// returns rows in the same normalised map form as Select. It exists for the
+// few hot reads the PostgREST-style filter surface cannot express efficiently
+// (per-key LATERAL ... LIMIT 1, GROUP BY counts); never build query text from
+// request input.
+func (c *Client) QueryRows(ctx context.Context, query string, args ...any) ([]map[string]any, error) {
+	return c.queryMaps(ctx, query, args...)
 }
 
 func (c *Client) queryMaps(ctx context.Context, query string, args ...any) ([]map[string]any, error) {
@@ -615,6 +627,8 @@ func normalizeValue(value any) any {
 		return typed.UTC().Format(time.RFC3339Nano)
 	case uuid.UUID:
 		return typed.String()
+	case pgtype.Numeric:
+		return normalizeNumeric(typed)
 	case []byte:
 		return string(typed)
 	case int:
@@ -657,6 +671,29 @@ func normalizeValue(value any) any {
 		return result
 	}
 	return fmt.Sprint(value)
+}
+
+// normalizeNumeric keeps PostgREST's contract for NUMERIC columns: a JSON
+// number. Without this, pgtype.Numeric fell through to fmt.Sprint and leaked
+// its struct form (e.g. "{499 -2 false finite true}") to callers.
+func normalizeNumeric(value pgtype.Numeric) any {
+	if !value.Valid {
+		return nil
+	}
+	if value.NaN {
+		return "NaN"
+	}
+	switch value.InfinityModifier {
+	case pgtype.Infinity:
+		return "Infinity"
+	case pgtype.NegativeInfinity:
+		return "-Infinity"
+	}
+	f, err := value.Float64Value()
+	if err != nil || !f.Valid {
+		return nil
+	}
+	return f.Float64
 }
 
 func normalizeUUID(value any) (string, bool) {

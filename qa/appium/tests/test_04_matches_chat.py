@@ -78,30 +78,41 @@ def _message_exists(api_client, match_id: str, message_text: str) -> bool:
     )
 
 
-def _open_first_chat(app, match_name: str | None = None) -> None:
-    """Open the first match's chat.
+def _open_first_chat(app, match_name: str | None = None, match_id: str | None = None) -> None:
+    """Open a match's chat from Matches → Conversations.
 
-    This used to hunt for a fixed list of names — "Seed", "Thane", "Mumbai",
-    "Kalyan", "Member" — left over from an older seed set. Against a database
-    whose match is called anything else the row is never found, and the test
-    fails as though chat were broken. The name is now passed in from the API
-    response, with the old list kept only as a fallback.
+    With intentional dating on, the Matches tab opens on its "Discover" view
+    (the swipe deck) and remembers the last view, so the Conversations chip
+    is picked explicitly. Rows there carry `qa.matches.match_row.<id>`; the
+    display name from the API is the fallback.
     """
-    app.open_tab("Matches")
-    app.assert_any_text_visible("Matches", "Your Matches", "New matches", timeout=25)
-
+    app.open_matches_view("Conversations")
     opened = False
-    if match_name:
+    if match_id:
+        locator = f"qa.matches.match_row.{match_id}"
+        if not app.is_qa_visible(locator, timeout=5):
+            # A match created moments ago: pull to refresh the list once.
+            size = app.driver.get_window_size()
+            x = size["width"] // 2
+            app.driver.swipe(x, int(size["height"] * 0.35), x, int(size["height"] * 0.8), 600)
+            time.sleep(2)
+        try:
+            app.scroll_to_text(locator, timeout=20)
+            app.tap_qa(locator, timeout=5)
+            opened = True
+        except Exception:  # noqa: BLE001 - fall back to the visible name
+            opened = False
+    if not opened and match_name:
         opened = app.maybe_tap_contains(match_name, timeout=5)
-    if not opened:
-        for candidate in ["Seed", "Thane", "Mumbai", "Kalyan", "Member"]:
-            if app.maybe_tap_contains(candidate, timeout=2):
-                opened = True
-                break
-    if not opened:
-        app.tap_first_visible_text(["Chat", "Message", "Open"], timeout=10)
+    assert opened, f"Could not open the chat row for match {match_id or match_name!r}"
+    app.assert_any_text_visible("Write a message…", "qa.chat.composer", "qa.chat.locked_banner", timeout=20)
 
-    app.assert_any_text_visible("Chat", "Type a message", "Message", timeout=20)
+
+def _send_from_composer(app, text: str) -> None:
+    app.type_into_qa("qa.chat.composer", text, timeout=8)
+    app.hide_keyboard()
+    if not app.maybe_tap_qa("qa.chat.send_button", timeout=3):
+        app.tap_first_visible_text(["Send message"], timeout=10)
 
 
 @pytest.mark.requires_appium
@@ -124,8 +135,7 @@ def test_matches_and_chat_message(app, appium_config, api_client, qa_user_id):
     match_id = _first_match_id(api_client, qa_user_id)
     unlocked, unlock_state = _chat_is_unlocked(api_client, match_id)
 
-    app.sign_in_existing_user()
-    _open_first_chat(app, _match_display_name(match))
+    _open_first_chat(app, _match_display_name(match), match_id)
 
     if not unlocked:
         # Locked contract: the banner explains the gate and nothing is stored.
@@ -140,11 +150,8 @@ def test_matches_and_chat_message(app, appium_config, api_client, qa_user_id):
         )
         return
 
-    app.type_into_first_empty_edit_text(appium_config.chat_message)
-    app.hide_keyboard()
-    if not app.maybe_tap_qa("qa.chat.send_button", timeout=5):
-        app.tap_first_visible_text(["Send", "➤"], timeout=10)
-    app.assert_any_text_visible(appium_config.chat_message, "sent", "Delivered", timeout=20)
+    _send_from_composer(app, appium_config.chat_message)
+    app.assert_any_text_visible(appium_config.chat_message, timeout=20)
     assert _message_exists(api_client, match_id, appium_config.chat_message)
 
 
@@ -155,42 +162,66 @@ def test_matches_and_chat_message(app, appium_config, api_client, qa_user_id):
 def test_chat_empty_message_is_blocked(app, api_client, qa_user_id):
     match = _first_unlocked_match(api_client, qa_user_id)
     match_id = str(first_id([match], "match_id", "id"))
-    app.sign_in_existing_user()
-    _open_first_chat(app, _match_display_name(match))
+    _open_first_chat(app, _match_display_name(match), match_id)
 
-    fields = app.edit_texts()
-    assert fields and all(not field.get_attribute("text") for field in fields)
+    composer = app.wait_for_field_hint("Write a message…", timeout=15)
+    assert (composer.get_attribute("text") or "") in ("", "Write a message…"), "composer is not empty"
     before = extract_items(api_client.get(f"/chat/{match_id}/messages").require_status(200).body, "messages")
-    # Unlocked chat leaves Send enabled but ignores an empty composer. Verify
-    # the durable outcome, independently of the button's visual enabled state.
-    app.tap_qa_coordinate("qa.chat.send_button", timeout=10)
-    time.sleep(0.5)
+    # Send is disabled while the composer is blank (chat_chrome.dart canSend).
+    # Tap its bounds anyway and verify the durable outcome.
+    send = app.wait_for_text("Send message", timeout=10)
+    assert (send.get_attribute("enabled") or "").lower() == "false", "Send must be disabled for an empty composer"
+    app._shell_tap_element_center(send)
+    time.sleep(0.8)
     after = extract_items(api_client.get(f"/chat/{match_id}/messages").require_status(200).body, "messages")
     assert [item.get("id") for item in after] == [item.get("id") for item in before], (
         "Tapping Send with an empty composer must not persist a message"
     )
 
 
+@pytest.fixture
+def fresh_match(api_client, qa_user_id, counterpart_factory):
+    """A brand-new mutual match for the device member, removed afterwards.
+
+    Chat is open by default (`DEFAULT_UNLOCK_POLICY_VARIANT=allow_without_template`),
+    so a fresh match needs no quest: the first message must go through.
+    """
+    name = f"Fresh {int(time.time()) % 100000}"
+    other = counterpart_factory("fm", name)
+    api_client.post("/swipe", {"user_id": qa_user_id, "target_user_id": other.user_id, "is_like": True}).require_status(200, 201)
+    second = other.api.post(
+        "/swipe", {"user_id": other.user_id, "target_user_id": qa_user_id, "is_like": True}
+    ).require_status(200, 201).body
+    match_id = str(second.get("match_id") or "")
+    assert second.get("mutual_match") is True and match_id, f"mutual like did not create a match: {second}"
+    counterpart_factory.cleanups.append(
+        lambda: api_client.request("DELETE", f"/matches/{match_id}", query={"user_id": qa_user_id})
+    )
+    return {"id": match_id, "name": name, "member": other}
+
+
 @pytest.mark.requires_appium
 @pytest.mark.matches
 @pytest.mark.chat
 @pytest.mark.chat_matrix
-def test_chat_message_persists_after_reopen(app, api_client, qa_user_id):
-    match = _first_unlocked_match(api_client, qa_user_id)
-    match_id = str(first_id([match], "match_id", "id"))
-    match_name = _match_display_name(match)
-    message = f"Appium persisted chat {int(time.time())}"
+def test_chat_message_persists_after_reopen(app, api_client, fresh_match):
+    match_id = fresh_match["id"]
+    unlocked, state = _chat_is_unlocked(api_client, match_id)
+    assert unlocked, f"a fresh match must be open for chat by default, got {state!r}"
+    before = extract_items(api_client.get(f"/chat/{match_id}/messages").require_status(200).body, "messages")
+    assert not before, f"a fresh match should have no messages yet: {before}"
+    message = f"Appium first hello {int(time.time())}"
 
-    app.sign_in_existing_user()
-    _open_first_chat(app, match_name)
-    app.type_into_qa("qa.chat.composer", message, timeout=8)
-    app.hide_keyboard()
-    if not app.maybe_tap_qa("qa.chat.send_button", timeout=5):
-        app.tap_first_visible_text(["Send", "➤"], timeout=10)
-    app.assert_any_text_visible(message, "sent", "Delivered", timeout=20)
+    _open_first_chat(app, fresh_match["name"], match_id)
+    _send_from_composer(app, message)
+    app.assert_any_text_visible(message, timeout=20)
     assert _message_exists(api_client, match_id, message)
+    # The counterpart receives it too.
+    assert _message_exists(fresh_match["member"].api, match_id, message)
 
     app.driver.back()
-    app.assert_any_text_visible("Matches", "Your Matches", "New matches", timeout=20)
-    _open_first_chat(app, match_name)
+    app.wait_for_tab("matches")
+    _open_first_chat(app, fresh_match["name"], match_id)
     app.assert_any_text_visible(message, timeout=20)
+    app.save_artifact("chat_first_message_fresh_match")
+    app.driver.back()

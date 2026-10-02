@@ -118,11 +118,23 @@ if ! $dry_run; then
   echo "media root $media_root ready (${avail_mb} MiB free)"
 fi
 
+# 7) Local disk is the chosen backend (no S3 for now): install the local
+#    storage env file unless one already exists. Switching to S3 later means
+#    replacing it with backend/config/storage.s3.env.example.
+repo_root=$(cd "$(dirname "$0")/../.." && pwd)
+storage_env=/etc/connect/storage.env
+if [[ ! -f "$storage_env" ]]; then
+  run install -o root -g "$connect_user" -m 0640 \
+    "$repo_root/backend/config/storage.local.env.example" "$storage_env"
+  echo "installed $storage_env (local disk; set MEDIA_STORAGE_ROOT if not $media_root)"
+else
+  echo "$storage_env already exists; left unchanged"
+fi
+
 cat <<EOF
 next steps:
-  1. install the storage env file (pick one) as root:connect 0640:
-       backend/config/storage.local.env.example -> /etc/connect/storage.env
-       backend/config/storage.s3.env.example    -> /etc/connect/storage.env
+  1. check $storage_env (local disk by default; for S3 later, replace it with
+     backend/config/storage.s3.env.example as root:connect 0640)
   2. sudo -u $connect_user env ENVIRONMENT=production STORAGE_CONFIG_FILE=/etc/connect/storage.env /opt/connect/bin/mediactl check -probe
   3. sudo systemctl restart connect-mobile-bff && sudo journalctl -u connect-mobile-bff -n 50
 EOF

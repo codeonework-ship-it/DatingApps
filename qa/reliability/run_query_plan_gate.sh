@@ -2,7 +2,7 @@
 set -euo pipefail
 
 root_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-database_url="${LOCAL_DATABASE_URL:-postgresql://dating_app@127.0.0.1:55432/dating_app?sslmode=disable}"
+database_url="${LOCAL_DATABASE_URL:-postgresql://dating_app@127.0.0.1:55433/dating_app?sslmode=disable}"
 psql_bin="${PSQL_BIN:-/opt/homebrew/opt/postgresql@17/bin/psql}"
 scale_rows="${SCALE_PLAN_ROWS:-250000}"
 report="${SCALE_PLAN_REPORT:-$root_dir/qa/reports/reliability/query-plans.txt}"

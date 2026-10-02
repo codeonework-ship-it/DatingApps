@@ -10,6 +10,7 @@ import '../swipe/providers/curated_daily_set_provider.dart';
 import '../walls/today_wall_data.dart';
 import 'dating_rhythm.dart';
 import 'profile_stories.dart';
+import 'profile_story_nudge.dart';
 import 'today_activities.dart';
 import 'today_section.dart';
 import 'today_wall.dart';
@@ -38,6 +39,9 @@ class _TodayIntroductionsState extends ConsumerState<TodayIntroductions> {
     ref.invalidate(discoveryPauseProvider);
     ref.invalidate(todayWallProvider);
     ref.invalidate(coverOfWeekProvider);
+    // The "Your story" card's count: stories edited elsewhere (another
+    // device, the web app) show up on pull-to-refresh too.
+    ref.invalidate(profileStoriesProvider);
     await ref.read(curatedDailySetProvider.notifier).load();
   }
 
@@ -141,27 +145,13 @@ class _TodayIntroductionsState extends ConsumerState<TodayIntroductions> {
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 8),
-                                Divider(
-                                  height: 24,
-                                  color: colors.outlineVariant,
-                                ),
-                                TextButton.icon(
-                                  style: TextButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                    ),
-                                  ),
-                                  onPressed: () => openProfileStories(context),
-                                  icon: const Icon(Icons.auto_stories_outlined),
-                                  label: const Text(
-                                    'Let your profile tell a little more of your '
-                                    'story',
-                                  ),
-                                ),
                               ],
                             ),
                           ),
+                          const SizedBox(height: TodayMetrics.sectionGap),
+                          const TodaySectionHeader(label: 'YOUR STORY'),
+                          const SizedBox(height: TodayMetrics.cardGap),
+                          const ProfileStoryNudge(),
                           const SizedBox(height: TodayMetrics.sectionGap),
                           TodaySectionHeader(
                             label: 'TODAY’S INTRODUCTIONS',

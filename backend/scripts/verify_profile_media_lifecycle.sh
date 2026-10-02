@@ -4,7 +4,7 @@ set -euo pipefail
 api_base="${MEDIA_API_BASE_URL:-http://127.0.0.1:18081/v1}"
 username="${MEDIA_TEST_USERNAME:-media_qa_$(date +%Y%m%d%H%M%S)}"
 password="${MEDIA_TEST_PASSWORD:-Password123!}"
-database_url="${LOCAL_DATABASE_URL:-postgresql://dating_app@127.0.0.1:55432/dating_app?sslmode=disable}"
+database_url="${LOCAL_DATABASE_URL:-postgresql://dating_app@127.0.0.1:55433/dating_app?sslmode=disable}"
 psql_bin="${PSQL_BIN:-/opt/homebrew/opt/postgresql@17/bin/psql}"
 
 fixture_dir="$(mktemp -d)"

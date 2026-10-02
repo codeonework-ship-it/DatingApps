@@ -105,7 +105,8 @@ def validate_implementation_anchors() -> None:
         "app/lib/features/auth/screens/signup_screen.dart": (
             "String? _gender;",
             "passwordBytes > 72",
-            "if (gender == null)",
+            # Introducer accounts carry no gender; dating accounts must still choose one.
+            "if (!widget.introducer && gender == null)",
         ),
     }
     missing: list[str] = []

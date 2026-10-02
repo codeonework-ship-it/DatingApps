@@ -92,12 +92,17 @@ class AuthState {
   );
 }
 
+/// Shown on the sign-in screen after the server ended the session.
+const kSessionExpiredMessage = 'You were signed out. Please sign in again.';
+
 @Riverpod(keepAlive: true)
 class AuthNotifier extends _$AuthNotifier {
   int _attempt = 0;
   @override
   AuthState build() {
     final session = AuthSessionStore.instance;
+    final expirations = session.expirations.listen((_) => _sessionExpired());
+    ref.onDispose(expirations.cancel);
     if (session.restored && session.userId != null) {
       return AuthState(
         isAuthenticated: true,
@@ -275,6 +280,16 @@ class AuthNotifier extends _$AuthNotifier {
         state = const AuthState();
       }
     }
+  }
+
+  /// The API client could not renew a credential the server rejected (the
+  /// session was revoked or expired). Return to sign-in with a short notice;
+  /// pending sign-in work from the old session is abandoned.
+  void _sessionExpired() {
+    if (!state.isAuthenticated) return;
+    ++_attempt;
+    log.warning('Session ended by the server; returning to sign-in');
+    state = const AuthState(error: kSessionExpiredMessage);
   }
 
   void clearError() {

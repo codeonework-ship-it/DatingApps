@@ -3,7 +3,6 @@ package mobile
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/url"
 	"strings"
 	"time"
@@ -186,14 +185,10 @@ func (r *questRepository) submitQuestResponse(
 		return questSubmissionWorkflow{}, err
 	}
 	if !ok {
-		return questSubmissionWorkflow{}, errors.New("quest template not found for match")
+		return questSubmissionWorkflow{}, errQuestTemplateNotFound
 	}
 	if len(trimmedResponse) < template.MinChars || len(trimmedResponse) > template.MaxChars {
-		return questSubmissionWorkflow{}, fmt.Errorf(
-			"response text must be between %d and %d characters",
-			template.MinChars,
-			template.MaxChars,
-		)
+		return questSubmissionWorkflow{}, questResponseLengthError(template.MinChars, template.MaxChars)
 	}
 
 	workflow, found, err := r.getQuestWorkflow(ctx, trimmedMatchID)
@@ -210,7 +205,7 @@ func (r *questRepository) submitQuestResponse(
 		if _, err := r.upsertQuestWorkflow(ctx, workflow); err != nil {
 			return questSubmissionWorkflow{}, err
 		}
-		return questSubmissionWorkflow{}, errors.New("quest submission is in cooldown period")
+		return questSubmissionWorkflow{}, errQuestCooldown
 	}
 
 	windowStart := parseRFC3339OrZero(workflow.WindowStartedAt)
@@ -224,7 +219,7 @@ func (r *questRepository) submitQuestResponse(
 		if _, err := r.upsertQuestWorkflow(ctx, workflow); err != nil {
 			return questSubmissionWorkflow{}, err
 		}
-		return questSubmissionWorkflow{}, errors.New("quest submission rate limit exceeded")
+		return questSubmissionWorkflow{}, errQuestRateLimited
 	}
 
 	unlockState, _, err := r.getUnlockState(ctx, trimmedMatchID)
@@ -276,13 +271,13 @@ func (r *questRepository) reviewQuestResponse(
 		return questSubmissionWorkflow{}, err
 	}
 	if !found || workflow.MatchID == "" {
-		return questSubmissionWorkflow{}, errors.New("quest submission not found for match")
+		return questSubmissionWorkflow{}, errQuestSubmissionNotFound
 	}
 	if workflow.Status != questWorkflowStatusPending {
-		return questSubmissionWorkflow{}, errors.New("quest submission is not pending review")
+		return questSubmissionWorkflow{}, errQuestNotPending
 	}
 	if workflow.SubmitterUserID != "" && workflow.SubmitterUserID == trimmedReviewer {
-		return questSubmissionWorkflow{}, errUnauthorizedQuestAction
+		return questSubmissionWorkflow{}, errQuestSelfReview
 	}
 
 	workflow.ReviewerUserID = trimmedReviewer
@@ -301,7 +296,7 @@ func (r *questRepository) reviewQuestResponse(
 		workflow.CooldownUntil = now.Add(questCooldownDuration).Format(time.RFC3339)
 		action = matchingdomain.ActionRejectQuest
 	default:
-		return questSubmissionWorkflow{}, errors.New("invalid decision status")
+		return questSubmissionWorkflow{}, errQuestInvalidDecision
 	}
 
 	unlockState, _, err := r.getUnlockState(ctx, trimmedMatchID)

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-
 // =============================================================================
 // Shared widgets for the Crystal Gold profile setup flow.
 //

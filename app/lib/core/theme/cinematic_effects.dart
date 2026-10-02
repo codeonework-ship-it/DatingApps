@@ -529,3 +529,130 @@ class CinematicBloomPainter extends CustomPainter {
   bool shouldRepaint(CinematicBloomPainter old) =>
       old.progress != progress || old.color != color || old.origin != origin;
 }
+
+/// A slow Ken Burns drift for a still photo: the camera eases a few percent
+/// closer and pans a touch sideways, then back, over [period] seconds.
+///
+/// It rides the shared [CinematicClock], so it costs no extra ticker, runs
+/// at the ambient 30 fps budget, pauses when its route is covered or the
+/// app is in the background, and is off under `flutter test`. The cinematic
+/// looks get the full [zoom]; everyday looks half of it; reduced motion
+/// (the platform setting or Calm) holds a still frame.
+///
+/// The child is always painted slightly enlarged while drifting, so no edge
+/// ever shows. Wrap it in a clip (the hero frame) and a [RepaintBoundary]
+/// so only the photo repaints.
+class CinematicKenBurns extends StatefulWidget {
+  const CinematicKenBurns({
+    required this.child,
+    this.period = 26,
+    this.zoom = 0.08,
+    this.pan = 0.018,
+    super.key,
+  });
+
+  final Widget child;
+
+  /// Seconds for one push-in and pull-back.
+  final double period;
+
+  /// Extra scale at the closest point, as a fraction (0.08 = 8%).
+  final double zoom;
+
+  /// Sideways travel each way, as a fraction of the width.
+  final double pan;
+
+  @override
+  State<CinematicKenBurns> createState() => CinematicKenBurnsState();
+}
+
+/// Public so tests can ask whether the drift is live.
+class CinematicKenBurnsState extends State<CinematicKenBurns>
+    with CinematicClockSubscriber<CinematicKenBurns> {
+  CinematicLevel _level = CinematicLevel.subtle;
+
+  /// Whether the photo is drifting (motion allowed and visible).
+  bool get isDrifting => cinematicClockLive;
+
+  void _sync() {
+    _level = CinematicLevel.of(context);
+    syncCinematicClock(wantsMotion: _level != CinematicLevel.still);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _sync();
+  }
+
+  @override
+  void didUpdateWidget(CinematicKenBurns oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _sync();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final strength = switch (_level) {
+      CinematicLevel.still => 0.0,
+      CinematicLevel.subtle => 0.5,
+      CinematicLevel.full => 1.0,
+    };
+    // Always a Flow (with no travel when still) so the photo is never
+    // remounted when motion settings change.
+    return Flow(
+      clipBehavior: Clip.hardEdge,
+      delegate: _KenBurnsDelegate(
+        time: cinematicClockLive ? CinematicClock.instance.time : null,
+        period: widget.period,
+        zoom: widget.zoom * strength,
+        pan: widget.pan * strength,
+      ),
+      children: [widget.child],
+    );
+  }
+}
+
+class _KenBurnsDelegate extends FlowDelegate {
+  _KenBurnsDelegate({
+    required this.period,
+    required this.zoom,
+    required this.pan,
+    this.time,
+  }) : super(repaint: time);
+
+  final ValueListenable<double>? time;
+  final double period;
+  final double zoom;
+  final double pan;
+
+  /// Where the drift is, 0 (wide) to 1 (closest), easing at both ends.
+  static double progressAt(double seconds, double period) =>
+      0.5 - 0.5 * math.cos(2 * math.pi * seconds / period);
+
+  @override
+  void paintChildren(FlowPaintingContext context) {
+    final t = time?.value;
+    if (t == null || zoom <= 0) {
+      context.paintChild(0);
+      return;
+    }
+    final size = context.size;
+    final p = progressAt(t, period);
+    // A small constant margin keeps the pan from ever exposing an edge.
+    final scale = 1 + pan * 2 + zoom * p;
+    final dx = (p - 0.5) * 2 * pan * size.width;
+    final transform = Matrix4.identity()
+      ..translateByDouble(size.width / 2 + dx, size.height / 2, 0, 1)
+      ..scaleByDouble(scale, scale, 1, 1)
+      ..translateByDouble(-size.width / 2, -size.height / 2, 0, 1);
+    context.paintChild(0, transform: transform);
+  }
+
+  @override
+  bool shouldRepaint(_KenBurnsDelegate old) =>
+      old.time != time ||
+      old.period != period ||
+      old.zoom != zoom ||
+      old.pan != pan;
+}

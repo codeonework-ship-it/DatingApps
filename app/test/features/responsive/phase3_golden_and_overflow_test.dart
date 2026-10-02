@@ -123,7 +123,7 @@ Widget _discoverApp() => ProviderScope(
   ],
   child: MaterialApp(
     theme: AppTheme.lightTheme,
-    home: const HomeDiscoveryScreen(),
+    home: const HomeDiscoveryScreen(browseOnly: true),
   ),
 );
 

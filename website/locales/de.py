@@ -1,6 +1,9 @@
 """Deutsch (du)."""
 
 LANG = "de"
+# German nouns are always capitalised: feature names keep their case inside
+# `feature_open` instead of being lower-cased like other locales.
+KEEP_FEATURE_NAME_CASE = True
 HREFLANG = "de"
 NATIVE_NAME = "Deutsch"
 
@@ -13,6 +16,7 @@ STRINGS = {
     "sign_in": "Anmelden",
     "get_started": "Loslegen",
     "open_menu": "Menü öffnen",
+    "nav_label": "Hauptnavigation",
     "lang_label": "Sprache",
     "footer_tagline": "Gute Menschen. Echte Möglichkeiten.<br>Mach Platz für dein nächstes Hallo.",
     "footer_discover": "ENTDECKEN",
@@ -25,6 +29,7 @@ STRINGS = {
     "footer_privacy": "Datenschutz & Daten",
     "footer_guidelines": "Community-Richtlinien",
     "footer_help": "Hilfe & Support",
+    "footer_contact": "Support kontaktieren",
     "footer_copy": "© 2026 Connect. Für Erwachsene ab 18.",
     "footer_promise": "Dein Tempo. Deine Entscheidung. Immer.",
     "cta_h2": "Dein nächstes Kapitel beginnt mit einem Hallo.",
@@ -177,6 +182,62 @@ STRINGS = {
     "m_3_p": "Eine Mitgliedschaft kauft kein Vertrauen, umgeht keine Blockierung und schaltet kein Gespräch frei, dessen Voraussetzungen nicht erfüllt sind.",
     "m_3_link": "Zum Sicherheitscenter",
     "m_notice": "Der gehostete Checkout ist verfügbar, wenn der Abrechnungsanbieter konfiguriert ist. Diese lokale Umgebung nutzt den Testmodus des Anbieters; Preise, Abrechnung, Erstattungen und Webhooks im Produktivbetrieb gehören zum separaten Abrechnungs-Release.",
+    # ── contact / support form ───────────────────────────────────────────
+    "c_title": "Support kontaktieren",
+    "c_desc": "Fragen zu deinem Konto, zur Sicherheit, zu Zahlungen oder ein technisches Problem? Schreib dem Connect-Support – wir antworten per E-Mail.",
+    "c_eyebrow": "Hilfe & Support",
+    "c_h1": "Wie können wir helfen?",
+    "c_p": "Erzähl uns, worum es geht – jemand aus unserem Support-Team antwortet dir per E-Mail. Vielleicht findest du hier schon schneller eine Antwort.",
+    "c_card_1_h3": "Schon Mitglied?",
+    "c_card_1_p": "Melde dich an und öffne „Hilfe & Support“ in der App. Anfragen von dort sind mit deinem Konto verknüpft, sodass du Status und Antworten verfolgen kannst.",
+    "c_card_1_link": "Hilfe & Support öffnen",
+    "c_card_2_h3": "Fühlst du dich unsicher?",
+    "c_card_2_p": "Du kannst jemanden über das Profil oder im Gespräch blockieren oder melden. Das Sicherheitscenter erklärt alle verfügbaren Werkzeuge.",
+    "c_card_2_link": "Zum Sicherheitscenter",
+    "c_card_3_h3": "Deine Daten",
+    "c_card_3_p": "Ändere deine Sichtbarkeit, exportiere deine Daten oder lösche dein Konto in den Kontoeinstellungen. Unsere Datenschutzseite erklärt, wie das funktioniert.",
+    "c_card_3_link": "Mehr zu Datenschutz & Daten",
+    "c_emergency": "Connect ist kein Notdienst. Wenn du oder jemand anderes in unmittelbarer Gefahr ist, wende dich sofort an den örtlichen Notruf.",
+    "c_form_h2": "Schreib uns",
+    "c_form_p": "Mit * markierte Felder sind Pflichtfelder. Bitte gib keine Passwörter, vollständigen Kartennummern oder Kopien von Ausweisdokumenten an.",
+    "c_noscript": "Für das Kontaktformular wird JavaScript benötigt. Wenn du ein Konto hast, melde dich an und nutze „Hilfe & Support“ in der App.",
+    "c_email_label": "E-Mail-Adresse",
+    "c_email_hint": "Wir verwenden sie nur, um auf deine Anfrage zu antworten.",
+    "c_name_label": "Name",
+    "c_optional": "optional",
+    "c_category_label": "Thema",
+    "c_category_choose": "Thema auswählen",
+    "c_cat_account_login": "Konto & Anmeldung",
+    "c_cat_verification": "Verifizierung",
+    "c_cat_payments_billing": "Zahlungen & Abrechnung",
+    "c_cat_safety_harassment": "Sicherheit & Belästigung",
+    "c_cat_matches_chat": "Matches & Chat",
+    "c_cat_technical": "Technisches Problem / Fehler",
+    "c_cat_feature_request": "Funktionswunsch",
+    "c_cat_privacy_data": "Datenschutz- & Datenanfrage",
+    "c_cat_other": "Sonstiges",
+    "c_subject_label": "Betreff",
+    "c_subject_hint": "Eine kurze Zusammenfassung, 4 bis 120 Zeichen.",
+    "c_description_label": "Nachricht",
+    "c_description_hint": "Was ist passiert, wann, und was hast du schon versucht?",
+    "c_counter": "{n} von {max} Zeichen",
+    "c_honeypot_label": "Dieses Feld leer lassen",
+    "c_submit": "Nachricht senden",
+    "c_sending": "Wird gesendet …",
+    "c_errors_title": "Bitte prüfe Folgendes:",
+    "c_err_email": "Gib eine gültige E-Mail-Adresse ein, z. B. name@example.com.",
+    "c_err_name": "Dein Name darf höchstens 120 Zeichen lang sein.",
+    "c_err_category": "Wähle ein Thema aus.",
+    "c_err_subject": "Gib einen Betreff mit 4 bis 120 Zeichen ein.",
+    "c_err_description": "Gib eine Nachricht mit bis zu 5.000 Zeichen ein.",
+    "c_err_invalid": "Einige Angaben wurden nicht akzeptiert. Bitte prüfe das Formular und versuch es erneut.",
+    "c_err_rate": "Zu viele Anfragen. Bitte warte eine Weile und versuch es später noch einmal.",
+    "c_err_disabled": "Das Kontaktformular ist gerade nicht verfügbar. Wenn du ein Konto hast, melde dich an und nutze „Hilfe & Support“ in der App, oder versuch es später erneut.",
+    "c_err_generic": "Deine Nachricht konnte nicht gesendet werden. Prüfe deine Verbindung und versuch es erneut.",
+    "c_ok_h2": "Nachricht erhalten",
+    "c_ok_p": "Danke! Wir antworten dir per E-Mail an die angegebene Adresse.",
+    "c_ok_ref": "Deine Referenznummer lautet {ref}. Bitte gib sie an, wenn du uns erneut kontaktierst.",
+    "c_ok_again": "Weitere Nachricht senden",
 }
 
 FEATURES = [

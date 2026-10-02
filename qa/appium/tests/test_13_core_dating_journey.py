@@ -44,22 +44,19 @@ def test_username_login_discovery_match_and_chat_restart_resume(
     match_id = _first_match_id(api_client, qa_user_id)
     message = f"Appium core journey {time.time_ns()}"
 
-    app.sign_in_existing_user()
-    app.open_tab("Discover")
-    app.assert_any_text_visible("Discover Matches", "Find meaningful verified matches", timeout=25)
+    app.open_discovery_deck()
     app.assert_any_text_visible("qa.discovery.card_root", "Ready", "No profiles", timeout=25)
 
-    app.open_tab("Matches")
-    app.assert_any_text_visible("Matches", "Your Matches", "New matches", timeout=25)
-    if not app.maybe_tap_qa(f"qa.matches.match_row.{match_id}", timeout=10):
-        app.tap_first_visible_text(["Chat", "Message", "Open"], timeout=10)
-    app.assert_any_text_visible("Chat", "Type a message", "Message", timeout=20)
+    # Chats live under Matches → Conversations (rows keyed by match id).
+    app.open_matches_view("Conversations")
+    app.scroll_to_text(f"qa.matches.match_row.{match_id}", timeout=20)
+    app.tap_qa(f"qa.matches.match_row.{match_id}", timeout=10)
+    app.wait_for_field_hint("Write a message…", timeout=20)
 
     app.type_into_qa("qa.chat.composer", message, timeout=8)
     app.hide_keyboard()
-    if not app.maybe_tap_qa("qa.chat.send_button", timeout=5):
-        app.tap_first_visible_text(["Send", "➤"], timeout=10)
-    app.assert_any_text_visible(message, "sent", "Delivered", timeout=20)
+    app.tap_text("Send message", timeout=10)
+    app.wait_for_text(message, timeout=20)
     assert _message_is_persisted(api_client, match_id, message)
 
     app.driver.background_app(2)
@@ -67,6 +64,8 @@ def test_username_login_discovery_match_and_chat_restart_resume(
     app.assert_any_text_visible(message, "Chat", timeout=20)
 
     app.driver.back()
-    app.assert_any_text_visible("Matches", "Your Matches", "New matches", timeout=20)
+    app.wait_for_tab("matches")
+    app.scroll_to_text(f"qa.matches.match_row.{match_id}", timeout=20)
     app.tap_qa(f"qa.matches.match_row.{match_id}", timeout=10)
     app.assert_any_text_visible(message, timeout=20)
+    app.driver.back()

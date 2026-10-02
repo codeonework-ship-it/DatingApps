@@ -1,6 +1,15 @@
+import 'dart:typed_data';
+
+import 'package:dio/dio.dart';
+
 /// Route local media through the browser's same-origin gateway. Production CDN
 /// URLs and unrelated links are intentionally preserved.
+///
+/// Binary payloads (`ResponseType.bytes`, e.g. an authenticated photo) are
+/// returned untouched: walking them as a JSON list would turn a `Uint8List`
+/// into a `List<dynamic>`, which Dio then fails to cast to `List<int>`.
 dynamic browserMediaUrls(dynamic value, Uri apiBase) {
+  if (value is TypedData || value is List<int>) return value;
   if (value is Map) {
     return value.map(
       (key, item) => MapEntry(key.toString(), browserMediaUrls(item, apiBase)),
@@ -21,4 +30,11 @@ dynamic browserMediaUrls(dynamic value, Uri apiBase) {
     }
   }
   return value;
+}
+
+/// Rewrites media links in a decoded JSON [response] in place. Byte, stream
+/// and plain-text responses are left exactly as received.
+void rewriteBrowserMediaResponse(Response<dynamic> response, Uri apiBase) {
+  if (response.requestOptions.responseType != ResponseType.json) return;
+  response.data = browserMediaUrls(response.data, apiBase);
 }

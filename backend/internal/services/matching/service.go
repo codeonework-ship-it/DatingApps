@@ -890,6 +890,9 @@ func (r *DataRepository) GetLatestMessagesByMatchIDs(ctx context.Context, matchI
 	if len(matchIDs) == 0 {
 		return map[string]map[string]any{}, nil
 	}
+	if out, ok, err := r.latestMessagesNative(ctx, matchIDs); ok {
+		return out, err
+	}
 	params := url.Values{}
 	params.Set("matchId", "in."+buildIn(unique(matchIDs)))
 	params.Set("select", "matchId,text,createdAt")
@@ -918,6 +921,9 @@ func (r *DataRepository) GetLatestMessagesByMatchIDs(ctx context.Context, matchI
 func (r *DataRepository) GetUnreadCounts(ctx context.Context, matchIDs []string, currentUserID string) (map[string]int, error) {
 	if len(matchIDs) == 0 {
 		return map[string]int{}, nil
+	}
+	if out, ok, err := r.unreadCountsNative(ctx, matchIDs, currentUserID); ok {
+		return out, err
 	}
 	params := url.Values{}
 	params.Set("matchId", "in."+buildIn(unique(matchIDs)))
@@ -1263,6 +1269,10 @@ func buildIn(values []string) string {
 
 func toString(value any) string {
 	switch typed := value.(type) {
+	case nil:
+		// fmt.Sprintf("%v", nil) is the literal "<nil>", which leaked into
+		// match previews ("lastMessage": "<nil>") for matches with no chat.
+		return ""
 	case string:
 		return typed
 	case fmt.Stringer:

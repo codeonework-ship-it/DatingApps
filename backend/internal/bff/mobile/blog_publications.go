@@ -441,6 +441,12 @@ func (s *Server) blogPublicHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+	// Formatting for exactly the approved excerpt: the source version is pinned,
+	// so this is the same text the member previewed. Joint stories stay plain.
+	var content *richDoc
+	if !p.Joint {
+		content = richSlice(post.Content, p.Excerpt)
+	}
 	// Public allowlist: no account, source, relationship, response, or location IDs.
-	writeJSON(w, 200, map[string]any{"title": p.Title, "excerpt": p.Excerpt, "joint": p.Joint, "photos": photos})
+	writeJSON(w, 200, map[string]any{"title": p.Title, "excerpt": p.Excerpt, "joint": p.Joint, "photos": photos, "content": content})
 }

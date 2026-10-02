@@ -1,4 +1,8 @@
 import {test, expect} from '@playwright/test';
+import {qaMember} from './support/member.js';
+
+// Never the shared QA account: signing in invalidates its other sessions.
+const member = qaMember();
 
 async function enterText(field, text, page) {
   await field.click();
@@ -56,20 +60,22 @@ for (const width of [390, 1440]) {
     await expect(username).toBeVisible({timeout:30000});
     await username.click();
     await page.waitForTimeout(200); // Wait for Flutter to attach its live editor.
-    await username.pressSequentially(process.env.QA_EXISTING_USERNAME || 'qa_full_20260926_isolated', {delay: 15});
+    await username.pressSequentially(member.username, {delay: 15});
     await username.press('Tab');
     const password = page.getByRole('textbox',{name:'Password',exact:true});
     await password.click();
     await page.waitForTimeout(200);
-    await password.pressSequentially(process.env.QA_EXISTING_PASSWORD || 'Password123!', {delay:15});
+    await password.pressSequentially(member.password, {delay:15});
     await password.press('Tab');
-    await expect(username).toHaveValue(process.env.QA_EXISTING_USERNAME || 'qa_full_20260926_isolated');
+    await expect(username).toHaveValue(member.username);
     const loginResponse = page.waitForResponse(r=>r.url().endsWith('/v1/auth/login')&&r.request().method()==='POST');
     await page.getByRole('button',{name:'qa.signin.login_button',exact:true}).click();
     self = (await (await loginResponse).json()).user_id;
     await expect(page).toHaveURL(/#\/discover$/,{timeout:30000});
     await page.goto('/app/#/matches');
-    await expect(page.getByText('Conversations',{exact:true})).toBeVisible({timeout:30000});
+    // The Matches tab opens on its Discover sub-view; conversations are one chip away.
+    await page.getByRole('checkbox',{name:'Conversations',exact:true}).click({timeout:30000});
+    await expect(page.getByRole('checkbox',{name:'Conversations',exact:true})).toBeChecked();
     const search = page.getByRole('textbox',{name:/Search conversations/});
     await enterText(search, 'Maya', page);
     await expect(page.getByRole('button',{name:/^qa.matches.match_row.chat-ui-arjun/})).toHaveCount(0);

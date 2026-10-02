@@ -390,6 +390,9 @@ func (s *Server) sendRoseGift(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	if s.refuseBlockedMatchWrite(w, r, matchID) {
+		return
+	}
 	giftID := strings.TrimSpace(toString(payload["gift_id"]))
 	senderUserID := strings.TrimSpace(toString(payload["sender_user_id"]))
 	receiverUserID := strings.TrimSpace(toString(payload["receiver_user_id"]))

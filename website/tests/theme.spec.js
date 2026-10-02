@@ -1,4 +1,8 @@
 import {test, expect} from '@playwright/test';
+import {qaMember} from './support/member.js';
+
+// Never the shared QA account: signing in invalidates its other sessions.
+const member = qaMember();
 
 // Product decision (2026-09-27, reconfirmed the same day): the signed-in
 // browser app always uses the website's Daylight look. Member presets (Star
@@ -14,12 +18,12 @@ test('browser app keeps Daylight and hides the theme picker', async ({page}) => 
   await expect(username).toBeVisible({timeout: 30000});
   await page.waitForTimeout(500);
   await username.fill(
-    process.env.QA_EXISTING_USERNAME || 'qa_full_20260926_isolated',
+    member.username,
   );
   const password = page.getByRole('textbox', {name: 'Password', exact: true});
-  await password.fill(process.env.QA_EXISTING_PASSWORD || 'Password123!');
+  await password.fill(member.password);
   await expect(password).toHaveValue(
-    process.env.QA_EXISTING_PASSWORD || 'Password123!',
+    member.password,
   );
   await page
     .getByRole('button', {name: 'qa.signin.login_button', exact: true})

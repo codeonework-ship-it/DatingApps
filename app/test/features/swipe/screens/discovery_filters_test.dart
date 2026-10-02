@@ -190,7 +190,14 @@ void main() {
       ProviderScope(
         overrides: [
           runtimeFeatureFlagsProvider.overrideWith(
-            (ref) => Stream.value(RuntimeFeatureFlags.defaults),
+            (ref) => Stream.value(
+              RuntimeFeatureFlags(<String, bool>{
+                ...RuntimeFeatureFlags.defaults.values,
+                // Today replaces the deck when intentional dating is on; these
+                // tests drive the deck's filter button.
+                'intentional_dating_enabled': false,
+              }),
+            ),
           ),
           billingCoexistenceMatrixProvider.overrideWith(
             (ref) async => const BillingCoexistenceMatrix(

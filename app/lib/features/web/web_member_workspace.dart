@@ -271,6 +271,50 @@ const _primaryIcons = [
   Icons.settings_outlined,
 ];
 
+/// Signed-out entry pages. A member who already has a session lands on
+/// Discover instead of a "page not found" workspace.
+const _signedOutRoutes = {
+  '/',
+  '/signin',
+  '/signup',
+  '/welcome',
+  '/introducer/signup',
+};
+
+/// The workspace route to show a signed-in member for the browser [path].
+String webMemberRoute(String path) =>
+    _signedOutRoutes.contains(path) ? '/discover' : path;
+
+/// The workspace pages a member has visited, oldest first, so the phone
+/// header's Back can return to the page they came from (WEB-09).
+///
+/// It mirrors the browser history entries the workspace creates: a new page
+/// is pushed, and arriving at the page before the current one — through
+/// Back, the browser's own Back button or a link — pops instead, so stepping
+/// back repeatedly walks the trail rather than bouncing between two pages.
+class WebPageTrail {
+  static const _limit = 50;
+  final List<String> _pages = [];
+
+  /// The page before the current one, or `null` when the member arrived on
+  /// the current page directly (a deep link or a fresh tab).
+  String? get previous => _pages.length > 1 ? _pages[_pages.length - 2] : null;
+
+  void visit(String path) {
+    if (_pages.isNotEmpty && _pages.last == path) {
+      return;
+    }
+    if (previous == path) {
+      _pages.removeLast();
+      return;
+    }
+    _pages.add(path);
+    if (_pages.length > _limit) {
+      _pages.removeAt(0);
+    }
+  }
+}
+
 class WebMemberWorkspace extends ConsumerStatefulWidget {
   const WebMemberWorkspace({super.key});
   @override
@@ -280,12 +324,11 @@ class WebMemberWorkspace extends ConsumerStatefulWidget {
 class _WebMemberWorkspaceState extends ConsumerState<WebMemberWorkspace> {
   late String _path;
   late StreamSubscription<void> _routes;
+  final _trail = WebPageTrail();
   @override
   void initState() {
     super.initState();
-    _path = currentWebRoute();
-    if (['/', '/signin', '/signup', '/welcome'].contains(_path))
-      _path = '/discover';
+    _path = webMemberRoute(currentWebRoute());
     _routes = webRouteChanges.listen((_) => _applyRoute(currentWebRoute()));
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _go(_path);
@@ -294,10 +337,32 @@ class _WebMemberWorkspaceState extends ConsumerState<WebMemberWorkspace> {
 
   void _applyRoute(String path) {
     if (!mounted) return;
+    final memberPath = webMemberRoute(path);
+    if (memberPath != path) {
+      // A signed-in member opened a sign-in/sign-up link (the website's
+      // "Sign in" button, a bookmark or browser history): send them home.
+      // After sign-out (or an expired session) the route to `/signin` lands
+      // here before this workspace is replaced; leave it alone then.
+      if (ref.read(authNotifierProvider).isAuthenticated) _go(memberPath);
+      return;
+    }
     final index = _primaryPaths.indexOf(path);
     if (index >= 0)
       ref.read(mainNavigationIndexProvider.notifier).state = index;
+    _trail.visit(path);
     setState(() => _path = path);
+  }
+
+  /// The phone header's Back: return to the page the member came from, like
+  /// the browser's Back button. In a browser the history step brings the
+  /// previous route back through [webRouteChanges]; when there is no earlier
+  /// entry of this app to step to (a deep link) the workspace navigates
+  /// itself, to the previous page it saw or else to Explore.
+  void _back() {
+    if (webHistoryBack()) {
+      return;
+    }
+    _go(_trail.previous ?? '/engagement');
   }
 
   void _go(String path) {
@@ -318,6 +383,7 @@ class _WebMemberWorkspaceState extends ConsumerState<WebMemberWorkspace> {
     ref.listen<int>(mainNavigationIndexProvider, (_, index) {
       if (_primaryPaths.contains(_path) && _primaryPaths[index] != _path) {
         _path = _primaryPaths[index];
+        _trail.visit(_path);
         setWebRoute(_path);
       }
     });
@@ -385,7 +451,7 @@ class _WebMemberWorkspaceState extends ConsumerState<WebMemberWorkspace> {
                   bottom: false,
                   child: Row(
                     children: [
-                      BackButton(onPressed: () => _go('/engagement')),
+                      BackButton(onPressed: _back),
                       Expanded(child: Text(title)),
                       IconButton(
                         tooltip: 'All features',
@@ -404,99 +470,107 @@ class _WebMemberWorkspaceState extends ConsumerState<WebMemberWorkspace> {
     return Scaffold(
       body: Row(
         children: [
-          Container(
-            key: const ValueKey<String>('qa.web.sidebar'),
-            width: 264,
-            decoration: BoxDecoration(
-              color: colors.surface,
-              border: Border(right: BorderSide(color: colors.outline)),
-            ),
-            child: SafeArea(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 28, 24, 28),
-                    child: ConnectBrand(
-                      onDark: Theme.of(context).brightness == Brightness.dark,
+          // Keyboard focus finishes the sidebar before the page (WEB-13);
+          // without groups Tab zig-zags between them by height on screen.
+          FocusTraversalGroup(
+            child: Container(
+              key: const ValueKey<String>('qa.web.sidebar'),
+              width: 264,
+              decoration: BoxDecoration(
+                color: colors.surface,
+                border: Border(right: BorderSide(color: colors.outline)),
+              ),
+              child: SafeArea(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 28, 24, 28),
+                      child: ConnectBrand(
+                        onDark: Theme.of(context).brightness == Brightness.dark,
+                      ),
                     ),
-                  ),
-                  Expanded(
-                    child: ListView(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      children: [
-                        for (var i = 0; i < _primaryPaths.length; i++)
+                    Expanded(
+                      child: ListView(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        children: [
+                          for (var i = 0; i < _primaryPaths.length; i++)
+                            _nav(
+                              _primaryPaths[i],
+                              i == 0 &&
+                                      flags.enabled(
+                                        'intentional_dating_enabled',
+                                        fallback: false,
+                                      ) &&
+                                      flags.enabled(
+                                        'curated_daily_set_enabled',
+                                        fallback: true,
+                                      )
+                                  ? 'Today'
+                                  : _primaryLabels[i],
+                              _primaryIcons[i],
+                            ),
+                          if (flags.enabled(
+                            'intentional_dating_enabled',
+                            fallback: true,
+                          ))
+                            _nav('/blog', 'Blog', Icons.menu_book_outlined),
+                          const _SidebarLabel('More for you'),
+                          _nav('/features', 'All features', Icons.apps_rounded),
                           _nav(
-                            _primaryPaths[i],
-                            i == 0 &&
-                                    flags.enabled(
-                                      'intentional_dating_enabled',
-                                      fallback: false,
-                                    ) &&
-                                    flags.enabled(
-                                      'curated_daily_set_enabled',
-                                      fallback: true,
-                                    )
-                                ? 'Today'
-                                : _primaryLabels[i],
-                            _primaryIcons[i],
+                            '/preferences',
+                            'Preferences',
+                            Icons.tune_rounded,
                           ),
-                        if (flags.enabled(
-                          'intentional_dating_enabled',
-                          fallback: true,
-                        ))
-                          _nav('/blog', 'Blog', Icons.menu_book_outlined),
-                        const _SidebarLabel('More for you'),
-                        _nav('/features', 'All features', Icons.apps_rounded),
-                        _nav('/preferences', 'Preferences', Icons.tune_rounded),
-                        _nav(
-                          '/notifications',
-                          'Notifications',
-                          Icons.notifications_outlined,
-                        ),
-                        if (flags.enabled('billing_enabled', fallback: true))
                           _nav(
-                            '/membership',
-                            'Membership',
-                            Icons.workspace_premium_outlined,
+                            '/notifications',
+                            'Notifications',
+                            Icons.notifications_outlined,
                           ),
-                        _nav(
-                          '/safety',
-                          'Privacy & safety',
-                          Icons.shield_outlined,
-                        ),
-                        _nav(
-                          '/help',
-                          'Help & support',
-                          Icons.help_outline_rounded,
-                        ),
-                      ],
+                          if (flags.enabled('billing_enabled', fallback: true))
+                            _nav(
+                              '/membership',
+                              'Membership',
+                              Icons.workspace_premium_outlined,
+                            ),
+                          _nav(
+                            '/safety',
+                            'Privacy & safety',
+                            Icons.shield_outlined,
+                          ),
+                          _nav(
+                            '/help',
+                            'Help & support',
+                            Icons.help_outline_rounded,
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  Divider(height: 1, color: colors.outline),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-                    child: Column(
-                      children: [
-                        _SidebarItem(
-                          label: 'Connect website',
-                          icon: Icons.open_in_new_rounded,
-                          onTap: openWebsiteHome,
-                        ),
-                        _SidebarItem(
-                          label: 'Sign out',
-                          icon: Icons.logout_rounded,
-                          onTap: () async {
-                            await ref
-                                .read(authNotifierProvider.notifier)
-                                .logout();
-                            setWebRoute('/signin');
-                          },
-                        ),
-                      ],
+                    Divider(height: 1, color: colors.outline),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                      child: Column(
+                        children: [
+                          _SidebarItem(
+                            label: 'Connect website',
+                            icon: Icons.open_in_new_rounded,
+                            onTap: openWebsiteHome,
+                          ),
+                          _SidebarItem(
+                            label: 'Sign out',
+                            icon: Icons.logout_rounded,
+                            onTap: () async {
+                              await ref
+                                  .read(authNotifierProvider.notifier)
+                                  .logout();
+                              setWebRoute('/signin');
+                            },
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -546,7 +620,7 @@ class _WebMemberWorkspaceState extends ConsumerState<WebMemberWorkspace> {
                     ],
                   ),
                 ),
-                Expanded(child: content),
+                Expanded(child: FocusTraversalGroup(child: content)),
               ],
             ),
           ),

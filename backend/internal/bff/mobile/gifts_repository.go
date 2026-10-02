@@ -273,6 +273,28 @@ func (r *roseGiftRepository) getWallet(ctx context.Context, userID string) (user
 	return mapWalletRow(rows[0]), nil
 }
 
+// readWallet is the side-effect-free wallet read (GO-02): it never creates a
+// wallet row. found is false when the member has no wallet yet, which reads as
+// a zero balance.
+func (r *roseGiftRepository) readWallet(ctx context.Context, userID string) (userWalletView, bool, error) {
+	trimmedUserID := strings.TrimSpace(userID)
+	if trimmedUserID == "" {
+		return userWalletView{}, false, errors.New("user_id is required")
+	}
+	params := url.Values{}
+	params.Set("user_id", "eq."+trimmedUserID)
+	params.Set("limit", "1")
+	params.Set("select", "user_id,coin_balance,updated_at")
+	rows, err := r.db.SelectRead(ctx, r.cfg.MatchingSchema, r.cfg.UserWalletsTable, params)
+	if err != nil {
+		return userWalletView{}, false, err
+	}
+	if len(rows) == 0 {
+		return userWalletView{UserID: trimmedUserID}, false, nil
+	}
+	return mapWalletRow(rows[0]), true, nil
+}
+
 func (r *roseGiftRepository) topUpWallet(ctx context.Context, userID string, amount int) (userWalletView, error) {
 	wallet, _, err := r.creditWalletCoins(ctx, walletCoinCreditRequest{
 		UserID:      userID,

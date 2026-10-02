@@ -1216,4 +1216,862 @@ class AppLocalizationsNl extends AppLocalizations {
   String roomsUnmutedDone(String name) {
     return '$name kan weer berichten plaatsen.';
   }
+
+  @override
+  String get richFormattingToolbar => 'Opmaak';
+
+  @override
+  String get richUndo => 'Ongedaan maken';
+
+  @override
+  String get richRedo => 'Opnieuw';
+
+  @override
+  String get richBold => 'Vet';
+
+  @override
+  String get richItalic => 'Cursief';
+
+  @override
+  String get richUnderline => 'Onderstrepen';
+
+  @override
+  String get richStrikethrough => 'Doorhalen';
+
+  @override
+  String get richHighlight => 'Markeren';
+
+  @override
+  String get richLink => 'Link';
+
+  @override
+  String get richTextStyleMenu => 'Tekststijl';
+
+  @override
+  String get richParagraph => 'Alinea';
+
+  @override
+  String get richHeading => 'Kop';
+
+  @override
+  String get richSubheading => 'Tussenkop';
+
+  @override
+  String get richQuote => 'Citaat';
+
+  @override
+  String get richCallout => 'Kader';
+
+  @override
+  String get richBulletList => 'Opsomming';
+
+  @override
+  String get richNumberedList => 'Genummerde lijst';
+
+  @override
+  String get richDivider => 'Scheiding';
+
+  @override
+  String get richAlignMenu => 'Uitlijning';
+
+  @override
+  String get richAlignStart => 'Uitlijnen aan begin';
+
+  @override
+  String get richAlignCenter => 'Centreren';
+
+  @override
+  String get richAlignEnd => 'Uitlijnen aan eind';
+
+  @override
+  String get richClearFormatting => 'Opmaak wissen';
+
+  @override
+  String get richWritingStyle => 'Schrijfstijl';
+
+  @override
+  String get richStyleClassic => 'Klassiek';
+
+  @override
+  String get richStyleClassicHint =>
+      'Elegante schreefletter, als een gedrukte pagina';
+
+  @override
+  String get richStyleModern => 'Modern';
+
+  @override
+  String get richStyleModernHint => 'Strak en goed leesbaar';
+
+  @override
+  String get richStyleJournal => 'Dagboek';
+
+  @override
+  String get richStyleJournalHint => 'Warme cursief, als een dagboekpagina';
+
+  @override
+  String get richStyleTypewriter => 'Typemachine';
+
+  @override
+  String get richStyleTypewriterHint => 'Hoekige letters met extra ruimte';
+
+  @override
+  String get richStylePoetic => 'Poëtisch';
+
+  @override
+  String get richStylePoeticHint => 'Gecentreerde regels met ruimte';
+
+  @override
+  String richWordCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count woorden',
+      one: '1 woord',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get richAlignmentNote =>
+      'Uitlijning en witruimte zie je in het voorbeeld en zien je lezers.';
+
+  @override
+  String get richLinkTitle => 'Link toevoegen';
+
+  @override
+  String get richLinkField => 'Webadres';
+
+  @override
+  String get richLinkInvalid => 'Gebruik een volledig https://-adres.';
+
+  @override
+  String get richLinkApply => 'Link toevoegen';
+
+  @override
+  String get richLinkRemove => 'Link verwijderen';
+
+  @override
+  String get richLinkNeedsSelection =>
+      'Selecteer eerst de woorden die je wilt linken.';
+
+  @override
+  String get richCancel => 'Annuleren';
+
+  @override
+  String get richOpenLinkTitle => 'Deze link openen?';
+
+  @override
+  String richOpenLinkBody(String host) {
+    return '$host opent buiten Connect. Open alleen links die je vertrouwt.';
+  }
+
+  @override
+  String get richOpenLink => 'Link openen';
+
+  @override
+  String get supportCentreEyebrow => 'HULP & SUPPORT';
+
+  @override
+  String get supportCentreTitle => 'Waarmee kunnen we helpen?';
+
+  @override
+  String get supportCentreSubtitle =>
+      'Vind snel een antwoord of vraag het ons team. Elke vraag en elk antwoord blijft in één privégesprek.';
+
+  @override
+  String get supportContactSection => 'CONTACT';
+
+  @override
+  String get supportContactTitle => 'Contact met support';
+
+  @override
+  String get supportContactSubtitle =>
+      'Vertel ons wat er gebeurde. We antwoorden hier en laten het je weten.';
+
+  @override
+  String get supportMyTicketsTitle => 'Mijn verzoeken';
+
+  @override
+  String get supportMyTicketsSubtitle => 'Volg je verzoeken en onze antwoorden';
+
+  @override
+  String supportOpenRequests(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count open verzoeken',
+      one: '1 open verzoek',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String supportUnreadReplies(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count nieuwe antwoorden',
+      one: '1 nieuw antwoord',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get supportQuickAnswersSection => 'SNELLE ANTWOORDEN';
+
+  @override
+  String get supportFaqLoginTitle => 'Inloggen';
+
+  @override
+  String get supportFaqLoginBody =>
+      'Log in met je unieke gebruikersnaam en wachtwoord.';
+
+  @override
+  String get supportFaqVerificationTitle => 'Verificatie';
+
+  @override
+  String get supportFaqVerificationBody =>
+      'Identiteitsverificatie is optioneel zolang de aanbieder gepauzeerd is.';
+
+  @override
+  String get supportFaqAbuseTitle => 'Misbruik';
+
+  @override
+  String get supportFaqAbuseBody =>
+      'Gebruik Melden op een profiel of gesprek voor een snellere veiligheidsbeoordeling.';
+
+  @override
+  String get supportFaqBillingTitle => 'Facturering';
+
+  @override
+  String get supportFaqBillingBody =>
+      'Vermeld het transactienummer, nooit je kaartgegevens.';
+
+  @override
+  String get supportEmergencyNote =>
+      'Is iemand in direct gevaar? Neem contact op met de lokale hulpdiensten. Supportverzoeken vervangen geen noodhulp.';
+
+  @override
+  String get supportUnavailableTitle =>
+      'Supportverzoeken zijn nu niet beschikbaar';
+
+  @override
+  String get supportUnavailableBody =>
+      'De antwoorden op deze pagina werken nog steeds. Mail voor iets dringends naar support@connect.example.';
+
+  @override
+  String get supportBackToHelp => 'Terug naar Hulp & support';
+
+  @override
+  String get supportFormEyebrow => 'NIEUW VERZOEK';
+
+  @override
+  String get supportFormTitle => 'Contact met support';
+
+  @override
+  String get supportFormSubtitle =>
+      'Geef ons genoeg details om actie te ondernemen. Deel nooit een wachtwoord, herstelcode, kaartnummer of identiteitsbewijs.';
+
+  @override
+  String get supportFormCategorySection => 'ONDERWERP';
+
+  @override
+  String get supportFormCategoryLabel => 'Waarmee heb je hulp nodig?';
+
+  @override
+  String get supportCategoryAccountLogin => 'Account & inloggen';
+
+  @override
+  String get supportCategoryVerification => 'Verificatie';
+
+  @override
+  String get supportCategoryPaymentsBilling => 'Betalingen & facturering';
+
+  @override
+  String get supportCategorySafetyHarassment => 'Veiligheid & intimidatie';
+
+  @override
+  String get supportCategoryMatchesChat => 'Matches & chat';
+
+  @override
+  String get supportCategoryTechnical => 'Technisch probleem of bug';
+
+  @override
+  String get supportCategoryFeatureRequest => 'Functieverzoek';
+
+  @override
+  String get supportCategoryPrivacyData => 'Privacy & gegevensverzoek';
+
+  @override
+  String get supportCategoryOther => 'Anders';
+
+  @override
+  String get supportSafetyNote =>
+      'Ben jij of is iemand anders in direct gevaar? Gebruik SOS in de app of bel de lokale hulpdiensten. Veiligheidsverzoeken krijgen voorrang, maar een verzoek is geen noodlijn.';
+
+  @override
+  String get supportOpenSos => 'SOS openen';
+
+  @override
+  String get supportFormDetailsSection => 'DETAILS';
+
+  @override
+  String get supportFormSubjectLabel => 'Onderwerp';
+
+  @override
+  String get supportFormSubjectHint => 'Beschrijf het probleem kort';
+
+  @override
+  String get supportFormDescriptionLabel => 'Wat is er gebeurd?';
+
+  @override
+  String get supportFormDescriptionHint =>
+      'Wat je deed, wat je verwachtte en wat er in plaats daarvan gebeurde';
+
+  @override
+  String get supportFormScreenshotsSection => 'SCREENSHOTS';
+
+  @override
+  String supportFormScreenshotsCaption(int max) {
+    return 'Optioneel. Maximaal $max afbeeldingen.';
+  }
+
+  @override
+  String get supportAddScreenshot => 'Screenshot toevoegen';
+
+  @override
+  String supportRemoveAttachment(String name) {
+    return '$name verwijderen';
+  }
+
+  @override
+  String get supportAttachmentUploading => 'Bezig met uploaden';
+
+  @override
+  String get supportRetryUpload => 'Opnieuw uploaden';
+
+  @override
+  String supportFormDeviceNote(String version) {
+    return 'We voegen je appversie ($version), platform, systeemversie en taal toe om het probleem te helpen oplossen.';
+  }
+
+  @override
+  String get supportSubmit => 'Verzoek versturen';
+
+  @override
+  String get supportErrorCategoryRequired => 'Kies een onderwerp.';
+
+  @override
+  String supportErrorSubjectLength(int min, int max) {
+    return 'Gebruik $min tot $max tekens voor het onderwerp.';
+  }
+
+  @override
+  String get supportErrorDescriptionRequired => 'Beschrijf wat er gebeurde.';
+
+  @override
+  String supportErrorDescriptionTooLong(int max) {
+    return 'Blijf onder de $max tekens.';
+  }
+
+  @override
+  String get supportErrorUploadsPending =>
+      'Wacht tot je screenshots zijn geüpload of verwijder de mislukte.';
+
+  @override
+  String supportCreatedSnack(String reference) {
+    return 'Verzoek $reference verstuurd. We antwoorden hier.';
+  }
+
+  @override
+  String supportDuplicateSnack(String reference) {
+    return 'Je hebt dit verzoek al verstuurd, dus we hebben het geopend: $reference.';
+  }
+
+  @override
+  String supportErrorRateLimited(int minutes) {
+    String _temp0 = intl.Intl.pluralLogic(
+      minutes,
+      locale: localeName,
+      other:
+          'Je hebt in korte tijd meerdere verzoeken verstuurd. Probeer het over $minutes minuten opnieuw.',
+      one:
+          'Je hebt in korte tijd meerdere verzoeken verstuurd. Probeer het over 1 minuut opnieuw.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get supportErrorRateLimitedGeneric =>
+      'Je hebt in korte tijd meerdere verzoeken verstuurd. Probeer het later opnieuw.';
+
+  @override
+  String get supportErrorTooManyOpen =>
+      'Je hebt al 10 open verzoeken. Sluit er een die je niet meer nodig hebt of wacht op onze antwoorden.';
+
+  @override
+  String get supportErrorTicketClosed =>
+      'Dit verzoek is gesloten en kan niet meer worden heropend. Start een nieuw verzoek.';
+
+  @override
+  String get supportErrorReopenWindowPassed =>
+      'De termijn om dit verzoek te heropenen is verstreken. Start een nieuw verzoek.';
+
+  @override
+  String get supportErrorAlreadyRated => 'Je hebt dit verzoek al beoordeeld.';
+
+  @override
+  String get supportErrorNotResolved =>
+      'Je kunt een verzoek beoordelen zodra het is opgelost.';
+
+  @override
+  String get supportErrorAttachmentType =>
+      'Alleen JPEG- of PNG-afbeeldingen en pdf-bestanden kunnen worden bijgevoegd.';
+
+  @override
+  String get supportErrorAttachmentTooLarge =>
+      'Dat bestand is te groot. Afbeeldingen mogen maximaal 8 MB zijn.';
+
+  @override
+  String get supportErrorOffline =>
+      'Connect is nu niet bereikbaar. Controleer je verbinding en probeer het opnieuw.';
+
+  @override
+  String get supportErrorNotFound => 'We konden dit verzoek niet vinden.';
+
+  @override
+  String get supportErrorGeneric => 'Er ging iets mis. Probeer het opnieuw.';
+
+  @override
+  String get supportTryAgain => 'Opnieuw proberen';
+
+  @override
+  String get supportTicketsEyebrow => 'SUPPORT';
+
+  @override
+  String get supportTicketsTitle => 'Mijn verzoeken';
+
+  @override
+  String get supportTicketsSubtitle => 'Je verzoeken en onze antwoorden.';
+
+  @override
+  String get supportTicketsActiveSection => 'ACTIEF';
+
+  @override
+  String get supportTicketsClosedSection => 'OPGELOST & GESLOTEN';
+
+  @override
+  String get supportTicketsEmptyTitle => 'Nog geen verzoeken';
+
+  @override
+  String get supportTicketsEmptyBody =>
+      'Als je contact opneemt met support, verschijnen je verzoek en onze antwoorden hier.';
+
+  @override
+  String get supportTicketsLoadErrorTitle =>
+      'Je verzoeken konden niet worden geladen';
+
+  @override
+  String supportTicketUpdated(String when) {
+    return 'Bijgewerkt $when';
+  }
+
+  @override
+  String get supportNewTicket => 'Nieuw verzoek';
+
+  @override
+  String get supportStatusOpen => 'Open';
+
+  @override
+  String get supportStatusWaitingForYou => 'Wacht op jou';
+
+  @override
+  String get supportStatusOnHold => 'Gepauzeerd';
+
+  @override
+  String get supportStatusResolved => 'Opgelost';
+
+  @override
+  String get supportStatusClosed => 'Gesloten';
+
+  @override
+  String supportStatusSemantics(String status) {
+    return 'Status: $status';
+  }
+
+  @override
+  String get supportThreadAgentName => 'Connect Support';
+
+  @override
+  String get supportThreadYou => 'Jij';
+
+  @override
+  String supportTicketMeta(String category, String date) {
+    return '$category · Geopend op $date';
+  }
+
+  @override
+  String get supportBannerOpen =>
+      'We hebben je verzoek. Ons team antwoordt hier en laat het je weten.';
+
+  @override
+  String get supportBannerWaiting =>
+      'Support heeft geantwoord en wacht op jouw reactie.';
+
+  @override
+  String get supportBannerOnHold =>
+      'Je verzoek is gepauzeerd terwijl we het uitzoeken. We houden je hier op de hoogte.';
+
+  @override
+  String get supportBannerResolved =>
+      'Gemarkeerd als opgelost. Antwoord om het te heropenen; anders wordt het na 7 dagen automatisch gesloten.';
+
+  @override
+  String supportBannerClosedUntil(String date) {
+    return 'Dit verzoek is gesloten. Je kunt het heropenen tot $date.';
+  }
+
+  @override
+  String get supportBannerClosed => 'Dit verzoek is gesloten.';
+
+  @override
+  String supportBannerMerged(String reference) {
+    return 'Dit verzoek is samengevoegd met $reference. Het gesprek gaat daar verder.';
+  }
+
+  @override
+  String get supportReplyHint => 'Schrijf een antwoord';
+
+  @override
+  String get supportReplyDisabledHint =>
+      'Antwoorden is niet meer mogelijk voor dit verzoek';
+
+  @override
+  String get supportSendReply => 'Antwoord versturen';
+
+  @override
+  String get supportAttachScreenshot => 'Screenshot bijvoegen';
+
+  @override
+  String get supportCloseTicket => 'Verzoek sluiten';
+
+  @override
+  String get supportCloseConfirmTitle => 'Dit verzoek sluiten?';
+
+  @override
+  String get supportCloseConfirmBody =>
+      'Sluit het als je probleem is opgelost. Je kunt het 14 dagen lang heropenen.';
+
+  @override
+  String get supportCancel => 'Annuleren';
+
+  @override
+  String get supportClosedSnack => 'Verzoek gesloten.';
+
+  @override
+  String get supportReopen => 'Verzoek heropenen';
+
+  @override
+  String get supportReopenedSnack => 'Verzoek heropend.';
+
+  @override
+  String get supportRateTitle => 'Hoe hebben we het gedaan?';
+
+  @override
+  String get supportRateCaption => 'Beoordeel je ervaring met dit verzoek.';
+
+  @override
+  String supportRateStar(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sterren',
+      one: '1 ster',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get supportRateCommentLabel => 'Nog iets toe te voegen? (optioneel)';
+
+  @override
+  String get supportRateSubmit => 'Beoordeling versturen';
+
+  @override
+  String get supportRatedTitle => 'Bedankt voor je feedback';
+
+  @override
+  String supportRatedValue(int rating) {
+    return 'Je gaf dit een $rating van 5.';
+  }
+
+  @override
+  String get supportRatingSnack => 'Bedankt voor je beoordeling.';
+
+  @override
+  String supportAttachmentImage(String name) {
+    return 'Screenshot $name';
+  }
+
+  @override
+  String get supportAttachmentLoadFailed => 'Bijlage kon niet worden geladen';
+
+  @override
+  String get supportThreadLoadErrorTitle =>
+      'Dit verzoek kon niet worden geladen';
+
+  @override
+  String get chemistryCardEntry => 'Een beetje chemie?';
+
+  @override
+  String get memberProfileIntroducing => 'Maak kennis met';
+
+  @override
+  String get memberProfileStarring => 'In de hoofdrol';
+
+  @override
+  String get memberProfileVerified => 'Geverifieerd';
+
+  @override
+  String memberProfilePhotoLabel(String name, int index, int count) {
+    return '$name, foto $index van $count';
+  }
+
+  @override
+  String get memberProfileNoPhoto => 'Nog geen foto';
+
+  @override
+  String get memberProfileViewPhotoHint => 'op volledig scherm bekijken';
+
+  @override
+  String get memberProfileCloseGallery => 'Foto\'s sluiten';
+
+  @override
+  String get memberProfilePhotos => 'Foto\'s';
+
+  @override
+  String memberProfileMorePhotos(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'nog $count foto\'s',
+      one: 'nog 1 foto',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get memberProfileSceneAbout => 'Over mij';
+
+  @override
+  String get memberProfileSceneStories => 'Verhalen';
+
+  @override
+  String get memberProfileSceneStoriesTitle => 'Een beetje meer van mij';
+
+  @override
+  String get memberProfileSceneInterests => 'Interesses';
+
+  @override
+  String get memberProfileSceneBasics => 'De basis';
+
+  @override
+  String get memberProfileSceneLifestyle => 'Levensstijl';
+
+  @override
+  String get memberProfileSceneTrust => 'Vertrouwen';
+
+  @override
+  String get memberProfileReadMore => 'Lees meer';
+
+  @override
+  String get memberProfileReadLess => 'Minder tonen';
+
+  @override
+  String get memberProfileHobbies => 'Hobby\'s';
+
+  @override
+  String get memberProfileActivities => 'Activiteiten';
+
+  @override
+  String get memberProfileSongs => 'Op repeat';
+
+  @override
+  String get memberProfileBooks => 'Boeken en romans';
+
+  @override
+  String get memberProfileLookingFor => 'Zoekt';
+
+  @override
+  String get memberProfileLanguages => 'Talen';
+
+  @override
+  String get memberProfileDealBreakers => 'Dealbreakers';
+
+  @override
+  String get memberProfileInCommon => 'Gemeenschappelijk';
+
+  @override
+  String get memberProfileFactHeight => 'Lengte';
+
+  @override
+  String memberProfileHeightCm(int cm) {
+    return '$cm cm';
+  }
+
+  @override
+  String get memberProfileFactWork => 'Werk';
+
+  @override
+  String get memberProfileFactEducation => 'Opleiding';
+
+  @override
+  String get memberProfileFactLivesIn => 'Woont in';
+
+  @override
+  String get memberProfileFactMotherTongue => 'Moedertaal';
+
+  @override
+  String get memberProfileFactReligion => 'Religie';
+
+  @override
+  String get memberProfileFactPersonality => 'Persoonlijkheid';
+
+  @override
+  String get memberProfileFactRelationship => 'Relatiestatus';
+
+  @override
+  String get memberProfileFactInstagram => 'Instagram';
+
+  @override
+  String get memberProfileFactDrinking => 'Alcohol';
+
+  @override
+  String get memberProfileFactSmoking => 'Roken';
+
+  @override
+  String get memberProfileFactWorkout => 'Sporten';
+
+  @override
+  String get memberProfileFactDiet => 'Eetpatroon';
+
+  @override
+  String get memberProfileFactDietType => 'Dieet';
+
+  @override
+  String get memberProfileFactSleep => 'Slaap';
+
+  @override
+  String get memberProfileFactTravel => 'Reizen';
+
+  @override
+  String get memberProfileFactPets => 'Huisdieren';
+
+  @override
+  String get memberProfileFactPolitics => 'Politiek';
+
+  @override
+  String get memberProfileFactOpenToCasual => 'Open voor iets luchtigs';
+
+  @override
+  String get memberProfileFactPartyLover => 'Houdt van feesten';
+
+  @override
+  String get memberProfileVerifiedTitle => 'Geverifieerd profiel';
+
+  @override
+  String get memberProfileVerifiedBody => 'Identiteitscontrole voltooid.';
+
+  @override
+  String get memberProfileVouchesTitle => 'Aanbevolen door vrienden';
+
+  @override
+  String get memberProfileSpotlight => 'Uitgelicht';
+
+  @override
+  String get memberProfileFreeWhenYouAre => 'Vrij als jij vrij bent';
+
+  @override
+  String get memberProfileMessage => 'Bericht';
+
+  @override
+  String get memberProfileLove => 'Hartje';
+
+  @override
+  String get memberProfileReport => 'Melden';
+
+  @override
+  String get memberProfileOwnerTitle => 'Zo zien anderen jou';
+
+  @override
+  String get memberProfileOwnerCaption => 'Leden zien je profiel precies zo.';
+
+  @override
+  String memberProfileCompleteness(int percent) {
+    return 'Profiel $percent% compleet';
+  }
+
+  @override
+  String get memberProfileCompletenessHint =>
+      'Voeg foto\'s, verhalen en details toe om op te vallen.';
+
+  @override
+  String get memberProfileCompletenessDone => 'Je profiel is compleet.';
+
+  @override
+  String get memberProfileToolEdit => 'Profiel bewerken';
+
+  @override
+  String get memberProfileToolPhotos => 'Foto\'s bewerken';
+
+  @override
+  String get memberProfileToolStories => 'Jouw verhalen';
+
+  @override
+  String get memberProfileToolViewers => 'Wie je bekeek';
+
+  @override
+  String get memberProfileBehindTheScenes => 'Achter de schermen';
+
+  @override
+  String get memberProfileOnlyYou => 'Alleen jij ziet dit.';
+
+  @override
+  String get memberProfileMine => 'Mijn profiel';
+
+  @override
+  String get profileShowcaseLabel => 'Teksten & momenten';
+
+  @override
+  String get profileShowcaseTitleOther => 'In eigen woorden';
+
+  @override
+  String get profileShowcaseTitleSelf => 'Jouw openbare teksten & foto\'s';
+
+  @override
+  String get profileShowcaseChapters => 'Hoofdstukken';
+
+  @override
+  String get profileShowcasePhotos => 'Muurfoto\'s';
+
+  @override
+  String get profileShowcaseReadAll => 'Alle hoofdstukken lezen';
+
+  @override
+  String get profileShowcaseHiddenTitle => 'Alleen jij ziet dit';
+
+  @override
+  String get profileShowcaseHiddenBody =>
+      'Je openbare hoofdstukken en muurfoto\'s zijn verborgen op je profiel. Zet dit aan zodat leden ze hier zien.';
+
+  @override
+  String get profileShowcaseShownBody =>
+      'Leden zien deze op je profiel. Alleen hoofdstukken die je met de community deelt en foto\'s op de muur verschijnen.';
+
+  @override
+  String get profileShowcaseSwitch => 'Tonen op mijn profiel';
+
+  @override
+  String get profileShowcaseSaveFailed =>
+      'Je keuze kon niet worden opgeslagen.';
 }

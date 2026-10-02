@@ -26,6 +26,19 @@ func postgresOptions(cfg config.Config, maxConns, minConns int32) postgresdata.O
 	}
 }
 
+// primaryPoolMaxConns sizes the profile repository's pool, which carries
+// almost every request's SQL (sessions, roles, idempotency, realtime, social,
+// notifications). It used to be hard-capped at 16, so raising
+// POSTGRES_POOL_MAX_CONNS (as the runbooks advise) could only lower it; under
+// load requests queued on that pool (verified_dating_db_pool_wait_seconds_total).
+// It now follows POSTGRES_POOL_MAX_CONNS, never below the old 16.
+func primaryPoolMaxConns(cfg config.Config) int32 {
+	if cfg.PostgresPoolMaxConns > 16 {
+		return int32(cfg.PostgresPoolMaxConns)
+	}
+	return 16
+}
+
 type repositoryDB = dataaccess.Client
 
 func clientFromStore(store *dataaccess.Store) repositoryDB {

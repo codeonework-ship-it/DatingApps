@@ -546,9 +546,14 @@ class ConversationRoomsNotifier extends StateNotifier<ConversationRoomsState> {
 }
 
 final conversationRoomsProvider =
-    StateNotifierProvider<ConversationRoomsNotifier, ConversationRoomsState>(
-      ConversationRoomsNotifier.new,
-    );
+    StateNotifierProvider<ConversationRoomsNotifier, ConversationRoomsState>((
+      ref,
+    ) {
+      // Per member: signing in as someone else on this device must never
+      // show the previous member's rooms and roles.
+      ref.watch(authNotifierProvider.select((s) => s.userId));
+      return ConversationRoomsNotifier(ref);
+    });
 
 /// The signed-in member's id, for comparing against room members.
 String currentRoomUserId(Ref ref) =>

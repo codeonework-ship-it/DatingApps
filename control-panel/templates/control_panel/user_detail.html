@@ -270,9 +270,12 @@
     </div>
 
     <!-- Wallet Transactions -->
-    {% if wallet_transactions %}
+    {% if wallet_transactions or wallet_transactions_partial %}
     <div class="glass-card mb-3">
       <h6 class="mb-3" style="color:rgba(255,255,255,0.7);"><i class="bi bi-clock-history me-2"></i>Recent Transactions</h6>
+      {% if wallet_transactions_partial %}
+      <p class="text-muted small mb-2">This list may be incomplete: the service returned platform-wide purchases, so only this member's rows among the latest 20 are shown.</p>
+      {% endif %}
       <div class="table-responsive">
         <table class="glass-table">
           <thead>

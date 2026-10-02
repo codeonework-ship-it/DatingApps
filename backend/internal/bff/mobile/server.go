@@ -78,12 +78,15 @@ type Server struct {
 	realtime                 chatRealtimeEventStore
 	realtimeAuthorizer       realtimeSessionAuthorizer
 	notifications            *notificationRepository
+	chatWake                 *realtimeWakeHub
+	notificationWake         *realtimeWakeHub
 	notificationWorker       *notificationDeliveryEngine
 	sosDeliveryWorker        *sosDeliveryEngine
 	accountErasureWorker     *accountErasureWorker
 	trustRetentionWorker     *trustRetentionWorker
 	datePlanSweepWorker      *datePlanSweepWorker
 	analyticsSnapshotWorker  *analyticsSnapshotWorker
+	supportSLAWorker         *supportSLAWorker
 	datePlanUnlockOverride   func(matchID string) (bool, string)
 	copilotProvider          copilotProvider
 	xpAwardSpool             *xpAwardSpool
@@ -166,6 +169,7 @@ func NewServer(cfg config.Config, log *zap.Logger, httpMetrics *observability.HT
 		return nil, err
 	}
 
+	setUnexpectedErrorLogger(log)
 	s := &Server{
 		cfg:             cfg,
 		log:             log,
@@ -204,6 +208,8 @@ func NewServer(cfg config.Config, log *zap.Logger, httpMetrics *observability.HT
 		s.realtime = newChatRealtimeRepository(s.store.profileRepo.pg)
 		s.realtimeAuthorizer = s.store.profileRepo
 		s.notifications = newNotificationRepository(s.store.profileRepo.pg)
+		s.chatWake = newChatRealtimeWakeHub(s.store.profileRepo.pg, log)
+		s.notificationWake = newNotificationRealtimeWakeHub(s.store.profileRepo.pg, log)
 		s.notificationWorker = newNotificationDeliveryEngine(cfg, log, s.notifications, httpMetrics)
 		s.sosDeliveryWorker = newSOSDeliveryEngine(cfg, log, s.store.safetyRepo)
 		s.progression = newLevelProgressionRepository(s.store.profileRepo.pg)
@@ -705,6 +711,9 @@ func NewServer(cfg config.Config, log *zap.Logger, httpMetrics *observability.HT
 		v1.Get("/matches/{matchID}/voice-introductions", s.listVoiceIntroductions)
 		v1.Get("/profile/{userID}/stories", s.profileStoriesHandler)
 		v1.Put("/profile/{userID}/stories", s.profileStoriesHandler)
+		v1.Get("/profile/{userID}/showcase", s.profileShowcaseHandler)
+		v1.Get("/profile/{userID}/showcase/consent", s.profileShowcaseConsentHandler)
+		v1.Put("/profile/{userID}/showcase/consent", s.profileShowcaseConsentHandler)
 		v1.Get("/matches/{matchID}/plans", s.getMatchDatePlans)
 		v1.Post("/matches/{matchID}/plans", s.proposeMatchDatePlan)
 		v1.Get("/matches/{matchID}/plans/{planID}/sharing", s.datePlanSharingHandler)
@@ -874,10 +883,19 @@ func NewServer(cfg config.Config, log *zap.Logger, httpMetrics *observability.HT
 		// Deferred growth portfolio. The portfolio contract is always readable;
 		// each member capability is independently fail-closed by server flags.
 		v1.Get("/growth/portfolio", s.getGrowthPortfolio)
-		v1.Get("/support/tickets", s.listSupportTickets)
-		v1.Post("/support/tickets", s.createSupportTicket)
-		v1.Get("/support/tickets/{ticketID}", s.getSupportTicket)
-		v1.Post("/support/tickets/{ticketID}/messages", s.addSupportTicketMessage)
+		// Support tickets (support_tickets.go, migration 126). Member routes
+		// are gated by support_ticketing_enabled; /support/contact is the
+		// signed-out website form (see isPublicSecurityPath).
+		v1.Get("/support/tickets", s.supportListTickets)
+		v1.Post("/support/tickets", s.supportCreateTicket)
+		v1.Get("/support/tickets/{ticketID}", s.supportGetTicket)
+		v1.Post("/support/tickets/{ticketID}/messages", s.supportReply)
+		v1.Post("/support/tickets/{ticketID}/close", s.supportCloseTicket)
+		v1.Post("/support/tickets/{ticketID}/reopen", s.supportReopenTicket)
+		v1.Post("/support/tickets/{ticketID}/rating", s.supportRateTicket)
+		v1.Get("/support/tickets/{ticketID}/attachments/{attachmentID}", s.supportAttachmentHandler)
+		v1.Post("/support/attachments", s.supportUploadHandler)
+		v1.Post("/support/contact", s.supportContact)
 		v1.Get("/city-pilot", s.memberCityPilot)
 		v1.Post("/city-pilot/membership", s.cityPilotMembership)
 		v1.Delete("/city-pilot/membership", s.cityPilotMembership)
@@ -1007,9 +1025,22 @@ func NewServer(cfg config.Config, log *zap.Logger, httpMetrics *observability.HT
 		v1.Get("/admin/billing/fraud/rules", s.adminListEconomyFraudRules)
 		v1.Put("/admin/billing/fraud/rules/{ruleCode}", s.adminUpdateEconomyFraudRule)
 		v1.Post("/admin/safety/account-recovery/{requestID}/resolve", s.adminResolveAccountRecoveryRequest)
-		v1.Get("/admin/support/tickets", s.adminListSupportTickets)
-		v1.Get("/admin/support/tickets/{ticketID}", s.adminGetSupportTicket)
-		v1.Put("/admin/support/tickets/{ticketID}", s.adminUpdateSupportTicket)
+		v1.Get("/admin/support/tickets", s.adminSupportQueue)
+		v1.Get("/admin/support/tickets/export", s.adminSupportExport)
+		v1.Post("/admin/support/tickets/bulk", s.adminSupportBulk)
+		v1.Get("/admin/support/tickets/{ticketID}", s.adminSupportTicketDetail)
+		v1.Patch("/admin/support/tickets/{ticketID}", s.adminSupportUpdateTicket)
+		v1.Post("/admin/support/tickets/{ticketID}/claim", s.adminSupportClaim)
+		v1.Post("/admin/support/tickets/{ticketID}/messages", s.adminSupportReply)
+		v1.Post("/admin/support/tickets/{ticketID}/merge", s.adminSupportMerge)
+		v1.Get("/admin/support/tickets/{ticketID}/canned-responses/{responseID}/preview", s.adminSupportCannedPreview)
+		v1.Get("/admin/support/attachments/{attachmentID}/content", s.adminSupportAttachmentHandler)
+		v1.Get("/admin/support/dashboard", s.adminSupportDashboard)
+		v1.Get("/admin/support/agents", s.adminSupportAgents)
+		v1.Get("/admin/support/canned-responses", s.adminSupportListCanned)
+		v1.Post("/admin/support/canned-responses", s.adminSupportCreateCanned)
+		v1.Patch("/admin/support/canned-responses/{responseID}", s.adminSupportUpdateCanned)
+		v1.Delete("/admin/support/canned-responses/{responseID}", s.adminSupportDeleteCanned)
 		v1.Get("/admin/growth/fraud-graph", s.adminListFraudGraph)
 		v1.Post("/admin/growth/fraud-graph/{edgeID}/resolve", s.adminResolveFraudGraphEdge)
 		// Self-hosted client crash/error reporting (client_errors.go, migration
@@ -1060,6 +1091,12 @@ func NewServer(cfg config.Config, log *zap.Logger, httpMetrics *observability.HT
 	if s.store != nil && s.store.profileRepo != nil && s.store.profileRepo.pg != nil {
 		s.analyticsSnapshotWorker = newAnalyticsSnapshotWorker(s.store.profileRepo.pg, s.log, analyticsSnapshotInterval)
 		s.analyticsSnapshotWorker.Start(context.Background())
+	}
+	// Support tickets: SLA breach latching, auto-close, attachment release and
+	// retention (migration 126).
+	if s.store != nil && s.store.profileRepo != nil && s.store.profileRepo.pg != nil {
+		s.supportSLAWorker = newSupportSLAWorker(s, s.store.profileRepo.pg, s.log, supportSLAWorkerInterval)
+		s.supportSLAWorker.Start(context.Background())
 	}
 	// XP award intents that could not reach the database are spooled locally
 	// and replayed into the repair queue (PEN-22).
@@ -1284,6 +1321,8 @@ func (s *Server) Close() {
 	if s.notificationWorker != nil {
 		s.notificationWorker.Close()
 	}
+	s.chatWake.Close()
+	s.notificationWake.Close()
 	if s.sosDeliveryWorker != nil {
 		s.sosDeliveryWorker.Close()
 	}
@@ -1295,6 +1334,9 @@ func (s *Server) Close() {
 	}
 	if s.datePlanSweepWorker != nil {
 		s.datePlanSweepWorker.Stop()
+	}
+	if s.supportSLAWorker != nil {
+		s.supportSLAWorker.Stop()
 	}
 	if s.analyticsSnapshotWorker != nil {
 		s.analyticsSnapshotWorker.Stop()
@@ -1691,8 +1733,18 @@ func (s *Server) swipe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	actor := s.requestUserID(r, toString(payload["user_id"]))
+	target := strings.TrimSpace(toString(payload["target_user_id"]))
+	if actor != "" && actor == target {
+		// The database CHECK refused this as a 502 (API-13).
+		writeError(w, http.StatusBadRequest, errors.New("you cannot swipe on yourself"))
+		return
+	}
 	if like, _ := payload["is_like"].(bool); like {
-		if !s.enforceDailyQuota(w, r, s.requestUserID(r, toString(payload["user_id"])), "like") {
+		if s.refuseBlockedLike(w, r, actor, target) {
+			return
+		}
+		if !s.enforceDailyQuota(w, r, actor, "like") {
 			return
 		}
 	}
@@ -1840,6 +1892,9 @@ func (s *Server) upsertMatchQuestTemplate(w http.ResponseWriter, r *http.Request
 			writeError(w, http.StatusBadRequest, err)
 			return
 		}
+		if writeQuestWorkflowRuleError(w, err) {
+			return
+		}
 		writeError(w, http.StatusBadGateway, err)
 		return
 	}
@@ -1903,6 +1958,9 @@ func (s *Server) submitMatchQuestResponse(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		if errors.Is(err, matchingapp.ErrValidation) {
 			writeError(w, http.StatusBadRequest, err)
+			return
+		}
+		if writeQuestWorkflowRuleError(w, err) {
 			return
 		}
 		writeError(w, http.StatusBadGateway, err)
@@ -1985,6 +2043,9 @@ func (s *Server) reviewMatchQuestResponse(w http.ResponseWriter, r *http.Request
 			writeError(w, http.StatusBadRequest, err)
 			return
 		}
+		if writeQuestWorkflowRuleError(w, err) {
+			return
+		}
 		writeError(w, http.StatusBadGateway, err)
 		return
 	}
@@ -2056,6 +2117,9 @@ func (s *Server) createMatchGesture(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusBadRequest, err)
 			return
 		}
+		if writeQuestWorkflowRuleError(w, err) {
+			return
+		}
 		writeError(w, http.StatusBadGateway, err)
 		return
 	}
@@ -2108,6 +2172,9 @@ func (s *Server) decideMatchGesture(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, matchingapp.ErrValidation) {
 			writeError(w, http.StatusBadRequest, err)
+			return
+		}
+		if writeQuestWorkflowRuleError(w, err) {
 			return
 		}
 		writeError(w, http.StatusBadGateway, err)
@@ -2413,6 +2480,9 @@ func (s *Server) sendMessage(w http.ResponseWriter, r *http.Request) {
 
 	payload, ok := readJSON(w, r)
 	if !ok {
+		return
+	}
+	if s.refuseBlockedMatchWrite(w, r, matchID) {
 		return
 	}
 
@@ -4919,7 +4989,8 @@ func (s *Server) reorderProfilePhotos(w http.ResponseWriter, r *http.Request) {
 		profileapp.ReorderProfilePhotosCommand{UserID: userID, PhotoIDs: photoIDs},
 	)
 	if err != nil {
-		if errors.Is(err, profileapp.ErrValidation) {
+		var badOrder *photoOrderError
+		if errors.Is(err, profileapp.ErrValidation) || errors.As(err, &badOrder) {
 			writeError(w, http.StatusBadRequest, err)
 			return
 		}
@@ -4954,7 +5025,8 @@ func (s *Server) completeProfile(w http.ResponseWriter, r *http.Request) {
 		profileapp.CompleteProfileCommand{UserID: userID},
 	)
 	if err != nil {
-		if errors.Is(err, profileapp.ErrValidation) {
+		var incomplete *profileCompletionError
+		if errors.Is(err, profileapp.ErrValidation) || errors.As(err, &incomplete) {
 			writeError(w, http.StatusBadRequest, err)
 			return
 		}
@@ -5214,6 +5286,12 @@ func (s *Server) addEmergencyContact(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, profileapp.ErrValidation) {
 			writeError(w, http.StatusBadRequest, err)
+			return
+		}
+		// The three-contact cap is a rule the member hit, not an outage: it
+		// was answered 502 "temporarily unavailable" (API-16).
+		if strings.Contains(err.Error(), "maximum 3 emergency contacts") {
+			writeError(w, http.StatusConflict, errors.New("you can save up to 3 emergency contacts"))
 			return
 		}
 		writeError(w, http.StatusBadGateway, err)
@@ -5757,6 +5835,16 @@ func (s *Server) listModerationAppealsForUser(w http.ResponseWriter, r *http.Req
 	}
 	status := strings.TrimSpace(r.URL.Query().Get("status"))
 	userID := strings.TrimSpace(r.URL.Query().Get("user_id"))
+	// The list is the signed-in member's own appeals. A user_id query naming
+	// someone else used to be honoured, so any member could read another
+	// member's appeals, reports and reasons (API-14).
+	if principal, ok := principalFromRequest(r); ok && principal.UserID != "" {
+		if userID != "" && userID != principal.UserID {
+			writeError(w, http.StatusForbidden, errors.New("resource does not belong to the authenticated user"))
+			return
+		}
+		userID = principal.UserID
+	}
 	if userID == "" {
 		userID = strings.TrimSpace(r.Header.Get("X-User-ID"))
 	}
@@ -5908,6 +5996,10 @@ func (s *Server) reportUser(w http.ResponseWriter, r *http.Request) {
 	reportedUserID := strings.TrimSpace(toString(payload["reported_user_id"]))
 	reason := strings.TrimSpace(toString(payload["reason"]))
 	description := strings.TrimSpace(toString(payload["description"]))
+	if status, problem := safetyPairProblem(reporterUserID, reportedUserID, "reported_user_id"); problem != nil {
+		writeError(w, status, problem)
+		return
+	}
 
 	ctx, cancel := s.withRequestTimeout(r.Context())
 	defer cancel()
@@ -5925,6 +6017,10 @@ func (s *Server) reportUser(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, safetyapp.ErrValidation) {
 			writeError(w, http.StatusBadRequest, err)
+			return
+		}
+		if status, clientErr, ok := safetyCommandStatus(err); ok {
+			writeError(w, status, clientErr)
 			return
 		}
 		writeError(w, http.StatusBadGateway, err)
@@ -5946,6 +6042,10 @@ func (s *Server) blockUser(w http.ResponseWriter, r *http.Request) {
 	}
 	userID := strings.TrimSpace(toString(payload["user_id"]))
 	blockedUserID := strings.TrimSpace(toString(payload["blocked_user_id"]))
+	if status, problem := safetyPairProblem(userID, blockedUserID, "blocked_user_id"); problem != nil {
+		writeError(w, status, problem)
+		return
+	}
 
 	ctx, cancel := s.withRequestTimeout(r.Context())
 	defer cancel()
@@ -5958,6 +6058,10 @@ func (s *Server) blockUser(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, safetyapp.ErrValidation) {
 			writeError(w, http.StatusBadRequest, err)
+			return
+		}
+		if status, clientErr, ok := safetyCommandStatus(err); ok {
+			writeError(w, status, clientErr)
 			return
 		}
 		writeError(w, http.StatusBadGateway, err)
@@ -5979,6 +6083,10 @@ func (s *Server) unblockUser(w http.ResponseWriter, r *http.Request) {
 	}
 	userID := strings.TrimSpace(toString(payload["user_id"]))
 	blockedUserID := strings.TrimSpace(toString(payload["blocked_user_id"]))
+	if status, problem := safetyPairProblem(userID, blockedUserID, "blocked_user_id"); problem != nil {
+		writeError(w, status, problem)
+		return
+	}
 
 	ctx, cancel := s.withRequestTimeout(r.Context())
 	defer cancel()
@@ -5993,6 +6101,10 @@ func (s *Server) unblockUser(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusBadRequest, err)
 			return
 		}
+		if status, clientErr, ok := safetyCommandStatus(err); ok {
+			writeError(w, status, clientErr)
+			return
+		}
 		writeError(w, http.StatusBadGateway, err)
 		return
 	}
@@ -6005,11 +6117,26 @@ func (s *Server) unblockUser(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, resp)
 }
 
+// readJSON decodes a JSON object body. A missing or empty body reads as {}
+// so handlers report the field they need (API-04: a bodyless DELETE used to
+// answer with the raw decoder error "EOF"). Malformed bodies get a readable
+// 400; raw decoder errors are never returned to the client.
 func readJSON(w http.ResponseWriter, r *http.Request) (map[string]any, bool) {
+	payload := map[string]any{}
+	if r.Body == nil || r.Body == http.NoBody {
+		return payload, true
+	}
 	defer r.Body.Close()
-	var payload map[string]any
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		writeError(w, http.StatusBadRequest, err)
+		if errors.Is(err, io.EOF) {
+			return map[string]any{}, true
+		}
+		var typeErr *json.UnmarshalTypeError
+		if errors.As(err, &typeErr) && typeErr.Field == "" {
+			writeError(w, http.StatusBadRequest, errors.New("request body must be a JSON object"))
+			return nil, false
+		}
+		writeError(w, http.StatusBadRequest, errors.New("request body is not valid JSON"))
 		return nil, false
 	}
 	if payload == nil {
@@ -6088,7 +6215,7 @@ func (s *Server) engagementTelemetryDetails(path string) map[string]any {
 	if !isEngagementTelemetryPath(trimmedPath) {
 		return nil
 	}
-	variant := unlockPolicyRequireQuestTemplate
+	variant := unlockPolicyAllowWithoutTemplate
 	if s != nil && s.store != nil {
 		variant = s.store.unlockPolicyVariant()
 	}

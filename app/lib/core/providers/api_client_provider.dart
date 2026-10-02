@@ -40,6 +40,9 @@ final apiClientProvider = Provider<Dio>((ref) {
     }
     final refreshToken = AuthSessionStore.instance.refreshToken;
     if (refreshToken == null || refreshToken.isEmpty) {
+      // Nothing can renew a rejected access credential: end the session so
+      // the member is asked to sign in again instead of polling with it.
+      AuthSessionStore.instance.expire();
       return Future<String?>.value();
     }
     final sessionRevision = AuthSessionStore.instance.revision;
@@ -69,12 +72,12 @@ final apiClientProvider = Provider<Dio>((ref) {
         if ((error.response?.statusCode == 400 ||
                 error.response?.statusCode == 401) &&
             AuthSessionStore.instance.revision == sessionRevision) {
-          AuthSessionStore.instance.clear();
+          AuthSessionStore.instance.expire();
         }
         return null;
       } on Object {
         if (AuthSessionStore.instance.revision == sessionRevision) {
-          AuthSessionStore.instance.clear();
+          AuthSessionStore.instance.expire();
         }
         return null;
       } finally {
@@ -122,11 +125,12 @@ final apiClientProvider = Provider<Dio>((ref) {
         handler.next(options);
       },
       onResponse: (response, handler) {
-        if (kIsWeb)
-          response.data = browserMediaUrls(
-            response.data,
+        if (kIsWeb) {
+          rewriteBrowserMediaResponse(
+            response,
             Uri.parse(AppRuntimeConfig.apiBaseUrl),
           );
+        }
         final request = response.requestOptions;
         final correlationId =
             request.extra['correlation_id']?.toString() ??
@@ -255,14 +259,25 @@ final apiClientProvider = Provider<Dio>((ref) {
             );
           }
         }
+        // A 401 on an authenticated request: renew the credential once (all
+        // concurrent failures share one in-flight refresh) and replay the
+        // request. A request that was sent with a credential the app has since
+        // replaced is replayed with the current one instead of refreshing
+        // again. A rejected refresh expires the session (see
+        // [AuthSessionStore.expire]); a replayed request is never retried, so
+        // this cannot loop.
         final shouldRefresh =
             error.response?.statusCode == 401 &&
-            request.extra['session_revision'] ==
-                AuthSessionStore.instance.revision &&
+            request.headers['Authorization'] != null &&
             request.extra['auth_retry'] != true &&
             !request.path.startsWith('/auth/');
         if (shouldRefresh) {
-          final accessToken = await refreshAccessToken();
+          final staleCredential =
+              request.extra['session_revision'] !=
+              AuthSessionStore.instance.revision;
+          final accessToken = staleCredential
+              ? AuthSessionStore.instance.accessToken
+              : await refreshAccessToken();
           if (accessToken != null && accessToken.isNotEmpty) {
             request.extra['auth_retry'] = true;
             request.headers['Authorization'] = 'Bearer $accessToken';

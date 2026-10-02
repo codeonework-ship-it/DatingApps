@@ -12,6 +12,7 @@ import '../../friends/providers/friends_provider.dart';
 import '../../graduation/providers/graduation_provider.dart';
 import '../../profile/providers/user_settings_provider.dart';
 import '../../safety/screens/sos_screen.dart';
+import '../../profile/widgets/profile_showcase.dart';
 import 'blocked_users_screen.dart';
 import 'emergency_contacts_screen.dart';
 import 'moderation_appeals_screen.dart';
@@ -93,6 +94,7 @@ class PrivacySafetyScreen extends ConsumerWidget {
                                 .patchSettings(showOnlineStatus: v),
                           ),
                           const _FriendSearchTile(),
+                          const _ProfileShowcaseTile(),
                           if (graduationEnabled) const _DiscoveryPauseTile(),
                           const _CrashReportsTile(),
                           const Divider(height: 24),
@@ -219,6 +221,33 @@ class _FriendSearchTile extends ConsumerWidget {
                 }
               }
             }
+          : null,
+    );
+  }
+}
+
+/// "Show my public writing on my profile" (default off). On lets members see
+/// the chapters shared with the community and the photos on the wall in a
+/// section of the profile; nothing private or friends-only ever appears.
+class _ProfileShowcaseTile extends ConsumerWidget {
+  const _ProfileShowcaseTile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final setting = ref.watch(profileShowcaseConsentProvider);
+    return SwitchListTile(
+      key: const ValueKey('qa.privacy.profile_showcase'),
+      title: const Text('Show my public writing on my profile'),
+      subtitle: Text(
+        setting.hasError
+            ? 'This setting could not load. Open this page again to retry.'
+            : 'Members can see the chapters you share with the community '
+                  'and your photos on the wall on your profile. Private and '
+                  'friends-only chapters never appear.',
+      ),
+      value: setting.valueOrNull ?? false,
+      onChanged: setting.hasValue
+          ? (v) => setProfileShowcaseConsent(context, ref, visible: v)
           : null,
     );
   }

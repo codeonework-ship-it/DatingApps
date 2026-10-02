@@ -12,8 +12,10 @@ from django.views.decorators.http import require_GET, require_POST
 from django.views.decorators.http import require_http_methods
 
 from .observability_links import observability_links
+from .operator_access import ROLES_SESSION_KEY, resolve_operator_roles
 from .services.go_client import GoBFFClient
 from .views_analytics import durable_dashboard_kpis
+from .views_support import dashboard_safety_card
 
 
 def _base_context(*, include_health: bool = True) -> dict:
@@ -101,17 +103,24 @@ def operator_login(request: HttpRequest) -> HttpResponse:
         refresh_token = str(result.data.get("refresh_token") or "").strip()
         user_id = str(result.data.get("user_id") or "").strip()
         if result.ok and access_token and refresh_token and user_id:
-            probe = GoBFFClient(
+            operator_client = GoBFFClient(
                 access_token=access_token,
                 refresh_token=refresh_token,
                 use_operator_context=False,
-            ).analytics_overview()
+            )
+            probe = operator_client.analytics_overview()
             if probe.ok:
+                # Sidebar filtering (CON-05); None means unknown, show every link.
+                roles = resolve_operator_roles(operator_client, user_id)
                 request.session.cycle_key()
                 request.session["operator_access_token"] = access_token
                 request.session["operator_refresh_token"] = refresh_token
                 request.session["operator_username"] = username
                 request.session["operator_user_id"] = user_id
+                if roles is None:
+                    request.session.pop(ROLES_SESSION_KEY, None)
+                else:
+                    request.session[ROLES_SESSION_KEY] = roles
                 request.session.set_expiry(settings.SESSION_COOKIE_AGE)
                 return redirect(next_path)
             error = "This account does not have permission to use the operator console."
@@ -173,6 +182,9 @@ def dashboard(request: HttpRequest) -> HttpResponse:
         _queue_status(label="Verifications", items=verification_items, url_name="verification_queue", open_statuses={"pending"}, target=timedelta(hours=24), created_field="submitted_at"),
         _queue_status(label="Media review", items=media_items, url_name="media_moderation_queue", open_statuses={"review_required", "pending"}, target=timedelta(hours=24), created_field="uploaded_at"),
     ]
+    safety_tickets = dashboard_safety_card(client)
+    if safety_tickets:
+        queue_cards.append(safety_tickets)
 
     # Unavailable, never zero, when the durable source cannot answer (KPI contract).
     member_activity = metrics.get("member_activity") or {}
@@ -241,7 +253,7 @@ def dashboard(request: HttpRequest) -> HttpResponse:
             "snapshot_at": datetime.now(timezone.utc),
             "readiness_controls": [
                 {"label": "Bearer operator sessions", "status": "implemented", "detail": "Server-side refresh and revocation"},
-                {"label": "Role-scoped access", "status": "implemented", "detail": "Admin, ops, trust, moderator, analyst"},
+                {"label": "Role-scoped access", "status": "implemented", "detail": "Admin, ops, trust, moderator, support, analyst, finance"},
                 {"label": "Immutable operator audit", "status": "implemented" if audits.ok else "unavailable", "detail": audits.error or "Append-only database evidence"},
                 {"label": "Domain-event source coverage", "status": "implemented" if event_pipeline.get("coverage_complete") else "unavailable", "detail": event_metrics.error or f"{event_pipeline.get('registered_sources', 0)} sources · {event_pipeline.get('unregistered_sources', 0)} unregistered"},
                 {"label": "SSO / MFA", "status": "deployment_gate", "detail": "Required before deployed operator access"},
@@ -444,68 +456,23 @@ def action_appeal(request: HttpRequest, appeal_id: str) -> HttpResponse:
     return redirect("appeal_queue")
 
 
-# ── Member support / deferred growth governance ─────────────────────────────
+# ── Deferred growth governance (P2 launch register) ─────────────────────────
+# Support tickets moved to views_support.py (the /support/ section).
 
 @require_GET
-def support_queue(request: HttpRequest) -> HttpResponse:
-    status = (request.GET.get("status") or "").strip()
-    category = (request.GET.get("category") or "").strip()
-    limit = _bounded_int(request.GET.get("limit", "100"), 100)
+def growth_governance(request: HttpRequest) -> HttpResponse:
     client = GoBFFClient()
-    tickets_result = client.list_support_tickets(
-        status=status, category=category, limit=limit
-    )
     portfolio_result = client.growth_portfolio()
     fraud_result = client.list_growth_fraud_graph(status="open", limit=100)
-    tickets = tickets_result.data.get("tickets", []) if tickets_result.ok else []
-    now = datetime.now(timezone.utc)
-    open_statuses = {"open", "in_progress", "waiting_member"}
-    overdue = sum(
-        1
-        for ticket in tickets
-        if str(ticket.get("status") or "") in open_statuses
-        and (_parse_timestamp(ticket.get("resolution_due_at")) or now) < now
-    )
     context = _base_context()
     context.update(
         {
-            "tickets": tickets,
             "modules": portfolio_result.data.get("modules", []) if portfolio_result.ok else [],
             "fraud_edges": fraud_result.data.get("edges", []) if fraud_result.ok else [],
-            "status_filter": status,
-            "category_filter": category,
-            "limit": limit,
-            "open_count": sum(1 for ticket in tickets if str(ticket.get("status") or "") in open_statuses),
-            "overdue_count": overdue,
-            "urgent_count": sum(1 for ticket in tickets if ticket.get("priority") == "urgent" and ticket.get("status") in open_statuses),
-            "error": tickets_result.error or portfolio_result.error,
+            "error": portfolio_result.error or fraud_result.error,
         }
     )
-    return render(request, "control_panel/support.html", context)
-
-
-@require_POST
-def support_ticket_action(request: HttpRequest, ticket_id: str) -> HttpResponse:
-    status = (request.POST.get("status") or "").strip()
-    priority = (request.POST.get("priority") or "").strip()
-    note = (request.POST.get("note") or "").strip()
-    if status not in {"open", "in_progress", "waiting_member", "resolved", "closed"}:
-        messages.error(request, "Choose a valid support status.")
-        return redirect("support_queue")
-    if priority not in {"low", "normal", "high", "urgent"}:
-        messages.error(request, "Choose a valid support priority.")
-        return redirect("support_queue")
-    if len(note) < 5:
-        messages.error(request, "Add an operator reply of at least five characters.")
-        return redirect("support_queue")
-    result = GoBFFClient().update_support_ticket(
-        ticket_id, status=status, priority=priority, note=note
-    )
-    if result.ok:
-        messages.success(request, f"Support ticket {ticket_id[:8]} updated.")
-    else:
-        messages.error(request, f"Support update failed: {result.error}")
-    return redirect("support_queue")
+    return render(request, "control_panel/growth_governance.html", context)
 
 
 # ── Moderation Reports ────────────────────────────────────────────────────────
@@ -941,11 +908,16 @@ def user_detail(request: HttpRequest, user_id: str) -> HttpResponse:
         wallet_obj = wallet_result.data.get("wallet", {})
         wallet_balance = wallet_obj.get("coin_balance", 0)
 
+    # Ask Go for this member's own rows (CON-04). Rows for anyone else are
+    # dropped so a BFF that ignores user_id can never show another member's
+    # purchases; the page then says the list may be incomplete.
     wallet_transactions = []
-    tx_result = client.list_billing_transactions(limit=20)
+    wallet_transactions_partial = False
+    tx_result = client.list_billing_transactions(limit=20, user_id=user_id)
     if tx_result.ok:
-        all_tx = tx_result.data.get("transactions", [])
-        wallet_transactions = [t for t in all_tx if t.get("user_id") == user_id]
+        all_tx = [t for t in tx_result.data.get("transactions") or [] if isinstance(t, dict)]
+        wallet_transactions = [t for t in all_tx if str(t.get("user_id") or "") == str(user_id)]
+        wallet_transactions_partial = len(wallet_transactions) < len(all_tx)
 
     context = _base_context()
     context.update(
@@ -954,10 +926,13 @@ def user_detail(request: HttpRequest, user_id: str) -> HttpResponse:
             "user_id": user_id,
             "wallet_balance": wallet_balance,
             "wallet_transactions": wallet_transactions,
+            "wallet_transactions_partial": wallet_transactions_partial,
             "error": result.error,
         }
     )
-    return render(request, "control_panel/user_detail.html", context)
+    # An unknown member is a 404, not a 200 page that only says "user not found".
+    status = 404 if not result.ok and result.status_code == 404 else 200
+    return render(request, "control_panel/user_detail.html", context, status=status)
 
 
 @require_POST

@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers/api_client_provider.dart';
+import '../../core/rich_text/rich_document.dart';
 import '../auth/providers/auth_provider.dart';
 import '../walls/reactions.dart';
 
@@ -33,6 +34,7 @@ class BlogPost {
     authorName: json['author_name'] as String,
     title: json['title'] as String,
     body: json['body'] as String,
+    content: RichDocument.tryParse(json['content']),
     audience: json['audience'] as String,
     invitation: json['invitation'] as String,
     version: json['version'] as int,
@@ -68,6 +70,7 @@ class BlogPost {
     required this.invitation,
     required this.version,
     required this.photos,
+    this.content,
     this.moderation = 'active',
     this.likeCount = 0,
     this.likedByMe = false,
@@ -86,6 +89,10 @@ class BlogPost {
     this.authorSubscriberCount = 0,
   });
   final String id, authorId, authorName, title, body, audience, invitation;
+
+  /// Formatting, or null for a plain-text chapter. [body] is always its
+  /// plain text (cards, excerpts and search keep using it).
+  final RichDocument? content;
   final String moderation;
   final int version;
   final List<BlogPhoto> photos;

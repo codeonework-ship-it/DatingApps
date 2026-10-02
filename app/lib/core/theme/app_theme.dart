@@ -871,6 +871,9 @@ class AppTheme {
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
         backgroundColor: ink,
+        // The action must read on the dark bar; the default
+        // (inversePrimary) can sink into it.
+        actionTextColor: inkOnDark,
         contentTextStyle: textTheme.bodyMedium?.copyWith(
           color: inkOnDark,
           fontWeight: FontWeight.w500,
@@ -1042,6 +1045,9 @@ class AppTheme {
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
         backgroundColor: const Color(0xFF2A1C36),
+        // The action must read on the dark bar; the default
+        // (inversePrimary) can sink into it.
+        actionTextColor: inkOnDark,
         contentTextStyle: textTheme.bodyMedium?.copyWith(
           color: inkOnDark,
           fontWeight: FontWeight.w500,

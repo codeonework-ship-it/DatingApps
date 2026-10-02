@@ -97,7 +97,16 @@ func (s *Server) streamChatEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	poll := time.NewTicker(chatRealtimePollInterval)
+	// With the shared wake hub the socket reads the database only when the hub
+	// saw new events for this member (plus a slow fallback poll); without it
+	// (tests, no database) it keeps the original fixed-interval poll.
+	wake, unsubscribe := s.chatWake.subscribe(principal.UserID)
+	defer unsubscribe()
+	pollEvery := chatRealtimePollInterval
+	if s.chatWake != nil {
+		pollEvery = realtimeFallbackPollInterval
+	}
+	poll := time.NewTicker(pollEvery)
 	ping := time.NewTicker(chatRealtimePingInterval)
 	defer poll.Stop()
 	defer ping.Stop()
@@ -112,6 +121,7 @@ func (s *Server) streamChatEvents(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
+		polledThrough := wake.Seq()
 		latest, err := s.writePendingChatEvents(r.Context(), conn, principal.UserID, after, connectedAt)
 		if err != nil {
 			s.log.Warn("chat_realtime_delivery_failed", zap.String("user_id", principal.UserID), zap.Error(err))
@@ -119,15 +129,42 @@ func (s *Server) streamChatEvents(w http.ResponseWriter, r *http.Request) {
 		}
 		after = latest
 
+		if !waitForRealtimePoll(r.Context(), conn, closed, poll.C, ping.C, wake, after, polledThrough, s.chatWake != nil) {
+			return
+		}
+	}
+}
+
+// waitForRealtimePoll blocks until the socket should read its events again.
+// It returns false when the socket must close. Pings never cause a database
+// read when a wake hub drives the socket.
+func waitForRealtimePoll(
+	ctx context.Context,
+	conn *websocket.Conn,
+	closed <-chan struct{},
+	poll, ping <-chan time.Time,
+	wake *realtimeWakeSub,
+	after, polledThrough int64,
+	hubDriven bool,
+) bool {
+	for {
 		select {
-		case <-r.Context().Done():
-			return
+		case <-ctx.Done():
+			return false
 		case <-closed:
-			return
-		case <-poll.C:
-		case <-ping.C:
+			return false
+		case <-poll:
+			return true
+		case <-wake.C():
+			if realtimeWakePollDue(wake, after, polledThrough) {
+				return true
+			}
+		case <-ping:
 			if err := conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(5*time.Second)); err != nil {
-				return
+				return false
+			}
+			if !hubDriven {
+				return true
 			}
 		}
 	}

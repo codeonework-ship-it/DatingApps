@@ -8921,11 +8921,35 @@ paths:
         '200': {description: Module owners, risk, runtime state and blockers}
   /v1/support/tickets:
     get:
-      summary: List the authenticated member's support tickets
+      tags: [support]
+      summary: List the member's support requests (runtime flag support_ticketing_enabled)
+      parameters:
+        - {name: status, in: query, schema: {type: string, enum: [all, active, closed], default: all}}
+        - {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 50}}
       responses:
-        '200': {description: Support ticket list}
+        '200':
+          description: The member's tickets, open first, most recent activity first
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, tickets, unread_total, open_total]
+                properties:
+                  success: {type: boolean}
+                  tickets: {type: array, items: {$ref: '#/components/schemas/SupportTicket'}}
+                  unread_total: {type: integer, description: Support replies the member has not opened yet}
+                  open_total: {type: integer}
+        '403': {description: Support ticketing is disabled by runtime policy (FEATURE_DISABLED)}
     post:
-      summary: Open an idempotent support ticket
+      tags: [support]
+      summary: Raise a support request with optional pre-uploaded attachments
+      description: >-
+        Category decides the queue (team) and starting priority; safety_harassment
+        tickets go to Trust & Safety at high priority with a 1 h first-response
+        and 24 h resolution target. App version and device fields are optional
+        diagnostics. The same request again within 10 minutes returns the
+        existing ticket with duplicate=true. Limits: 5 per hour, 15 per day,
+        10 unresolved tickets.
       parameters:
         - $ref: '#/components/parameters/Idempotency-Key'
       requestBody:
@@ -8934,28 +8958,53 @@ paths:
           application/json:
             schema:
               type: object
-              required: [category, subject, body]
+              required: [category, subject, description]
               properties:
-                category: {type: string, enum: [account, safety, technical, billing, feedback]}
-                priority: {type: string, enum: [low, normal, high, urgent], default: normal}
-                subject: {type: string, minLength: 5, maxLength: 120}
-                body: {type: string, minLength: 1, maxLength: 4000}
+                category: {$ref: '#/components/schemas/SupportCategory'}
+                subject: {type: string, minLength: 4, maxLength: 120}
+                description: {type: string, minLength: 1, maxLength: 5000}
+                attachment_ids: {type: array, maxItems: 5, items: {type: string, format: uuid}}
+                app_version: {type: string, maxLength: 32}
+                platform: {type: string, enum: [android, ios, web, macos, windows, linux]}
+                os_version: {type: string, maxLength: 32}
+                device_model: {type: string, maxLength: 64}
+                locale: {type: string, maxLength: 16}
       responses:
-        '201': {description: Support ticket opened}
-        '409': {description: Idempotency key conflict}
+        '201':
+          description: Ticket created
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/SupportTicketThread'}
+        '200':
+          description: The same request was raised moments ago; the existing ticket is returned with duplicate=true
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/SupportTicketThread'}
+        '400': {description: Invalid category, subject, description or attachment ids}
+        '409': {description: SUPPORT_TOO_MANY_OPEN or SUPPORT_ATTACHMENT_LIMIT}
+        '429':
+          description: SUPPORT_RATE_LIMITED; retry_after_seconds in the body
+          headers:
+            Retry-After: {schema: {type: integer, minimum: 1}, description: Seconds to wait}
   /v1/support/tickets/{ticketID}:
     parameters:
       - {name: ticketID, in: path, required: true, schema: {type: string, format: uuid}}
     get:
-      summary: Read an owned support conversation
+      tags: [support]
+      summary: Read one of the member's tickets with its public conversation (marks replies read)
       responses:
-        '200': {description: Ticket and ordered messages}
-        '404': {description: Ticket does not exist or is not owned by the member}
+        '200':
+          description: Ticket and public messages; internal operator notes are never returned
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/SupportTicketThread'}
+        '404': {description: Ticket does not exist or belongs to someone else}
   /v1/support/tickets/{ticketID}/messages:
     parameters:
       - {name: ticketID, in: path, required: true, schema: {type: string, format: uuid}}
     post:
-      summary: Add an idempotent member reply to an owned support ticket
+      tags: [support]
+      summary: Reply on a ticket (reopens a resolved ticket; resets waiting-on-member)
       parameters:
         - $ref: '#/components/parameters/Idempotency-Key'
       requestBody:
@@ -8964,12 +9013,170 @@ paths:
           application/json:
             schema:
               type: object
-              required: [body]
               properties:
-                body: {type: string, minLength: 1, maxLength: 4000}
+                body: {type: string, maxLength: 5000, description: May be empty when attachment_ids are given}
+                attachment_ids: {type: array, maxItems: 5, items: {type: string, format: uuid}}
       responses:
-        '201': {description: Reply stored}
-        '409': {description: Closed ticket cannot accept replies}
+        '201':
+          description: Reply stored
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: {type: boolean}
+                  ticket: {$ref: '#/components/schemas/SupportTicket'}
+                  message: {$ref: '#/components/schemas/SupportMessage'}
+        '400': {description: Empty or oversized message, or unknown attachment}
+        '404': {description: Ticket not found}
+        '409': {description: SUPPORT_TICKET_CLOSED (reopen window passed) or SUPPORT_TICKET_MERGED}
+        '429': {description: SUPPORT_RATE_LIMITED (30 replies per hour)}
+  /v1/support/tickets/{ticketID}/close:
+    parameters:
+      - {name: ticketID, in: path, required: true, schema: {type: string, format: uuid}}
+    post:
+      tags: [support]
+      summary: Close one of the member's tickets
+      parameters:
+        - $ref: '#/components/parameters/Idempotency-Key'
+      responses:
+        '200': {description: Ticket closed (idempotent), content: {application/json: {schema: {$ref: '#/components/schemas/SupportTicketEnvelope'}}}}
+        '404': {description: Ticket not found}
+  /v1/support/tickets/{ticketID}/reopen:
+    parameters:
+      - {name: ticketID, in: path, required: true, schema: {type: string, format: uuid}}
+    post:
+      tags: [support]
+      summary: Reopen a resolved ticket, or a closed one within 14 days of closing
+      parameters:
+        - $ref: '#/components/parameters/Idempotency-Key'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason: {type: string, maxLength: 5000, description: Optional message added to the conversation}
+      responses:
+        '200': {description: Ticket open again, content: {application/json: {schema: {$ref: '#/components/schemas/SupportTicketEnvelope'}}}}
+        '404': {description: Ticket not found}
+        '409': {description: SUPPORT_REOPEN_WINDOW_PASSED}
+  /v1/support/tickets/{ticketID}/rating:
+    parameters:
+      - {name: ticketID, in: path, required: true, schema: {type: string, format: uuid}}
+    post:
+      tags: [support]
+      summary: Rate the support experience once the ticket is resolved (CSAT)
+      parameters:
+        - $ref: '#/components/parameters/Idempotency-Key'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [rating]
+              properties:
+                rating: {type: integer, minimum: 1, maximum: 5}
+                comment: {type: string, maxLength: 1000}
+      responses:
+        '200': {description: Rating stored, content: {application/json: {schema: {$ref: '#/components/schemas/SupportTicketEnvelope'}}}}
+        '400': {description: Rating outside 1-5 or comment too long}
+        '409': {description: SUPPORT_NOT_RESOLVED or SUPPORT_ALREADY_RATED}
+  /v1/support/tickets/{ticketID}/attachments/{attachmentID}:
+    parameters:
+      - {name: ticketID, in: path, required: true, schema: {type: string, format: uuid}}
+      - {name: attachmentID, in: path, required: true, schema: {type: string, format: uuid}}
+    get:
+      tags: [support]
+      summary: Download an attachment on one of the member's tickets
+      responses:
+        '200':
+          description: File bytes (private, no-store; PDFs as an attachment)
+          content:
+            image/jpeg: {schema: {type: string, format: binary}}
+            image/png: {schema: {type: string, format: binary}}
+            application/pdf: {schema: {type: string, format: binary}}
+        '404': {description: Not the member's ticket, an internal note's file, or removed}
+  /v1/support/attachments:
+    post:
+      tags: [support]
+      summary: Upload a screenshot or PDF to attach to a new ticket or reply
+      description: >-
+        JPEG/PNG up to 8 MB (8000 px per side; re-encoded server-side, which
+        strips EXIF/GPS metadata) or PDF up to 10 MB without scripts, actions,
+        forms or embedded files. The type is sniffed from the bytes. Unattached
+        uploads are deleted after 24 hours. Limits: 30 uploads per hour, 20
+        pending. Not idempotent-keyed (multipart); retries create a new
+        pending upload that expires unused.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: {type: string, format: binary}
+      responses:
+        '201':
+          description: Upload stored, pending attachment
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: {type: boolean}
+                  attachment: {$ref: '#/components/schemas/SupportAttachment'}
+        '400': {description: Missing file field}
+        '413': {description: File too large}
+        '415': {description: Unsupported or unsafe file type}
+        '429': {description: SUPPORT_RATE_LIMITED}
+  /v1/support/contact:
+    post:
+      tags: [support]
+      security: [{}]
+      summary: Website contact form for signed-out visitors (never creates an account)
+      description: >-
+        Creates a website-channel ticket that carries only the email address
+        and optional name given; the support team replies by email. The
+        `website` field is a honeypot and must be empty (a filled honeypot is
+        answered 202 without storing anything). Limits: 5 per hour per IP (the
+        IP is held in memory only), 3 per hour and 10 per day per address,
+        300 per hour overall. Gated by support_ticketing_enabled. Not
+        idempotent-keyed: the same request within 10 minutes returns the same
+        reference.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, category, subject, description]
+              properties:
+                email: {type: string, format: email, maxLength: 254}
+                name: {type: string, maxLength: 100}
+                category: {$ref: '#/components/schemas/SupportCategory'}
+                subject: {type: string, minLength: 4, maxLength: 120}
+                description: {type: string, minLength: 1, maxLength: 5000}
+                locale: {type: string, maxLength: 16}
+                website: {type: string, description: Honeypot; leave empty}
+      responses:
+        '202':
+          description: Request received
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, received]
+                properties:
+                  success: {type: boolean}
+                  received: {type: boolean}
+                  reference: {type: string, example: CN-2026-000124}
+        '400': {description: Invalid email, category, subject or description}
+        '403': {description: Support ticketing is disabled by runtime policy (FEATURE_DISABLED)}
+        '429': {description: SUPPORT_RATE_LIMITED; retry_after_seconds in the body}
   /v1/growth/events:
     get:
       summary: List published free community events
@@ -9117,18 +9324,65 @@ paths:
         '403': {description: Feature policy or growth launch contract blocks the action}
   /v1/admin/support/tickets:
     get:
-      summary: List the prioritized support operations queue
+      tags: [support]
+      summary: Support queue with filters and SLA state (admin, ops_admin, support, trust_safety, moderator)
+      parameters:
+        - {name: status, in: query, schema: {type: string, default: active}, description: 'active (unresolved), all, or a comma list of new, open, pending_member, on_hold, resolved, closed'}
+        - {name: category, in: query, schema: {type: string}, description: Comma list of categories}
+        - {name: priority, in: query, schema: {type: string}, description: Comma list of low, normal, high, urgent}
+        - {name: team, in: query, schema: {type: string}, description: Comma list of general, trust_safety, billing, privacy, technical}
+        - {name: channel, in: query, schema: {type: string}, description: Comma list of app, website, email}
+        - {name: assignee, in: query, schema: {type: string}, description: me, unassigned or an operator id}
+        - {name: member, in: query, schema: {type: string, format: uuid}, description: Requesting member id}
+        - {name: sla, in: query, schema: {type: string, enum: [breached, at_risk]}}
+        - {name: q, in: query, schema: {type: string, maxLength: 100}, description: Exact reference (CN-YYYY-NNNNNN), or text matched against subject, reference, member username/name; an email matches website tickets exactly}
+        - {name: sort, in: query, schema: {type: string, enum: [sla, priority, updated, created, oldest], default: sla}}
+        - {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 200, default: 50}}
+        - {name: offset, in: query, schema: {type: integer, minimum: 0, default: 0}}
       responses:
-        '200': {description: Filtered ticket queue with SLA deadlines}
-  /v1/admin/support/tickets/{ticketID}:
-    parameters:
-      - {name: ticketID, in: path, required: true, schema: {type: string, format: uuid}}
+        '200':
+          description: Matching tickets, next SLA target first by default
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, tickets, total, counts]
+                properties:
+                  success: {type: boolean}
+                  tickets: {type: array, items: {$ref: '#/components/schemas/SupportAdminTicket'}}
+                  total: {type: integer}
+                  limit: {type: integer}
+                  offset: {type: integer}
+                  counts:
+                    type: object
+                    description: All tickets by status
+                    additionalProperties: {type: integer}
+        '400': {description: Unknown filter value}
+        '403': {description: Operator role does not permit this action}
+  /v1/admin/support/tickets/export:
     get:
-      summary: Read a support ticket and complete conversation
+      tags: [support]
+      summary: Export the filtered queue as CSV (operational fields only; no subjects, messages, names or emails)
+      description: Same filters as the queue; status defaults to all. At most 10,000 rows, newest first. Cells that could start a spreadsheet formula are prefixed with an apostrophe.
+      parameters:
+        - {name: status, in: query, schema: {type: string, default: all}}
+        - {name: category, in: query, schema: {type: string}}
+        - {name: priority, in: query, schema: {type: string}}
+        - {name: team, in: query, schema: {type: string}}
+        - {name: channel, in: query, schema: {type: string}}
+        - {name: assignee, in: query, schema: {type: string}}
+        - {name: sla, in: query, schema: {type: string, enum: [breached, at_risk]}}
+        - {name: q, in: query, schema: {type: string, maxLength: 100}}
       responses:
-        '200': {description: Ticket and messages}
-    put:
-      summary: Assign, prioritize, reply to and transition a support ticket
+        '200':
+          description: CSV attachment
+          content:
+            text/csv: {schema: {type: string}}
+        '400': {description: Unknown filter value}
+  /v1/admin/support/tickets/bulk:
+    post:
+      tags: [support]
+      summary: Claim, assign, set status or set priority on up to 100 tickets
       parameters:
         - $ref: '#/components/parameters/Idempotency-Key'
       requestBody:
@@ -9137,13 +9391,304 @@ paths:
           application/json:
             schema:
               type: object
-              required: [status, priority, note]
+              required: [ticket_ids, action]
               properties:
-                status: {type: string, enum: [open, in_progress, waiting_member, resolved, closed]}
-                priority: {type: string, enum: [low, normal, high, urgent]}
-                note: {type: string, minLength: 5, maxLength: 4000}
+                ticket_ids: {type: array, minItems: 1, maxItems: 100, items: {type: string, format: uuid}}
+                action: {type: string, enum: [claim, assign, status, priority]}
+                value: {type: string, description: Operator id (assign; empty unassigns), status or priority}
       responses:
-        '200': {description: Ticket transitioned and operator reply stored}
+        '200':
+          description: Per-ticket outcome; each ticket is changed in its own transaction
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: {type: boolean}
+                  updated: {type: array, items: {type: string}}
+                  failed:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: {type: string}
+                        error: {type: string}
+        '400': {description: Invalid action, value or ticket list}
+  /v1/admin/support/tickets/{ticketID}:
+    parameters:
+      - {name: ticketID, in: path, required: true, schema: {type: string, format: uuid}}
+    get:
+      tags: [support]
+      summary: Ticket with the full thread (internal notes included), event trail and minimal member context
+      responses:
+        '200':
+          description: Ticket detail
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, ticket, messages, events]
+                properties:
+                  success: {type: boolean}
+                  ticket: {$ref: '#/components/schemas/SupportAdminTicket'}
+                  messages: {type: array, items: {$ref: '#/components/schemas/SupportAdminMessage'}}
+                  events: {type: array, items: {$ref: '#/components/schemas/SupportTicketEvent'}}
+                  member_context:
+                    nullable: true
+                    allOf: [{$ref: '#/components/schemas/SupportMemberContext'}]
+                  related_tickets:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: {type: string, format: uuid}
+                        reference: {type: string}
+                        subject: {type: string}
+                        status: {type: string}
+                        created_at: {type: string, format: date-time}
+        '404': {description: Ticket not found}
+    patch:
+      tags: [support]
+      summary: Change status, priority, category, team, assignee, tags or the linked client error
+      description: >-
+        Every changed field is recorded in the event trail. Priority and
+        category changes recompute the SLA targets; a category change also
+        moves the ticket to that category's team unless team is given, and a
+        safety category raises the priority to at least high. Resolving or
+        closing notifies the member (category system, route /support/tickets/{id}).
+      parameters:
+        - $ref: '#/components/parameters/Idempotency-Key'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status: {$ref: '#/components/schemas/SupportStatus'}
+                priority: {type: string, enum: [low, normal, high, urgent]}
+                category: {$ref: '#/components/schemas/SupportCategory'}
+                team: {type: string, enum: [general, trust_safety, billing, privacy, technical]}
+                assignee_id: {type: string, description: Operator id; empty string unassigns}
+                tags: {type: array, maxItems: 20, items: {type: string, pattern: '^[a-z0-9][a-z0-9_-]{0,31}$'}}
+                client_error_issue_id: {type: string, description: Client error issue id; empty string clears}
+      responses:
+        '200': {description: Updated ticket, content: {application/json: {schema: {$ref: '#/components/schemas/SupportAdminTicketEnvelope'}}}}
+        '400': {description: Invalid change or assignee without a support role}
+        '404': {description: Ticket not found}
+        '409': {description: SUPPORT_TICKET_MERGED}
+  /v1/admin/support/tickets/{ticketID}/claim:
+    parameters:
+      - {name: ticketID, in: path, required: true, schema: {type: string, format: uuid}}
+    post:
+      tags: [support]
+      summary: Assign the ticket to the calling operator (a new ticket becomes open)
+      parameters:
+        - $ref: '#/components/parameters/Idempotency-Key'
+        - {name: force, in: query, schema: {type: string, enum: ['1']}, description: Take over a ticket owned by someone else}
+      responses:
+        '200': {description: Claimed, content: {application/json: {schema: {$ref: '#/components/schemas/SupportAdminTicketEnvelope'}}}}
+        '404': {description: Ticket not found}
+        '409': {description: SUPPORT_ALREADY_ASSIGNED}
+  /v1/admin/support/tickets/{ticketID}/messages:
+    parameters:
+      - {name: ticketID, in: path, required: true, schema: {type: string, format: uuid}}
+    post:
+      tags: [support]
+      summary: Reply to the member (public) or add an internal note
+      description: >-
+        A public reply records the first response, assigns an unowned ticket
+        to the replier, moves new/open tickets to pending_member unless status
+        is given, and notifies the member (support.reply). Website tickets have
+        no account: the reply is recorded and the agent sends it by email.
+        With an empty body and canned_response_id the canned response is
+        rendered ({{member_name}}, {{reference}}, {{agent_name}}).
+      parameters:
+        - $ref: '#/components/parameters/Idempotency-Key'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                body: {type: string, maxLength: 5000}
+                visibility: {type: string, enum: [public, internal], default: public}
+                canned_response_id: {type: string, format: uuid}
+                status: {$ref: '#/components/schemas/SupportStatus'}
+      responses:
+        '201':
+          description: Message stored
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: {type: boolean}
+                  ticket: {$ref: '#/components/schemas/SupportAdminTicket'}
+                  message: {$ref: '#/components/schemas/SupportAdminMessage'}
+        '400': {description: Empty or oversized body, or invalid visibility/status}
+        '404': {description: Ticket or canned response not found}
+        '409': {description: SUPPORT_TICKET_MERGED}
+  /v1/admin/support/tickets/{ticketID}/merge:
+    parameters:
+      - {name: ticketID, in: path, required: true, schema: {type: string, format: uuid}}
+    post:
+      tags: [support]
+      summary: Merge this ticket into another ticket from the same requester
+      description: Messages and attachments move to the target, the source closes with merged_into set, and both trails record the merge.
+      parameters:
+        - $ref: '#/components/parameters/Idempotency-Key'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                into_ticket_id: {type: string, format: uuid}
+                into_reference: {type: string, example: CN-2026-000123}
+      responses:
+        '200': {description: Target ticket after the merge, content: {application/json: {schema: {$ref: '#/components/schemas/SupportAdminTicketEnvelope'}}}}
+        '400': {description: Missing or same target}
+        '404': {description: Ticket not found}
+        '409': {description: Different requesters, already merged, or closed target}
+  /v1/admin/support/tickets/{ticketID}/canned-responses/{responseID}/preview:
+    parameters:
+      - {name: ticketID, in: path, required: true, schema: {type: string, format: uuid}}
+      - {name: responseID, in: path, required: true, schema: {type: string, format: uuid}}
+    get:
+      tags: [support]
+      summary: Render a canned response for this ticket (placeholders filled)
+      responses:
+        '200':
+          description: Rendered text
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: {type: boolean}
+                  body: {type: string}
+        '404': {description: Ticket or active canned response not found}
+  /v1/admin/support/attachments/{attachmentID}/content:
+    parameters:
+      - {name: attachmentID, in: path, required: true, schema: {type: string, format: uuid}}
+    get:
+      tags: [support]
+      summary: Stream a ticket attachment to an operator (private, no-store)
+      responses:
+        '200':
+          description: File bytes
+          content:
+            image/jpeg: {schema: {type: string, format: binary}}
+            image/png: {schema: {type: string, format: binary}}
+            application/pdf: {schema: {type: string, format: binary}}
+        '404': {description: Attachment not found or released}
+  /v1/admin/support/dashboard:
+    get:
+      tags: [support]
+      summary: SLA dashboard metrics (support roles; analyst read-only)
+      parameters:
+        - {name: days, in: query, schema: {type: integer, minimum: 1, maximum: 365, default: 30}}
+      responses:
+        '200':
+          description: Open workload, breaches, medians, CSAT and trends
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/SupportDashboard'}
+        '403': {description: Operator role does not permit this action}
+  /v1/admin/support/agents:
+    get:
+      tags: [support]
+      summary: Operators who can be assigned tickets, with their open workload
+      responses:
+        '200':
+          description: Assignable operators
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: {type: boolean}
+                  agents:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: {type: string, format: uuid}
+                        name: {type: string}
+                        roles: {type: array, items: {type: string}}
+                        open_assigned: {type: integer}
+        '403': {description: Not a support operator}
+  /v1/admin/support/canned-responses:
+    get:
+      tags: [support]
+      summary: List canned responses (macros)
+      parameters:
+        - {name: include_inactive, in: query, schema: {type: string, enum: ['1']}}
+      responses:
+        '200':
+          description: Canned responses, most used first
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: {type: boolean}
+                  canned_responses: {type: array, items: {$ref: '#/components/schemas/SupportCannedResponse'}}
+    post:
+      tags: [support]
+      summary: Create a canned response
+      parameters:
+        - $ref: '#/components/parameters/Idempotency-Key'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, body]
+              properties:
+                title: {type: string, minLength: 1, maxLength: 120}
+                body: {type: string, minLength: 1, maxLength: 5000}
+                category: {$ref: '#/components/schemas/SupportCategory'}
+      responses:
+        '201': {description: Created, content: {application/json: {schema: {$ref: '#/components/schemas/SupportCannedResponseEnvelope'}}}}
+        '400': {description: Invalid title, body or category}
+        '409': {description: SUPPORT_CANNED_EXISTS}
+  /v1/admin/support/canned-responses/{responseID}:
+    parameters:
+      - {name: responseID, in: path, required: true, schema: {type: string, format: uuid}}
+    patch:
+      tags: [support]
+      summary: Edit, recategorise, deactivate or reactivate a canned response
+      parameters:
+        - $ref: '#/components/parameters/Idempotency-Key'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: {type: string, minLength: 1, maxLength: 120}
+                body: {type: string, minLength: 1, maxLength: 5000}
+                category: {type: string, nullable: true, description: Category key; null or empty clears}
+                is_active: {type: boolean}
+      responses:
+        '200': {description: Updated, content: {application/json: {schema: {$ref: '#/components/schemas/SupportCannedResponseEnvelope'}}}}
+        '400': {description: Invalid field}
+        '404': {description: Canned response not found}
+        '409': {description: SUPPORT_CANNED_EXISTS}
+    delete:
+      tags: [support]
+      summary: Deactivate a canned response (kept for replies that used it)
+      parameters:
+        - $ref: '#/components/parameters/Idempotency-Key'
+      responses:
+        '200': {description: Deactivated, content: {application/json: {schema: {$ref: '#/components/schemas/SupportCannedResponseEnvelope'}}}}
+        '404': {description: Canned response not found}
   /v1/admin/growth/fraud-graph:
     get:
       summary: List review-only fraud graph signals
@@ -9460,6 +10005,58 @@ paths:
         '404': {description: Plan unavailable to this member}
         '409': {description: Stale sharing version; reload before retrying}
 
+  /v1/profile/{userID}/showcase:
+    parameters:
+      - in: path
+        name: userID
+        required: true
+        schema: {type: string, format: uuid}
+    get:
+      tags: [intentional-dating]
+      summary: Read a member's public chapters and wall photos for their profile
+      description: Other members see items only when the owner opted in (showcase consent, default off), and only community chapters and wall-featured photos that are active, not under review and visible to the viewer (blocks, account state, community eligibility). Without consent the response is empty and reveals nothing; a block in either direction or an inactive account answers the same way (enabled false, no items). Owners always get a preview of what would show plus their consent. At most six of each. Responses are no-store.
+      responses:
+        '200':
+          description: 'enabled (owner consent), chapters (id, title, excerpt, published_at, like_count, comment_count) and photos (theme entries)'
+        '400': {description: Invalid profile id}
+        '401': {description: Authentication required}
+        '503': {description: Persistence unavailable}
+  /v1/profile/{userID}/showcase/consent:
+    parameters:
+      - in: path
+        name: userID
+        required: true
+        schema: {type: string, format: uuid}
+    get:
+      tags: [intentional-dating]
+      summary: Read own showcase consent
+      description: Owner only. Default false.
+      responses:
+        '200': {description: '{visible}'}
+        '401': {description: Authentication required}
+        '403': {description: Not the owner}
+        '503': {description: Persistence unavailable}
+    put:
+      tags: [intentional-dating]
+      summary: Choose whether public chapters and wall photos appear on own profile
+      description: Owner only. Stored in user_settings.profile_showcase_visible (migration 130). Withdrawing consent hides the showcase from other members immediately.
+      parameters:
+        - $ref: '#/components/parameters/Idempotency-Key'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [visible]
+              properties:
+                visible: {type: boolean}
+      responses:
+        '200': {description: '{visible}'}
+        '400': {description: visible must be a boolean}
+        '401': {description: Authentication required}
+        '403': {description: Not the owner}
+        '503': {description: Persistence unavailable}
   /v1/profile/{userID}/stories:
     parameters:
       - in: path
@@ -9498,10 +10095,12 @@ paths:
                   maxItems: 3
                   items:
                     type: object
-                    required: [prompt_id, text]
+                    required: [prompt_id]
+                    description: 'Send text (plain, older clients) or content (formatted, at most 40 blocks and 400 derived characters). Stories are returned with the same optional content.'
                     properties:
                       prompt_id: {type: string, enum: [little_joy, weekend, first_hello, learning, care]}
-                      text: {type: string, minLength: 1, maxLength: 400}
+                      text: {type: string, minLength: 1, maxLength: 400, description: 'Plain text. When content is sent the server derives text from it and ignores this value'}
+                      content: {$ref: '#/components/schemas/RichDocument'}
                       photo_id: {type: string, format: uuid}
                       photo_description: {type: string, minLength: 1, maxLength: 160, description: Required when photo_id is provided}
       responses:
@@ -10223,7 +10822,7 @@ paths:
       tags: [blog]
       summary: Read an accessible chapter and approved photo references
       responses:
-        '200': {description: Post including author, title, body, audience, invitation, version and photos}
+        '200': {description: 'Post including author, title, body, content (formatted RichDocument, or null for plain-text chapters; body is always its plain text), audience, invitation, version and photos'}
         '401': {description: Authentication required}
         '404': {description: Post absent, deleted or not accessible to actor}
     put:
@@ -10238,11 +10837,13 @@ paths:
           application/json:
             schema:
               type: object
-              required: [expected_version, title, body, audience]
+              required: [expected_version, title, audience]
+              description: 'Send body (plain text) or content (formatted). With content the stored body is derived on the server and the sent body is ignored; a body-only save from an older client stores a plain-text chapter and clears earlier formatting.'
               properties:
                 expected_version: {type: integer, minimum: 0, maximum: 2147483646}
                 title: {type: string, maxLength: 100}
                 body: {type: string, maxLength: 8000}
+                content: {$ref: '#/components/schemas/RichDocument'}
                 audience: {type: string, enum: [private, friends, community]}
                 invitation: {type: string, enum: ['', your_version, teach_me, what_next]}
                 allow_featuring: {type: boolean, description: 'Community chapters only. Lets a well-loved chapter appear on the Featured Stories wall; off by default'}
@@ -10509,6 +11110,7 @@ paths:
     get:
       tags: [blog]
       summary: Read only the approved title, excerpt, joint flag and selected photos; no profile or source IDs
+      description: 'content is the formatting of exactly the approved excerpt (a RichDocument whose plain text equals excerpt), or null for plain-text and joint chapters. Render span text as text only; links are https and should carry rel="nofollow ugc noopener noreferrer".'
       security: []
       responses:
         '200': {description: Authorized result, private no-store response}
@@ -12418,6 +13020,276 @@ components:
       scheme: bearer
       bearerFormat: opaque
   schemas:
+    SupportCategory:
+      type: string
+      description: Member-facing ticket category. safety_harassment and verification go to the trust_safety team; payments_billing to billing; privacy_data to privacy; technical to technical; the rest to general.
+      enum: [account_login, verification, payments_billing, safety_harassment, matches_chat, technical, feature_request, privacy_data, other]
+    SupportStatus:
+      type: string
+      description: new (just raised), open (being worked), pending_member (waiting on the member; resolution clock paused), on_hold, resolved (auto-closes after 7 days without a member reply), closed (member may reopen for 14 days).
+      enum: [new, open, pending_member, on_hold, resolved, closed]
+    SupportAttachment:
+      type: object
+      required: [id, filename, content_type, size_bytes]
+      properties:
+        id: {type: string, format: uuid}
+        filename: {type: string}
+        content_type: {type: string, enum: [image/jpeg, image/png, application/pdf]}
+        size_bytes: {type: integer}
+        url: {type: string, description: Authorised download path (member or operator variant)}
+    SupportSatisfaction:
+      type: object
+      properties:
+        rating: {type: integer, minimum: 1, maximum: 5}
+        comment: {type: string}
+        rated_at: {type: string, format: date-time}
+    SupportTicket:
+      type: object
+      description: A ticket as its member sees it. Never carries priority, assignee, tags or internal notes.
+      required: [id, reference, category, subject, status, created_at, can_reply, can_close, can_reopen, can_rate]
+      properties:
+        id: {type: string, format: uuid}
+        reference: {type: string, example: CN-2026-000123}
+        category: {$ref: '#/components/schemas/SupportCategory'}
+        subject: {type: string}
+        status: {$ref: '#/components/schemas/SupportStatus'}
+        channel: {type: string, enum: [app, website, email]}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+        last_activity_at: {type: string, format: date-time}
+        resolved_at: {type: string, format: date-time, nullable: true}
+        closed_at: {type: string, format: date-time, nullable: true}
+        reopen_until: {type: string, format: date-time, nullable: true}
+        message_count: {type: integer}
+        unread_count: {type: integer, description: Support replies after the member last opened the ticket}
+        last_message_preview: {type: string}
+        last_message_author: {type: string, enum: [member, agent, system], nullable: true}
+        can_reply: {type: boolean}
+        can_close: {type: boolean}
+        can_reopen: {type: boolean}
+        can_rate: {type: boolean}
+        satisfaction:
+          nullable: true
+          allOf: [{$ref: '#/components/schemas/SupportSatisfaction'}]
+        merged_into_reference: {type: string, nullable: true}
+    SupportMessage:
+      type: object
+      required: [id, author, body, created_at, attachments]
+      properties:
+        id: {type: string, format: uuid}
+        author: {type: string, enum: [member, agent, system]}
+        author_name: {type: string, nullable: true, description: '"Connect Support" for agent and system messages; null for the member'}
+        body: {type: string}
+        created_at: {type: string, format: date-time}
+        attachments: {type: array, items: {$ref: '#/components/schemas/SupportAttachment'}}
+    SupportTicketEnvelope:
+      type: object
+      required: [success, ticket]
+      properties:
+        success: {type: boolean}
+        ticket: {$ref: '#/components/schemas/SupportTicket'}
+    SupportTicketThread:
+      type: object
+      required: [success, ticket, messages]
+      properties:
+        success: {type: boolean}
+        ticket: {$ref: '#/components/schemas/SupportTicket'}
+        messages: {type: array, items: {$ref: '#/components/schemas/SupportMessage'}}
+        duplicate: {type: boolean}
+    SupportAdminTicket:
+      type: object
+      required: [id, reference, category, subject, status, priority, team, channel, requester, sla]
+      properties:
+        id: {type: string, format: uuid}
+        reference: {type: string}
+        category: {$ref: '#/components/schemas/SupportCategory'}
+        subject: {type: string}
+        status: {$ref: '#/components/schemas/SupportStatus'}
+        priority: {type: string, enum: [low, normal, high, urgent]}
+        team: {type: string, enum: [general, trust_safety, billing, privacy, technical]}
+        channel: {type: string, enum: [app, website, email]}
+        requester:
+          type: object
+          properties:
+            kind: {type: string, enum: [member, contact]}
+            member_id: {type: string, format: uuid, nullable: true}
+            display_name: {type: string}
+            username: {type: string, nullable: true}
+            email: {type: string, nullable: true, description: Website tickets only}
+        assignee:
+          type: object
+          nullable: true
+          properties:
+            id: {type: string, format: uuid}
+            name: {type: string}
+        tags: {type: array, items: {type: string}}
+        app_version: {type: string, nullable: true}
+        platform: {type: string, nullable: true}
+        os_version: {type: string, nullable: true}
+        device_model: {type: string, nullable: true}
+        locale: {type: string, nullable: true}
+        client_error_issue_id: {type: string, format: uuid, nullable: true}
+        first_response_due_at: {type: string, format: date-time}
+        resolution_due_at: {type: string, format: date-time}
+        first_responded_at: {type: string, format: date-time, nullable: true}
+        resolved_at: {type: string, format: date-time, nullable: true}
+        closed_at: {type: string, format: date-time, nullable: true}
+        sla:
+          type: object
+          properties:
+            state: {type: string, enum: [ok, at_risk, breached, paused, met]}
+            first_response: {type: string, enum: [ok, at_risk, breached, met]}
+            resolution: {type: string, enum: [ok, at_risk, breached, paused, met]}
+        awaiting_agent: {type: boolean, description: The requester wrote last}
+        satisfaction:
+          nullable: true
+          allOf: [{$ref: '#/components/schemas/SupportSatisfaction'}]
+        merged_into:
+          type: object
+          nullable: true
+          properties:
+            id: {type: string, format: uuid}
+            reference: {type: string}
+        message_count: {type: integer}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+        last_activity_at: {type: string, format: date-time}
+    SupportAdminTicketEnvelope:
+      type: object
+      required: [success, ticket]
+      properties:
+        success: {type: boolean}
+        ticket: {$ref: '#/components/schemas/SupportAdminTicket'}
+    SupportAdminMessage:
+      type: object
+      properties:
+        id: {type: string, format: uuid}
+        author_kind: {type: string, enum: [member, contact, agent, system]}
+        author_id: {type: string, format: uuid, nullable: true}
+        author_name: {type: string}
+        visibility: {type: string, enum: [public, internal]}
+        body: {type: string}
+        created_at: {type: string, format: date-time}
+        canned_response_id: {type: string, format: uuid, nullable: true}
+        attachments: {type: array, items: {$ref: '#/components/schemas/SupportAttachment'}}
+    SupportTicketEvent:
+      type: object
+      properties:
+        id: {type: integer}
+        event_type: {type: string, example: status_changed}
+        actor_kind: {type: string, enum: [member, contact, agent, system]}
+        actor_id: {type: string, format: uuid, nullable: true}
+        actor_name: {type: string}
+        from_value: {type: string, nullable: true}
+        to_value: {type: string, nullable: true}
+        created_at: {type: string, format: date-time}
+    SupportMemberContext:
+      type: object
+      description: The minimum an agent needs; no profile content, messages or location.
+      properties:
+        member_id: {type: string, format: uuid}
+        name: {type: string}
+        username: {type: string}
+        account_status: {type: string, enum: [active, deactivated, suspended, banned, deletion_pending, erased]}
+        joined_at: {type: string, format: date-time}
+        verification_status: {type: string}
+        reports_against_90d: {type: integer}
+        open_reports_against: {type: integer}
+        reports_filed_90d: {type: integer}
+        tickets_total: {type: integer}
+    SupportCannedResponse:
+      type: object
+      properties:
+        id: {type: string, format: uuid}
+        title: {type: string}
+        body: {type: string, description: 'May use {{member_name}}, {{reference}} and {{agent_name}}'}
+        category: {type: string, nullable: true}
+        is_active: {type: boolean}
+        usage_count: {type: integer}
+        updated_at: {type: string, format: date-time}
+    SupportCannedResponseEnvelope:
+      type: object
+      properties:
+        success: {type: boolean}
+        canned_response: {$ref: '#/components/schemas/SupportCannedResponse'}
+    SupportDashboard:
+      type: object
+      properties:
+        success: {type: boolean}
+        window_days: {type: integer}
+        open_by_status: {type: object, additionalProperties: {type: integer}}
+        open_by_priority: {type: object, additionalProperties: {type: integer}}
+        open_by_team: {type: object, additionalProperties: {type: integer}}
+        breaches:
+          type: object
+          properties:
+            first_response: {type: integer}
+            resolution: {type: integer}
+            at_risk: {type: integer}
+        median_first_response_minutes: {type: number, nullable: true}
+        median_resolution_minutes: {type: number, nullable: true}
+        csat:
+          type: object
+          properties:
+            average: {type: number, nullable: true}
+            responses: {type: integer}
+            distribution: {type: object, additionalProperties: {type: integer}}
+        daily:
+          type: array
+          items:
+            type: object
+            properties:
+              day: {type: string, format: date}
+              created: {type: integer}
+              resolved: {type: integer}
+        by_category:
+          type: array
+          items:
+            type: object
+            properties:
+              category: {type: string}
+              open: {type: integer}
+              created: {type: integer}
+        safety:
+          type: object
+          description: Safety & harassment tickets (Trust & Safety SLA view)
+          properties:
+            open: {type: integer}
+            breached: {type: integer}
+            at_risk: {type: integer}
+    RichDocument:
+      type: object
+      description: 'Formatted chapter or story. Never HTML. One block per line of the derived plain text (blocks joined by a newline; bullet adds "• ", numbered adds "N. ", divider is "* * *"). Unknown keys, types, marks or styles are rejected. See documents/RICH_TEXT_WRITING_STYLES_2026-10-01.md.'
+      required: [version, blocks]
+      additionalProperties: false
+      properties:
+        version: {type: integer, enum: [1]}
+        style: {type: string, enum: [classic, modern, journal, typewriter, poetic], default: modern, description: Writing style chosen by the author; maps to bundled fonts}
+        blocks:
+          type: array
+          maxItems: 400
+          items:
+            type: object
+            required: [type]
+            additionalProperties: false
+            properties:
+              type: {type: string, enum: [paragraph, heading, subheading, quote, bullet, numbered, divider, callout]}
+              align: {type: string, enum: [start, center, end], default: start}
+              spans:
+                type: array
+                maxItems: 200
+                description: Empty for divider blocks and blank lines
+                items:
+                  type: object
+                  required: [text]
+                  additionalProperties: false
+                  properties:
+                    text: {type: string, description: 'Literal text without line breaks or control characters; always rendered as text'}
+                    marks:
+                      type: array
+                      uniqueItems: true
+                      items: {type: string, enum: [bold, italic, underline, strikethrough, highlight, link]}
+                    href: {type: string, maxLength: 2048, pattern: '^https://', description: Required with (and only with) the link mark; absolute https URL without credentials}
     ClientErrorReport:
       type: object
       required: [install_id, events]

@@ -186,7 +186,9 @@ class AppThemeNotifier extends StateNotifier<AppThemeSelection> {
     }
   }
 
-  /// Pull the account's stored theme, once, after a session exists.
+  /// Pull the account's stored theme, once per signed-in member, after a
+  /// session exists. Signing in as someone else on this device loads that
+  /// member's look instead of keeping the previous member's.
   ///
   /// Deliberately not called from the constructor. Reading a provider must not
   /// start network work as a side effect of being watched: `MaterialApp`
@@ -194,14 +196,15 @@ class AppThemeNotifier extends StateNotifier<AppThemeSelection> {
   /// there was a session to fetch for and left an in-flight request hanging in
   /// widget tests. The gate calls this once it knows the member is signed in.
   Future<void> ensureLoaded() async {
-    if (_loaded) {
+    final userId = _userId;
+    if (userId == null || userId == _loadedFor) {
       return;
     }
-    _loaded = true;
+    _loadedFor = userId;
     await _load();
   }
 
-  bool _loaded = false;
+  String? _loadedFor;
 
   /// Light / Dark / Match device for the classic pair. Choosing a mode also
   /// returns to the classic look.

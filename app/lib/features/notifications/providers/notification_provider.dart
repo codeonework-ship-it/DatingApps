@@ -265,6 +265,10 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
             .read(apiClientProvider)
             .get<dynamic>('/notifications/$userId/preferences'),
       ]);
+      // Signed out or switched member while loading: this notifier is gone.
+      if (_disposed) {
+        return false;
+      }
       final inbox = (responses[0].data as Map?)?.cast<String, dynamic>() ?? {};
       final count = (responses[1].data as Map?)?.cast<String, dynamic>() ?? {};
       final prefRoot =
@@ -291,6 +295,9 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
       );
       return true;
     } on Object catch (error) {
+      if (_disposed) {
+        return false;
+      }
       state = state.copyWith(
         isLoading: false,
         error: apiErrorMessage(
@@ -506,6 +513,10 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
 }
 
 final notificationProvider =
-    StateNotifierProvider<NotificationNotifier, NotificationState>(
-      NotificationNotifier.new,
-    );
+    StateNotifierProvider<NotificationNotifier, NotificationState>((ref) {
+      // Per member: signing in as someone else on this device must never
+      // show the previous member's notifications (the old notifier is disposed,
+      // which also closes its real-time connection).
+      ref.watch(authNotifierProvider.select((s) => s.userId));
+      return NotificationNotifier(ref);
+    });

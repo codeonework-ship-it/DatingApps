@@ -20,7 +20,7 @@ The runner `./run_full_android_automation.sh` installs Appium/UiAutomator2, chec
 ## Architecture under test
 
 ```text
-Flutter app → API Gateway :18080 → Mobile BFF :18081 → gRPC modules → local PostgreSQL :55432
+Flutter app → API Gateway :18080 → Mobile BFF :18081 → gRPC modules → local PostgreSQL :55433
 ```
 
 Important contracts to validate:

@@ -1,0 +1,8 @@
+{% url 'support_queue' as queue_url %}{% url 'support_dashboard' as dashboard_url %}{% url 'support_canned_responses' as canned_url %}
+<nav aria-label="Support sections" class="mb-3 d-flex flex-wrap gap-2 align-items-center">
+  <a href="{{ queue_url }}" class="btn btn-sm {% if request.path == queue_url or '/support/tickets/' in request.path %}btn-glow{% else %}btn-glass{% endif %}"{% if request.path == queue_url %} aria-current="page"{% endif %}><i class="bi bi-inbox me-1"></i>Ticket queue</a>
+  <a href="{{ dashboard_url }}" class="btn btn-sm {% if request.path == dashboard_url %}btn-glow{% else %}btn-glass{% endif %}"{% if request.path == dashboard_url %} aria-current="page"{% endif %}><i class="bi bi-speedometer2 me-1"></i>SLA dashboard</a>
+  <a href="{{ canned_url }}" class="btn btn-sm {% if request.path == canned_url %}btn-glow{% else %}btn-glass{% endif %}"{% if request.path == canned_url %} aria-current="page"{% endif %}><i class="bi bi-chat-square-quote me-1"></i>Canned responses</a>
+  {% if operator_roles %}<span class="small text-muted ms-auto">Your roles: {% for role in operator_roles %}<span class="badge badge-purple">{{ role }}</span> {% endfor %}</span>{% endif %}
+  {% if not can_manage %}<span class="badge badge-inactive ms-auto" title="Ticket changes need a support-capable role">Read only</span>{% endif %}
+</nav>

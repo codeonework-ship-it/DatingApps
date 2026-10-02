@@ -35,8 +35,20 @@ class FriendsScreen extends ConsumerWidget {
   })
   createGroup;
 
+  // Requests and friendships change on the other member's side, so the lists
+  // are fetched again every time the screen opens, not only on
+  // pull-to-refresh: an incoming request must be there when the member
+  // arrives from its notification.
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context, WidgetRef ref) => _LoadOnOpen(
+    onOpen: () => Future.wait([
+      ref.read(friendsProvider.notifier).load(),
+      ref.read(friendSocialProvider.notifier).load(),
+    ]),
+    child: Consumer(builder: (context, ref, _) => _screen(context, ref)),
+  );
+
+  Widget _screen(BuildContext context, WidgetRef ref) {
     final state = ref.watch(friendsProvider);
     final notifier = ref.read(friendsProvider.notifier);
     final social = ref.watch(friendSocialProvider);
@@ -559,6 +571,33 @@ Future<void> showAddFriendSheet(BuildContext context) =>
       useSafeArea: true,
       builder: (_) => const _AddFriendSheet(),
     );
+
+/// Runs [onOpen] once after the first frame, i.e. each time the screen is
+/// pushed.
+class _LoadOnOpen extends StatefulWidget {
+  const _LoadOnOpen({required this.onOpen, required this.child});
+
+  final Future<void> Function() onOpen;
+  final Widget child;
+
+  @override
+  State<_LoadOnOpen> createState() => _LoadOnOpenState();
+}
+
+class _LoadOnOpenState extends State<_LoadOnOpen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        unawaited(widget.onOpen());
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
+}
 
 class _AddFriendSheet extends ConsumerStatefulWidget {
   const _AddFriendSheet();

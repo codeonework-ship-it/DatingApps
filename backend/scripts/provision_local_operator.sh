@@ -2,7 +2,7 @@
 set -euo pipefail
 
 api_base="${OPERATOR_API_BASE_URL:-http://127.0.0.1:18081/v1}"
-database_url="${LOCAL_DATABASE_URL:-postgresql://dating_app@127.0.0.1:55432/dating_app?sslmode=disable}"
+database_url="${LOCAL_DATABASE_URL:-postgresql://dating_app@127.0.0.1:55433/dating_app?sslmode=disable}"
 username="${LOCAL_OPERATOR_USERNAME:-local_control_admin}"
 password="${LOCAL_OPERATOR_PASSWORD:-LocalAdmin123!}"
 role="${LOCAL_OPERATOR_ROLE:-admin}"

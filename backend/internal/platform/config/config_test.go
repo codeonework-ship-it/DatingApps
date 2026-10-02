@@ -453,17 +453,17 @@ func TestLoad_DefaultUnlockPolicyVariant_DefaultsAndOverride(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load() error = %v", err)
 	}
-	if defaultCfg.DefaultUnlockPolicyVariant != "require_quest_template" {
-		t.Fatalf("expected default unlock policy variant require_quest_template, got %q", defaultCfg.DefaultUnlockPolicyVariant)
+	if defaultCfg.DefaultUnlockPolicyVariant != "allow_without_template" {
+		t.Fatalf("expected default unlock policy variant allow_without_template, got %q", defaultCfg.DefaultUnlockPolicyVariant)
 	}
 
-	t.Setenv("DEFAULT_UNLOCK_POLICY_VARIANT", "allow_without_template")
+	t.Setenv("DEFAULT_UNLOCK_POLICY_VARIANT", "require_quest_template")
 	overrideCfg, err := Load()
 	if err != nil {
 		t.Fatalf("Load() error = %v", err)
 	}
-	if overrideCfg.DefaultUnlockPolicyVariant != "allow_without_template" {
-		t.Fatalf("expected unlock policy override allow_without_template, got %q", overrideCfg.DefaultUnlockPolicyVariant)
+	if overrideCfg.DefaultUnlockPolicyVariant != "require_quest_template" {
+		t.Fatalf("expected unlock policy override require_quest_template, got %q", overrideCfg.DefaultUnlockPolicyVariant)
 	}
 
 	t.Setenv("DEFAULT_UNLOCK_POLICY_VARIANT", "unknown")
@@ -471,7 +471,7 @@ func TestLoad_DefaultUnlockPolicyVariant_DefaultsAndOverride(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load() error = %v", err)
 	}
-	if invalidCfg.DefaultUnlockPolicyVariant != "require_quest_template" {
-		t.Fatalf("expected invalid variant to fallback to require_quest_template, got %q", invalidCfg.DefaultUnlockPolicyVariant)
+	if invalidCfg.DefaultUnlockPolicyVariant != "allow_without_template" {
+		t.Fatalf("expected invalid variant to fallback to allow_without_template, got %q", invalidCfg.DefaultUnlockPolicyVariant)
 	}
 }

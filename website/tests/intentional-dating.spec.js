@@ -1,8 +1,14 @@
 import {test, expect} from '@playwright/test';
+import {qaMember} from './support/member.js';
+
+// Never the shared QA account: signing in invalidates its other sessions.
+const member = qaMember();
 
 // A real local QA login with isolated feature fixtures. No real match is changed.
-for (const width of [390, 1440]) {
- test(`intentional dating at ${width}px`, async ({page}) => {
+for (const width of [390, 1440]) for (const part of ['rhythm', 'chemistry']) {
+ test(`intentional dating ${part} at ${width}px`, async ({page}) => {
+  // WEB-11 (fixed): the chat's connection card opens First Chapter Studio and
+  // keeps a secondary "A little chemistry?" action that opens ChemistrySheet.
   test.setTimeout(120000);
   await page.setViewportSize({width,height:900});
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
@@ -30,9 +36,10 @@ for (const width of [390, 1440]) {
   await page.route(`**/v1/chat/${match}/**`,r=>json(r,r.request().method()==='GET'?{messages:[]}:{success:true}));
   await page.goto('/app/#/signin');
   const user=page.getByRole('textbox',{name:'username',exact:true});await expect(user).toBeVisible({timeout:30000});
-  await user.click();await page.waitForTimeout(200);await user.pressSequentially(process.env.QA_EXISTING_USERNAME||'qa_full_20260926_isolated',{delay:10});await user.press('Tab');
-  const pass=page.getByRole('textbox',{name:'Password',exact:true});await pass.click();await page.waitForTimeout(200);await pass.pressSequentially(process.env.QA_EXISTING_PASSWORD||'Password123!',{delay:10});await pass.press('Tab');
+  await user.click();await page.waitForTimeout(200);await user.pressSequentially(member.username,{delay:10});await user.press('Tab');
+  const pass=page.getByRole('textbox',{name:'Password',exact:true});await pass.click();await page.waitForTimeout(200);await pass.pressSequentially(member.password,{delay:10});await pass.press('Tab');
   await page.getByRole('button',{name:'qa.signin.login_button',exact:true}).click();await expect(page).toHaveURL(/#\/discover$/,{timeout:30000});
+  if (part === 'rhythm') {
   await page.goto('/app/#/settings');
   await page.getByRole('button',{name:/^Your dating rhythm /}).click();
   await expect(page.getByText('Make room for the way you date.',{exact:true})).toBeVisible();
@@ -44,7 +51,11 @@ for (const width of [390, 1440]) {
   await save.click();await expect(page.getByText('Your dating rhythm is saved.',{exact:true}).last()).toBeVisible();
   expect(saved.intent).toBe('relationship');expect(saved.share_availability).toBe(false);expect(saved.allow_friend_intros).toBe(false);expect(saved.availability).toEqual([]);
   await page.getByRole('button',{name:'Back',exact:true}).click();
+  }
+  if (part === 'chemistry') {
   await page.goto('/app/#/matches');
+  // The Matches tab opens on its Discover sub-view; conversations are one chip away.
+  await page.getByRole('checkbox',{name:'Conversations',exact:true}).click({timeout:30000});
   await page.getByRole('button',{name:new RegExp(`^qa.matches.match_row.${match}`)}).click();
   await expect(page.getByRole('textbox',{name:/Write a message|qa.chat.composer/})).toBeVisible();
   await page.getByRole('button',{name:/^A little chemistry\?/}).click();
@@ -58,6 +69,7 @@ for (const width of [390, 1440]) {
   await expect(page.getByText('Both answers, together',{exact:false})).toBeVisible({timeout:25000});
   await expect(page.getByText('A bookstore and coffee',{exact:false})).toBeVisible();
   await page.screenshot({path:`../qa/results/intentional-dating/revealed-${width}.png`});
+  }
   expect(errors).toEqual([]);
  });
 }

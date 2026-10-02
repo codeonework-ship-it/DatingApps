@@ -63,7 +63,7 @@ fi
 : "${GESTURE_MIN_WORD_COUNT:=8}"
 : "${GESTURE_ORIGINALITY_PERCENT:=65}"
 : "${GESTURE_PROFANITY_TOKENS:=fuck,shit,bitch,asshole,bastard,slut}"
-: "${DEFAULT_UNLOCK_POLICY_VARIANT:=require_quest_template}"
+: "${DEFAULT_UNLOCK_POLICY_VARIANT:=allow_without_template}"
 : "${DATABASE_URL:=}"
 : "${MEDIA_UPLOADS_DIR:=.run/uploads/profile_photos}"
 : "${MEDIA_PUBLIC_BASE_URL:=auto}"

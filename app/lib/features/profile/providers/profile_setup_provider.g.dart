@@ -11,16 +11,19 @@ String _$profileSetupNotifierHash() =>
 
 /// See also [ProfileSetupNotifier].
 @ProviderFor(ProfileSetupNotifier)
-final profileSetupNotifierProvider = AutoDisposeAsyncNotifierProvider<
-    ProfileSetupNotifier, ProfileDraft>.internal(
-  ProfileSetupNotifier.new,
-  name: r'profileSetupNotifierProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$profileSetupNotifierHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+final profileSetupNotifierProvider =
+    AutoDisposeAsyncNotifierProvider<
+      ProfileSetupNotifier,
+      ProfileDraft
+    >.internal(
+      ProfileSetupNotifier.new,
+      name: r'profileSetupNotifierProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$profileSetupNotifierHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
 
 typedef _$ProfileSetupNotifier = AutoDisposeAsyncNotifier<ProfileDraft>;
 // ignore_for_file: type=lint

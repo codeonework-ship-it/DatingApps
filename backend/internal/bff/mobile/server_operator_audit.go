@@ -123,7 +123,7 @@ func (s *Server) logAuditFailure(r *http.Request, err error) {
 // operatorRoleOf reports the strongest operator role the principal holds, so
 // the trail distinguishes a trust-and-safety action from a full admin one.
 func operatorRoleOf(principal securityPrincipal) string {
-	for _, role := range []string{"admin", "ops_admin", "trust_safety", "finance"} {
+	for _, role := range []string{"admin", "ops_admin", "trust_safety", "finance", "support"} {
 		if principal.Roles[role] {
 			return role
 		}

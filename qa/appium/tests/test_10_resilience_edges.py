@@ -6,9 +6,7 @@ import pytest
 @pytest.mark.requires_appium
 @pytest.mark.resilience
 def test_background_foreground_preserves_discovery_state(app, driver, appium_config):
-    app.sign_in_existing_user()
-    app.open_tab("Discover")
-    app.assert_any_text_visible("Discover Matches", "Find meaningful verified matches", timeout=25)
+    app.open_discovery_deck()
 
     driver.background_app(2)
     driver.activate_app(appium_config.app_package)
@@ -18,9 +16,7 @@ def test_background_foreground_preserves_discovery_state(app, driver, appium_con
 @pytest.mark.requires_appium
 @pytest.mark.resilience
 def test_process_death_restores_authenticated_session(app, driver, appium_config):
-    app.sign_in_existing_user()
-    app.open_tab("Discover")
-    app.assert_any_text_visible("Discover Matches", "Find meaningful verified matches", timeout=25)
+    app.open_discovery_deck()
 
     assert driver.terminate_app(appium_config.app_package)
     driver.activate_app(appium_config.app_package)

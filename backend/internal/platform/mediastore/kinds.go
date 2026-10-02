@@ -1,6 +1,6 @@
 // Package mediastore is the single storage abstraction for every kind of
 // uploaded media (profile photos, chapter photos, Photo Theme entries, voice
-// recordings, identity evidence, group covers). It has a local filesystem
+// recordings, identity evidence, group covers, support ticket attachments). It has a local filesystem
 // implementation (Ubuntu VPS layout with a public/private split) and an AWS S3
 // implementation, selected by configuration.
 //
@@ -31,6 +31,7 @@ const (
 	KindGroupCover             Kind = "group_covers"
 	KindVoice                  Kind = "voice"
 	KindVerification           Kind = "verification"
+	KindSupportAttachment      Kind = "support_attachments"
 )
 
 // Visibility decides whether bytes may ever be handed to nginx/a CDN.
@@ -58,6 +59,9 @@ type KindSpec struct {
 // Specs lists every kind. Order matters for Classify (longest prefix first).
 var Specs = []KindSpec{
 	{Kind: KindVerification, KeyPrefix: "private/verification", LocalDir: "private/verification", Visibility: VisibilityPrivate},
+	// Support ticket screenshots and PDFs (migration 126): readable only by the
+	// requesting member and support operators, through the API.
+	{Kind: KindSupportAttachment, KeyPrefix: "private/support", LocalDir: "private/support_attachments", Visibility: VisibilityPrivate},
 	{Kind: KindVoice, KeyPrefix: "private/voice", LocalDir: "private/voice", Visibility: VisibilityPrivate},
 	{Kind: KindChapterPhoto, KeyPrefix: "private/blog", LocalDir: "private/chapter_photos", Visibility: VisibilityPrivate},
 	{Kind: KindThemePhoto, KeyPrefix: "private/themes", LocalDir: "private/theme_photos", Visibility: VisibilityPrivate},
@@ -176,6 +180,8 @@ func s3Prefix(kind Kind, p config.S3KindPrefixes) string {
 		return p.Voice
 	case KindVerification:
 		return p.Verification
+	case KindSupportAttachment:
+		return p.SupportAttachments
 	}
 	return ""
 }

@@ -153,7 +153,7 @@ void main() {
       expect(sidebar(), findsOneWidget);
       for (final label in [
         'Discover',
-        'Matches & chat',
+        'Matches',
         'Explore',
         'My profile',
         'Settings',
@@ -342,14 +342,43 @@ void main() {
     expect(Material.maybeOf(tester.element(blurb)), isNotNull);
     expectCleanLayout(tester);
 
-    // Back from a secondary page returns to Explore.
+    // Back from a secondary page returns to the page the member came from
+    // (Discover here), not always to Explore.
     await tapAndSettle(tester, find.byType(BackButton));
     expect(find.byType(MainNavigationScreen), findsOneWidget);
     expect(find.byType(BackButton), findsNothing);
     final container = ProviderScope.containerOf(
       tester.element(find.byType(WebMemberWorkspace)),
     );
-    expect(container.read(mainNavigationIndexProvider), 2);
+    expect(container.read(mainNavigationIndexProvider), 0);
+    expectCleanLayout(tester);
+  });
+
+  // WEB-09: All features → a destination → Back used to land on Explore.
+  testWidgets('phone Back walks back through the pages the member visited', (
+    tester,
+  ) async {
+    await mount(tester, size: desktop);
+    await tapAndSettle(tester, inSidebar('All features'));
+    await tapAndSettle(tester, directoryCard('Help & support'));
+    expect(find.byType(HelpSupportScreen), findsOneWidget);
+
+    tester.view.physicalSize = phone;
+    await settle(tester);
+
+    await tapAndSettle(tester, find.byType(BackButton));
+    expect(find.byType(HelpSupportScreen), findsNothing);
+    expect(find.text('Make this space yours.'), findsOneWidget);
+    expect(find.byType(MainNavigationScreen), findsNothing);
+
+    // A second Back keeps going back (to Discover) rather than bouncing
+    // between the directory and Help & support.
+    await tapAndSettle(tester, find.byType(BackButton));
+    expect(find.byType(MainNavigationScreen), findsOneWidget);
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(WebMemberWorkspace)),
+    );
+    expect(container.read(mainNavigationIndexProvider), 0);
     expectCleanLayout(tester);
   });
 }

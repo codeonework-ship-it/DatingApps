@@ -40,7 +40,7 @@
     {"id": "PROG-ROLLOUT-AUDIT", "status": "passed", "evidence": "backend/internal/bff/mobile/level_progression.go"},
     {"id": "PROG-FRAUD-TUNING", "status": "passed", "evidence": "backend/internal/bff/mobile/level_progression_load_test.go"},
     {"id": "PROG-PROJECTION-LOAD", "status": "passed", "evidence": "documents/evidence/progression_projection_load_local_2026-09-27.json"},
-    {"id": "PROG-MONITORING", "status": "passed", "evidence": "backend/observability/grafana/dashboards/progression-production.json"},
+    {"id": "PROG-MONITORING", "status": "passed", "evidence": "backend/observability/grafana/dashboards/product/progression-production.json"},
     {"id": "PROG-ALERTS", "status": "passed", "evidence": "backend/observability/prometheus/rules/progression-production.yml"},
     {"id": "PROG-COHORT-REPORT", "status": "passed", "evidence": "backend/scripts/level_rollout_cohort_report.sh"},
     {"id": "PROG-STAGE-EVIDENCE-GATE", "status": "passed", "evidence": "qa/progression/validate_stage_evidence.py"}

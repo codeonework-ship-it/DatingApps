@@ -1,0 +1,87 @@
+{% extends "control_panel/base.html" %}
+{% block title %}Canned responses · Support · {{ project_name }}{% endblock %}
+{% block topbar_title %}Support · Canned responses{% endblock %}
+{% block extra_head %}{% include "control_panel/support/_styles.html" %}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1><i class="bi bi-chat-square-quote header-icon"></i> Canned responses</h1>
+    <p class="text-muted mb-0">Reusable replies agents insert from the reply box. Placeholders are filled in for each ticket before the agent sends.</p>
+  </div>
+</div>
+{% include "control_panel/support/_nav.html" %}
+
+{% if error %}<div class="alert-glass warning mb-3" role="alert"><i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}</div>{% endif %}
+
+<div class="row g-4">
+  <div class="col-xl-8">
+    <div class="glass-card">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="h5 mb-0">Library</h2>
+        <span class="text-muted small">{{ active_total }} active · {{ items|length }} in total</span>
+      </div>
+      {% for item in items %}
+      <div class="glass-card-sm p-3 mb-3 border rounded-3{% if not item.is_active %} opacity-75{% endif %}" style="border-color:var(--glass-border)!important;">
+        <div class="d-flex justify-content-between align-items-start gap-2 flex-wrap">
+          <div>
+            <strong>{{ item.title }}</strong>
+            {% if item.category_label %}<span class="badge badge-inactive ms-1">{{ item.category_label }}</span>{% endif %}
+            {% if item.is_active %}<span class="badge badge-active ms-1">Active</span>{% else %}<span class="badge badge-inactive ms-1">Inactive</span>{% endif %}
+            <div class="small text-muted">Used {{ item.usage_count|default:"0" }} time{{ item.usage_count|default:0|pluralize }}{% if item.updated_time %} · updated {{ item.updated_time|date:"M d, Y" }}{% endif %}</div>
+          </div>
+          {% if can_manage and item.is_active %}
+          <form method="post" action="{% url 'support_canned_deactivate' item.id %}">{% csrf_token %}
+            <button type="submit" class="btn btn-glass btn-sm"><i class="bi bi-archive me-1"></i>Deactivate</button>
+          </form>
+          {% endif %}
+        </div>
+        <p class="support-msg-body small mb-2">{{ item.body }}</p>
+        {% if can_manage %}
+        <details>
+          <summary class="small">Edit</summary>
+          <form method="post" action="{% url 'support_canned_save' %}" class="mt-2">
+            {% csrf_token %}
+            <input type="hidden" name="response_id" value="{{ item.id }}">
+            <label class="form-label small text-muted mb-0" for="title-{{ item.id }}">Title</label>
+            <input id="title-{{ item.id }}" name="title" value="{{ item.title }}" maxlength="{{ title_max }}" required class="form-control glass-input mb-2">
+            <label class="form-label small text-muted mb-0" for="cat-{{ item.id }}">Category</label>
+            <select id="cat-{{ item.id }}" name="category" class="form-select glass-select mb-2"><option value="">Any category</option>{% for key, label in categories %}<option value="{{ key }}"{% if key == item.category %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+            <label class="form-label small text-muted mb-0" for="body-{{ item.id }}">Text</label>
+            <textarea id="body-{{ item.id }}" name="body" rows="5" maxlength="{{ body_max }}" required class="form-control glass-input mb-2">{{ item.body }}</textarea>
+            <div class="form-check mb-2"><input class="form-check-input" type="checkbox" name="is_active" id="active-{{ item.id }}"{% if item.is_active %} checked{% endif %}><label class="form-check-label small" for="active-{{ item.id }}">Active (shown to agents)</label></div>
+            <button type="submit" class="btn btn-glow btn-sm">Save</button>
+          </form>
+        </details>
+        {% endif %}
+      </div>
+      {% empty %}
+      <div class="text-center py-5 text-muted"><i class="bi bi-chat-square-quote" style="font-size:3rem;opacity:0.3;"></i><p class="mt-2 mb-0">{% if error %}Canned responses could not be loaded.{% else %}No canned responses yet.{% endif %}</p></div>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="col-xl-4">
+    {% if can_manage %}
+    <div class="glass-card mb-4">
+      <h2 class="h5">New canned response</h2>
+      <form method="post" action="{% url 'support_canned_save' %}">
+        {% csrf_token %}
+        <label class="form-label small text-muted mb-0" for="new-title">Title</label>
+        <input id="new-title" name="title" maxlength="{{ title_max }}" required class="form-control glass-input mb-2" placeholder="Refund on its way">
+        <label class="form-label small text-muted mb-0" for="new-category">Category</label>
+        <select id="new-category" name="category" class="form-select glass-select mb-2"><option value="">Any category</option>{% for key, label in categories %}<option value="{{ key }}">{{ label }}</option>{% endfor %}</select>
+        <label class="form-label small text-muted mb-0" for="new-body">Text</label>
+        <textarea id="new-body" name="body" rows="6" maxlength="{{ body_max }}" required class="form-control glass-input mb-2" placeholder="Hi {% templatetag openvariable %}member_name{% templatetag closevariable %}, …"></textarea>
+        <button type="submit" class="btn btn-glow w-100">Create</button>
+      </form>
+    </div>
+    {% endif %}
+    <div class="glass-card support-placeholder">
+      <h2 class="h6 text-uppercase text-muted">Placeholders</h2>
+      <ul class="small mb-2">
+        {% for token, meaning in placeholders %}<li><code>{{ token }}</code> — {{ meaning }}</li>{% endfor %}
+      </ul>
+      <p class="small text-muted mb-0">Write placeholders exactly as shown, with the double braces. They are filled in for the ticket when an agent inserts the response.</p>
+    </div>
+  </div>
+</div>
+{% endblock %}

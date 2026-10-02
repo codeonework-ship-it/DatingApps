@@ -183,7 +183,7 @@ void main() {
             (ref) => Stream.value(RuntimeFeatureFlags.defaults),
           ),
         ],
-        child: const MaterialApp(home: HomeDiscoveryScreen()),
+        child: const MaterialApp(home: HomeDiscoveryScreen(browseOnly: true)),
       ),
     );
     await tester.pump();

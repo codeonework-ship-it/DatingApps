@@ -546,6 +546,20 @@ func accountExportSections() []struct {
 			SELECT id::text,match_id::text,prompt_id,transcript,duration_seconds,status,
 			       sent_at,played_at,created_at
 			FROM matching.voice_icebreakers WHERE sender_user_id=$1::uuid) t`},
+		// Support requests (migration 126): the member's tickets with the public
+		// conversation and attachment names. Internal operator notes are not
+		// the member's data and are not exported; neither are file bytes.
+		{"support_tickets", `SELECT COALESCE(jsonb_agg(to_jsonb(t) ORDER BY t.created_at),'[]'::jsonb) FROM (
+			SELECT tk.reference,tk.category,tk.subject,tk.status,tk.channel,tk.created_at,tk.resolved_at,tk.closed_at,
+			       tk.satisfaction_rating,tk.satisfaction_comment,tk.app_version,tk.platform,tk.os_version,tk.device_model,
+			       (SELECT COALESCE(jsonb_agg(jsonb_build_object(
+			          'from',CASE m.author_kind WHEN 'member' THEN 'me' WHEN 'agent' THEN 'connect_support' ELSE 'system' END,
+			          'body',m.body,'created_at',m.created_at,
+			          'attachments',(SELECT COALESCE(jsonb_agg(jsonb_build_object('filename',a.filename,'content_type',a.content_type,'size_bytes',a.size_bytes)),'[]'::jsonb)
+			                         FROM support.ticket_attachments a WHERE a.message_id=m.id AND a.deleted_at IS NULL)
+			        ) ORDER BY m.created_at),'[]'::jsonb)
+			        FROM support.ticket_messages m WHERE m.ticket_id=tk.id AND m.visibility='public') AS messages
+			FROM support.tickets tk WHERE tk.requester_member_id=$1::uuid) t`},
 		// API request telemetry (migration 122) as daily counts only: the raw
 		// rows are operational logs, kept 90 days, and never carry IPs or
 		// query strings. Crash reports are not linked to an account, so there

@@ -5,6 +5,10 @@ import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 import '../../core/network/api_error_message.dart';
 import '../../core/providers/api_client_provider.dart';
+import '../../core/rich_text/rich_document.dart';
+import '../../core/rich_text/rich_document_view.dart';
+import '../../core/rich_text/rich_text_controller.dart';
+import '../../core/rich_text/rich_text_editor.dart';
 import '../../core/theme/app_theme.dart';
 import '../auth/providers/auth_provider.dart';
 import 'blog_data.dart';
@@ -21,7 +25,10 @@ class BlogEditor extends ConsumerStatefulWidget {
 }
 
 class _BlogEditorState extends ConsumerState<BlogEditor> {
-  late final TextEditingController title, body;
+  late final TextEditingController title;
+
+  /// Formatted story. Its text is the plain body the server stores.
+  late final RichTextController body;
   late final String id;
   late final String? user;
   BlogPost? saved;
@@ -39,7 +46,7 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
     id = saved?.id ?? const Uuid().v4();
     user = ref.read(authNotifierProvider).userId;
     title = TextEditingController(text: saved?.title ?? '');
-    body = TextEditingController(text: saved?.body ?? '');
+    body = RichTextController(document: _documentOf(saved));
     audience = saved?.audience ?? 'private';
     invitation = saved?.invitation ?? '';
     topic = saved?.topic ?? '';
@@ -47,6 +54,11 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
     title.addListener(changed);
     body.addListener(changed);
   }
+
+  /// Plain-text chapters open as paragraphs, so they save back unchanged.
+  static RichDocument _documentOf(BlogPost? post) =>
+      post?.content ??
+      RichDocument.fromPlainText(post?.body ?? '', style: defaultChapterStyle);
 
   void changed() {
     if (mounted) {
@@ -99,7 +111,9 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
             '/blog/posts/$id',
             data: {
               'title': title.text.trim(),
+              // The server derives body from content; body serves old servers.
               'body': body.text.trim(),
+              'content': body.document.toJson(),
               'audience': target,
               'invitation': invitation,
               'expected_version': saved?.version ?? 0,
@@ -183,7 +197,11 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
               const SizedBox(height: 16),
               SelectableText(remote.title),
               const SizedBox(height: 12),
-              SelectableText(remote.body),
+              RichBody(
+                document: remote.content,
+                plainText: remote.body,
+                legacyStyle: Theme.of(context).textTheme.bodyMedium,
+              ),
               for (final photo in remote.photos)
                 Padding(
                   padding: const EdgeInsets.only(top: 16),
@@ -211,7 +229,7 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
                   setState(() {
                     saved = remote;
                     title.text = remote.title;
-                    body.text = remote.body;
+                    body.load(_documentOf(remote));
                     audience = remote.audience;
                     invitation = remote.invitation;
                     topic = remote.topic;
@@ -475,14 +493,18 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
                     style: Theme.of(context).textTheme.headlineMedium,
                   ),
                   const SizedBox(height: 16),
-                  Text(
-                    body.text.isEmpty
-                        ? 'Your story will appear here.'
-                        : body.text,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodyLarge?.copyWith(height: 1.65),
-                  ),
+                  if (body.text.trim().isEmpty)
+                    Text(
+                      'Your story will appear here.',
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodyLarge?.copyWith(height: 1.65),
+                    )
+                  else
+                    RichDocumentView(
+                      key: const ValueKey('blog.editor.preview'),
+                      document: body.document,
+                    ),
                   if (invitation.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(top: 24),
@@ -500,18 +522,13 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  TextField(
+                  RichTextEditor(
                     controller: body,
                     enabled: !busy,
-                    minLines: 8,
-                    maxLines: 18,
                     maxLength: 8000,
-                    textCapitalization: TextCapitalization.sentences,
-                    decoration: const InputDecoration(
-                      labelText: 'Your story',
-                      alignLabelWithHint: true,
-                      hintText: 'Start anywhere. Make it yours.',
-                    ),
+                    keyPrefix: 'blog.editor',
+                    label: 'Your story',
+                    hint: 'Start anywhere. Make it yours.',
                   ),
                   const SizedBox(height: 20),
                   DropdownButtonFormField<String>(

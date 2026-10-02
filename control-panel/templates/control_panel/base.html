@@ -337,99 +337,102 @@
             </div>
         </div>
 
-        <div class="sidebar-section-label">Overview</div>
-        <a href="/" class="nav-item-link {% if request.path == '/' %}active{% endif %}">
+        {% if not nav_hidden.section_overview %}<div class="sidebar-section-label">Overview</div>{% endif %}
+        {% if not nav_hidden.dashboard %}<a href="/" class="nav-item-link {% if request.path == '/' %}active{% endif %}">
             <i class="bi bi-grid-1x2-fill nav-icon"></i> Command Center
-        </a>
+        </a>{% endif %}
 
-        <div class="sidebar-section-label">Content</div>
-        <a href="/catalog/" class="nav-item-link {% if '/catalog' in request.path %}active{% endif %}">
+        {% if not nav_hidden.section_content %}<div class="sidebar-section-label">Content</div>{% endif %}
+        {% if not nav_hidden.catalog_list %}<a href="/catalog/" class="nav-item-link {% if '/catalog' in request.path %}active{% endif %}">
             <i class="bi bi-gift-fill nav-icon"></i> Gift Catalog
-        </a>
-        <a href="/engagement/prompts/" class="nav-item-link {% if '/engagement/prompts' in request.path %}active{% endif %}">
+        </a>{% endif %}
+        {% if not nav_hidden.engagement_prompts %}<a href="/engagement/prompts/" class="nav-item-link {% if '/engagement/prompts' in request.path %}active{% endif %}">
             <i class="bi bi-chat-heart-fill nav-icon"></i> Daily Prompts
-        </a>
-        <a href="/engagement/nudges/" class="nav-item-link {% if '/engagement/nudges' in request.path %}active{% endif %}">
+        </a>{% endif %}
+        {% if not nav_hidden.engagement_nudges %}<a href="/engagement/nudges/" class="nav-item-link {% if '/engagement/nudges' in request.path %}active{% endif %}">
             <i class="bi bi-bell-fill nav-icon"></i> Nudge Templates
-        </a>
-        <a href="/progression/" class="nav-item-link {% if '/progression' in request.path %}active{% endif %}">
+        </a>{% endif %}
+        {% if not nav_hidden.progression_admin %}<a href="/progression/" class="nav-item-link {% if '/progression' in request.path %}active{% endif %}">
             <i class="bi bi-graph-up-arrow nav-icon"></i> Level & XP
-        </a>
+        </a>{% endif %}
 
-        <a href="{% url 'city_pilot' %}" class="nav-item-link {% if '/city-pilot' in request.path %}active{% endif %}">
+        {% if not nav_hidden.city_pilot %}<a href="{% url 'city_pilot' %}" class="nav-item-link {% if '/city-pilot' in request.path %}active{% endif %}">
             <i class="bi bi-geo-alt-fill nav-icon"></i> City Pilot
-        </a>
-        <div class="sidebar-section-label">Users</div>
-        <a href="/users/" class="nav-item-link {% if '/users' in request.path %}active{% endif %}">
+        </a>{% endif %}
+        {% if not nav_hidden.section_users %}<div class="sidebar-section-label">Users</div>{% endif %}
+        {% if not nav_hidden.user_list %}<a href="/users/" class="nav-item-link {% if '/users' in request.path %}active{% endif %}">
             <i class="bi bi-people-fill nav-icon"></i> User Management
-        </a>
-        <a href="/verifications/" class="nav-item-link {% if '/verifications' in request.path %}active{% endif %}">
+        </a>{% endif %}
+        {% if not nav_hidden.verification_queue %}<a href="/verifications/" class="nav-item-link {% if '/verifications' in request.path %}active{% endif %}">
             <i class="bi bi-shield-check nav-icon"></i> Verifications
-        </a>
+        </a>{% endif %}
 
-        <div class="sidebar-section-label">Moderation</div>
-        <a href="/moderation/media/" class="nav-item-link {% if '/moderation/media' in request.path %}active{% endif %}">
+        {% if not nav_hidden.section_moderation %}<div class="sidebar-section-label">Moderation</div>{% endif %}
+        {% if not nav_hidden.media_moderation_queue %}<a href="/moderation/media/" class="nav-item-link {% if '/moderation/media' in request.path %}active{% endif %}">
             <i class="bi bi-images nav-icon"></i> Profile Media
-        </a>
-        <a href="{% url 'blog_reviews' %}" class="nav-item-link {% if '/moderation/blog' in request.path %}active{% endif %}"><i class="bi bi-journal-text nav-icon"></i> Blog Moderation</a>
-        <a href="{% url 'photo_themes' %}" class="nav-item-link {% if '/engagement/photo-themes' in request.path %}active{% endif %}"><i class="bi bi-camera nav-icon"></i> Photo Themes</a>
-        <a href="{% url 'rooms' %}" class="nav-item-link {% if '/moderation/rooms' in request.path %}active{% endif %}"><i class="bi bi-chat-square-dots nav-icon"></i> Conversation Rooms</a>
-        <a href="{% url 'group_covers' %}" class="nav-item-link {% if '/moderation/group-covers' in request.path %}active{% endif %}"><i class="bi bi-image nav-icon"></i> Group Covers</a>
-        <a href="/moderation/reports/" class="nav-item-link {% if '/moderation/reports' in request.path %}active{% endif %}">
+        </a>{% endif %}
+        {% if not nav_hidden.blog_reviews %}<a href="{% url 'blog_reviews' %}" class="nav-item-link {% if '/moderation/blog' in request.path %}active{% endif %}"><i class="bi bi-journal-text nav-icon"></i> Blog Moderation</a>{% endif %}
+        {% if not nav_hidden.photo_themes %}<a href="{% url 'photo_themes' %}" class="nav-item-link {% if '/engagement/photo-themes' in request.path %}active{% endif %}"><i class="bi bi-camera nav-icon"></i> Photo Themes</a>{% endif %}
+        {% if not nav_hidden.rooms %}<a href="{% url 'rooms' %}" class="nav-item-link {% if '/moderation/rooms' in request.path %}active{% endif %}"><i class="bi bi-chat-square-dots nav-icon"></i> Conversation Rooms</a>{% endif %}
+        {% if not nav_hidden.group_covers %}<a href="{% url 'group_covers' %}" class="nav-item-link {% if '/moderation/group-covers' in request.path %}active{% endif %}"><i class="bi bi-image nav-icon"></i> Group Covers</a>{% endif %}
+        {% if not nav_hidden.moderation_reports %}<a href="/moderation/reports/" class="nav-item-link {% if '/moderation/reports' in request.path %}active{% endif %}">
             <i class="bi bi-flag-fill nav-icon"></i> Reports
-        </a>
-        <a href="/appeals/" class="nav-item-link {% if '/appeals' in request.path %}active{% endif %}">
+        </a>{% endif %}
+        {% if not nav_hidden.appeal_queue %}<a href="/appeals/" class="nav-item-link {% if '/appeals' in request.path %}active{% endif %}">
             <i class="bi bi-megaphone-fill nav-icon"></i> Appeals
-        </a>
-        <a href="/support/" class="nav-item-link {% if '/support' in request.path %}active{% endif %}">
-            <i class="bi bi-headset nav-icon"></i> Member Support
-        </a>
+        </a>{% endif %}
 
-        <div class="sidebar-section-label">Analytics</div>
-        <a href="{% url 'analytics_overview' %}" class="nav-item-link {% if request.path == '/analytics/' %}active{% endif %}"><i class="bi bi-bar-chart-line nav-icon"></i> Overview</a>
-        <a href="{% url 'analytics_funnel' %}" class="nav-item-link {% if '/analytics/funnel' in request.path %}active{% endif %}"><i class="bi bi-funnel-fill nav-icon"></i> Activation funnel</a>
-        <a href="{% url 'analytics_retention' %}" class="nav-item-link {% if '/analytics/retention' in request.path %}active{% endif %}"><i class="bi bi-arrow-return-left nav-icon"></i> Retention</a>
-        <a href="{% url 'analytics_engagement' %}" class="nav-item-link {% if '/analytics/engagement' in request.path %}active{% endif %}"><i class="bi bi-hand-index-thumb nav-icon"></i> Engagement</a>
-        <a href="{% url 'analytics_liquidity' %}" class="nav-item-link {% if '/analytics/liquidity' in request.path %}active{% endif %}"><i class="bi bi-pin-map nav-icon"></i> Liquidity by city</a>
-        <a href="{% url 'analytics_safety' %}" class="nav-item-link {% if '/analytics/safety' in request.path %}active{% endif %}"><i class="bi bi-shield-exclamation nav-icon"></i> Safety health</a>
-        <a href="{% url 'analytics_data' %}" class="nav-item-link {% if '/analytics/data' in request.path %}active{% endif %}"><i class="bi bi-database-check nav-icon"></i> Data &amp; exclusions</a>
-        <div class="sidebar-section-label">Business</div>
-        <a href="{% url 'business_revenue' %}" class="nav-item-link {% if request.path == '/business/' %}active{% endif %}"><i class="bi bi-graph-up-arrow nav-icon"></i> Revenue</a>
-        <a href="{% url 'business_subscriptions' %}" class="nav-item-link {% if '/business/subscriptions' in request.path %}active{% endif %}"><i class="bi bi-arrow-repeat nav-icon"></i> Subscriptions &amp; MRR</a>
-        <a href="{% url 'business_conversion' %}" class="nav-item-link {% if '/business/conversion' in request.path %}active{% endif %}"><i class="bi bi-funnel nav-icon"></i> Conversion &amp; funnel</a>
-        <a href="{% url 'business_coins' %}" class="nav-item-link {% if '/business/coins' in request.path %}active{% endif %}"><i class="bi bi-coin nav-icon"></i> Coin economy</a>
-        <a href="{% url 'business_referrals' %}" class="nav-item-link {% if '/business/referrals' in request.path %}active{% endif %}"><i class="bi bi-people nav-icon"></i> Referrals</a>
-        <a href="{% url 'business_markets' %}" class="nav-item-link {% if '/business/markets' in request.path %}active{% endif %}"><i class="bi bi-geo-alt nav-icon"></i> Market readiness</a>
-        <a href="{% url 'business_investor_pack' %}" class="nav-item-link {% if '/business/investor-pack' in request.path %}active{% endif %}"><i class="bi bi-briefcase nav-icon"></i> Investor KPI pack</a>
-        <a href="{% url 'business_spend' %}" class="nav-item-link {% if '/business/spend' in request.path %}active{% endif %}"><i class="bi bi-cash-stack nav-icon"></i> Marketing spend</a>
+        {% if not nav_hidden.section_support %}<div class="sidebar-section-label">Support</div>{% endif %}
+        {% if not nav_hidden.support_queue %}<a href="{% url 'support_queue' %}" class="nav-item-link {% if request.path == '/support/' or '/support/tickets/' in request.path %}active{% endif %}"><i class="bi bi-headset nav-icon"></i> Ticket queue</a>{% endif %}
+        {% if not nav_hidden.support_dashboard %}<a href="{% url 'support_dashboard' %}" class="nav-item-link {% if '/support/dashboard' in request.path %}active{% endif %}"><i class="bi bi-speedometer2 nav-icon"></i> SLA dashboard</a>{% endif %}
+        {% if not nav_hidden.support_canned_responses %}<a href="{% url 'support_canned_responses' %}" class="nav-item-link {% if '/support/canned' in request.path %}active{% endif %}"><i class="bi bi-chat-square-quote nav-icon"></i> Canned responses</a>{% endif %}
 
-        <div class="sidebar-section-label">Platform</div>
-        <a href="/billing/" class="nav-item-link {% if '/billing' in request.path %}active{% endif %}">
+        {% if not nav_hidden.section_analytics %}<div class="sidebar-section-label">Analytics</div>{% endif %}
+        {% if not nav_hidden.analytics_overview %}<a href="{% url 'analytics_overview' %}" class="nav-item-link {% if request.path == '/analytics/' %}active{% endif %}"><i class="bi bi-bar-chart-line nav-icon"></i> Overview</a>{% endif %}
+        {% if not nav_hidden.analytics_funnel %}<a href="{% url 'analytics_funnel' %}" class="nav-item-link {% if '/analytics/funnel' in request.path %}active{% endif %}"><i class="bi bi-funnel-fill nav-icon"></i> Activation funnel</a>{% endif %}
+        {% if not nav_hidden.analytics_retention %}<a href="{% url 'analytics_retention' %}" class="nav-item-link {% if '/analytics/retention' in request.path %}active{% endif %}"><i class="bi bi-arrow-return-left nav-icon"></i> Retention</a>{% endif %}
+        {% if not nav_hidden.analytics_engagement %}<a href="{% url 'analytics_engagement' %}" class="nav-item-link {% if '/analytics/engagement' in request.path %}active{% endif %}"><i class="bi bi-hand-index-thumb nav-icon"></i> Engagement</a>{% endif %}
+        {% if not nav_hidden.analytics_liquidity %}<a href="{% url 'analytics_liquidity' %}" class="nav-item-link {% if '/analytics/liquidity' in request.path %}active{% endif %}"><i class="bi bi-pin-map nav-icon"></i> Liquidity by city</a>{% endif %}
+        {% if not nav_hidden.analytics_safety %}<a href="{% url 'analytics_safety' %}" class="nav-item-link {% if '/analytics/safety' in request.path %}active{% endif %}"><i class="bi bi-shield-exclamation nav-icon"></i> Safety health</a>{% endif %}
+        {% if not nav_hidden.analytics_data %}<a href="{% url 'analytics_data' %}" class="nav-item-link {% if '/analytics/data' in request.path %}active{% endif %}"><i class="bi bi-database-check nav-icon"></i> Data &amp; exclusions</a>{% endif %}
+        {% if not nav_hidden.section_business %}<div class="sidebar-section-label">Business</div>{% endif %}
+        {% if not nav_hidden.business_revenue %}<a href="{% url 'business_revenue' %}" class="nav-item-link {% if request.path == '/business/' %}active{% endif %}"><i class="bi bi-graph-up-arrow nav-icon"></i> Revenue</a>{% endif %}
+        {% if not nav_hidden.business_subscriptions %}<a href="{% url 'business_subscriptions' %}" class="nav-item-link {% if '/business/subscriptions' in request.path %}active{% endif %}"><i class="bi bi-arrow-repeat nav-icon"></i> Subscriptions &amp; MRR</a>{% endif %}
+        {% if not nav_hidden.business_conversion %}<a href="{% url 'business_conversion' %}" class="nav-item-link {% if '/business/conversion' in request.path %}active{% endif %}"><i class="bi bi-funnel nav-icon"></i> Conversion &amp; funnel</a>{% endif %}
+        {% if not nav_hidden.business_coins %}<a href="{% url 'business_coins' %}" class="nav-item-link {% if '/business/coins' in request.path %}active{% endif %}"><i class="bi bi-coin nav-icon"></i> Coin economy</a>{% endif %}
+        {% if not nav_hidden.business_referrals %}<a href="{% url 'business_referrals' %}" class="nav-item-link {% if '/business/referrals' in request.path %}active{% endif %}"><i class="bi bi-people nav-icon"></i> Referrals</a>{% endif %}
+        {% if not nav_hidden.business_markets %}<a href="{% url 'business_markets' %}" class="nav-item-link {% if '/business/markets' in request.path %}active{% endif %}"><i class="bi bi-geo-alt nav-icon"></i> Market readiness</a>{% endif %}
+        {% if not nav_hidden.business_investor_pack %}<a href="{% url 'business_investor_pack' %}" class="nav-item-link {% if '/business/investor-pack' in request.path %}active{% endif %}"><i class="bi bi-briefcase nav-icon"></i> Investor KPI pack</a>{% endif %}
+        {% if not nav_hidden.business_spend %}<a href="{% url 'business_spend' %}" class="nav-item-link {% if '/business/spend' in request.path %}active{% endif %}"><i class="bi bi-cash-stack nav-icon"></i> Marketing spend</a>{% endif %}
+
+        {% if not nav_hidden.section_platform %}<div class="sidebar-section-label">Platform</div>{% endif %}
+        {% if not nav_hidden.billing_dashboard %}<a href="/billing/" class="nav-item-link {% if '/billing' in request.path %}active{% endif %}">
             <i class="bi bi-credit-card-fill nav-icon"></i> Billing & Plans
-        </a>
-        <a href="/config/flags/" class="nav-item-link {% if '/config' in request.path %}active{% endif %}">
+        </a>{% endif %}
+        {% if not nav_hidden.config_flags %}<a href="/config/flags/" class="nav-item-link {% if '/config' in request.path %}active{% endif %}">
             <i class="bi bi-toggles nav-icon"></i> Feature Flags
-        </a>
+        </a>{% endif %}
+        {% if not nav_hidden.growth_governance %}<a href="{% url 'growth_governance' %}" class="nav-item-link {% if '/growth/governance' in request.path %}active{% endif %}"><i class="bi bi-rocket-takeoff nav-icon"></i> Growth governance</a>{% endif %}
 
-        <div class="sidebar-section-label">Safety</div>
-        <a href="/safety/sos/" class="nav-item-link {% if '/safety' in request.path %}active{% endif %}">
+        {% if not nav_hidden.section_safety %}<div class="sidebar-section-label">Safety</div>{% endif %}
+        {% if not nav_hidden.safety_sos %}<a href="/safety/sos/" class="nav-item-link {% if '/safety' in request.path %}active{% endif %}">
             <i class="bi bi-exclamation-triangle-fill nav-icon"></i> SOS Alerts
-        </a>
-        <a href="/account-recovery/" class="nav-item-link {% if '/account-recovery' in request.path %}active{% endif %}">
+        </a>{% endif %}
+        {% if not nav_hidden.account_recovery_queue %}<a href="/account-recovery/" class="nav-item-link {% if '/account-recovery' in request.path %}active{% endif %}">
             <i class="bi bi-key-fill nav-icon"></i> Account recovery
-        </a>
+        </a>{% endif %}
 
-        <div class="sidebar-section-label">Logs</div>
-        <a href="/activities/" class="nav-item-link {% if '/activities' in request.path %}active{% endif %}">
+        {% if not nav_hidden.section_logs %}<div class="sidebar-section-label">Logs</div>{% endif %}
+        {% if not nav_hidden.activity_feed %}<a href="/activities/" class="nav-item-link {% if '/activities' in request.path %}active{% endif %}">
             <i class="bi bi-activity nav-icon"></i> Activity Feed
-        </a>
-        <a href="/audit/" class="nav-item-link {% if '/audit' in request.path %}active{% endif %}">
+        </a>{% endif %}
+        {% if not nav_hidden.audit_log %}<a href="/audit/" class="nav-item-link {% if '/audit' in request.path %}active{% endif %}">
             <i class="bi bi-fingerprint nav-icon"></i> Operator Audit
-        </a>
-        <a href="/events/" class="nav-item-link {% if '/events' in request.path %}active{% endif %}">
+        </a>{% endif %}
+        {% if not nav_hidden.domain_events %}<a href="/events/" class="nav-item-link {% if '/events' in request.path %}active{% endif %}">
             <i class="bi bi-diagram-3-fill nav-icon"></i> Domain Events
-        </a>
-        <a href="{% url 'client_errors' %}" class="nav-item-link {% if '/client-errors' in request.path %}active{% endif %}"><i class="bi bi-bug-fill nav-icon"></i> Client errors</a>
+        </a>{% endif %}
+        {% if not nav_hidden.client_errors %}<a href="{% url 'client_errors' %}" class="nav-item-link {% if '/client-errors' in request.path %}active{% endif %}"><i class="bi bi-bug-fill nav-icon"></i> Client errors</a>{% endif %}
 
         <div class="sidebar-footer">
             <div class="mb-1">

@@ -50,7 +50,7 @@ Future<void> reportCommunityItem(
   required String kind,
   required String id,
 }) async {
-  await showReportUserSheet(
+  final reportId = await showReportUserSheet(
     context: context,
     onSubmit: ({required reason, description}) async {
       try {
@@ -70,6 +70,10 @@ Future<void> reportCommunityItem(
       }
     },
   );
+  // The sheet closes on success; say so, as the other report flows do.
+  if (reportId != null && context.mounted) {
+    showCommunitySnack(context, 'Report submitted. Thank you.');
+  }
 }
 
 /// Confirms, then blocks [userId]. Resolves to true once the block is saved.

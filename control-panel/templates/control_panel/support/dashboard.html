@@ -1,0 +1,134 @@
+{% extends "control_panel/base.html" %}
+{% block title %}Support SLA dashboard · {{ project_name }}{% endblock %}
+{% block topbar_title %}Support · SLA dashboard{% endblock %}
+{% block extra_head %}{% include "control_panel/support/_styles.html" %}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1><i class="bi bi-speedometer2 header-icon"></i> Support SLA dashboard</h1>
+    <p class="text-muted mb-0">Open workload, SLA breaches, response times and satisfaction over the last {{ window_days }} days. Medians and ratings cover tickets in that window; open counts are live.</p>
+  </div>
+  <form method="get" class="d-flex gap-2 align-items-end" aria-label="Dashboard window">
+    <div><label for="sd-days" class="form-label text-muted small mb-0">Window</label>
+      <select id="sd-days" name="days" class="form-select glass-select" onchange="this.form.submit()">{% for d in day_options %}<option value="{{ d }}"{% if d == days %} selected{% endif %}>Last {{ d }} days</option>{% endfor %}</select></div>
+    <noscript><button type="submit" class="btn btn-glass">Apply</button></noscript>
+  </form>
+</div>
+{% include "control_panel/support/_nav.html" %}
+
+{% if error %}<div class="alert-glass warning mb-3" role="alert"><i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}</div>{% else %}
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-2"><div class="glass-card support-kpi h-100"><div class="value" style="color:var(--aqua);">{{ open_total }}</div><div class="label">Open tickets</div></div></div>
+  {% for label, count in open_by_status %}
+  <div class="col-6 col-lg-2"><div class="glass-card support-kpi h-100"><div class="value">{{ count }}</div><div class="label">{{ label }}</div></div></div>
+  {% endfor %}
+  <div class="col-6 col-lg-2"><div class="glass-card support-kpi h-100"><div class="value" style="color:#fca5a5;">{{ breach_total }}</div><div class="label"><i class="bi bi-exclamation-octagon-fill"></i> SLA breaches<br>{{ breaches.first_response }} first response · {{ breaches.resolution }} resolution</div></div></div>
+</div>
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3"><div class="glass-card support-kpi h-100"><div class="value" style="color:#fde68a;">{{ breaches.at_risk }}</div><div class="label"><i class="bi bi-hourglass-split"></i> At risk of breach</div></div></div>
+  <div class="col-6 col-lg-3"><div class="glass-card support-kpi h-100"><div class="value">{{ median_first_response|default:"—" }}</div><div class="label">Median first response</div></div></div>
+  <div class="col-6 col-lg-3"><div class="glass-card support-kpi h-100"><div class="value">{{ median_resolution|default:"—" }}</div><div class="label">Median resolution</div></div></div>
+  <div class="col-6 col-lg-3"><div class="glass-card support-kpi h-100"><div class="value">{% if csat_average %}{{ csat_average }} <span class="small text-muted">/ 5</span>{% else %}—{% endif %}</div><div class="label">CSAT average · {{ csat_responses }} response{{ csat_responses|pluralize }}</div></div></div>
+</div>
+
+<div class="glass-card mb-4" style="border-color:rgba(239,68,68,0.35);">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+      <h2 class="h5 mb-1"><i class="bi bi-shield-exclamation me-1"></i> Trust &amp; Safety tickets</h2>
+      <p class="small text-muted mb-0">Safety &amp; harassment and verification tickets route to Trust &amp; Safety. Safety tickets need a first response within 1 hour and resolution within 24 hours.</p>
+    </div>
+    <div class="d-flex gap-3 align-items-center flex-wrap">
+      <span><strong>{{ safety.open }}</strong> <span class="text-muted small">open</span></span>
+      <span class="badge {% if safety.breached %}badge-danger{% else %}badge-inactive{% endif %}"><i class="bi bi-exclamation-octagon-fill"></i> {{ safety.breached }} breached</span>
+      <span class="badge {% if safety.at_risk %}badge-warning{% else %}badge-inactive{% endif %}"><i class="bi bi-hourglass-split"></i> {{ safety.at_risk }} at risk</span>
+      {% if can_manage %}<a class="btn btn-glass btn-sm" href="{% url 'support_queue' %}?{{ safety_query }}">Open T&amp;S queue</a>{% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-xl-8">
+    <div class="glass-card h-100">
+      <h2 class="h6 text-uppercase text-muted">Tickets created vs resolved per day</h2>
+      {% include "control_panel/support/_chart.html" with chart_id="support-daily" chart_label="Tickets created and resolved per day" %}
+      <details class="small"><summary>Daily figures</summary>
+        <table class="glass-table mt-2"><thead><tr><th>Day (UTC)</th><th class="text-end">Created</th><th class="text-end">Resolved</th></tr></thead>
+          <tbody>{% for d in daily %}<tr><td>{{ d.day }}</td><td class="text-end">{{ d.created|default:"0" }}</td><td class="text-end">{{ d.resolved|default:"0" }}</td></tr>{% empty %}<tr><td colspan="3" class="text-muted">No tickets in this window.</td></tr>{% endfor %}</tbody></table>
+      </details>
+    </div>
+  </div>
+  <div class="col-xl-4">
+    <div class="glass-card h-100">
+      <h2 class="h6 text-uppercase text-muted">Satisfaction ratings</h2>
+      {% include "control_panel/support/_chart.html" with chart_id="support-csat" chart_label="Number of ratings by score" height="220px" %}
+      <table class="glass-table small"><tbody>{% for score, count in csat_distribution %}<tr><td>{{ score }} ★</td><td class="text-end">{{ count }}</td></tr>{% endfor %}</tbody></table>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-lg-6">
+    <div class="glass-card h-100">
+      <h2 class="h6 text-uppercase text-muted">Open by priority</h2>
+      {% include "control_panel/support/_chart.html" with chart_id="support-priority" chart_label="Open tickets by priority" height="200px" %}
+      <table class="glass-table small"><tbody>{% for label, count in open_by_priority %}<tr><td>{{ label }}</td><td class="text-end">{{ count }}</td></tr>{% endfor %}</tbody></table>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="glass-card h-100">
+      <h2 class="h6 text-uppercase text-muted">Open by team</h2>
+      {% include "control_panel/support/_chart.html" with chart_id="support-team" chart_label="Open tickets by team" height="200px" %}
+      <table class="glass-table small"><tbody>{% for label, count in open_by_team %}<tr><td>{{ label }}</td><td class="text-end">{{ count }}</td></tr>{% endfor %}</tbody></table>
+    </div>
+  </div>
+</div>
+
+<div class="glass-card mb-4">
+  <h2 class="h6 text-uppercase text-muted">By category</h2>
+  {% include "control_panel/support/_chart.html" with chart_id="support-category" chart_label="Open and newly created tickets by category" height="300px" %}
+  <table class="glass-table small"><thead><tr><th>Category</th><th class="text-end">Open</th><th class="text-end">Created ({{ window_days }} days)</th></tr></thead>
+    <tbody>{% for row in by_category %}<tr><td>{{ row.label }}</td><td class="text-end">{{ row.open }}</td><td class="text-end">{{ row.created }}</td></tr>{% empty %}<tr><td colspan="3" class="text-muted">No tickets in this window.</td></tr>{% endfor %}</tbody></table>
+</div>
+{{ charts|json_script:"support-charts" }}
+{% endif %}
+{% endblock %}
+{% block extra_js %}
+<script>
+(function () {
+  if (typeof Chart === 'undefined') { return; }
+  var node = document.getElementById('support-charts');
+  if (!node) { return; }
+  var specs = JSON.parse(node.textContent);
+  // Same validated dark categorical slots as the analytics pages, fixed order.
+  var palette = ['#3987e5', '#d95926'];
+  var ink = 'rgba(240,240,250,0.72)', grid = 'rgba(255,255,255,0.07)';
+  document.querySelectorAll('canvas[data-support-chart]').forEach(function (canvas) {
+    var spec = specs[canvas.dataset.supportChart];
+    if (!spec) { return; }
+    var line = spec.type === 'line';
+    var datasets = (spec.datasets || []).map(function (d, i) {
+      var color = palette[i % palette.length];
+      return {
+        label: d.label, data: d.data, borderColor: color, backgroundColor: color,
+        borderWidth: 2, pointRadius: line ? 3 : 0, pointHoverRadius: 5, tension: 0,
+        borderRadius: line ? 0 : 4, borderSkipped: false, maxBarThickness: 28
+      };
+    });
+    new Chart(canvas, {
+      type: line ? 'line' : 'bar',
+      data: { labels: spec.labels || [], datasets: datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false, indexAxis: spec.horizontal ? 'y' : 'x',
+        interaction: { mode: 'index', intersect: false },
+        plugins: { legend: { display: datasets.length > 1, labels: { color: ink, boxWidth: 12 } } },
+        scales: {
+          x: { beginAtZero: true, ticks: { color: ink, maxRotation: 0, autoSkip: true, precision: 0 }, grid: { color: grid } },
+          y: { beginAtZero: true, ticks: { color: ink, precision: 0 }, grid: { color: grid } }
+        }
+      }
+    });
+  });
+})();
+</script>
+{% endblock %}

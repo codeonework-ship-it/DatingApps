@@ -9,11 +9,15 @@ import (
 	"net/http"
 	"path"
 	"strings"
+	"sync/atomic"
 	"time"
 	"unicode/utf8"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
+
+	"github.com/verified-dating/backend/internal/platform/observability"
 )
 
 // Shared SQL for member activities (Photo Themes, Book & Film Clubs).
@@ -81,8 +85,31 @@ func writeActivityError(w http.ResponseWriter, err error, unavailable string) {
 	case errors.Is(err, errDatePlanForbidden):
 		writeError(w, 403, errors.New("This account cannot do that."))
 	default:
+		// Members get a generic message; operators need the cause. Without
+		// this log line a 503 from these handlers cannot be diagnosed.
+		logUnexpectedError(w, err)
 		writeError(w, 503, errors.New(unavailable))
 	}
+}
+
+// unexpectedErrorLog records errors that member-facing handlers turn into a
+// generic 503. Set once by NewServer; nil in tests that build a bare Server.
+var unexpectedErrorLog atomic.Pointer[zap.Logger]
+
+func setUnexpectedErrorLogger(log *zap.Logger) {
+	if log != nil {
+		unexpectedErrorLog.Store(log)
+	}
+}
+
+func logUnexpectedError(w http.ResponseWriter, err error) {
+	log := unexpectedErrorLog.Load()
+	if log == nil || err == nil {
+		return
+	}
+	log.Error("unexpected_handler_error",
+		zap.Error(err),
+		zap.String("correlation_id", w.Header().Get(observability.CorrelationIDHeader)))
 }
 
 func activityUUID(w http.ResponseWriter, ids ...string) bool {

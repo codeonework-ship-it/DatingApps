@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/network/api_error_message.dart';
 import '../../core/providers/api_client_provider.dart';
 import '../../core/providers/safety_actions_provider.dart';
+import '../../core/rich_text/rich_document_view.dart';
 import '../../core/theme/app_theme.dart';
 import '../auth/providers/auth_provider.dart';
 import '../common/widgets/report_user_sheet.dart';
@@ -617,9 +618,13 @@ class BlogDetailScreen extends ConsumerWidget {
                           const SizedBox(height: 16),
                           BlogAuthorRow(post: post),
                           const SizedBox(height: 20),
-                          SelectableText(
-                            post.body,
-                            style: Theme.of(
+                          // Formatted chapters use the author's writing style;
+                          // plain-text chapters render exactly as before.
+                          RichBody(
+                            key: const ValueKey('blog.detail.body'),
+                            document: post.content,
+                            plainText: post.body,
+                            legacyStyle: Theme.of(
                               context,
                             ).textTheme.bodyLarge?.copyWith(height: 1.65),
                           ),

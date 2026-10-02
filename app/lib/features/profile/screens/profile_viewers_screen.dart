@@ -94,7 +94,11 @@ class ProfileViewersScreen extends ConsumerWidget {
                             Text(
                               subtitle,
                               style: Theme.of(context).textTheme.bodySmall
-                                  ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                                  ?.copyWith(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                                  ),
                             ),
                           ],
                         ),

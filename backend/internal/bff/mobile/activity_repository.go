@@ -406,12 +406,17 @@ func activityEventDomain(domain string) string {
 func (s *Server) apiRequestActivityEvent(r *http.Request, status int, elapsed time.Duration) activityEvent {
 	route := observability.RedactedRequestPath(r)
 
+	// Only a member id goes in user_id. A match id here (the old fallback)
+	// failed the users foreign key on every match route, so those rows were
+	// lost and the database logged an error per request (GO-02).
 	userID := strings.TrimSpace(chi.URLParam(r, "userID"))
 	if userID == "" {
-		userID = strings.TrimSpace(chi.URLParam(r, "matchID"))
-	}
-	if userID == "" {
 		userID = strings.TrimSpace(r.URL.Query().Get("user_id"))
+	}
+	// A 404 usually means the id in the path is unknown; attributing the row
+	// to it only fails the user_id foreign key (GO-02).
+	if status == http.StatusNotFound {
+		userID = ""
 	}
 
 	actor := strings.TrimSpace(r.Header.Get("X-Admin-User"))

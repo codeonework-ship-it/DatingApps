@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../../core/providers/api_client_provider.dart';
 import '../../core/network/api_error_message.dart';
+import '../../l10n/app_localizations.dart';
 import '../plans/providers/plans_provider.dart';
 import '../auth/providers/auth_provider.dart';
 import '../first_chapter/chapter_studio_screen.dart';
@@ -66,32 +67,57 @@ class DatingConnectionCard extends ConsumerWidget {
       error: (e, _) => const SizedBox.shrink(),
       data: (data) {
         final slow = data['partner_pace_status'] == 'slow_week';
+        final colors = Theme.of(context).colorScheme;
         return Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
           child: Card(
             margin: EdgeInsets.zero,
-            child: ListTile(
-              leading: Icon(
-                slow ? Icons.spa_outlined : Icons.auto_awesome_outlined,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              title: Text(
-                slow
-                    ? 'Taking replies slowly this week'
-                    : switch (data['chapter_status']) {
-                        'your_turn' => 'Your turn: add a surprise',
-                        'complete' => 'Your first chapter is ready',
-                        'waiting' => 'Your chapter has a beginning',
-                        _ => 'Create your first chapter',
-                      },
-              ),
-              subtitle: Text(
-                slow
-                    ? 'Your match is making room for a slower pace.'
-                    : 'A beginning, a surprise, and a story you shape together.',
-              ),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => openChapterStudio(context, matchId: matchId),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ListTile(
+                  leading: Icon(
+                    slow ? Icons.spa_outlined : Icons.auto_awesome_outlined,
+                    color: colors.primary,
+                  ),
+                  title: Text(
+                    slow
+                        ? 'Taking replies slowly this week'
+                        : switch (data['chapter_status']) {
+                            'your_turn' => 'Your turn: add a surprise',
+                            'complete' => 'Your first chapter is ready',
+                            'waiting' => 'Your chapter has a beginning',
+                            _ => 'Create your first chapter',
+                          },
+                  ),
+                  subtitle: Text(
+                    slow
+                        ? 'Your match is making room for a slower pace.'
+                        : 'A beginning, a surprise, and a story you shape together.',
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => openChapterStudio(context, matchId: matchId),
+                ),
+                // Secondary: the private "A little chemistry" moment. First
+                // Chapter Studio stays the card's main action.
+                Divider(height: 1, color: colors.outlineVariant),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  child: TextButton.icon(
+                    key: const ValueKey('qa.connection.chemistry'),
+                    onPressed: () =>
+                        showChemistrySheet(context, matchId: matchId),
+                    icon: const Icon(Icons.favorite_border_rounded),
+                    label: Text(
+                      AppLocalizations.of(context).chemistryCardEntry,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         );
@@ -99,6 +125,18 @@ class DatingConnectionCard extends ConsumerWidget {
     );
   }
 }
+
+/// Opens the private chemistry moment for [matchId] as a bottom sheet.
+Future<void> showChemistrySheet(
+  BuildContext context, {
+  required String matchId,
+}) => showModalBottomSheet<void>(
+  context: context,
+  isScrollControlled: true,
+  showDragHandle: true,
+  useSafeArea: true,
+  builder: (_) => ChemistrySheet(matchId: matchId),
+);
 
 class ChemistrySheet extends ConsumerStatefulWidget {
   const ChemistrySheet({required this.matchId, super.key});

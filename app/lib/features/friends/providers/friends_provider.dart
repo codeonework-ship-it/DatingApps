@@ -210,6 +210,10 @@ class FriendsNotifier extends StateNotifier<FriendsState> {
         '/friends/$userId/activities',
         queryParameters: const {'limit': 30},
       );
+      // Signed out or switched member while loading: this notifier is gone.
+      if (!mounted) {
+        return;
+      }
 
       final friendsBody =
           (friendsResp.data as Map?)?.cast<String, dynamic>() ??
@@ -236,6 +240,9 @@ class FriendsNotifier extends StateNotifier<FriendsState> {
       );
     } on DioException catch (e, stackTrace) {
       log.error('Failed to load friends', e, stackTrace);
+      if (!mounted) {
+        return;
+      }
       state = state.copyWith(
         isLoading: false,
         error: _extractApiError(
@@ -245,6 +252,9 @@ class FriendsNotifier extends StateNotifier<FriendsState> {
       );
     } on Object catch (e, stackTrace) {
       log.error('Failed to load friends', e, stackTrace);
+      if (!mounted) {
+        return;
+      }
       state = state.copyWith(
         isLoading: false,
         error: 'Failed to load friends. Please try again.',
@@ -370,9 +380,14 @@ class FriendsNotifier extends StateNotifier<FriendsState> {
   }
 }
 
-final friendsProvider = StateNotifierProvider<FriendsNotifier, FriendsState>(
-  FriendsNotifier.new,
-);
+final friendsProvider = StateNotifierProvider<FriendsNotifier, FriendsState>((
+  ref,
+) {
+  // Per member: signing in as someone else on this device must never
+  // show the previous member's friends and requests.
+  ref.watch(authNotifierProvider.select((s) => s.userId));
+  return FriendsNotifier(ref);
+});
 
 String _extractApiError(DioException e, {required String fallback}) {
   final data = e.response?.data;

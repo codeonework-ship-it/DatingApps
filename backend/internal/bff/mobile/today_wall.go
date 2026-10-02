@@ -5,7 +5,10 @@ import (
 	"database/sql"
 	"errors"
 	"net/http"
+	"strings"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 // Today's wall carousel, unique views and Cover of the Week (migration 112).
@@ -93,45 +96,65 @@ func (s *Server) contentViewsHandler(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, map[string]any{"recorded": recorded})
 }
 
+// todayWallCandidatesSQL ranks the member's candidates for a day: fresh items
+// (never on an earlier day's wall) first, then the shared ranking, then random
+// among exact ties. $1 member, $2 day, $3 wall size.
+func todayWallCandidatesSQL() string {
+	return `SELECT r.kind,r.id,r.pos FROM (
+  SELECT c.kind,c.id,ROW_NUMBER() OVER (ORDER BY c.shown_before,c.likes DESC,c.comments DESC,c.views DESC,c.tiebreak) AS pos FROM (
+   SELECT u.*,random() AS tiebreak,
+    EXISTS(SELECT 1 FROM matching.wall_daily_picks h WHERE h.recipient_id=$1::uuid AND h.kind=u.kind AND h.content_id=u.id AND h.day<$2::date) AS shown_before
+   FROM (
+    SELECT 'chapter'::text AS kind,p.id,` + blogWall.rankColumnsSQL() + ` FROM matching.blog_posts p
+     WHERE ` + blogWall.featuredSQL() + ` AND ` + blogWall.deliveredToSQL() + `
+    UNION ALL
+    SELECT 'photo'::text,p.id,` + photoWall.rankColumnsSQL() + ` FROM matching.photo_theme_entries p
+     WHERE ` + photoWall.featuredSQL() + ` AND ` + photoWall.deliveredToSQL() + `
+   ) u
+  ) c
+ ) r WHERE r.pos<=$3`
+}
+
 // todayWall returns the member's carousel for day, choosing it on the first
 // request of the day. Chosen items that later stop qualifying (opt-out,
 // report, block) are skipped rather than replaced, so the day stays stable.
+//
+// It never row-locks the member (API-03): a GET must not fail because a write
+// elsewhere holds the users row. The first-of-day choice is serialised per
+// member and day with a transaction-scoped advisory try-lock; a request that
+// loses the race, or whose insert hits a lock timeout, serves the same ranking
+// without persisting it, and a later request persists the day's choice.
 func todayWall(ctx context.Context, db *sql.DB, actor string, day time.Time) ([]todayWallItem, error) {
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Rollback()
-	if err = lockBlogAuthor(ctx, tx, actor); err != nil {
+	var active bool
+	if err = tx.QueryRowContext(ctx, `SELECT EXISTS(SELECT 1 FROM user_management.users u WHERE u.id=$1 AND `+blogActive+`)`, actor).Scan(&active); err != nil {
 		return nil, err
 	}
+	if !active {
+		return nil, errDatePlanForbidden
+	}
 	dayText := day.Format("2006-01-02")
+	readPersisted := `SELECT kind,content_id::text,position FROM matching.wall_daily_picks WHERE recipient_id=$1 AND day=$2::date ORDER BY position`
 	var picked int
 	if err = tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM matching.wall_daily_picks WHERE recipient_id=$1 AND day=$2::date`, actor, dayText).Scan(&picked); err != nil {
 		return nil, err
 	}
+	pickQuery, pickArgs := readPersisted, []any{actor, dayText}
 	if picked == 0 {
-		// Fresh items (never on an earlier day's wall) first, then the shared
-		// ranking, then random among exact ties.
-		_, err = tx.ExecContext(ctx, `INSERT INTO matching.wall_daily_picks(recipient_id,day,kind,content_id,position)
- SELECT $1::uuid,$2::date,r.kind,r.id,r.pos FROM (
-  SELECT c.kind,c.id,ROW_NUMBER() OVER (ORDER BY c.shown_before,c.likes DESC,c.comments DESC,c.views DESC,c.tiebreak) AS pos FROM (
-   SELECT u.*,random() AS tiebreak,
-    EXISTS(SELECT 1 FROM matching.wall_daily_picks h WHERE h.recipient_id=$1::uuid AND h.kind=u.kind AND h.content_id=u.id AND h.day<$2::date) AS shown_before
-   FROM (
-    SELECT 'chapter'::text AS kind,p.id,`+blogWall.rankColumnsSQL()+` FROM matching.blog_posts p
-     WHERE `+blogWall.featuredSQL()+` AND `+blogWall.deliveredToSQL()+`
-    UNION ALL
-    SELECT 'photo'::text,p.id,`+photoWall.rankColumnsSQL()+` FROM matching.photo_theme_entries p
-     WHERE `+photoWall.featuredSQL()+` AND `+photoWall.deliveredToSQL()+`
-   ) u
-  ) c
- ) r WHERE r.pos<=$3 ON CONFLICT DO NOTHING`, actor, dayText, todayWallSize)
-		if err != nil {
-			return nil, err
+		persisted, chooseErr := chooseTodayWall(ctx, tx, actor, dayText)
+		if chooseErr != nil {
+			return nil, chooseErr
+		}
+		if !persisted {
+			pickQuery = `SELECT t.kind,t.id::text,t.pos FROM (` + todayWallCandidatesSQL() + `) t ORDER BY t.pos`
+			pickArgs = []any{actor, dayText, todayWallSize}
 		}
 	}
-	rows, err := tx.QueryContext(ctx, `SELECT kind,content_id::text,position FROM matching.wall_daily_picks WHERE recipient_id=$1 AND day=$2::date ORDER BY position`, actor, dayText)
+	rows, err := tx.QueryContext(ctx, pickQuery, pickArgs...)
 	if err != nil {
 		return nil, err
 	}
@@ -183,6 +206,45 @@ func todayWall(ctx context.Context, db *sql.DB, actor string, day time.Time) ([]
 		items = append(items, item)
 	}
 	return items, tx.Commit()
+}
+
+// chooseTodayWall persists the member's picks for the day. It reports false,
+// without failing, when another request is choosing concurrently or the
+// insert could not get its locks in time; the caller then serves the ranking
+// read-only.
+func chooseTodayWall(ctx context.Context, tx *sql.Tx, actor, dayText string) (bool, error) {
+	var locked bool
+	if err := tx.QueryRowContext(ctx, `SELECT pg_try_advisory_xact_lock(hashtext('matching.wall_daily_picks'), hashtext($1||':'||$2))`, actor, dayText).Scan(&locked); err != nil {
+		return false, err
+	}
+	if !locked {
+		return false, nil
+	}
+	if _, err := tx.ExecContext(ctx, `SAVEPOINT today_wall_pick`); err != nil {
+		return false, err
+	}
+	_, err := tx.ExecContext(ctx, `INSERT INTO matching.wall_daily_picks(recipient_id,day,kind,content_id,position)
+ SELECT $1::uuid,$2::date,t.kind,t.id,t.pos FROM (`+todayWallCandidatesSQL()+`) t ON CONFLICT DO NOTHING`, actor, dayText, todayWallSize)
+	if err != nil {
+		if !isLockNotAvailable(err) {
+			return false, err
+		}
+		if _, rbErr := tx.ExecContext(ctx, `ROLLBACK TO SAVEPOINT today_wall_pick`); rbErr != nil {
+			return false, rbErr
+		}
+		return false, nil
+	}
+	_, err = tx.ExecContext(ctx, `RELEASE SAVEPOINT today_wall_pick`)
+	return err == nil, err
+}
+
+// isLockNotAvailable reports a lock_timeout (55P03).
+func isLockNotAvailable(err error) bool {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		return pgErr.Code == "55P03"
+	}
+	return err != nil && strings.Contains(err.Error(), "55P03")
 }
 
 func (s *Server) todayWallHandler(w http.ResponseWriter, r *http.Request) {

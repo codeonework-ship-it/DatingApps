@@ -9,10 +9,12 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
 
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -66,6 +68,14 @@ func (s *Server) securityMiddleware(next http.Handler) http.Handler {
 			return
 		}
 		principal, err := resolvePrincipal(r)
+		if errors.Is(err, errAuthStoreUnavailable) {
+			// A database fault is not a bad credential: a 401 here would sign
+			// the member out, so ask the client to retry instead.
+			logUnexpectedError(w, err)
+			w.Header().Set("Retry-After", "2")
+			writeError(w, http.StatusServiceUnavailable, errAuthStoreUnavailable)
+			return
+		}
 		if err != nil {
 			writeError(w, http.StatusUnauthorized, errors.New("valid bearer session is required"))
 			return
@@ -122,6 +132,19 @@ func principalCanAccessAdminRoute(principal securityPrincipal, prefix, method, r
 	// analysts may read them. Reports are anonymous app diagnostics.
 	if path == "client-errors" || strings.HasPrefix(path, "client-errors/") {
 		return principal.Roles["ops_admin"] || (isRead && principal.Roles["analyst"])
+	}
+	// Support tickets (support_admin.go): support agents, ops admins and the
+	// trust & safety roles work the queue; analysts read the SLA dashboard.
+	if path == "support" || strings.HasPrefix(path, "support/") {
+		if principal.Roles["support"] || principal.Roles["ops_admin"] || principal.Roles["trust_safety"] || principal.Roles["moderator"] {
+			return true
+		}
+		return isRead && principal.Roles["analyst"] && path == "support/dashboard"
+	}
+	// A support agent can open the console (its login probe reads the
+	// overview) and nothing else outside the support area.
+	if principal.Roles["support"] && isRead && path == "analytics/overview" {
+		return true
 	}
 	// Product analytics reports (server_admin_analytics_reports.go) are for
 	// analysts, read-only. The legacy overview stays readable by every operator
@@ -235,6 +258,12 @@ func isPublicSecurityPath(prefix, requestPath, method string) bool {
 	if method == http.MethodPost && requestPath == prefix+"/client/errors" {
 		return true
 	}
+	// The website contact form is for signed-out visitors. The handler never
+	// reads identity headers, never creates an account and rate-limits per IP,
+	// per address and globally (support_tickets.go).
+	if method == http.MethodPost && requestPath == prefix+"/support/contact" {
+		return true
+	}
 	// Provider webhooks authenticate with their own signature, and the
 	// hosted checkout / return pages are opened in a browser that carries no
 	// bearer token. Each of these handlers verifies its own inputs.
@@ -277,7 +306,13 @@ func pathOwnedByPrincipal(prefix, requestPath, method, userID string) bool {
 	if parts[0] == "matches" && method == http.MethodGet && len(parts) == 2 {
 		return parts[1] == userID
 	}
-	if parts[0] == "profile" && method == http.MethodGet && len(parts) == 3 && parts[2] == "stories" {
+	if parts[0] == "profile" && method == http.MethodGet && len(parts) == 3 && (parts[2] == "stories" || parts[2] == "showcase") {
+		return true
+	}
+	// WEB-12: POST /profile/views is a collection route, not /profile/{id}.
+	// Who may record a view is decided by enforceBodyIdentity: the body's
+	// viewer_user_id must be the caller.
+	if parts[0] == "profile" && method == http.MethodPost && len(parts) == 2 && parts[1] == "views" {
 		return true
 	}
 	if parts[0] == "profile" && (method != http.MethodGet || len(parts) > 2 || strings.Contains(requestPath, "/draft")) {
@@ -307,20 +342,64 @@ func pathOwnedByPrincipal(prefix, requestPath, method, userID string) bool {
 	return true
 }
 
-func enforceBodyIdentity(r *http.Request, userID string) error {
-	if r.Body == nil || !strings.Contains(strings.ToLower(r.Header.Get("Content-Type")), "application/json") {
-		return nil
+// replayedBody serves the bytes the security checks already read, then the
+// rest of the original stream, so a handler always sees the complete body.
+type replayedBody struct {
+	io.Reader
+	closer io.Closer
+}
+
+func (b replayedBody) Close() error { return b.closer.Close() }
+
+// readIdentityBody reads up to securityRequestBodyLimit+1 bytes of the body
+// and puts them back in front of the unread remainder. It reports whether the
+// body is a JSON object, judged by the bytes and never by Content-Type:
+// readJSON and the typed decoders parse JSON whatever the header says, so a
+// check gated on "application/json" let a text/plain, multipart-labelled or
+// header-less JSON body name any actor (API-06). Multipart uploads start with
+// a boundary, never '{', so they are not buffered beyond the first MiB.
+func readIdentityBody(r *http.Request) (body []byte, jsonObject, tooLarge bool, err error) {
+	if r.Body == nil || r.Body == http.NoBody {
+		return nil, false, false, nil
 	}
-	body, err := io.ReadAll(io.LimitReader(r.Body, securityRequestBodyLimit+1))
+	original := r.Body
+	body, err = io.ReadAll(io.LimitReader(original, securityRequestBodyLimit+1))
+	r.Body = replayedBody{Reader: io.MultiReader(bytes.NewReader(body), original), closer: original}
+	if err != nil {
+		return nil, false, false, err
+	}
+	tooLarge = len(body) > securityRequestBodyLimit
+	trimmed := bytes.TrimLeft(body, " \t\r\n")
+	// A body that is still only JSON whitespace at the limit may hide an object
+	// beyond it, so treat it as JSON (and therefore as too large).
+	jsonObject = (len(trimmed) > 0 && trimmed[0] == '{') || (tooLarge && len(trimmed) == 0)
+	return body, jsonObject, tooLarge, nil
+}
+
+// decodeIdentityPayload decodes the first JSON value exactly as readJSON does.
+// json.Unmarshal rejects trailing data, which let `{"user_id":"victim"} x`
+// skip the identity check while the handler still read the object.
+func decodeIdentityPayload(body []byte) (map[string]any, bool) {
+	var payload map[string]any
+	if err := json.NewDecoder(bytes.NewReader(body)).Decode(&payload); err != nil || payload == nil {
+		return nil, false
+	}
+	return payload, true
+}
+
+func enforceBodyIdentity(r *http.Request, userID string) error {
+	body, jsonObject, tooLarge, err := readIdentityBody(r)
 	if err != nil {
 		return errors.New("unable to validate request identity")
 	}
-	r.Body = io.NopCloser(bytes.NewReader(body))
-	if len(body) > securityRequestBodyLimit {
+	if !jsonObject {
+		return nil
+	}
+	if tooLarge {
 		return errors.New("request body is too large")
 	}
-	var payload map[string]any
-	if len(bytes.TrimSpace(body)) == 0 || json.Unmarshal(body, &payload) != nil {
+	payload, ok := decodeIdentityPayload(body)
+	if !ok {
 		return nil
 	}
 	// Every key here is an actor a caller might try to impersonate. The list
@@ -341,9 +420,20 @@ func enforceBodyIdentity(r *http.Request, userID string) error {
 		// Conversation Room moderation named its actor here and nothing
 		// checked it, so any member could moderate as anyone.
 		"moderator_user_id", "moderator_id",
+		// Match chat deletion trusted its requester, so either participant
+		// could delete the other's messages (API-07). The profile-view,
+		// call-end and SOS-resolve actors are the caller as well.
+		"requester_user_id", "viewer_user_id", "ended_by_user_id", "resolved_by",
 	} {
-		if value := strings.TrimSpace(toString(payload[key])); value != "" && value != userID {
-			return errors.New("request actor does not match the authenticated user")
+		// Typed handlers decode keys case-insensitively (encoding/json), so
+		// "User_ID" must be policed like "user_id".
+		for field, raw := range payload {
+			if !strings.EqualFold(field, key) {
+				continue
+			}
+			if value := strings.TrimSpace(toString(raw)); value != "" && value != userID {
+				return errors.New("request actor does not match the authenticated user")
+			}
 		}
 	}
 	return nil
@@ -364,17 +454,20 @@ func requestMatchID(r *http.Request, prefix, userID string) string {
 			}
 		}
 	}
-	if r.Body == nil || !strings.Contains(strings.ToLower(r.Header.Get("Content-Type")), "application/json") {
+	body, jsonObject, tooLarge, err := readIdentityBody(r)
+	if err != nil || !jsonObject || tooLarge {
 		return ""
 	}
-	body, err := io.ReadAll(io.LimitReader(r.Body, securityRequestBodyLimit+1))
-	if err != nil {
+	payload, ok := decodeIdentityPayload(body)
+	if !ok {
 		return ""
 	}
-	r.Body = io.NopCloser(bytes.NewReader(body))
-	var payload map[string]any
-	if len(body) <= securityRequestBodyLimit && json.Unmarshal(body, &payload) == nil {
-		return strings.TrimSpace(toString(payload["match_id"]))
+	for field, raw := range payload {
+		if strings.EqualFold(field, "match_id") {
+			if matchID := strings.TrimSpace(toString(raw)); matchID != "" {
+				return matchID
+			}
+		}
 	}
 	return ""
 }
@@ -412,33 +505,57 @@ func (r *profileRepository) principalForAccessToken(ctx context.Context, authori
 	}
 	hash := sha256.Sum256([]byte(token))
 	var principal securityPrincipal
-	var disabled, active, banned, suspended bool
+	var disabled, active, banned, suspended, touchDue bool
+	var roles string
+	// One round trip per authenticated request: the session, the account
+	// state and the roles (chr(31) cannot appear in a role slug) together.
 	err = r.pg.QueryRowContext(ctx, `
 		SELECT s.id::text, s.user_id::text, c.is_disabled, COALESCE(u.is_active, TRUE), COALESCE(u.account_kind,'dating'), COALESCE(u.terms_accepted,FALSE),
 		       COALESCE(u.is_banned,FALSE),
-		       COALESCE(u.suspended_at IS NOT NULL AND (u.suspended_until IS NULL OR u.suspended_until>NOW()),FALSE)
+		       COALESCE(u.suspended_at IS NOT NULL AND (u.suspended_until IS NULL OR u.suspended_until>NOW()),FALSE),
+		       COALESCE((SELECT string_agg(ar.role, chr(31)) FROM user_management.auth_account_roles ar WHERE ar.user_id=s.user_id),''),
+		       `+sessionTouchDueSQL+`
 		FROM user_management.auth_sessions s
 		JOIN user_management.auth_credentials c ON c.user_id=s.user_id
 		LEFT JOIN user_management.users u ON u.id=s.user_id
 		WHERE s.access_token_hash=$1 AND s.revoked_at IS NULL AND s.access_expires_at>NOW()`, hash[:],
-	).Scan(&principal.SessionID, &principal.UserID, &disabled, &active, &principal.AccountKind, &principal.TermsAccepted, &banned, &suspended)
+	).Scan(&principal.SessionID, &principal.UserID, &disabled, &active, &principal.AccountKind, &principal.TermsAccepted, &banned, &suspended, &roles, &touchDue)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return securityPrincipal{}, authStoreUnavailable(err)
+	}
 	if err != nil || disabled || !active || banned || suspended {
 		return securityPrincipal{}, errors.New("invalid session")
 	}
 	principal.Roles = map[string]bool{"user": true}
-	rows, err := r.pg.QueryContext(ctx, `SELECT role FROM user_management.auth_account_roles WHERE user_id=$1`, principal.UserID)
-	if err != nil {
-		return securityPrincipal{}, err
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var role string
-		if rows.Scan(&role) == nil {
+	for _, role := range strings.Split(roles, "\x1f") {
+		if role != "" {
 			principal.Roles[role] = true
 		}
 	}
-	_, _ = r.pg.ExecContext(ctx, `UPDATE user_management.auth_sessions SET last_used_at=NOW() WHERE id=$1`, principal.SessionID)
-	return principal, rows.Err()
+	if touchDue {
+		// The guard is repeated so concurrent requests on one session do not
+		// all rewrite the row (each rewrite is a WAL record, a dead tuple and
+		// a captured domain event).
+		_, _ = r.pg.ExecContext(ctx, `UPDATE user_management.auth_sessions s SET last_used_at=NOW() WHERE s.id=$1 AND `+sessionTouchDueSQL, principal.SessionID)
+	}
+	return principal, nil
+}
+
+// sessionTouchDueSQL decides when an authenticated request refreshes
+// auth_sessions.last_used_at: at most once a minute per session, plus the
+// first request of each UTC day so the DAU triggers (migrations 087/123,
+// which already throttle to five minutes or a new UTC day) never miss a day.
+// Writing it on every request made every read a write.
+const sessionTouchDueSQL = `(s.last_used_at IS NULL OR s.last_used_at < NOW() - INTERVAL '60 seconds' OR (s.last_used_at AT TIME ZONE 'UTC')::date < (NOW() AT TIME ZONE 'UTC')::date)`
+
+// errAuthStoreUnavailable marks a session lookup that failed for an
+// infrastructure reason rather than because the credential is invalid.
+var errAuthStoreUnavailable = errors.New("sign-in is temporarily unavailable, please try again")
+
+var errInvalidRefreshToken = errors.New("invalid or expired refresh token")
+
+func authStoreUnavailable(cause error) error {
+	return fmt.Errorf("%w: %v", errAuthStoreUnavailable, cause)
 }
 
 func (r *profileRepository) authorizeRealtimeSession(ctx context.Context, principal securityPrincipal) error {
@@ -468,6 +585,12 @@ func (r *profileRepository) authorizeRealtimeSession(ctx context.Context, princi
 }
 
 func (r *profileRepository) userCanAccessMatch(ctx context.Context, userID, matchID string) (bool, error) {
+	// A malformed id names no match. Sent to Postgres it fails the uuid cast,
+	// which surfaced as a 503 "temporarily unavailable" (API-08) and told
+	// clients to retry a request that can never succeed.
+	if _, err := uuid.Parse(matchID); err != nil {
+		return false, nil
+	}
 	var allowed bool
 	err := r.pg.QueryRowContext(ctx, `
 		SELECT EXISTS(
@@ -525,8 +648,11 @@ func (r *profileRepository) refreshSession(ctx context.Context, refreshToken str
 		JOIN user_management.signup_workflows w ON w.user_id=s.user_id
 		WHERE s.refresh_token_hash=$1 AND s.revoked_at IS NULL AND s.refresh_expires_at>NOW()
 		FOR UPDATE OF s`, hash[:]).Scan(&sessionID, &userID, &state, &activity, &accountKind)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, errInvalidRefreshToken
+	}
 	if err != nil {
-		return nil, errors.New("invalid or expired refresh token")
+		return nil, err
 	}
 	if _, err = tx.ExecContext(ctx, `UPDATE user_management.auth_sessions SET revoked_at=NOW(),revoked_reason='refresh_rotation' WHERE id=$1`, sessionID); err != nil {
 		return nil, err
@@ -648,8 +774,17 @@ func (s *Server) refreshAuthSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	result, err := s.store.profileRepo.refreshSession(r.Context(), toString(payload["refresh_token"]))
-	if err != nil {
+	if errors.Is(err, errInvalidRefreshToken) {
 		writeError(w, http.StatusUnauthorized, err)
+		return
+	}
+	if err != nil {
+		// Only a rejected token ends the session. Anything else (a database
+		// fault, or losing a race with a concurrent refresh of the same
+		// token) is retryable; the retry then sees the token as rotated.
+		logUnexpectedError(w, err)
+		w.Header().Set("Retry-After", "2")
+		writeError(w, http.StatusServiceUnavailable, errAuthStoreUnavailable)
 		return
 	}
 	writeJSON(w, http.StatusOK, result)

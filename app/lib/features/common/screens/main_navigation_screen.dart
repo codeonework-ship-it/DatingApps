@@ -32,6 +32,7 @@ import '../../profile/screens/setup/setup_preferences_screen.dart';
 import '../../swipe/providers/swipe_provider.dart';
 import '../../swipe/screens/home_discovery_screen.dart';
 import '../../swipe/screens/liked_me_screen.dart';
+import '../../support/support_routes.dart';
 import '../../verification/screens/verification_upload_id_screen.dart';
 
 final mainNavigationIndexProvider = StateProvider<int>((ref) => 0);
@@ -73,9 +74,33 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
     _fabController.forward();
   }
 
+  // The open in-app notification banner, if any. It belongs to this member's
+  // session, so it must not outlive the shell (sign-out, account switch).
+  ScaffoldMessengerState? _messenger;
+  ScaffoldFeatureController<SnackBar, SnackBarClosedReason>? _banner;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _messenger = ScaffoldMessenger.maybeOf(context);
+  }
+
   @override
   void dispose() {
     _fabController.dispose();
+    // Banners with an action never time out while an accessibility service
+    // is on, so the previous member's notification stayed over the welcome
+    // and sign-in screens (covering "Sign in"). Close it once the tree is
+    // unlocked; a banner something else already closed is left alone.
+    final messenger = _messenger;
+    final banner = _banner;
+    if (messenger != null && banner != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (messenger.mounted && identical(_banner, banner)) {
+          banner.close();
+        }
+      });
+    }
     super.dispose();
   }
 
@@ -465,24 +490,28 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
       );
       return;
     }
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text('${notification.title}: ${notification.body}'),
-          action: SnackBarAction(
-            label: 'Open',
-            onPressed: () {
-              ref.read(notificationProvider.notifier).markRead(notification.id);
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const NotificationInboxScreen(),
-                ),
-              );
-            },
-          ),
+    final messenger = ScaffoldMessenger.of(context)..hideCurrentSnackBar();
+    final banner = _banner = messenger.showSnackBar(
+      SnackBar(
+        content: Text('${notification.title}: ${notification.body}'),
+        action: SnackBarAction(
+          label: 'Open',
+          onPressed: () {
+            ref.read(notificationProvider.notifier).markRead(notification.id);
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const NotificationInboxScreen(),
+              ),
+            );
+          },
         ),
-      );
+      ),
+    );
+    banner.closed.whenComplete(() {
+      if (identical(_banner, banner)) {
+        _banner = null;
+      }
+    });
   }
 
   void _openPushAction(PushNotificationAction action) {
@@ -490,6 +519,17 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
       return;
     }
     ref.read(notificationProvider.notifier).consumePushAction();
+    // Support replies and status changes open the ticket thread.
+    final supportTicketId = action.data['ticket_id']?.toString() ?? '';
+    if (openSupportRoute(
+      context,
+      action.actionRoute ??
+          (action.eventType.startsWith('support.') && supportTicketId.isNotEmpty
+              ? '/support/tickets/$supportTicketId'
+              : null),
+    )) {
+      return;
+    }
     if (action.eventType.startsWith('friend_vouch.') ||
         action.eventType.startsWith('friend_intro.') ||
         action.eventType.startsWith('friend_request.')) {

@@ -180,9 +180,12 @@ class FriendSocialNotifier extends StateNotifier<FriendSocialState> {
 }
 
 final friendSocialProvider =
-    StateNotifierProvider<FriendSocialNotifier, FriendSocialState>(
-      FriendSocialNotifier.new,
-    );
+    StateNotifierProvider<FriendSocialNotifier, FriendSocialState>((ref) {
+      // Per member: signing in as someone else on this device must never
+      // show the previous member's intros and vouches.
+      ref.watch(authNotifierProvider.select((s) => s.userId));
+      return FriendSocialNotifier(ref);
+    });
 
 /// Approved vouches on another member's profile.
 final publicVouchesProvider = FutureProvider.family<List<PublicVouch>, String>((

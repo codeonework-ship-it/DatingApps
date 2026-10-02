@@ -87,7 +87,7 @@ class MessageBubble extends StatelessWidget {
                   ),
                 ),
               Padding(
-                padding: const EdgeInsets.only(top: 6, left: 4, right: 4),
+                padding: const EdgeInsets.only(top: 8, left: 4, right: 4),
                 child: Wrap(
                   spacing: 6,
                   runSpacing: 4,

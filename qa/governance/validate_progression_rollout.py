@@ -58,7 +58,7 @@ def validate_anchors(contract: dict[str, Any]) -> None:
         "backend/internal/bff/mobile/level_progression.go": (
             "validateProgressionRolloutChange", "response_action", "productionHealth", "refreshProductionMetrics"
         ),
-        "backend/internal/platform/observability/http.go": (
+        "backend/internal/platform/observability/metrics_http.go": (
             "ProgressionQueueDepth", "ProgressionCompletionP95", "ProgressionOpenFraudCases"
         ),
         "backend/observability/prometheus/rules/progression-production.yml": (

@@ -443,7 +443,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                   : state.messages.isEmpty &&
                                                         state.error != null
                                                   ? Center(
-                                                      child: Padding(
+                                                      // Scrolls so Retry stays reachable on small
+                                                      // phones and at large text sizes.
+                                                      child: SingleChildScrollView(
                                                         padding:
                                                             const EdgeInsets.all(
                                                               24,
@@ -842,7 +844,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       ),
       child: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(18, 8, 18, 12),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -925,7 +927,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                           child: SizedBox(
                             width: 126,
                             child: Padding(
-                              padding: const EdgeInsets.all(10),
+                              padding: const EdgeInsets.all(12),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [

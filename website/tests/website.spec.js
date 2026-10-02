@@ -1,4 +1,8 @@
 import {test, expect} from '@playwright/test';
+import {qaMember} from './support/member.js';
+
+// Never the shared QA account: signing in invalidates its other sessions.
+const member = qaMember();
 import http from 'node:http';
 
 for (const width of [360,1440]) {
@@ -102,13 +106,13 @@ test('browser login, live stream, deep links, preferences and reload recovery',a
   await page.goto('/app/#/signin');
   const username = page.getByRole('textbox',{name:'username',exact:true});
   await username.click();
-  await username.pressSequentially(process.env.QA_EXISTING_USERNAME || 'qa_full_20260926_isolated',{delay:15});
+  await username.pressSequentially(member.username,{delay:15});
   await username.press('Tab');
   const password = page.getByRole('textbox',{name:'Password',exact:true});
   await password.click();
-  await password.pressSequentially(process.env.QA_EXISTING_PASSWORD || 'Password123!',{delay:15});
+  await password.pressSequentially(member.password,{delay:15});
   await password.press('Tab');
-  await expect(username).toHaveValue(process.env.QA_EXISTING_USERNAME || 'qa_full_20260926_isolated');
+  await expect(username).toHaveValue(member.username);
   await page.getByRole('button',{name:'qa.signin.login_button',exact:true}).click();
   await expect(page.getByText('Your pace. Your choice.',{exact:true})).toBeVisible({timeout:30000});
   await expect.poll(()=>socketEvents.some(e=>e.includes('stream.connected')),{timeout:15000}).toBe(true);

@@ -98,3 +98,21 @@ func TestUpdateAndDeleteRejectMissingFilters(t *testing.T) {
 		t.Fatal("expected unfiltered delete to be rejected")
 	}
 }
+
+func TestSQLPoolLimitsKeepIdleConnectionsUpToTheCap(t *testing.T) {
+	cases := []struct {
+		settings         Options
+		maxOpen, maxIdle int
+	}{
+		{Options{MaxConns: 16, MinConns: 4}, 16, 16},
+		{Options{MaxConns: 8, MinConns: 2}, 8, 8},
+		{Options{MaxConns: 0, MinConns: 2}, 16, 16},
+		{Options{MaxConns: 4, MinConns: 10}, 4, 4},
+	}
+	for _, tc := range cases {
+		open, idle := sqlPoolLimits(tc.settings)
+		if open != tc.maxOpen || idle != tc.maxIdle {
+			t.Fatalf("sqlPoolLimits(%+v) = (%d,%d), want (%d,%d)", tc.settings, open, idle, tc.maxOpen, tc.maxIdle)
+		}
+	}
+}

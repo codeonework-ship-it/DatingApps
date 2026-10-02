@@ -360,10 +360,12 @@ func (s *Server) shouldApplyIdempotency(r *http.Request) bool {
 	// Credential issuance and recovery have dedicated brute-force and token
 	// rotation semantics; a cached HTTP response could replay live credentials.
 	// Protected session mutations remain covered after securityMiddleware binds
-	// the actor to the verified session.
+	// the actor to the verified session. Recovery-code rotation is excluded: its
+	// response is a display-once credential (stored only as a hash), and the
+	// ledger kept it in plaintext and served it again on replay (API-10).
 	if strings.HasPrefix(path, "auth/") {
 		switch path {
-		case "auth/logout", "auth/sessions/revoke", "auth/password/change", "auth/recovery-code/rotate", "auth/signup/bootstrap":
+		case "auth/logout", "auth/sessions/revoke", "auth/password/change", "auth/signup/bootstrap":
 			return true
 		default:
 			return false
@@ -380,6 +382,13 @@ func (s *Server) shouldApplyIdempotency(r *http.Request) bool {
 	// Crash reports are telemetry, deduplicated and capped server-side, and
 	// mostly anonymous: there is no principal to namespace a replay ledger by.
 	if path == "client/errors" {
+		return false
+	}
+
+	// The website contact form is anonymous (no principal to namespace a
+	// replay ledger by; it has its own duplicate guard), and support
+	// attachment uploads are multipart like the other media uploads.
+	if r.Method == http.MethodPost && (path == "support/contact" || path == "support/attachments") {
 		return false
 	}
 

@@ -68,7 +68,7 @@ scripts/049_seed_india_states_cities.sql
 scripts/050_username_password_identity.sql
 
 # Native PostgreSQL signup workflow (no Docker/Supabase/PostgREST)
-# Starts an isolated PostgreSQL 17 instance on 127.0.0.1:55432 and applies the
+# Starts an isolated PostgreSQL 17 instance on 127.0.0.1:55433 and applies the
 # consolidated baseline plus compatible deltas through migration 051.
 scripts/local_postgres.sh up
 scripts/migrate_local_postgres.sh
@@ -207,3 +207,18 @@ scripts/123_product_analytics_snapshots.sql
 
 # Business reports: finance role, marketing spend, launch market gates, reporting indexes
 scripts/124_business_reports.sql
+
+# Support ticket system: tickets, messages, private attachments, events, canned responses, support role
+scripts/126_support_ticket_system.sql
+
+# Rich writing: formatted chapter content (JSON block model) and writing styles
+scripts/127_rich_text_writing_styles.sql
+
+# Graduation: opted-in members' friends are told again (own recipient function; 099 stubbed the shared one)
+scripts/128_graduation_friend_recipients.sql
+
+# Capacity review: sender message-quota index and notification retention index (CONCURRENTLY, additive)
+scripts/129_capacity_hot_path_indexes.sql
+
+# Profile showcase: opt-in to show public chapters and wall photos on the profile (default off)
+scripts/130_profile_showcase_consent.sql

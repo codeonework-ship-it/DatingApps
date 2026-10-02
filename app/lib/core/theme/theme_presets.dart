@@ -689,6 +689,8 @@ abstract final class ThemePresets {
       dividerTheme: DividerThemeData(color: preset.rule, thickness: 1),
       snackBarTheme: base.snackBarTheme.copyWith(
         backgroundColor: preset.isDark ? preset.paperSunk : preset.ink,
+        // Same colour as the message so the action always reads on the bar.
+        actionTextColor: preset.isDark ? preset.ink : preset.paper,
         contentTextStyle: text.bodyMedium?.copyWith(
           color: preset.isDark ? preset.ink : preset.paper,
           fontWeight: FontWeight.w500,

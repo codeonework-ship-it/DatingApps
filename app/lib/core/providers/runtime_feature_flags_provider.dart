@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../features/auth/providers/auth_provider.dart';
 import '../config/app_runtime_config.dart';
 import 'api_client_provider.dart';
 
@@ -91,9 +92,18 @@ class RuntimeFeatureFlags {
 
 /// Polling keeps operator changes visible without restarting the application.
 /// The last safe/default state is retained through transient local API errors.
+/// `/config/flags` needs a session, so nothing is polled while signed out
+/// (including after the server ends a session); signing in restarts polling.
 final runtimeFeatureFlagsProvider = StreamProvider<RuntimeFeatureFlags>((ref) {
   final controller = StreamController<RuntimeFeatureFlags>();
   var last = RuntimeFeatureFlags.defaults;
+  final signedIn =
+      ref.watch(authNotifierProvider.select((s) => s.userId)) != null;
+  if (!signedIn) {
+    controller.add(last);
+    ref.onDispose(() => unawaited(controller.close()));
+    return controller.stream;
+  }
 
   Future<void> refresh() async {
     try {

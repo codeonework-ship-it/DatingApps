@@ -23,6 +23,7 @@ import 'core/telemetry/client_error_reporter.dart';
 import 'features/common/providers/app_theme_provider.dart';
 import 'core/utils/logger.dart';
 import 'features/auth/providers/auth_provider.dart';
+import 'features/auth/providers/session_end_listener.dart';
 import 'features/auth/providers/terms_provider.dart';
 import 'features/auth/screens/user_agreement_screen.dart';
 import 'features/auth/screens/welcome_screen.dart';
@@ -267,6 +268,7 @@ class _AppGate extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    listenForSessionEnd(ref, context);
     final authState = ref.watch(authNotifierProvider);
     if (!authState.isAuthenticated) {
       return kIsWeb ? const WebEntryScreen() : const WelcomeScreen();

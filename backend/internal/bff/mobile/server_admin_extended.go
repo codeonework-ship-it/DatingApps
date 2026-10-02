@@ -90,7 +90,7 @@ func authenticatedOperatorID(r *http.Request) (string, error) {
 	if !ok || strings.TrimSpace(principal.UserID) == "" ||
 		(!principal.Roles["admin"] && !principal.Roles["trust_safety"] &&
 			!principal.Roles["ops_admin"] && !principal.Roles["moderator"] &&
-			!principal.Roles["analyst"] && !principal.Roles["finance"]) {
+			!principal.Roles["analyst"] && !principal.Roles["finance"] && !principal.Roles["support"]) {
 		return "", errors.New("authenticated operator role is required")
 	}
 	return principal.UserID, nil
@@ -1548,6 +1548,15 @@ func (s *Server) adminListBillingTransactions(w http.ResponseWriter, r *http.Req
 	if provider := strings.TrimSpace(r.URL.Query().Get("provider")); provider != "" {
 		params.Set("provider", "eq."+provider)
 	}
+	// CON-04: the console's member page asks for that member's rows instead
+	// of filtering the latest page platform-wide.
+	if userID := strings.TrimSpace(r.URL.Query().Get("user_id")); userID != "" {
+		if !uuidPattern.MatchString(userID) {
+			writeError(w, http.StatusBadRequest, errors.New("user_id must be a member UUID"))
+			return
+		}
+		params.Set("user_id", "eq."+strings.ToLower(userID))
+	}
 
 	rows, err := repo.db.SelectRead(ctx, repo.cfg.MatchingSchema, "wallet_coin_purchases", params)
 	if err != nil {
@@ -1751,7 +1760,36 @@ func (s *Server) adminGetWalletBalance(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, errors.New("userID is required"))
 		return
 	}
-	wallet := s.store.getWalletCoins(userID)
+	ctx, cancel := s.withRequestTimeout(r.Context())
+	defer cancel()
+
+	// GO-02: this is a read. An unknown member is a 404 (no wallet row is
+	// created and nothing is written for them), and a member without a wallet
+	// reads as a zero balance.
+	if repo := s.store.adminRepo; repo != nil {
+		if !uuidPattern.MatchString(userID) {
+			writeError(w, http.StatusNotFound, errors.New("member not found"))
+			return
+		}
+		params := url.Values{}
+		params.Set("id", "eq."+userID)
+		params.Set("select", "id")
+		params.Set("limit", "1")
+		rows, err := repo.db.SelectRead(ctx, repo.cfg.UserSchema, repo.cfg.UsersTable, params)
+		if err != nil {
+			writeError(w, http.StatusBadGateway, err)
+			return
+		}
+		if len(rows) == 0 {
+			writeError(w, http.StatusNotFound, errors.New("member not found"))
+			return
+		}
+	}
+	wallet, err := s.store.readWalletCoins(ctx, userID)
+	if err != nil {
+		writeError(w, http.StatusBadGateway, err)
+		return
+	}
 	writeJSON(w, http.StatusOK, map[string]any{"wallet": wallet})
 }
 

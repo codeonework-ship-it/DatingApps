@@ -34,6 +34,7 @@ const (
 //	<root>/private/theme_photos/<user>/<theme>/<f>.jpg     key private/themes/<user>/<theme>/<f>.jpg
 //	<root>/private/voice/<user>/<icebreaker>/<f>.webm      key private/voice/<user>/<icebreaker>/<f>.webm
 //	<root>/private/verification/<user>/<field>/<f>.png     key private/verification/<user>/<field>/<f>.png
+//	<root>/private/support_attachments/<user>/<f>.jpg      key private/support/<user>/<f>.jpg
 //	<root>/tmp/                                            in-progress uploads (same filesystem)
 //
 // Flat layout (development default) stores <root>/<key> with <root>/.tmp.

@@ -1,0 +1,264 @@
+{% extends "control_panel/base.html" %}
+{% block title %}{{ ticket.reference|default:"Ticket" }} · Support · {{ project_name }}{% endblock %}
+{% block topbar_title %}Support · {{ ticket.reference|default:"Ticket" }}{% endblock %}
+{% block extra_head %}{% include "control_panel/support/_styles.html" %}{% endblock %}
+{% block content %}
+<p class="mb-3"><a href="{% url 'support_queue' %}"><i class="bi bi-arrow-left"></i> Ticket queue</a></p>
+{% include "control_panel/support/_nav.html" %}
+
+{% if error %}<div class="alert-glass warning mb-3" role="alert"><i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}</div>{% endif %}
+
+{% if ticket %}
+<div class="page-header">
+  <div>
+    <p class="text-muted small mb-1 font-monospace">{{ ticket.reference|default:ticket_id }}</p>
+    <h1 class="text-break"><i class="bi bi-headset header-icon"></i> {{ ticket.subject|default:"(no subject)" }}</h1>
+    <div class="support-chip-row">
+      <span class="badge {{ ticket.status_badge.cls }}">{{ ticket.status_badge.label }}</span>
+      <span class="badge {{ ticket.priority_badge.cls }}">{{ ticket.priority_badge.label }} priority</span>
+      <span class="badge badge-inactive">{{ ticket.category_label }}</span>
+      <span class="badge badge-inactive">Team: {{ ticket.team_label }}</span>
+      <span class="badge badge-inactive">Via {{ ticket.channel_label }}</span>
+      {% if ticket.sla_badge %}<span class="badge {{ ticket.sla_badge.cls }}">{{ ticket.sla_badge.label }}</span>{% endif %}
+      {% if ticket.awaiting_agent %}<span class="support-awaiting ms-1"><i class="bi bi-reply-fill"></i> Awaiting reply</span>{% endif %}
+    </div>
+  </div>
+  {% if can_manage and not is_mine %}
+  <form method="post" action="{% url 'support_ticket_claim' ticket_id %}">{% csrf_token %}
+    <button type="submit" class="btn btn-glow"><i class="bi bi-person-check me-1"></i>Claim</button>
+  </form>
+  {% endif %}
+</div>
+
+{% if ticket.merged_into %}
+<div class="alert-glass info mb-3"><i class="bi bi-intersect me-2"></i>This ticket was merged into
+  {% if ticket.merged_into.id %}<a href="{% url 'support_ticket_detail' ticket.merged_into.id %}">{{ ticket.merged_into.reference|default:ticket.merged_into.id }}</a>{% else %}{{ ticket.merged_into.reference }}{% endif %}.</div>
+{% endif %}
+
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="glass-card h-100 small">
+      <div class="text-muted">First response</div>
+      {% if ticket.first_responded_time %}<div>Responded {{ ticket.first_responded_time|date:"M d, H:i" }}</div>
+      {% elif ticket.first_response_due %}<div title="{{ ticket.first_response_due.at|date:'Y-m-d H:i e' }}">Due {{ ticket.first_response_due.at|date:"M d, H:i" }} · {{ ticket.first_response_due.relative }}</div>
+      {% else %}<div>—</div>{% endif %}
+      {% if ticket.first_response_badge %}<span class="badge {{ ticket.first_response_badge.cls }} mt-1">{{ ticket.first_response_badge.label }}</span>{% endif %}
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="glass-card h-100 small">
+      <div class="text-muted">Resolution</div>
+      {% if ticket.resolved_time %}<div>Resolved {{ ticket.resolved_time|date:"M d, H:i" }}</div>
+      {% elif ticket.resolution_due %}<div title="{{ ticket.resolution_due.at|date:'Y-m-d H:i e' }}">Due {{ ticket.resolution_due.at|date:"M d, H:i" }} · {{ ticket.resolution_due.relative }}</div>
+      {% else %}<div>—</div>{% endif %}
+      {% if ticket.resolution_badge %}<span class="badge {{ ticket.resolution_badge.cls }} mt-1">{{ ticket.resolution_badge.label }}</span>{% endif %}
+      {% if ticket.status == 'pending_member' %}<div class="text-muted mt-1">Clock paused while waiting on the member.</div>{% endif %}
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="glass-card h-100 small">
+      <div class="text-muted">Raised</div>
+      <div>{{ ticket.created_time|date:"M d, Y H:i"|default:"—" }} · {{ message_total }} message{{ message_total|pluralize }}</div>
+      <div class="text-muted mt-1">{% if ticket.platform %}{{ ticket.platform }}{% endif %}{% if ticket.os_version %} {{ ticket.os_version }}{% endif %}{% if ticket.device_model %} · {{ ticket.device_model }}{% endif %}{% if ticket.app_version %} · app {{ ticket.app_version }}{% endif %}{% if ticket.locale %} · {{ ticket.locale }}{% endif %}</div>
+      {% if ticket.satisfaction %}<div class="mt-1">Rated {{ ticket.satisfaction.rating }}/5{% if ticket.satisfaction.comment %}: “{{ ticket.satisfaction.comment }}”{% endif %}</div>{% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-xl-8">
+    <div class="glass-card mb-4">
+      <h2 class="h5 mb-3">Conversation</h2>
+      <div class="support-thread" aria-label="Ticket conversation and history">
+        {% for entry in timeline %}
+          {% if entry.kind == 'event' %}
+          <div class="support-event"><span>{{ entry.text }}{% if entry.at %} · {{ entry.at|date:"M d, H:i" }}{% endif %}</span></div>
+          {% else %}{% with m=entry.message %}
+          <article class="support-msg {% if m.is_internal %}is-internal{% elif m.author_kind == 'agent' %}from-agent{% elif m.author_kind == 'system' %}from-system{% else %}from-requester{% endif %}">
+            <div class="d-flex justify-content-between gap-3 small">
+              <strong>{% if m.is_internal %}<i class="bi bi-lock-fill me-1" style="color:var(--gold);"></i>{% endif %}{{ m.author_label }}</strong>
+              <span class="text-muted">{% if m.is_internal %}<span class="badge badge-gold me-1">Internal note</span>{% elif m.author_kind == 'agent' %}<span class="badge badge-purple me-1">Public reply</span>{% endif %}{{ entry.at|date:"M d, H:i"|default:"" }}</span>
+            </div>
+            {% if m.body %}<p class="support-msg-body">{{ m.body }}</p>{% endif %}
+            {% if m.attachments %}
+            <div class="d-flex flex-wrap gap-2 mt-2">
+              {% for a in m.attachments %}
+                {% if a.is_image %}<a href="{{ a.proxy_url }}" target="_blank" rel="noopener"><img src="{{ a.proxy_url }}" alt="{{ a.filename|default:'Attachment' }}" class="support-attachment-thumb" loading="lazy"></a>
+                {% else %}<a href="{{ a.proxy_url }}" class="btn btn-glass btn-sm"><i class="bi bi-file-earmark-pdf me-1"></i>{{ a.filename|default:"Attachment" }}{% if a.size_bytes %} · {{ a.size_bytes|filesizeformat }}{% endif %}</a>{% endif %}
+              {% endfor %}
+            </div>
+            {% endif %}
+          </article>
+          {% endwith %}{% endif %}
+        {% empty %}
+          <p class="text-muted mb-0">No messages yet.</p>
+        {% endfor %}
+      </div>
+    </div>
+
+    {% if can_manage %}
+    <div class="glass-card mb-4" id="reply">
+      <h2 class="h5 mb-3">Reply</h2>
+      {% if is_contact %}<div class="alert-glass info mb-3"><i class="bi bi-envelope-fill me-2"></i>Reply by email — this visitor has no account.{% if mailto %} <a href="{{ mailto }}">Email {{ requester_email }}</a>.{% endif %} Add an internal note here to record what you sent.</div>{% endif %}
+      <form method="post" action="{% url 'support_ticket_reply' ticket_id %}" id="support-reply-form">
+        {% csrf_token %}
+        <input type="hidden" name="canned_response_id" id="reply-canned-id" value="">
+        <fieldset class="d-flex flex-wrap gap-3 mb-2">
+          <legend class="visually-hidden">Visibility</legend>
+          {% for key, label in visibilities %}
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="visibility" id="vis-{{ key }}" value="{{ key }}"{% if draft.visibility %}{% if draft.visibility == key %} checked{% endif %}{% elif is_contact and key == 'internal' %} checked{% elif not is_contact and key == 'public' %} checked{% endif %}>
+            <label class="form-check-label" for="vis-{{ key }}">{{ label }}{% if key == 'internal' %} <span class="text-muted small">(agents only)</span>{% elif is_contact %} <span class="text-muted small">(visitor cannot see it in an app)</span>{% else %} <span class="text-muted small">(member is notified)</span>{% endif %}</label>
+          </div>
+          {% endfor %}
+        </fieldset>
+        {% if canned_responses %}
+        <div class="mb-2">
+          <label for="reply-canned" class="form-label small text-muted">Insert canned response</label>
+          <select id="reply-canned" class="form-select glass-select">
+            <option value="">Choose…</option>
+            {% for c in canned_responses %}<option value="{{ c.id }}" data-preview-url="{{ c.preview_url }}">{{ c.title }}{% if c.category_label %} · {{ c.category_label }}{% endif %}</option>{% endfor %}
+          </select>
+          <div class="small text-muted mt-1" id="reply-canned-status" aria-live="polite"></div>
+        </div>
+        {% endif %}
+        <label for="reply-body" class="form-label small text-muted">Message</label>
+        <textarea id="reply-body" name="body" rows="6" maxlength="{{ body_max }}" class="form-control glass-input mb-2" placeholder="Write to the requester, or add a note for other agents">{{ draft.body|default:"" }}</textarea>
+        <div class="d-flex flex-wrap gap-2 align-items-end">
+          <div>
+            <label for="reply-status" class="form-label small text-muted mb-0">Then set status</label>
+            <select id="reply-status" name="status" class="form-select glass-select">
+              <option value="">Default (a public reply waits on the member)</option>
+              {% for key, label in reply_statuses %}<option value="{{ key }}"{% if draft.status == key %} selected{% endif %}>{{ label }}</option>{% endfor %}
+            </select>
+          </div>
+          <button type="submit" class="btn btn-glow" id="reply-submit"><i class="bi bi-send-fill me-1"></i>Send</button>
+        </div>
+      </form>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="col-xl-4">
+    <div class="glass-card mb-4">
+      <h2 class="h6 text-uppercase text-muted">Requester</h2>
+      <p class="mb-1"><strong>{{ ticket.requester.display_name|default:"Unknown" }}</strong>{% if ticket.requester.username %} <span class="text-muted">@{{ ticket.requester.username }}</span>{% endif %}</p>
+      {% if is_contact %}
+        <p class="small mb-1"><span class="badge badge-gold">Website visitor</span></p>
+        {% if requester_email %}<p class="small mb-1"><i class="bi bi-envelope me-1"></i><a href="{{ mailto }}">{{ requester_email }}</a></p>{% endif %}
+        <p class="small text-muted mb-0">Reply by email — this visitor has no account.</p>
+      {% endif %}
+      {% if member %}
+      <dl class="row small mb-0 mt-2">
+        <dt class="col-6">Account</dt><dd class="col-6"><span class="badge {{ member.account_badge.cls }}">{{ member.account_badge.label }}</span></dd>
+        <dt class="col-6">Verification</dt><dd class="col-6"><span class="badge {{ member.verification_badge.cls }}">{{ member.verification_badge.label }}</span></dd>
+        <dt class="col-6">Joined</dt><dd class="col-6">{{ member.joined_time|date:"M d, Y"|default:"—" }}</dd>
+        <dt class="col-6">Reports against (90d)</dt><dd class="col-6">{{ member.reports_against_90d|default:"0" }}</dd>
+        <dt class="col-6">Open reports against</dt><dd class="col-6">{% if member.open_reports_against %}<span class="badge badge-warning">{{ member.open_reports_against }}</span>{% else %}0{% endif %}</dd>
+        <dt class="col-6">Reports filed (90d)</dt><dd class="col-6">{{ member.reports_filed_90d|default:"0" }}</dd>
+        <dt class="col-6">Tickets in total</dt><dd class="col-6">{{ member.tickets_total|default:"0" }}</dd>
+      </dl>
+      {% if member.valid_id and can_view_users %}<a href="{% url 'user_detail' member.member_id %}" class="btn btn-glass btn-sm mt-2"><i class="bi bi-person-lines-fill me-1"></i>Open member profile</a>{% endif %}
+      {% endif %}
+      {% if related %}
+      <h3 class="h6 text-uppercase text-muted mt-3">Related tickets</h3>
+      <ul class="list-unstyled small mb-0">
+        {% for r in related %}<li class="mb-1"><a href="{% url 'support_ticket_detail' r.id %}" class="font-monospace">{{ r.reference|default:r.id }}</a> <span class="badge {{ r.status_badge.cls }}">{{ r.status_badge.label }}</span><div class="text-muted text-truncate">{{ r.subject }}</div></li>{% endfor %}
+      </ul>
+      {% endif %}
+    </div>
+
+    {% if can_manage %}
+    <div class="glass-card mb-4">
+      <h2 class="h6 text-uppercase text-muted">Triage</h2>
+      <form method="post" action="{% url 'support_ticket_update' ticket_id %}">
+        {% csrf_token %}
+        <input type="hidden" name="orig_status" value="{{ ticket.status }}">
+        <input type="hidden" name="orig_priority" value="{{ ticket.priority }}">
+        <input type="hidden" name="orig_category" value="{{ ticket.category }}">
+        <input type="hidden" name="orig_team" value="{{ ticket.team }}">
+        <input type="hidden" name="orig_assignee_id" value="{{ ticket.assignee.id|default:'' }}">
+        <input type="hidden" name="orig_tags" value="{{ tags_value }}">
+        <input type="hidden" name="orig_client_error_issue_id" value="{{ ticket.client_error_issue_id|default:'' }}">
+        <label for="t-status" class="form-label small text-muted mb-0">Status</label>
+        <select id="t-status" name="status" class="form-select glass-select mb-2">{% for key, label in statuses %}<option value="{{ key }}"{% if key == ticket.status %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+        <label for="t-priority" class="form-label small text-muted mb-0">Priority</label>
+        <select id="t-priority" name="priority" class="form-select glass-select mb-2">{% for key, label in priorities %}<option value="{{ key }}"{% if key == ticket.priority %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+        <label for="t-category" class="form-label small text-muted mb-0">Category</label>
+        <select id="t-category" name="category" class="form-select glass-select mb-2">{% for key, label in categories %}<option value="{{ key }}"{% if key == ticket.category %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+        <label for="t-team" class="form-label small text-muted mb-0">Team</label>
+        <select id="t-team" name="team" class="form-select glass-select mb-2">{% for key, label in teams %}<option value="{{ key }}"{% if key == ticket.team %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+        <label for="t-assignee" class="form-label small text-muted mb-0">Assignee</label>
+        <select id="t-assignee" name="assignee_id" class="form-select glass-select mb-2">
+          <option value="">Unassigned</option>
+          {% for agent in agents %}<option value="{{ agent.id }}"{% if agent.id == ticket.assignee.id %} selected{% endif %}>{{ agent.name|default:agent.id }}{% if agent.open_assigned is not None %} ({{ agent.open_assigned }} open){% endif %}</option>{% endfor %}
+        </select>
+        <label for="t-tags" class="form-label small text-muted mb-0">Tags (comma separated)</label>
+        <input id="t-tags" name="tags" value="{{ tags_value }}" maxlength="900" class="form-control glass-input mb-2" placeholder="refund, android">
+        <label for="t-issue" class="form-label small text-muted mb-0">Linked client error (issue id)</label>
+        <input id="t-issue" name="client_error_issue_id" value="{{ ticket.client_error_issue_id|default:'' }}" maxlength="36" class="form-control glass-input mb-1 font-monospace" placeholder="Leave empty to unlink">
+        {% if ticket.client_error_link %}<p class="small mb-2"><a href="{% url 'client_error_detail' ticket.client_error_link %}">Open linked client error</a></p>{% endif %}
+        <button type="submit" class="btn btn-glow w-100 mt-1">Save changes</button>
+      </form>
+    </div>
+
+    {% if not ticket.merged_into %}
+    <div class="glass-card mb-4">
+      <h2 class="h6 text-uppercase text-muted">Merge</h2>
+      <p class="small text-muted">Move this ticket's conversation into another ticket from the same requester. This ticket then closes as merged.</p>
+      <form method="post" action="{% url 'support_ticket_merge' ticket_id %}">
+        {% csrf_token %}
+        <label for="m-into" class="form-label small text-muted mb-0">Merge into (reference or id)</label>
+        <input id="m-into" name="into" maxlength="120" required class="form-control glass-input mb-2 font-monospace" placeholder="CN-2026-000123">
+        <div class="form-check mb-2"><input class="form-check-input" type="checkbox" name="confirm" id="m-confirm" required><label class="form-check-label small" for="m-confirm">I understand merging cannot be undone.</label></div>
+        <button type="submit" class="btn btn-danger-glass w-100"><i class="bi bi-intersect me-1"></i>Merge</button>
+      </form>
+    </div>
+    {% endif %}
+    {% else %}
+    <div class="glass-card mb-4 small text-muted">Read only: ticket changes need the support, trust_safety, moderator, ops_admin or admin role.</div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+{% block extra_js %}
+{% if can_manage and ticket %}
+<script>
+(function () {
+  var picker = document.getElementById('reply-canned');
+  var body = document.getElementById('reply-body');
+  var cannedId = document.getElementById('reply-canned-id');
+  var status = document.getElementById('reply-canned-status');
+  var submit = document.getElementById('reply-submit');
+  document.querySelectorAll('input[name="visibility"]').forEach(function (radio) {
+    radio.addEventListener('change', function () {
+      if (!submit || !radio.checked) { return; }
+      submit.innerHTML = radio.value === 'internal' ? '<i class="bi bi-lock-fill me-1"></i>Add internal note' : '<i class="bi bi-send-fill me-1"></i>Send reply';
+    });
+    if (radio.checked) { radio.dispatchEvent(new Event('change')); }
+  });
+  if (!picker || !body) { return; }
+  picker.addEventListener('change', function () {
+    var option = picker.options[picker.selectedIndex];
+    var url = option && option.dataset.previewUrl;
+    if (!url) { return; }
+    status.textContent = 'Loading…';
+    fetch(url, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+      .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
+      .then(function (r) {
+        if (!r.ok || typeof r.data.body !== 'string') { throw new Error(r.data.error || 'Preview unavailable.'); }
+        var start = body.selectionStart, end = body.selectionEnd, text = body.value;
+        if (!text.trim()) { body.value = r.data.body; }
+        else { body.value = text.slice(0, start) + r.data.body + text.slice(end); }
+        cannedId.value = picker.value;
+        status.textContent = 'Inserted “' + option.text + '”. Edit it before sending if needed.';
+        body.focus();
+      })
+      .catch(function (err) { status.textContent = 'Could not insert: ' + err.message; })
+      .finally(function () { picker.value = ''; });
+  });
+})();
+</script>
+{% endif %}
+{% endblock %}

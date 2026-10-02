@@ -111,7 +111,19 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
     );
   }
 
-  Future<void> leave(Group group) async {
+  Future<void> leave(Group shown) async {
+    // People join and leave while this screen is open, and the warning
+    // differs in kind ("the group will be deleted" vs "ownership passes"),
+    // so decide it on the group as it is now, not as it was loaded.
+    var group = shown;
+    try {
+      group = await ref.refresh(groupDetailProvider(id).future);
+    } on Object {
+      // Offline: fall back to what is on screen.
+    }
+    if (!mounted) {
+      return;
+    }
     final alone = group.myRole == 'owner' && group.memberCount <= 1;
     final ok = await confirmCommunityAction(
       context,

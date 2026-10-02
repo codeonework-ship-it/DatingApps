@@ -53,6 +53,22 @@ class AuthSessionStore {
     }
   }
 
+  final _expirations = StreamController<void>.broadcast();
+
+  /// Fires after [expire] ends a session the server no longer accepts, so the
+  /// app can return the member to sign-in instead of polling with a dead
+  /// credential.
+  Stream<void> get expirations => _expirations.stream;
+
+  /// Clears a session the server rejected (revoked, expired or a refresh
+  /// credential that can no longer be rotated) and announces it once.
+  void expire() {
+    final hadSession =
+        accessToken?.isNotEmpty == true || refreshToken?.isNotEmpty == true;
+    clear();
+    if (hadSession) _expirations.add(null);
+  }
+
   void identify({
     required String userId,
     required String username,

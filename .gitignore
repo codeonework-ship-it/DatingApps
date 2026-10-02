@@ -52,3 +52,6 @@ __pycache__/
 *.pyc
 /test-results/
 app/*.log
+
+# Golden test failure output (regenerated on each failing run)
+app/test/**/failures/

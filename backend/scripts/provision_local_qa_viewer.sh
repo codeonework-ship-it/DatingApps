@@ -2,7 +2,7 @@
 set -euo pipefail
 
 api_base="${SIGNUP_API_BASE_URL:-http://127.0.0.1:18081/v1}"
-database_url="${LOCAL_DATABASE_URL:-postgresql://dating_app@127.0.0.1:55432/dating_app?sslmode=disable}"
+database_url="${LOCAL_DATABASE_URL:-postgresql://dating_app@127.0.0.1:55433/dating_app?sslmode=disable}"
 username="${QA_EXISTING_USERNAME:-workflow_qa_20260803_final}"
 password="${QA_EXISTING_PASSWORD:-Password123!}"
 psql_bin="${PSQL_BIN:-/opt/homebrew/opt/postgresql@17/bin/psql}"

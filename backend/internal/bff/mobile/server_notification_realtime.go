@@ -57,7 +57,14 @@ func (s *Server) streamNotificationEvents(w http.ResponseWriter, r *http.Request
 	}); err != nil {
 		return
 	}
-	poll := time.NewTicker(chatRealtimePollInterval)
+	// Same wake-hub contract as the chat stream (realtime_wake_hub.go).
+	wake, unsubscribe := s.notificationWake.subscribe(principal.UserID)
+	defer unsubscribe()
+	pollEvery := chatRealtimePollInterval
+	if s.notificationWake != nil {
+		pollEvery = realtimeFallbackPollInterval
+	}
+	poll := time.NewTicker(pollEvery)
 	ping := time.NewTicker(chatRealtimePingInterval)
 	defer poll.Stop()
 	defer ping.Stop()
@@ -70,6 +77,7 @@ func (s *Server) streamNotificationEvents(w http.ResponseWriter, r *http.Request
 				return
 			}
 		}
+		polledThrough := wake.Seq()
 		events, err := s.notifications.list(r.Context(), principal.UserID, after, 100)
 		if err != nil {
 			s.log.Warn("notification_realtime_delivery_failed", zap.String("user_id", principal.UserID), zap.Error(err))
@@ -81,16 +89,8 @@ func (s *Server) streamNotificationEvents(w http.ResponseWriter, r *http.Request
 			}
 			after = event.Sequence
 		}
-		select {
-		case <-r.Context().Done():
+		if !waitForRealtimePoll(r.Context(), conn, closed, poll.C, ping.C, wake, after, polledThrough, s.notificationWake != nil) {
 			return
-		case <-closed:
-			return
-		case <-poll.C:
-		case <-ping.C:
-			if err := conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(5*time.Second)); err != nil {
-				return
-			}
 		}
 	}
 }

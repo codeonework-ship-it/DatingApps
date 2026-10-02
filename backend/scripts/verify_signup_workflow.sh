@@ -21,9 +21,13 @@ curl --fail-with-body -sS -X PATCH "$api_base/users/$user_id/agreements/terms" \
   -H 'Content-Type: application/json' -H "$auth_header" \
   --data '{"accepted":true,"terms_version":"v1"}' >/dev/null
 
+# Intent tags make the member discoverable (OBS-01): every member's deck
+# defaults to "serious relationship only", which drops candidates without a
+# serious intent tag, and intent is optional in onboarding. Set them before
+# /complete, which publishes the profile; later edits need a re-publish.
 curl --fail-with-body -sS -X PATCH "$api_base/profile/$user_id/draft" \
   -H 'Content-Type: application/json' -H "$auth_header" \
-  --data '{"bio":"Curious architect who enjoys hiking and thoughtful conversations.","seeking_genders":["M"],"min_age_years":25,"max_age_years":42,"max_distance_km":80}' >/dev/null
+  --data '{"bio":"Curious architect who enjoys hiking and thoughtful conversations.","seeking_genders":["M"],"min_age_years":25,"max_age_years":42,"max_distance_km":80,"intent_tags":["long_term"]}' >/dev/null
 
 fixture_dir="$(mktemp -d)"
 trap 'rm -rf "$fixture_dir"' EXIT
@@ -65,6 +69,12 @@ jq -e '.state == "completed" and .current_activity == "done" and .signup_require
   <<<"$workflow_json" >/dev/null
 jq -e '.success == true and .workflow_state == "completed" and .signup_required == false' \
   <<<"$login_json" >/dev/null
+
+# OBS-01: the member must carry a serious intent tag or nobody's default deck
+# ("serious relationship only") will show them.
+draft_json=$(curl --fail-with-body -sS "$api_base/profile/$user_id/draft" -H "$auth_header")
+jq -e '[.. | objects | .intent_tags? // empty | .[]?] | index("long_term") != null' \
+  <<<"$draft_json" >/dev/null
 
 jq -n --arg user_id "$user_id" --arg username "$username" \
   '{success:true,user_id:$user_id,username:$username,workflow_state:"completed",signup_required:false}'

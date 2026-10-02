@@ -19,29 +19,59 @@ import (
 	"strings"
 	"syscall"
 
+	"go.uber.org/zap"
+
 	"github.com/verified-dating/backend/internal/platform/config"
 	"github.com/verified-dating/backend/internal/platform/mediastore"
+	"github.com/verified-dating/backend/internal/platform/observability"
 )
+
+// logger carries structured operational logs (start, finish, failures) to
+// stderr so a run from automation is aggregatable like every other binary.
+// stdout stays the human-readable report the operator or CI reads.
+var logger = zap.NewNop()
 
 func main() {
 	if len(os.Args) < 2 {
 		usage()
 		os.Exit(2)
 	}
+	if log, err := observability.NewLogger(environment(), logLevel()); err == nil {
+		logger = log.With(zap.String("component", "mediactl"))
+	} else {
+		fmt.Fprintln(os.Stderr, "mediactl: structured logger unavailable:", err)
+	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
 	if err := config.ApplyStorageConfigFile(); err != nil {
+		stop()
 		fatal(err)
 	}
-	switch os.Args[1] {
+	command := os.Args[1]
+	logger.Info("mediactl_started", zap.String("command", command), zap.Strings("args", os.Args[2:]))
+	code := 2
+	switch command {
 	case "check":
-		os.Exit(check(ctx, os.Args[2:]))
+		code = check(ctx, os.Args[2:])
 	case "copy":
-		os.Exit(copyMedia(ctx, os.Args[2:]))
+		code = copyMedia(ctx, os.Args[2:])
 	default:
 		usage()
-		os.Exit(2)
 	}
+	stop()
+	if code == 0 {
+		logger.Info("mediactl_finished", zap.String("command", command), zap.Int("exit_code", code))
+	} else {
+		logger.Warn("mediactl_finished", zap.String("command", command), zap.Int("exit_code", code))
+	}
+	_ = logger.Sync()
+	os.Exit(code)
+}
+
+func logLevel() string {
+	if value := strings.TrimSpace(os.Getenv("LOG_LEVEL")); value != "" {
+		return value
+	}
+	return "info"
 }
 
 func usage() {
@@ -53,10 +83,12 @@ func usage() {
       copy media between backends (dry run unless -apply)
       legacy = flat MEDIA_UPLOADS_DIR, local = MEDIA_STORAGE_ROOT layout, s3 = AWS_S3_* bucket(s)
   kinds: profile_photos, profile_photos_quarantine, legacy_profile_photos, chapter_photos,
-         theme_photos, group_covers, voice, verification`)
+         theme_photos, group_covers, voice, verification, support_attachments`)
 }
 
 func fatal(err error) {
+	logger.Error("mediactl_failed", zap.Error(err))
+	_ = logger.Sync()
 	fmt.Fprintln(os.Stderr, "mediactl:", err)
 	os.Exit(1)
 }

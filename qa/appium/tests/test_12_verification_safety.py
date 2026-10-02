@@ -28,7 +28,7 @@ def _open_verification_landing(app) -> None:
             app.tap_scroll_text("Government Verification", timeout=10)
         except TimeoutException:
             pytest.skip("Government Verification settings entry is not visible in this build")
-    app.assert_any_text_visible("Government Verification", "Verification Paused", timeout=15)
+    app.assert_any_text_visible("Government Verification", "Verify with confidence", timeout=15)
 
 
 def _open_verification_upload(app) -> None:
@@ -59,9 +59,7 @@ def _upload_id_and_continue_to_selfie(app) -> None:
 
 
 def _open_profile_detail(app) -> None:
-    app.sign_in_existing_user()
-    app.open_tab("Discover")
-    app.assert_any_text_visible("Discover Matches", "Find meaningful verified matches", timeout=25)
+    app.open_discovery_deck()
 
     opened = app.maybe_tap_qa("qa.discovery.view_more_button", timeout=8)
     if not opened:
@@ -76,12 +74,20 @@ def _open_profile_detail(app) -> None:
 def test_verification_landing_renders(app):
     _open_verification_landing(app)
 
+    # verification_landing_screen.dart: the "Verification Paused" notice was
+    # replaced by the secure-verification landing (title, explainer and one
+    # action that depends on the member's current verification status).
+    app.wait_for_text("Government Verification", timeout=15)
+    app.wait_for_text("Verify with confidence", timeout=15)
+    app.wait_for_text_contains("government identity document", timeout=10)
     app.assert_any_text_visible(
-        "Verification Paused",
-        "Aadhaar/PAN verification is temporarily paused",
-        "Got it",
+        "Start secure verification",
+        "View review status",
+        "View verified status",
         timeout=15,
     )
+    app.save_artifact("verification_landing")
+    app.press_back()
 
 
 @pytest.mark.requires_appium

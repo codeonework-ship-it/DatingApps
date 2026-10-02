@@ -7,6 +7,7 @@ import 'package:verified_dating_app/core/theme/app_theme.dart';
 import 'package:verified_dating_app/features/common/screens/main_navigation_screen.dart';
 import 'package:verified_dating_app/features/matching/screens/matches_list_screen.dart';
 import 'package:verified_dating_app/features/profile/screens/profile_view_screen.dart';
+import 'package:verified_dating_app/l10n/app_localizations.dart';
 
 /// Regression: the Matches and Messages tiles on My Profile had no tap
 /// handler, so tapping them did nothing. They must open the Matches tab on
@@ -37,6 +38,8 @@ void main() {
         container: container,
         child: MaterialApp(
           theme: AppTheme.lightTheme,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: const ProfileViewScreen(),
         ),
       ),
@@ -51,6 +54,9 @@ void main() {
     final container = await pumpProfile(tester);
     container.read(mainNavigationIndexProvider.notifier).state = 3;
 
+    // The tiles sit behind the scenes, under the cinematic hero.
+    await tester.ensureVisible(find.text('Matches'));
+    await tester.pump();
     await tester.tap(find.text('Matches'));
     await tester.pump();
 
@@ -64,6 +70,8 @@ void main() {
     final container = await pumpProfile(tester);
     container.read(mainNavigationIndexProvider.notifier).state = 3;
 
+    await tester.ensureVisible(find.text('Messages'));
+    await tester.pump();
     await tester.tap(find.text('Messages'));
     await tester.pump();
 

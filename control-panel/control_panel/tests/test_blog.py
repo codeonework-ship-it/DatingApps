@@ -32,6 +32,28 @@ class BlogReviewsTest(TestCase):
         self.assertIn('no-store', response['Cache-Control'])
 
     @patch('control_panel.views_blog.GoBFFClient')
+    def test_formatted_chapter_snapshot_renders_safely(self, cls):
+        content = {'version': 1, 'style': 'journal', 'blocks': [
+            {'type': 'heading', 'spans': [{'text': '<script>title</script>'}]},
+            {'type': 'paragraph', 'align': 'center', 'spans': [
+                {'text': 'calm', 'marks': ['bold', 'highlight']},
+                {'text': 'shop', 'marks': ['link'], 'href': 'https://shop.example/"onmouseover=x'},
+            ]},
+            {'type': 'divider'},
+        ]}
+        cls.return_value.blog_reviews.return_value = APIResult(True, {'cases': [{'id': str(uuid4()), 'version': 1, 'snapshot': {'title': 'T', 'body': 'plain-only-marker', 'content': content}, 'photo_ids': [], 'status': 'pending'}], 'metrics': {}})
+        response = self.client.get(reverse('blog_reviews'))
+        self.assertContains(response, 'writing style: Journal')
+        self.assertContains(response, '<strong><mark>calm</mark></strong>', html=False)
+        self.assertContains(response, 'text-center')
+        self.assertContains(response, '&lt;script&gt;title&lt;/script&gt;')
+        self.assertNotContains(response, '<script>title')
+        self.assertContains(response, '[link: https://shop.example/&quot;onmouseover=x]')
+        self.assertNotContains(response, 'href="https://shop.example')
+        self.assertNotContains(response, 'plain-only-marker')
+        self.assertContains(response, 'Section break')
+
+    @patch('control_panel.views_blog.GoBFFClient')
     def test_denied_role_does_not_render_decisions(self, cls):
         cls.return_value.blog_reviews.return_value = APIResult(False, {}, 'Access denied', 403)
         response = self.client.get(reverse('blog_reviews'))

@@ -41,6 +41,7 @@ type Config struct {
 	GatewayRateLimitWindowSec        int
 	GatewayMaxInFlight               int
 	GatewayRetryAfterSec             int
+	GatewayTrustedProxyCIDRs         string // CIDRs whose X-Real-IP names the client; empty = loopback
 	GatewaySkipPostgresProbe         bool
 	BFFMaxInFlight                   int
 	BFFRetryAfterSec                 int
@@ -298,6 +299,7 @@ func Load() (Config, error) {
 		GatewayRateLimitWindowSec:        getInt("GATEWAY_RATE_LIMIT_WINDOW_SEC", 1),
 		GatewayMaxInFlight:               getInt("GATEWAY_MAX_INFLIGHT", 2000),
 		GatewayRetryAfterSec:             getInt("GATEWAY_RETRY_AFTER_SEC", 1),
+		GatewayTrustedProxyCIDRs:         getOrDefault("GATEWAY_TRUSTED_PROXY_CIDRS", ""),
 		GatewaySkipPostgresProbe:         getBool("GATEWAY_SKIP_POSTGRES_PROBE", false),
 		BFFMaxInFlight:                   getInt("BFF_MAX_INFLIGHT", 1500),
 		BFFRetryAfterSec:                 getInt("BFF_RETRY_AFTER_SEC", 1),
@@ -467,7 +469,7 @@ func Load() (Config, error) {
 		FeatureAssistedReviewAutomation: getBool("FEATURE_ASSISTED_REVIEW_AUTOMATION", false),
 		AssistedReviewMinChars:          getInt("ASSISTED_REVIEW_MIN_CHARS", 120),
 		AssistedReviewMinWordCount:      getInt("ASSISTED_REVIEW_MIN_WORD_COUNT", 20),
-		DefaultUnlockPolicyVariant:      normalizeUnlockPolicyVariant(getOrDefault("DEFAULT_UNLOCK_POLICY_VARIANT", "require_quest_template")),
+		DefaultUnlockPolicyVariant:      normalizeUnlockPolicyVariant(getOrDefault("DEFAULT_UNLOCK_POLICY_VARIANT", "allow_without_template")),
 		RequireDurableEngagementStore: getBool(
 			"REQUIRE_DURABLE_ENGAGEMENT_STORE",
 			isProdLikeEnvironment(getOrDefault("ENVIRONMENT", "development")),
@@ -956,7 +958,9 @@ func normalizeUnlockPolicyVariant(value string) string {
 	case "allow_without_template", "require_quest_template":
 		return strings.ToLower(strings.TrimSpace(value))
 	default:
-		return "require_quest_template"
+		// A new match can always say hello; a quest gate is opt-in because
+		// the apps have no screen to set or complete one.
+		return "allow_without_template"
 	}
 }
 

@@ -169,25 +169,24 @@ class GoBFFClientSecurityTest(SimpleTestCase):
             "http://127.0.0.1:18081/v1/admin/events/metrics",
         )
 
-    def test_support_transition_is_authenticated_and_idempotent(self):
+    def test_support_ticket_patch_is_authenticated_and_idempotent(self):
         client = GoBFFClient(
             access_token="access-token",
             refresh_token="refresh-token",
             use_operator_context=False,
         )
         client.session.request = Mock(
-            return_value=api_response(200, {"success": True})
+            return_value=api_response(200, {"success": True, "ticket": {"id": "ticket-1"}})
         )
 
         result = client.update_support_ticket(
             "ticket-1",
-            status="waiting_member",
-            priority="high",
-            note="Please confirm the account username.",
+            {"status": "pending_member", "priority": "high", "assignee_id": ""},
         )
 
         self.assertTrue(result.ok)
         request = client.session.request.call_args.kwargs
+        self.assertEqual(request["method"], "PATCH")
         self.assertEqual(
             request["url"],
             "http://127.0.0.1:18081/v1/admin/support/tickets/ticket-1",
@@ -196,11 +195,32 @@ class GoBFFClientSecurityTest(SimpleTestCase):
         self.assertIn("Idempotency-Key", request["headers"])
         self.assertEqual(
             request["json"],
-            {
-                "status": "waiting_member",
-                "priority": "high",
-                "note": "Please confirm the account username.",
-            },
+            {"status": "pending_member", "priority": "high", "assignee_id": ""},
+        )
+
+    def test_support_reply_posts_message_with_visibility_and_status(self):
+        client = GoBFFClient(
+            access_token="access-token",
+            refresh_token="refresh-token",
+            use_operator_context=False,
+        )
+        client.session.request = Mock(return_value=api_response(201, {"success": True}))
+
+        self.assertTrue(
+            client.reply_support_ticket(
+                "ticket-1", body="Thanks, fixed.", visibility="public", status="resolved"
+            ).ok
+        )
+        request = client.session.request.call_args.kwargs
+        self.assertEqual(request["method"], "POST")
+        self.assertEqual(
+            request["url"],
+            "http://127.0.0.1:18081/v1/admin/support/tickets/ticket-1/messages",
+        )
+        self.assertIn("Idempotency-Key", request["headers"])
+        self.assertEqual(
+            request["json"],
+            {"body": "Thanks, fixed.", "visibility": "public", "status": "resolved"},
         )
 
     def test_refund_operations_use_secured_idempotent_admin_routes(self):

@@ -58,6 +58,12 @@ func (s *Server) patchDiscoveryTrustFilter(w http.ResponseWriter, r *http.Reques
 	enabled, _ := payload["enabled"].(bool)
 	minimumActiveBadges, _ := toInt(payload["minimum_active_badges"])
 	requiredBadgeCodes, _ := toStringSlice(payload["required_badge_codes"])
+	// An unknown badge code is the caller's mistake. Checked here, before the
+	// repository, because the repository's error was answered 502 (API-20).
+	if err := validateTrustBadgeCodes(normalizeTrustBadgeCodes(requiredBadgeCodes)); err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
 
 	var (
 		filter trustFilterPreference

@@ -110,6 +110,11 @@ migrations=(
 	122_client_error_reporting_and_telemetry_privacy.sql
 	123_product_analytics_snapshots.sql
 	124_business_reports.sql
+	126_support_ticket_system.sql
+	127_rich_text_writing_styles.sql
+	128_graduation_friend_recipients.sql
+	129_capacity_hot_path_indexes.sql
+	130_profile_showcase_consent.sql
 )
 
 for migration in "${migrations[@]}"; do

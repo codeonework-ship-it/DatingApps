@@ -498,7 +498,7 @@ class _CityPilotScreenState extends ConsumerState<CityPilotScreen> {
     ),
   );
   Widget _panel(String title, List<Widget> children) => Container(
-    padding: const EdgeInsets.all(22),
+    padding: const EdgeInsets.all(24),
     decoration: BoxDecoration(
       border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       borderRadius: BorderRadius.circular(24),

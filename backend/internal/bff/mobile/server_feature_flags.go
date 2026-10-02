@@ -160,7 +160,8 @@ func featureFlagForRoute(apiPrefix, requestPath string) string {
 		return "digital_gestures_enabled"
 	case strings.HasPrefix(path, "progression/"):
 		return "level_progression_enabled"
-	case path == "support/tickets" || strings.HasPrefix(path, "support/tickets/"):
+	case path == "support" || strings.HasPrefix(path, "support/"):
+		// Tickets, attachments and the website contact form (migration 126).
 		return "support_ticketing_enabled"
 	case strings.HasPrefix(path, "growth/referrals"):
 		return "referrals_enabled"

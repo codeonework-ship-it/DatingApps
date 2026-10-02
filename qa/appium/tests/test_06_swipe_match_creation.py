@@ -9,8 +9,7 @@ def _open_seeded_discovery_card(app) -> None:
         app.sign_in_existing_user()
     except TimeoutException:
         pytest.skip("Sign-in transition did not reach discovery in current QA build/state")
-    app.open_tab("Discover")
-    app.assert_any_text_visible("Discover Matches", "Find meaningful verified matches", timeout=25)
+    app.open_discovery_deck()
 
     if app.is_text_visible("No profiles", timeout=3):
         pytest.skip("Seeded discovery deck is empty for swipe sample")

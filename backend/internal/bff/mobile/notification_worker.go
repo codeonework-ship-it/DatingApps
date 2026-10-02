@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/uuid"
@@ -35,6 +36,23 @@ type notificationDeliveryEngine struct {
 	metrics      *observability.HTTPMetrics
 	cancel       context.CancelFunc
 	done         sync.WaitGroup
+	// metricsNextAt (unix nanos) throttles refreshMetrics across workers.
+	metricsNextAt atomic.Int64
+}
+
+// notificationMetricsRefreshInterval: the queue gauges come from
+// matching.notification_queue_metrics, which counts the whole outbox and a
+// 15-minute delivery window. It used to run after every batch on every
+// worker of every instance; gauges are scraped every 15s anyway.
+const notificationMetricsRefreshInterval = 15 * time.Second
+
+// metricsRefreshDue lets exactly one caller per interval refresh the gauges.
+func (e *notificationDeliveryEngine) metricsRefreshDue(now time.Time) bool {
+	next := e.metricsNextAt.Load()
+	if now.UnixNano() < next {
+		return false
+	}
+	return e.metricsNextAt.CompareAndSwap(next, now.Add(notificationMetricsRefreshInterval).UnixNano())
 }
 
 func newNotificationDeliveryEngine(cfg config.Config, log *zap.Logger, repo *notificationRepository, metrics *observability.HTTPMetrics) *notificationDeliveryEngine {
@@ -99,7 +117,9 @@ func (e *notificationDeliveryEngine) run(ctx context.Context, worker int) {
 			}
 			e.log.Warn("notification_batch_failed", zap.String("worker_id", workerID), zap.Error(err))
 		}
-		e.refreshMetrics(ctx)
+		if e.metricsRefreshDue(time.Now()) {
+			e.refreshMetrics(ctx)
+		}
 		if processed > 0 {
 			continue
 		}

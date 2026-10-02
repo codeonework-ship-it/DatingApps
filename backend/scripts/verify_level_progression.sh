@@ -2,7 +2,7 @@
 set -euo pipefail
 
 api_base="${PROGRESSION_API_BASE_URL:-http://127.0.0.1:18081/v1}"
-database_url="${DATABASE_URL:-postgresql://dating_app@127.0.0.1:55432/dating_app?sslmode=disable}"
+database_url="${DATABASE_URL:-postgresql://dating_app@127.0.0.1:55433/dating_app?sslmode=disable}"
 psql_bin="${POSTGRES_BIN_DIR:-/opt/homebrew/opt/postgresql@17/bin}/psql"
 operator_username="${PROGRESSION_OPERATOR_USERNAME:-local_control_admin}"
 operator_password="${PROGRESSION_OPERATOR_PASSWORD:-LocalAdmin123!}"

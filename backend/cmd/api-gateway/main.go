@@ -52,6 +52,10 @@ func main() {
 	httpMetrics := observability.NewGatewayMetrics(reg)
 	observability.RegisterProcessMetrics(reg, "api-gateway")
 
+	trustedProxies, err := gatewayhttp.ParseTrustedProxies(cfg.GatewayTrustedProxyCIDRs)
+	if err != nil {
+		log.Fatal("invalid_gateway_trusted_proxy_cidrs", zap.Error(err))
+	}
 	router, err := gatewayhttp.NewRouter(
 		log,
 		httpMetrics,
@@ -62,6 +66,7 @@ func main() {
 		cfg.GatewayMaxInFlight,
 		cfg.GatewayRetryAfterSec,
 		cfg.GatewayReadyProbeTimeout(),
+		gatewayhttp.WithTrustedProxies(trustedProxies),
 	)
 	if err != nil {
 		log.Fatal("create_gateway_router_failed", zap.Error(err))

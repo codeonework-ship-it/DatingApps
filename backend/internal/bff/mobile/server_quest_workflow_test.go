@@ -178,7 +178,7 @@ func TestServer_QuestWorkflowRejectAndCooldownFlow(t *testing.T) {
 	reSubmitReq.Header.Set("Content-Type", "application/json")
 	reSubmitRec := httptest.NewRecorder()
 	server.Handler().ServeHTTP(reSubmitRec, reSubmitReq)
-	if reSubmitRec.Code != http.StatusBadGateway {
+	if reSubmitRec.Code != http.StatusConflict {
 		t.Fatalf("submit during cooldown code = %d body=%s", reSubmitRec.Code, reSubmitRec.Body.String())
 	}
 
@@ -247,8 +247,8 @@ func TestServer_QuestWorkflowRateLimitSaturation(t *testing.T) {
 	sixthReq.Header.Set("Content-Type", "application/json")
 	sixthRec := httptest.NewRecorder()
 	server.Handler().ServeHTTP(sixthRec, sixthReq)
-	if sixthRec.Code != http.StatusBadGateway {
-		t.Fatalf("sixth submit expected 502, got %d body=%s", sixthRec.Code, sixthRec.Body.String())
+	if sixthRec.Code != http.StatusTooManyRequests {
+		t.Fatalf("sixth submit expected 429, got %d body=%s", sixthRec.Code, sixthRec.Body.String())
 	}
 }
 
@@ -341,7 +341,7 @@ func TestServer_ChatSendBlockedWhenQuestLocked(t *testing.T) {
 	}
 }
 
-func TestServer_UnlockStateRequiresQuestByDefaultWhenTemplateMissing(t *testing.T) {
+func TestServer_UnlockStateRequiresQuestWhenGateOnAndTemplateMissing(t *testing.T) {
 	server := newQuestWorkflowTestServer(t)
 	defer server.Close()
 
@@ -364,6 +364,33 @@ func TestServer_UnlockStateRequiresQuestByDefaultWhenTemplateMissing(t *testing.
 	}
 	if got := stringValue(payload["unlock_policy_variant"]); got != "require_quest_template" {
 		t.Fatalf("expected unlock_policy_variant require_quest_template, got %q", got)
+	}
+}
+
+// By default a new match can say hello straight away: the apps have no
+// screen to set or complete a quest, so the gate is opt-in.
+func TestServer_NewMatchChatUnlockedByDefault(t *testing.T) {
+	server := newQuestWorkflowTestServerWithConfig(t, func(cfg *config.Config) {
+		cfg.DefaultUnlockPolicyVariant = ""
+	})
+	defer server.Close()
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/matches/match-no-template/unlock-state", nil)
+	rec := httptest.NewRecorder()
+	server.Handler().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("unlock-state code = %d body=%s", rec.Code, rec.Body.String())
+	}
+	payload := decodeJSONMap(t, rec.Body.Bytes())
+	if got := stringValue(payload["unlock_state"]); got != "matched" {
+		t.Fatalf("expected unlock_state matched, got %q", got)
+	}
+	if !boolValue(payload["chat_unlocked"]) {
+		t.Fatal("expected chat_unlocked true")
+	}
+	if got := stringValue(payload["unlock_policy_variant"]); got != "allow_without_template" {
+		t.Fatalf("expected unlock_policy_variant allow_without_template, got %q", got)
 	}
 }
 
@@ -470,6 +497,8 @@ func newQuestWorkflowTestServer(t *testing.T) *Server {
 		ProfileGRPCAddr:  "127.0.0.1:19092",
 		MatchingGRPCAddr: "127.0.0.1:19093",
 		ChatGRPCAddr:     "127.0.0.1:19094",
+		// These tests exercise the opt-in quest gate.
+		DefaultUnlockPolicyVariant: "require_quest_template",
 	}
 	return newQuestWorkflowTestServerWithConfig(t, func(target *config.Config) {
 		*target = cfg
@@ -486,6 +515,8 @@ func newQuestWorkflowTestServerWithConfig(t *testing.T, mutate func(*config.Conf
 		ProfileGRPCAddr:  "127.0.0.1:19092",
 		MatchingGRPCAddr: "127.0.0.1:19093",
 		ChatGRPCAddr:     "127.0.0.1:19094",
+		// These tests exercise the opt-in quest gate.
+		DefaultUnlockPolicyVariant: "require_quest_template",
 	}
 	if mutate != nil {
 		mutate(&cfg)

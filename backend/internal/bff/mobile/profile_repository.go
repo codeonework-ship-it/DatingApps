@@ -44,7 +44,7 @@ func newProfileRepository(cfg config.Config, supplied ...repositoryDB) *profileR
 	// modes (LOCAL_DATABASE_URL locally, DATABASE_URL/PROD_DATABASE_URL or a
 	// URL built from SUPABASE_DB_* otherwise).
 	if strings.TrimSpace(cfg.DatabaseURL) != "" {
-		db, err := postgresdata.OpenSQL(cfg.DatabaseURL, postgresOptions(cfg, 16, 4))
+		db, err := postgresdata.OpenSQL(cfg.DatabaseURL, postgresOptions(cfg, primaryPoolMaxConns(cfg), 4))
 		if err == nil {
 			return &profileRepository{cfg: cfg, db: direct, pg: db}
 		}

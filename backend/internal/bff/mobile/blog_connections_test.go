@@ -182,7 +182,8 @@ func TestBlogPublicCopyConsentAndInvalidationPostgres(t *testing.T) {
 	}
 	var data map[string]any
 	json.Unmarshal(rec.Body.Bytes(), &data)
-	if len(data) != 4 || data["title"] != p.Title || rec.Header().Get("Cache-Control") != "private, no-store" {
+	// Plain-text chapters carry no formatting (content is null).
+	if len(data) != 5 || data["title"] != p.Title || data["content"] != nil || rec.Header().Get("Cache-Control") != "private, no-store" {
 		t.Fatal("public allowlist", data)
 	}
 	if strings.Contains(rec.Body.String(), f.proposer) || strings.Contains(rec.Body.String(), p.ID) {

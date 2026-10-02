@@ -103,7 +103,7 @@ class MatchCard extends StatelessWidget {
                         ),
                         if (unread)
                           Padding(
-                            padding: const EdgeInsets.only(left: 10),
+                            padding: const EdgeInsets.only(left: 12),
                             child: Badge(
                               backgroundColor: scheme.primary,
                               textColor: scheme.onPrimary,

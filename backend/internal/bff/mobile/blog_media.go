@@ -52,7 +52,7 @@ func (s *Server) cleanupDeletedBlogMedia(ctx context.Context) {
 			_, _ = db.ExecContext(ctx, `DELETE FROM matching.blog_photos WHERE id=$1 AND deleted_at IS NOT NULL`, item.id)
 		}
 	}
-	_, _ = db.ExecContext(ctx, `UPDATE matching.blog_posts SET title='',body='',invitation='' WHERE deleted_at IS NOT NULL AND (title<>'' OR body<>'' OR invitation<>'') AND NOT platform.member_on_legal_hold(author_id)`)
+	_, _ = db.ExecContext(ctx, `UPDATE matching.blog_posts SET title='',body='',invitation='',content=NULL WHERE deleted_at IS NOT NULL AND (title<>'' OR body<>'' OR invitation<>'' OR content IS NOT NULL) AND NOT platform.member_on_legal_hold(author_id)`)
 }
 
 // Decode and encode again so image metadata (including EXIF location) never

@@ -37,3 +37,41 @@ test('incomplete links never fetch a source',async({page})=>{
  const requests=[];page.on('request',r=>{if(r.url().includes('/v1/blog/'))requests.push(r.url());});
  await page.goto('/story.html?id=not-a-publication');await expect(page.locator('#status')).toHaveText('This Chapter link is incomplete.');expect(requests).toEqual([]);
 });
+test('formatted excerpt renders as safe DOM in the chosen writing style',async({page})=>{
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ const content={version:1,style:'journal',blocks:[
+  {type:'heading',spans:[{text:'Sunday <img src=x onerror=alert(1)>'}]},
+  {type:'paragraph',align:'center',spans:[{text:'Coffee, '},{text:'a bookshop',marks:['bold','italic']},{text:' and ',marks:['highlight']},{text:'a shop',marks:['link'],href:'https://books.example/shop'},{text:' trap',marks:['link'],href:'javascript:alert(1)'}]},
+  {type:'paragraph'},
+  {type:'bullet',spans:[{text:'Oat latte'}]},
+  {type:'numbered',spans:[{text:'Wake'}]},{type:'numbered',spans:[{text:'Read'}]},
+  {type:'divider'},
+  {type:'iframe',spans:[{text:'Unknown block stays text'}]},
+  {type:'callout',spans:[{text:'Slow is fine.'}]}]};
+ await page.route(`**${path}`,r=>r.fulfill({json:{title:'Formatted',excerpt:'plain fallback',joint:false,photos:[],content}}));
+ await page.goto(`/story.html?id=${id}`);
+ const rich=page.locator('#excerpt .rich.style-journal');
+ await expect(rich).toBeVisible();
+ await expect(rich.locator('h3')).toHaveText('Sunday <img src=x onerror=alert(1)>');
+ expect(await page.locator('#excerpt img, #excerpt script, #excerpt iframe').count()).toBe(0);
+ await expect(rich.locator('em > strong')).toHaveText('a bookshop');
+ await expect(rich.locator('mark')).toHaveText(' and ');
+ await expect(rich.locator('p.align-center')).toHaveCount(1);
+ const links=rich.locator('a');
+ await expect(links).toHaveCount(1);
+ await expect(links).toHaveAttribute('href','https://books.example/shop');
+ await expect(links).toHaveAttribute('rel','nofollow ugc noopener noreferrer');
+ await expect(rich.locator('ul li')).toHaveText(['Oat latte']);
+ await expect(rich.locator('ol li')).toHaveText(['Wake','Read']);
+ await expect(rich.locator('hr')).toHaveCount(1);
+ await expect(rich.locator('[role=note]')).toHaveText('Slow is fine.');
+ await expect(rich).toContainText('Unknown block stays text');
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ expect(errors).toEqual([]);
+});
+test('chapters without formatting keep the plain excerpt',async({page})=>{
+ await page.route(`**${path}`,r=>r.fulfill({json:{title:'Plain',excerpt:'Line one\nLine two',joint:false,photos:[],content:null}}));
+ await page.goto(`/story.html?id=${id}`);
+ await expect(page.locator('#excerpt')).toHaveText('Line one\nLine two');
+ expect(await page.locator('#excerpt .rich').count()).toBe(0);
+});

@@ -1220,4 +1220,869 @@ class AppLocalizationsDe extends AppLocalizations {
   String roomsUnmutedDone(String name) {
     return '$name kann wieder schreiben.';
   }
+
+  @override
+  String get richFormattingToolbar => 'Formatierung';
+
+  @override
+  String get richUndo => 'Rückgängig';
+
+  @override
+  String get richRedo => 'Wiederholen';
+
+  @override
+  String get richBold => 'Fett';
+
+  @override
+  String get richItalic => 'Kursiv';
+
+  @override
+  String get richUnderline => 'Unterstrichen';
+
+  @override
+  String get richStrikethrough => 'Durchgestrichen';
+
+  @override
+  String get richHighlight => 'Hervorheben';
+
+  @override
+  String get richLink => 'Link';
+
+  @override
+  String get richTextStyleMenu => 'Textart';
+
+  @override
+  String get richParagraph => 'Absatz';
+
+  @override
+  String get richHeading => 'Überschrift';
+
+  @override
+  String get richSubheading => 'Zwischenüberschrift';
+
+  @override
+  String get richQuote => 'Zitat';
+
+  @override
+  String get richCallout => 'Hinweisbox';
+
+  @override
+  String get richBulletList => 'Aufzählung';
+
+  @override
+  String get richNumberedList => 'Nummerierte Liste';
+
+  @override
+  String get richDivider => 'Abschnittswechsel';
+
+  @override
+  String get richAlignMenu => 'Ausrichtung';
+
+  @override
+  String get richAlignStart => 'Am Anfang ausrichten';
+
+  @override
+  String get richAlignCenter => 'Zentrieren';
+
+  @override
+  String get richAlignEnd => 'Am Ende ausrichten';
+
+  @override
+  String get richClearFormatting => 'Formatierung entfernen';
+
+  @override
+  String get richWritingStyle => 'Schreibstil';
+
+  @override
+  String get richStyleClassic => 'Klassisch';
+
+  @override
+  String get richStyleClassicHint =>
+      'Elegante Serifenschrift wie auf einer gedruckten Seite';
+
+  @override
+  String get richStyleModern => 'Modern';
+
+  @override
+  String get richStyleModernHint => 'Klar und gut lesbar';
+
+  @override
+  String get richStyleJournal => 'Tagebuch';
+
+  @override
+  String get richStyleJournalHint => 'Warme Kursive wie ein Tagebucheintrag';
+
+  @override
+  String get richStyleTypewriter => 'Schreibmaschine';
+
+  @override
+  String get richStyleTypewriterHint => 'Kantige Buchstaben mit mehr Abstand';
+
+  @override
+  String get richStylePoetic => 'Poetisch';
+
+  @override
+  String get richStylePoeticHint => 'Zentrierte Zeilen mit viel Luft';
+
+  @override
+  String richWordCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Wörter',
+      one: '1 Wort',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get richAlignmentNote =>
+      'Ausrichtung und Abstände siehst du in der Vorschau und deine Leser beim Lesen.';
+
+  @override
+  String get richLinkTitle => 'Link hinzufügen';
+
+  @override
+  String get richLinkField => 'Webadresse';
+
+  @override
+  String get richLinkInvalid => 'Gib eine vollständige https://-Adresse ein.';
+
+  @override
+  String get richLinkApply => 'Link hinzufügen';
+
+  @override
+  String get richLinkRemove => 'Link entfernen';
+
+  @override
+  String get richLinkNeedsSelection =>
+      'Markiere zuerst die Wörter, die du verlinken möchtest.';
+
+  @override
+  String get richCancel => 'Abbrechen';
+
+  @override
+  String get richOpenLinkTitle => 'Diesen Link öffnen?';
+
+  @override
+  String richOpenLinkBody(String host) {
+    return '$host öffnet sich außerhalb von Connect. Öffne nur Links, denen du vertraust.';
+  }
+
+  @override
+  String get richOpenLink => 'Link öffnen';
+
+  @override
+  String get supportCentreEyebrow => 'HILFE & SUPPORT';
+
+  @override
+  String get supportCentreTitle => 'Wie können wir helfen?';
+
+  @override
+  String get supportCentreSubtitle =>
+      'Finde eine schnelle Antwort oder frag unser Team. Jede Anfrage und Antwort bleibt in einem privaten Gespräch.';
+
+  @override
+  String get supportContactSection => 'KONTAKT';
+
+  @override
+  String get supportContactTitle => 'Support kontaktieren';
+
+  @override
+  String get supportContactSubtitle =>
+      'Erzähl uns, was passiert ist. Wir antworten hier und benachrichtigen dich.';
+
+  @override
+  String get supportMyTicketsTitle => 'Meine Anfragen';
+
+  @override
+  String get supportMyTicketsSubtitle =>
+      'Verfolge deine Anfragen und unsere Antworten';
+
+  @override
+  String supportOpenRequests(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count offene Anfragen',
+      one: '1 offene Anfrage',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String supportUnreadReplies(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count neue Antworten',
+      one: '1 neue Antwort',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get supportQuickAnswersSection => 'SCHNELLE ANTWORTEN';
+
+  @override
+  String get supportFaqLoginTitle => 'Anmeldung';
+
+  @override
+  String get supportFaqLoginBody =>
+      'Melde dich mit deinem eindeutigen Benutzernamen und Passwort an.';
+
+  @override
+  String get supportFaqVerificationTitle => 'Verifizierung';
+
+  @override
+  String get supportFaqVerificationBody =>
+      'Die Identitätsprüfung ist optional, solange der Anbieter pausiert ist.';
+
+  @override
+  String get supportFaqAbuseTitle => 'Missbrauch';
+
+  @override
+  String get supportFaqAbuseBody =>
+      'Nutze „Melden“ in einem Profil oder Gespräch, damit wir schneller reagieren können.';
+
+  @override
+  String get supportFaqBillingTitle => 'Abrechnung';
+
+  @override
+  String get supportFaqBillingBody =>
+      'Gib die Transaktionsnummer an, niemals deine Kartendaten.';
+
+  @override
+  String get supportEmergencyNote =>
+      'Wenn jemand in unmittelbarer Gefahr ist, wende dich an den örtlichen Notruf. Support-Anfragen ersetzen keine Nothilfe.';
+
+  @override
+  String get supportUnavailableTitle =>
+      'Support-Anfragen sind gerade nicht verfügbar';
+
+  @override
+  String get supportUnavailableBody =>
+      'Die Antworten auf dieser Seite funktionieren weiterhin. Schreib uns bei dringenden Anliegen an support@connect.example.';
+
+  @override
+  String get supportBackToHelp => 'Zurück zu Hilfe & Support';
+
+  @override
+  String get supportFormEyebrow => 'NEUE ANFRAGE';
+
+  @override
+  String get supportFormTitle => 'Support kontaktieren';
+
+  @override
+  String get supportFormSubtitle =>
+      'Gib uns genug Details, um zu helfen. Teile niemals Passwort, Wiederherstellungscode, Kartennummer oder Ausweisdokument.';
+
+  @override
+  String get supportFormCategorySection => 'THEMA';
+
+  @override
+  String get supportFormCategoryLabel => 'Wobei brauchst du Hilfe?';
+
+  @override
+  String get supportCategoryAccountLogin => 'Konto & Anmeldung';
+
+  @override
+  String get supportCategoryVerification => 'Verifizierung';
+
+  @override
+  String get supportCategoryPaymentsBilling => 'Zahlungen & Abrechnung';
+
+  @override
+  String get supportCategorySafetyHarassment => 'Sicherheit & Belästigung';
+
+  @override
+  String get supportCategoryMatchesChat => 'Matches & Chat';
+
+  @override
+  String get supportCategoryTechnical => 'Technisches Problem oder Fehler';
+
+  @override
+  String get supportCategoryFeatureRequest => 'Funktionswunsch';
+
+  @override
+  String get supportCategoryPrivacyData => 'Datenschutz & Datenanfrage';
+
+  @override
+  String get supportCategoryOther => 'Sonstiges';
+
+  @override
+  String get supportSafetyNote =>
+      'Wenn du oder jemand anderes in unmittelbarer Gefahr ist, nutze SOS in der App oder ruf den örtlichen Notruf an. Sicherheitsanfragen haben Vorrang, aber eine Anfrage ist keine Notrufleitung.';
+
+  @override
+  String get supportOpenSos => 'SOS öffnen';
+
+  @override
+  String get supportFormDetailsSection => 'DETAILS';
+
+  @override
+  String get supportFormSubjectLabel => 'Betreff';
+
+  @override
+  String get supportFormSubjectHint => 'Beschreib das Problem kurz';
+
+  @override
+  String get supportFormDescriptionLabel => 'Was ist passiert?';
+
+  @override
+  String get supportFormDescriptionHint =>
+      'Was du getan hast, was du erwartet hast und was stattdessen passiert ist';
+
+  @override
+  String get supportFormScreenshotsSection => 'SCREENSHOTS';
+
+  @override
+  String supportFormScreenshotsCaption(int max) {
+    return 'Optional. Bis zu $max Bilder.';
+  }
+
+  @override
+  String get supportAddScreenshot => 'Screenshot hinzufügen';
+
+  @override
+  String supportRemoveAttachment(String name) {
+    return '$name entfernen';
+  }
+
+  @override
+  String get supportAttachmentUploading => 'Wird hochgeladen';
+
+  @override
+  String get supportRetryUpload => 'Erneut hochladen';
+
+  @override
+  String supportFormDeviceNote(String version) {
+    return 'Wir fügen deine App-Version ($version), Plattform, Systemversion und Sprache hinzu, um bei der Fehlersuche zu helfen.';
+  }
+
+  @override
+  String get supportSubmit => 'Anfrage senden';
+
+  @override
+  String get supportErrorCategoryRequired => 'Wähle ein Thema.';
+
+  @override
+  String supportErrorSubjectLength(int min, int max) {
+    return 'Der Betreff braucht $min bis $max Zeichen.';
+  }
+
+  @override
+  String get supportErrorDescriptionRequired => 'Beschreib, was passiert ist.';
+
+  @override
+  String supportErrorDescriptionTooLong(int max) {
+    return 'Bitte bleib unter $max Zeichen.';
+  }
+
+  @override
+  String get supportErrorUploadsPending =>
+      'Warte, bis deine Screenshots hochgeladen sind, oder entferne fehlgeschlagene.';
+
+  @override
+  String supportCreatedSnack(String reference) {
+    return 'Anfrage $reference gesendet. Wir antworten hier.';
+  }
+
+  @override
+  String supportDuplicateSnack(String reference) {
+    return 'Du hast diese Anfrage schon gesendet, deshalb haben wir sie geöffnet: $reference.';
+  }
+
+  @override
+  String supportErrorRateLimited(int minutes) {
+    String _temp0 = intl.Intl.pluralLogic(
+      minutes,
+      locale: localeName,
+      other:
+          'Du hast in kurzer Zeit mehrere Anfragen gesendet. Versuch es in $minutes Minuten erneut.',
+      one:
+          'Du hast in kurzer Zeit mehrere Anfragen gesendet. Versuch es in 1 Minute erneut.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get supportErrorRateLimitedGeneric =>
+      'Du hast in kurzer Zeit mehrere Anfragen gesendet. Bitte versuch es später erneut.';
+
+  @override
+  String get supportErrorTooManyOpen =>
+      'Du hast bereits 10 offene Anfragen. Schließ eine, die du nicht mehr brauchst, oder warte auf unsere Antworten.';
+
+  @override
+  String get supportErrorTicketClosed =>
+      'Diese Anfrage ist geschlossen und kann nicht mehr geöffnet werden. Bitte starte eine neue Anfrage.';
+
+  @override
+  String get supportErrorReopenWindowPassed =>
+      'Die Frist zum Wiedereröffnen ist abgelaufen. Bitte starte eine neue Anfrage.';
+
+  @override
+  String get supportErrorAlreadyRated =>
+      'Du hast diese Anfrage bereits bewertet.';
+
+  @override
+  String get supportErrorNotResolved =>
+      'Du kannst eine Anfrage bewerten, sobald sie gelöst ist.';
+
+  @override
+  String get supportErrorAttachmentType =>
+      'Nur JPEG- oder PNG-Bilder und PDF-Dateien können angehängt werden.';
+
+  @override
+  String get supportErrorAttachmentTooLarge =>
+      'Diese Datei ist zu groß. Bilder dürfen bis zu 8 MB groß sein.';
+
+  @override
+  String get supportErrorOffline =>
+      'Connect ist gerade nicht erreichbar. Prüf deine Verbindung und versuch es erneut.';
+
+  @override
+  String get supportErrorNotFound => 'Wir konnten diese Anfrage nicht finden.';
+
+  @override
+  String get supportErrorGeneric =>
+      'Etwas ist schiefgelaufen. Bitte versuch es erneut.';
+
+  @override
+  String get supportTryAgain => 'Erneut versuchen';
+
+  @override
+  String get supportTicketsEyebrow => 'SUPPORT';
+
+  @override
+  String get supportTicketsTitle => 'Meine Anfragen';
+
+  @override
+  String get supportTicketsSubtitle => 'Deine Anfragen und unsere Antworten.';
+
+  @override
+  String get supportTicketsActiveSection => 'AKTIV';
+
+  @override
+  String get supportTicketsClosedSection => 'GELÖST & GESCHLOSSEN';
+
+  @override
+  String get supportTicketsEmptyTitle => 'Noch keine Anfragen';
+
+  @override
+  String get supportTicketsEmptyBody =>
+      'Wenn du den Support kontaktierst, erscheinen deine Anfrage und unsere Antworten hier.';
+
+  @override
+  String get supportTicketsLoadErrorTitle =>
+      'Deine Anfragen konnten nicht geladen werden';
+
+  @override
+  String supportTicketUpdated(String when) {
+    return 'Aktualisiert $when';
+  }
+
+  @override
+  String get supportNewTicket => 'Neue Anfrage';
+
+  @override
+  String get supportStatusOpen => 'Offen';
+
+  @override
+  String get supportStatusWaitingForYou => 'Wartet auf dich';
+
+  @override
+  String get supportStatusOnHold => 'Pausiert';
+
+  @override
+  String get supportStatusResolved => 'Gelöst';
+
+  @override
+  String get supportStatusClosed => 'Geschlossen';
+
+  @override
+  String supportStatusSemantics(String status) {
+    return 'Status: $status';
+  }
+
+  @override
+  String get supportThreadAgentName => 'Connect Support';
+
+  @override
+  String get supportThreadYou => 'Du';
+
+  @override
+  String supportTicketMeta(String category, String date) {
+    return '$category · Eröffnet am $date';
+  }
+
+  @override
+  String get supportBannerOpen =>
+      'Wir haben deine Anfrage. Unser Team antwortet hier und benachrichtigt dich.';
+
+  @override
+  String get supportBannerWaiting =>
+      'Der Support hat geantwortet und wartet auf deine Rückmeldung.';
+
+  @override
+  String get supportBannerOnHold =>
+      'Deine Anfrage ist pausiert, während wir sie prüfen. Wir melden uns hier.';
+
+  @override
+  String get supportBannerResolved =>
+      'Als gelöst markiert. Antworte, um sie wieder zu öffnen; sonst wird sie nach 7 Tagen automatisch geschlossen.';
+
+  @override
+  String supportBannerClosedUntil(String date) {
+    return 'Diese Anfrage ist geschlossen. Du kannst sie bis $date wieder öffnen.';
+  }
+
+  @override
+  String get supportBannerClosed => 'Diese Anfrage ist geschlossen.';
+
+  @override
+  String supportBannerMerged(String reference) {
+    return 'Diese Anfrage wurde mit $reference zusammengeführt. Das Gespräch geht dort weiter.';
+  }
+
+  @override
+  String get supportReplyHint => 'Antwort schreiben';
+
+  @override
+  String get supportReplyDisabledHint =>
+      'Für diese Anfrage sind keine Antworten mehr möglich';
+
+  @override
+  String get supportSendReply => 'Antwort senden';
+
+  @override
+  String get supportAttachScreenshot => 'Screenshot anhängen';
+
+  @override
+  String get supportCloseTicket => 'Anfrage schließen';
+
+  @override
+  String get supportCloseConfirmTitle => 'Diese Anfrage schließen?';
+
+  @override
+  String get supportCloseConfirmBody =>
+      'Schließ sie, wenn dein Problem gelöst ist. Du kannst sie 14 Tage lang wieder öffnen.';
+
+  @override
+  String get supportCancel => 'Abbrechen';
+
+  @override
+  String get supportClosedSnack => 'Anfrage geschlossen.';
+
+  @override
+  String get supportReopen => 'Anfrage wieder öffnen';
+
+  @override
+  String get supportReopenedSnack => 'Anfrage wieder geöffnet.';
+
+  @override
+  String get supportRateTitle => 'Wie war unser Support?';
+
+  @override
+  String get supportRateCaption =>
+      'Bewerte deine Erfahrung mit dieser Anfrage.';
+
+  @override
+  String supportRateStar(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Sterne',
+      one: '1 Stern',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get supportRateCommentLabel =>
+      'Möchtest du etwas ergänzen? (optional)';
+
+  @override
+  String get supportRateSubmit => 'Bewertung senden';
+
+  @override
+  String get supportRatedTitle => 'Danke für dein Feedback';
+
+  @override
+  String supportRatedValue(int rating) {
+    return 'Du hast $rating von 5 vergeben.';
+  }
+
+  @override
+  String get supportRatingSnack => 'Danke für deine Bewertung.';
+
+  @override
+  String supportAttachmentImage(String name) {
+    return 'Screenshot $name';
+  }
+
+  @override
+  String get supportAttachmentLoadFailed =>
+      'Anhang konnte nicht geladen werden';
+
+  @override
+  String get supportThreadLoadErrorTitle =>
+      'Diese Anfrage konnte nicht geladen werden';
+
+  @override
+  String get chemistryCardEntry => 'Ein bisschen Chemie?';
+
+  @override
+  String get memberProfileIntroducing => 'Wir stellen vor';
+
+  @override
+  String get memberProfileStarring => 'In der Hauptrolle';
+
+  @override
+  String get memberProfileVerified => 'Verifiziert';
+
+  @override
+  String memberProfilePhotoLabel(String name, int index, int count) {
+    return '$name, Foto $index von $count';
+  }
+
+  @override
+  String get memberProfileNoPhoto => 'Noch kein Foto';
+
+  @override
+  String get memberProfileViewPhotoHint => 'im Vollbild ansehen';
+
+  @override
+  String get memberProfileCloseGallery => 'Fotos schließen';
+
+  @override
+  String get memberProfilePhotos => 'Fotos';
+
+  @override
+  String memberProfileMorePhotos(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count weitere Fotos',
+      one: '1 weiteres Foto',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get memberProfileSceneAbout => 'Über mich';
+
+  @override
+  String get memberProfileSceneStories => 'Geschichten';
+
+  @override
+  String get memberProfileSceneStoriesTitle => 'Ein bisschen mehr von mir';
+
+  @override
+  String get memberProfileSceneInterests => 'Interessen';
+
+  @override
+  String get memberProfileSceneBasics => 'Das Wichtigste';
+
+  @override
+  String get memberProfileSceneLifestyle => 'Lebensstil';
+
+  @override
+  String get memberProfileSceneTrust => 'Vertrauen';
+
+  @override
+  String get memberProfileReadMore => 'Mehr lesen';
+
+  @override
+  String get memberProfileReadLess => 'Weniger anzeigen';
+
+  @override
+  String get memberProfileHobbies => 'Hobbys';
+
+  @override
+  String get memberProfileActivities => 'Aktivitäten';
+
+  @override
+  String get memberProfileSongs => 'In Dauerschleife';
+
+  @override
+  String get memberProfileBooks => 'Bücher & Romane';
+
+  @override
+  String get memberProfileLookingFor => 'Sucht';
+
+  @override
+  String get memberProfileLanguages => 'Sprachen';
+
+  @override
+  String get memberProfileDealBreakers => 'No-Gos';
+
+  @override
+  String get memberProfileInCommon => 'Gemeinsam';
+
+  @override
+  String get memberProfileFactHeight => 'Größe';
+
+  @override
+  String memberProfileHeightCm(int cm) {
+    return '$cm cm';
+  }
+
+  @override
+  String get memberProfileFactWork => 'Beruf';
+
+  @override
+  String get memberProfileFactEducation => 'Ausbildung';
+
+  @override
+  String get memberProfileFactLivesIn => 'Wohnt in';
+
+  @override
+  String get memberProfileFactMotherTongue => 'Muttersprache';
+
+  @override
+  String get memberProfileFactReligion => 'Religion';
+
+  @override
+  String get memberProfileFactPersonality => 'Persönlichkeit';
+
+  @override
+  String get memberProfileFactRelationship => 'Beziehungsstatus';
+
+  @override
+  String get memberProfileFactInstagram => 'Instagram';
+
+  @override
+  String get memberProfileFactDrinking => 'Alkohol';
+
+  @override
+  String get memberProfileFactSmoking => 'Rauchen';
+
+  @override
+  String get memberProfileFactWorkout => 'Training';
+
+  @override
+  String get memberProfileFactDiet => 'Ernährung';
+
+  @override
+  String get memberProfileFactDietType => 'Ernährungsweise';
+
+  @override
+  String get memberProfileFactSleep => 'Schlaf';
+
+  @override
+  String get memberProfileFactTravel => 'Reisen';
+
+  @override
+  String get memberProfileFactPets => 'Haustiere';
+
+  @override
+  String get memberProfileFactPolitics => 'Politik';
+
+  @override
+  String get memberProfileFactOpenToCasual => 'Offen für Lockeres';
+
+  @override
+  String get memberProfileFactPartyLover => 'Feiert gern';
+
+  @override
+  String get memberProfileVerifiedTitle => 'Verifiziertes Profil';
+
+  @override
+  String get memberProfileVerifiedBody => 'Identitätsprüfung abgeschlossen.';
+
+  @override
+  String get memberProfileVouchesTitle => 'Freunde verbürgen sich';
+
+  @override
+  String get memberProfileSpotlight => 'Spotlight';
+
+  @override
+  String get memberProfileFreeWhenYouAre => 'Hat Zeit, wenn du Zeit hast';
+
+  @override
+  String get memberProfileMessage => 'Nachricht';
+
+  @override
+  String get memberProfileLove => 'Herz';
+
+  @override
+  String get memberProfileReport => 'Melden';
+
+  @override
+  String get memberProfileOwnerTitle => 'So sehen dich andere';
+
+  @override
+  String get memberProfileOwnerCaption =>
+      'Mitglieder sehen dein Profil genau so.';
+
+  @override
+  String memberProfileCompleteness(int percent) {
+    return 'Profil zu $percent % vollständig';
+  }
+
+  @override
+  String get memberProfileCompletenessHint =>
+      'Füge Fotos, Geschichten und Details hinzu, um aufzufallen.';
+
+  @override
+  String get memberProfileCompletenessDone => 'Dein Profil ist vollständig.';
+
+  @override
+  String get memberProfileToolEdit => 'Profil bearbeiten';
+
+  @override
+  String get memberProfileToolPhotos => 'Fotos bearbeiten';
+
+  @override
+  String get memberProfileToolStories => 'Deine Geschichten';
+
+  @override
+  String get memberProfileToolViewers => 'Wer dich angesehen hat';
+
+  @override
+  String get memberProfileBehindTheScenes => 'Hinter den Kulissen';
+
+  @override
+  String get memberProfileOnlyYou => 'Nur du siehst das.';
+
+  @override
+  String get memberProfileMine => 'Mein Profil';
+
+  @override
+  String get profileShowcaseLabel => 'Texte & Momente';
+
+  @override
+  String get profileShowcaseTitleOther => 'In eigenen Worten';
+
+  @override
+  String get profileShowcaseTitleSelf => 'Deine öffentlichen Texte & Fotos';
+
+  @override
+  String get profileShowcaseChapters => 'Kapitel';
+
+  @override
+  String get profileShowcasePhotos => 'Wand-Fotos';
+
+  @override
+  String get profileShowcaseReadAll => 'Alle Kapitel lesen';
+
+  @override
+  String get profileShowcaseHiddenTitle => 'Nur du siehst das';
+
+  @override
+  String get profileShowcaseHiddenBody =>
+      'Deine öffentlichen Kapitel und Wand-Fotos sind in deinem Profil ausgeblendet. Schalte das ein, damit Mitglieder sie hier sehen.';
+
+  @override
+  String get profileShowcaseShownBody =>
+      'Mitglieder sehen diese in deinem Profil. Es erscheinen nur Kapitel, die du mit der Community teilst, und Fotos auf der Wand.';
+
+  @override
+  String get profileShowcaseSwitch => 'In meinem Profil zeigen';
+
+  @override
+  String get profileShowcaseSaveFailed =>
+      'Deine Auswahl konnte nicht gespeichert werden.';
 }

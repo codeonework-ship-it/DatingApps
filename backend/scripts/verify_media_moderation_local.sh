@@ -3,7 +3,7 @@ set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 api_base="${MEDIA_API_BASE_URL:-http://127.0.0.1:18081/v1}"
-database_url="${LOCAL_DATABASE_URL:-postgresql://dating_app@127.0.0.1:55432/dating_app?sslmode=disable}"
+database_url="${LOCAL_DATABASE_URL:-postgresql://dating_app@127.0.0.1:55433/dating_app?sslmode=disable}"
 psql_bin="${PSQL_BIN:-/opt/homebrew/opt/postgresql@17/bin/psql}"
 operator_username="${LOCAL_OPERATOR_USERNAME:-local_control_admin}"
 operator_password="${LOCAL_OPERATOR_PASSWORD:-LocalAdmin123!}"

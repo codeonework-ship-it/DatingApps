@@ -1,13 +1,78 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Iterable
+import logging
+import re
 import uuid
 
 import requests
 from django.conf import settings
 
 from control_panel.operator_context import current_operator_session
+
+
+logger = logging.getLogger(__name__)
+
+# Text that only makes sense to an engineer: driver/SQL errors, Go runtime
+# errors and transport failures. A 4xx carrying one of these is hidden too.
+_INTERNAL_ERROR_PATTERN = re.compile(
+    r"sqlstate|\bpq:|pgx|pgconn|postgres|\bsql\b|syntax error|violates|duplicate key|"
+    r"relation \"|column \"|deadlock|lock timeout|canceling statement|no rows in result set|"
+    r"invalid input syntax|unexpected eof|context deadline|context canceled|dial tcp|"
+    r"connection refused|connection reset|broken pipe|i/o timeout|panic|runtime error|"
+    r"goroutine|nil pointer|httpconnectionpool|max retries|traceback",
+    re.IGNORECASE,
+)
+_MAX_READABLE_ERROR_LENGTH = 300
+
+
+def operator_error_message(
+    status_code: int,
+    raw_error: str,
+    *,
+    correlation_id: str = "",
+    method: str = "",
+    path: str = "",
+) -> str:
+    """What an operator sees for a failed BFF call (CON-03).
+
+    Actionable 4xx answers (validation, 403, 404, 409, 429...) are shown as Go
+    wrote them. 5xx answers, transport failures and anything that reads like a
+    database or runtime error become one generic message; the raw detail is
+    logged here with the correlation id so it can be found in both logs.
+    """
+    raw = str(raw_error or "").strip()
+    if (
+        400 <= status_code < 500
+        and raw
+        and len(raw) <= _MAX_READABLE_ERROR_LENGTH
+        and not _INTERNAL_ERROR_PATTERN.search(raw)
+    ):
+        return raw
+    if 400 <= status_code < 500 and not raw:
+        return f"request failed with {status_code}"
+    logger.warning(
+        "BFF request failed: %s %s status=%s correlation_id=%s error=%s",
+        method or "-",
+        path or "-",
+        status_code or "no-response",
+        correlation_id or "-",
+        raw or "<empty>",
+    )
+    ref = f" (ref {correlation_id})" if correlation_id else ""
+    return (
+        "The service couldn't complete that request. Try again; if it keeps "
+        f"happening, check the logs{ref}."
+    )
+
+
+def _response_correlation_id(data: Any, sent: str) -> str:
+    if isinstance(data, dict):
+        value = data.get("correlation_id")
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return sent
 
 
 @dataclass
@@ -23,6 +88,19 @@ class BinaryAPIResult:
     ok: bool
     content: bytes = b""
     content_type: str = "application/octet-stream"
+    error: str = ""
+    status_code: int = 0
+
+
+@dataclass
+class StreamAPIResult:
+    """A binary Go response passed through in chunks (CSV exports, private
+    support attachments) so large bodies are never held in console memory."""
+    ok: bool
+    chunks: Iterable[bytes] = ()
+    content_type: str = "application/octet-stream"
+    content_disposition: str = ""
+    content_length: str = ""
     error: str = ""
     status_code: int = 0
 
@@ -62,11 +140,13 @@ class GoBFFClient:
     ) -> APIResult:
         base = self.health_base if use_health_base else self.api_base
         url = f"{base.rstrip('/')}/{path.lstrip('/')}"
-        headers: dict[str, str] = {"X-Correlation-ID": f"control-panel-{uuid.uuid4()}"}
+        correlation_id = f"control-panel-{uuid.uuid4()}"
+        headers: dict[str, str] = {"X-Correlation-ID": correlation_id}
         if self.access_token and not use_health_base:
             headers["Authorization"] = f"Bearer {self.access_token}"
         if method.upper() not in {"GET", "HEAD", "OPTIONS"}:
             headers["Idempotency-Key"] = f"control-panel-{uuid.uuid4()}"
+        response = None
         try:
             response = self.session.request(
                 method=method,
@@ -78,9 +158,15 @@ class GoBFFClient:
             )
             data = response.json() if response.content else {}
         except requests.RequestException as exc:
-            return APIResult(ok=False, data={}, error=str(exc))
+            error = operator_error_message(0, str(exc), correlation_id=correlation_id, method=method, path=path)
+            return APIResult(ok=False, data={}, error=error)
         except ValueError:
-            return APIResult(ok=False, data={}, error="invalid JSON response from Go API")
+            status = response.status_code if response is not None and isinstance(response.status_code, int) else 0
+            error = operator_error_message(
+                max(status, 500), "invalid JSON response from Go API",
+                correlation_id=correlation_id, method=method, path=path,
+            )
+            return APIResult(ok=False, data={}, error=error, status_code=status)
 
         if response.status_code == 401 and allow_refresh and self._refresh_session():
             return self._request(
@@ -93,7 +179,11 @@ class GoBFFClient:
             )
 
         if response.status_code >= 400:
-            message = str(data.get("error") or f"request failed with {response.status_code}")
+            raw = data.get("error") if isinstance(data, dict) else ""
+            message = operator_error_message(
+                response.status_code, str(raw or ""),
+                correlation_id=_response_correlation_id(data, correlation_id), method=method, path=path,
+            )
             return APIResult(ok=False, data=data, error=message, status_code=response.status_code)
         return APIResult(ok=True, data=data, status_code=response.status_code)
 
@@ -232,31 +322,155 @@ class GoBFFClient:
             },
         )
 
-    # ── Support / deferred growth ────────────────────────────────────────────
+    # ── Deferred growth governance ───────────────────────────────────────────
 
     def growth_portfolio(self) -> APIResult:
         return self._request("GET", "/growth/portfolio")
 
-    def list_support_tickets(
-        self, *, status: str = "", category: str = "", limit: int = 100
-    ) -> APIResult:
-        params: dict[str, Any] = {"limit": limit}
-        if status.strip():
-            params["status"] = status.strip()
-        if category.strip():
-            params["category"] = category.strip()
+    # ── Support tickets (operator API, /v1/admin/support/...) ────────────────
+    # Go allows admin, ops_admin, support, trust_safety and moderator; analyst
+    # may only GET the dashboard.
+
+    SUPPORT_TICKET_FILTERS = ("status", "category", "priority", "team", "channel", "assignee", "sla", "q", "sort")
+
+    @classmethod
+    def _support_filter_params(cls, filters: dict[str, Any]) -> dict[str, Any]:
+        params: dict[str, Any] = {}
+        for key in cls.SUPPORT_TICKET_FILTERS:
+            value = str(filters.get(key) or "").strip()
+            if value:
+                params[key] = value
+        return params
+
+    def list_support_tickets(self, *, limit: int = 50, offset: int = 0, **filters: Any) -> APIResult:
+        params = self._support_filter_params(filters)
+        params["limit"] = limit
+        params["offset"] = offset
         return self._request("GET", "/admin/support/tickets", params=params)
+
+    def export_support_tickets(self, **filters: Any) -> StreamAPIResult:
+        """The filtered queue as CSV (no message bodies), streamed through."""
+        return self._stream_get("/admin/support/tickets/export", params=self._support_filter_params(filters))
 
     def get_support_ticket(self, ticket_id: str) -> APIResult:
         return self._request("GET", f"/admin/support/tickets/{ticket_id}")
 
-    def update_support_ticket(
-        self, ticket_id: str, *, status: str, priority: str, note: str
+    def update_support_ticket(self, ticket_id: str, changes: dict[str, Any]) -> APIResult:
+        """PATCH status/priority/category/team/assignee_id/tags/client_error_issue_id.
+        Only the keys present are changed; "" unassigns or clears the error link."""
+        return self._request("PATCH", f"/admin/support/tickets/{ticket_id}", payload=dict(changes))
+
+    def claim_support_ticket(self, ticket_id: str) -> APIResult:
+        return self._request("POST", f"/admin/support/tickets/{ticket_id}/claim", payload={})
+
+    def reply_support_ticket(
+        self,
+        ticket_id: str,
+        *,
+        body: str,
+        visibility: str,
+        canned_response_id: str = "",
+        status: str = "",
     ) -> APIResult:
+        payload: dict[str, Any] = {"body": body, "visibility": visibility}
+        if canned_response_id:
+            payload["canned_response_id"] = canned_response_id
+        if status:
+            payload["status"] = status
+        return self._request("POST", f"/admin/support/tickets/{ticket_id}/messages", payload=payload)
+
+    def merge_support_ticket(self, ticket_id: str, into_ticket_id: str) -> APIResult:
         return self._request(
-            "PUT",
-            f"/admin/support/tickets/{ticket_id}",
-            payload={"status": status, "priority": priority, "note": note},
+            "POST", f"/admin/support/tickets/{ticket_id}/merge", payload={"into_ticket_id": into_ticket_id}
+        )
+
+    def bulk_support_tickets(self, ticket_ids: list[str], action: str, value: str = "") -> APIResult:
+        return self._request(
+            "POST",
+            "/admin/support/tickets/bulk",
+            payload={"ticket_ids": list(ticket_ids), "action": action, "value": value},
+        )
+
+    def preview_support_canned_response(self, ticket_id: str, response_id: str) -> APIResult:
+        return self._request(
+            "GET", f"/admin/support/tickets/{ticket_id}/canned-responses/{response_id}/preview"
+        )
+
+    def support_attachment_content(self, attachment_id: str) -> StreamAPIResult:
+        """Private attachment bytes, fetched with the operator's token server-side."""
+        return self._stream_get(f"/admin/support/attachments/{attachment_id}/content")
+
+    def support_dashboard(self, *, days: int = 30) -> APIResult:
+        return self._request("GET", "/admin/support/dashboard", params={"days": days})
+
+    def support_agents(self) -> APIResult:
+        return self._request("GET", "/admin/support/agents")
+
+    def list_support_canned_responses(self, *, include_inactive: bool = False) -> APIResult:
+        params = {"include_inactive": 1} if include_inactive else None
+        return self._request("GET", "/admin/support/canned-responses", params=params)
+
+    def create_support_canned_response(self, payload: dict[str, Any]) -> APIResult:
+        return self._request("POST", "/admin/support/canned-responses", payload=dict(payload))
+
+    def update_support_canned_response(self, response_id: str, changes: dict[str, Any]) -> APIResult:
+        return self._request("PATCH", f"/admin/support/canned-responses/{response_id}", payload=dict(changes))
+
+    def deactivate_support_canned_response(self, response_id: str) -> APIResult:
+        return self._request("DELETE", f"/admin/support/canned-responses/{response_id}")
+
+    def _stream_get(
+        self, path: str, *, params: dict[str, Any] | None = None, allow_refresh: bool = True
+    ) -> StreamAPIResult:
+        headers = {"X-Correlation-ID": f"control-panel-{uuid.uuid4()}"}
+        if self.access_token:
+            headers["Authorization"] = f"Bearer {self.access_token}"
+        try:
+            response = self.session.get(
+                f"{self.api_base.rstrip('/')}/{path.lstrip('/')}",
+                params=params or None,
+                headers=headers,
+                timeout=self.timeout,
+                stream=True,
+            )
+        except requests.RequestException as exc:
+            return StreamAPIResult(ok=False, error=operator_error_message(
+                0, str(exc), correlation_id=headers["X-Correlation-ID"], method="GET", path=path))
+        if response.status_code == 401 and allow_refresh and self._refresh_session():
+            response.close()
+            return self._stream_get(path, params=params, allow_refresh=False)
+        if response.status_code >= 400:
+            try:
+                body = response.json()
+                message = str(body.get("error") or "") if isinstance(body, dict) else ""
+            except ValueError:
+                message = ""
+            finally:
+                response.close()
+            return StreamAPIResult(
+                ok=False,
+                error=operator_error_message(
+                    response.status_code, message,
+                    correlation_id=headers["X-Correlation-ID"], method="GET", path=path,
+                ),
+                status_code=response.status_code,
+            )
+
+        def chunks():
+            try:
+                for chunk in response.iter_content(chunk_size=64 * 1024):
+                    if chunk:
+                        yield chunk
+            finally:
+                response.close()
+
+        return StreamAPIResult(
+            ok=True,
+            chunks=chunks(),
+            content_type=response.headers.get("Content-Type", "application/octet-stream"),
+            content_disposition=response.headers.get("Content-Disposition", ""),
+            content_length=response.headers.get("Content-Length", ""),
+            status_code=response.status_code,
         )
 
     def list_growth_fraud_graph(self, *, status: str = "open", limit: int = 100) -> APIResult:
@@ -307,7 +521,8 @@ class GoBFFClient:
                 timeout=self.timeout,
             )
         except requests.RequestException as exc:
-            return BinaryAPIResult(ok=False, error=str(exc))
+            return BinaryAPIResult(ok=False, error=operator_error_message(
+                0, str(exc), correlation_id=headers["X-Correlation-ID"], method="GET"))
         if response.status_code == 401 and allow_refresh and self._refresh_session():
             return self.get_media_moderation_content(photo_id, allow_refresh=False)
         if response.status_code >= 400:
@@ -342,7 +557,8 @@ class GoBFFClient:
         try:
             response = self.session.get(f"{self.api_base.rstrip('/')}/admin/moderation/blog/{case_id}/photos/{photo_id}", headers=headers, timeout=self.timeout)
         except requests.RequestException as exc:
-            return BinaryAPIResult(ok=False, error=str(exc))
+            return BinaryAPIResult(ok=False, error=operator_error_message(
+                0, str(exc), correlation_id=headers["X-Correlation-ID"], method="GET"))
         if response.status_code == 401 and allow_refresh and self._refresh_session():
             return self.blog_evidence(case_id, photo_id, allow_refresh=False)
         if response.status_code >= 400:
@@ -378,7 +594,8 @@ class GoBFFClient:
                 params=query, headers=headers, timeout=self.timeout, stream=True,
             )
         except requests.RequestException as exc:
-            return None, str(exc)
+            return None, operator_error_message(
+                0, str(exc), correlation_id=headers["X-Correlation-ID"], method="GET", path=f"/admin/analytics/{name}")
         if response.status_code == 401 and allow_refresh and self._refresh_session():
             response.close()
             return self.analytics_report_csv(name, params, allow_refresh=False)
@@ -388,7 +605,9 @@ class GoBFFClient:
             except ValueError:
                 message = ""
             response.close()
-            return None, message or f"export failed with {response.status_code}"
+            return None, operator_error_message(
+                response.status_code, message, correlation_id=headers["X-Correlation-ID"],
+                method="GET", path=f"/admin/analytics/{name}")
         return response, ""
 
     def analytics_definitions(self) -> APIResult:
@@ -495,19 +714,14 @@ class GoBFFClient:
     def force_verify_user(self, user_id: str) -> APIResult:
         return self._request("POST", f"/admin/users/{user_id}/verify", payload={})
 
-    def get_wallet_transactions(self, user_id: str, *, limit: int = 20) -> APIResult:
-        return self._request(
-            "GET",
-            "/admin/billing/transactions",
-            params={"limit": limit, "source": "eq.admin_grant"},
-        )
-
-    def list_billing_transactions(self, *, limit: int = 50, offset: int = 0) -> APIResult:
-        return self._request(
-            "GET",
-            "/admin/billing/transactions",
-            params={"limit": limit, "offset": offset},
-        )
+    def list_billing_transactions(self, *, limit: int = 50, offset: int = 0, user_id: str = "") -> APIResult:
+        """Coin purchases, newest first. ``user_id`` asks Go for one member's
+        rows (CON-04, filtered by the BFF); callers still drop any row for
+        another member as a defence against an older BFF."""
+        params: dict[str, Any] = {"limit": limit, "offset": offset}
+        if user_id.strip():
+            params["user_id"] = user_id.strip()
+        return self._request("GET", "/admin/billing/transactions", params=params)
 
     def create_coin_package(self, payload: dict[str, Any]) -> APIResult:
         return self._request("POST", "/admin/billing/coin-packages", payload=payload)
@@ -834,7 +1048,8 @@ class GoBFFClient:
                 timeout=self.timeout,
             )
         except requests.RequestException as exc:
-            return BinaryAPIResult(ok=False, error=str(exc))
+            return BinaryAPIResult(ok=False, error=operator_error_message(
+                0, str(exc), correlation_id=headers["X-Correlation-ID"], method="GET"))
         if response.status_code == 401 and allow_refresh and self._refresh_session():
             return self.group_cover_content(cover_id, allow_refresh=False)
         if response.status_code >= 400:
@@ -875,7 +1090,8 @@ class GoBFFClient:
                 timeout=self.timeout,
             )
         except requests.RequestException as exc:
-            return BinaryAPIResult(ok=False, error=str(exc))
+            return BinaryAPIResult(ok=False, error=operator_error_message(
+                0, str(exc), correlation_id=headers["X-Correlation-ID"], method="GET"))
         if response.status_code == 401 and allow_refresh and self._refresh_session():
             return self.business_csv(report, params, allow_refresh=False)
         if response.status_code >= 400:
@@ -883,7 +1099,9 @@ class GoBFFClient:
                 message = str(response.json().get("error") or "")
             except ValueError:
                 message = ""
-            return BinaryAPIResult(ok=False, error=message or f"request failed with {response.status_code}", status_code=response.status_code)
+            return BinaryAPIResult(ok=False, error=operator_error_message(
+                response.status_code, message, correlation_id=headers["X-Correlation-ID"],
+                method="GET", path=f"/admin/business/{report}"), status_code=response.status_code)
         return BinaryAPIResult(
             ok=True,
             content=response.content,

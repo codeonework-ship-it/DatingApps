@@ -4,9 +4,7 @@ import pytest
 
 
 def _open_profile_detail(app) -> None:
-    app.sign_in_existing_user()
-    app.open_tab("Discover")
-    app.assert_any_text_visible("Discover Matches", "Find meaningful verified matches", timeout=25)
+    app.open_discovery_deck()
 
     opened = app.maybe_tap_qa("qa.discovery.view_more_button", timeout=8)
     if not opened:
@@ -25,12 +23,14 @@ def test_discovery_profile_detail_surface(app):
     app.wait_for_qa("qa.profile_detail.report_button", timeout=10)
     app.wait_for_qa("qa.profile_detail.message_button", timeout=10)
     app.wait_for_qa("qa.profile_detail.love_button", timeout=10)
+    # Section titles of the cinematic profile (2026-10-02 redesign): the
+    # photo strip sits right under the hero, then titled scenes.
     app.assert_any_text_visible(
-        "City",
-        "State",
-        "Lifestyle & Preferences",
+        "PHOTOS",
+        "ABOUT",
+        "INTERESTS",
+        "THE BASICS",
         "Hobbies",
-        "Intent Tags",
         timeout=15,
     )
     if app.maybe_tap_qa("qa.profile_detail.read_more_button", timeout=3):

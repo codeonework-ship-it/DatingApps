@@ -127,6 +127,7 @@ type S3KindPrefixes struct {
 	GroupCovers             string
 	Voice                   string
 	Verification            string
+	SupportAttachments      string
 }
 
 // DefaultS3KindPrefixes mirrors the local kinds layout inside the bucket.
@@ -140,6 +141,7 @@ func DefaultS3KindPrefixes() S3KindPrefixes {
 		GroupCovers:             "public/group_covers",
 		Voice:                   "private/voice",
 		Verification:            "private/verification",
+		SupportAttachments:      "private/support_attachments",
 	}
 }
 
@@ -383,6 +385,7 @@ func LoadMediaStorage(environment string) (MediaStorageConfig, error) {
 		GroupCovers:             prefixOrDefault("AWS_S3_PREFIX_GROUP_COVERS", defaults.GroupCovers),
 		Voice:                   prefixOrDefault("AWS_S3_PREFIX_VOICE", defaults.Voice),
 		Verification:            prefixOrDefault("AWS_S3_PREFIX_VERIFICATION", defaults.Verification),
+		SupportAttachments:      prefixOrDefault("AWS_S3_PREFIX_SUPPORT_ATTACHMENTS", defaults.SupportAttachments),
 	}
 	s3.SSE = strings.TrimSpace(os.Getenv("AWS_S3_SSE"))
 	switch strings.ToLower(s3.SSE) {
@@ -572,6 +575,7 @@ func (c MediaStorageConfig) validate(prodLike bool) []string {
 		{"AWS_S3_PREFIX_GROUP_COVERS", s.Prefixes.GroupCovers},
 		{"AWS_S3_PREFIX_VOICE", s.Prefixes.Voice},
 		{"AWS_S3_PREFIX_VERIFICATION", s.Prefixes.Verification},
+		{"AWS_S3_PREFIX_SUPPORT_ATTACHMENTS", s.Prefixes.SupportAttachments},
 	}
 	for i, a := range kindPrefixes {
 		if a.value == "" {

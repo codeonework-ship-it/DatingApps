@@ -38,6 +38,7 @@ class OperatorSessionMiddleware:
                 "operator_refresh_token",
                 "operator_username",
                 "operator_user_id",
+                "operator_roles",
             ):
                 request.session.pop(key, None)
             request.session.modified = True

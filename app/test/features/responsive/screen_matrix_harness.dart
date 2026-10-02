@@ -69,8 +69,17 @@ import 'package:verified_dating_app/features/profile/screens/setup/setup_photos_
 import 'package:verified_dating_app/features/profile/screens/setup/setup_preferences_screen.dart';
 import 'package:verified_dating_app/features/profile/screens/setup/setup_preview_screen.dart';
 import 'package:verified_dating_app/features/safety/screens/sos_screen.dart';
+import 'package:verified_dating_app/features/support/screens/support_ticket_form_screen.dart';
+import 'package:verified_dating_app/features/support/screens/support_ticket_thread_screen.dart';
+import 'package:verified_dating_app/features/support/screens/support_tickets_screen.dart';
 import 'package:verified_dating_app/features/swipe/models/discovery_profile.dart';
 import 'package:verified_dating_app/features/swipe/screens/home_discovery_screen.dart';
+import 'package:verified_dating_app/features/city_pilot/city_pilot_screen.dart';
+import 'package:verified_dating_app/features/first_chapter/chapter_studio_screen.dart';
+import 'package:verified_dating_app/features/first_chapter/comfort_cards_screen.dart';
+import 'package:verified_dating_app/features/friends/screens/introducer_screen.dart';
+import 'package:verified_dating_app/features/social_chat/social_chat_screen.dart';
+import 'package:verified_dating_app/features/swipe/screens/liked_me_screen.dart';
 import 'package:verified_dating_app/features/swipe/screens/liked_profiles_screen.dart';
 import 'package:verified_dating_app/features/swipe/screens/passed_profiles_screen.dart';
 import 'package:verified_dating_app/features/swipe/screens/profile_details_screen.dart';
@@ -181,6 +190,11 @@ Map<String, Widget Function()> buildScreenMatrix() {
     'BlockedUsersScreen': BlockedUsersScreen.new,
     'EmergencyContactsScreen': EmergencyContactsScreen.new,
     'HelpSupportScreen': HelpSupportScreen.new,
+    // support
+    'SupportTicketFormScreen': SupportTicketFormScreen.new,
+    'SupportTicketsScreen': SupportTicketsScreen.new,
+    'SupportTicketThreadScreen': () =>
+        const SupportTicketThreadScreen(ticketId: 'ticket-1'),
     'LanguageSettingsScreen': LanguageSettingsScreen.new,
     'MainNavigationScreen': MainNavigationScreen.new,
     'ModerationAppealsScreen': ModerationAppealsScreen.new,
@@ -273,6 +287,14 @@ Map<String, Widget Function()> buildScreenMatrix() {
         VerificationSelfieScreen(idPhoto: XFile('test/fixtures/id.jpg')),
     'VerificationStatusScreen': VerificationStatusScreen.new,
     'VerificationUploadIdScreen': VerificationUploadIdScreen.new,
+    'ChapterStudioScreen': () =>
+        const ChapterStudioScreen(matchId: 'm-1', partnerName: 'Meera'),
+    'CityPilotScreen': CityPilotScreen.new,
+    'ComfortCardsScreen': ComfortCardsScreen.new,
+    'IntroducerScreen': IntroducerScreen.new,
+    'LikedMeScreen': LikedMeScreen.new,
+    'SocialChatScreen': () =>
+        const SocialChatScreen(channelId: 'c-1', title: 'Weekend hikers'),
   };
 }
 

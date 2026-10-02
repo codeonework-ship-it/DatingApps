@@ -23,11 +23,13 @@ var storyPrompts = map[string]string{
 }
 
 type profileStory struct {
-	PromptID         string `json:"prompt_id"`
-	Text             string `json:"text"`
-	PhotoID          string `json:"photo_id,omitempty"`
-	PhotoURL         string `json:"photo_url,omitempty"`
-	PhotoDescription string `json:"photo_description,omitempty"`
+	PromptID string `json:"prompt_id"`
+	Text     string `json:"text"`
+	// Content is the formatted story (rich_text.go); Text is its derived plain text.
+	Content          *richDoc `json:"content,omitempty"`
+	PhotoID          string   `json:"photo_id,omitempty"`
+	PhotoURL         string   `json:"photo_url,omitempty"`
+	PhotoDescription string   `json:"photo_description,omitempty"`
 }
 type storyPhoto struct {
 	ID  string `json:"id"`
@@ -65,6 +67,15 @@ func parseProfileStories(body map[string]any) (profileStoriesView, error) {
 			return out, errInvalidStory
 		}
 		story := profileStory{PromptID: strings.TrimSpace(toString(row["prompt_id"])), Text: strings.TrimSpace(toString(row["text"])), PhotoID: strings.TrimSpace(toString(row["photo_id"])), PhotoDescription: strings.TrimSpace(toString(row["photo_description"]))}
+		content, err := parseRichDoc(row["content"], storyRichLimits)
+		if err != nil {
+			return out, err
+		}
+		if content != nil {
+			// The plain text is always derived, so profiles and older clients agree.
+			story.Content = content
+			story.Text = strings.TrimSpace(richPlainText(content))
+		}
 		if storyPrompts[story.PromptID] == "" || seen[story.PromptID] || utf8.RuneCountInString(story.Text) < 1 || utf8.RuneCountInString(story.Text) > 400 {
 			return out, errInvalidStory
 		}

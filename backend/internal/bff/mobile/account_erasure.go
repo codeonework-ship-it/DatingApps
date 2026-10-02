@@ -443,6 +443,18 @@ func accountErasureSteps() []accountErasureStep {
 		                            WHERE (user_id=$1::uuid OR actor_user_id=$1::uuid)
 		                              AND (ip_address IS NOT NULL OR source_device_id IS NOT NULL OR geo_city IS NOT NULL
 		                                   OR geo_latitude IS NOT NULL OR payload->'details' ? 'remote_addr' OR payload->'details' ? 'query')`},
+		// Support tickets (migration 126) stay as anonymous records for SLA
+		// reporting. What the member wrote, every message on their tickets
+		// (agents quote them) and their attachments go; the support SLA worker
+		// releases the attachment bytes.
+		{label: "support_attachments", query: `UPDATE support.ticket_attachments SET deleted_at=COALESCE(deleted_at,NOW())
+		                         WHERE uploader_id=$1::uuid OR ticket_id IN (SELECT id FROM support.tickets WHERE requester_member_id=$1::uuid)`},
+		{label: "support_messages", usesTombstone: true, query: `UPDATE support.ticket_messages SET body=$2
+		                      WHERE ((author_id=$1::uuid AND author_kind='member') OR ticket_id IN (SELECT id FROM support.tickets WHERE requester_member_id=$1::uuid))
+		                        AND body<>$2`},
+		{label: "support_tickets", usesTombstone: true, query: `UPDATE support.tickets
+		                     SET subject=$2, satisfaction_comment=NULL, app_version=NULL, os_version=NULL, device_model=NULL, locale=NULL, updated_at=NOW()
+		                     WHERE requester_member_id=$1::uuid AND subject<>$2`},
 		// An SOS alert's message and location are among the most sensitive
 		// things a member ever sends; the alert row survives for the safety
 		// record, its content does not. Delivery snapshots copied the

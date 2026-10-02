@@ -49,13 +49,7 @@ def _read_preferences(api_client, user_id: str) -> dict:
 
 
 def _open_filters(app) -> None:
-    app.sign_in_existing_user()
-    app.open_tab("Discover")
-    app.assert_any_text_visible(
-        "Discover Matches",
-        "Find meaningful verified matches",
-        timeout=25,
-    )
+    app.open_discovery_deck()
     if not app.maybe_tap_qa("qa.discovery.filter_button", timeout=5):
         app.tap_first_visible_text(["Filters", "Filter"], timeout=15)
     app.assert_any_text_visible(

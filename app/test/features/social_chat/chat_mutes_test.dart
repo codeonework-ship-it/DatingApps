@@ -147,12 +147,19 @@ void main() {
     // Messages still show; the composer is closed and says why and until when.
     expect(find.text('Anyone else up?'), findsOneWidget);
     expect(find.byKey(const ValueKey('social.chat.read_only')), findsOneWidget);
-    final time = TimeOfDay.fromDateTime(
-      until,
-    ).format(tester.element(find.byType(SocialChatScreen)));
+    final context = tester.element(find.byType(SocialChatScreen));
+    var when = TimeOfDay.fromDateTime(until).format(context);
+    // Within ten minutes of midnight the mute ends tomorrow, so the date shows.
+    final now = DateTime.now();
+    if (until.day != now.day ||
+        until.month != now.month ||
+        until.year != now.year) {
+      when =
+          '${MaterialLocalizations.of(context).formatMediumDate(until)}, $when';
+    }
     expect(
       find.text(
-        'You’re muted in this room until $time. You can still read along.',
+        'You’re muted in this room until $when. You can still read along.',
       ),
       findsOneWidget,
     );
