@@ -3,8 +3,9 @@
 {% block content %}
 <div class="page-header"><div><h1>Group Covers</h1><p>Cover photos group owners uploaded that the automatic check sent for a human look. Pending covers show only to the owner until you decide. Approving shows the cover to everyone who can see the group; rejecting hides it at once, releases the stored photo and tells the owner, and the group falls back to its emoji cover.</p></div></div>
 {% if error %}<div class="alert-glass warning" role="alert">{{ error }}</div>{% endif %}
-<nav class="d-flex flex-wrap gap-3 mb-4" aria-label="Cover review status">{% for key, label in statuses %}<a href="?status={{ key }}"{% if key == queue_status %} aria-current="page" class="fw-bold"{% endif %}>{{ label }}</a>{% endfor %}</nav>
-<p>Queue: {% if queue_status == 'pending' %}needs review, oldest first{% else %}approved, newest first{% endif %} · {{ covers|length }} shown.</p>
+<div class="glass-card mb-4">{% include "control_panel/partials/_list_controls.html" with list_label="Filter group covers" search_placeholder="Group name…" %}</div>
+<p>Queue: {% if queue_status == 'pending' %}needs review, oldest first{% else %}approved, newest first{% endif %}.</p>
+<div class="glass-card mb-4">{% include "control_panel/partials/_list_toolbar.html" %}</div>
 {% for cover in covers %}<article class="glass-card mb-4">
   <div class="row g-3">
     <div class="col-md-4"><a href="{% url 'group_cover_content' cover.cover_id %}"><img src="{% url 'group_cover_content' cover.cover_id %}" alt="Cover photo uploaded for {{ cover.group_name|default:'a group' }}" class="img-fluid rounded" width="320" loading="lazy"></a></div>
@@ -24,5 +25,6 @@
       {% else %}<p>Status: {{ cover.status|title }}. Decided covers cannot be changed here; the owner can upload a new cover.</p>{% endif %}
     </div>
   </div>
-</article>{% empty %}<div class="glass-card"><h2 class="h5">No covers in this queue.</h2><p>{% if queue_status == 'pending' %}Covers that need a human look will appear here.{% else %}Approved covers will appear here.{% endif %}</p></div>{% endfor %}
+</article>{% empty %}<div class="glass-card mb-4"><h2 class="h5">No covers in this queue.</h2><p>{% if list_query.q or list_query.filters.from or list_query.filters.to %}No covers match these filters.{% elif queue_status == 'pending' %}Covers that need a human look will appear here.{% else %}Approved covers will appear here.{% endif %}</p></div>{% endfor %}
+<div class="mb-4">{% include "control_panel/partials/_pagination.html" %}</div>
 {% endblock %}

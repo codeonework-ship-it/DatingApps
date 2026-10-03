@@ -185,7 +185,113 @@
     if (event.target.closest && event.target.closest('[data-print]')) window.print();
   });
 
-  window.ConsoleUI = {toast: toast, confirm: confirmDialog};
+  // ── Client-side pagination for every grid not paged by the server ────
+  // Server-paged lists (a .list-toolbar in the same card) are left alone.
+  // Grouped report tables page by group (each tbody.report-group keeps its
+  // rows and subtotal); flat tables page by row, keeping a detail row
+  // (tr.collapse) with the row before it. Printing shows every row.
+  var PAGE_SIZES = [10, 25, 50, 100];
+  function paginateTable(table) {
+    if (table.dataset.paginated || table.hasAttribute('data-no-paginate')) return;
+    var card = table.closest('.glass-card, section, .report-dataset');
+    if (card && card.querySelector('.list-toolbar')) return;
+    var grouped = table.querySelectorAll(':scope > tbody.report-group');
+    var units;
+    if (grouped.length) {
+      units = Array.prototype.map.call(grouped, function (tb) { return [tb]; });
+    } else {
+      var body = table.tBodies[0];
+      if (!body) return;
+      units = [];
+      Array.prototype.forEach.call(body.rows, function (row) {
+        if (row.classList.contains('collapse') && units.length) units[units.length - 1].push(row);
+        else units.push([row]);
+      });
+    }
+    var size = parseInt(table.getAttribute('data-page-size') || '25', 10);
+    if (units.length <= size) return;
+    table.dataset.paginated = '1';
+    var page = 1;
+    var footer = document.createElement('div');
+    footer.className = 'list-footer table-pager';
+    var wrap = table.closest('.table-responsive') || table;
+    wrap.insertAdjacentElement('afterend', footer);
+    var label = grouped.length ? 'groups' : 'rows';
+
+    function render() {
+      var pages = Math.max(1, Math.ceil(units.length / size));
+      page = Math.min(Math.max(1, page), pages);
+      var start = (page - 1) * size, end = Math.min(units.length, start + size);
+      units.forEach(function (unit, i) {
+        var show = i >= start && i < end;
+        unit.forEach(function (el) { el.hidden = !show; });
+      });
+      footer.textContent = '';
+      var summary = document.createElement('span');
+      summary.className = 'list-summary';
+      summary.setAttribute('role', 'status');
+      summary.textContent = 'Showing ' + (start + 1) + '–' + end + ' of ' + units.length + ' ' + label;
+      var sizeLabel = document.createElement('label');
+      sizeLabel.className = 'table-pager-size';
+      var sizeText = document.createElement('span');
+      sizeText.textContent = 'Per page';
+      var select = document.createElement('select');
+      select.className = 'form-select form-select-sm';
+      PAGE_SIZES.forEach(function (n) {
+        var o = document.createElement('option');
+        o.value = String(n); o.textContent = String(n); o.selected = n === size;
+        select.appendChild(o);
+      });
+      select.addEventListener('change', function () { size = parseInt(select.value, 10); page = 1; render(); });
+      sizeLabel.append(sizeText, select);
+      var nav = document.createElement('nav');
+      nav.setAttribute('aria-label', 'Pages');
+      var ul = document.createElement('ul');
+      ul.className = 'pagination pagination-sm mb-0';
+      function item(text, target, opts) {
+        opts = opts || {};
+        var li = document.createElement('li');
+        li.className = 'page-item' + (opts.disabled ? ' disabled' : '') + (opts.active ? ' active' : '');
+        var el = document.createElement(opts.disabled || opts.active ? 'span' : 'button');
+        el.className = 'page-link';
+        if (opts.html) el.innerHTML = text; else el.textContent = text;
+        if (opts.label) el.setAttribute('aria-label', opts.label);
+        if (opts.active) li.setAttribute('aria-current', 'page');
+        if (!opts.disabled && !opts.active) {
+          el.type = 'button';
+          el.addEventListener('click', function () { page = target; render(); (wrap.scrollIntoView && wrap.scrollIntoView({block: 'nearest'})); });
+        }
+        li.appendChild(el);
+        ul.appendChild(li);
+      }
+      item('<i class="bi bi-chevron-left" aria-hidden="true"></i>', page - 1, {disabled: page === 1, html: true, label: 'Previous page'});
+      var wanted = [1, pages, page - 2, page - 1, page, page + 1, page + 2].filter(function (n, i, a) { return n >= 1 && n <= pages && a.indexOf(n) === i; }).sort(function (a, b) { return a - b; });
+      var last = 0;
+      wanted.forEach(function (n) {
+        if (n - last > 1) item('…', 0, {disabled: true});
+        item(String(n), n, {active: n === page});
+        last = n;
+      });
+      item('<i class="bi bi-chevron-right" aria-hidden="true"></i>', page + 1, {disabled: page === pages, html: true, label: 'Next page'});
+      nav.appendChild(ul);
+      footer.append(summary, sizeLabel, nav);
+    }
+    table._showAll = function () { units.forEach(function (u) { u.forEach(function (el) { el.hidden = false; }); }); };
+    table._render = render;
+    render();
+  }
+  function paginateAll(root) {
+    (root || document).querySelectorAll('table.glass-table').forEach(paginateTable);
+  }
+  paginateAll();
+  window.addEventListener('beforeprint', function () {
+    document.querySelectorAll('table[data-paginated]').forEach(function (t) { t._showAll && t._showAll(); });
+  });
+  window.addEventListener('afterprint', function () {
+    document.querySelectorAll('table[data-paginated]').forEach(function (t) { t._render && t._render(); });
+  });
+
+  window.ConsoleUI = {toast: toast, confirm: confirmDialog, paginate: paginateAll};
 
   // ── Live updates ─────────────────────────────────────────────────────
   if (!('WebSocket' in window) || !document.querySelector('[data-live-status]')) return;
@@ -327,6 +433,7 @@
     var region = document.querySelector('[data-live-region="dashboard"]');
     if (region && typeof data.html === 'string') {
       region.innerHTML = data.html;
+      paginateAll(region);
     }
     var stamp = document.querySelector('[data-live-stamp]');
     if (stamp && data.stamp) stamp.textContent = data.stamp;

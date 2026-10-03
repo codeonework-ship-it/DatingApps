@@ -1,4 +1,5 @@
 {% extends "control_panel/base.html" %}
+{% load custom_filters %}
 {% block topbar_title %}Reconciliation{% endblock %}
 
 {% block content %}
@@ -28,6 +29,7 @@
       <input type="date" name="until" class="glass-input" value="{{ until }}">
     </div>
     <div class="col-sm-4">
+      {% for key, value in list_query.params.items %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}
       <button type="submit" class="btn btn-glass w-100"><i class="bi bi-funnel me-1"></i>Run</button>
     </div>
   </form>
@@ -107,29 +109,39 @@
       <h5 class="mb-1"><i class="bi bi-shield-exclamation me-2 text-warning"></i>Coin economy fraud controls</h5>
       <p class="small text-muted mb-0">Paid gifts and coin checkouts are evaluated against tunable velocity rules. Clear a false positive to remove the lock attributed to that case.</p>
     </div>
-    <span class="badge {% if fraud_cases %}badge-danger{% else %}badge-active{% endif %}">{{ fraud_cases|length }} open case{{ fraud_cases|length|pluralize }}</span>
+    <span class="badge {% if fraud_cases %}badge-danger{% else %}badge-active{% endif %}">{% if total is not None %}{{ total|thousands }} {{ fraud_status_label }} case{{ total|pluralize }}{% else %}{{ fraud_cases|length }} {{ fraud_status_label }} case{{ fraud_cases|length|pluralize }} shown{% endif %}</span>
   </div>
+  {% include "control_panel/partials/_list_controls.html" with list_label="Filter coin economy fraud cases" search_placeholder="Rule or event type…" %}
+</div>
+
+<div class="glass-card mb-4">
   {% if fraud_cases_error %}<div class="alert-glass warning mb-3">{{ fraud_cases_error }}</div>{% endif %}
+  {% include "control_panel/partials/_list_toolbar.html" %}
   {% if fraud_cases %}
-  <div class="d-grid gap-3 mb-4">
+  <div class="d-grid gap-3 mb-3">
     {% for case in fraud_cases %}
     <form method="post" action="{% url 'billing_fraud_case_resolve' case.id %}" class="p-3 inset-panel">
       {% csrf_token %}
       <div class="d-flex flex-wrap justify-content-between gap-2 mb-2">
-        <div><span class="badge badge-danger">{{ case.severity }}</span> <strong>{{ case.rule_code }}</strong> <code class="ms-2">{{ case.user_id }}</code></div>
+        <div><span class="badge badge-danger">{{ case.severity }}</span> <strong>{{ case.rule_code }}</strong> <code class="ms-2">{{ case.user_id }}</code>{% if case.status != "open" %} <span class="badge badge-inactive ms-1">{{ case.status }}</span>{% endif %}</div>
         <span class="small text-muted">{{ case.observed_value }} / {{ case.trigger_value }} · {{ case.occurrence_count }} occurrence{{ case.occurrence_count|pluralize }}</span>
       </div>
-      <div class="small text-muted mb-2">{{ case.event_type }} · action {{ case.action_taken }}{% if case.lock_until %} · locked until {{ case.lock_until }}{% endif %}</div>
+      <div class="small text-muted mb-2">{{ case.event_type }} · action {{ case.action_taken }}{% if case.lock_until %} · locked until {{ case.lock_until }}{% endif %} · last detected {{ case.last_detected_at|isodate|date:"M d, Y H:i"|default:"—" }}</div>
+      {% if case.status == "open" or case.status == "reviewing" %}
       <div class="row g-2 align-items-end">
         <div class="col-md-3"><label class="form-label small text-muted">Decision</label><select name="resolution" class="glass-input"><option value="cleared">False positive — clear</option><option value="confirmed">Confirm</option></select></div>
         <div class="col-md-7"><label class="form-label small text-muted">Evidence and decision</label><input name="note" class="glass-input" minlength="10" maxlength="1000" required></div>
         <div class="col-md-2"><button class="btn btn-glow w-100" type="submit">Resolve</button></div>
       </div>
+      {% elif case.resolution_note %}<div class="small">Resolution: {{ case.resolution_note }}</div>{% endif %}
     </form>
     {% endfor %}
   </div>
-  {% else %}<div class="text-success mb-4"><i class="bi bi-check-circle me-2"></i>No fraud cases await review.</div>{% endif %}
+  {% include "control_panel/partials/_pagination.html" %}
+  {% else %}<div class="text-success"><i class="bi bi-check-circle me-2"></i>{% if list_query.active_filter_count %}No fraud cases match these filters.{% else %}No fraud cases await review.{% endif %}</div>{% endif %}
+</div>
 
+<div class="glass-card mb-4">
   <h6>Rules and response actions</h6>
   {% if fraud_rules_error %}<div class="alert-glass warning mb-3">{{ fraud_rules_error }}</div>{% endif %}
   <div class="table-responsive"><table class="glass-table w-100"><thead><tr><th>Rule</th><th>Metric</th><th>Threshold</th><th>Response</th><th>Severity</th><th>State</th><th></th></tr></thead><tbody>

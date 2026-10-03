@@ -1,4 +1,5 @@
 {% extends "control_panel/base.html" %}
+{% load custom_filters %}
 {% block topbar_title %}Engagement Nudges{% endblock %}
 
 {% block content %}
@@ -10,24 +11,31 @@
   <a class="btn btn-glow" href="{% url 'config_flags' %}">Manage delivery switch</a>
 </div>
 
-{% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+{% if error %}<div class="alert-glass warning mb-3"><i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error }}</div>{% endif %}
 <div class="row g-3 mb-4">
-  <div class="col-md-4"><div class="glass-card p-4"><div class="text-muted">Recent sends</div><div class="display-6">{{ nudge_count }}</div></div></div>
-  <div class="col-md-4"><div class="glass-card p-4"><div class="text-muted">Clicked</div><div class="display-6">{{ clicked_count }}</div></div></div>
-  <div class="col-md-4"><div class="glass-card p-4"><div class="text-muted">Delivery</div><div class="h3 mt-2">{% if nudges_enabled is None %}<span class="badge bg-secondary">Unknown</span>{% elif nudges_enabled %}<span class="badge bg-success">Enabled</span>{% else %}<span class="badge bg-danger">Disabled</span>{% endif %}</div></div></div>
+  <div class="col-md-4"><div class="glass-card p-4"><div class="text-muted">{% if list_query.active_filter_count %}Matching sends{% else %}Recorded sends{% endif %}</div><div class="display-6">{% if error %}—{% else %}{{ nudge_count|thousands }}{% endif %}</div></div></div>
+  <div class="col-md-4"><div class="glass-card p-4"><div class="text-muted">Clicked on this page</div><div class="display-6">{% if error %}—{% else %}{{ clicked_count|thousands }} <span class="fs-6 text-muted">of {{ page_count|thousands }}</span>{% endif %}</div></div></div>
+  <div class="col-md-4"><div class="glass-card p-4"><div class="text-muted">Delivery</div><div class="h3 mt-2">{% if nudges_enabled is None %}<span class="badge badge-inactive">Unknown</span>{% elif nudges_enabled %}<span class="badge badge-active">Enabled</span>{% else %}<span class="badge badge-danger">Disabled</span>{% endif %}</div></div></div>
+</div>
+
+<div class="glass-card mb-4">
+  {% include "control_panel/partials/_list_controls.html" with list_label="Filter nudges" search_placeholder="Nudge type…" %}
 </div>
 
 <div class="glass-card p-4">
   <h5 class="mb-3">Latest persisted nudges</h5>
+  {% include "control_panel/partials/_list_toolbar.html" %}
+  {% if by_type %}<div class="mb-3 small text-muted">This page by type: {% for kind, n in by_type.items %}<span class="badge badge-gold me-1">{{ kind|default:"unknown" }} · {{ n }}</span>{% endfor %}</div>{% endif %}
   <div class="table-responsive">
-    <table class="table align-middle">
+    <table class="glass-table">
       <thead><tr><th>Type</th><th>Match</th><th>Recipient</th><th>Sent</th><th>Clicked</th></tr></thead>
       <tbody>
       {% for nudge in nudges %}
-        <tr><td><span class="badge badge-gold">{{ nudge.nudge_type }}</span></td><td><code>{{ nudge.match_id }}</code></td><td><code>{{ nudge.user_id }}</code></td><td>{{ nudge.created_at }}</td><td>{% if nudge.clicked_at %}{{ nudge.clicked_at }}{% else %}<span class="text-muted">Pending</span>{% endif %}</td></tr>
-      {% empty %}<tr><td colspan="5" class="text-center text-muted py-4">No nudges have been sent yet.</td></tr>{% endfor %}
+        <tr><td><span class="badge badge-gold">{{ nudge.nudge_type }}</span></td><td><code>{{ nudge.match_id }}</code></td><td>{% if nudge.user_id %}<a href="{% url 'user_detail' nudge.user_id %}"><code>{{ nudge.user_id }}</code></a>{% endif %}</td><td class="small">{{ nudge.created_at|isodate|date:"M d, Y H:i"|default:"—" }}</td><td class="small">{% if nudge.clicked_at %}{{ nudge.clicked_at|isodate|date:"M d, Y H:i"|default:"—" }}{% else %}<span class="text-muted">Pending</span>{% endif %}</td></tr>
+      {% empty %}<tr><td colspan="5" class="text-center text-muted py-4">{% if list_query.active_filter_count %}No nudges match these filters.{% else %}No nudges have been sent yet.{% endif %}</td></tr>{% endfor %}
       </tbody>
     </table>
   </div>
+  {% include "control_panel/partials/_pagination.html" %}
 </div>
 {% endblock %}

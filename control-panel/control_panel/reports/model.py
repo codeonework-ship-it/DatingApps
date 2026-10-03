@@ -24,12 +24,13 @@ SUM, AVG, MIN, MAX, NONE = "sum", "avg", "min", "max", ""
 class Param:
     name: str
     label: str
-    kind: str = "choice"  # choice | date | int
+    kind: str = "choice"  # choice | date | int | text | member (id or @username)
     choices: tuple[tuple[str, str], ...] = ()
     default: str = ""
     help: str = ""
     min: int | None = None
     max: int | None = None
+    required: bool = False
 
 
 @dataclass(frozen=True)
@@ -68,7 +69,25 @@ class Dataset:
     note: str = ""
     chart: Chart | None = None
     # A dataset read from a different Go report than its report's source.
+    # ("admin", "<GoBFFClient method>") reads an admin endpoint instead.
     source: tuple[str, str] | None = None
+    # Admin sources: the method's arguments from the report parameters;
+    # "_args" holds positional ones (e.g. the member id).
+    query: Callable[[dict], dict] | None = None
+    # Admin list sources are paged through Go (500 a call) up to the cap.
+    paged: bool = False
+    # rows: a list of rows; record: one object shown as Field/Value rows;
+    # pairs: an object of name -> number shown as rows.
+    shape: str = "rows"
+    # "count": largest groups first (e.g. most-reported members).
+    group_order: str = ""
+    # Keep only rows for which this returns True (row, report parameters).
+    row_filter: Callable[[dict, dict], bool] | None = None
+    # Rows computed in Python from several Go reads (client, parameters).
+    compute: Callable[[Any, dict], list[dict]] | None = None
+    # Order rows by this key (None values last); descending when sort_desc.
+    sort: Callable[[dict], Any] | None = None
+    sort_desc: bool = False
 
 
 @dataclass(frozen=True)
@@ -89,4 +108,4 @@ class Report:
     def admin_path(self) -> str:
         """Go route relative to /v1/admin/, for role checks."""
         kind, name = self.source
-        return f"{kind}/{name}"
+        return name if kind == "admin" else f"{kind}/{name}"

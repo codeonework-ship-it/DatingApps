@@ -7,10 +7,17 @@ from . import views_business
 from . import views_analytics
 from . import views_reports
 from . import views_activity
+from . import views_system
 
 urlpatterns = [
     # ── Member activity (every member action, live tail) ──────────────────────
     path("activity/", views_activity.member_activity, name="member_activity"),
+    # ── Server activity and consumption ──────────────────────────────────────
+    path("system/", views_system.system_events, name="system_events"),
+    path("system/jobs/", views_system.system_jobs, name="system_jobs"),
+    path("system/traffic/", views_system.system_requests, name="system_requests"),
+    path("system/capacity/", views_system.system_capacity, name="system_capacity"),
+    path("system/third-party/", views_system.system_third_party, name="system_third_party"),
     # ── Report server (catalog, parameters, groups, Excel/CSV/PDF) ────────────
     path("reports/", views_reports.report_catalog, name="report_catalog"),
     path("reports/<slug:report_id>/", views_reports.report_view, name="report_view"),

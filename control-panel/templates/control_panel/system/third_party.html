@@ -1,0 +1,26 @@
+{% extends "control_panel/base.html" %}
+{% load custom_filters %}
+{% block title %}Third-party usage · {{ project_name }}{% endblock %}
+{% block topbar_title %}Server activity · Third-party usage{% endblock %}
+{% block content %}
+{% include "control_panel/system/_nav.html" %}
+{% include "control_panel/system/_dates.html" %}
+{% if totals %}
+<section class="glass-card mb-4" aria-labelledby="tp-totals">
+  <h2 class="h5" id="tp-totals">Totals in window</h2>
+  <div class="table-responsive"><table class="glass-table">
+    <thead><tr><th scope="col">Provider</th><th scope="col">Operation</th><th scope="col" class="num">Calls</th><th scope="col" class="num">Failures</th><th scope="col" class="num">Units</th></tr></thead>
+    <tbody>{% for t in totals %}<tr><td>{{ t.provider }}</td><td>{{ t.operation }}</td><td class="num">{{ t.calls|default:0|thousands }}</td><td class="num{% if t.failures %} text-danger-light{% endif %}">{{ t.failures|default:0|thousands }}</td><td class="num">{% if t.units is not None %}{{ t.units|thousands }}{% else %}—{% endif %}</td></tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+{% endif %}
+<section class="glass-card" aria-labelledby="tp-daily">
+  <h2 class="h5" id="tp-daily">By day</h2>
+  {% if rows %}
+  <div class="table-responsive"><table class="glass-table">
+    <thead><tr><th scope="col">Day</th><th scope="col">Provider</th><th scope="col">Operation</th><th scope="col" class="num">Calls</th><th scope="col" class="num">Failures</th><th scope="col" class="num">Units</th></tr></thead>
+    <tbody>{% for r in rows %}<tr><td class="text-nowrap">{{ r.day }}</td><td>{{ r.provider }}</td><td>{{ r.operation }}</td><td class="num">{{ r.calls|default:0|thousands }}</td><td class="num">{{ r.failures|default:0|thousands }}</td><td class="num">{% if r.units is not None %}{{ r.units|thousands }} {{ r.unit_label }}{% else %}—{% endif %}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% elif not error and not denied %}<p class="text-muted mb-0">No usage recorded in this window yet.</p>{% endif %}
+</section>
+{% endblock %}

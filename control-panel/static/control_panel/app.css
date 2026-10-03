@@ -1928,3 +1928,19 @@ input:focus-visible + .toggle-slider {
   color: var(--c-text);
   margin-inline-end: 0.25rem;
 }
+
+/* Client-side table pager (console.js) */
+.table-pager .table-pager-size {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--c-text-muted);
+  font-size: 0.85rem;
+}
+.table-pager .table-pager-size .form-select {
+  width: auto;
+}
+@media print {
+  .table-pager { display: none !important; }
+}

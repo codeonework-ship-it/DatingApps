@@ -1,0 +1,30 @@
+{% extends "control_panel/base.html" %}
+{% load custom_filters %}
+{% block title %}Server events · {{ project_name }}{% endblock %}
+{% block topbar_title %}Server activity · Events{% endblock %}
+{% block content %}
+{% include "control_panel/system/_nav.html" %}
+<div class="glass-card mb-4">{% include "control_panel/partials/_list_controls.html" with list_label="Filter server events" search_placeholder="e.g. /v1/swipe, panic, retention" %}</div>
+<div class="glass-card">
+  {% include "control_panel/partials/_list_toolbar.html" %}
+  {% if events %}
+  <div class="table-responsive">
+    <table class="glass-table">
+      <thead><tr><th scope="col">Time (UTC)</th><th scope="col">Severity</th><th scope="col">Kind</th><th scope="col">Message</th><th scope="col">Route</th><th scope="col" class="num">Count</th><th scope="col">Service</th></tr></thead>
+      <tbody>{% for e in events %}
+        <tr>
+          <td class="text-nowrap small">{{ e.at|isodate|date:"M d, H:i:s"|default:e.at }}</td>
+          <td><span class="badge {% if e.severity == 'critical' or e.severity == 'error' %}badge-danger{% elif e.severity == 'warning' %}badge-warning{% else %}badge-inactive{% endif %}">{{ e.severity|capfirst }}</span></td>
+          <td class="small">{{ e.kind }}</td>
+          <td>{{ e.message }}{% if e.correlation_id %}<div class="small text-muted font-monospace">{{ e.correlation_id }}</div>{% endif %}</td>
+          <td class="font-monospace small">{{ e.route|default:"—" }}</td>
+          <td class="num">{{ e.count|default:1|thousands }}</td>
+          <td class="small text-muted">{{ e.service }}{% if e.instance %} · {{ e.instance }}{% endif %}</td>
+        </tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}<p class="text-muted text-center py-4 mb-0">No server events match these filters.</p>{% endif %}
+  {% include "control_panel/partials/_pagination.html" %}
+</div>
+{% endblock %}

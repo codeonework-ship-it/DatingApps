@@ -140,3 +140,135 @@ class ReportServerTest(ConsoleCaseTest):
         self.assertContains(response, "42.50")
         self.assertContains(response, "&lt;5")
         api.analytics_report.assert_called_once_with("retention", {"grain": "week"})
+
+
+MEMBER_ID = "00000000-0000-0000-0000-0000000000d4"
+
+
+class MemberReportsTest(ConsoleCaseTest):
+    module = "control_panel.reports.engine"
+
+    def test_member_360_asks_for_a_member_first(self):
+        """No member, no Go calls: the report asks for one. [case:console.reports.member_360.requires_member]"""
+        api = self.bff()
+        response = self.client.get(reverse("report_view", args=["member-360"]))
+        self.assertContains(response, "Enter Member ID or @username")
+        api.get_user.assert_not_called()
+
+    def test_member_360_resolves_a_username_and_reads_every_section(self):
+        """@username resolves to the member; each section asks Go for that member only. [case:console.reports.member_360.sections]"""
+        api = self.bff()
+        api.list_users.return_value = APIResult(True, {"users": [{"id": MEMBER_ID, "username": "asha"}]})
+        api.get_user.return_value = APIResult(True, {"user": {"id": MEMBER_ID, "username": "asha", "is_verified": True,
+                                                              "profile_completion": 80}})
+        api.get_wallet_balance.return_value = APIResult(True, {"wallet": {"coin_balance": 250}})
+        api.member_activity.return_value = APIResult(True, {"summary": {"total": 12, "distinct_devices": 2,
+                                                                        "by_category": {"Safety": 3, "Auth": 9, "Billing & coins": 0}},
+                                                            "actions": [{"at": "2026-10-02T10:00:00Z", "action_label": "Signed in"}]})
+        api.list_reports.return_value = APIResult(True, {"reports": [{"reported_user_id": "x", "reason": "spam"}], "total": 1})
+        response = self.client.get(reverse("report_view", args=["member-360"]), {"member": "@asha", "from": "2026-09-01"})
+        self.assertEqual(response.status_code, 200)
+        api.get_user.assert_called_once_with(MEMBER_ID)
+        self.assertEqual(api.list_reports.call_args_list[0].kwargs, {"limit": 500, "offset": 0, "reporter_user_id": MEMBER_ID, "from": "2026-09-01"})
+        self.assertEqual(api.list_reports.call_args_list[1].kwargs["reported_user_id"], MEMBER_ID)
+        self.assertEqual(api.list_support_tickets.call_args.kwargs["member"], MEMBER_ID)
+        self.assertEqual(api.list_payments.call_args.kwargs["user_id"], MEMBER_ID)
+        result = response.context["result"]
+        by_key = {d.spec.key: d for d in result.datasets}
+        profile = {r["label"]: r["value"] for r in by_key["profile"].raw_rows}
+        self.assertEqual(profile["Verified"], "Yes")
+        self.assertEqual(profile["Profile complete (%)"], "80")
+        self.assertEqual([r["area"] for r in by_key["activity_by_area"].raw_rows], ["Auth", "Safety"])
+        self.assertContains(response, "Signed in")
+        self.assertContains(response, "250")
+
+    def test_unknown_username_is_explained(self):
+        """[case:console.reports.member_360.unknown_member]"""
+        self.bff().list_users.return_value = APIResult(True, {"users": [{"id": "z", "username": "ashanti"}]})
+        response = self.client.get(reverse("report_view", args=["member-360"]), {"member": "asha"})
+        self.assertContains(response, "No member with username @asha.")
+
+    def test_directory_pages_through_go_and_drills_into_member_360(self):
+        """The directory reads every page and links each member to Member 360. [case:console.reports.member_directory]"""
+        api = self.bff()
+        api.list_users.side_effect = [
+            APIResult(True, {"users": [{"id": f"u{i}", "username": f"m{i}", "city": "Pune"} for i in range(500)], "total": 501}),
+            APIResult(True, {"users": [{"id": "u500", "username": "m500", "city": "Goa"}], "total": 501}),
+        ]
+        response = self.client.get(reverse("report_view", args=["member-directory"]), {"verified": "yes"})
+        self.assertEqual([c.kwargs["offset"] for c in api.list_users.call_args_list], [0, 500])
+        self.assertEqual(api.list_users.call_args.kwargs["verified"], "yes")
+        self.assertEqual(len(response.context["result"].datasets[0].raw_rows), 501)
+        self.assertContains(response, reverse("report_view", args=["member-360"]) + "?member=u500")
+
+    def test_most_reported_lists_the_largest_groups_first(self):
+        """Repeat offenders come first. [case:console.reports.most_reported]"""
+        api = self.bff()
+        api.list_reports.return_value = APIResult(True, {"reports": [
+            {"reported_user_id": "a"}, {"reported_user_id": "b"}, {"reported_user_id": "b"}, {"reported_user_id": "b"}], "total": 4})
+        response = self.client.get(reverse("report_view", args=["most-reported-members"]))
+        groups = response.context["result"].datasets[0].groups
+        self.assertEqual([(g.label, g.count) for g in groups], [("b", 3), ("a", 1)])
+
+
+class OperationsReportsTest(ConsoleCaseTest):
+    module = "control_panel.reports.engine"
+
+    def test_queue_sla_snapshot_and_oldest_first(self):
+        """Each queue's open total and oldest age; open items oldest first with past-target flags. [case:console.reports.queue_sla]"""
+        api = self.bff()
+        api.list_reports.side_effect = lambda **kw: APIResult(True, {
+            "reports": [{"created_at": "2020-01-01T00:00:00Z", "status": "pending"}] if kw.get("limit") == 1 else [
+                {"created_at": "2099-01-01T00:00:00Z", "status": "pending", "reason": "new"},
+                {"created_at": "2020-01-01T00:00:00Z", "status": "pending", "reason": "old"}],
+            "total": 2})
+        response = self.client.get(reverse("report_view", args=["queue-sla"]))
+        by_key = {d.spec.key: d for d in response.context["result"].datasets}
+        snapshot = {r["queue"]: r for r in by_key["queues"].raw_rows}
+        self.assertEqual(snapshot["Reports"]["open"], 2)
+        self.assertTrue(snapshot["Reports"]["past_target"])
+        self.assertEqual([r["reason"] for r in by_key["reports_open"].raw_rows], ["old", "new"])
+        self.assertEqual(api.list_reports.call_args_list[0].kwargs, {"limit": 1, "offset": 0, "order": "asc", "status": "pending"})
+
+    def test_dormant_members_filters_and_sorts_by_inactivity(self):
+        """Only members inactive at least N days, longest first. [case:console.reports.dormant_members]"""
+        api = self.bff()
+        api.list_users.return_value = APIResult(True, {"users": [
+            {"id": "a", "username": "recent", "last_login_at": "2099-01-01T00:00:00Z"},
+            {"id": "b", "username": "old", "last_login_at": "2020-01-01T00:00:00Z"},
+            {"id": "c", "username": "older", "last_login_at": "2019-01-01T00:00:00Z"}], "total": 3})
+        response = self.client.get(reverse("report_view", args=["dormant-members"]), {"days": "30"})
+        rows = response.context["result"].datasets[0].raw_rows
+        self.assertEqual([r["username"] for r in rows], ["older", "old"])
+        self.assertEqual(api.list_users.call_args.kwargs["status"], "active")
+
+    def test_signin_security_reads_auth_actions(self):
+        """Account security reads member Auth actions only. [case:console.reports.signin_security]"""
+        api = self.bff()
+        api.list_member_actions.return_value = APIResult(True, {"actions": [{"action_label": "Signed in", "ip": "203.0.113.9"}], "total": 1})
+        response = self.client.get(reverse("report_view", args=["signin-security"]), {"from": "2026-10-01"})
+        kwargs = api.list_member_actions.call_args.kwargs
+        self.assertEqual((kwargs["category"], kwargs["source"], kwargs["from"]), ("Auth", "request", "2026-10-01"))
+        self.assertContains(response, "203.0.113.9")
+
+    def test_daily_operations_survives_unavailable_sources(self):
+        """A failing section is reported, the rest still renders, and it exports to PDF. [case:console.reports.daily_operations]"""
+        api = self.bff()
+        api.system_requests.return_value = bff_error("not deployed", status=404)
+        api.system_jobs.return_value = bff_error("not deployed", status=404)
+        response = self.client.get(reverse("report_view", args=["daily-operations"]))
+        self.assertEqual(response.status_code, 200)
+        by_key = {d.spec.key: d for d in response.context["result"].datasets}
+        self.assertEqual(by_key["server"].raw_rows, [{"signal": "Server activity", "value": "unavailable"}])
+        pdf = self.client.get(reverse("report_view", args=["daily-operations"]), {"export": "pdf"})
+        self.assertTrue(pdf.content.startswith(b"%PDF"))
+
+    def test_sos_minutes_to_resolve(self):
+        """[case:console.reports.sos_incidents]"""
+        api = self.bff()
+        api.list_sos_alerts.return_value = APIResult(True, {"alerts": [
+            {"triggered_at": "2026-10-01T10:00:00Z", "resolved_at": "2026-10-01T10:12:30Z", "status": "resolved"}], "total": 1})
+        response = self.client.get(reverse("report_view", args=["sos-incidents"]))
+        row = response.context["result"].datasets[0].rows[0]
+        minutes = [c.value for c, f in zip(row.cells, response.context["result"].datasets[0].fields) if f.key == "minutes_to_resolve"][0]
+        self.assertEqual(minutes, 12.5)

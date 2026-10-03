@@ -9,11 +9,13 @@ cover at once, releases the stored photo and sends the group owner a notice.
 """
 from django.contrib import messages
 from django.http import HttpResponse
-from django.shortcuts import redirect, render
+from django.shortcuts import redirect
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_POST
 
+from . import listing
 from .services.go_client import GoBFFClient, bff_failure_status
+from .views import paged_list
 
 STATUSES = {'pending': 'Needs review', 'approved': 'Approved'}
 DECISIONS = {'approved': 'approved', 'rejected': 'rejected'}
@@ -22,23 +24,38 @@ IMAGE_TYPES = ('image/jpeg', 'image/png', 'image/webp')
 REASON_MIN, REASON_MAX = 5, 200
 
 
+GROUP_COVER_LIST = listing.ListSpec(
+    name='group-covers', search_label='Search group name',
+    filters=(listing.Filter('status', 'Queue', tuple(STATUSES.items()), allow_all=False),
+             listing.Filter('from', 'Uploaded from (UTC)', kind='date'), listing.Filter('to', 'Uploaded to (UTC)', kind='date')),
+    # No sort choice: Go reads the pending queue oldest first and the
+    # approved history newest first.
+    columns=(listing.Column('cover_id', 'Cover ID', width=38), listing.Column('group_id', 'Group ID', width=38),
+             listing.Column('group_name', 'Group', width=28), listing.Column('group_kind', 'Kind', width=12),
+             listing.Column('owner_user_id', 'Owner ID', width=38), listing.Column('uploaded_by', 'Uploaded by', width=38),
+             listing.Column('status', 'Status', width=12), listing.Column('reason', 'Check note', width=40),
+             listing.Column('provider', 'Checked by', width=14), listing.Column('mime_type', 'Type', width=12),
+             listing.Column('width_px', 'Width', width=8), listing.Column('height_px', 'Height', width=8),
+             listing.Column('size_bytes', 'Bytes', width=10), listing.Column('uploaded_at', 'Uploaded (UTC)', width=22)),
+)
+
+
 @never_cache
 @require_GET
 def group_covers(request):
-    status = request.GET.get('status', 'pending')
-    if status not in STATUSES:
-        status = 'pending'
-    result = GoBFFClient().group_covers(status=status)
-    data = result.data if result.ok and isinstance(result.data, dict) else {}
-    return render(request, 'control_panel/group_covers.html', {
-        'covers': [c for c in data.get('items') or [] if isinstance(c, dict)],
-        'statuses': STATUSES.items(),
-        'queue_status': status,
-        'reason_min': REASON_MIN,
-        'reason_max': REASON_MAX,
-        'error': None if result.ok else result.error,
-        'project_name': 'AegisConnect',
-    }, status=200 if result.ok else bff_failure_status(result.status_code))
+    def go(query):
+        params = query.go_params()
+        params['status'] = params.get('status') or 'pending'
+        return params
+
+    def extra(page, data):
+        return {'covers': page.rows, 'queue_status': page.query.filters.get('status') or 'pending',
+                'reason_min': REASON_MIN, 'reason_max': REASON_MAX}
+
+    return paged_list(request, GROUP_COVER_LIST, GoBFFClient().group_covers, items_key='items',
+                      template='control_panel/group_covers.html', title='Group covers', context_name='covers',
+                      base_context=lambda: {'project_name': 'AegisConnect'}, map_filters=go, extra=extra,
+                      failure_status=True)
 
 
 @never_cache

@@ -6,12 +6,12 @@
 <nav class="d-flex flex-wrap gap-3 mb-4" aria-label="Room filters">{% for key, label, count in filters %}<a href="?filter={{ key }}"{% if key == active_filter %} aria-current="page" class="fw-bold"{% endif %}>{{ label }} ({{ count }})</a>{% endfor %}</nav>
 <div class="glass-card mb-4">
   <h2 class="h5">Rooms</h2>
-  <div class="table-responsive"><table class="table"><thead><tr><th scope="col">Room</th><th scope="col">Type</th><th scope="col">State</th><th scope="col">Here now</th><th scope="col">Members</th><th scope="col">Capacity</th><th scope="col">Ends</th></tr></thead>
+  <div class="table-responsive"><table class="glass-table"><thead><tr><th scope="col">Room</th><th scope="col">Type</th><th scope="col">State</th><th scope="col">Here now</th><th scope="col">Members</th><th scope="col">Capacity</th><th scope="col">Ends</th></tr></thead>
   <tbody>{% for room in rooms %}<tr><td><a href="{% url 'room_detail' room.id %}">{{ room.emoji }} {{ room.title }}</a>{% if room.host_name %}<br><small>Hosted by {{ room.host_name }}</small>{% endif %}</td><td>{% if room.always_on %}Always-on · {{ room.category|title }}{% else %}Member-hosted{% endif %}</td><td>{{ room.lifecycle_state|title }}</td><td>{{ room.here_now }}</td><td>{{ room.participant_count }}</td><td>{{ room.capacity }}</td><td>{% if room.always_on %}—{% else %}{{ room.ends_at|default:"—" }}{% endif %}</td></tr>{% empty %}<tr><td colspan="7">No rooms match this filter.</td></tr>{% endfor %}</tbody></table></div>
 </div>
 <div class="glass-card">
   <h2 class="h5">Recent moderation actions</h2>
-  <div class="table-responsive"><table class="table"><thead><tr><th scope="col">When</th><th scope="col">Room</th><th scope="col">Action</th><th scope="col">Member</th><th scope="col">By</th><th scope="col">Reason</th></tr></thead>
+  <div class="table-responsive"><table class="glass-table"><thead><tr><th scope="col">When</th><th scope="col">Room</th><th scope="col">Action</th><th scope="col">Member</th><th scope="col">By</th><th scope="col">Reason</th></tr></thead>
   <tbody>{% for a in recent_actions %}<tr><td>{{ a.created_at }}</td><td><a href="{% url 'room_detail' a.room_id %}">{{ a.room_title|default:a.room_id }}</a></td><td>{{ a.action }}</td><td>{% if a.target_user_id %}<a href="{% url 'user_detail' a.target_user_id %}"><code>{{ a.target_user_id }}</code></a>{% else %}—{% endif %}</td><td>{% if a.moderator_user_id %}<code>{{ a.moderator_user_id }}</code>{% else %}—{% endif %}</td><td>{{ a.reason }}</td></tr>{% empty %}<tr><td colspan="6">No moderation actions yet.</td></tr>{% endfor %}</tbody></table></div>
 </div>
 {% endblock %}

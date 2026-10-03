@@ -146,7 +146,7 @@ class GrowthGovernanceTest(ConsoleCaseTest):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "P2 launch register")
         self.assertContains(response, "&lt;b&gt;Referrals&lt;/b&gt;")
-        api.list_growth_fraud_graph.assert_called_once_with(status="open", limit=100)
+        api.list_growth_fraud_graph.assert_called_once_with(status="open", sort="confidence", order="desc", limit=25, offset=0)
         api.growth_portfolio.return_value = bff_error("portfolio unavailable", 503)
         failed = self.client.get(reverse("growth_governance"))
         self.assertEqual(failed.status_code, 200)

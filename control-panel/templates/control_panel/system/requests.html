@@ -1,0 +1,52 @@
+{% extends "control_panel/base.html" %}
+{% load static custom_filters %}
+{% block title %}API traffic · {{ project_name }}{% endblock %}
+{% block topbar_title %}Server activity · API traffic{% endblock %}
+{% block content %}
+{% include "control_panel/system/_nav.html" %}
+<div class="glass-card mb-4">
+  <form method="get" class="filter-grid" aria-label="Traffic filters">
+    <div class="filter-field filter-field-date"><label class="form-label" for="rq-from">From (UTC)</label><input id="rq-from" type="date" name="from" value="{{ params.from }}" class="form-control"></div>
+    <div class="filter-field filter-field-date"><label class="form-label" for="rq-to">To (UTC)</label><input id="rq-to" type="date" name="to" value="{{ params.to }}" class="form-control"></div>
+    <div class="filter-field"><label class="form-label" for="rq-grain">Per</label><select id="rq-grain" name="grain" class="form-select"><option value="hour"{% if params.grain == "hour" %} selected{% endif %}>Hour</option><option value="day"{% if params.grain == "day" %} selected{% endif %}>Day</option></select></div>
+    <div class="filter-field"><label class="form-label" for="rq-group">Break down by</label><select id="rq-group" name="group_by" class="form-select">{% for v, l in groups %}<option value="{{ v }}"{% if params.group_by == v %} selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+    <div class="filter-field"><label class="form-label" for="rq-class">Status</label><select id="rq-class" name="status_class" class="form-select"><option value="">All</option><option value="2xx"{% if params.status_class == "2xx" %} selected{% endif %}>2xx</option><option value="3xx"{% if params.status_class == "3xx" %} selected{% endif %}>3xx</option><option value="4xx"{% if params.status_class == "4xx" %} selected{% endif %}>4xx</option><option value="5xx"{% if params.status_class == "5xx" %} selected{% endif %}>5xx</option></select></div>
+    <div class="filter-field filter-field-wide"><label class="form-label" for="rq-route">Route</label><input id="rq-route" name="route" value="{{ params.route }}" class="form-control" placeholder="/v1/swipe"></div>
+    <div class="filter-actions"><a class="btn btn-glass" href="?">Reset</a><button class="btn btn-glow" type="submit"><i class="bi bi-funnel" aria-hidden="true"></i>Apply</button></div>
+  </form>
+</div>
+{% if totals %}
+<div class="metric-grid mb-4">
+  <article class="metric-tile"><div class="metric-top"><span>Requests</span></div><div class="metric-number">{{ totals.requests|default:0|thousands }}</div><div class="metric-unit">in window</div><div class="metric-meta"><span>Every request, including refused ones</span></div></article>
+  <article class="metric-tile"><div class="metric-top"><span>Server errors</span></div><div class="metric-number">{{ totals.server_errors|default:0|thousands }}</div><div class="metric-unit">5xx</div><div class="metric-meta"><span>See Events for each error</span></div></article>
+  <article class="metric-tile"><div class="metric-top"><span>Refused</span></div><div class="metric-number">{{ totals.refused|default:0|thousands }}</div><div class="metric-unit">401 · 403 · 429</div><div class="metric-meta"><span>Auth, role, rate and load refusals</span></div></article>
+  <article class="metric-tile"><div class="metric-top"><span>Latency p95</span></div><div class="metric-number">{% if totals.p95_ms is not None %}{{ totals.p95_ms|floatformat:0 }} ms{% else %}—{% endif %}</div><div class="metric-unit">avg {% if totals.avg_ms is not None %}{{ totals.avg_ms|floatformat:0 }} ms{% else %}—{% endif %}</div><div class="metric-meta"><span>From hourly latency buckets</span></div></article>
+</div>
+{% endif %}
+{% if chart and chart.labels %}
+<div class="glass-card mb-4"><div class="chart-frame report-chart" role="img" aria-label="{{ chart.title }}"><canvas data-report-chart="traffic-chart"></canvas>{{ chart|json_script:"traffic-chart" }}</div></div>
+{% endif %}
+<div class="glass-card">
+  {% if rows %}
+  <div class="table-responsive">
+    <table class="glass-table report-table">
+      <thead><tr><th scope="col">{% if params.grain == "day" %}Day{% else %}Hour{% endif %}</th>{% if params.group_by != "none" %}<th scope="col">{% for v, l in groups %}{% if v == params.group_by %}{{ l }}{% endif %}{% endfor %}</th>{% endif %}<th scope="col" class="num">Requests</th><th scope="col" class="num">5xx</th><th scope="col" class="num">Refused</th><th scope="col" class="num">Avg ms</th><th scope="col" class="num">p50</th><th scope="col" class="num">p95</th><th scope="col" class="num">p99</th></tr></thead>
+      <tbody>{% for r in rows %}
+        <tr>
+          <td class="small text-nowrap">{{ r.bucket|slice:":16"|cut:"T" }}</td>
+          {% if params.group_by != "none" %}<td class="font-monospace small">{% if params.group_by == "route" %}{{ r.method }} {{ r.route }}{% elif params.group_by == "status_class" %}{{ r.status_class }}{% elif params.group_by == "method" %}{{ r.method }}{% else %}{{ r.service }}{% endif %}</td>{% endif %}
+          <td class="num">{{ r.requests|default:0|thousands }}</td>
+          <td class="num{% if r.server_errors %} text-danger-light{% endif %}">{{ r.server_errors|default:0|thousands }}</td>
+          <td class="num">{{ r.refused|default:0|thousands }}</td>
+          <td class="num">{{ r.avg_ms|floatformat:0|default:"—" }}</td>
+          <td class="num">{{ r.p50_ms|floatformat:0|default:"—" }}</td>
+          <td class="num">{{ r.p95_ms|floatformat:0|default:"—" }}</td>
+          <td class="num">{{ r.p99_ms|floatformat:0|default:"—" }}</td>
+        </tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% elif not error and not denied %}<p class="text-muted text-center py-4 mb-0">No traffic recorded in this window yet. Rollups are written every minute.</p>{% endif %}
+</div>
+{% endblock %}
+{% block extra_js %}<script src="{% static 'control_panel/reports.js' %}" defer></script>{% endblock %}

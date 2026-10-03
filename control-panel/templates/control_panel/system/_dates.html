@@ -1,0 +1,8 @@
+<div class="glass-card mb-4">
+  <form method="get" class="filter-grid" aria-label="Window">
+    {% for key, value in extra_params.items %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}
+    <div class="filter-field filter-field-date"><label class="form-label" for="sd-from">From (UTC)</label><input id="sd-from" type="date" name="from" value="{{ dates.from }}" class="form-control"></div>
+    <div class="filter-field filter-field-date"><label class="form-label" for="sd-to">To (UTC)</label><input id="sd-to" type="date" name="to" value="{{ dates.to }}" class="form-control"></div>
+    <div class="filter-actions"><a class="btn btn-glass" href="?">Reset</a><button class="btn btn-glow" type="submit"><i class="bi bi-funnel" aria-hidden="true"></i>Apply</button></div>
+  </form>
+</div>

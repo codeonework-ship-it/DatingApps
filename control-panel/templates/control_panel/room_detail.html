@@ -39,7 +39,7 @@
   {% if members_error %}<div class="alert-glass warning" role="alert">Could not load members: {{ members_error }}</div>{% endif %}
   <datalist id="room-people">{% for person in people %}<option value="{{ person }}">{% endfor %}</datalist>
   <div class="table-responsive">
-  <table class="table"><thead><tr><th scope="col">Member</th><th scope="col">Role</th><th scope="col">State</th><th scope="col">Joined / last seen</th><th scope="col">Moderate</th><th scope="col">Role change</th></tr></thead>
+  <div class="table-responsive"><table class="glass-table"><thead><tr><th scope="col">Member</th><th scope="col">Role</th><th scope="col">State</th><th scope="col">Joined / last seen</th><th scope="col">Moderate</th><th scope="col">Role change</th></tr></thead>
   <tbody>{% for m in members %}<tr>
     <td>{{ m.name|default:"Member" }}<br><a href="{% url 'user_detail' m.user_id %}"><code>{{ m.user_id }}</code></a></td>
     <td>{{ m.role|title }}</td>
@@ -59,12 +59,12 @@
       <input type="hidden" name="member_id" value="{{ m.user_id }}"><input type="hidden" name="role" value="{{ m.role_change }}">
       <button class="btn btn-glass btn-sm" type="submit">{% if m.role_change == "moderator" %}Appoint moderator{% else %}Step down{% endif %}</button>
     </form>{% else %}—{% endif %}</td>
-  </tr>{% empty %}<tr><td colspan="6">No one is in this room right now.</td></tr>{% endfor %}</tbody></table>
+  </tr>{% empty %}<tr><td colspan="6">No one is in this room right now.</td></tr>{% endfor %}</tbody></table></div>
   </div>
 </div>
 <div class="glass-card">
   <h2 class="h5">Recent moderation actions</h2>
-  <div class="table-responsive"><table class="table"><thead><tr><th scope="col">When</th><th scope="col">Action</th><th scope="col">Member</th><th scope="col">By</th><th scope="col">Reason</th></tr></thead>
+  <div class="table-responsive"><table class="glass-table"><thead><tr><th scope="col">When</th><th scope="col">Action</th><th scope="col">Member</th><th scope="col">By</th><th scope="col">Reason</th></tr></thead>
   <tbody>{% for a in recent_actions %}<tr><td>{{ a.created_at }}</td><td>{{ a.action }}</td><td>{% if a.target_user_id %}<code>{{ a.target_user_id }}</code>{% else %}—{% endif %}</td><td>{% if a.moderator_user_id %}<code>{{ a.moderator_user_id }}</code>{% else %}—{% endif %}</td><td>{{ a.reason }}</td></tr>{% empty %}<tr><td colspan="5">No recent actions in this room.</td></tr>{% endfor %}</tbody></table></div>
 </div>
 {% endblock %}

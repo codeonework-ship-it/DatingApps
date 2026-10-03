@@ -1,4 +1,5 @@
 {% extends "control_panel/base.html" %}
+{% load custom_filters %}
 {% block topbar_title %}Level & XP Progression{% endblock %}
 
 {% block content %}
@@ -37,7 +38,7 @@
 <div class="glass-card mb-4">
   <h2 class="h5 mb-3">XP source policies</h2>
   <div class="table-responsive">
-    <table class="table table-dark table-hover align-middle">
+    <table class="glass-table">
       <thead><tr><th>Source</th><th>Base XP</th><th>Daily XP</th><th>Events/day</th><th>Cooldown</th><th>Enabled</th><th></th></tr></thead>
       <tbody>
       {% for policy in policies %}
@@ -131,20 +132,18 @@
   {% empty %}<p class="text-muted mb-0">No fraud rules configured.</p>{% endfor %}
 </div>
 
+<div class="glass-card mb-4">
+  <h2 class="h5 mb-1">XP fraud review queue</h2>
+  <p class="text-muted small">Cases the fraud rules opened. Dismiss or confirm an open case with the evidence for the decision.</p>
+  {% include "control_panel/partials/_list_controls.html" with list_label="Filter XP fraud cases" search_placeholder="Username or rule…" %}
+</div>
+
 <div class="glass-card">
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h2 class="h5 mb-0">XP fraud review queue</h2>
-    <form method="get"><select class="glass-select" name="status" data-autosubmit>
-      <option value="open" {% if status_filter == "open" %}selected{% endif %}>Open</option>
-      <option value="reviewing" {% if status_filter == "reviewing" %}selected{% endif %}>Reviewing</option>
-      <option value="confirmed" {% if status_filter == "confirmed" %}selected{% endif %}>Confirmed</option>
-      <option value="dismissed" {% if status_filter == "dismissed" %}selected{% endif %}>Dismissed</option>
-    </select></form>
-  </div>
+  {% include "control_panel/partials/_list_toolbar.html" %}
   {% for case in fraud_cases %}
   <div class="border rounded-3 p-3 mb-3">
-    <div class="d-flex justify-content-between"><strong>@{{ case.username }}</strong><span class="badge badge-warning">{{ case.severity }} · {{ case.rule_code }}</span></div>
-    <div class="small text-muted mb-2">{{ case.user_id }} · {{ case.evidence }}</div>
+    <div class="d-flex justify-content-between flex-wrap gap-2"><strong>@{{ case.username }}</strong><span class="badge badge-warning">{{ case.severity }} · {{ case.rule_code }}{% if case.status != "open" %} · {{ case.status }}{% endif %}</span></div>
+    <div class="small text-muted mb-2">{{ case.user_id }} · {{ case.created_at|isodate|date:"M d, Y H:i"|default:"—" }} · {{ case.evidence }}</div>
     {% if case.status == "open" or case.status == "reviewing" %}
     <form method="post" action="{% url 'progression_fraud_resolve' case.id %}" class="d-flex flex-wrap gap-2">{% csrf_token %}
       <input class="glass-input flex-grow-1" name="resolution" placeholder="Resolution evidence" required>
@@ -153,5 +152,6 @@
     </form>{% endif %}
   </div>
   {% empty %}<p class="text-muted mb-0">No cases in this queue.</p>{% endfor %}
+  {% include "control_panel/partials/_pagination.html" %}
 </div>
 {% endblock %}

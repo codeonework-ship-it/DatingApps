@@ -22,7 +22,8 @@ class ProgressionPageTest(ConsoleCaseTest):
         self.assertContains(response, "Level & XP Progression")
         self.assertContains(response, "progression store unavailable")
         self.assertContains(response, "fraud queue unavailable")
-        api.list_progression_fraud.assert_called_once_with(status="resolved")
+        # "resolved" is not a case status: it is dropped and the open queue is read.
+        api.list_progression_fraud.assert_called_once_with(status="open", sort="created_at", order="desc", limit=25, offset=0)
 
 
 class ProgressionActionsTest(ConsoleCaseTest):

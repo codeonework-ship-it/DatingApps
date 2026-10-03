@@ -27,15 +27,17 @@ class CatalogListTest(ConsoleCaseTest):
         self.assertContains(response, reverse("catalog_edit", args=["rose_midnight"]))
         self.assertContains(response, reverse("catalog_toggle", args=["rose_midnight"]))
         self.assertContains(response, reverse("catalog_delete", args=["rose_midnight"]))
-        api.list_catalog_gifts.assert_called_once_with(category="roses", tier="epic", active="yes", q="mid", limit=50, offset=0)
+        api.list_catalog_gifts.assert_called_once_with(category="roses", tier="epic", active="yes", q="mid",
+                                                       sort="sort_order", order="asc", limit=25, offset=0)
 
     def test_catalog_pages_past_the_first_fifty(self):
         """Go's total (not the page count) drives paging. Regression: Next never showed. [case:console.catalog.catalog_list.paging]"""
         api = self.bff()
-        api.list_catalog_gifts.return_value = APIResult(True, {"gifts": [GIFT] * 50, "count": 50, "total": 120})
+        api.list_catalog_gifts.return_value = APIResult(True, {"gifts": [GIFT] * 25, "count": 25, "total": 120, "limit": 25, "offset": 0})
         response = self.client.get(reverse("catalog_list"))
         self.assertEqual(response.context["total"], 120)
-        self.assertContains(response, "offset=50")
+        self.assertContains(response, 'href="?page=2"')
+        self.assertContains(response, "Page 1 of 5")
 
     def test_catalog_bff_failure_shows_banner(self):
         """[case:console.catalog.catalog_list.renders]"""

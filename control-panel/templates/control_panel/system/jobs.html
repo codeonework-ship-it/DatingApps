@@ -1,0 +1,56 @@
+{% extends "control_panel/base.html" %}
+{% load custom_filters %}
+{% block title %}Background jobs · {{ project_name }}{% endblock %}
+{% block topbar_title %}Server activity · Background jobs{% endblock %}
+{% block content %}
+{% include "control_panel/system/_nav.html" %}
+{% if jobs_error %}<div class="alert-glass warning mb-3" role="alert"><i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>{{ jobs_error }}</div>{% endif %}
+<section class="glass-card mb-4" aria-labelledby="workers-heading">
+  <div class="card-title-row">
+    <h2 class="h5 mb-0" id="workers-heading">Workers</h2>
+    <span class="small text-muted">{% if stale_count %}<span class="badge badge-danger">{{ stale_count }} stale</span> {% endif %}{% if failing_count %}<span class="badge badge-warning">{{ failing_count }} with failures in 24h</span>{% endif %}{% if not stale_count and not failing_count and workers %}<span class="badge badge-active">All healthy</span>{% endif %}</span>
+  </div>
+  <div class="table-responsive">
+    <table class="glass-table">
+      <thead><tr><th scope="col">Worker</th><th scope="col">Status</th><th scope="col">Last run (UTC)</th><th scope="col">Last success (UTC)</th><th scope="col" class="num">Duration</th><th scope="col" class="num">Runs 24h</th><th scope="col" class="num">Failures 24h</th><th scope="col" class="num">Items 24h</th><th scope="col">Every</th></tr></thead>
+      <tbody>{% for w in workers %}
+        <tr>
+          <td><a href="?worker={{ w.worker|urlencode }}" class="font-monospace">{{ w.worker }}</a>{% if w.last_error %}<div class="small text-danger-light">{{ w.last_error|truncatechars:90 }}</div>{% endif %}</td>
+          <td>{% if w.stale %}<span class="badge badge-danger">Stale</span>{% elif w.last_status == "failed" %}<span class="badge badge-warning">Failed</span>{% elif w.last_status %}<span class="badge badge-active">{{ w.last_status|capfirst }}</span>{% else %}<span class="badge badge-inactive">No runs yet</span>{% endif %}</td>
+          <td class="small text-nowrap">{{ w.last_run_at|isodate|date:"M d, H:i:s"|default:"—" }}</td>
+          <td class="small text-nowrap">{{ w.last_success_at|isodate|date:"M d, H:i:s"|default:"—" }}</td>
+          <td class="num">{% if w.last_duration_ms is not None %}{{ w.last_duration_ms|thousands }} ms{% else %}—{% endif %}</td>
+          <td class="num">{{ w.runs_24h|default:0|thousands }}</td>
+          <td class="num">{{ w.failures_24h|default:0|thousands }}</td>
+          <td class="num">{{ w.items_24h|default:0|thousands }}</td>
+          <td class="small text-muted">{% if w.expected_interval_seconds %}{{ w.expected_interval_seconds }} s{% else %}—{% endif %}</td>
+        </tr>{% empty %}<tr><td colspan="9" class="text-muted">No workers reported.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+<div class="glass-card mb-4">{% include "control_panel/partials/_list_controls.html" with list_label="Filter job runs" search_placeholder="Search errors" %}</div>
+<div class="glass-card">
+  {% include "control_panel/partials/_list_toolbar.html" %}
+  {% if runs %}
+  <div class="table-responsive">
+    <table class="glass-table">
+      <thead><tr><th scope="col">Worker</th><th scope="col">Status</th><th scope="col">Started (UTC)</th><th scope="col" class="num">Duration</th><th scope="col" class="num">Items</th><th scope="col" class="num">Failed</th><th scope="col" class="num">Backlog</th><th scope="col">Error / details</th></tr></thead>
+      <tbody>{% for r in runs %}
+        <tr>
+          <td class="font-monospace small">{{ r.worker }}</td>
+          <td><span class="badge {% if r.status == 'failed' %}badge-danger{% elif r.status == 'succeeded' %}badge-active{% else %}badge-inactive{% endif %}">{{ r.status|capfirst }}</span></td>
+          <td class="small text-nowrap">{{ r.started_at|isodate|date:"M d, H:i:s"|default:r.started_at }}</td>
+          <td class="num">{% if r.duration_ms is not None %}{{ r.duration_ms|thousands }} ms{% else %}—{% endif %}</td>
+          <td class="num">{{ r.items_processed|default:0|thousands }}</td>
+          <td class="num">{{ r.items_failed|default:0|thousands }}</td>
+          <td class="num">{% if r.backlog_after is not None %}{{ r.backlog_after|thousands }}{% else %}—{% endif %}</td>
+          <td class="small">{% if r.error %}<span class="text-danger-light">{{ r.error|truncatechars:120 }}</span>{% elif r.details %}{% for k, v in r.details.items %}{{ k }}: {{ v }}{% if not forloop.last %} · {% endif %}{% endfor %}{% endif %}</td>
+        </tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}<p class="text-muted text-center py-4 mb-0">No runs match these filters.</p>{% endif %}
+  {% include "control_panel/partials/_pagination.html" %}
+</div>
+{% endblock %}

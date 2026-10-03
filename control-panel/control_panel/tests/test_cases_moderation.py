@@ -272,7 +272,11 @@ class BlogCasesTest(ConsoleCaseTest):
         response = self.client.get(reverse("blog_reviews"))
         self.assertEqual(response.status_code, 502)
         self.assertContains(response, "couldn&#x27;t complete that request", status_code=502)
-        self.assertEqual(self.client.get(reverse("blog_reviews"), {"status": "everything"}).status_code, 400)
+        # An unknown queue is never forwarded: the page falls back to the pending queue.
+        api.blog_reviews.reset_mock()
+        api.blog_reviews.return_value = APIResult(True, {"cases": [], "metrics": {}, "total": 0, "limit": 25, "offset": 0})
+        self.assertEqual(self.client.get(reverse("blog_reviews"), {"status": "everything"}).status_code, 200)
+        self.assertEqual(api.blog_reviews.call_args.kwargs["status"], "pending")
         api.blog_evidence.return_value = BinaryAPIResult(False, error="boom", status_code=500)
         self.assertEqual(self.client.get(reverse("blog_evidence", args=[uuid4(), uuid4()])).status_code, 502)
         api.blog_evidence.return_value = BinaryAPIResult(False, error="gone", status_code=404)

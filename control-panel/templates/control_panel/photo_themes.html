@@ -15,9 +15,14 @@
     <div><button class="btn btn-glow" type="submit">Save theme</button></div>
   </form>
 </div>
-<div class="glass-card">
+<div class="glass-card mb-4">
   <h2 class="h5">Themes</h2>
-  <div class="table-responsive"><table class="table"><thead><tr><th scope="col">Order</th><th scope="col">Title</th><th scope="col">Prompt</th><th scope="col">Slug</th><th scope="col">Status</th><th scope="col">Live photos</th></tr></thead>
-  <tbody>{% for theme in themes %}<tr><td>{{ theme.sort_order }}</td><td>{{ theme.title }}</td><td>{{ theme.prompt }}</td><td><code>{{ theme.slug }}</code></td><td>{{ theme.status|title }}</td><td>{{ theme.entry_count }}</td></tr>{% empty %}<tr><td colspan="6">No themes yet.</td></tr>{% endfor %}</tbody></table></div>
+  {% include "control_panel/partials/_list_controls.html" with list_label="Filter themes" search_placeholder="Slug, title or prompt…" %}
+</div>
+<div class="glass-card">
+  {% include "control_panel/partials/_list_toolbar.html" %}
+  <div class="table-responsive"><table class="glass-table"><thead><tr><th scope="col">Order</th><th scope="col">Title</th><th scope="col">Prompt</th><th scope="col">Slug</th><th scope="col">Status</th><th scope="col">Live photos</th></tr></thead>
+  <tbody>{% for theme in themes %}<tr><td>{{ theme.sort_order }}</td><td>{{ theme.title }}</td><td>{{ theme.prompt }}</td><td><code>{{ theme.slug }}</code></td><td>{{ theme.status|title }}</td><td>{{ theme.entry_count }}</td></tr>{% empty %}<tr><td colspan="6">{% if list_query.active_filter_count %}No themes match these filters.{% else %}No themes yet.{% endif %}</td></tr>{% endfor %}</tbody></table></div>
+  {% include "control_panel/partials/_pagination.html" %}
 </div>
 {% endblock %}

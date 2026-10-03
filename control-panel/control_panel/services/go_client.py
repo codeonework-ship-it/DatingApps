@@ -313,6 +313,35 @@ class GoBFFClient:
     def activity_catalog(self) -> APIResult:
         return self._request("GET", "/admin/activity/catalog")
 
+    # ── Server activity and consumption (admin/system/...) ────────────────────
+
+    def system_events(self, *, limit: int = 100, offset: int = 0, **extra: Any) -> APIResult:
+        params: dict[str, Any] = {"limit": limit}
+        params.update(_page_extras(offset, extra, ("kind", "severity", "service")))
+        return self._request("GET", "/admin/system/events", params=params)
+
+    def system_jobs(self) -> APIResult:
+        return self._request("GET", "/admin/system/jobs")
+
+    def system_job_runs(self, *, limit: int = 100, offset: int = 0, **extra: Any) -> APIResult:
+        params: dict[str, Any] = {"limit": limit}
+        params.update(_page_extras(offset, extra, ("worker", "status")))
+        return self._request("GET", "/admin/system/job-runs", params=params)
+
+    SYSTEM_REQUEST_PARAMS = ("from", "to", "grain", "group_by", "route", "method", "status_class", "service", "limit")
+
+    def system_requests(self, **params: Any) -> APIResult:
+        return self._request("GET", "/admin/system/requests",
+                             params={k: v for k, v in params.items() if k in self.SYSTEM_REQUEST_PARAMS and v not in (None, "")})
+
+    def system_capacity(self, **params: Any) -> APIResult:
+        return self._request("GET", "/admin/system/capacity",
+                             params={k: v for k, v in params.items() if k in ("from", "to") and v})
+
+    def system_third_party(self, **params: Any) -> APIResult:
+        return self._request("GET", "/admin/system/third-party",
+                             params={k: v for k, v in params.items() if k in ("from", "to") and v})
+
     def list_audit_events(
         self,
         *,
@@ -392,7 +421,7 @@ class GoBFFClient:
     # Go allows admin, ops_admin, support, trust_safety and moderator; analyst
     # may only GET the dashboard.
 
-    SUPPORT_TICKET_FILTERS = ("status", "category", "priority", "team", "channel", "assignee", "sla", "q", "sort")
+    SUPPORT_TICKET_FILTERS = ("status", "category", "priority", "team", "channel", "assignee", "sla", "q", "sort", "member")
 
     @classmethod
     def _support_filter_params(cls, filters: dict[str, Any]) -> dict[str, Any]:
@@ -534,10 +563,16 @@ class GoBFFClient:
             status_code=response.status_code,
         )
 
-    def list_growth_fraud_graph(self, *, status: str = "open", limit: int = 100) -> APIResult:
-        return self._request(
-            "GET", "/admin/growth/fraud-graph", params={"status": status, "limit": limit}
-        )
+    GROWTH_FRAUD_FILTERS = ("signal_type", "member")
+
+    def list_growth_fraud_graph(self, *, status: str = "open", limit: int = 100, offset: int = 0, **extra: Any) -> APIResult:
+        """GET /admin/growth/fraud-graph (edges): paging contract; status is the
+        review status (open, dismissed, confirmed), empty for every status."""
+        params: dict[str, Any] = {"limit": limit}
+        if status.strip():
+            params["status"] = status.strip()
+        params.update(_page_extras(offset, extra, self.GROWTH_FRAUD_FILTERS))
+        return self._request("GET", "/admin/growth/fraud-graph", params=params)
 
     def resolve_growth_fraud_edge(self, edge_id: str, status: str) -> APIResult:
         return self._request(
@@ -601,14 +636,21 @@ class GoBFFClient:
             status_code=response.status_code,
         )
 
-    def photo_themes(self) -> APIResult:
-        return self._request("GET", "/admin/engagement/photo-themes")
+    def photo_themes(self, *, limit: int = 500, offset: int = 0, **extra: Any) -> APIResult:
+        """GET /admin/engagement/photo-themes (themes): paging contract, status filter."""
+        params: dict[str, Any] = {"limit": limit}
+        params.update(_page_extras(offset, extra, ("status",)))
+        return self._request("GET", "/admin/engagement/photo-themes", params=params)
 
     def save_photo_theme(self, payload) -> APIResult:
         return self._request("POST", "/admin/engagement/photo-themes", payload=payload)
 
-    def blog_reviews(self, *, status="pending", offset=0) -> APIResult:
-        return self._request("GET", "/admin/moderation/blog", params={"status": status, "offset": offset})
+    def blog_reviews(self, *, status: str = "pending", limit: int = 100, offset: int = 0, **extra: Any) -> APIResult:
+        """GET /admin/moderation/blog (cases, metrics): one queue status
+        (pending, removed, dismissed, restored), the paging contract and content_type."""
+        params: dict[str, Any] = {"status": status or "pending", "limit": limit}
+        params.update(_page_extras(offset, extra, ("content_type",)))
+        return self._request("GET", "/admin/moderation/blog", params=params)
 
     def blog_decision(self, case_id, payload) -> APIResult:
         return self._request("POST", f"/admin/moderation/blog/{case_id}", payload=payload)
@@ -693,16 +735,13 @@ class GoBFFClient:
 
     # ── Gift Catalog ──────────────────────────────────────────────────────────
 
-    def list_catalog_gifts(self, *, category: str = "", tier: str = "", active: str = "", q: str = "", limit: int = 50, offset: int = 0) -> APIResult:
-        params: dict[str, Any] = {"limit": limit, "offset": offset}
-        if category.strip():
-            params["category"] = category.strip()
-        if tier.strip():
-            params["tier"] = tier.strip()
-        if active.strip():
-            params["active"] = active.strip()
-        if q.strip():
-            params["q"] = q.strip()
+    CATALOG_FILTERS = ("category", "tier", "active")
+
+    def list_catalog_gifts(self, *, limit: int = 50, offset: int = 0, **extra: Any) -> APIResult:
+        """GET /admin/catalog/gifts (gifts): paging contract plus category,
+        tier and active (yes/no)."""
+        params: dict[str, Any] = {"limit": limit}
+        params.update(_page_extras(offset, extra, self.CATALOG_FILTERS))
         return self._request("GET", "/admin/catalog/gifts", params=params)
 
     def create_catalog_gift(self, payload: dict[str, Any]) -> APIResult:
@@ -800,8 +839,12 @@ class GoBFFClient:
 
     # ── Engagement Prompts ────────────────────────────────────────────────────
 
-    def list_engagement_prompts(self) -> APIResult:
-        return self._request("GET", "/admin/engagement/prompts")
+    def list_engagement_prompts(self, *, limit: int = 100, offset: int = 0, **extra: Any) -> APIResult:
+        """GET /admin/engagement/prompts (prompts): paging contract plus
+        category and active (yes/no)."""
+        params: dict[str, Any] = {"limit": limit}
+        params.update(_page_extras(offset, extra, ("category", "active")))
+        return self._request("GET", "/admin/engagement/prompts", params=params)
 
     def create_engagement_prompt(self, payload: dict[str, Any]) -> APIResult:
         return self._request("POST", "/admin/engagement/prompts", payload=payload)
@@ -814,8 +857,14 @@ class GoBFFClient:
             "POST", f"/admin/engagement/prompts/{prompt_id}/activate", payload={}
         )
 
-    def list_engagement_nudges(self) -> APIResult:
-        return self._request("GET", "/admin/engagement/nudges")
+    NUDGE_FILTERS = ("nudge_type", "status", "user_id", "match_id", "clicked")
+
+    def list_engagement_nudges(self, *, limit: int = 100, offset: int = 0, **extra: Any) -> APIResult:
+        """GET /admin/engagement/nudges (nudges; count, clicked and by_type
+        describe the returned page, total the whole match)."""
+        params: dict[str, Any] = {"limit": limit}
+        params.update(_page_extras(offset, extra, self.NUDGE_FILTERS))
+        return self._request("GET", "/admin/engagement/nudges", params=params)
 
     # ── Level / XP progression ───────────────────────────────────────────────
 
@@ -825,8 +874,14 @@ class GoBFFClient:
     def update_progression_policy(self, source: str, payload: dict[str, Any]) -> APIResult:
         return self._request("PUT", f"/admin/progression/policies/{source}", payload=payload)
 
-    def list_progression_fraud(self, *, status: str = "open") -> APIResult:
-        params = {"status": status} if status.strip() else {}
+    PROGRESSION_FRAUD_FILTERS = ("severity", "rule_code", "user_id")
+
+    def list_progression_fraud(self, *, status: str = "open", limit: int = 200, offset: int = 0, **extra: Any) -> APIResult:
+        """GET /admin/progression/fraud (cases): empty status means every status."""
+        params: dict[str, Any] = {"limit": limit}
+        if status.strip():
+            params["status"] = status.strip()
+        params.update(_page_extras(offset, extra, self.PROGRESSION_FRAUD_FILTERS))
         return self._request("GET", "/admin/progression/fraud", params=params)
 
     def resolve_progression_fraud(
@@ -925,14 +980,14 @@ class GoBFFClient:
             params["status"] = status.strip()
         if plan_code.strip():
             params["plan_code"] = plan_code.strip()
-        params.update(_list_extras(extra))
+        params.update(_list_extras(extra, ("user_id", "provider")))
         return self._request("GET", "/admin/billing/subscriptions", params=params)
 
     def list_payments(self, *, limit: int = 50, offset: int = 0, status: str = "", **extra: Any) -> APIResult:
         params: dict[str, Any] = {"limit": limit, "offset": offset}
         if status.strip():
             params["status"] = status.strip()
-        params.update(_list_extras(extra))
+        params.update(_list_extras(extra, ("user_id", "provider", "billing_reason")))
         return self._request("GET", "/admin/billing/payments", params=params)
 
     def get_revenue_analytics(self, params: dict[str, Any] | None = None) -> APIResult:
@@ -975,8 +1030,14 @@ class GoBFFClient:
             payload={"action": action, "note": note},
         )
 
-    def list_economy_fraud_cases(self, *, status: str = "open", limit: int = 100) -> APIResult:
-        return self._request("GET", "/admin/billing/fraud/cases", params={"status": status, "limit": limit})
+    ECONOMY_FRAUD_FILTERS = ("severity", "rule_code", "user_id")
+
+    def list_economy_fraud_cases(self, *, status: str = "open", limit: int = 100, offset: int = 0, **extra: Any) -> APIResult:
+        """GET /admin/billing/fraud/cases (cases): status is open, reviewing,
+        cleared, confirmed or all (Go reads an empty status as open)."""
+        params: dict[str, Any] = {"status": status.strip() or "open", "limit": limit}
+        params.update(_page_extras(offset, extra, self.ECONOMY_FRAUD_FILTERS))
+        return self._request("GET", "/admin/billing/fraud/cases", params=params)
 
     def list_economy_fraud_rules(self) -> APIResult:
         return self._request("GET", "/admin/billing/fraud/rules")
@@ -1091,8 +1152,11 @@ class GoBFFClient:
 
     # ── Group cover review (operator moderation) ─────────────────────────────
 
-    def group_covers(self, *, status: str = "pending", limit: int = 50) -> APIResult:
-        return self._request("GET", "/admin/moderation/group-covers", params={"status": status, "limit": limit})
+    def group_covers(self, *, status: str = "pending", limit: int = 50, offset: int = 0, **extra: Any) -> APIResult:
+        """GET /admin/moderation/group-covers (items): status pending or approved."""
+        params: dict[str, Any] = {"status": status or "pending", "limit": limit}
+        params.update(_page_extras(offset, extra))
+        return self._request("GET", "/admin/moderation/group-covers", params=params)
 
     def group_cover_decision(self, cover_id: str, decision: str, reason: str) -> APIResult:
         return self._request(

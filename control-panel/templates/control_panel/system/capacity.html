@@ -1,0 +1,43 @@
+{% extends "control_panel/base.html" %}
+{% load static custom_filters %}
+{% block title %}Capacity · {{ project_name }}{% endblock %}
+{% block topbar_title %}Server activity · Capacity{% endblock %}
+{% block content %}
+{% include "control_panel/system/_nav.html" %}
+{% include "control_panel/system/_dates.html" %}
+{% if latest %}
+<div class="metric-grid mb-4">
+  <article class="metric-tile"><div class="metric-top"><span>Database size</span></div><div class="metric-number">{{ latest.db_size_bytes|bytes }}</div><div class="metric-unit">as of {{ latest.at|isodate|date:"M d, H:i"|default:"—" }} UTC</div><div class="metric-meta"><span>pg_database_size</span></div></article>
+  <article class="metric-tile"><div class="metric-top"><span>Connections</span></div><div class="metric-number">{{ latest.connections|default:"—" }}</div><div class="metric-unit">of {{ latest.max_connections|default:"—" }} max</div><div class="metric-meta"><span>Backends at snapshot time</span></div></article>
+  <article class="metric-tile"><div class="metric-top"><span>Domain events</span></div><div class="metric-number">{{ latest.outbox_rows|default:0|thousands }}</div><div class="metric-unit">rows (estimate)</div><div class="metric-meta"><span>platform.domain_event_outbox</span></div></article>
+  <article class="metric-tile"><div class="metric-top"><span>Activity rows</span></div><div class="metric-number">{{ latest.activity_rows|default:0|thousands }}</div><div class="metric-unit">rows (estimate)</div><div class="metric-meta"><span>matching.activity_events</span></div></article>
+</div>
+{% endif %}
+{% if chart and chart.labels %}
+<div class="glass-card mb-4"><div class="chart-frame report-chart" role="img" aria-label="{{ chart.title }}"><canvas data-report-chart="capacity-chart"></canvas>{{ chart|json_script:"capacity-chart" }}</div></div>
+{% endif %}
+<div class="row g-4">
+  <div class="col-12 col-xl-4">
+    <section class="glass-card h-100" aria-labelledby="media-heading">
+      <h2 class="h5" id="media-heading">Media storage</h2>
+      {% if media %}<table class="glass-table"><tbody>{% for kind, size in media %}<tr><td>{{ kind }}</td><td class="num">{{ size|bytes }}</td></tr>{% endfor %}</tbody></table>
+      {% else %}<p class="text-muted mb-0">No media sizes recorded yet.</p>{% endif %}
+      {% if latest.disk %}<p class="form-text mt-3 mb-0">{% for k, v in latest.disk.items %}{{ k }}: {{ v|bytes }}{% if not forloop.last %} · {% endif %}{% endfor %}</p>{% endif %}
+    </section>
+  </div>
+  <div class="col-12 col-xl-8">
+    <section class="glass-card h-100" aria-labelledby="tables-heading">
+      <h2 class="h5" id="tables-heading">Largest tables</h2>
+      {% if tables %}
+      <div class="table-responsive">
+        <table class="glass-table">
+          <thead><tr><th scope="col">Table</th><th scope="col" class="num">Total</th><th scope="col" class="num">Indexes</th><th scope="col" class="num">Live rows</th><th scope="col" class="num">Dead rows</th><th scope="col">Last autovacuum</th></tr></thead>
+          <tbody>{% for t in tables %}<tr><td class="font-monospace small">{{ t.table }}</td><td class="num">{{ t.total_bytes|bytes }}</td><td class="num">{{ t.index_bytes|bytes }}</td><td class="num">{{ t.live_rows|thousands }}</td><td class="num">{{ t.dead_rows|thousands }}</td><td class="small text-nowrap">{{ t.last_autovacuum|isodate|date:"M d, H:i"|default:"—" }}</td></tr>{% endfor %}</tbody>
+        </table>
+      </div>
+      {% else %}<p class="text-muted mb-0">No snapshot yet. The capacity worker writes one every hour.</p>{% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}<script src="{% static 'control_panel/reports.js' %}" defer></script>{% endblock %}

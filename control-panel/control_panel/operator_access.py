@@ -34,11 +34,11 @@ _FINANCE_READ_PREFIXES = (
     "billing/webhook-events", "billing/reconciliation", "billing/revenue-analytics", "billing/plans",
     "billing/coin-packages",
 )
-_OPS_ADMIN_PREFIXES = ("catalog/", "config/", "engagement/", "billing/", "progression", "support/", "growth/")
+_OPS_ADMIN_PREFIXES = ("catalog/", "config/", "engagement/", "billing/", "progression", "support/", "growth/", "system/")
 _ANALYST_READ_PREFIXES = (
     "analytics/", "activities", "activity", "members/", "audit-events", "events", "billing/stats", "billing/transactions",
     "billing/subscriptions", "billing/payments", "billing/webhook-events", "billing/reconciliation",
-    "billing/revenue-analytics", "users",
+    "billing/revenue-analytics", "users", "system/requests", "system/capacity", "system/third-party",
 )
 
 
@@ -145,6 +145,7 @@ NAV_ITEMS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     ("audit_log", "logs", ("audit-events",)),
     ("domain_events", "logs", ("events", "events/metrics")),
     ("client_errors", "logs", ("client-errors",)),
+    ("system_events", "logs", ("system/events", "system/requests", "system/capacity", "system/third-party")),
 )
 
 

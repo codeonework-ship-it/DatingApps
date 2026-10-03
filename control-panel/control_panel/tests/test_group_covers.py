@@ -45,7 +45,7 @@ class GroupCoversViewTest(TestCase):
         """[case:console.moderation_group_covers.group_covers.renders]"""
         cls.return_value.group_covers.return_value = APIResult(True, {'items': [_item()], 'count': 1, 'status': 'pending'})
         response = self.client.get(reverse('group_covers'))
-        cls.return_value.group_covers.assert_called_with(status='pending')
+        cls.return_value.group_covers.assert_called_with(status='pending', limit=25, offset=0)
         self.assertEqual(response.status_code, 200)
         self.assertIn('no-store', response['Cache-Control'])
         self.assertContains(response, '&lt;b&gt;Sunday hikers&lt;/b&gt;')
@@ -65,12 +65,12 @@ class GroupCoversViewTest(TestCase):
         """[case:console.moderation_group_covers.group_covers.renders]"""
         cls.return_value.group_covers.return_value = APIResult(True, {'items': [_item(status='approved')]})
         response = self.client.get(reverse('group_covers'), {'status': 'approved'})
-        cls.return_value.group_covers.assert_called_with(status='approved')
+        cls.return_value.group_covers.assert_called_with(status='approved', limit=25, offset=0)
         self.assertNotContains(response, 'Approve</button>')
         self.assertNotContains(response, 'Reject</button>')
         self.assertContains(response, 'Status: Approved')
         self.client.get(reverse('group_covers'), {'status': 'rejected'})
-        cls.return_value.group_covers.assert_called_with(status='pending')
+        cls.return_value.group_covers.assert_called_with(status='pending', limit=25, offset=0)
 
     @patch('control_panel.views_group_covers.GoBFFClient')
     def test_api_errors_are_shown(self, cls):

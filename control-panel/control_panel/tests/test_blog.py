@@ -79,7 +79,10 @@ class BlogReviewsTest(TestCase):
         """[case:console.moderation_blog.blog_decision.performs]"""
         self.client.post(reverse('blog_decision', args=[uuid4()]), {'version':'1', 'note':'x', 'decision':'removed'})
         cls.return_value.blog_decision.assert_not_called()
-        self.assertEqual(self.client.get(reverse('blog_reviews')+'?offset=-1').status_code,400)
+        # A bad page number is clamped to the first page, never sent to Go as a negative offset.
+        cls.return_value.blog_reviews.return_value = APIResult(True, {'cases': [], 'metrics': {}, 'total': 0})
+        self.assertEqual(self.client.get(reverse('blog_reviews'), {'page': '-1'}).status_code, 200)
+        self.assertEqual(cls.return_value.blog_reviews.call_args.kwargs['offset'], 0)
 
     @patch('control_panel.views_blog.GoBFFClient')
     def test_evidence_never_cached_or_executed(self, cls):

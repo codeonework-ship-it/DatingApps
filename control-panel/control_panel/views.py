@@ -32,6 +32,58 @@ def _base_context(*, include_health: bool = True) -> dict:
     return context
 
 
+class _AscendingQuery(listing.ListQuery):
+    """A list whose natural order is ascending (display order, the queue due
+    soonest): no ``dir`` means ascending and a descending choice stays in
+    every page, sort and export link."""
+
+    def params(self, **overrides):
+        direction = overrides.pop("dir", self.direction)
+        values = super().params(dir="", **overrides)
+        if direction and direction != "asc":
+            values["dir"] = str(direction)
+        return values
+
+
+def paged_list(request: HttpRequest, spec: listing.ListSpec, call, *, items_key: str, template: str, title: str,
+               context_name: str, base_context=None, map_filters=None, extra=None,
+               ascending: bool = False, failure_status: bool = False) -> HttpResponse:
+    """``listing.simple_view`` for the lists it does not cover: an ascending
+    default order (``ascending``) and pages that answer with the BFF's
+    failure status instead of 200 (``failure_status``)."""
+    query = listing.parse(request, spec)
+    if ascending:
+        query = _AscendingQuery(spec=query.spec, page=query.page, page_size=query.page_size, q=query.q,
+                                sort=query.sort, filters=query.filters,
+                                direction="desc" if request.GET.get("dir", "").strip().lower() == "desc" else "asc")
+    last_response: dict = {}
+    failure: dict = {}
+
+    def fetch(q: listing.ListQuery, limit: int, offset: int):
+        kwargs = map_filters(q) if map_filters else q.go_params()
+        result = call(limit=limit, offset=offset, **kwargs)
+        if not result.ok:
+            failure["status"] = result.status_code
+            return [], None, result.error
+        data = result.data if isinstance(result.data, dict) else {}
+        last_response.clear()
+        last_response.update(data)
+        rows = [r for r in data.get(items_key) or [] if isinstance(r, dict)]
+        total = data.get("total")
+        return rows, total if isinstance(total, int) and not isinstance(total, bool) else None, ""
+
+    if request.GET.get("export") == "xlsx" and spec.columns:
+        return listing.xlsx_response(query, fetch, title=title)
+    page = listing.load(query, fetch)
+    ctx = (base_context or _base_context)()
+    ctx.update(listing.context(page))
+    ctx.update({context_name: page.rows, "total": page.total, "error": page.error})
+    if extra:
+        ctx.update(extra(page, last_response))
+    status = bff_failure_status(failure.get("status")) if failure_status and page.error else 200
+    return render(request, template, ctx, status=status)
+
+
 def _bounded_int(value: str, default: int, *, minimum: int = 1, maximum: int = 500) -> int:
     try:
         parsed = int(value)
@@ -461,20 +513,53 @@ def action_appeal(request: HttpRequest, appeal_id: str) -> HttpResponse:
 # ── Deferred growth governance (P2 launch register) ─────────────────────────
 # Support tickets moved to views_support.py (the /support/ section).
 
+# Fraud signals are paged by Go; the launch register is a short fixed list.
+GROWTH_FRAUD_STATUSES = (("open", "Open"), ("dismissed", "Dismissed"), ("confirmed", "Confirmed"), ("all", "All statuses"))
+GROWTH_FRAUD_LIST = listing.ListSpec(
+    name="growth-fraud-signals", search_label="Search signal or action mode",
+    filters=(listing.Filter("status", "Review status", GROWTH_FRAUD_STATUSES, allow_all=False),
+             listing.Filter("signal_type", "Signal", (("shared_device", "Shared device"), ("referral_velocity", "Referral velocity"),
+                                                       ("gift_velocity", "Gift velocity"), ("account_pattern", "Account pattern"))),
+             listing.Filter("member", "Member ID", kind="text", max_length=36),
+             listing.Filter("from", "From (UTC)", kind="date"), listing.Filter("to", "To (UTC)", kind="date")),
+    sorts=(("confidence", "Confidence"), ("created_at", "Detected")),
+    columns=(listing.Column("id", "Signal ID", width=38), listing.Column("signal_type", "Signal", width=20),
+             listing.Column("left_member_id", "Member A", width=38), listing.Column("right_member_id", "Member B", width=38),
+             listing.Column("confidence", "Confidence", width=12), listing.Column("review_status", "Review status"),
+             listing.Column("action_mode", "Action mode"), listing.Column("evidence", "Evidence", width=50),
+             listing.Column("reviewed_by", "Reviewed by", width=38), listing.Column("reviewed_at", "Reviewed (UTC)", width=22),
+             listing.Column("created_at", "Detected (UTC)", width=22)),
+)
+
+
+def _status_or_all(query: listing.ListQuery, default: str) -> dict:
+    """Go params where the status select defaults to ``default`` and "all"
+    means no status filter."""
+    params = query.go_params()
+    status = params.get("status") or default
+    params["status"] = "" if status == "all" else status
+    return params
+
+
 @require_GET
 def growth_governance(request: HttpRequest) -> HttpResponse:
     client = GoBFFClient()
-    portfolio_result = client.growth_portfolio()
-    fraud_result = client.list_growth_fraud_graph(status="open", limit=100)
-    context = _base_context()
-    context.update(
-        {
+
+    def extra(page: listing.Page, data: dict) -> dict:
+        portfolio_result = client.growth_portfolio()
+        status = page.query.filters.get("status") or "open"
+        return {
             "modules": portfolio_result.data.get("modules", []) if portfolio_result.ok else [],
-            "fraud_edges": fraud_result.data.get("edges", []) if fraud_result.ok else [],
-            "error": portfolio_result.error or fraud_result.error,
+            "fraud_edges": page.rows,
+            "fraud_status_label": dict(GROWTH_FRAUD_STATUSES).get(status, status),
+            "error": portfolio_result.error or "",
+            "fraud_error": page.error,
         }
-    )
-    return render(request, "control_panel/growth_governance.html", context)
+
+    return listing.simple_view(request, GROWTH_FRAUD_LIST, client.list_growth_fraud_graph, items_key="edges",
+                               template="control_panel/growth_governance.html", title="Growth fraud signals",
+                               base_context=_base_context, context_name="fraud_edges",
+                               map_filters=lambda q: _status_or_all(q, "open"), extra=extra)
 
 
 # ── Moderation Reports ────────────────────────────────────────────────────────
@@ -595,51 +680,35 @@ def media_moderation_decision(request: HttpRequest, photo_id: str) -> HttpRespon
 
 # ── Gift Catalog ──────────────────────────────────────────────────────────────
 
-@require_GET
-def catalog_list(request: HttpRequest) -> HttpResponse:
-    category = request.GET.get("category", "").strip()
-    tier = request.GET.get("tier", "").strip()
-    active = request.GET.get("active", "").strip()
-    q = request.GET.get("q", "").strip()
-    try:
-        offset = int(request.GET.get("offset", "0"))
-    except ValueError:
-        offset = 0
-    limit = 50
-
-    client = GoBFFClient()
-    result = client.list_catalog_gifts(category=category, tier=tier, active=active, q=q, limit=limit, offset=offset)
-
-    gifts = result.data.get("gifts", []) if result.ok else []
-    total = result.data.get("total", result.data.get("count", len(gifts))) if result.ok else 0
-    active_count = sum(1 for g in gifts if g.get("is_active"))
-
-    context = _base_context()
-    context.update(
-        {
-            "q": q,
-            "category_filter": category,
-            "tier_filter": tier,
-            "active_filter": active,
-            "offset": offset,
-            "limit": limit,
-            "gifts": gifts,
-            "total": total,
-            "active_count": active_count,
-            "error": result.error,
-            "categories": GIFT_CATEGORIES,
-            "rarity_tiers": GIFT_TIERS,
-            "prev_offset": max(0, offset - limit),
-            "next_offset": offset + limit,
-        }
-    )
-    return render(request, "control_panel/catalog.html", context)
-
-
 # The same lists the catalog page filters by. The form used to offer only the
 # first five categories, so editing a "themed_pack" (etc.) gift lost its category.
 GIFT_CATEGORIES = ["roses", "sparkle", "playful", "luxury", "seasonal", "themed_pack", "reaction", "experience", "exclusive"]
 GIFT_TIERS = ["free", "common", "uncommon", "rare", "epic", "legendary"]
+
+CATALOG_LIST = listing.ListSpec(
+    name="gift-catalog", search_label="Search gift name or ID",
+    filters=(listing.Filter("category", "Category", tuple((c, c.replace("_", " ").capitalize()) for c in GIFT_CATEGORIES)),
+             listing.Filter("tier", "Rarity tier", tuple((t, t.capitalize()) for t in GIFT_TIERS)),
+             listing.Filter("active", "Status", (("yes", "Active"), ("no", "Inactive")))),
+    sorts=(("sort_order", "Display order"), ("name", "Name"), ("price_coins", "Coin cost"), ("created_at", "Created")),
+    columns=(listing.Column("id", "Gift ID", width=24), listing.Column("name", "Name", width=24),
+             listing.Column("category", "Category", width=14), listing.Column("tier", "Tier", width=12),
+             listing.Column("price_coins", "Coin cost", width=10), listing.Column("is_active", "Active", width=8),
+             listing.Column("sort_order", "Display order", width=12), listing.Column("max_per_match_per_day", "Max per match per day", width=12),
+             listing.Column("icon_emoji", "Icon", width=6), listing.Column("description", "Description", width=40),
+             listing.Column("start_date", "Starts (UTC)", width=22), listing.Column("end_date", "Ends (UTC)", width=22),
+             listing.Column("created_at", "Created (UTC)", width=22), listing.Column("updated_at", "Updated (UTC)", width=22)),
+)
+
+
+@require_GET
+def catalog_list(request: HttpRequest) -> HttpResponse:
+    """Gift catalog, paged by Go in display order (sort_order ascending)."""
+    return paged_list(request, CATALOG_LIST, GoBFFClient().list_catalog_gifts, items_key="gifts",
+                      template="control_panel/catalog.html", title="Gift catalog", context_name="gifts",
+                      ascending=True,
+                      extra=lambda page, data: {"active_count": sum(1 for g in page.rows if g.get("is_active")),
+                                                "categories": GIFT_CATEGORIES, "rarity_tiers": GIFT_TIERS})
 
 
 def _gift_form_context(gift: dict | None = None) -> dict:
@@ -1179,30 +1248,47 @@ def config_flag_toggle(request: HttpRequest, key: str) -> HttpResponse:
 PROMPT_CATEGORIES = ["icebreaker", "deep_dive", "fun", "values", "lifestyle"]
 
 
-def _prompt_rows(result) -> list[dict]:
-    """Prompts as the templates read them. Go stores the text as
+def _prompt_row(prompt: dict) -> dict:
+    """A prompt as the templates read it. Go stores the text as
     ``question_text``; the templates say ``prompt_text``."""
-    data = result.data if result.ok and isinstance(result.data, dict) else {}
-    rows = []
-    for prompt in data.get("prompts") or []:
-        if isinstance(prompt, dict):
-            rows.append({**prompt, "prompt_text": prompt.get("question_text") or prompt.get("prompt_text") or ""})
-    return rows
+    return {**prompt, "prompt_text": prompt.get("question_text") or prompt.get("prompt_text") or ""}
+
+
+PROMPT_LIST = listing.ListSpec(
+    name="daily-prompts", search_label="Search prompt text or category",
+    filters=(listing.Filter("category", "Category", tuple((c, c.replace("_", " ").capitalize()) for c in PROMPT_CATEGORIES)),
+             listing.Filter("active", "Status", (("yes", "Active"), ("no", "Inactive"))),
+             listing.Filter("from", "Created from (UTC)", kind="date"), listing.Filter("to", "Created to (UTC)", kind="date")),
+    sorts=(("created_at", "Created"), ("active_date", "Active date")),
+    columns=(listing.Column("id", "Prompt ID", width=38), listing.Column("question_text", "Prompt", width=60),
+             listing.Column("category", "Category", width=14), listing.Column("is_active", "Active", width=8),
+             listing.Column("active_date", "Active date", width=14), listing.Column("response_count", "Responses", width=10),
+             listing.Column("created_by", "Created by", width=38), listing.Column("created_at", "Created (UTC)", width=22)),
+)
 
 
 @require_GET
 def engagement_prompts(request: HttpRequest) -> HttpResponse:
-    client = GoBFFClient()
-    result = client.list_engagement_prompts()
+    return listing.simple_view(request, PROMPT_LIST, GoBFFClient().list_engagement_prompts, items_key="prompts",
+                               template="control_panel/engagement_prompts.html", title="Daily prompts",
+                               base_context=_base_context, context_name="prompts",
+                               extra=lambda page, data: {"prompts": [_prompt_row(p) for p in page.rows]})
 
-    context = _base_context()
-    context.update(
-        {
-            "prompts": _prompt_rows(result),
-            "error": result.error,
-        }
-    )
-    return render(request, "control_panel/engagement_prompts.html", context)
+
+def _find_prompt(client, prompt_id: str):
+    """(prompt or None, result). Go has no single-prompt read and pages its
+    list (100 by default, 500 at most), so page through it."""
+    result = None
+    for page in range(20):
+        result = client.list_engagement_prompts(limit=500, offset=page * 500)
+        data = result.data if result.ok and isinstance(result.data, dict) else {}
+        prompts = [p for p in data.get("prompts") or [] if isinstance(p, dict)]
+        prompt = next((p for p in prompts if str(p.get("id")) == prompt_id), None)
+        if prompt is not None:
+            return _prompt_row(prompt), result
+        if not result.ok or len(prompts) < 500:
+            return None, result
+    return None, result
 
 
 @require_http_methods(["GET", "POST"])
@@ -1252,8 +1338,7 @@ def engagement_prompt_edit(request: HttpRequest, prompt_id: str) -> HttpResponse
                 return redirect("engagement_prompts")
             messages.error(request, f"Failed to update prompt: {result.error}")
 
-    all_prompts = client.list_engagement_prompts()
-    prompt = next((p for p in _prompt_rows(all_prompts) if str(p.get("id")) == prompt_id), None)
+    prompt, all_prompts = _find_prompt(client, prompt_id)
     if all_prompts.ok and prompt is None:
         # Never show the "new prompt" form for an id that does not exist.
         raise Http404("Prompt not found")
@@ -1281,18 +1366,41 @@ def engagement_prompt_activate(request: HttpRequest, prompt_id: str) -> HttpResp
     return redirect("engagement_prompts")
 
 
+NUDGE_LIST = listing.ListSpec(
+    name="match-nudges", search_label="Search nudge type",
+    filters=(listing.Filter("nudge_type", "Nudge type", kind="text", max_length=60),
+             listing.Filter("status", "Status", (("sent", "Sent"), ("clicked", "Clicked"), ("dismissed", "Dismissed"), ("expired", "Expired"))),
+             listing.Filter("clicked", "Clicked", (("yes", "Clicked"), ("no", "Not clicked"))),
+             listing.Filter("user_id", "Recipient ID", kind="text", max_length=36),
+             listing.Filter("match_id", "Match ID", kind="text", max_length=36),
+             listing.Filter("from", "Sent from (UTC)", kind="date"), listing.Filter("to", "Sent to (UTC)", kind="date")),
+    sorts=(("created_at", "Sent"), ("clicked_at", "Clicked")),
+    columns=(listing.Column("id", "Nudge ID", width=38), listing.Column("nudge_type", "Type", width=20),
+             listing.Column("match_id", "Match ID", width=38), listing.Column("user_id", "Recipient ID", width=38),
+             listing.Column("counterparty_user_id", "Counterparty ID", width=38),
+             listing.Column("created_at", "Sent (UTC)", width=22), listing.Column("clicked_at", "Clicked (UTC)", width=22)),
+)
+
+
 @require_GET
 def engagement_nudges(request: HttpRequest) -> HttpResponse:
-    context = _base_context()
-    result = GoBFFClient().list_engagement_nudges()
-    context["nudges"] = result.data.get("nudges", []) if result.ok else []
-    context["nudge_count"] = result.data.get("count", 0) if result.ok else 0
-    context["clicked_count"] = result.data.get("clicked", 0) if result.ok else 0
-    context["by_type"] = result.data.get("by_type", {}) if result.ok else {}
-    # Unknown when the BFF cannot answer, not "Disabled".
-    context["nudges_enabled"] = result.data.get("enabled", True) if result.ok else None
-    context["error"] = result.error if not result.ok else ""
-    return render(request, "control_panel/engagement_nudges.html", context)
+    def extra(page: listing.Page, data: dict) -> dict:
+        ok = not page.error
+        by_type = data.get("by_type") if ok and isinstance(data.get("by_type"), dict) else {}
+        return {
+            # count, clicked and by_type describe the page Go returned; total
+            # is every nudge matching the filters.
+            "nudge_count": page.total if page.total is not None else len(page.rows),
+            "page_count": data.get("count", len(page.rows)) if ok else 0,
+            "clicked_count": data.get("clicked", 0) if ok else 0,
+            "by_type": by_type,
+            # Unknown when the BFF cannot answer, not "Disabled".
+            "nudges_enabled": data.get("enabled", True) if ok else None,
+        }
+
+    return listing.simple_view(request, NUDGE_LIST, GoBFFClient().list_engagement_nudges, items_key="nudges",
+                               template="control_panel/engagement_nudges.html", title="Match nudges",
+                               base_context=_base_context, context_name="nudges", extra=extra)
 
 
 # ── Billing ───────────────────────────────────────────────────────────────────
@@ -1552,16 +1660,35 @@ def billing_payments(request: HttpRequest) -> HttpResponse:
 
 # ── Billing: reconciliation (PEN-02) ─────────────────────────────────────────
 
+ECONOMY_FRAUD_STATUSES = (("open", "Open"), ("reviewing", "Reviewing"), ("cleared", "Cleared"),
+                          ("confirmed", "Confirmed"), ("all", "All statuses"))
+ECONOMY_FRAUD_LIST = listing.ListSpec(
+    name="coin-fraud-cases", search_label="Search rule or event type",
+    filters=(listing.Filter("status", "Case status", ECONOMY_FRAUD_STATUSES, allow_all=False),
+             listing.Filter("severity", "Severity", (("critical", "Critical"), ("high", "High"), ("medium", "Medium"), ("low", "Low"))),
+             listing.Filter("rule_code", "Rule", kind="text", max_length=80),
+             listing.Filter("user_id", "Member ID", kind="text", max_length=36),
+             listing.Filter("from", "Detected from (UTC)", kind="date"), listing.Filter("to", "Detected to (UTC)", kind="date")),
+    sorts=(("severity", "Severity"), ("last_detected_at", "Last detected"), ("first_detected_at", "First detected")),
+    columns=(listing.Column("id", "Case ID", width=38), listing.Column("user_id", "Member ID", width=38),
+             listing.Column("rule_code", "Rule", width=22), listing.Column("event_type", "Event", width=16),
+             listing.Column("status", "Status", width=12), listing.Column("severity", "Severity", width=10),
+             listing.Column("recommended_action", "Recommended action", width=18), listing.Column("action_taken", "Action taken", width=18),
+             listing.Column("observed_value", "Observed", width=10), listing.Column("trigger_value", "Trigger", width=10),
+             listing.Column("window_seconds", "Window (s)", width=10), listing.Column("occurrence_count", "Occurrences", width=10),
+             listing.Column("match_id", "Match ID", width=38), listing.Column("receiver_user_id", "Receiver ID", width=38),
+             listing.Column("first_detected_at", "First detected (UTC)", width=22), listing.Column("last_detected_at", "Last detected (UTC)", width=22),
+             listing.Column("lock_until", "Locked until (UTC)", width=22), listing.Column("resolution_note", "Resolution note", width=40)),
+)
+
+
 @require_GET
 def billing_reconciliation(request: HttpRequest) -> HttpResponse:
+    """The settlement report, frozen wallets and fraud rules, with the coin
+    economy fraud cases paged by Go (the only unbounded list here)."""
     since = request.GET.get("since", "").strip()
     until = request.GET.get("until", "").strip()
     client = GoBFFClient()
-    result = client.get_billing_reconciliation(since=since, until=until)
-    frozen_result = client.list_frozen_wallets()
-    fraud_result = client.list_economy_fraud_cases(status="open", limit=100)
-    fraud_rules_result = client.list_economy_fraud_rules()
-    report = result.data if result.ok else {}
 
     def money(minor: object) -> str:
         try:
@@ -1569,10 +1696,14 @@ def billing_reconciliation(request: HttpRequest) -> HttpResponse:
         except (TypeError, ValueError):
             return "0.00"
 
-    revenue = report.get("revenue", {}) if isinstance(report, dict) else {}
-    context = _base_context()
-    context.update(
-        {
+    def extra(page: listing.Page, data: dict) -> dict:
+        result = client.get_billing_reconciliation(since=since, until=until)
+        frozen_result = client.list_frozen_wallets()
+        fraud_rules_result = client.list_economy_fraud_rules()
+        report = result.data if result.ok else {}
+        revenue = report.get("revenue", {}) if isinstance(report, dict) else {}
+        status = page.query.filters.get("status") or "open"
+        return {
             "report": report,
             "revenue": {key: money(value) for key, value in revenue.items() if key != "note"},
             "revenue_note": revenue.get("note", ""),
@@ -1588,13 +1719,20 @@ def billing_reconciliation(request: HttpRequest) -> HttpResponse:
             "error": result.error,
             "frozen_wallets": frozen_result.data.get("wallets", []) if frozen_result.ok else [],
             "frozen_wallets_error": frozen_result.error,
-            "fraud_cases": fraud_result.data.get("cases", []) if fraud_result.ok and isinstance(fraud_result.data, dict) else [],
-            "fraud_cases_error": fraud_result.error if fraud_result.ok is False else "",
+            "fraud_cases_error": page.error,
+            "fraud_status_label": dict(ECONOMY_FRAUD_STATUSES).get(status, status).lower(),
             "fraud_rules": fraud_rules_result.data.get("rules", []) if fraud_rules_result.ok and isinstance(fraud_rules_result.data, dict) else [],
             "fraud_rules_error": fraud_rules_result.error if fraud_rules_result.ok is False else "",
         }
-    )
-    return render(request, "control_panel/billing_reconciliation.html", context)
+
+    def go(query: listing.ListQuery) -> dict:
+        params = query.go_params()
+        params["status"] = params.get("status") or "open"
+        return params
+
+    return listing.simple_view(request, ECONOMY_FRAUD_LIST, client.list_economy_fraud_cases, items_key="cases",
+                               template="control_panel/billing_reconciliation.html", title="Coin economy fraud cases",
+                               base_context=_base_context, context_name="fraud_cases", map_filters=go, extra=extra)
 
 
 @require_POST
@@ -1824,27 +1962,46 @@ def account_recovery_resolve(request: HttpRequest, request_id: str) -> HttpRespo
 
 # ── Level / XP progression ───────────────────────────────────────────────────
 
+PROGRESSION_FRAUD_STATUSES = (("open", "Open"), ("reviewing", "Reviewing"), ("confirmed", "Confirmed"),
+                              ("dismissed", "Dismissed"), ("all", "All statuses"))
+PROGRESSION_FRAUD_LIST = listing.ListSpec(
+    name="xp-fraud-cases", search_label="Search username or rule",
+    filters=(listing.Filter("status", "Case status", PROGRESSION_FRAUD_STATUSES, allow_all=False),
+             listing.Filter("severity", "Severity", (("critical", "Critical"), ("high", "High"), ("medium", "Medium"), ("low", "Low"))),
+             listing.Filter("rule_code", "Rule", kind="text", max_length=80),
+             listing.Filter("user_id", "Member ID", kind="text", max_length=36),
+             listing.Filter("from", "From (UTC)", kind="date"), listing.Filter("to", "To (UTC)", kind="date")),
+    sorts=(("created_at", "Opened"),),
+    columns=(listing.Column("id", "Case ID", width=38), listing.Column("user_id", "Member ID", width=38),
+             listing.Column("username", "Username", width=20), listing.Column("rule_code", "Rule", width=24),
+             listing.Column("severity", "Severity", width=10), listing.Column("status", "Status", width=12),
+             listing.Column("evidence", "Evidence", width=50), listing.Column("created_at", "Opened (UTC)", width=22)),
+)
+
+
 @require_GET
 def progression_admin(request: HttpRequest) -> HttpResponse:
-    status = (request.GET.get("status") or "open").strip()
+    """Progression settings (short, fixed lists) and the XP fraud review
+    queue, which Go pages."""
     client = GoBFFClient()
-    overview = client.progression_overview()
-    fraud = client.list_progression_fraud(status=status)
-    data = overview.data if overview.ok else {}
-    context = _base_context()
-    context.update(
-        {
-            "metrics": data.get("metrics", {}),
-            "policies": data.get("policies", []),
-            "experiments": data.get("experiments", []),
-            "fraud_rules": data.get("fraud_rules", []),
-            "fraud_cases": fraud.data.get("cases", []) if fraud.ok else [],
-            "status_filter": status,
+
+    def extra(page: listing.Page, data: dict) -> dict:
+        overview = client.progression_overview()
+        overview_data = overview.data if overview.ok else {}
+        return {
+            "metrics": overview_data.get("metrics", {}),
+            "policies": overview_data.get("policies", []),
+            "experiments": overview_data.get("experiments", []),
+            "fraud_rules": overview_data.get("fraud_rules", []),
+            "status_filter": page.query.filters.get("status") or "open",
             "error": overview.error,
-            "fraud_error": fraud.error,
+            "fraud_error": page.error,
         }
-    )
-    return render(request, "control_panel/progression.html", context)
+
+    return listing.simple_view(request, PROGRESSION_FRAUD_LIST, client.list_progression_fraud, items_key="cases",
+                               template="control_panel/progression.html", title="XP fraud cases",
+                               base_context=_base_context, context_name="fraud_cases",
+                               map_filters=lambda q: _status_or_all(q, "open"), extra=extra)
 
 
 @require_POST

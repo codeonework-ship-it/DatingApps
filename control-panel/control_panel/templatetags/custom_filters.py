@@ -58,3 +58,17 @@ def thousands_filter(value):
         return f"{int(value):,}"
     except (TypeError, ValueError):
         return value
+
+
+@register.filter(name="bytes")
+def bytes_filter(value):
+    """5368709120 -> "5.0 GB"; non-numbers are returned as is."""
+    try:
+        size = float(value)
+    except (TypeError, ValueError):
+        return value
+    for unit in ("B", "KB", "MB", "GB", "TB"):
+        if abs(size) < 1024 or unit == "TB":
+            return f"{size:.0f} {unit}" if unit == "B" else f"{size:.1f} {unit}"
+        size /= 1024
+    return value

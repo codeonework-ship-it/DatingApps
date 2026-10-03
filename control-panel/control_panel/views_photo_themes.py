@@ -3,24 +3,35 @@ reported entries appear in the Blog Moderation queue as theme_entry cases."""
 import re
 
 from django.contrib import messages
-from django.shortcuts import redirect, render
+from django.shortcuts import redirect
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET, require_POST
 
-from .services.go_client import GoBFFClient, bff_failure_status
+from . import listing
+from .services.go_client import GoBFFClient
+from .views import paged_list
 
 SLUG = re.compile(r'^[a-z0-9][a-z0-9-]{2,47}$')
+
+
+THEME_LIST = listing.ListSpec(
+    name='photo-themes', search_label='Search slug, title or prompt', default_page_size=50,
+    filters=(listing.Filter('status', 'Status', (('active', 'Active'), ('archived', 'Archived'))),),
+    sorts=(('sort_order', 'Display order'), ('title', 'Title'), ('created_at', 'Created')),
+    columns=(listing.Column('id', 'Theme ID', width=38), listing.Column('slug', 'Slug', width=24),
+             listing.Column('title', 'Title', width=28), listing.Column('prompt', 'Prompt', width=60),
+             listing.Column('status', 'Status', width=10), listing.Column('sort_order', 'Display order', width=12),
+             listing.Column('entry_count', 'Live photos', width=12)),
+)
 
 
 @never_cache
 @require_GET
 def photo_themes(request):
-    result = GoBFFClient().photo_themes()
-    return render(request, 'control_panel/photo_themes.html', {
-        'themes': (result.data or {}).get('themes', []) if result.ok else [],
-        'error': None if result.ok else result.error,
-        'project_name': 'AegisConnect',
-    }, status=200 if result.ok else bff_failure_status(result.status_code))
+    """Themes in display order (active first), paged by Go."""
+    return paged_list(request, THEME_LIST, GoBFFClient().photo_themes, items_key='themes',
+                      template='control_panel/photo_themes.html', title='Photo themes', context_name='themes',
+                      base_context=lambda: {'project_name': 'AegisConnect'}, ascending=True, failure_status=True)
 
 
 @never_cache

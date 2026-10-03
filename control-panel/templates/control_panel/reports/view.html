@@ -36,6 +36,7 @@
       {% if p.spec.kind == "date" %}<input id="rp-{{ p.spec.name }}" type="date" name="{{ p.spec.name }}" value="{{ p.value }}" class="form-control">
       {% elif p.spec.kind == "int" %}<input id="rp-{{ p.spec.name }}" type="number" name="{{ p.spec.name }}" value="{{ p.value }}" min="{{ p.spec.min }}" max="{{ p.spec.max }}" class="form-control">
       {% elif p.spec.kind == "text" %}<input id="rp-{{ p.spec.name }}" type="text" name="{{ p.spec.name }}" value="{{ p.value }}" maxlength="100" class="form-control" placeholder="Any">
+      {% elif p.spec.kind == "member" %}<input id="rp-{{ p.spec.name }}" type="text" name="{{ p.spec.name }}" value="{{ p.value }}" maxlength="40" class="form-control" placeholder="uuid or @username" autocomplete="off"{% if p.spec.required %} required aria-required="true"{% endif %}>
       {% else %}<select id="rp-{{ p.spec.name }}" name="{{ p.spec.name }}" class="form-select">
         {% if not p.spec.default %}<option value="">All</option>{% endif %}
         {% for value, label in p.spec.choices %}<option value="{{ value }}"{% if value == p.value %} selected{% endif %}>{{ label }}</option>{% endfor %}
@@ -50,6 +51,12 @@
   {% with helps=params %}<p class="form-text mt-3 mb-0">{% for p in helps %}{% if p.spec.help %}<strong>{{ p.spec.label }}:</strong> {{ p.spec.help }} {% endif %}{% endfor %}Rates and per-member values are not totalled.</p>{% endwith %}
 </div>
 
+{% if result.missing %}
+<div class="alert-glass info mb-4" role="status"><i class="bi bi-info-circle-fill" aria-hidden="true"></i>Enter {{ result.missing|join:", " }} and choose View report.</div>
+{% endif %}
+{% if result.resolved.member and result.resolved.member != result.params.member %}
+<p class="form-text mb-3">Showing member <a href="{% url 'user_detail' result.resolved.member %}" class="font-monospace">{{ result.resolved.member }}</a> ({{ result.params.member }}).</p>
+{% endif %}
 {% if result.denied %}
 <div class="alert-glass warning mb-4" role="alert"><i class="bi bi-shield-lock-fill" aria-hidden="true"></i>This report is not available to your role.</div>
 {% else %}{% for err in result.errors %}
