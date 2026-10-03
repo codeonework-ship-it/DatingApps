@@ -228,3 +228,6 @@ scripts/131_admin_list_paging.sql
 
 # Member action log: member_action retention (400 days), per-member indexes, remaining domain event sources (additive; CONCURRENTLY in production)
 scripts/132_member_activity.sql
+
+# Server activity: job runs + hourly rollups, request rollups, server events, capacity snapshots, third-party usage (additive; platform telemetry, no event/audit triggers)
+scripts/133_server_activity.sql

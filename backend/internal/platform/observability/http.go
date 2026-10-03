@@ -46,6 +46,7 @@ func GlobalExceptionMiddleware(log *zap.Logger) func(http.Handler) http.Handler 
 			defer func() {
 				if recovered := recover(); recovered != nil {
 					correlationID := CorrelationIDFromContext(r.Context())
+					notePanic(r.Context(), capturePanic(recovered))
 
 					log.Error("http_unhandled_exception",
 						zap.Any("panic", recovered),

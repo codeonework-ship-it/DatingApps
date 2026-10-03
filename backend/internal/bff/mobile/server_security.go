@@ -16,6 +16,8 @@ import (
 
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
+
+	"github.com/verified-dating/backend/internal/platform/observability"
 )
 
 type securityPrincipal struct {
@@ -77,23 +79,27 @@ func (s *Server) securityMiddleware(next http.Handler) http.Handler {
 			return
 		}
 		if err != nil {
-			writeError(w, http.StatusUnauthorized, errors.New("valid bearer session is required"))
+			reason := observability.RefusalUnauthenticated
+			if errors.Is(err, errPrincipalAccountState) {
+				reason = observability.RefusalAccountState
+			}
+			s.refuseRequest(w, r, reason, http.StatusUnauthorized, errors.New("valid bearer session is required"))
 			return
 		}
 		if principal.AccountKind == "introducer" && !introducerRouteAllowed(s.cfg.APIPrefix, r.Method, r.URL.Path, principal) {
-			writeError(w, http.StatusForbidden, errors.New("this action is unavailable for an introducer account"))
+			s.refuseRequest(w, r, observability.RefusalForbiddenRole, http.StatusForbidden, errors.New("this action is unavailable for an introducer account"))
 			return
 		}
 		if isAdminPath && !principalCanAccessAdminRoute(principal, s.cfg.APIPrefix, r.Method, r.URL.Path) {
-			writeError(w, http.StatusForbidden, errors.New("operator role does not permit this administrative action"))
+			s.refuseRequest(w, r, observability.RefusalForbiddenRole, http.StatusForbidden, errors.New("operator role does not permit this administrative action"))
 			return
 		}
 		if !pathOwnedByPrincipal(s.cfg.APIPrefix, r.URL.Path, r.Method, principal.UserID) {
-			writeError(w, http.StatusForbidden, errors.New("resource does not belong to the authenticated user"))
+			s.refuseRequest(w, r, observability.RefusalForbiddenResource, http.StatusForbidden, errors.New("resource does not belong to the authenticated user"))
 			return
 		}
 		if err := enforceBodyIdentity(r, principal.UserID); err != nil {
-			writeError(w, http.StatusForbidden, err)
+			s.refuseRequest(w, r, observability.RefusalForbiddenResource, http.StatusForbidden, err)
 			return
 		}
 		// Match ownership can only be validated against the SQL store. In
@@ -108,7 +114,7 @@ func (s *Server) securityMiddleware(next http.Handler) http.Handler {
 				return
 			}
 			if !allowed {
-				writeError(w, http.StatusForbidden, errors.New("match does not belong to the authenticated user"))
+				s.refuseRequest(w, r, observability.RefusalForbiddenResource, http.StatusForbidden, errors.New("match does not belong to the authenticated user"))
 				return
 			}
 		}
@@ -122,12 +128,33 @@ func (s *Server) securityMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+// refuseRequest answers a security refusal and records why: the reason is
+// noted for the server event log (refused, aggregated per minute) and
+// counted on verified_dating_security_refusals_total{reason}.
+func (s *Server) refuseRequest(w http.ResponseWriter, r *http.Request, reason string, status int, err error) {
+	observability.NoteRefusal(r.Context(), reason)
+	s.httpMetrics.ObserveSecurityRefusal(reason)
+	writeError(w, status, err)
+}
+
 func principalCanAccessAdminRoute(principal securityPrincipal, prefix, method, requestPath string) bool {
 	if principal.Roles["admin"] {
 		return true
 	}
 	path := strings.TrimPrefix(requestPath, prefix+"/admin/")
 	isRead := method == http.MethodGet || method == http.MethodHead || method == http.MethodOptions
+	// Server activity (admin_system.go): ops admins read all of it; analysts
+	// read request rollups, capacity and third-party usage, not the event
+	// log or job runs (error texts, instance names).
+	if path == "system" || strings.HasPrefix(path, "system/") {
+		if !isRead {
+			return false
+		}
+		if principal.Roles["ops_admin"] {
+			return true
+		}
+		return principal.Roles["analyst"] && (path == "system/requests" || path == "system/capacity" || path == "system/third-party")
+	}
 	// Client crash/error reports (client_errors.go): ops admins triage them,
 	// analysts may read them. Reports are anonymous app diagnostics.
 	if path == "client-errors" || strings.HasPrefix(path, "client-errors/") {
@@ -535,8 +562,11 @@ func (r *profileRepository) principalForAccessToken(ctx context.Context, authori
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return securityPrincipal{}, authStoreUnavailable(err)
 	}
-	if err != nil || disabled || !active || banned || suspended {
+	if err != nil {
 		return securityPrincipal{}, errors.New("invalid session")
+	}
+	if disabled || !active || banned || suspended {
+		return securityPrincipal{}, errPrincipalAccountState
 	}
 	principal.Roles = map[string]bool{"user": true}
 	for _, role := range strings.Split(roles, "\x1f") {
@@ -559,6 +589,11 @@ func (r *profileRepository) principalForAccessToken(ctx context.Context, authori
 // which already throttle to five minutes or a new UTC day) never miss a day.
 // Writing it on every request made every read a write.
 const sessionTouchDueSQL = `(s.last_used_at IS NULL OR s.last_used_at < NOW() - INTERVAL '60 seconds' OR (s.last_used_at AT TIME ZONE 'UTC')::date < (NOW() AT TIME ZONE 'UTC')::date)`
+
+// errPrincipalAccountState is a valid session whose account may not act
+// (disabled credentials, inactive, banned or suspended). It answers exactly
+// like an invalid session; only the refusal reason recorded differs.
+var errPrincipalAccountState = errors.New("invalid session")
 
 // errAuthStoreUnavailable marks a session lookup that failed for an
 // infrastructure reason rather than because the credential is invalid.

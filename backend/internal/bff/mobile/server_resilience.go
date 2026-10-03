@@ -59,6 +59,7 @@ func (s *Server) timeoutTierMiddleware(next http.Handler) http.Handler {
 		if !errors.Is(ctx.Err(), context.DeadlineExceeded) {
 			return
 		}
+		observability.NoteRefusal(r.Context(), observability.RefusalTimeout)
 		domain := s.routeDomain(r.URL.Path)
 		if domain == "" {
 			domain = "platform"
@@ -475,6 +476,7 @@ func (s *Server) bulkheadMiddleware(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		default:
+			observability.NoteRefusal(r.Context(), observability.RefusalShedBulkhead)
 			if s.httpMetrics != nil {
 				s.httpMetrics.ShedCount.WithLabelValues(domain).Inc()
 			}

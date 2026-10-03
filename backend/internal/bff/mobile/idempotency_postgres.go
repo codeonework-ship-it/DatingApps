@@ -203,15 +203,23 @@ func (s *postgresIdempotencyStore) finish(ctx context.Context, claim postgresIde
 	return err
 }
 
-func (s *postgresIdempotencyStore) archiveExpired(ctx context.Context, batchSize int) error {
+// archiveExpired archives expired idempotency records and runs the runtime
+// retention classes, returning the rows each removed.
+func (s *postgresIdempotencyStore) archiveExpired(ctx context.Context, batchSize int) (map[string]int, error) {
 	if batchSize <= 0 {
 		batchSize = 1000
 	}
-	if _, err := s.db.ExecContext(ctx, `SELECT platform.archive_expired_idempotency($1)`, batchSize); err != nil {
-		return err
+	purged := map[string]int{}
+	var archived sql.NullInt64
+	if err := s.db.QueryRowContext(ctx, `SELECT platform.archive_expired_idempotency($1)`, batchSize).Scan(&archived); err != nil {
+		return purged, err
 	}
-	_, err := s.db.ExecContext(ctx, `SELECT * FROM platform.run_runtime_retention($1)`, batchSize)
-	return err
+	purged["idempotency_archive"] = int(archived.Int64)
+	var notifications, realtime sql.NullInt64
+	err := s.db.QueryRowContext(ctx, `SELECT * FROM platform.run_runtime_retention($1)`, batchSize).Scan(&notifications, &realtime)
+	purged["notification_delivery_history"] = int(notifications.Int64)
+	purged["realtime_delivery_history"] = int(realtime.Int64)
+	return purged, err
 }
 
 func (s *postgresIdempotencyStore) health(ctx context.Context) (postgresIdempotencyHealth, error) {
@@ -251,7 +259,13 @@ func (s *Server) runIdempotencyMaintenance(parent context.Context) {
 	run := heartbeat.Begin()
 	ctx, cancel := context.WithTimeout(parent, 5*time.Second)
 	defer cancel()
-	err := s.sharedIdempotency.archiveExpired(ctx, 1000)
+	purged, err := s.sharedIdempotency.archiveExpired(ctx, 1000)
+	total := 0
+	for _, n := range purged {
+		total += n
+	}
+	run.Items("processed", total)
+	run.Detail("purged", purged)
 	run.End(err)
 	if err != nil {
 		if s.log != nil {

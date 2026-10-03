@@ -62,31 +62,35 @@ type Server struct {
 	log    *zap.Logger
 	router chi.Router
 
-	authConn                 *grpc.ClientConn
-	profileConn              *grpc.ClientConn
-	matchingConn             *grpc.ClientConn
-	chatConn                 *grpc.ClientConn
-	runtimeData              *dataaccess.Store
-	store                    *runtimeStore
-	masterData               *masterDataRepository
-	termsAgreements          *termsAgreementRepository
-	dailyPrompts             *dailyPromptRepository
-	spotlight                *spotlightRepository
-	activities               *activityRepository
-	trust                    *trustRepository
-	rooms                    *conversationRoomRepository
-	realtime                 chatRealtimeEventStore
-	realtimeAuthorizer       realtimeSessionAuthorizer
-	notifications            *notificationRepository
-	chatWake                 *realtimeWakeHub
-	notificationWake         *realtimeWakeHub
-	notificationWorker       *notificationDeliveryEngine
-	sosDeliveryWorker        *sosDeliveryEngine
-	accountErasureWorker     *accountErasureWorker
-	trustRetentionWorker     *trustRetentionWorker
-	datePlanSweepWorker      *datePlanSweepWorker
-	analyticsSnapshotWorker  *analyticsSnapshotWorker
-	supportSLAWorker         *supportSLAWorker
+	authConn                *grpc.ClientConn
+	profileConn             *grpc.ClientConn
+	matchingConn            *grpc.ClientConn
+	chatConn                *grpc.ClientConn
+	runtimeData             *dataaccess.Store
+	store                   *runtimeStore
+	masterData              *masterDataRepository
+	termsAgreements         *termsAgreementRepository
+	dailyPrompts            *dailyPromptRepository
+	spotlight               *spotlightRepository
+	activities              *activityRepository
+	trust                   *trustRepository
+	rooms                   *conversationRoomRepository
+	realtime                chatRealtimeEventStore
+	realtimeAuthorizer      realtimeSessionAuthorizer
+	notifications           *notificationRepository
+	chatWake                *realtimeWakeHub
+	notificationWake        *realtimeWakeHub
+	notificationWorker      *notificationDeliveryEngine
+	sosDeliveryWorker       *sosDeliveryEngine
+	accountErasureWorker    *accountErasureWorker
+	trustRetentionWorker    *trustRetentionWorker
+	datePlanSweepWorker     *datePlanSweepWorker
+	analyticsSnapshotWorker *analyticsSnapshotWorker
+	supportSLAWorker        *supportSLAWorker
+	capacityWorker          *capacitySnapshotWorker
+	// activity records durable server activity (migration 133): worker
+	// runs, request rollups and server events (server_activity.go).
+	activity                 *serverActivityRecorder
 	datePlanUnlockOverride   func(matchID string) (bool, string)
 	copilotProvider          copilotProvider
 	xpAwardSpool             *xpAwardSpool
@@ -516,13 +520,25 @@ func NewServer(cfg config.Config, log *zap.Logger, httpMetrics *observability.HT
 		}
 	}
 
+	// Durable server activity (migration 133). Installed before any worker
+	// starts and before the router serves, so every run and request is seen.
+	if s.store != nil && s.store.profileRepo != nil && s.store.profileRepo.pg != nil {
+		s.activity = newServerActivityRecorder(s.store.profileRepo.pg, log, observability.ServiceMobileBFF)
+		if httpMetrics != nil {
+			httpMetrics.RequestRollups = s.activity.requests
+			httpMetrics.ServerEvents = s.activity.events
+		}
+		observability.SetWorkerRunSink(s.activity)
+		s.activity.start()
+	}
+
 	r := chi.NewRouter()
 	r.Use(observability.CorrelationIDMiddleware(log))
 	// Outermost after the correlation id so RED metrics and access logs also
 	// see shed (429), unauthenticated (401) and recovered-panic (500) responses.
 	r.Use(observability.RequestLoggingMiddleware(log, httpMetrics, "mobile_bff"))
 	r.Use(observability.GlobalExceptionMiddleware(log))
-	r.Use(observability.InflightSheddingMiddleware(log, "mobile_bff", cfg.BFFMaxInFlight, cfg.BFFRetryAfterSec))
+	r.Use(observability.InflightSheddingMiddlewareWithMetrics(log, httpMetrics, "mobile_bff", cfg.BFFMaxInFlight, cfg.BFFRetryAfterSec))
 	r.Use(s.bulkheadMiddleware)
 	r.Use(s.securityMiddleware)
 	r.Use(s.timeoutTierMiddleware)
@@ -889,6 +905,7 @@ func NewServer(cfg config.Config, log *zap.Logger, httpMetrics *observability.HT
 		// Support tickets (support_tickets.go, migration 126). Member routes
 		// are gated by support_ticketing_enabled; /support/contact is the
 		// signed-out website form (see isPublicSecurityPath).
+		v1.Get("/support/categories", s.supportListCategories)
 		v1.Get("/support/tickets", s.supportListTickets)
 		v1.Post("/support/tickets", s.supportCreateTicket)
 		v1.Get("/support/tickets/{ticketID}", s.supportGetTicket)
@@ -1058,6 +1075,13 @@ func NewServer(cfg config.Config, log *zap.Logger, httpMetrics *observability.HT
 		v1.Get("/admin/client-errors", s.adminListClientErrors)
 		v1.Get("/admin/client-errors/{issueID}", s.adminGetClientError)
 		v1.Post("/admin/client-errors/{issueID}/status", s.adminSetClientErrorStatus)
+		// Server activity for the command center (migration 133, admin_system.go).
+		v1.Get("/admin/system/events", s.adminSystemEvents)
+		v1.Get("/admin/system/jobs", s.adminSystemJobs)
+		v1.Get("/admin/system/job-runs", s.adminSystemJobRuns)
+		v1.Get("/admin/system/requests", s.adminSystemRequests)
+		v1.Get("/admin/system/capacity", s.adminSystemCapacity)
+		v1.Get("/admin/system/third-party", s.adminSystemThirdParty)
 	})
 
 	s.router = r
@@ -1110,6 +1134,12 @@ func NewServer(cfg config.Config, log *zap.Logger, httpMetrics *observability.HT
 	if s.store != nil && s.store.profileRepo != nil && s.store.profileRepo.pg != nil {
 		s.supportSLAWorker = newSupportSLAWorker(s, s.store.profileRepo.pg, s.log, supportSLAWorkerInterval)
 		s.supportSLAWorker.Start(context.Background())
+	}
+	// Capacity snapshots and third-party usage (migration 133): once at
+	// startup, then hourly.
+	if s.store != nil && s.store.profileRepo != nil && s.store.profileRepo.pg != nil {
+		s.capacityWorker = newCapacitySnapshotWorker(s.store.profileRepo.pg, s.log, s.cfg, capacitySnapshotInterval)
+		s.capacityWorker.Start(context.Background())
 	}
 	// XP award intents that could not reach the database are spooled locally
 	// and replayed into the repair queue (PEN-22).
@@ -1367,6 +1397,9 @@ func (s *Server) Close() {
 	if s.analyticsSnapshotWorker != nil {
 		s.analyticsSnapshotWorker.Stop()
 	}
+	if s.capacityWorker != nil {
+		s.capacityWorker.Stop()
+	}
 	if s.xpAwardSpool != nil {
 		s.xpAwardSpool.Stop()
 	}
@@ -1397,6 +1430,9 @@ func (s *Server) Close() {
 	if s.fanout != nil {
 		s.fanout.Close()
 	}
+	// Last before the pool closes: every worker has stopped, so the final
+	// flush carries their last runs, the shutdown's requests and process_stop.
+	s.activity.Close()
 	if s.runtimeData != nil {
 		s.runtimeData.Close()
 	}
@@ -6255,6 +6291,9 @@ func writeError(w http.ResponseWriter, status int, err error) {
 	errorCode := strings.ToUpper(strings.ReplaceAll(http.StatusText(status), " ", "_"))
 	if errorCode == "" {
 		errorCode = "UNKNOWN_ERROR"
+	}
+	if status >= http.StatusInternalServerError {
+		logServerErrorResponse(w, status, err)
 	}
 
 	writeJSON(w, status, map[string]any{

@@ -103,7 +103,16 @@ func (w *analyticsSnapshotWorker) cycle(ctx context.Context) {
 	beat := observability.NewHeartbeat(workerAnalyticsSnapshot, w.interval).Begin()
 	run, err := w.RunScheduled(ctx)
 	beat.Items("days_built", run.DaysBuilt)
+	beat.Detail("days_built", run.DaysBuilt)
+	if run.ID != "" {
+		beat.Detail("run_id", run.ID)
+	}
+	if !run.From.IsZero() {
+		beat.Detail("from", run.From.Format(time.DateOnly))
+		beat.Detail("to", run.To.Format(time.DateOnly))
+	}
 	if errors.Is(err, errAnalyticsSnapshotBusy) {
+		beat.MarkBusy()
 		beat.End(nil) // another instance holds the lock and is building
 	} else {
 		beat.End(err)

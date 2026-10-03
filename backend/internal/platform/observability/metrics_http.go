@@ -91,6 +91,17 @@ type HTTPMetrics struct {
 	ActivityCaptureWrites *prometheus.CounterVec
 	RealtimeDeliveryLag   *prometheus.HistogramVec
 	Workers               *WorkerMetrics
+	// SecurityRefusals counts requests the BFF security middleware refused,
+	// by reason (unauthenticated, account_state, forbidden_role,
+	// forbidden_resource). BFF only.
+	SecurityRefusals *prometheus.CounterVec
+
+	// Durable server activity (migration 133). When set, the request
+	// middleware folds every request into RequestRollups and records panics,
+	// 5xx answers and refusals on ServerEvents; the owner flushes both. Set
+	// them before the handler serves traffic.
+	RequestRollups *RequestRollups
+	ServerEvents   *ServerEvents
 
 	queues *queueCollector
 	routes *routeLabeler
@@ -169,6 +180,8 @@ func RequestLoggingMiddleware(log *zap.Logger, metrics *HTTPMetrics, serviceName
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
+			ctx, note := withRequestNote(r.Context())
+			r = r.WithContext(ctx)
 			wrapped := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
 			if metrics != nil && metrics.InFlight != nil {
 				metrics.InFlight.Inc()
@@ -218,6 +231,13 @@ func RequestLoggingMiddleware(log *zap.Logger, metrics *HTTPMetrics, serviceName
 			if metrics != nil && metrics.Service != "" {
 				service = metrics.Service
 			}
+			correlationID := CorrelationIDFromContext(r.Context())
+			if metrics != nil {
+				metrics.RequestRollups.Observe(service, r.Method, route, status, time.Since(start), !wrapped.hijacked)
+				recordRequestEvents(metrics.ServerEvents, note, r.Method, route, status, correlationID, time.Now())
+			} else {
+				_ = takeServerErrorNote(correlationID)
+			}
 			log.Info("http_request",
 				zap.String("service", service),
 				zap.String("method", r.Method),
@@ -225,7 +245,7 @@ func RequestLoggingMiddleware(log *zap.Logger, metrics *HTTPMetrics, serviceName
 				zap.String("route", route),
 				zap.Int("status", status),
 				zap.Float64("duration_seconds", duration),
-				zap.String("correlation_id", CorrelationIDFromContext(r.Context())),
+				zap.String("correlation_id", correlationID),
 			)
 		})
 	}

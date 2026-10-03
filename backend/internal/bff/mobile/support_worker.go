@@ -90,6 +90,10 @@ func (w *supportSLAWorker) cycle(ctx context.Context) {
 	beat := observability.NewHeartbeat(workerSupportSLA, w.interval).Begin()
 	result, err := w.server.runSupportMaintenance(ctx, w.db, time.Now().UTC())
 	beat.Items("processed", result.Breaches+result.AutoClosed+result.AttachmentsReleased+result.TicketsPurged)
+	beat.Detail("breaches", result.Breaches)
+	beat.Detail("auto_closed", result.AutoClosed)
+	beat.Detail("attachments_released", result.AttachmentsReleased)
+	beat.Detail("tickets_purged", result.TicketsPurged)
 	beat.End(err)
 	if err != nil && !errors.Is(err, context.Canceled) {
 		w.log.Error("support_sla_cycle_failed", zap.Error(err))

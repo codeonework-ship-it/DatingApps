@@ -3787,6 +3787,224 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /v1/admin/system/events:
+    get:
+      tags: [admin]
+      summary: Server event log
+      description: "Notable server events (platform.server_events, migration 133): process_start, process_stop, panic, server_error, refused, worker_failed, worker_stale, retention_summary, migration_applied. Aggregated to at most one row per kind and key per minute (count, first_at, last_at). Response keys: events [{id, at, kind, severity, service, instance, message, route, correlation_id, count, first_at, last_at, details}], total (capped at 10000), total_capped, limit, offset. Readable by admin and ops_admin."
+      parameters:
+        - {in: query, name: limit, schema: {type: integer, minimum: 1, maximum: 500, default: 100}}
+        - {in: query, name: offset, schema: {type: integer, minimum: 0}}
+        - {in: query, name: q, description: "Matches message or route", schema: {type: string}}
+        - {in: query, name: order, schema: {type: string, enum: [asc, desc], default: desc}}
+        - {in: query, name: from, description: "Inclusive UTC date", schema: {type: string, format: date}}
+        - {in: query, name: to, description: "Inclusive UTC date", schema: {type: string, format: date}}
+        - {in: query, name: kind, schema: {type: string, enum: [process_start, process_stop, panic, server_error, refused, worker_failed, worker_stale, retention_summary, migration_applied]}}
+        - {in: query, name: severity, schema: {type: string, enum: [info, warning, error, critical]}}
+        - {in: query, name: service, schema: {type: string}}
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Operator role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v1/admin/system/jobs:
+    get:
+      tags: [admin]
+      summary: Background worker status
+      description: "One row per heartbeat worker, including workers with no recorded run yet. Response keys: workers [{worker, expected_interval_seconds, last_run_at, last_success_at, last_status, last_duration_ms, last_error, runs_24h, failures_24h, items_24h, stale}]. stale is null without data, else whether the last success is older than 3x the expected interval (at least 2 minutes). Readable by admin and ops_admin."
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Operator role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v1/admin/system/job-runs:
+    get:
+      tags: [admin]
+      summary: Background worker runs
+      description: "platform.job_runs: every run of low-frequency workers, failed runs and runs with items of high-frequency workers. Response keys: runs [{id, worker, instance, build_commit, started_at, finished_at, duration_ms, status, items_processed, items_failed, backlog_after, error, details}], total (capped at 10000), total_capped, limit, offset. Readable by admin and ops_admin."
+      parameters:
+        - {in: query, name: limit, schema: {type: integer, minimum: 1, maximum: 500, default: 100}}
+        - {in: query, name: offset, schema: {type: integer, minimum: 0}}
+        - {in: query, name: q, description: "Matches worker or error", schema: {type: string}}
+        - {in: query, name: order, schema: {type: string, enum: [asc, desc], default: desc}}
+        - {in: query, name: from, description: "Inclusive UTC date", schema: {type: string, format: date}}
+        - {in: query, name: to, description: "Inclusive UTC date", schema: {type: string, format: date}}
+        - {in: query, name: worker, schema: {type: string}}
+        - {in: query, name: status, schema: {type: string, enum: [succeeded, failed, skipped, busy]}}
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Operator role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v1/admin/system/requests:
+    get:
+      tags: [admin]
+      summary: HTTP request rollups
+      description: "platform.request_rollups_hourly by hour or UTC day, optionally grouped. Every request is counted, including refused, shed and panicking ones. refused counts 401, 403 and 429; percentiles are derived from the latency buckets (Prometheus DefBuckets). Default window: the last 24 hours. Response keys: rows [{bucket, service, method, route, status_class, requests, server_errors, refused, avg_ms, p50_ms, p95_ms, p99_ms}], totals {requests, server_errors, refused, avg_ms, p95_ms}, from, to, grain, group_by, limit. Readable by admin, ops_admin and analyst."
+      parameters:
+        - {in: query, name: from, description: "Inclusive UTC date (YYYY-MM-DD) or RFC 3339 timestamp", schema: {type: string}}
+        - {in: query, name: to, description: "Inclusive UTC date (YYYY-MM-DD) or exclusive RFC 3339 timestamp", schema: {type: string}}
+        - {in: query, name: grain, schema: {type: string, enum: [hour, day], default: hour}}
+        - {in: query, name: group_by, schema: {type: string, enum: [none, route, status_class, service, method], default: none}}
+        - {in: query, name: route, description: "Route template, e.g. /v1/profile/{userID}", schema: {type: string}}
+        - {in: query, name: method, schema: {type: string, enum: [GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS, OTHER]}}
+        - {in: query, name: status_class, schema: {type: string, enum: [1xx, 2xx, 3xx, 4xx, 5xx, unknown]}}
+        - {in: query, name: service, schema: {type: string}}
+        - {in: query, name: limit, schema: {type: integer, minimum: 1, maximum: 5000, default: 500}}
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Operator role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v1/admin/system/capacity:
+    get:
+      tags: [admin]
+      summary: Capacity snapshots
+      description: "Hourly platform.capacity_snapshots. Response keys: latest {at, db_size_bytes, connections, max_connections, outbox_rows, activity_rows, security_event_rows, media_bytes {kind: bytes}, media_bytes_total, disk {media, database: {free_bytes, total_bytes, used_percent}}} or null, tables [{table, total_bytes, table_bytes, index_bytes, live_rows, dead_rows, last_autovacuum, seq_scan, idx_scan}] (30 largest relations of the latest snapshot), series [{at, db_size_bytes, outbox_rows, activity_rows, media_bytes_total}] (default window: 30 days). Readable by admin, ops_admin and analyst."
+      parameters:
+        - {in: query, name: from, description: "Inclusive UTC date (YYYY-MM-DD) or RFC 3339 timestamp", schema: {type: string}}
+        - {in: query, name: to, description: "Inclusive UTC date (YYYY-MM-DD) or exclusive RFC 3339 timestamp", schema: {type: string}}
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Operator role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v1/admin/system/third-party:
+    get:
+      tags: [admin]
+      summary: Third-party usage
+      description: "platform.third_party_usage_daily, aggregated hourly from the tables integrations write (push deliveries, image and voice moderation, copilot drafts, SOS webhook, payment webhooks and payments, video calls). Default window: 30 days. Response keys: rows [{day, provider, operation, calls, failures, units, unit_label}], totals [{provider, operation, calls, failures, units, unit_label}], from, to, limit. Readable by admin, ops_admin and analyst."
+      parameters:
+        - {in: query, name: from, description: "Inclusive UTC date (YYYY-MM-DD) or RFC 3339 timestamp", schema: {type: string}}
+        - {in: query, name: to, description: "Inclusive UTC date (YYYY-MM-DD) or exclusive RFC 3339 timestamp", schema: {type: string}}
+        - {in: query, name: provider, schema: {type: string}}
+        - {in: query, name: operation, schema: {type: string}}
+        - {in: query, name: limit, schema: {type: integer, minimum: 1, maximum: 5000, default: 1000}}
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessEnvelope'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Operator role required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /v1/admin/activity:
     get:
       tags: [admin]
@@ -9083,6 +9301,47 @@ paths:
       summary: Read the governed P2 growth portfolio and launch state
       responses:
         '200': {description: Module owners, risk, runtime state and blockers}
+  /v1/support/categories:
+    get:
+      tags: [support]
+      summary: Categories a member can choose and the limits the server enforces (runtime flag support_ticketing_enabled)
+      description: >-
+        Signed-in members only. Labels are English; the app shows its own
+        localized labels keyed by category. A 403 FEATURE_DISABLED means
+        requests cannot be raised right now.
+      responses:
+        '200':
+          description: Categories in display order, plus limits
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, categories, limits]
+                properties:
+                  success: {type: boolean}
+                  categories:
+                    type: array
+                    items:
+                      type: object
+                      required: [key, label, safety]
+                      properties:
+                        key: {type: string, enum: [account_login, verification, payments_billing, safety_harassment, matches_chat, technical, feature_request, privacy_data, other]}
+                        label: {type: string}
+                        safety: {type: boolean, description: True for the category Trust & Safety answers first}
+                  limits:
+                    type: object
+                    properties:
+                      subject_min_chars: {type: integer}
+                      subject_max_chars: {type: integer}
+                      body_max_chars: {type: integer}
+                      rating_comment_max_chars: {type: integer}
+                      attachments_per_message: {type: integer}
+                      attachments_per_ticket: {type: integer}
+                      image_max_bytes: {type: integer}
+                      pdf_max_bytes: {type: integer}
+                      attachment_types: {type: array, items: {type: string}}
+        '401': {description: Not signed in}
+        '403': {description: Support ticketing is disabled by runtime policy (FEATURE_DISABLED)}
   /v1/support/tickets:
     get:
       tags: [support]
@@ -9618,8 +9877,10 @@ paths:
         Every changed field is recorded in the event trail. Priority and
         category changes recompute the SLA targets; a category change also
         moves the ticket to that category's team unless team is given, and a
-        safety category raises the priority to at least high. Resolving or
-        closing notifies the member (category system, route /support/tickets/{id}).
+        safety category raises the priority to at least high. Resolving,
+        closing or setting pending_member notifies the member (event
+        support.status, category system, route /support/tickets/{id}, payload
+        ticket_id, reference and status).
       parameters:
         - $ref: '#/components/parameters/Idempotency-Key'
       requestBody:

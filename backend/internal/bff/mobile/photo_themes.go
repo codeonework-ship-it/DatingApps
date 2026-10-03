@@ -112,6 +112,23 @@ func logUnexpectedError(w http.ResponseWriter, err error) {
 		zap.String("correlation_id", w.Header().Get(observability.CorrelationIDHeader)))
 }
 
+// logServerErrorResponse logs every 5xx answer written through writeError
+// with its correlation id (the response header set by the correlation
+// middleware), redacted, and keeps an excerpt for the server_error event.
+func logServerErrorResponse(w http.ResponseWriter, status int, err error) {
+	if err == nil {
+		return
+	}
+	correlationID := w.Header().Get(observability.CorrelationIDHeader)
+	observability.NoteServerError(correlationID, err.Error())
+	if log := unexpectedErrorLog.Load(); log != nil {
+		log.Error("http_server_error_response",
+			zap.Int("status", status),
+			zap.String("error", observability.RedactText(err.Error())),
+			zap.String("correlation_id", correlationID))
+	}
+}
+
 func activityUUID(w http.ResponseWriter, ids ...string) bool {
 	for _, id := range ids {
 		if _, err := uuid.Parse(id); err != nil {

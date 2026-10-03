@@ -986,3 +986,105 @@ func TestSupportErasureAndExportPostgres(t *testing.T) {
 		t.Fatal("attachment row not released")
 	}
 }
+
+// ── categories and member notifications (2026-10-02) ────────────────────────
+
+// case: support.support_ticket_form.submit_support_ticket.api_contract
+func TestSupportCategoriesEndpoint(t *testing.T) {
+	t.Parallel()
+	s := &Server{}
+	rec := httptest.NewRecorder()
+	s.supportListCategories(rec, supportRequest(http.MethodGet, "", "", nil, nil))
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("signed-out categories: %d, want 401", rec.Code)
+	}
+	rec = httptest.NewRecorder()
+	member := &securityPrincipal{UserID: uuid.NewString(), Roles: map[string]bool{"user": true}}
+	s.supportListCategories(rec, supportRequest(http.MethodGet, "", "", member, nil))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("categories: %d %s", rec.Code, rec.Body.String())
+	}
+	var out struct {
+		Categories []struct {
+			Key, Label string
+			Safety     bool
+		}
+		Limits map[string]any
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &out); err != nil {
+		t.Fatal(err)
+	}
+	if len(out.Categories) != len(supportCategories) {
+		t.Fatalf("got %d categories, server accepts %d", len(out.Categories), len(supportCategories))
+	}
+	seen := map[string]bool{}
+	for i, c := range out.Categories {
+		if _, ok := supportCategories[c.Key]; !ok || seen[c.Key] || c.Label == "" {
+			t.Fatalf("category %d %+v is unknown, repeated or unlabelled", i, c)
+		}
+		seen[c.Key] = true
+		if c.Safety != (c.Key == "safety_harassment") {
+			t.Fatalf("safety flag wrong on %s", c.Key)
+		}
+		// Every listed category is one the create validator accepts.
+		if _, err := validateSupportTicketInput(map[string]any{"category": c.Key, "subject": "Help please", "description": "Details"}); err != nil {
+			t.Fatalf("listed category %s is refused: %v", c.Key, err)
+		}
+	}
+	if out.Categories[len(out.Categories)-1].Key != "other" {
+		t.Fatal("'other' should be offered last")
+	}
+	if out.Limits["subject_max_chars"].(float64) != supportSubjectMaxRunes || out.Limits["attachments_per_message"].(float64) != supportMaxAttachmentsPerMs ||
+		out.Limits["image_max_bytes"].(float64) != supportImageMaxBytes {
+		t.Fatalf("limits %v do not match the server rules", out.Limits)
+	}
+}
+
+// case: notifications.notification_inbox.inkwell_ontap.api_contract
+func TestSupportStatusNotificationsPostgres(t *testing.T) {
+	h := newSupportHarness(t)
+	ticketID := toString(h.mustCreate(h.member, "technical", "Photos fail to upload", "Upload spins forever.")["id"])
+	params := map[string]string{"ticketID": ticketID}
+
+	// Waiting on the member without a public reply (status only) tells them.
+	if code, out := h.asOperator(h.s.adminSupportUpdateTicket, http.MethodPatch, "", `{"status":"pending_member"}`, params); code != 200 {
+		t.Fatalf("pending_member %d %v", code, out)
+	}
+	if h.f.notifications(t, h.member, "support.status") != 1 {
+		t.Fatal("setting pending_member should notify the member")
+	}
+	var payloadStatus, route string
+	if err := h.f.db.QueryRow(`SELECT payload->>'status', action_route FROM matching.notification_outbox
+		WHERE recipient_user_id=$1 AND event_type='support.status'`, h.member).Scan(&payloadStatus, &route); err != nil {
+		t.Fatal(err)
+	}
+	if payloadStatus != "pending_member" || route != "/support/tickets/"+ticketID {
+		t.Fatalf("status notification payload status=%q route=%q", payloadStatus, route)
+	}
+
+	// A plain public reply notifies once as a reply.
+	if code, out := h.asOperator(h.s.adminSupportReply, http.MethodPost, "", `{"body":"Which phone is this on?"}`, params); code != 201 {
+		t.Fatalf("reply %d %v", code, out)
+	}
+	if h.f.notifications(t, h.member, "support.reply") != 1 || h.f.notifications(t, h.member, "support.status") != 1 {
+		t.Fatal("a public reply should add exactly one reply notification")
+	}
+
+	// A reply that resolves the ticket sends one notification: the resolution.
+	if code, out := h.asOperator(h.s.adminSupportReply, http.MethodPost, "", `{"body":"Fixed in 1.4.1.","status":"resolved"}`, params); code != 201 ||
+		out["ticket"].(map[string]any)["status"] != "resolved" {
+		t.Fatalf("resolving reply %d %v", code, out)
+	}
+	if h.f.notifications(t, h.member, "support.reply") != 1 || h.f.notifications(t, h.member, "support.status") != 2 {
+		t.Fatalf("resolving reply: reply=%d status=%d, want 1 and 2",
+			h.f.notifications(t, h.member, "support.reply"), h.f.notifications(t, h.member, "support.status"))
+	}
+
+	// Internal notes never notify, even with no status change.
+	if code, _ := h.asOperator(h.s.adminSupportReply, http.MethodPost, "", `{"body":"Root cause: CDN timeout","visibility":"internal"}`, params); code != 201 {
+		t.Fatal("note")
+	}
+	if h.f.notifications(t, h.member, "support.reply") != 1 || h.f.notifications(t, h.member, "support.status") != 2 {
+		t.Fatal("internal notes must not notify")
+	}
+}

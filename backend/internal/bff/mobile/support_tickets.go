@@ -70,6 +70,27 @@ var supportCategories = map[string]supportCategorySpec{
 	"other":             {Team: "general", Priority: "normal"},
 }
 
+// supportCategoryOrder is the order members are offered categories in
+// (GET /support/categories). Every key of supportCategories appears once.
+var supportCategoryOrder = []string{
+	"account_login", "verification", "payments_billing", "safety_harassment", "matches_chat",
+	"technical", "feature_request", "privacy_data", "other",
+}
+
+// supportCategoryLabels are English labels for clients without their own
+// (the app shows its localized labels, keyed by category).
+var supportCategoryLabels = map[string]string{
+	"account_login":     "Account & login",
+	"verification":      "Verification",
+	"payments_billing":  "Payments & billing",
+	"safety_harassment": "Safety & harassment",
+	"matches_chat":      "Matches & chat",
+	"technical":         "Technical problem",
+	"feature_request":   "Feature request",
+	"privacy_data":      "Privacy & data request",
+	"other":             "Other",
+}
+
 var (
 	supportStatuses       = map[string]bool{"new": true, "open": true, "pending_member": true, "on_hold": true, "resolved": true, "closed": true}
 	supportActiveStatuses = map[string]bool{"new": true, "open": true, "pending_member": true, "on_hold": true}
@@ -905,6 +926,34 @@ func (s *Server) supportMember(w http.ResponseWriter, r *http.Request) (string, 
 	return principal.UserID, db, true
 }
 
+// supportListCategories returns the categories a member can choose and the
+// limits the server enforces, so clients never offer a choice or a file the
+// server would refuse. Behind support_ticketing_enabled like every member
+// route, so a 200 also tells the app that requests can be raised.
+func (s *Server) supportListCategories(w http.ResponseWriter, r *http.Request) {
+	if _, err := requestPrincipal(r); err != nil {
+		writeError(w, http.StatusUnauthorized, err)
+		return
+	}
+	categories := make([]map[string]any, 0, len(supportCategoryOrder))
+	for _, key := range supportCategoryOrder {
+		categories = append(categories, map[string]any{
+			"key": key, "label": supportCategoryLabels[key], "safety": key == "safety_harassment",
+		})
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"success":    true,
+		"categories": categories,
+		"limits": map[string]any{
+			"subject_min_chars": supportSubjectMinRunes, "subject_max_chars": supportSubjectMaxRunes,
+			"body_max_chars": supportBodyMaxRunes, "rating_comment_max_chars": supportRatingCommentRunes,
+			"attachments_per_message": supportMaxAttachmentsPerMs, "attachments_per_ticket": supportMaxAttachmentsPerTk,
+			"image_max_bytes": supportImageMaxBytes, "pdf_max_bytes": supportPDFMaxBytes,
+			"attachment_types": []string{"image/jpeg", "image/png", "application/pdf"},
+		},
+	})
+}
+
 func (s *Server) supportCreateTicket(w http.ResponseWriter, r *http.Request) {
 	memberID, db, ok := s.supportMember(w, r)
 	if !ok {
@@ -1331,5 +1380,5 @@ func supportNotifyMemberTx(ctx context.Context, tx *sql.Tx, t *supportTicket, ac
 		return nil
 	}
 	return enqueueNotificationTx(ctx, tx, t.RequesterMemberID, actorID, eventType, "system", t.ID, dedupe,
-		title, body, "/support/tickets/"+t.ID, map[string]any{"ticket_id": t.ID, "reference": t.Reference}, 6)
+		title, body, "/support/tickets/"+t.ID, map[string]any{"ticket_id": t.ID, "reference": t.Reference, "status": t.Status}, 6)
 }

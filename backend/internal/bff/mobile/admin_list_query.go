@@ -359,6 +359,59 @@ func queryAdminMapPage(
 	return items, total, nil
 }
 
+// queryAdminMapPageCapped is queryAdminMapPage for append-heavy logs: the
+// count stops after countCap matches (the approach of the member action log,
+// admin_member_activity.go), so total is at most countCap and capped reports
+// that the real total is larger. The page itself is exact.
+func queryAdminMapPageCapped(
+	ctx context.Context,
+	db adminPageQueryer,
+	selectSQL, fromSQL string,
+	filter *sqlFilter,
+	p adminListParams,
+	countCap int,
+) ([]map[string]any, int, bool, error) {
+	if countCap < 1 {
+		countCap = 10000
+	}
+	where := filter.SQL()
+	args := filter.Args()
+	var counted int
+	if err := db.QueryRowContext(ctx, fmt.Sprintf(`SELECT COUNT(*) FROM (SELECT 1%s%s LIMIT %d) c`, fromSQL, where, countCap+1),
+		args...).Scan(&counted); err != nil {
+		return nil, 0, false, err
+	}
+	total, capped := counted, counted > countCap
+	if capped {
+		total = countCap
+	}
+	items := make([]map[string]any, 0)
+	if counted == 0 || (!capped && p.Offset >= counted) {
+		return items, total, capped, nil
+	}
+	query := `SELECT ` + selectSQL + fromSQL + where
+	if order := p.OrderBy(); order != "" {
+		query += ` ORDER BY ` + order
+	}
+	rows, err := db.QueryContext(ctx, query+p.LimitOffset(), args...)
+	if err != nil {
+		return nil, 0, false, err
+	}
+	defer rows.Close()
+	columns, err := rows.ColumnTypes()
+	if err != nil {
+		return nil, 0, false, err
+	}
+	for rows.Next() {
+		item, err := scanAdminRowMap(rows, columns)
+		if err != nil {
+			return nil, 0, false, err
+		}
+		items = append(items, item)
+	}
+	return items, total, capped, rows.Err()
+}
+
 func scanAdminRowMap(rows *sql.Rows, columns []*sql.ColumnType) (map[string]any, error) {
 	values := make([]any, len(columns))
 	targets := make([]any, len(columns))

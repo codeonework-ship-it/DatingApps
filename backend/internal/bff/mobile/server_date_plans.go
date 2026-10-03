@@ -419,6 +419,9 @@ func (w *datePlanSweepWorker) runOnce(ctx context.Context) {
 	runErr := err // only a cancellation reaches here; End ignores it
 	defer func() {
 		run.Items("processed", expired+reminders+escalations)
+		run.Detail("expired", expired)
+		run.Detail("reminders", reminders)
+		run.Detail("escalations", escalations)
 		run.End(runErr)
 	}()
 	// Friend intros share the cadence (migration 096).

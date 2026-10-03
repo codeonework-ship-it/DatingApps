@@ -42,7 +42,7 @@ func NewBFFMetrics(reg prometheus.Registerer) *HTTPMetrics {
 		"In-use database/sql PostgreSQL connections in the BFF idempotency pool (see verified_dating_db_pool_* for every pool).")
 	metrics.ShedCount = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "verified_dating", Subsystem: "reliability", Name: "requests_shed_total",
-		Help: "Requests rejected by a domain bulkhead.",
+		Help: "Requests rejected by a domain bulkhead (domain label) or by the process-wide in-flight limit (domain=\"inflight\").",
 	}, []string{"domain"})
 
 	metrics.NotificationQueueDepth = gauge("notification", "queue_depth", "Pending or retry notification outbox jobs.")
@@ -93,6 +93,11 @@ func NewBFFMetrics(reg prometheus.Registerer) *HTTPMetrics {
 		Buckets: []float64{0.1, 0.25, 0.5, 1, 2, 5, 10, 30, 60, 300},
 	}, []string{"stream"})
 
+	metrics.SecurityRefusals = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: "verified_dating", Subsystem: "security", Name: "refusals_total",
+		Help: "Requests refused by the BFF security middleware, by reason (unauthenticated, account_state, forbidden_role, forbidden_resource).",
+	}, []string{"reason"})
+
 	metrics.queues = newQueueCollector()
 
 	reg.MustRegister(
@@ -127,6 +132,7 @@ func NewBFFMetrics(reg prometheus.Registerer) *HTTPMetrics {
 		metrics.TrustRetentionRuns,
 		metrics.ActivityCaptureWrites,
 		metrics.RealtimeDeliveryLag,
+		metrics.SecurityRefusals,
 		metrics.queues,
 	)
 	metrics.Workers = NewWorkerMetrics(reg)
@@ -146,3 +152,15 @@ func (m *HTTPMetrics) ObserveRealtimeDelivery(stream string, occurredAt time.Tim
 	}
 	m.RealtimeDeliveryLag.WithLabelValues(stream).Observe(lag)
 }
+
+// ObserveSecurityRefusal counts one refusal by the security middleware. Nil-safe.
+func (m *HTTPMetrics) ObserveSecurityRefusal(reason string) {
+	if m == nil || m.SecurityRefusals == nil || reason == "" {
+		return
+	}
+	m.SecurityRefusals.WithLabelValues(reason).Inc()
+}
+
+// ShedDomainInflight is the requests_shed_total domain label used for the
+// process-wide in-flight limit (InflightSheddingMiddlewareWithMetrics).
+const ShedDomainInflight = "inflight"

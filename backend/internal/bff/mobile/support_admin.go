@@ -616,9 +616,13 @@ func supportOperatorCanAssign(ctx context.Context, q supportQuerier, userID stri
 	return ok, err
 }
 
+// supportStatusNotices are the member notifications for status changes an
+// operator makes. pending_member only notifies when it is set without a
+// public reply (the reply notification already says the team answered).
 var supportStatusNotices = map[string][2]string{
-	"resolved": {"Your request is resolved", "We've marked %s as resolved. Reply if anything still isn't right, or rate your experience."},
-	"closed":   {"Your request is closed", "%s is now closed. You can reopen it from Help & Support for 14 days."},
+	"pending_member": {"We need a reply from you", "Connect Support is waiting for your reply on %s. Open it in Help & Support."},
+	"resolved":       {"Your request is resolved", "We've marked %s as resolved. Reply if anything still isn't right, or rate your experience."},
+	"closed":         {"Your request is closed", "%s is now closed. You can reopen it from Help & Support for 14 days."},
 }
 
 // supportApplyChanges updates one ticket as an operator, in its own
@@ -915,7 +919,10 @@ func supportAgentReplyTx(ctx context.Context, db *sql.DB, operatorID, ticketID s
 			return "", err
 		}
 	}
-	if in.Visibility == "public" {
+	// One notification per action: a reply that also resolves or closes the
+	// ticket says so (the member sees the reply when they open it).
+	finished := previous != t.Status && (t.Status == "resolved" || t.Status == "closed")
+	if in.Visibility == "public" && !finished {
 		if err = supportNotifyMemberTx(ctx, tx, t, operatorID, "support.reply", "support:reply:"+messageID,
 			"Connect Support replied", "There's a new reply on your request "+t.Reference+"."); err != nil {
 			return "", err

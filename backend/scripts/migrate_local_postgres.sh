@@ -117,6 +117,7 @@ migrations=(
 	130_profile_showcase_consent.sql
 	131_admin_list_paging.sql
 	132_member_activity.sql
+	133_server_activity.sql
 )
 
 for migration in "${migrations[@]}"; do

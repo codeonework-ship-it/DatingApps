@@ -51,6 +51,8 @@ type trustRetentionResult struct {
 	ClientErrorIssues      int
 	// Migration 132: 400-day member action history.
 	MemberActionEvents int
+	// Migration 133: server activity classes by policy name.
+	ServerActivity map[string]int
 }
 
 func newTrustRetentionWorker(
@@ -150,10 +152,61 @@ func (w *trustRetentionWorker) RunOnce(ctx context.Context) (trustRetentionResul
 	result.APIRequestEvents, result.ClientErrorOccurrences, result.ClientErrorIssues = apiRequests, occurrences, issues
 	result.MemberActionEvents = memberActions
 	keep(err)
+	serverActivity, err := runServerActivityRetention(ctx, w.db, w.batch)
+	result.ServerActivity = serverActivity
+	keep(err)
 	keep(w.refreshSOSGauges(ctx))
 
 	w.record(result)
+	classes := result.classCounts()
+	removed := 0
+	for _, n := range classes {
+		removed += n
+	}
+	run.Items("processed", removed)
+	run.Detail("purged", classes)
 	return result, firstErr
+}
+
+// classCounts is the rows each retention class removed in one pass.
+func (r trustRetentionResult) classCounts() map[string]int {
+	counts := map[string]int{
+		"revoked_sessions":       r.RevokedSessions,
+		"disabled_push_tokens":   r.DisabledPushTokens,
+		"sos_delivery_snapshots": r.SOSDeliverySnapshots,
+		"security_audit_history": r.SecurityEvents,
+		"row_change_history":     r.RowChanges,
+		"activity_history":       r.ActivityEvents,
+		"identity_evidence":      r.IdentityEvidence,
+		"api_request_telemetry":  r.APIRequestEvents,
+		"client_error_reports":   r.ClientErrorOccurrences,
+		"client_error_issues":    r.ClientErrorIssues,
+		"member_action_history":  r.MemberActionEvents,
+	}
+	for class, n := range r.ServerActivity {
+		counts[class] = n
+	}
+	return counts
+}
+
+// runServerActivityRetention applies the migration 133 classes (job runs,
+// rollups, server events, capacity snapshots, third-party usage). Before the
+// migration is applied it does nothing.
+func runServerActivityRetention(ctx context.Context, db *sql.DB, batch int) (map[string]int, error) {
+	var jobRuns, jobRollups, requestRollups, events, snapshots, usage int
+	err := db.QueryRowContext(ctx, `SELECT job_runs, job_rollups, request_rollups, server_events, capacity_snapshots, third_party_usage
+		FROM platform.run_server_activity_retention($1)`, batch).
+		Scan(&jobRuns, &jobRollups, &requestRollups, &events, &snapshots, &usage)
+	if err != nil {
+		if strings.Contains(err.Error(), "run_server_activity_retention") && strings.Contains(err.Error(), "does not exist") {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return map[string]int{
+		"server_job_runs": jobRuns, "server_job_rollups": jobRollups, "server_request_rollups": requestRollups,
+		"server_events": events, "server_capacity_snapshots": snapshots, "server_third_party_usage": usage,
+	}, nil
 }
 
 type identityEvidenceRow struct {
@@ -259,19 +312,7 @@ func (w *trustRetentionWorker) refreshSOSGauges(ctx context.Context) error {
 
 func (w *trustRetentionWorker) record(result trustRetentionResult) {
 	if w.metrics != nil && w.metrics.TrustRetentionRuns != nil {
-		for class, count := range map[string]int{
-			"revoked_sessions":       result.RevokedSessions,
-			"disabled_push_tokens":   result.DisabledPushTokens,
-			"sos_delivery_snapshots": result.SOSDeliverySnapshots,
-			"security_audit_history": result.SecurityEvents,
-			"row_change_history":     result.RowChanges,
-			"activity_history":       result.ActivityEvents,
-			"identity_evidence":      result.IdentityEvidence,
-			"api_request_telemetry":  result.APIRequestEvents,
-			"client_error_reports":   result.ClientErrorOccurrences,
-			"client_error_issues":    result.ClientErrorIssues,
-			"member_action_history":  result.MemberActionEvents,
-		} {
+		for class, count := range result.classCounts() {
 			if count > 0 {
 				w.metrics.TrustRetentionRuns.WithLabelValues(class).Add(float64(count))
 			}
