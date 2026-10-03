@@ -445,7 +445,7 @@ void main() {
         'the device is offline',
         'POST /engagement/voice-icebreakers/start',
         qaOffline,
-        'Unable to send voice icebreaker right now.',
+        en.networkOfflineTryAgain,
       ),
       (
         'the session reply has no id',
@@ -802,7 +802,7 @@ void main() {
         qaOk({'voice_icebreaker': _intro()}),
         'Unable to play this recording right now.',
       ),
-      ('offline', qaOffline, 'Unable to mark playback right now.'),
+      ('offline', qaOffline, en.networkOfflineTryAgain),
     ]) {
       _voiceTest(
         'Listen when $label explains it, plays nothing and can be tried again [case:engagement.voice_icebreakers.listen_seconds_s.api_failure]',
@@ -844,7 +844,8 @@ void main() {
           tester,
           find.byKey(const ValueKey('qa.voice.reload_prompts')),
         );
-        expect(find.text(en.engagementVoicePromptsLoadFailed), findsOneWidget);
+        // Offline reads as the shared can't-connect message.
+        expect(find.text(en.networkOfflineTryAgain), findsOneWidget);
 
         api.json('GET /engagement/voice-icebreakers/prompts', {
           'prompts': [
@@ -858,7 +859,7 @@ void main() {
           api.sent('GET', '/engagement/voice-icebreakers/prompts'),
           hasLength(2),
         );
-        expect(find.text(en.engagementVoicePromptsLoadFailed), findsNothing);
+        expect(find.text(en.networkOfflineTryAgain), findsNothing);
         expect(
           find.byKey(const ValueKey('qa.voice.reload_prompts')),
           findsNothing,

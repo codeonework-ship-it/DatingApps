@@ -42,6 +42,10 @@ class _SupportTicketFormScreenState
   bool _unavailable = false;
   String? _error;
 
+  /// Set when an unsent request from an earlier visit was put back.
+  bool _restored = false;
+  late final SupportDraftStore _drafts;
+
   @override
   void initState() {
     super.initState();
@@ -49,6 +53,37 @@ class _SupportTicketFormScreenState
       ref.read(supportApiProvider),
       lookupAppLocalizations(const Locale('en')),
     );
+    _drafts = ref.read(supportDraftProvider.notifier);
+    final draft = ref.read(supportDraftProvider);
+    if (draft != null) {
+      _subject.text = draft.subject;
+      _description.text = draft.description;
+      _category ??= draft.category;
+      _restored = true;
+    }
+    _subject.addListener(_keepDraft);
+    _description.addListener(_keepDraft);
+  }
+
+  /// Keeps what is typed so leaving the form (or a failed send) loses
+  /// nothing. Screenshots are not kept: they are re-picked in seconds.
+  void _keepDraft() => _drafts.save(
+    SupportDraft(
+      category: _category,
+      subject: _subject.text,
+      description: _description.text,
+    ),
+  );
+
+  void _discardDraft() {
+    _subject.clear();
+    _description.clear();
+    _drafts.clear();
+    setState(() {
+      _category = null;
+      _restored = false;
+      _error = null;
+    });
   }
 
   @override
@@ -122,6 +157,9 @@ class _SupportTicketFormScreenState
             device: currentSupportDeviceContext(locale),
             idempotencyKey: _idempotencyKey,
           );
+      _subject.removeListener(_keepDraft);
+      _description.removeListener(_keepDraft);
+      _drafts.clear();
       ref.invalidate(supportTicketsProvider);
       if (!mounted) {
         return;
@@ -172,6 +210,9 @@ class _SupportTicketFormScreenState
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
+    // The server's list when it answers; the app's own until then.
+    final categories =
+        ref.watch(supportCategoriesProvider).valueOrNull ?? supportCategories;
 
     Widget section(String label, String? caption, Widget child) => Padding(
       padding: const EdgeInsets.only(top: ConnectMetrics.sectionGap),
@@ -216,6 +257,20 @@ class _SupportTicketFormScreenState
                           ]
                         : [
                             header,
+                            if (_restored) ...[
+                              const SizedBox(height: ConnectMetrics.cardGap),
+                              SupportNotice(
+                                key: const Key('support_draft_restored'),
+                                icon: Icons.edit_note_rounded,
+                                title: l10n.supportDraftRestored,
+                                message: l10n.supportFormSubtitle,
+                                action: TextButton(
+                                  key: const Key('support_draft_discard'),
+                                  onPressed: _discardDraft,
+                                  child: Text(l10n.supportDraftDiscard),
+                                ),
+                              ),
+                            ],
                             section(
                               l10n.supportFormCategorySection,
                               l10n.supportFormCategoryLabel,
@@ -223,7 +278,7 @@ class _SupportTicketFormScreenState
                                 spacing: 8,
                                 runSpacing: 8,
                                 children: [
-                                  for (final key in supportCategories)
+                                  for (final key in categories)
                                     ChoiceChip(
                                       key: Key('support_category_$key'),
                                       avatar: Icon(
@@ -236,8 +291,10 @@ class _SupportTicketFormScreenState
                                       selected: _category == key,
                                       materialTapTargetSize:
                                           MaterialTapTargetSize.padded,
-                                      onSelected: (_) =>
-                                          setState(() => _category = key),
+                                      onSelected: (_) {
+                                        setState(() => _category = key);
+                                        _keepDraft();
+                                      },
                                     ),
                                 ],
                               ),

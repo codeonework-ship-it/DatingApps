@@ -125,7 +125,8 @@ void main() {
           ),
           findsOneWidget,
         );
-        expect(find.text('communication_score: 81'), findsOneWidget);
+        expect(find.text('Communication: 81'), findsOneWidget);
+        expect(find.text('communication_score: 81'), findsNothing);
         await qaScrollTo(tester, find.text('Kind replies for two weeks.'));
         expect(find.text('awarded'), findsOneWidget);
         expect(find.text('2026-09-30'), findsOneWidget);

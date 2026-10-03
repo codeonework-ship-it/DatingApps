@@ -3,12 +3,15 @@ import '../../../../core/platform/browser_context.dart';
 import '../../../../core/platform/platform_photo.dart';
 
 import 'package:flutter/material.dart';
+
+import '../../../../core/network/api_error_message.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/layout/app_layout.dart';
 import '../../../../core/widgets/glass_widgets.dart';
+import '../../../../core/widgets/qa_id.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../providers/profile_setup_provider.dart';
 import 'setup_about_screen.dart';
@@ -231,7 +234,12 @@ class _SetupPhotosScreenState extends ConsumerState<SetupPhotosScreen> {
                     child: Padding(
                       padding: const EdgeInsets.all(24),
                       child: SetupErrorState(
-                        message: e.toString(),
+                        message: apiErrorMessage(
+                          e,
+                          fallback: AppLocalizations.of(
+                            context,
+                          ).commonSomethingWentWrongTryAgain,
+                        ),
                         onRetry: () =>
                             ref.invalidate(profileSetupNotifierProvider),
                       ),
@@ -434,9 +442,8 @@ class _PhotoListBody extends StatelessWidget {
         const SizedBox(height: 24),
 
         // ── Next button ──────────────────────────────────────
-        Semantics(
-          label: 'qa.setup.photos.next_button',
-          button: true,
+        QaId(
+          'qa.setup.photos.next_button',
           child: SizedBox(
             height: 54,
             width: double.infinity,
@@ -478,9 +485,8 @@ class _PickerButton extends StatelessWidget {
   final bool isLoading;
 
   @override
-  Widget build(BuildContext context) => Semantics(
-    label: 'qa.setup.photos.${qaId}_button',
-    button: true,
+  Widget build(BuildContext context) => QaId(
+    'qa.setup.photos.${qaId}_button',
     child: SizedBox(
       height: 58,
       child: GlassButton(
@@ -652,9 +658,8 @@ class _PhotoRow extends StatelessWidget {
               ],
             ),
           ),
-          Semantics(
-            label: 'qa.setup.photos.delete_${photo.id}',
-            button: true,
+          QaId(
+            'qa.setup.photos.delete_${photo.id}',
             child: IconButton(
               key: ValueKey<String>('qa.setup.photos.delete_${photo.id}'),
               icon: Icon(Icons.delete_outline, color: scheme.error),
@@ -662,9 +667,9 @@ class _PhotoRow extends StatelessWidget {
               tooltip: l10n.profileSetupRemovePhotoTooltip,
             ),
           ),
-          Semantics(
-            label: 'qa.setup.photos.reorder_${photo.id}',
-            button: true,
+          QaId(
+            'qa.setup.photos.reorder_${photo.id}',
+            label: l10n.profileSetupReorderPhoto,
             child: IgnorePointer(
               ignoring: !enabled,
               child: ReorderableDragStartListener(

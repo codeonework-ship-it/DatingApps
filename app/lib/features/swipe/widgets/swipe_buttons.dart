@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import '../../../core/i18n/app_l10n.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
 
@@ -123,6 +124,7 @@ class _SwipeButtonsState extends State<SwipeButtons>
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = l10nOrEnglish(context);
     return GlassContainer(
       // The action targets are deliberately fixed at 56-60pt for thumb reach,
       // so the container padding is what gives on a narrow phone rather than
@@ -153,7 +155,9 @@ class _SwipeButtonsState extends State<SwipeButtons>
                 ),
               ),
               child: Semantics(
-                label: _qa('undo_button'),
+                container: true,
+                identifier: _qa('undo_button'),
+                label: l10n.discoverActionUndo,
                 button: true,
                 enabled: widget.canUndo && !_isBusy,
                 child: GestureDetector(
@@ -193,7 +197,9 @@ class _SwipeButtonsState extends State<SwipeButtons>
                 ),
               ),
               child: Semantics(
-                label: _qa('pass_button'),
+                container: true,
+                identifier: _qa('pass_button'),
+                label: l10n.discoverPass,
                 button: true,
                 enabled: !_isBusy,
                 child: GestureDetector(
@@ -234,7 +240,9 @@ class _SwipeButtonsState extends State<SwipeButtons>
                 onEnter: (_) => setState(() => _isLikeHovered = true),
                 onExit: (_) => setState(() => _isLikeHovered = false),
                 child: Semantics(
-                  label: _qa('like_button'),
+                  container: true,
+                  identifier: _qa('like_button'),
+                  label: l10n.discoverActionLike,
                   button: true,
                   enabled: !_isBusy,
                   child: GestureDetector(
@@ -337,7 +345,9 @@ class _SwipeButtonsState extends State<SwipeButtons>
                 ),
               ),
               child: Semantics(
-                label: _qa('superlike_button'),
+                container: true,
+                identifier: _qa('superlike_button'),
+                label: l10n.discoverActionSuperLike,
                 button: true,
                 enabled: !_isBusy,
                 child: GestureDetector(
@@ -377,7 +387,9 @@ class _SwipeButtonsState extends State<SwipeButtons>
                 ),
               ),
               child: Semantics(
-                label: _qa('message_button'),
+                container: true,
+                identifier: _qa('message_button'),
+                label: l10n.memberProfileMessage,
                 button: true,
                 enabled: !_isBusy,
                 child: GestureDetector(

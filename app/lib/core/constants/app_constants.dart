@@ -3,6 +3,14 @@ library;
 
 import 'package:flutter/foundation.dart' show kDebugMode;
 
+/// The product's brand name: one place for the app title, the About screen
+/// and the web header. A brand name, so it is never translated.
+class AppBrand {
+  const AppBrand._();
+
+  static const String name = 'Connect';
+}
+
 /// App version reported with crash reports. Pass
 /// `--dart-define=APP_VERSION=x.y.z --dart-define=APP_BUILD_NUMBER=n` in
 /// release builds; the defaults mirror `pubspec.yaml`.
@@ -133,6 +141,7 @@ class FeatureFlags {
     'ENABLE_BETA_FEATURES',
     defaultValue: false,
   );
+
   /// Self-hosted crash and error reporting (`POST /v1/client/errors`, see
   /// `core/telemetry/client_error_reporter.dart`). There is no Firebase
   /// Crashlytics or other third-party crash SDK. Product analytics is

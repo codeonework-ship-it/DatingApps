@@ -23,7 +23,7 @@ class CoinPackage {
 
   factory CoinPackage.fromJson(Map<String, dynamic> json) => CoinPackage(
     id: json['id']?.toString() ?? '',
-    label: json['label']?.toString() ?? 'Coins',
+    label: json['label']?.toString() ?? '',
     coinAmount: (json['coin_amount'] as num?)?.toInt() ?? 0,
     totalCoins:
         (json['total_coins'] as num?)?.toInt() ??
@@ -36,6 +36,9 @@ class CoinPackage {
   );
 
   final String id;
+
+  /// The server's pack name; empty when it sent none (widgets then show
+  /// "Coins" in the member's language).
   final String label;
   final int coinAmount;
   final int totalCoins;

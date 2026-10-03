@@ -195,7 +195,8 @@ void main() {
       await tester.pump(roomHeartbeatInterval);
       await tester.pumpAndSettle();
       expect(_chat, findsNothing);
-      expect(qaSnackText(tester), 'You were removed from this room.');
+      // A known error_code is shown in the member's language, not as sent.
+      expect(qaSnackText(tester), en.apiErrorRoomRemoved);
       expect(s.sent('GET', '/rooms').length, greaterThan(loads));
 
       final beats = s.sent('POST', '/rooms/r1/presence');
@@ -366,7 +367,7 @@ void main() {
       // pump frames rather than settle.
       await tester.tap(find.byKey(const ValueKey('qa.room.members.retry')));
       await qaSettle(tester);
-      expect(find.text(en.networkCannotReachService), findsOneWidget);
+      expect(find.text(en.networkOfflineTryAgain), findsOneWidget);
       expect(_memberLoads(s), 2);
 
       s.api.on('GET /rooms/*/members', (_) => qaOk({'members': s.members}));

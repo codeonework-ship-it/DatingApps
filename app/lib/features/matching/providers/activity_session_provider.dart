@@ -7,6 +7,7 @@ import '../../../core/config/feature_flags.dart';
 import '../../../core/providers/api_client_provider.dart';
 import '../../../core/utils/logger.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../../core/network/api_error_message.dart';
 
 // Client fallback messages. They double as codes: the screen maps them to
 // translated text (see matching_l10n.dart); server errors pass through.
@@ -466,11 +467,9 @@ int computeActivityRemainingSeconds(DateTime? expiresAt, DateTime nowUtc) {
 }
 
 String _extractError(DioException e, {required String fallback}) {
-  final data = e.response?.data;
-  if (data is Map && data['error'] != null) {
-    return data['error'].toString();
-  }
-  return fallback;
+  // Known error codes are translated; raw server text only in English
+  // and never when technical (apiErrorMessage policy).
+  return serverErrorMessage(e, fallback: fallback);
 }
 
 List<String> _stringList(dynamic raw) {

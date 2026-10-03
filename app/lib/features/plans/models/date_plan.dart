@@ -1,25 +1,14 @@
 /// Date plans: a matched pair turns a conversation into a concrete plan, and
 /// Sharing with trusted contacts is opt-in for each member and each plan. Mirrors `matching.match_date_plans`.
 ///
-/// This file is pure Dart. The labels below are the en-US fallbacks; widgets
-/// render the member's language through `date_plan_labels.dart`.
+/// This file is pure Dart; widgets render the member's language through
+/// `date_plan_labels.dart`.
 library;
 
 import 'package:intl/intl.dart';
 
-/// en-US venue labels, keyed by wire category. Widgets use
-/// `datePlanVenueLabel` (date_plan_labels.dart) instead.
-const Map<String, String> datePlanVenueLabels = <String, String>{
-  'coffee': 'Coffee',
-  'meal': 'A meal',
-  'drinks': 'Drinks',
-  'walk': 'A walk',
-  'activity': 'An activity',
-  'event': 'An event',
-  'video_call': 'Video call',
-  'other': 'Something else',
-};
-
+/// Wire venue categories in display order. Widgets name them with
+/// `datePlanVenueLabel` (date_plan_labels.dart).
 const List<String> datePlanVenueOrder = <String>[
   'coffee',
   'meal',
@@ -146,7 +135,7 @@ class DatePlan {
     cancelReason: json['cancel_reason']?.toString() ?? '',
     viewerRole: json['viewer_role']?.toString() ?? 'observer',
     partnerUserId: json['partner_user_id']?.toString() ?? '',
-    partnerName: json['partner_name']?.toString() ?? 'Your match',
+    partnerName: json['partner_name']?.toString() ?? '',
     nextAction: json['next_action']?.toString() ?? 'none',
     checkins: (json['checkins'] as List<dynamic>? ?? const <dynamic>[])
         .whereType<Map<dynamic, dynamic>>()
@@ -184,6 +173,9 @@ class DatePlan {
   final String cancelReason;
   final String viewerRole;
   final String partnerUserId;
+
+  /// Empty when the server sent no name; widgets show
+  /// `partnerLabel(l10n)` (date_plan_labels.dart).
   final String partnerName;
   final String nextAction;
   final List<DatePlanCheckin> checkins;
@@ -201,23 +193,6 @@ class DatePlan {
   bool get isProposed => status == 'proposed';
   bool get viewerIsInvitee => viewerRole == 'invitee';
 
-  /// en-US venue label; widgets use `datePlanVenueLabel` for the member's
-  /// language.
-  String get venueLabel =>
-      datePlanVenueLabels[venueCategory] ?? datePlanVenueLabels['other']!;
-
-  /// One line, en-US: "Sat 28 Sep · 16:00–18:00 · Coffee · Indiranagar".
-  /// Widgets use `localizedSummary` (date_plan_labels.dart).
-  String get summary {
-    final parts = <String>[
-      describeDatePlanWindow(windowStart, windowEnd),
-      venueLabel,
-      if (venueName.isNotEmpty) venueName,
-      if (venueArea.isNotEmpty) venueArea,
-    ];
-    return parts.join(' · ');
-  }
-
   DatePlanCheckin? checkinFor(String userId) {
     for (final checkin in checkins) {
       if (checkin.userId == userId) {
@@ -234,10 +209,12 @@ class DatePlanShareGroup {
   factory DatePlanShareGroup.fromJson(Map<String, dynamic> json) =>
       DatePlanShareGroup(
         id: json['id']?.toString() ?? '',
-        name: json['name']?.toString() ?? 'Group',
+        name: json['name']?.toString() ?? '',
       );
 
   final String id;
+
+  /// Empty when the server sent no name; widgets show `label(l10n)`.
   final String name;
 }
 
@@ -302,8 +279,8 @@ class FriendPlan {
   factory FriendPlan.fromJson(Map<String, dynamic> json) => FriendPlan(
     planId: json['plan_id']?.toString() ?? '',
     friendUserId: json['friend_user_id']?.toString() ?? '',
-    friendName: json['friend_name']?.toString() ?? 'A friend',
-    partnerName: json['partner_name']?.toString() ?? 'a match',
+    friendName: json['friend_name']?.toString() ?? '',
+    partnerName: json['partner_name']?.toString() ?? '',
     status: json['status']?.toString() ?? '',
     latestUpdate: json['latest_update']?.toString() ?? '',
     title: json['title']?.toString() ?? '',
@@ -322,6 +299,8 @@ class FriendPlan {
 
   final String planId;
   final String friendUserId;
+
+  /// Empty when the server sent no name; widgets show `friendLabel(l10n)`.
   final String friendName;
   final String partnerName;
   final String status;
@@ -339,53 +318,21 @@ class FriendPlan {
   bool get needsHelp => latestUpdate == 'need_help';
   bool get missedCheckin => latestUpdate == 'checkin_missed';
   bool get checkedInSafe => checkins.any((c) => c.isSafe);
-  String get venueLabel =>
-      datePlanVenueLabels[venueCategory] ?? datePlanVenueLabels['other']!;
 }
-
-const List<String> _weekdays = <String>[
-  'Mon',
-  'Tue',
-  'Wed',
-  'Thu',
-  'Fri',
-  'Sat',
-  'Sun',
-];
-const List<String> _months = <String>[
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-];
 
 String _two(int value) => value.toString().padLeft(2, '0');
 
-/// "Sat 28 Sep" in the viewer's local time.
-///
-/// With a [locale] (`Localizations.localeOf(context).toString()`) the day is
-/// formatted with that locale's date symbols ("Sa. 28. Sep.", "сб 28 сент."),
-/// which `flutter_localizations` loads for every supported locale. Without
-/// one, or when the symbols are not loaded, it falls back to English.
-String describeDatePlanDay(DateTime value, {String? locale}) {
+/// "Sat 28 Sep" in the viewer's local time, with [locale]'s date symbols
+/// ("Sa. 28. Sep.", "сб 28 сент."; `Localizations.localeOf(context)
+/// .toString()`). `flutter_localizations` loads them for every supported
+/// locale; when they are missing the day reads in English.
+String describeDatePlanDay(DateTime value, {required String locale}) {
   final local = value.toLocal();
-  if (locale != null && locale.isNotEmpty) {
-    try {
-      return DateFormat('EEE d MMM', locale).format(local);
-    } on Object {
-      // Date symbols for this locale are not loaded: English fallback.
-    }
+  try {
+    return DateFormat('EEE d MMM', locale).format(local);
+  } on Object {
+    return DateFormat('EEE d MMM', 'en').format(local);
   }
-  return '${_weekdays[local.weekday - 1]} ${local.day} '
-      '${_months[local.month - 1]}';
 }
 
 String describeDatePlanTime(DateTime value) {
@@ -395,7 +342,11 @@ String describeDatePlanTime(DateTime value) {
 
 /// "Sat 28 Sep · 16:00–18:00" in the viewer's local time; see
 /// [describeDatePlanDay] for [locale].
-String describeDatePlanWindow(DateTime start, DateTime end, {String? locale}) =>
+String describeDatePlanWindow(
+  DateTime start,
+  DateTime end, {
+  required String locale,
+}) =>
     '${describeDatePlanDay(start, locale: locale)} · '
     '${describeDatePlanTime(start)}–${describeDatePlanTime(end)}';
 

@@ -12523,6 +12523,604 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsSignOutAllFailed =>
       'Couldn\'t sign out your other devices. Check your connection and try again.';
+
+  @override
+  String get supportPaymentHelpLink => 'Payment problem? Contact support';
+
+  @override
+  String get supportReportHelpLink => 'Need more help? Contact support';
+
+  @override
+  String get supportSignedOutHelpLink =>
+      'Something else wrong? Contact support';
+
+  @override
+  String get supportGuestSubtitle =>
+      'Can’t sign in, or something else isn’t working? Tell us what happened and we’ll reply by email.';
+
+  @override
+  String get supportGuestEmailLabel => 'Your email';
+
+  @override
+  String get supportGuestEmailHint => 'We’ll reply to this address';
+
+  @override
+  String get supportGuestNameLabel => 'Your name (optional)';
+
+  @override
+  String get supportGuestEmailInvalid =>
+      'Enter a valid email address so we can reply.';
+
+  @override
+  String get supportGuestSentTitle => 'Request sent';
+
+  @override
+  String supportGuestSentBody(String reference, String email) {
+    return 'Thanks. Your reference is $reference. We’ll reply to $email.';
+  }
+
+  @override
+  String get supportGuestUnavailableBody =>
+      'Support requests can’t be sent from the app right now. For anything urgent, email support@connect.example.';
+
+  @override
+  String get supportDraftRestored => 'We kept your unsent request.';
+
+  @override
+  String get supportDraftDiscard => 'Discard draft';
+
+  @override
+  String get discoverActionUndo => 'Undo';
+
+  @override
+  String get discoverActionLike => 'Like';
+
+  @override
+  String get discoverActionSuperLike => 'Super like';
+
+  @override
+  String get navQaVerifyShortcut => 'Verify';
+
+  @override
+  String get chatMessageDeletedPlaceholder => 'Message deleted';
+
+  @override
+  String get chatGiftYouSentHeading => 'You sent a gift';
+
+  @override
+  String get commonMemberFallbackName => 'A member';
+
+  @override
+  String get giftNameRoseRedSingle => 'Single Red Rose';
+
+  @override
+  String get giftNameRosePinkSoft => 'Pink Rose';
+
+  @override
+  String get giftNameRoseWhitePure => 'White Rose';
+
+  @override
+  String get giftNameRoseYellowFriendship => 'Yellow Rose';
+
+  @override
+  String get giftNameRoseLavenderCrush => 'Lavender Rose';
+
+  @override
+  String get giftNameRoseBlueRare => 'Blue Rose';
+
+  @override
+  String get giftNameRoseBlackMystery => 'Black Rose';
+
+  @override
+  String get giftNameRoseSparkle => 'Sparkle Rose';
+
+  @override
+  String get giftNameRoseHeartPetal => 'Heart-Petal Rose';
+
+  @override
+  String get giftNameRoseNeonGlow => 'Neon Rose';
+
+  @override
+  String get giftNameRoseRain => 'Rose Rain';
+
+  @override
+  String get giftNameRoseBurningFlame => 'Burning Rose';
+
+  @override
+  String get giftNameRoseGolden => 'Golden Rose';
+
+  @override
+  String get giftNameRoseCrystal => 'Crystal Rose';
+
+  @override
+  String get giftNameRoseBouquet12 => 'Rose Bouquet (12)';
+
+  @override
+  String get giftNameRoseBouquet24 => 'Rose Bouquet (24)';
+
+  @override
+  String get giftNameRoseSeasonalWeekly => 'Seasonal Limited Rose';
+
+  @override
+  String get giftNameChocolateBox => 'Chocolate Box';
+
+  @override
+  String get giftNameHeartBalloon => 'Heart Balloon';
+
+  @override
+  String get giftNameTeddyBear => 'Teddy Bear';
+
+  @override
+  String get giftNameFlowerBouquet => 'Flower Bouquet';
+
+  @override
+  String get giftNameJewelleryBox => 'Jewelry Box';
+
+  @override
+  String get giftNameChampagneToast => 'Champagne Toast';
+
+  @override
+  String get giftNameHeartExplosion => 'Heart Explosion';
+
+  @override
+  String get giftNameConfettiShower => 'Confetti Shower';
+
+  @override
+  String get giftNameFireworksBurst => 'Fireworks Burst';
+
+  @override
+  String get giftNameStarShower => 'Star Shower';
+
+  @override
+  String get giftNameGoldenSparkle => 'Golden Sparkle';
+
+  @override
+  String get giftNameRainbowWave => 'Rainbow Wave';
+
+  @override
+  String get giftNameCoffeeDateInvite => 'Coffee Date Invite';
+
+  @override
+  String get giftNamePicnicInvite => 'Picnic Invite';
+
+  @override
+  String get giftNameMovieNightInvite => 'Movie Night Invite';
+
+  @override
+  String get giftNameSunsetWalkInvite => 'Sunset Walk Invite';
+
+  @override
+  String get giftNameDateNightCard => 'Date Night Card';
+
+  @override
+  String get giftNameValentineSurprise => 'Valentine\'s Surprise';
+
+  @override
+  String get giftNameDiamondRing => 'Diamond Ring';
+
+  @override
+  String get giftNameLuxuryDate => 'Luxury Date Experience';
+
+  @override
+  String get blogPublicationUnavailableTitle => 'Sharing unavailable';
+
+  @override
+  String get blogPublicationUnavailableExcerpt =>
+      'The source changed or access was withdrawn. Withdraw this link.';
+
+  @override
+  String get blogNoticeKindPost => 'Post';
+
+  @override
+  String get blogNoticeKindResponse => 'Response';
+
+  @override
+  String get blogNoticeKindPublication => 'Public copy';
+
+  @override
+  String get blogNoticeKindThemeEntry => 'Theme photo';
+
+  @override
+  String get blogNoticeKindClub => 'Club';
+
+  @override
+  String get blogNoticeKindClubPost => 'Club post';
+
+  @override
+  String get blogNoticeKindReview => 'Review';
+
+  @override
+  String get blogNoticeKindList => 'List';
+
+  @override
+  String get blogNoticeKindComment => 'Comment';
+
+  @override
+  String get blogNoticeKindPhotoComment => 'Photo comment';
+
+  @override
+  String get blogNoticeKindChatMessage => 'Chat message';
+
+  @override
+  String get blogNoticeKindGroup => 'Group';
+
+  @override
+  String get blogNoticeKindOther => 'Content';
+
+  @override
+  String get blogNoticeStatusPending => 'Under review';
+
+  @override
+  String get blogNoticeStatusDismissed => 'No action taken';
+
+  @override
+  String get blogNoticeStatusRemoved => 'Removed';
+
+  @override
+  String get blogNoticeStatusRestored => 'Restored';
+
+  @override
+  String get engagementTrustMilestoneProfileDepth => 'Profile depth';
+
+  @override
+  String get engagementTrustMilestoneCommunication => 'Communication';
+
+  @override
+  String get engagementTrustMilestoneConsistency => 'Consistency';
+
+  @override
+  String get engagementTrustMilestonePromptCompletion => 'Prompts answered';
+
+  @override
+  String get engagementTrustMilestoneActivitySignals => 'Activity signals';
+
+  @override
+  String get engagementTrustMilestoneUnsafeSignals => 'Safety flags';
+
+  @override
+  String get engagementTrustMilestoneReportPenalty => 'Report penalty';
+
+  @override
+  String get engagementTrustMilestoneVerification => 'Verification consistent';
+
+  @override
+  String get engagementTrustMilestoneSafety => 'Safety';
+
+  @override
+  String engagementTrustMilestoneLine(String label, String value) {
+    return '$label: $value';
+  }
+
+  @override
+  String get networkOfflineTryAgain =>
+      'Can\'t connect right now. Check your internet connection and try again.';
+
+  @override
+  String get apiErrorFeatureUnavailable =>
+      'This feature isn\'t available right now.';
+
+  @override
+  String get apiErrorConversationUnavailable =>
+      'This conversation is no longer available.';
+
+  @override
+  String get apiErrorMemberUnavailable => 'This member isn\'t available.';
+
+  @override
+  String get apiErrorChatLocked => 'Unlock this conversation first.';
+
+  @override
+  String get apiErrorCopilotDailyLimit =>
+      'You\'ve used today\'s drafts. Write this one yourself.';
+
+  @override
+  String get apiErrorCopilotUnavailable =>
+      'Drafting help isn\'t available right now.';
+
+  @override
+  String get apiErrorCopilotProfileUnavailable =>
+      'Their profile isn\'t available right now.';
+
+  @override
+  String get apiErrorDatePlanAlreadyOpen =>
+      'A date plan is already open for this match.';
+
+  @override
+  String get apiErrorDatePlanMatchInactive =>
+      'Date plans need an active match.';
+
+  @override
+  String get apiErrorDatePlanNotOpen => 'This date plan is no longer open.';
+
+  @override
+  String get apiErrorDatePlanCheckInTooEarly =>
+      'You can check in once the plan starts.';
+
+  @override
+  String get apiErrorDatePlanDebriefTooEarly =>
+      'The debrief opens once the plan starts.';
+
+  @override
+  String get apiErrorSharedAvailabilityChanged =>
+      'Shared availability has changed. Refresh the suggested times or pick a time yourself.';
+
+  @override
+  String get apiErrorGraduationAlreadyOpen =>
+      'A graduation proposal is already open for this match.';
+
+  @override
+  String get apiErrorGraduationMatchInactive =>
+      'Graduating needs an active match.';
+
+  @override
+  String get apiErrorGraduationNotOpen =>
+      'This graduation proposal is no longer open.';
+
+  @override
+  String get apiErrorGraduationAlreadyConfirmed =>
+      'You\'ve already graduated together.';
+
+  @override
+  String get apiErrorOutOfDate =>
+      'This view is out of date. Refresh and try again.';
+
+  @override
+  String get apiErrorOutcomeUncertain =>
+      'We couldn\'t confirm that. Refresh to check before trying again.';
+
+  @override
+  String get apiErrorInsufficientCoins =>
+      'You don\'t have enough coins for this.';
+
+  @override
+  String get apiErrorChannelReadOnly => 'This chat is read-only right now.';
+
+  @override
+  String get apiErrorRoomFull =>
+      'This room is full right now. Try again in a little while.';
+
+  @override
+  String get apiErrorRoomRemoved =>
+      'A host removed you from this room. You can rejoin when this session ends.';
+
+  @override
+  String get apiErrorRoomNotJoined => 'You\'re not in this room.';
+
+  @override
+  String get apiErrorDailyMessageLimit =>
+      'You\'ve used today\'s messages. Try again after the reset or upgrade your plan.';
+
+  @override
+  String get apiErrorDailyLikeLimit =>
+      'You\'ve used today\'s likes. Try again after the reset or upgrade your plan.';
+
+  @override
+  String get apiErrorFriendRequired => 'You need to be friends first.';
+
+  @override
+  String get apiErrorVouchExists => 'You\'ve already vouched for them.';
+
+  @override
+  String get apiErrorIntroUnavailable => 'This intro isn\'t available anymore.';
+
+  @override
+  String get apiErrorIntroAlreadyOpen =>
+      'An intro for these two is already open.';
+
+  @override
+  String get apiErrorIntroNotOpen => 'This intro is no longer open.';
+
+  @override
+  String get apiErrorTooManyTries =>
+      'Too many tries. Wait a moment and try again.';
+
+  @override
+  String get apiErrorQuestCooldown =>
+      'This quest is cooling down. Try again a little later.';
+
+  @override
+  String get apiErrorQuestSelfReview =>
+      'Your match reviews your quest answer, not you.';
+
+  @override
+  String get apiErrorQuestNotParticipant =>
+      'Only members of this match can take part in its quest.';
+
+  @override
+  String get apiErrorPaymentsUnavailable =>
+      'Coin purchases aren\'t available right now.';
+
+  @override
+  String get apiErrorServiceBusy =>
+      'The service is busy right now. Try again in a moment.';
+
+  @override
+  String get apiErrorSignInAgain => 'Please sign in again to continue.';
+
+  @override
+  String get friendsMemberFallback => 'A member';
+
+  @override
+  String get friendsActivityFallback => 'Activity';
+
+  @override
+  String get membershipPlanFallback => 'Plan';
+
+  @override
+  String get membershipSubscriptionFallback => 'Subscription';
+
+  @override
+  String engagementLevelRewardFallback(int level) {
+    return 'Level $level reward';
+  }
+
+  @override
+  String get engagementTrustBadgeUnknown => 'Unknown badge';
+
+  @override
+  String get firstChapterComfortDefaultLanguage => 'English';
+
+  @override
+  String paymentWalletBalanceCoins(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString coins',
+      one: '1 coin',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get languageIntroSignedOut =>
+      'Pick the language Connect uses. It changes right away, and when you sign in it\'s saved to your account.';
+
+  @override
+  String languagePickerButtonSemantics(String language) {
+    return 'Language: $language. Change language';
+  }
+
+  @override
+  String get authErrorUsernameTaken =>
+      'That username is already taken. Try another one.';
+
+  @override
+  String get authErrorAccountSuspended =>
+      'This account is suspended. Contact support if you think this is a mistake.';
+
+  @override
+  String get authErrorAccountLocked =>
+      'Too many sign-in attempts. Try again in a few minutes.';
+
+  @override
+  String get authErrorTooManyRequests =>
+      'Too many tries. Wait a moment and try again.';
+
+  @override
+  String get authErrorAccountTypeUnavailable =>
+      'This kind of account isn\'t available right now.';
+
+  @override
+  String get authErrorNetwork =>
+      'Can\'t connect right now. Check your internet connection and try again.';
+
+  @override
+  String get profileSetupReorderPhoto => 'Drag to reorder this photo';
+
+  @override
+  String get profileLanguageAssamese => 'Assamese';
+
+  @override
+  String get profileLanguageBengali => 'Bengali';
+
+  @override
+  String get profileLanguageBodo => 'Bodo';
+
+  @override
+  String get profileLanguageDogri => 'Dogri';
+
+  @override
+  String get profileLanguageEnglish => 'English';
+
+  @override
+  String get profileLanguageGujarati => 'Gujarati';
+
+  @override
+  String get profileLanguageHindi => 'Hindi';
+
+  @override
+  String get profileLanguageKannada => 'Kannada';
+
+  @override
+  String get profileLanguageKashmiri => 'Kashmiri';
+
+  @override
+  String get profileLanguageKonkani => 'Konkani';
+
+  @override
+  String get profileLanguageMaithili => 'Maithili';
+
+  @override
+  String get profileLanguageMalayalam => 'Malayalam';
+
+  @override
+  String get profileLanguageManipuri => 'Manipuri';
+
+  @override
+  String get profileLanguageMarathi => 'Marathi';
+
+  @override
+  String get profileLanguageNepali => 'Nepali';
+
+  @override
+  String get profileLanguageOdia => 'Odia';
+
+  @override
+  String get profileLanguagePunjabi => 'Punjabi';
+
+  @override
+  String get profileLanguageSanskrit => 'Sanskrit';
+
+  @override
+  String get profileLanguageSantali => 'Santali';
+
+  @override
+  String get profileLanguageSindhi => 'Sindhi';
+
+  @override
+  String get profileLanguageTamil => 'Tamil';
+
+  @override
+  String get profileLanguageTelugu => 'Telugu';
+
+  @override
+  String get profileLanguageUrdu => 'Urdu';
+
+  @override
+  String get profileCountryIndia => 'India';
+
+  @override
+  String get profileCountryUnitedKingdom => 'United Kingdom';
+
+  @override
+  String get profileCountryIreland => 'Ireland';
+
+  @override
+  String get profileCountryGermany => 'Germany';
+
+  @override
+  String get profileCountryAustria => 'Austria';
+
+  @override
+  String get profileMasterWorkoutSometimes => 'Sometimes';
+
+  @override
+  String get profileMasterWorkoutWeekly => 'Weekly';
+
+  @override
+  String get profileMasterTravelRoadTrips => 'Road trips';
+
+  @override
+  String get profileMasterTravelBackpacking => 'Backpacking';
+
+  @override
+  String get profileMasterTravelLuxuryShort => 'Luxury';
+
+  @override
+  String get profileMasterTravelStaycations => 'Staycations';
+
+  @override
+  String get profileMasterPoliticsSimilarShort => 'Similar';
+
+  @override
+  String get profileMasterPoliticsModerate => 'Moderate';
+
+  @override
+  String get profileMasterPoliticsAny => 'Any';
 }
 
 /// The translations for English, as used in the United Kingdom (`en_GB`).
@@ -25044,4 +25642,602 @@ class AppLocalizationsEnGb extends AppLocalizationsEn {
   @override
   String get settingsSignOutAllFailed =>
       'Couldn\'t sign out your other devices. Check your connection and try again.';
+
+  @override
+  String get supportPaymentHelpLink => 'Payment problem? Contact support';
+
+  @override
+  String get supportReportHelpLink => 'Need more help? Contact support';
+
+  @override
+  String get supportSignedOutHelpLink =>
+      'Something else wrong? Contact support';
+
+  @override
+  String get supportGuestSubtitle =>
+      'Can’t sign in, or something else isn’t working? Tell us what happened and we’ll reply by email.';
+
+  @override
+  String get supportGuestEmailLabel => 'Your email';
+
+  @override
+  String get supportGuestEmailHint => 'We’ll reply to this address';
+
+  @override
+  String get supportGuestNameLabel => 'Your name (optional)';
+
+  @override
+  String get supportGuestEmailInvalid =>
+      'Enter a valid email address so we can reply.';
+
+  @override
+  String get supportGuestSentTitle => 'Request sent';
+
+  @override
+  String supportGuestSentBody(String reference, String email) {
+    return 'Thanks. Your reference is $reference. We’ll reply to $email.';
+  }
+
+  @override
+  String get supportGuestUnavailableBody =>
+      'Support requests can’t be sent from the app right now. For anything urgent, email support@connect.example.';
+
+  @override
+  String get supportDraftRestored => 'We kept your unsent request.';
+
+  @override
+  String get supportDraftDiscard => 'Discard draft';
+
+  @override
+  String get discoverActionUndo => 'Undo';
+
+  @override
+  String get discoverActionLike => 'Like';
+
+  @override
+  String get discoverActionSuperLike => 'Super like';
+
+  @override
+  String get navQaVerifyShortcut => 'Verify';
+
+  @override
+  String get chatMessageDeletedPlaceholder => 'Message deleted';
+
+  @override
+  String get chatGiftYouSentHeading => 'You sent a gift';
+
+  @override
+  String get commonMemberFallbackName => 'A member';
+
+  @override
+  String get giftNameRoseRedSingle => 'Single Red Rose';
+
+  @override
+  String get giftNameRosePinkSoft => 'Pink Rose';
+
+  @override
+  String get giftNameRoseWhitePure => 'White Rose';
+
+  @override
+  String get giftNameRoseYellowFriendship => 'Yellow Rose';
+
+  @override
+  String get giftNameRoseLavenderCrush => 'Lavender Rose';
+
+  @override
+  String get giftNameRoseBlueRare => 'Blue Rose';
+
+  @override
+  String get giftNameRoseBlackMystery => 'Black Rose';
+
+  @override
+  String get giftNameRoseSparkle => 'Sparkle Rose';
+
+  @override
+  String get giftNameRoseHeartPetal => 'Heart-Petal Rose';
+
+  @override
+  String get giftNameRoseNeonGlow => 'Neon Rose';
+
+  @override
+  String get giftNameRoseRain => 'Rose Rain';
+
+  @override
+  String get giftNameRoseBurningFlame => 'Burning Rose';
+
+  @override
+  String get giftNameRoseGolden => 'Golden Rose';
+
+  @override
+  String get giftNameRoseCrystal => 'Crystal Rose';
+
+  @override
+  String get giftNameRoseBouquet12 => 'Rose Bouquet (12)';
+
+  @override
+  String get giftNameRoseBouquet24 => 'Rose Bouquet (24)';
+
+  @override
+  String get giftNameRoseSeasonalWeekly => 'Seasonal Limited Rose';
+
+  @override
+  String get giftNameChocolateBox => 'Chocolate Box';
+
+  @override
+  String get giftNameHeartBalloon => 'Heart Balloon';
+
+  @override
+  String get giftNameTeddyBear => 'Teddy Bear';
+
+  @override
+  String get giftNameFlowerBouquet => 'Flower Bouquet';
+
+  @override
+  String get giftNameJewelleryBox => 'Jewellery Box';
+
+  @override
+  String get giftNameChampagneToast => 'Champagne Toast';
+
+  @override
+  String get giftNameHeartExplosion => 'Heart Explosion';
+
+  @override
+  String get giftNameConfettiShower => 'Confetti Shower';
+
+  @override
+  String get giftNameFireworksBurst => 'Fireworks Burst';
+
+  @override
+  String get giftNameStarShower => 'Star Shower';
+
+  @override
+  String get giftNameGoldenSparkle => 'Golden Sparkle';
+
+  @override
+  String get giftNameRainbowWave => 'Rainbow Wave';
+
+  @override
+  String get giftNameCoffeeDateInvite => 'Coffee Date Invite';
+
+  @override
+  String get giftNamePicnicInvite => 'Picnic Invite';
+
+  @override
+  String get giftNameMovieNightInvite => 'Film Night Invite';
+
+  @override
+  String get giftNameSunsetWalkInvite => 'Sunset Walk Invite';
+
+  @override
+  String get giftNameDateNightCard => 'Date Night Card';
+
+  @override
+  String get giftNameValentineSurprise => 'Valentine\'s Surprise';
+
+  @override
+  String get giftNameDiamondRing => 'Diamond Ring';
+
+  @override
+  String get giftNameLuxuryDate => 'Luxury Date Experience';
+
+  @override
+  String get blogPublicationUnavailableTitle => 'Sharing unavailable';
+
+  @override
+  String get blogPublicationUnavailableExcerpt =>
+      'The source changed or access was withdrawn. Withdraw this link.';
+
+  @override
+  String get blogNoticeKindPost => 'Post';
+
+  @override
+  String get blogNoticeKindResponse => 'Response';
+
+  @override
+  String get blogNoticeKindPublication => 'Public copy';
+
+  @override
+  String get blogNoticeKindThemeEntry => 'Theme photo';
+
+  @override
+  String get blogNoticeKindClub => 'Club';
+
+  @override
+  String get blogNoticeKindClubPost => 'Club post';
+
+  @override
+  String get blogNoticeKindReview => 'Review';
+
+  @override
+  String get blogNoticeKindList => 'List';
+
+  @override
+  String get blogNoticeKindComment => 'Comment';
+
+  @override
+  String get blogNoticeKindPhotoComment => 'Photo comment';
+
+  @override
+  String get blogNoticeKindChatMessage => 'Chat message';
+
+  @override
+  String get blogNoticeKindGroup => 'Group';
+
+  @override
+  String get blogNoticeKindOther => 'Content';
+
+  @override
+  String get blogNoticeStatusPending => 'Under review';
+
+  @override
+  String get blogNoticeStatusDismissed => 'No action taken';
+
+  @override
+  String get blogNoticeStatusRemoved => 'Removed';
+
+  @override
+  String get blogNoticeStatusRestored => 'Restored';
+
+  @override
+  String get engagementTrustMilestoneProfileDepth => 'Profile depth';
+
+  @override
+  String get engagementTrustMilestoneCommunication => 'Communication';
+
+  @override
+  String get engagementTrustMilestoneConsistency => 'Consistency';
+
+  @override
+  String get engagementTrustMilestonePromptCompletion => 'Prompts answered';
+
+  @override
+  String get engagementTrustMilestoneActivitySignals => 'Activity signals';
+
+  @override
+  String get engagementTrustMilestoneUnsafeSignals => 'Safety flags';
+
+  @override
+  String get engagementTrustMilestoneReportPenalty => 'Report penalty';
+
+  @override
+  String get engagementTrustMilestoneVerification => 'Verification consistent';
+
+  @override
+  String get engagementTrustMilestoneSafety => 'Safety';
+
+  @override
+  String engagementTrustMilestoneLine(String label, String value) {
+    return '$label: $value';
+  }
+
+  @override
+  String get networkOfflineTryAgain =>
+      'Can\'t connect right now. Check your internet connection and try again.';
+
+  @override
+  String get apiErrorFeatureUnavailable =>
+      'This feature isn\'t available right now.';
+
+  @override
+  String get apiErrorConversationUnavailable =>
+      'This conversation is no longer available.';
+
+  @override
+  String get apiErrorMemberUnavailable => 'This member isn\'t available.';
+
+  @override
+  String get apiErrorChatLocked => 'Unlock this conversation first.';
+
+  @override
+  String get apiErrorCopilotDailyLimit =>
+      'You\'ve used today\'s drafts. Write this one yourself.';
+
+  @override
+  String get apiErrorCopilotUnavailable =>
+      'Drafting help isn\'t available right now.';
+
+  @override
+  String get apiErrorCopilotProfileUnavailable =>
+      'Their profile isn\'t available right now.';
+
+  @override
+  String get apiErrorDatePlanAlreadyOpen =>
+      'A date plan is already open for this match.';
+
+  @override
+  String get apiErrorDatePlanMatchInactive =>
+      'Date plans need an active match.';
+
+  @override
+  String get apiErrorDatePlanNotOpen => 'This date plan is no longer open.';
+
+  @override
+  String get apiErrorDatePlanCheckInTooEarly =>
+      'You can check in once the plan starts.';
+
+  @override
+  String get apiErrorDatePlanDebriefTooEarly =>
+      'The debrief opens once the plan starts.';
+
+  @override
+  String get apiErrorSharedAvailabilityChanged =>
+      'Shared availability has changed. Refresh the suggested times or pick a time yourself.';
+
+  @override
+  String get apiErrorGraduationAlreadyOpen =>
+      'A graduation proposal is already open for this match.';
+
+  @override
+  String get apiErrorGraduationMatchInactive =>
+      'Graduating needs an active match.';
+
+  @override
+  String get apiErrorGraduationNotOpen =>
+      'This graduation proposal is no longer open.';
+
+  @override
+  String get apiErrorGraduationAlreadyConfirmed =>
+      'You\'ve already graduated together.';
+
+  @override
+  String get apiErrorOutOfDate =>
+      'This view is out of date. Refresh and try again.';
+
+  @override
+  String get apiErrorOutcomeUncertain =>
+      'We couldn\'t confirm that. Refresh to check before trying again.';
+
+  @override
+  String get apiErrorInsufficientCoins =>
+      'You don\'t have enough coins for this.';
+
+  @override
+  String get apiErrorChannelReadOnly => 'This chat is read-only right now.';
+
+  @override
+  String get apiErrorRoomFull =>
+      'This room is full right now. Try again in a little while.';
+
+  @override
+  String get apiErrorRoomRemoved =>
+      'A host removed you from this room. You can rejoin when this session ends.';
+
+  @override
+  String get apiErrorRoomNotJoined => 'You\'re not in this room.';
+
+  @override
+  String get apiErrorDailyMessageLimit =>
+      'You\'ve used today\'s messages. Try again after the reset or upgrade your plan.';
+
+  @override
+  String get apiErrorDailyLikeLimit =>
+      'You\'ve used today\'s likes. Try again after the reset or upgrade your plan.';
+
+  @override
+  String get apiErrorFriendRequired => 'You need to be friends first.';
+
+  @override
+  String get apiErrorVouchExists => 'You\'ve already vouched for them.';
+
+  @override
+  String get apiErrorIntroUnavailable => 'This intro isn\'t available anymore.';
+
+  @override
+  String get apiErrorIntroAlreadyOpen =>
+      'An intro for these two is already open.';
+
+  @override
+  String get apiErrorIntroNotOpen => 'This intro is no longer open.';
+
+  @override
+  String get apiErrorTooManyTries =>
+      'Too many tries. Wait a moment and try again.';
+
+  @override
+  String get apiErrorQuestCooldown =>
+      'This quest is cooling down. Try again a little later.';
+
+  @override
+  String get apiErrorQuestSelfReview =>
+      'Your match reviews your quest answer, not you.';
+
+  @override
+  String get apiErrorQuestNotParticipant =>
+      'Only members of this match can take part in its quest.';
+
+  @override
+  String get apiErrorPaymentsUnavailable =>
+      'Coin purchases aren\'t available right now.';
+
+  @override
+  String get apiErrorServiceBusy =>
+      'The service is busy right now. Try again in a moment.';
+
+  @override
+  String get apiErrorSignInAgain => 'Please sign in again to continue.';
+
+  @override
+  String get friendsMemberFallback => 'A member';
+
+  @override
+  String get friendsActivityFallback => 'Activity';
+
+  @override
+  String get membershipPlanFallback => 'Plan';
+
+  @override
+  String get membershipSubscriptionFallback => 'Subscription';
+
+  @override
+  String engagementLevelRewardFallback(int level) {
+    return 'Level $level reward';
+  }
+
+  @override
+  String get engagementTrustBadgeUnknown => 'Unknown badge';
+
+  @override
+  String get firstChapterComfortDefaultLanguage => 'English';
+
+  @override
+  String paymentWalletBalanceCoins(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString coins',
+      one: '1 coin',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get languageIntroSignedOut =>
+      'Pick the language Connect uses. It changes right away, and when you sign in it\'s saved to your account.';
+
+  @override
+  String languagePickerButtonSemantics(String language) {
+    return 'Language: $language. Change language';
+  }
+
+  @override
+  String get authErrorUsernameTaken =>
+      'That username is already taken. Try another one.';
+
+  @override
+  String get authErrorAccountSuspended =>
+      'This account is suspended. Contact support if you think this is a mistake.';
+
+  @override
+  String get authErrorAccountLocked =>
+      'Too many sign-in attempts. Try again in a few minutes.';
+
+  @override
+  String get authErrorTooManyRequests =>
+      'Too many tries. Wait a moment and try again.';
+
+  @override
+  String get authErrorAccountTypeUnavailable =>
+      'This kind of account isn\'t available right now.';
+
+  @override
+  String get authErrorNetwork =>
+      'Can\'t connect right now. Check your internet connection and try again.';
+
+  @override
+  String get profileSetupReorderPhoto => 'Drag to reorder this photo';
+
+  @override
+  String get profileLanguageAssamese => 'Assamese';
+
+  @override
+  String get profileLanguageBengali => 'Bengali';
+
+  @override
+  String get profileLanguageBodo => 'Bodo';
+
+  @override
+  String get profileLanguageDogri => 'Dogri';
+
+  @override
+  String get profileLanguageEnglish => 'English';
+
+  @override
+  String get profileLanguageGujarati => 'Gujarati';
+
+  @override
+  String get profileLanguageHindi => 'Hindi';
+
+  @override
+  String get profileLanguageKannada => 'Kannada';
+
+  @override
+  String get profileLanguageKashmiri => 'Kashmiri';
+
+  @override
+  String get profileLanguageKonkani => 'Konkani';
+
+  @override
+  String get profileLanguageMaithili => 'Maithili';
+
+  @override
+  String get profileLanguageMalayalam => 'Malayalam';
+
+  @override
+  String get profileLanguageManipuri => 'Manipuri';
+
+  @override
+  String get profileLanguageMarathi => 'Marathi';
+
+  @override
+  String get profileLanguageNepali => 'Nepali';
+
+  @override
+  String get profileLanguageOdia => 'Odia';
+
+  @override
+  String get profileLanguagePunjabi => 'Punjabi';
+
+  @override
+  String get profileLanguageSanskrit => 'Sanskrit';
+
+  @override
+  String get profileLanguageSantali => 'Santali';
+
+  @override
+  String get profileLanguageSindhi => 'Sindhi';
+
+  @override
+  String get profileLanguageTamil => 'Tamil';
+
+  @override
+  String get profileLanguageTelugu => 'Telugu';
+
+  @override
+  String get profileLanguageUrdu => 'Urdu';
+
+  @override
+  String get profileCountryIndia => 'India';
+
+  @override
+  String get profileCountryUnitedKingdom => 'United Kingdom';
+
+  @override
+  String get profileCountryIreland => 'Ireland';
+
+  @override
+  String get profileCountryGermany => 'Germany';
+
+  @override
+  String get profileCountryAustria => 'Austria';
+
+  @override
+  String get profileMasterWorkoutSometimes => 'Sometimes';
+
+  @override
+  String get profileMasterWorkoutWeekly => 'Weekly';
+
+  @override
+  String get profileMasterTravelRoadTrips => 'Road trips';
+
+  @override
+  String get profileMasterTravelBackpacking => 'Backpacking';
+
+  @override
+  String get profileMasterTravelLuxuryShort => 'Luxury';
+
+  @override
+  String get profileMasterTravelStaycations => 'Staycations';
+
+  @override
+  String get profileMasterPoliticsSimilarShort => 'Similar';
+
+  @override
+  String get profileMasterPoliticsModerate => 'Moderate';
+
+  @override
+  String get profileMasterPoliticsAny => 'Any';
 }

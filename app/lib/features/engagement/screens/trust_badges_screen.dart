@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../l10n/app_localizations.dart';
 import '../../matching/matching_l10n.dart';
 import '../../matching/providers/trust_filter_provider.dart';
 import '../engagement_l10n.dart';
@@ -145,12 +146,52 @@ class _MilestoneCard extends StatelessWidget {
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 8),
-            ...state.milestones.entries.map(
-              (entry) => Text('${entry.key}: ${entry.value}'),
-            ),
+            for (final entry in state.milestones.entries)
+              if (!_hiddenMilestoneKeys.contains(entry.key))
+                Text(
+                  l.engagementTrustMilestoneLine(
+                    trustMilestoneLabel(l, entry.key),
+                    _milestoneValue(l, entry.value),
+                  ),
+                ),
           ],
         ),
       ),
     );
   }
 }
+
+/// Bookkeeping fields the server sends with the scores; not for members.
+const _hiddenMilestoneKeys = {'user_id', 'last_computed_at'};
+
+/// A trust milestone's translated label. Unknown keys read as words
+/// ("reply_speed_score" → "Reply speed"), never as snake_case.
+String trustMilestoneLabel(AppLocalizations l, String key) => switch (key) {
+  'profile_depth_score' => l.engagementTrustMilestoneProfileDepth,
+  'communication_score' => l.engagementTrustMilestoneCommunication,
+  'consistency_score' => l.engagementTrustMilestoneConsistency,
+  'prompt_completion_score' => l.engagementTrustMilestonePromptCompletion,
+  'activity_signal_count' => l.engagementTrustMilestoneActivitySignals,
+  'unsafe_signal_count' => l.engagementTrustMilestoneUnsafeSignals,
+  'report_risk_penalty' => l.engagementTrustMilestoneReportPenalty,
+  'verification_consistent' => l.engagementTrustMilestoneVerification,
+  'safety_score' => l.engagementTrustMilestoneSafety,
+  _ => _humanizeMilestoneKey(key),
+};
+
+String _humanizeMilestoneKey(String key) {
+  final words = key
+      .replaceAll(RegExp(r'_(score|count)$'), '')
+      .replaceAll(RegExp(r'[_\-]+'), ' ')
+      .trim();
+  return words.isEmpty
+      ? key
+      : '${words[0].toUpperCase()}${words.substring(1).toLowerCase()}';
+}
+
+String _milestoneValue(AppLocalizations l, Object? value) => switch (value) {
+  true => l.commonYes,
+  false => l.commonNo,
+  null => '–',
+  _ => '$value',
+};

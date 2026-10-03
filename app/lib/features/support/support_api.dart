@@ -1,11 +1,11 @@
-import 'dart:typed_data';
-
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../core/providers/api_client_provider.dart';
+import '../../core/providers/runtime_feature_flags_provider.dart';
 import '../../core/telemetry/client_error_reporter.dart';
 import '../../core/utils/logger.dart';
 import '../auth/providers/auth_provider.dart';
@@ -17,6 +17,46 @@ class SupportApi {
   const SupportApi(this._dio);
 
   final Dio _dio;
+
+  /// The categories the server accepts, in its order, limited to the ones
+  /// this app can label. Falls back to [supportCategories] when the server
+  /// list is empty.
+  Future<List<String>> listCategories() => _guard('list_categories', () async {
+    final response = await _dio.get<dynamic>('/support/categories');
+    final rows = _body(response)['categories'];
+    final keys = <String>[
+      if (rows is List)
+        for (final row in rows)
+          if (row is Map && supportCategories.contains(row['key']))
+            '${row['key']}',
+    ];
+    return keys.isEmpty ? supportCategories : keys;
+  });
+
+  /// Sends the signed-out contact form (`POST /support/contact`). Replies go
+  /// to [email] by email; no account is created or linked. Returns the
+  /// ticket reference.
+  Future<String> contact({
+    required String email,
+    required String name,
+    required String category,
+    required String subject,
+    required String description,
+    required String locale,
+  }) => _guard('contact', () async {
+    final response = await _dio.post<dynamic>(
+      '/support/contact',
+      data: {
+        'email': email,
+        'name': name,
+        'category': category,
+        'subject': subject,
+        'description': description,
+        'locale': locale,
+      },
+    );
+    return _body(response)['reference']?.toString() ?? '';
+  });
 
   Future<SupportTicketList> listTickets({String status = 'all'}) =>
       _guard('list_tickets', () async {
@@ -223,6 +263,80 @@ class SupportTicketsNotifier extends AsyncNotifier<SupportTicketList> {
       () => ref.read(supportApiProvider).listTickets(),
     );
   }
+}
+
+/// Whether members can raise requests (`support_ticketing_enabled`). Off
+/// until the server says otherwise, so contextual "Contact support" links
+/// stay hidden rather than leading to an error.
+final supportEnabledProvider = Provider<bool>(
+  (ref) =>
+      ref
+          .watch(runtimeFeatureFlagsProvider)
+          .valueOrNull
+          ?.enabled(supportFeatureFlag) ??
+      false,
+);
+
+/// The runtime flag that gates every `/support/...` member route.
+const supportFeatureFlag = 'support_ticketing_enabled';
+
+/// The categories to offer, from the server when it answers.
+final supportCategoriesProvider = FutureProvider.autoDispose<List<String>>((
+  ref,
+) async {
+  try {
+    return await ref.watch(supportApiProvider).listCategories();
+  } on SupportException {
+    return supportCategories;
+  }
+});
+
+/// The latest support notification seen while the app is open, so an open
+/// thread can reload when the team replies. `seq` changes on every event.
+final supportActivityProvider = StateProvider<({String ticketId, int seq})?>(
+  (ref) => null,
+);
+
+/// Tells open support screens that [ticketId] changed on the server
+/// (a reply or status notification arrived) and refreshes the ticket list.
+void notifySupportActivity(WidgetRef ref, String ticketId) {
+  ref.invalidate(supportTicketsProvider);
+  final previous = ref.read(supportActivityProvider)?.seq ?? 0;
+  ref.read(supportActivityProvider.notifier).state = (
+    ticketId: ticketId,
+    seq: previous + 1,
+  );
+}
+
+/// An unsent new request, kept when the member leaves the form (for example
+/// after a failed send while offline) so nothing typed is lost. Per member.
+@immutable
+class SupportDraft {
+  const SupportDraft({this.category, this.subject = '', this.description = ''});
+
+  final String? category;
+  final String subject;
+  final String description;
+
+  bool get isEmpty =>
+      category == null && subject.trim().isEmpty && description.trim().isEmpty;
+}
+
+final supportDraftProvider = NotifierProvider<SupportDraftStore, SupportDraft?>(
+  SupportDraftStore.new,
+);
+
+class SupportDraftStore extends Notifier<SupportDraft?> {
+  @override
+  SupportDraft? build() {
+    // A different member on this device never sees someone else's draft.
+    watchSignedInUserId(ref);
+    return null;
+  }
+
+  void save(SupportDraft draft) => state = draft.isEmpty ? null : draft;
+
+  void clear() => state = null;
 }
 
 /// An attachment's bytes, keyed by `ticketId/attachmentId`.

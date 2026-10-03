@@ -270,7 +270,7 @@ void main() {
       await tester.tap(find.byKey(_button));
       await tester.pumpAndSettle();
       expect(
-        find.text(qaL10n(const Locale('en')).networkCannotReachService),
+        find.text(qaL10n(const Locale('en')).networkOfflineTryAgain),
         findsOneWidget,
       );
     },

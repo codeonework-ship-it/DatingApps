@@ -168,7 +168,7 @@ void main() {
       w.api.offline('PUT /clubs/*');
       await t.tap(inSheet(find.text('Create club')));
       await qaSettle(t);
-      expect(inSheet(find.text(en.networkCannotReachService)), findsOneWidget);
+      expect(inSheet(find.text(en.networkOfflineTryAgain)), findsOneWidget);
       expect(fieldText(t, 'Club name'), 'Moonlit Pages');
 
       // A 500 without a message falls back to the club's own wording.

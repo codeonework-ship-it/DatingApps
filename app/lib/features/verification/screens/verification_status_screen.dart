@@ -101,7 +101,9 @@ class VerificationStatusScreen extends ConsumerWidget {
       Icon(icon, size: 72, color: Theme.of(context).colorScheme.primary),
       const SizedBox(height: 12),
       Semantics(
-        label: 'qa.verification.status.$qaId',
+        container: true,
+        header: true,
+        identifier: 'qa.verification.status.$qaId',
         child: Text(title, style: Theme.of(context).textTheme.headlineSmall),
       ),
       const SizedBox(height: 8),

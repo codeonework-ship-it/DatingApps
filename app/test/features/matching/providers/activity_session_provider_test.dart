@@ -8,9 +8,7 @@ void main() {
       final state = ActivitySessionState(
         questions: questions,
         selectedAnswers: Map<String, String>.fromEntries(
-          questions.map(
-            (q) => MapEntry<String, String>(q.id, q.options.first),
-          ),
+          questions.map((q) => MapEntry<String, String>(q.id, q.options.first)),
         ),
       );
 

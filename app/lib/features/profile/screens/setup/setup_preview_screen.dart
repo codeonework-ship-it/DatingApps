@@ -4,11 +4,15 @@ import '../../../../core/platform/platform_photo.dart';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+
+import '../../../../core/network/api_error_message.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/logger.dart';
 import '../../../../core/widgets/glass_widgets.dart';
+import '../../../../core/widgets/qa_id.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../common/screens/main_navigation_screen.dart';
 import '../../providers/profile_completion_provider.dart';
@@ -98,12 +102,21 @@ class _SetupPreviewScreenState extends ConsumerState<SetupPreviewScreen> {
       }
       setState(() => _isCompleting = false);
       final l10n = AppLocalizations.of(context);
-      final msg = (e.response?.data is Map)
-          ? ((e.response!.data as Map)['message'] ??
-                l10n.profileSetupServerError)
-          : l10n.profileSetupNetworkError;
-      _snack(msg.toString());
-    } on Exception catch (_) {
+      // Known server errors map to the member's language; the raw server
+      // text is never shown outside English (apiErrorMessage policy).
+      _snack(
+        apiErrorMessage(
+          e,
+          fallback: e.response == null
+              ? l10n.profileSetupNetworkError
+              : l10n.profileSetupServerError,
+        ),
+      );
+    } on Object catch (e, stackTrace) {
+      // StateError ("Profile is incomplete") is an Error, not an Exception:
+      // catch everything so the button never stays busy, and keep the raw
+      // text in the log only.
+      AppLogger().error('Profile completion failed', e, stackTrace);
       if (!mounted) {
         return;
       }
@@ -173,7 +186,12 @@ class _SetupPreviewScreenState extends ConsumerState<SetupPreviewScreen> {
                     ),
                   ),
                   error: (e, _) => SetupErrorState(
-                    message: e.toString(),
+                    message: apiErrorMessage(
+                      e,
+                      fallback: AppLocalizations.of(
+                        context,
+                      ).commonSomethingWentWrongTryAgain,
+                    ),
                     onRetry: () => ref.invalidate(profileSetupNotifierProvider),
                   ),
                   data: (draft) => _PreviewBody(
@@ -376,9 +394,8 @@ class _PreviewBody extends StatelessWidget {
               const SizedBox(height: 24),
 
               // -- Complete button
-              Semantics(
-                label: 'qa.setup.preview.complete_button',
-                button: true,
+              QaId(
+                'qa.setup.preview.complete_button',
                 child: SizedBox(
                   width: double.infinity,
                   height: 54,

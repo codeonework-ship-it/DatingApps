@@ -60,9 +60,14 @@ void main() {
 
     expect(find.text('Verifizierungsstatus'), findsOneWidget);
     expect(find.text('Nicht gestartet'), findsOneWidget);
+    // The id is an identifier; what a screen reader says is the German title.
+    final status = find.bySemanticsIdentifier(
+      'qa.verification.status.Not Started',
+    );
+    expect(status, findsOneWidget);
     expect(
-      find.bySemanticsLabel(RegExp(r'^qa\.verification\.status\.Not Started')),
-      findsOneWidget,
+      tester.getSemantics(status).getSemanticsData().label,
+      'Nicht gestartet',
     );
   });
 

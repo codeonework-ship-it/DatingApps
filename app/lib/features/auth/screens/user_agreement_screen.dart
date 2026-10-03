@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
+import '../../../core/widgets/qa_id.dart';
+import '../../common/widgets/language_picker.dart';
 import '../../../l10n/app_localizations.dart';
 import '../providers/auth_provider.dart';
 import '../providers/terms_provider.dart';
@@ -39,6 +41,10 @@ class _UserAgreementScreenState extends ConsumerState<UserAgreementScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    const Align(
+                      alignment: Alignment.centerRight,
+                      child: LanguagePickerButton(),
+                    ),
                     _buildHeader(context),
                     const SizedBox(height: 22),
                     Container(
@@ -83,76 +89,78 @@ class _UserAgreementScreenState extends ConsumerState<UserAgreementScreen> {
                             ),
                           ),
                           const SizedBox(height: 18),
-                          Semantics(
-                            label: 'qa.terms.accept_checkbox',
-                            button: true,
-                            checked: _accepted,
-                            child: InkWell(
-                              key: const ValueKey('qa.terms.accept_checkbox'),
-                              onTap: () {
-                                setState(() {
-                                  _accepted = !_accepted;
-                                });
-                              },
-                              borderRadius: BorderRadius.circular(18),
-                              child: Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.fromLTRB(
-                                  12,
-                                  12,
-                                  12,
-                                  8,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: scheme.surface,
-                                  borderRadius: BorderRadius.circular(18),
-                                  border: Border.all(
-                                    color: _accepted
-                                        ? scheme.primary
-                                        : scheme.outlineVariant,
-                                    width: _accepted ? 1.5 : 1.0,
+                          // One node: the checkbox state and the agreement
+                          // sentence are announced together.
+                          MergeSemantics(
+                            child: Semantics(
+                              identifier: 'qa.terms.accept_checkbox',
+                              child: InkWell(
+                                key: const ValueKey('qa.terms.accept_checkbox'),
+                                onTap: () {
+                                  setState(() {
+                                    _accepted = !_accepted;
+                                  });
+                                },
+                                borderRadius: BorderRadius.circular(18),
+                                child: Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.fromLTRB(
+                                    12,
+                                    12,
+                                    12,
+                                    8,
                                   ),
-                                ),
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    Checkbox(
-                                      key: const ValueKey(
-                                        'qa.terms.accept_checkbox_input',
-                                      ),
-                                      value: _accepted,
-                                      activeColor: scheme.primary,
-                                      checkColor: scheme.onPrimary,
-                                      onChanged: (value) {
-                                        setState(() {
-                                          _accepted = value ?? false;
-                                        });
-                                      },
+                                  decoration: BoxDecoration(
+                                    color: scheme.surface,
+                                    borderRadius: BorderRadius.circular(18),
+                                    border: Border.all(
+                                      color: _accepted
+                                          ? scheme.primary
+                                          : scheme.outlineVariant,
+                                      width: _accepted ? 1.5 : 1.0,
                                     ),
-                                    Expanded(
-                                      child: Padding(
-                                        padding: const EdgeInsets.only(
-                                          top: 4,
-                                          bottom: 4,
+                                  ),
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
+                                    children: [
+                                      Checkbox(
+                                        key: const ValueKey(
+                                          'qa.terms.accept_checkbox_input',
                                         ),
-                                        child: Text(
-                                          l10n.authTermsAgreeCheckbox,
-                                          style: TextStyle(
-                                            color: scheme.onSurface,
-                                            fontWeight: FontWeight.w500,
+                                        value: _accepted,
+                                        activeColor: scheme.primary,
+                                        checkColor: scheme.onPrimary,
+                                        onChanged: (value) {
+                                          setState(() {
+                                            _accepted = value ?? false;
+                                          });
+                                        },
+                                      ),
+                                      Expanded(
+                                        child: Padding(
+                                          padding: const EdgeInsets.only(
+                                            top: 4,
+                                            bottom: 4,
+                                          ),
+                                          child: Text(
+                                            l10n.authTermsAgreeCheckbox,
+                                            style: TextStyle(
+                                              color: scheme.onSurface,
+                                              fontWeight: FontWeight.w500,
+                                            ),
                                           ),
                                         ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
                           ),
                           const SizedBox(height: 18),
-                          Semantics(
-                            label: 'qa.terms.continue_button',
-                            button: true,
+                          QaId(
+                            'qa.terms.continue_button',
                             child: GlassButton(
                               key: const ValueKey('qa.terms.continue_button'),
                               label: l10n.authTermsAcceptButton,

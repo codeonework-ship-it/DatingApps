@@ -41,6 +41,13 @@ void setCurrentAppLocale(Locale? locale) => _currentAppLocale = locale;
 /// helpers that have neither a [BuildContext] nor a [Ref].
 AppLocalizations currentAppL10n() => appL10nFor(_currentAppLocale);
 
+/// True when the app is currently shown in English (en-US or en-GB, chosen or
+/// resolved from the device, including unsupported device languages that
+/// fall back to English). Server-written text is English by policy, so only
+/// then may it be shown as is.
+bool currentAppLocaleIsEnglish() =>
+    currentAppL10n().localeName.split(RegExp('[_-]')).first == 'en';
+
 /// `AppLocalizations.of(context)` for shared widgets that may be pumped
 /// without localization delegates (e.g. in isolated widget tests): falls back
 /// to English instead of throwing.

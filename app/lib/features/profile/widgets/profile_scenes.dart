@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/i18n/app_l10n.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/cinematic_effects.dart';
 import '../../../core/theme/cinematic_motion.dart';
@@ -811,7 +812,7 @@ class ProfileTrustScene extends ConsumerWidget {
                               ),
                             ),
                             TextSpan(
-                              text: '\n— ${vouch.voucherName}',
+                              text: '\n— ${vouch.voucherLabel(l10n)}',
                               style: theme.textTheme.labelLarge?.copyWith(
                                 color: scheme.primary,
                                 fontWeight: FontWeight.w700,
@@ -831,19 +832,23 @@ class ProfileTrustScene extends ConsumerWidget {
   }
 }
 
-/// A headline for the hero from full profile details.
+/// A headline for the hero from full profile details. A profile without a
+/// name reads as "Member" in [l10n] (default: the app's current language).
 ProfileHeadline profileHeadlineFrom(
   ProfileDetails details, {
   required List<String> photos,
   String? logline,
   List<String> badges = const <String>[],
+  AppLocalizations? l10n,
 }) {
   final place = details.city?.trim().isNotEmpty == true
       ? details.city!.trim()
       : (details.regionState ?? details.country)?.trim();
   return ProfileHeadline(
     userId: details.userId,
-    name: details.name,
+    name: details.name.trim().isNotEmpty
+        ? details.name
+        : (l10n ?? currentAppL10n()).chatMember,
     age: details.age,
     profession: details.profession,
     place: place,

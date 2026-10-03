@@ -73,7 +73,7 @@ class Graduation {
     createdAt: _parseTime(json['created_at']),
     viewerRole: json['viewer_role']?.toString() ?? 'observer',
     otherUserId: json['other_user_id']?.toString() ?? '',
-    otherName: json['other_name']?.toString() ?? 'Your match',
+    otherName: json['other_name']?.toString() ?? '',
     nextAction: json['next_action']?.toString() ?? 'none',
     friendRecipients: (json['friend_recipients'] as num?)?.toInt() ?? 0,
     rewards: (json['rewards'] as List<dynamic>? ?? const <dynamic>[])

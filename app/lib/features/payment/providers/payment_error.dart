@@ -3,7 +3,7 @@ import 'package:dio/dio.dart';
 import '../../../core/network/api_error_message.dart';
 
 /// Which client-side fallback a payment error is. Screens translate these;
-/// a message the server sent is shown as sent and has no code.
+/// a message [apiErrorMessage] already resolved has no code.
 enum PaymentErrorCode {
   signInSubscriptions('Please sign in to manage subscriptions.'),
   signInWallet('Please sign in to manage your wallet.'),
@@ -17,7 +17,9 @@ enum PaymentErrorCode {
   changePlan('Unable to change plan.'),
   updateCard('Unable to update the card.'),
   sandboxFailed('Sandbox simulation failed.'),
-  unreachable('Cannot reach the local service. Check that the API is running.');
+  unreachable(
+    "Can't connect right now. Check your internet connection and try again.",
+  );
 
   const PaymentErrorCode(this.english);
 
@@ -29,26 +31,30 @@ enum PaymentErrorCode {
 /// [PaymentErrorCode] a screen can translate.
 typedef PaymentFailure = ({String message, PaymentErrorCode? code});
 
-/// The English message for [error] and its translatable code, if any.
+/// The message for [error] and its translatable code, if any.
+///
+/// [apiErrorMessage] decides what the member may see: a known server
+/// `error_code` (already translated), the server's own English text (English
+/// only), or the fallback. A fallback keeps its English text plus a code the
+/// screen translates; anything else is final text and has no code.
 PaymentFailure paymentFailure(Object error, PaymentErrorCode fallback) {
   final message = apiErrorMessage(error, fallback: fallback.english);
-  if (_hasServerMessage(error)) {
-    return (message: message, code: null);
-  }
   if (message == fallback.english) {
     return (message: message, code: fallback);
   }
-  return (message: message, code: PaymentErrorCode.unreachable);
+  if (_isUnreachable(error)) {
+    return (
+      message: PaymentErrorCode.unreachable.english,
+      code: PaymentErrorCode.unreachable,
+    );
+  }
+  return (message: message, code: null);
 }
 
-bool _hasServerMessage(Object error) {
-  if (error is! DioException) {
-    return false;
-  }
-  final data = error.response?.data;
-  if (data is! Map) {
-    return false;
-  }
-  final message = data['error'] ?? data['message'];
-  return message != null && message.toString().trim().isNotEmpty;
-}
+bool _isUnreachable(Object error) =>
+    error is DioException &&
+    error.response == null &&
+    (error.type == DioExceptionType.connectionError ||
+        error.type == DioExceptionType.connectionTimeout ||
+        error.type == DioExceptionType.sendTimeout ||
+        error.type == DioExceptionType.receiveTimeout);

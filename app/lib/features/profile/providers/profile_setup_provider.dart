@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../core/network/api_error_message.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/providers/api_client_provider.dart';
 import '../../../core/utils/logger.dart';
@@ -65,44 +66,60 @@ const _photoMaxAllowedMessage =
 
 /// User-facing message for a failed photo upload, delete or reorder.
 ///
-/// A message sent by the server is shown as-is; the built-in fallbacks are
-/// translated when [l10n] is given and stay English otherwise.
+/// With [l10n] (every screen passes it) the message is in the member's
+/// language: known limits and HTTP statuses map to translations, and server
+/// text goes through [apiErrorMessage] (English may read a plain server
+/// sentence; other languages and technical text get the translated fallback).
+/// Without [l10n] the English texts are returned (logs and legacy callers).
 String profileMediaErrorMessage(Object error, [AppLocalizations? l10n]) {
   if (error is StateError) {
     final message = error.message.toString();
-    if (l10n != null) {
-      if (message == _photoTooLargeMessage) {
-        return l10n.profileSetupPhotoTooLarge;
-      }
-      if (message == _photoMaxAllowedMessage) {
-        return l10n.profileSetupPhotoMaxAllowed(ValidationConstants.maxPhotos);
-      }
+    if (l10n == null) {
+      return message;
     }
-    return message;
+    if (message == _photoTooLargeMessage) {
+      return l10n.profileSetupPhotoTooLarge;
+    }
+    if (message == _photoMaxAllowedMessage) {
+      return l10n.profileSetupPhotoMaxAllowed(ValidationConstants.maxPhotos);
+    }
+    // Other internal states ("Not authenticated") are not member text.
+    return l10n.profileSetupPhotoUpdateFailed;
   }
   if (error is DioException) {
-    final data = error.response?.data;
-    final serverMessage = data is Map
-        ? (data['error'] ?? data['message'])?.toString().trim()
-        : data?.toString().trim();
-    if (serverMessage != null && serverMessage.isNotEmpty) {
-      return serverMessage;
+    if (l10n == null) {
+      final data = error.response?.data;
+      final serverMessage = data is Map
+          ? (data['error'] ?? data['message'])?.toString().trim()
+          : data?.toString().trim();
+      if (serverMessage != null && serverMessage.isNotEmpty) {
+        return serverMessage;
+      }
     }
-    switch (error.response?.statusCode) {
-      case 413:
-        return l10n?.profileSetupPhotoTooLarge ?? _photoTooLargeMessage;
-      case 415:
-        return l10n?.profileSetupPhotoUnsupportedType ??
-            'Use a JPEG, PNG, WebP, or HEIC photo.';
-      case 422:
-        return l10n?.profileSetupPhotoBadDimensions ??
-            'Photo dimensions must be between 300×300 and 4096×4096.';
-      case 409:
-        return l10n?.profileSetupPhotoQuotaReached ??
-            'Your profile photo quota has been reached.';
-      case 507:
-        return l10n?.profileSetupPhotoStorageFull ??
-            'Photo storage is temporarily full. Please try again later.';
+    final byStatus = switch (error.response?.statusCode) {
+      413 => l10n?.profileSetupPhotoTooLarge ?? _photoTooLargeMessage,
+      415 =>
+        l10n?.profileSetupPhotoUnsupportedType ??
+            'Use a JPEG, PNG, WebP, or HEIC photo.',
+      422 =>
+        l10n?.profileSetupPhotoBadDimensions ??
+            'Photo dimensions must be between 300×300 and 4096×4096.',
+      409 =>
+        l10n?.profileSetupPhotoQuotaReached ??
+            'Your profile photo quota has been reached.',
+      507 =>
+        l10n?.profileSetupPhotoStorageFull ??
+            'Photo storage is temporarily full. Please try again later.',
+      _ => null,
+    };
+    if (l10n != null) {
+      return apiErrorMessage(
+        error,
+        fallback: byStatus ?? l10n.profileSetupPhotoUpdateFailed,
+      );
+    }
+    if (byStatus != null) {
+      return byStatus;
     }
   }
   return l10n?.profileSetupPhotoUpdateFailed ??

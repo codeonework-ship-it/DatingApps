@@ -56,9 +56,12 @@ void main() {
     );
   });
 
-  test('time ago keeps English without l10n and translates with it', () {
+  test('time ago speaks the member\'s language', () {
     final threeHoursAgo = DateTime.now().subtract(const Duration(hours: 3));
-    expect(threeHoursAgo.getTimeAgo(), '3 hours ago');
+    expect(
+      threeHoursAgo.getTimeAgo(appL10nFor(const Locale('en'))),
+      '3 hours ago',
+    );
     expect(
       threeHoursAgo.getTimeAgo(appL10nFor(const Locale('de'))),
       'vor 3 Stunden',

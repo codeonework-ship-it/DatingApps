@@ -229,7 +229,7 @@ void main() {
 
         world.api.offline('POST /city-pilot/membership');
         await _tapKey(tester, 'qa.city_pilot.join');
-        expect(find.text(_en.networkCannotReachService), findsOneWidget);
+        expect(find.text(_en.networkOfflineTryAgain), findsOneWidget);
         expect(world.api.sent('POST', '/city-pilot/membership'), hasLength(2));
 
         // A slow save disables Join; a second tap sends nothing.
@@ -248,7 +248,7 @@ void main() {
         await tester.tap(_key('qa.city_pilot.join'), warnIfMissed: false);
         await _settle(tester);
         expect(world.api.sent('POST', '/city-pilot/membership'), hasLength(3));
-        expect(find.text(_en.networkCannotReachService), findsNothing);
+        expect(find.text(_en.networkOfflineTryAgain), findsNothing);
         expect(
           find.text(_en.cityPilotPanelTitleJoined('Pune')),
           findsOneWidget,
@@ -434,7 +434,7 @@ void main() {
       world.api.offline('POST /city-pilot/events/*/registration');
       await _tapKey(tester, 'qa.city_pilot.reserve.ev-open');
       await _tapKey(tester, 'qa.city_pilot.booking_accept');
-      expect(find.text(_en.networkCannotReachService), findsOneWidget);
+      expect(find.text(_en.networkOfflineTryAgain), findsOneWidget);
       expect(_key('qa.city_pilot.reserve.ev-open'), findsOneWidget);
     });
 

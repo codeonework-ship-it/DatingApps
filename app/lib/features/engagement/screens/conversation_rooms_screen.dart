@@ -284,7 +284,7 @@ class _CategoryChips extends StatelessWidget {
           selected: selected.isEmpty,
           onSelected: (_) => onCategory(''),
         ),
-        for (final key in roomCategories.keys)
+        for (final key in roomCategories)
           ChoiceChip(
             key: ValueKey('rooms.category.$key'),
             label: Text(roomCategoryLabel(l, key)),
@@ -572,7 +572,7 @@ class _StartRoomSheetState extends ConsumerState<_StartRoomSheet> {
                 spacing: AppLayout.space2,
                 runSpacing: AppLayout.space2,
                 children: [
-                  for (final key in roomCategories.keys)
+                  for (final key in roomCategories)
                     ChoiceChip(
                       key: ValueKey('qa.rooms.start.category.$key'),
                       label: Text(roomCategoryLabel(l, key)),

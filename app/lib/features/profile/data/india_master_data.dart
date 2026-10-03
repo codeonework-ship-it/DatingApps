@@ -203,6 +203,12 @@ enum ProfileOptionList {
   travelStyle,
   politicalComfort,
   intent,
+
+  /// Country names ('India').
+  country,
+
+  /// Language names: mother tongues and spoken languages ('Tamil').
+  language,
 }
 
 /// Display label for a stored profile option value (the English word the
@@ -216,65 +222,113 @@ String profileOptionLabel(
   String value, {
   ProfileOptionList list = ProfileOptionList.general,
 }) {
+  // Master data is matched ignoring case and spacing: the server's fallback
+  // lists write 'Early Bird' / 'Non-Vegetarian' where the tables say
+  // 'Early bird' / 'Non-vegetarian'.
+  final key = value.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
   final own = switch (list) {
-    ProfileOptionList.workout => switch (value) {
+    ProfileOptionList.workout => switch (key) {
       '1-2 times a week' => l10n.profileMasterWorkout1to2,
       '3-4 times a week' => l10n.profileMasterWorkout3to4,
       '5+ times a week' => l10n.profileMasterWorkout5Plus,
-      'Daily' => l10n.profileMasterWorkoutDaily,
+      'daily' => l10n.profileMasterWorkoutDaily,
+      'sometimes' => l10n.profileMasterWorkoutSometimes,
+      'weekly' => l10n.profileMasterWorkoutWeekly,
       _ => null,
     },
-    ProfileOptionList.dietPreference => switch (value) {
-      'No preference' => l10n.profileMasterDietNoPreference,
-      'Vegetarian' => l10n.profileMasterDietVegetarian,
-      'Eggetarian' => l10n.profileMasterDietEggetarian,
-      'Non-vegetarian' => l10n.profileMasterDietNonVegetarian,
-      'Vegan' => l10n.profileMasterDietVegan,
-      'Jain' => l10n.profileMasterDietJain,
+    ProfileOptionList.dietPreference => switch (key) {
+      'no preference' => l10n.profileMasterDietNoPreference,
+      'vegetarian' => l10n.profileMasterDietVegetarian,
+      'eggetarian' => l10n.profileMasterDietEggetarian,
+      'non-vegetarian' => l10n.profileMasterDietNonVegetarian,
+      'vegan' => l10n.profileMasterDietVegan,
+      'jain' => l10n.profileMasterDietJain,
       _ => null,
     },
-    ProfileOptionList.dietType => switch (value) {
-      'Balanced' => l10n.profileMasterDietTypeBalanced,
-      'High Protein' => l10n.profileMasterDietTypeHighProtein,
-      'Low Carb' => l10n.profileMasterDietTypeLowCarb,
-      'Keto' => l10n.profileMasterDietTypeKeto,
-      'Mediterranean' => l10n.profileMasterDietTypeMediterranean,
-      'Intermittent Fasting' => l10n.profileMasterDietTypeIntermittentFasting,
+    ProfileOptionList.dietType => switch (key) {
+      'balanced' => l10n.profileMasterDietTypeBalanced,
+      'high protein' => l10n.profileMasterDietTypeHighProtein,
+      'low carb' => l10n.profileMasterDietTypeLowCarb,
+      'keto' => l10n.profileMasterDietTypeKeto,
+      'mediterranean' => l10n.profileMasterDietTypeMediterranean,
+      'intermittent fasting' => l10n.profileMasterDietTypeIntermittentFasting,
       _ => null,
     },
-    ProfileOptionList.sleepSchedule => switch (value) {
-      'Early bird' => l10n.profileMasterSleepEarlyBird,
-      'Night owl' => l10n.profileMasterSleepNightOwl,
-      'Flexible' => l10n.profileMasterSleepFlexible,
-      'Shift based' => l10n.profileMasterSleepShiftBased,
+    ProfileOptionList.sleepSchedule => switch (key) {
+      'early bird' => l10n.profileMasterSleepEarlyBird,
+      'night owl' => l10n.profileMasterSleepNightOwl,
+      'flexible' => l10n.profileMasterSleepFlexible,
+      'shift based' => l10n.profileMasterSleepShiftBased,
       _ => null,
     },
-    ProfileOptionList.travelStyle => switch (value) {
-      'Homebody' => l10n.profileMasterTravelHomebody,
-      'Occasional traveler' => l10n.profileMasterTravelOccasional,
-      'Frequent traveler' => l10n.profileMasterTravelFrequent,
-      'Adventure seeker' => l10n.profileMasterTravelAdventure,
-      'Luxury traveler' => l10n.profileMasterTravelLuxury,
-      'Backpacker' => l10n.profileMasterTravelBackpacker,
+    ProfileOptionList.travelStyle => switch (key) {
+      'homebody' => l10n.profileMasterTravelHomebody,
+      'occasional traveler' => l10n.profileMasterTravelOccasional,
+      'frequent traveler' => l10n.profileMasterTravelFrequent,
+      'adventure seeker' => l10n.profileMasterTravelAdventure,
+      'luxury traveler' => l10n.profileMasterTravelLuxury,
+      'backpacker' => l10n.profileMasterTravelBackpacker,
+      'road trips' => l10n.profileMasterTravelRoadTrips,
+      'backpacking' => l10n.profileMasterTravelBackpacking,
+      'luxury' => l10n.profileMasterTravelLuxuryShort,
+      'staycations' => l10n.profileMasterTravelStaycations,
       _ => null,
     },
-    ProfileOptionList.politicalComfort => switch (value) {
-      'Similar views only' => l10n.profileMasterPoliticsSimilar,
-      'Open to differences' => l10n.profileMasterPoliticsOpen,
-      'Prefer not to discuss' => l10n.profileMasterPoliticsNotDiscuss,
-      'No strong preference' => l10n.profileMasterPoliticsNoStrong,
+    ProfileOptionList.politicalComfort => switch (key) {
+      'similar views only' => l10n.profileMasterPoliticsSimilar,
+      'open to differences' => l10n.profileMasterPoliticsOpen,
+      'prefer not to discuss' => l10n.profileMasterPoliticsNotDiscuss,
+      'no strong preference' => l10n.profileMasterPoliticsNoStrong,
+      'similar' => l10n.profileMasterPoliticsSimilarShort,
+      'moderate' => l10n.profileMasterPoliticsModerate,
+      'any' => l10n.profileMasterPoliticsAny,
       _ => null,
     },
-    ProfileOptionList.intent => switch (value) {
+    ProfileOptionList.intent => switch (key) {
       'long_term' => l10n.profileMasterIntentLongTerm,
       'marriage' => l10n.profileMasterIntentMarriage,
       'new_friends' => l10n.profileMasterIntentNewFriends,
       _ => null,
     },
-    ProfileOptionList.general => switch (value) {
-      'Parsi' => l10n.profileMasterReligionParsi,
-      'Bahai' => l10n.profileMasterReligionBahai,
-      'Tribal / Indigenous' => l10n.profileMasterReligionTribal,
+    ProfileOptionList.country => switch (key) {
+      'india' => l10n.profileCountryIndia,
+      'united kingdom' => l10n.profileCountryUnitedKingdom,
+      'ireland' => l10n.profileCountryIreland,
+      'germany' => l10n.profileCountryGermany,
+      'austria' => l10n.profileCountryAustria,
+      _ => null,
+    },
+    ProfileOptionList.language => switch (key) {
+      'assamese' => l10n.profileLanguageAssamese,
+      'bengali' => l10n.profileLanguageBengali,
+      'bodo' => l10n.profileLanguageBodo,
+      'dogri' => l10n.profileLanguageDogri,
+      'english' => l10n.profileLanguageEnglish,
+      'gujarati' => l10n.profileLanguageGujarati,
+      'hindi' => l10n.profileLanguageHindi,
+      'kannada' => l10n.profileLanguageKannada,
+      'kashmiri' => l10n.profileLanguageKashmiri,
+      'konkani' => l10n.profileLanguageKonkani,
+      'maithili' => l10n.profileLanguageMaithili,
+      'malayalam' => l10n.profileLanguageMalayalam,
+      'manipuri' => l10n.profileLanguageManipuri,
+      'marathi' => l10n.profileLanguageMarathi,
+      'nepali' => l10n.profileLanguageNepali,
+      'odia' => l10n.profileLanguageOdia,
+      'punjabi' => l10n.profileLanguagePunjabi,
+      'sanskrit' => l10n.profileLanguageSanskrit,
+      'santali' => l10n.profileLanguageSantali,
+      'sindhi' => l10n.profileLanguageSindhi,
+      'tamil' => l10n.profileLanguageTamil,
+      'telugu' => l10n.profileLanguageTelugu,
+      'urdu' => l10n.profileLanguageUrdu,
+      'oriya' => l10n.profileLanguageOdia,
+      _ => null,
+    },
+    ProfileOptionList.general => switch (key) {
+      'parsi' => l10n.profileMasterReligionParsi,
+      'bahai' => l10n.profileMasterReligionBahai,
+      'tribal / indigenous' => l10n.profileMasterReligionTribal,
       _ => null,
     },
   };

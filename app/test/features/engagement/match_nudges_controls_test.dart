@@ -77,7 +77,7 @@ void main() {
     (
       'offline',
       qaOffline,
-      'Cannot reach the local service. Check that the API is running.',
+      "Can't connect right now. Check your internet connection and try again.",
     ),
     (
       'a reply without the nudge',

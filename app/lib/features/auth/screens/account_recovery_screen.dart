@@ -5,7 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/providers/api_client_provider.dart';
+import '../../../core/utils/logger.dart';
+import '../../../core/widgets/qa_id.dart';
+import '../../common/widgets/language_picker.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../support/screens/support_contact_form_screen.dart';
 
 /// "Can't sign in?" (PEN-06 / AUTH-009).
 ///
@@ -28,6 +32,7 @@ class AccountRecoveryScreen extends ConsumerStatefulWidget {
 enum _RecoveryPath { haveCode, lostCode }
 
 class _AccountRecoveryScreenState extends ConsumerState<AccountRecoveryScreen> {
+  final _log = AppLogger();
   late final TextEditingController _username = TextEditingController(
     text: widget.initialUsername,
   );
@@ -91,15 +96,16 @@ class _AccountRecoveryScreenState extends ConsumerState<AccountRecoveryScreen> {
         );
         _done = l10n.authRecoveryResetDone;
       } else {
-        final response = await dio.post<Map<String, dynamic>>(
+        await dio.post<Map<String, dynamic>>(
           '/auth/recovery/assistance',
           data: {'username': username, 'message': _message.text.trim()},
         );
-        _done =
-            response.data?['message']?.toString() ??
-            l10n.authRecoveryAssistanceDone;
+        // The server's acknowledgement is English by policy; the member
+        // reads the same promise in their own language.
+        _done = l10n.authRecoveryAssistanceDone;
       }
-    } on DioException catch (error) {
+    } on DioException catch (error, stackTrace) {
+      _log.warning('Account recovery request failed', error, stackTrace);
       final data = error.response?.data;
       // Only a rejection (4xx) means the code is wrong. A server outage also
       // carries an error body; calling that an invalid code sends the member
@@ -110,6 +116,12 @@ class _AccountRecoveryScreenState extends ConsumerState<AccountRecoveryScreen> {
           ? (rejected && data is Map && data['error'] != null
                 ? l10n.authRecoveryInvalidCode
                 : l10n.authRecoveryOffline)
+          : l10n.authRecoverySendFailed;
+    } on Object catch (error, stackTrace) {
+      // Never show raw exception text; the details stay in the log.
+      _log.error('Account recovery request failed', error, stackTrace);
+      _error = _path == _RecoveryPath.haveCode
+          ? l10n.authRecoveryOffline
           : l10n.authRecoverySendFailed;
     } finally {
       if (mounted) {
@@ -124,7 +136,10 @@ class _AccountRecoveryScreenState extends ConsumerState<AccountRecoveryScreen> {
     final scheme = theme.colorScheme;
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.authCantSignIn)),
+      appBar: AppBar(
+        title: Text(l10n.authCantSignIn),
+        actions: const [LanguagePickerButton(), SizedBox(width: 8)],
+      ),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -139,8 +154,8 @@ class _AccountRecoveryScreenState extends ConsumerState<AccountRecoveryScreen> {
                     color: scheme.primary,
                   ),
                   const SizedBox(height: 16),
-                  Semantics(
-                    label: 'qa.recovery.done',
+                  QaId(
+                    'qa.recovery.done',
                     child: Text(_done!, style: theme.textTheme.bodyLarge),
                   ),
                   const SizedBox(height: 24),
@@ -253,6 +268,19 @@ class _AccountRecoveryScreenState extends ConsumerState<AccountRecoveryScreen> {
                           ? l10n.authRecoveryResetPassword
                           : l10n.authRecoveryAskForHelp,
                     ),
+                  ),
+                  const SizedBox(height: 12),
+                  // Not about getting back in (a sign-up problem, a bug): a
+                  // support request answered by email, no account needed.
+                  TextButton.icon(
+                    key: const ValueKey('qa.recovery.contact_support'),
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const SupportContactFormScreen(),
+                      ),
+                    ),
+                    icon: const Icon(Icons.support_agent_rounded),
+                    label: Text(l10n.supportSignedOutHelpLink),
                   ),
                 ],
               ],

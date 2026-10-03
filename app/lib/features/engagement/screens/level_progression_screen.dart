@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
@@ -92,7 +93,10 @@ class LevelProgressionScreen extends ConsumerWidget {
                                   showRewardBurst(
                                     context,
                                     RewardBurst.rewardClaimed(
-                                      reward.name,
+                                      _rewardName(
+                                        engagementL10n(context),
+                                        reward,
+                                      ),
                                       description: reward.description,
                                     ),
                                   ),
@@ -171,18 +175,19 @@ class _LevelHero extends StatelessWidget {
                       l.engagementLevelNumber(view.currentLevel),
                       style: TextStyle(color: scheme.primary),
                     ),
-                    Text(
-                      view.levelName,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: scheme.onSurface,
-                        fontWeight: FontWeight.w800,
+                    if (view.levelName.trim().isNotEmpty)
+                      Text(
+                        view.levelName,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: scheme.onSurface,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ),
               Text(
-                l.engagementLevelXp('${view.totalXp}'),
+                l.engagementLevelXp(_count(l, view.totalXp)),
                 style: TextStyle(
                   color: scheme.onSurface,
                   fontWeight: FontWeight.w800,
@@ -206,7 +211,9 @@ class _LevelHero extends StatelessWidget {
                 ? l.engagementLevelHighest
                 : l.engagementLevelProgress(
                     view.currentLevelXp,
-                    view.progressPercent.toStringAsFixed(0),
+                    NumberFormat.decimalPattern(
+                      l.localeName,
+                    ).format(view.progressPercent.round()),
                   ),
             style: TextStyle(color: scheme.onSurfaceVariant),
           ),
@@ -298,7 +305,11 @@ class _LevelRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    definition.name,
+                    definition.name.trim().isEmpty
+                        ? engagementL10n(
+                            context,
+                          ).engagementLevelNumber(definition.level)
+                        : definition.name,
                     style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
                   Text(
@@ -361,7 +372,7 @@ class _RewardCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    reward.name,
+                    _rewardName(l, reward),
                     style: const TextStyle(fontWeight: FontWeight.w800),
                   ),
                 ),
@@ -434,12 +445,12 @@ class _XPRow extends StatelessWidget {
         entry.multiplier == 1
             ? l.engagementLevelStandardAward
             : l.engagementLevelQualityWeighting(
-                entry.multiplier.toStringAsFixed(2),
+                NumberFormat('0.00', l.localeName).format(entry.multiplier),
               ),
       ),
       trailing: Text(
         l.engagementLevelXp(
-          '${entry.awardedXp >= 0 ? '+' : ''}${entry.awardedXp}',
+          '${entry.awardedXp >= 0 ? '+' : ''}${_count(l, entry.awardedXp)}',
         ),
         style: const TextStyle(fontWeight: FontWeight.w800),
       ),
@@ -499,3 +510,13 @@ String _sourceLabel(AppLocalizations l, String source) => switch (source) {
         )
         .join(' '),
 };
+
+/// [value] with the member's digit grouping ("1,250" / "1.250").
+String _count(AppLocalizations l, int value) =>
+    NumberFormat.decimalPattern(l.localeName).format(value);
+
+/// The reward's server name, or "Level 3 reward" in the member's language.
+String _rewardName(AppLocalizations l, LevelReward reward) =>
+    reward.name.trim().isEmpty
+    ? l.engagementLevelRewardFallback(reward.level)
+    : reward.name;

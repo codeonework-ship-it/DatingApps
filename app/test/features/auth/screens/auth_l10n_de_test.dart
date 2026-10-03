@@ -123,7 +123,7 @@ void main() {
     expect(find.text('Gib deinen Wiederherstellungscode ein.'), findsOneWidget);
   });
 
-  test('provider messages map to each language; server text passes', () {
+  test('provider messages map to each language; unknown text is never raw', () {
     final de = lookupAppLocalizations(const Locale('de'));
     final en = lookupAppLocalizations(const Locale('en'));
     expect(
@@ -134,7 +134,10 @@ void main() {
       localizedAuthMessage(en, kAuthInvalidCredentialsMessage),
       kAuthInvalidCredentialsMessage,
     );
-    expect(localizedAuthMessage(de, 'Server said no'), 'Server said no');
+    expect(
+      localizedAuthMessage(de, 'Server said no'),
+      de.commonSomethingWentWrongTryAgain,
+    );
   });
 
   testWidgets('the English session notice is unchanged', (tester) async {

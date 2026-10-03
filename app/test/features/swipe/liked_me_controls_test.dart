@@ -121,7 +121,7 @@ void main() {
     expect(_card('cara'), findsOneWidget);
     expect(
       qaSnackText(tester),
-      'Cannot reach the local service. Check that the API is running.',
+      "Can't connect right now. Check your internet connection and try again.",
     );
   });
 
@@ -155,7 +155,7 @@ void main() {
     expect(find.text('Could not load your likes'), findsOneWidget);
     expect(
       find.text(
-        'Cannot reach the local service. Check that the API is running.',
+        "Can't connect right now. Check your internet connection and try again.",
       ),
       findsOneWidget,
     );

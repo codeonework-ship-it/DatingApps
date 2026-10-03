@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/qa_control.dart';
 import '../../../l10n/app_localizations.dart';
 import '../providers/verification_provider.dart';
 import 'verification_status_screen.dart';
@@ -66,9 +67,8 @@ class _VerificationSelfieScreenState
                   Row(
                     children: [
                       Expanded(
-                        child: Semantics(
-                          label: 'qa.verification.selfie.gallery_button',
-                          button: true,
+                        child: QaControl(
+                          id: 'qa.verification.selfie.gallery_button',
                           child: OutlinedButton.icon(
                             key: const ValueKey(
                               'qa.verification.selfie.gallery_button',
@@ -117,9 +117,8 @@ class _VerificationSelfieScreenState
                     ),
                     const SizedBox(height: 12),
                   ],
-                  Semantics(
-                    label: 'qa.verification.selfie.submit_button',
-                    button: true,
+                  QaControl(
+                    id: 'qa.verification.selfie.submit_button',
                     child: ElevatedButton(
                       key: const ValueKey(
                         'qa.verification.selfie.submit_button',

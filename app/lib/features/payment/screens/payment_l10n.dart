@@ -65,5 +65,5 @@ String paymentErrorText(
   PaymentErrorCode.changePlan => l10n.paymentErrorChangePlan,
   PaymentErrorCode.updateCard => l10n.paymentErrorUpdateCard,
   PaymentErrorCode.sandboxFailed => l10n.paymentErrorSandboxFailed,
-  PaymentErrorCode.unreachable => l10n.paymentErrorUnreachable,
+  PaymentErrorCode.unreachable => l10n.networkOfflineTryAgain,
 };

@@ -2150,12 +2150,12 @@
   "LanguageSettingsScreen": [
    {
     "path": [
-     "ListTile|qa.settings.language.device|language_settings_screen.dart"
+     "ListTile|qa.settings.language.device|language_picker.dart"
     ],
     "label": "Use device language · Follows your phone's language setting",
     "kind": "ListTile",
     "key": "qa.settings.language.device",
-    "source": "lib/features/common/screens/language_settings_screen.dart:112",
+    "source": "lib/features/common/widgets/language_picker.dart:135",
     "case": "common.language_settings.use_device_language.action",
     "effects": [
      "api: GET /settings/layout-member",
@@ -2164,152 +2164,152 @@
    },
    {
     "path": [
-     "ListTile|qa.settings.language.en-US|language_settings_screen.dart"
+     "ListTile|qa.settings.language.en-US|language_picker.dart"
     ],
     "label": "English (US)",
     "kind": "ListTile",
     "key": "qa.settings.language.en-US",
-    "source": "lib/features/common/screens/language_settings_screen.dart:112",
+    "source": "lib/features/common/widgets/language_picker.dart:135",
     "case": null,
     "effects": [
      "api: GET /settings/layout-member",
      "api: PATCH /settings/layout-member {\"locale\":\"en-US\"}",
-     "ui: state \"qa.settings.language.device\" = \"\" CheckedState.none selected:Tristate.isTrue toggle… | state \"qa.settings.language.en-US\" = \"\" CheckedState.none selected:Tristate.isFalse toggle…"
+     "ui: state \"\" = \"\" CheckedState.none selected:Tristate.isTrue toggled:Tristate.none expanded:Tr… | state \"\" = \"\" CheckedState.none selected:Tristate.isFalse toggled:Tristate.none expanded:T…"
     ]
    },
    {
     "path": [
-     "ListTile|qa.settings.language.en-GB|language_settings_screen.dart"
+     "ListTile|qa.settings.language.en-GB|language_picker.dart"
     ],
     "label": "English (UK)",
     "kind": "ListTile",
     "key": "qa.settings.language.en-GB",
-    "source": "lib/features/common/screens/language_settings_screen.dart:112",
+    "source": "lib/features/common/widgets/language_picker.dart:135",
     "case": null,
     "effects": [
      "api: GET /settings/layout-member",
      "api: PATCH /settings/layout-member {\"locale\":\"en-GB\"}",
-     "ui: state \"qa.settings.language.device\" = \"\" CheckedState.none selected:Tristate.isTrue toggle… | state \"qa.settings.language.en-GB\" = \"\" CheckedState.none selected:Tristate.isFalse toggle…"
+     "ui: state \"\" = \"\" CheckedState.none selected:Tristate.isTrue toggled:Tristate.none expanded:Tr… | state \"\" = \"\" CheckedState.none selected:Tristate.isFalse toggled:Tristate.none expanded:T…"
     ]
    },
    {
     "path": [
-     "ListTile|qa.settings.language.de|language_settings_screen.dart"
+     "ListTile|qa.settings.language.de|language_picker.dart"
     ],
     "label": "Deutsch",
     "kind": "ListTile",
     "key": "qa.settings.language.de",
-    "source": "lib/features/common/screens/language_settings_screen.dart:112",
+    "source": "lib/features/common/widgets/language_picker.dart:135",
     "case": null,
     "effects": [
      "api: GET /settings/layout-member",
      "api: PATCH /settings/layout-member {\"locale\":\"de\"}",
-     "ui: state \"qa.settings.language.device\" = \"\" CheckedState.none selected:Tristate.isTrue toggle… | state \"qa.settings.language.de\" = \"\" CheckedState.none selected:Tristate.isFalse toggled:T…"
+     "ui: state \"\" = \"\" CheckedState.none selected:Tristate.isTrue toggled:Tristate.none expanded:Tr… | state \"\" = \"\" CheckedState.none selected:Tristate.isFalse toggled:Tristate.none expanded:T…"
     ]
    },
    {
     "path": [
-     "ListTile|qa.settings.language.fr|language_settings_screen.dart"
+     "ListTile|qa.settings.language.fr|language_picker.dart"
     ],
     "label": "Français",
     "kind": "ListTile",
     "key": "qa.settings.language.fr",
-    "source": "lib/features/common/screens/language_settings_screen.dart:112",
+    "source": "lib/features/common/widgets/language_picker.dart:135",
     "case": null,
     "effects": [
      "api: GET /settings/layout-member",
      "api: PATCH /settings/layout-member {\"locale\":\"fr\"}",
-     "ui: state \"qa.settings.language.device\" = \"\" CheckedState.none selected:Tristate.isTrue toggle… | state \"qa.settings.language.fr\" = \"\" CheckedState.none selected:Tristate.isFalse toggled:T…"
+     "ui: state \"\" = \"\" CheckedState.none selected:Tristate.isTrue toggled:Tristate.none expanded:Tr… | state \"\" = \"\" CheckedState.none selected:Tristate.isFalse toggled:Tristate.none expanded:T…"
     ]
    },
    {
     "path": [
-     "ListTile|qa.settings.language.ru|language_settings_screen.dart"
+     "ListTile|qa.settings.language.ru|language_picker.dart"
     ],
     "label": "Русский",
     "kind": "ListTile",
     "key": "qa.settings.language.ru",
-    "source": "lib/features/common/screens/language_settings_screen.dart:112",
+    "source": "lib/features/common/widgets/language_picker.dart:135",
     "case": null,
     "effects": [
      "api: GET /settings/layout-member",
      "api: PATCH /settings/layout-member {\"locale\":\"ru\"}",
-     "ui: state \"qa.settings.language.device\" = \"\" CheckedState.none selected:Tristate.isTrue toggle… | state \"qa.settings.language.ru\" = \"\" CheckedState.none selected:Tristate.isFalse toggled:T…"
+     "ui: state \"\" = \"\" CheckedState.none selected:Tristate.isTrue toggled:Tristate.none expanded:Tr… | state \"\" = \"\" CheckedState.none selected:Tristate.isFalse toggled:Tristate.none expanded:T…"
     ]
    },
    {
     "path": [
-     "ListTile|qa.settings.language.es|language_settings_screen.dart"
+     "ListTile|qa.settings.language.es|language_picker.dart"
     ],
     "label": "Español",
     "kind": "ListTile",
     "key": "qa.settings.language.es",
-    "source": "lib/features/common/screens/language_settings_screen.dart:112",
+    "source": "lib/features/common/widgets/language_picker.dart:135",
     "case": null,
     "effects": [
      "api: GET /settings/layout-member",
      "api: PATCH /settings/layout-member {\"locale\":\"es\"}",
-     "ui: state \"qa.settings.language.device\" = \"\" CheckedState.none selected:Tristate.isTrue toggle… | state \"qa.settings.language.es\" = \"\" CheckedState.none selected:Tristate.isFalse toggled:T…"
+     "ui: state \"\" = \"\" CheckedState.none selected:Tristate.isTrue toggled:Tristate.none expanded:Tr… | state \"\" = \"\" CheckedState.none selected:Tristate.isFalse toggled:Tristate.none expanded:T…"
     ]
    },
    {
     "path": [
-     "ListTile|qa.settings.language.it|language_settings_screen.dart"
+     "ListTile|qa.settings.language.it|language_picker.dart"
     ],
     "label": "Italiano",
     "kind": "ListTile",
     "key": "qa.settings.language.it",
-    "source": "lib/features/common/screens/language_settings_screen.dart:112",
+    "source": "lib/features/common/widgets/language_picker.dart:135",
     "case": null,
     "effects": [
      "api: GET /settings/layout-member",
      "api: PATCH /settings/layout-member {\"locale\":\"it\"}",
-     "ui: state \"qa.settings.language.device\" = \"\" CheckedState.none selected:Tristate.isTrue toggle… | state \"qa.settings.language.it\" = \"\" CheckedState.none selected:Tristate.isFalse toggled:T…"
+     "ui: state \"\" = \"\" CheckedState.none selected:Tristate.isTrue toggled:Tristate.none expanded:Tr… | state \"\" = \"\" CheckedState.none selected:Tristate.isFalse toggled:Tristate.none expanded:T…"
     ]
    },
    {
     "path": [
-     "ListTile|qa.settings.language.pt|language_settings_screen.dart"
+     "ListTile|qa.settings.language.pt|language_picker.dart"
     ],
     "label": "Português",
     "kind": "ListTile",
     "key": "qa.settings.language.pt",
-    "source": "lib/features/common/screens/language_settings_screen.dart:112",
+    "source": "lib/features/common/widgets/language_picker.dart:135",
     "case": null,
     "effects": [
      "api: GET /settings/layout-member",
      "api: PATCH /settings/layout-member {\"locale\":\"pt\"}",
-     "ui: state \"qa.settings.language.device\" = \"\" CheckedState.none selected:Tristate.isTrue toggle… | state \"qa.settings.language.pt\" = \"\" CheckedState.none selected:Tristate.isFalse toggled:T…"
+     "ui: state \"\" = \"\" CheckedState.none selected:Tristate.isTrue toggled:Tristate.none expanded:Tr… | state \"\" = \"\" CheckedState.none selected:Tristate.isFalse toggled:Tristate.none expanded:T…"
     ]
    },
    {
     "path": [
-     "ListTile|qa.settings.language.nl|language_settings_screen.dart"
+     "ListTile|qa.settings.language.nl|language_picker.dart"
     ],
     "label": "Nederlands",
     "kind": "ListTile",
     "key": "qa.settings.language.nl",
-    "source": "lib/features/common/screens/language_settings_screen.dart:112",
+    "source": "lib/features/common/widgets/language_picker.dart:135",
     "case": null,
     "effects": [
      "api: GET /settings/layout-member",
      "api: PATCH /settings/layout-member {\"locale\":\"nl\"}",
-     "ui: state \"qa.settings.language.device\" = \"\" CheckedState.none selected:Tristate.isTrue toggle… | state \"qa.settings.language.nl\" = \"\" CheckedState.none selected:Tristate.isFalse toggled:T…"
+     "ui: state \"\" = \"\" CheckedState.none selected:Tristate.isTrue toggled:Tristate.none expanded:Tr… | state \"\" = \"\" CheckedState.none selected:Tristate.isFalse toggled:Tristate.none expanded:T…"
     ]
    },
    {
     "path": [
-     "ListTile|qa.settings.language.pl|language_settings_screen.dart"
+     "ListTile|qa.settings.language.pl|language_picker.dart"
     ],
     "label": "Polski",
     "kind": "ListTile",
     "key": "qa.settings.language.pl",
-    "source": "lib/features/common/screens/language_settings_screen.dart:112",
+    "source": "lib/features/common/widgets/language_picker.dart:135",
     "case": null,
     "effects": [
      "api: GET /settings/layout-member",
      "api: PATCH /settings/layout-member {\"locale\":\"pl\"}",
-     "ui: state \"qa.settings.language.device\" = \"\" CheckedState.none selected:Tristate.isTrue toggle… | state \"qa.settings.language.pl\" = \"\" CheckedState.none selected:Tristate.isFalse toggled:T…"
+     "ui: state \"\" = \"\" CheckedState.none selected:Tristate.isTrue toggled:Tristate.none expanded:Tr… | state \"\" = \"\" CheckedState.none selected:Tristate.isFalse toggled:Tristate.none expanded:T…"
     ]
    }
   ],
@@ -3897,12 +3897,41 @@
   "SettingsScreen": [
    {
     "path": [
+     "InkWell|Notification inbox · You are all caught up|settings_screen.dart"
+    ],
+    "label": "Notification inbox · You are all caught up",
+    "kind": "InkWell",
+    "key": null,
+    "source": "lib/features/common/screens/settings_screen.dart:794",
+    "case": null,
+    "effects": [
+     "push: MaterialPageRoute<void>",
+     "ui: +model Color(alpha: 1.0000, red: 1.0000, green: 0.9686, blue: 0.9529, colorSpace: ColorSpa… | +text \"Notifications\" Color(alpha: 1.0000, red: 0.1216, green: 0.0627, blue: 0.1412, color… | -model Color(alpha: 0.0000, red: 0.0000, green: 0.0000, blue: 0.0000, colorSpace: ColorSpa… (+146 more)"
+    ]
+   },
+   {
+    "path": [
+     "InkWell|Help & Support · FAQ and contact support|support_entry_points.dart"
+    ],
+    "label": "Help & Support · FAQ and contact support",
+    "kind": "InkWell",
+    "key": null,
+    "source": "lib/features/support/widgets/support_entry_points.dart:40",
+    "case": "common.settings.help_support.action",
+    "effects": [
+     "push: MaterialPageRoute<void>",
+     "api: GET /support/tickets",
+     "ui: +text \"HELP & SUPPORT\" Color(alpha: 1.0000, red: 0.7216, green: 0.0784, blue: 0.2471, colo… | +text \"How can we help?\" Color(alpha: 1.0000, red: 0.1216, green: 0.0627, blue: 0.1412, co… | +text \"Find a quick answer, or ask our team. Every request and reply stays in one private … (+162 more)"
+    ]
+   },
+   {
+    "path": [
      "InkWell|Sign out · End your session on this device|settings_screen.dart"
     ],
     "label": "Sign out · End your session on this device",
     "kind": "InkWell",
     "key": null,
-    "source": "lib/features/common/screens/settings_screen.dart:767",
+    "source": "lib/features/common/screens/settings_screen.dart:794",
     "case": null,
     "effects": [
      "push: DialogRoute<bool>",
@@ -3917,7 +3946,7 @@
     "label": "Cancel",
     "kind": "TextButton",
     "key": "qa.settings.logout.cancel",
-    "source": "lib/features/common/screens/settings_screen.dart:553",
+    "source": "lib/features/common/screens/settings_screen.dart:577",
     "case": null,
     "opener": "Sign out · End your session on this device",
     "effects": [
@@ -3933,7 +3962,7 @@
     "label": "Sign out",
     "kind": "TextButton",
     "key": "qa.settings.logout.confirm",
-    "source": "lib/features/common/screens/settings_screen.dart:558",
+    "source": "lib/features/common/screens/settings_screen.dart:582",
     "case": null,
     "opener": "Sign out · End your session on this device",
     "effects": [
@@ -3943,7 +3972,7 @@
      "remove: MaterialPageRoute<Object?> (Scaffold)",
      "remove: MaterialPageRoute<dynamic>",
      "result: null",
-     "ui: +deco box Color(alpha: 1.0000, red: 0.7216, green: 0.0784, blue: 0.2471, colorSpace: Color… | +text \"connect\" Color(alpha: 1.0000, red: 0.1216, green: 0.0627, blue: 0.1412, colorSpace:… | +text \"Made for real life.\" Color(alpha: 1.0000, red: 0.4157, green: 0.3333, blue: 0.4392,… (+150 more)"
+     "ui: +deco box Color(alpha: 1.0000, red: 0.7216, green: 0.0784, blue: 0.2471, colorSpace: Color… | +text \"connect\" Color(alpha: 1.0000, red: 0.1216, green: 0.0627, blue: 0.1412, colorSpace:… | +text \"Made for real life.\" Color(alpha: 1.0000, red: 0.4157, green: 0.3333, blue: 0.4392,… (+151 more)"
     ]
    },
    {
@@ -3953,7 +3982,7 @@
     "label": "Sign out of all devices · End every session, on every pho...",
     "kind": "InkWell",
     "key": null,
-    "source": "lib/features/common/screens/settings_screen.dart:767",
+    "source": "lib/features/common/screens/settings_screen.dart:794",
     "case": null,
     "effects": [
      "push: DialogRoute<bool>",
@@ -3968,7 +3997,7 @@
     "label": "Cancel",
     "kind": "TextButton",
     "key": "qa.settings.logout_all.cancel",
-    "source": "lib/features/common/screens/settings_screen.dart:553",
+    "source": "lib/features/common/screens/settings_screen.dart:577",
     "case": null,
     "opener": "Sign out of all devices · End every session, on every pho...",
     "effects": [
@@ -3984,7 +4013,7 @@
     "label": "Sign out everywhere",
     "kind": "TextButton",
     "key": "qa.settings.logout_all.confirm",
-    "source": "lib/features/common/screens/settings_screen.dart:558",
+    "source": "lib/features/common/screens/settings_screen.dart:582",
     "case": null,
     "opener": "Sign out of all devices · End every session, on every pho...",
     "effects": [
@@ -3995,7 +4024,7 @@
      "remove: MaterialPageRoute<Object?> (Scaffold)",
      "remove: MaterialPageRoute<dynamic>",
      "result: null",
-     "ui: +deco box Color(alpha: 1.0000, red: 0.7216, green: 0.0784, blue: 0.2471, colorSpace: Color… | +text \"connect\" Color(alpha: 1.0000, red: 0.1216, green: 0.0627, blue: 0.1412, colorSpace:… | +text \"Made for real life.\" Color(alpha: 1.0000, red: 0.4157, green: 0.3333, blue: 0.4392,… (+150 more)"
+     "ui: +deco box Color(alpha: 1.0000, red: 0.7216, green: 0.0784, blue: 0.2471, colorSpace: Color… | +text \"connect\" Color(alpha: 1.0000, red: 0.1216, green: 0.0627, blue: 0.1412, colorSpace:… | +text \"Made for real life.\" Color(alpha: 1.0000, red: 0.4157, green: 0.3333, blue: 0.4392,… (+151 more)"
     ]
    },
    {
@@ -4005,7 +4034,7 @@
     "label": "Light",
     "kind": "ButtonSegment",
     "key": "qa.settings.theme_selector",
-    "source": "lib/features/common/screens/settings_screen.dart:640",
+    "source": "lib/features/common/screens/settings_screen.dart:665",
     "case": "common.settings.settings_theme_selector_selectionchanged.action",
     "effects": []
    },
@@ -4016,7 +4045,7 @@
     "label": "Dark",
     "kind": "ButtonSegment",
     "key": "qa.settings.theme_selector",
-    "source": "lib/features/common/screens/settings_screen.dart:640",
+    "source": "lib/features/common/screens/settings_screen.dart:665",
     "case": "common.settings.settings_theme_selector_selectionchanged.action",
     "effects": [
      "api: PATCH /settings/layout-member {\"theme\":\"dark\"}",
@@ -4030,7 +4059,7 @@
     "label": "Match device",
     "kind": "ButtonSegment",
     "key": "qa.settings.theme_selector",
-    "source": "lib/features/common/screens/settings_screen.dart:640",
+    "source": "lib/features/common/screens/settings_screen.dart:665",
     "case": "common.settings.settings_theme_selector_selectionchanged.action",
     "effects": [
      "api: PATCH /settings/layout-member {\"theme\":\"auto\"}",
@@ -4044,7 +4073,7 @@
     "label": "TODAY · Something real.",
     "kind": "InkWell",
     "key": "qa.settings.theme_preset.classic",
-    "source": "lib/features/common/screens/settings_screen.dart:864",
+    "source": "lib/features/common/screens/settings_screen.dart:892",
     "case": null,
     "effects": []
    },
@@ -4055,7 +4084,7 @@
     "label": "TODAY · Something real.",
     "kind": "InkWell",
     "key": "qa.settings.theme_preset.forge",
-    "source": "lib/features/common/screens/settings_screen.dart:864",
+    "source": "lib/features/common/screens/settings_screen.dart:892",
     "case": null,
     "effects": [
      "api: PATCH /settings/layout-member {\"theme\":\"light:forge\"}",
@@ -4075,7 +4104,7 @@
     "case": null,
     "opener": "TODAY · Something real.",
     "effects": [
-     "ui: +state \"Light\" = \"\" CheckedState.none selected:Tristate.isTrue toggled:Tristate.none expan… | +state \"Dark\" = \"\" CheckedState.none selected:Tristate.isFalse toggled:Tristate.none expan… | +state \"Match device\" = \"\" CheckedState.none selected:Tristate.isFalse toggled:Tristate.no… (+18 more)"
+     "push: RawDialogRoute<void>"
     ]
    },
    {
@@ -4085,7 +4114,7 @@
     "label": "TODAY · Something real.",
     "kind": "InkWell",
     "key": "qa.settings.theme_preset.neongrid",
-    "source": "lib/features/common/screens/settings_screen.dart:864",
+    "source": "lib/features/common/screens/settings_screen.dart:892",
     "case": null,
     "effects": [
      "api: PATCH /settings/layout-member {\"theme\":\"light:neongrid\"}",
@@ -4105,7 +4134,7 @@
     "case": null,
     "opener": "TODAY · Something real.",
     "effects": [
-     "ui: +state \"Light\" = \"\" CheckedState.none selected:Tristate.isTrue toggled:Tristate.none expan… | +state \"Dark\" = \"\" CheckedState.none selected:Tristate.isFalse toggled:Tristate.none expan… | +state \"Match device\" = \"\" CheckedState.none selected:Tristate.isFalse toggled:Tristate.no… (+18 more)"
+     "push: RawDialogRoute<void>"
     ]
    },
    {
@@ -4115,7 +4144,7 @@
     "label": "TODAY · Something real.",
     "kind": "InkWell",
     "key": "qa.settings.theme_preset.crimsonalloy",
-    "source": "lib/features/common/screens/settings_screen.dart:864",
+    "source": "lib/features/common/screens/settings_screen.dart:892",
     "case": null,
     "effects": [
      "api: PATCH /settings/layout-member {\"theme\":\"light:crimsonalloy\"}",
@@ -4145,7 +4174,7 @@
     "label": "TODAY · Something real.",
     "kind": "InkWell",
     "key": "qa.settings.theme_preset.circuit",
-    "source": "lib/features/common/screens/settings_screen.dart:864",
+    "source": "lib/features/common/screens/settings_screen.dart:892",
     "case": null,
     "effects": [
      "api: PATCH /settings/layout-member {\"theme\":\"light:circuit\"}",
@@ -4175,7 +4204,7 @@
     "label": "TODAY · Something real.",
     "kind": "InkWell",
     "key": "qa.settings.theme_preset.deepfield",
-    "source": "lib/features/common/screens/settings_screen.dart:864",
+    "source": "lib/features/common/screens/settings_screen.dart:892",
     "case": null,
     "effects": [
      "api: PATCH /settings/layout-member {\"theme\":\"light:deepfield\"}",
@@ -4205,7 +4234,7 @@
     "label": "TODAY · Something real.",
     "kind": "InkWell",
     "key": "qa.settings.theme_preset.love",
-    "source": "lib/features/common/screens/settings_screen.dart:864",
+    "source": "lib/features/common/screens/settings_screen.dart:892",
     "case": null,
     "effects": [
      "api: PATCH /settings/layout-member {\"theme\":\"light:love\"}",
@@ -4235,7 +4264,7 @@
     "label": "TODAY · Something real.",
     "kind": "InkWell",
     "key": "qa.settings.theme_preset.rose",
-    "source": "lib/features/common/screens/settings_screen.dart:864",
+    "source": "lib/features/common/screens/settings_screen.dart:892",
     "case": null,
     "effects": [
      "api: PATCH /settings/layout-member {\"theme\":\"light:rose\"}",
@@ -4265,7 +4294,7 @@
     "label": "TODAY · Something real.",
     "kind": "InkWell",
     "key": "qa.settings.theme_preset.bluerose",
-    "source": "lib/features/common/screens/settings_screen.dart:864",
+    "source": "lib/features/common/screens/settings_screen.dart:892",
     "case": null,
     "effects": [
      "api: PATCH /settings/layout-member {\"theme\":\"light:bluerose\"}",
@@ -4295,7 +4324,7 @@
     "label": "TODAY · Something real.",
     "kind": "InkWell",
     "key": "qa.settings.theme_preset.bluelotus",
-    "source": "lib/features/common/screens/settings_screen.dart:864",
+    "source": "lib/features/common/screens/settings_screen.dart:892",
     "case": null,
     "effects": [
      "api: PATCH /settings/layout-member {\"theme\":\"light:bluelotus\"}",
@@ -4325,7 +4354,7 @@
     "label": "TODAY · Something real.",
     "kind": "InkWell",
     "key": "qa.settings.theme_preset.petal",
-    "source": "lib/features/common/screens/settings_screen.dart:864",
+    "source": "lib/features/common/screens/settings_screen.dart:892",
     "case": null,
     "effects": [
      "api: PATCH /settings/layout-member {\"theme\":\"light:petal\"}",
@@ -4355,7 +4384,7 @@
     "label": "TODAY · Something real.",
     "kind": "InkWell",
     "key": "qa.settings.theme_preset.snow",
-    "source": "lib/features/common/screens/settings_screen.dart:864",
+    "source": "lib/features/common/screens/settings_screen.dart:892",
     "case": null,
     "effects": [
      "api: PATCH /settings/layout-member {\"theme\":\"light:snow\"}",
@@ -4385,7 +4414,7 @@
     "label": "TODAY · Something real.",
     "kind": "InkWell",
     "key": "qa.settings.theme_preset.gothic",
-    "source": "lib/features/common/screens/settings_screen.dart:864",
+    "source": "lib/features/common/screens/settings_screen.dart:892",
     "case": null,
     "effects": [
      "api: PATCH /settings/layout-member {\"theme\":\"light:gothic\"}",
@@ -4415,27 +4444,11 @@
     "label": "TODAY · Something real.",
     "kind": "InkWell",
     "key": "qa.settings.theme_preset.calm",
-    "source": "lib/features/common/screens/settings_screen.dart:864",
+    "source": "lib/features/common/screens/settings_screen.dart:892",
     "case": null,
     "effects": [
      "api: PATCH /settings/layout-member {\"theme\":\"light:calm\"}",
      "ui: text \"Warm ivory and forest by day. Soft mint and deep forest by night.\" Color(alpha: 1.00… | deco box null null Border.all(BorderSide(color: Color(alpha: 1.0000, red: 0.7216, green: 0… | deco box null null Border.all(BorderSide(color: Color(alpha: 1.0000, red: 0.8667, green: 0… (+2 more)"
-    ]
-   },
-   {
-    "path": [
-     "InkWell|Your dating rhythm · Intent, pace, availability and intro...|settings_screen.dart"
-    ],
-    "label": "Your dating rhythm · Intent, pace, availability and intro...",
-    "kind": "InkWell",
-    "key": null,
-    "source": "lib/features/common/screens/settings_screen.dart:767",
-    "case": "common.settings.your_dating_rhythm.action",
-    "effects": [
-     "push: MaterialPageRoute<void>",
-     "api: GET /account/layout-member/dating-preferences",
-     "api: GET /account/layout-member/discovery/pause",
-     "ui: +opacity 1.00 | +model Color(alpha: 1.0000, red: 1.0000, green: 0.9686, blue: 0.9529, colorSpace: ColorSpa… | +scroll 0 (+183 more)"
     ]
    }
   ],
@@ -6221,6 +6234,125 @@
     "case": null,
     "effects": [
      "ui: deco box Color(alpha: 1.0000, red: 0.7216, green: 0.0784, blue: 0.2471, colorSpace: ColorS… | text \"Monthly\" Color(alpha: 1.0000, red: 1.0000, green: 1.0000, blue: 1.0000, colorSpace: … | deco box null null null null → deco box Color(alpha: 1.0000, red: 0.7216, green: 0.0784, b… (+2 more)"
+    ]
+   }
+  ],
+  "SupportContactFormScreen": [
+   {
+    "path": [
+     "ChoiceChip|Account & login|support_contact_form_screen.dart"
+    ],
+    "label": "Account & login",
+    "kind": "ChoiceChip",
+    "key": null,
+    "source": "lib/features/support/screens/support_contact_form_screen.dart:207",
+    "case": null,
+    "effects": [
+     "ui: text \"Account & login\" Color(alpha: 1.0000, red: 0.4157, green: 0.3333, blue: 0.4392, colo… | state \"Account & login\" = \"\" CheckedState.none selected:Tristate.isFalse toggled:Tristate.…"
+    ]
+   },
+   {
+    "path": [
+     "ChoiceChip|Verification|support_contact_form_screen.dart"
+    ],
+    "label": "Verification",
+    "kind": "ChoiceChip",
+    "key": null,
+    "source": "lib/features/support/screens/support_contact_form_screen.dart:207",
+    "case": null,
+    "effects": [
+     "ui: text \"Verification\" Color(alpha: 1.0000, red: 0.4157, green: 0.3333, blue: 0.4392, colorSp… | state \"Verification\" = \"\" CheckedState.none selected:Tristate.isFalse toggled:Tristate.non…"
+    ]
+   },
+   {
+    "path": [
+     "ChoiceChip|Payments & billing|support_contact_form_screen.dart"
+    ],
+    "label": "Payments & billing",
+    "kind": "ChoiceChip",
+    "key": null,
+    "source": "lib/features/support/screens/support_contact_form_screen.dart:207",
+    "case": null,
+    "effects": [
+     "ui: text \"Payments & billing\" Color(alpha: 1.0000, red: 0.4157, green: 0.3333, blue: 0.4392, c… | state \"Payments & billing\" = \"\" CheckedState.none selected:Tristate.isFalse toggled:Trista…"
+    ]
+   },
+   {
+    "path": [
+     "ChoiceChip|Safety & harassment|support_contact_form_screen.dart"
+    ],
+    "label": "Safety & harassment",
+    "kind": "ChoiceChip",
+    "key": null,
+    "source": "lib/features/support/screens/support_contact_form_screen.dart:207",
+    "case": null,
+    "effects": [
+     "ui: text \"Safety & harassment\" Color(alpha: 1.0000, red: 0.4157, green: 0.3333, blue: 0.4392, … | state \"Safety & harassment\" = \"\" CheckedState.none selected:Tristate.isFalse toggled:Trist…"
+    ]
+   },
+   {
+    "path": [
+     "ChoiceChip|Matches & chat|support_contact_form_screen.dart"
+    ],
+    "label": "Matches & chat",
+    "kind": "ChoiceChip",
+    "key": null,
+    "source": "lib/features/support/screens/support_contact_form_screen.dart:207",
+    "case": null,
+    "effects": [
+     "ui: text \"Matches & chat\" Color(alpha: 1.0000, red: 0.4157, green: 0.3333, blue: 0.4392, color… | state \"Matches & chat\" = \"\" CheckedState.none selected:Tristate.isFalse toggled:Tristate.n…"
+    ]
+   },
+   {
+    "path": [
+     "ChoiceChip|Technical problem or bug|support_contact_form_screen.dart"
+    ],
+    "label": "Technical problem or bug",
+    "kind": "ChoiceChip",
+    "key": null,
+    "source": "lib/features/support/screens/support_contact_form_screen.dart:207",
+    "case": null,
+    "effects": [
+     "ui: text \"Technical problem or bug\" Color(alpha: 1.0000, red: 0.4157, green: 0.3333, blue: 0.4… | state \"Technical problem or bug\" = \"\" CheckedState.none selected:Tristate.isFalse toggled:…"
+    ]
+   },
+   {
+    "path": [
+     "ChoiceChip|Feature request|support_contact_form_screen.dart"
+    ],
+    "label": "Feature request",
+    "kind": "ChoiceChip",
+    "key": null,
+    "source": "lib/features/support/screens/support_contact_form_screen.dart:207",
+    "case": null,
+    "effects": [
+     "ui: text \"Feature request\" Color(alpha: 1.0000, red: 0.4157, green: 0.3333, blue: 0.4392, colo… | state \"Feature request\" = \"\" CheckedState.none selected:Tristate.isFalse toggled:Tristate.…"
+    ]
+   },
+   {
+    "path": [
+     "ChoiceChip|Privacy & data request|support_contact_form_screen.dart"
+    ],
+    "label": "Privacy & data request",
+    "kind": "ChoiceChip",
+    "key": null,
+    "source": "lib/features/support/screens/support_contact_form_screen.dart:207",
+    "case": null,
+    "effects": [
+     "ui: text \"Privacy & data request\" Color(alpha: 1.0000, red: 0.4157, green: 0.3333, blue: 0.439… | state \"Privacy & data request\" = \"\" CheckedState.none selected:Tristate.isFalse toggled:Tr…"
+    ]
+   },
+   {
+    "path": [
+     "ChoiceChip|Other|support_contact_form_screen.dart"
+    ],
+    "label": "Other",
+    "kind": "ChoiceChip",
+    "key": null,
+    "source": "lib/features/support/screens/support_contact_form_screen.dart:207",
+    "case": null,
+    "effects": [
+     "ui: text \"Privacy & data request\" Color(alpha: 1.0000, red: 0.4157, green: 0.3333, blue: 0.439… | state \"Privacy & data request\" = \"\" CheckedState.none selected:Tristate.isFalse toggled:Tr…"
     ]
    }
   ],

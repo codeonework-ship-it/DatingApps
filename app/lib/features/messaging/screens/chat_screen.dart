@@ -7,10 +7,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/feature_flags.dart';
+import '../../../core/i18n/number_formats.dart';
 import '../../../core/platform/browser_context.dart';
 import '../../../core/providers/network_quality_provider.dart';
 import '../../../core/providers/runtime_feature_flags_provider.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/qa_control.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../common/screens/main_navigation_screen.dart';
 import '../../graduation/widgets/graduation_banner.dart';
@@ -20,6 +22,7 @@ import '../../payment/screens/wallet_payment_screen.dart';
 import '../../plans/widgets/date_plan_card.dart';
 import '../../social_chat/social_chat_l10n.dart';
 import '../chat_error_l10n.dart';
+import '../gift_l10n.dart';
 import '../models/messaging_models.dart' as models;
 import '../models/rose_gift.dart';
 import '../providers/copilot_provider.dart';
@@ -603,7 +606,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                                     vertical: 5,
                                                                   ),
                                                               child: Semantics(
-                                                                label:
+                                                                container: true,
+                                                                identifier:
                                                                     'qa.chat.message.${message.id}',
                                                                 button:
                                                                     (mine &&
@@ -651,6 +655,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                                         message
                                                                             .readAt !=
                                                                         null,
+                                                                    isDeleted:
+                                                                        message
+                                                                            .isDeleted,
                                                                     receivedGiftFrom:
                                                                         incomingGift
                                                                         ? widget
@@ -964,7 +971,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
-                                    gift.name,
+                                    localizedGiftName(
+                                      l,
+                                      id: gift.id,
+                                      serverName: gift.name,
+                                    ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: Theme.of(
@@ -1151,7 +1162,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  l.chatGiftConfirmTitle(gift.name, widget.userName),
+                  l.chatGiftConfirmTitle(
+                    localizedGiftName(l, id: gift.id, serverName: gift.name),
+                    widget.userName,
+                  ),
                   textAlign: TextAlign.center,
                   style: theme.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w700,
@@ -1174,7 +1188,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 ],
                 const SizedBox(height: 16),
                 Semantics(
-                  label: 'qa.chat.gift_confirm.summary',
+                  container: true,
+                  identifier: 'qa.chat.gift_confirm.summary',
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -1206,9 +1221,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                Semantics(
-                  label: 'qa.chat.gift_confirm.send',
-                  button: true,
+                QaControl(
+                  id: 'qa.chat.gift_confirm.send',
                   child: FilledButton(
                     key: const ValueKey('qa.chat.gift_confirm.send'),
                     onPressed: () => Navigator.of(sheetContext).pop(true),
@@ -1269,9 +1283,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               const SizedBox(height: 14),
               SizedBox(
                 width: double.infinity,
-                child: Semantics(
-                  label: 'qa.chat.delete_message_action',
-                  button: true,
+                child: QaControl(
+                  id: 'qa.chat.delete_message_action',
                   child: ElevatedButton.icon(
                     key: const ValueKey('qa.chat.delete_message_action'),
                     onPressed: () => Navigator.of(context).pop(true),
@@ -1623,7 +1636,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           key: const ValueKey('qa.chat.wallet_button'),
           onPressed: onTap,
           icon: const Icon(Icons.toll_outlined, size: 18),
-          label: Text('$walletCoins'),
+          label: Text(formatCount(context, walletCoins)),
           style: TextButton.styleFrom(minimumSize: const Size(64, 48)),
         ),
       );
@@ -1643,7 +1656,8 @@ class _DailyLimitBanner extends StatelessWidget {
     final refusal = limit;
     final l = chatL10n(context);
     return Semantics(
-      label: 'qa.chat.daily_limit_banner',
+      container: true,
+      identifier: 'qa.chat.daily_limit_banner',
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -1711,7 +1725,7 @@ class _QuotaHint extends ConsumerWidget {
             child: Text(
               chatL10n(context).chatQuotaOnPlan(
                 quota.messagesLabel(chatL10n(context)),
-                entitlements.planName,
+                entitlements.planLabel(chatL10n(context)),
               ),
               style: Theme.of(context).textTheme.labelSmall,
             ),

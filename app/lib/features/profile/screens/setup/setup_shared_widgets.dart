@@ -595,23 +595,3 @@ String localizedProfileOption(AppLocalizations l10n, String value) {
   }
   return value;
 }
-
-/// Month names for DOB dropdowns.
-const kMonthNames = [
-  '',
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-];
-
-String monthName(int month) =>
-    month >= 1 && month <= 12 ? kMonthNames[month] : '?';

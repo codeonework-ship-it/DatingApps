@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../core/config/feature_flags.dart';
+import '../../../core/network/api_error_message.dart';
 import '../../../core/providers/api_client_provider.dart';
 import '../../../core/utils/logger.dart';
 import '../../../l10n/app_localizations.dart';
@@ -409,13 +410,10 @@ class VoiceIcebreakerNotifier extends StateNotifier<VoiceIcebreakerState> {
   }
 }
 
-String _extractApiError(DioException e, {required String fallback}) {
-  final data = e.response?.data;
-  if (data is Map && data['error'] != null) {
-    return data['error'].toString();
-  }
-  return fallback;
-}
+/// The member-facing message for [e]: see [apiErrorMessage] (translated
+/// error codes, English server text only in English, never technical text).
+String _extractApiError(DioException e, {required String fallback}) =>
+    apiErrorMessage(e, fallback: fallback);
 
 final voiceIcebreakerProvider =
     StateNotifierProvider.autoDispose<

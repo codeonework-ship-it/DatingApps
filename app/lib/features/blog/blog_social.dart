@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
+import '../../core/i18n/number_formats.dart';
 import '../../core/network/api_error_message.dart';
 import '../../core/providers/api_client_provider.dart';
 import '../../l10n/app_localizations.dart';
@@ -111,7 +112,7 @@ class SocialLikeButton extends StatelessWidget {
                         : Icons.favorite_border_rounded,
                   )
                 : Text(mine.emoji, style: const TextStyle(fontSize: 20)),
-            label: Text('${state.count}'),
+            label: Text(formatCount(context, state.count)),
           ),
         ),
         IconButton(
@@ -533,7 +534,7 @@ class BlogFeaturedCard extends ConsumerWidget {
                     semanticLabel: l10n.blogLikes,
                   ),
                   const SizedBox(width: 4),
-                  Text('$likes', style: muted),
+                  Text(formatCount(context, likes), style: muted),
                   const SizedBox(width: 12),
                   Icon(
                     Icons.chat_bubble_outline_rounded,
@@ -542,7 +543,7 @@ class BlogFeaturedCard extends ConsumerWidget {
                     semanticLabel: l10n.blogComments,
                   ),
                   const SizedBox(width: 4),
-                  Text('${post.commentCount}', style: muted),
+                  Text(formatCount(context, post.commentCount), style: muted),
                 ],
               ),
             ],

@@ -102,7 +102,7 @@ void main() {
         await tapKey(tester, 'qa.plan.accept');
         expect(
           textOf(tester, 'qa.plan.card_error'),
-          _en.networkCannotReachService,
+          _en.networkOfflineTryAgain,
         );
 
         world.serve();
@@ -158,6 +158,25 @@ void main() {
         viewerRole: 'proposer',
       ),
     );
+
+    testWidgets('a plan whose partner has no name names "Dein Match" in German '
+        '[case:l10n-plan-partner-fallback-name-german]', (tester) async {
+      final de = qaL10n(const Locale('de'));
+      final world = upcoming();
+      world.plan!.remove('partner_name');
+      await _open(tester, world, locale: const Locale('de'));
+      await tapKey(tester, 'qa.plan.cancel');
+
+      // The model holds no English stand-in; the dialog names the
+      // partner with the German fallback.
+      expect(
+        find.text(de.planCancelDialogBody(de.matchesFallbackName)),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Your match'), findsNothing);
+      await tapKey(tester, 'qa.plan.keep_it');
+      await teardown(tester);
+    });
 
     testWidgets(
       'Cancel plan asks first and says who will be told; nothing is sent '
@@ -280,7 +299,7 @@ void main() {
         await tapKey(tester, 'qa.plan.safe');
         expect(
           textOf(tester, 'qa.plan.card_error'),
-          _en.networkCannotReachService,
+          _en.networkOfflineTryAgain,
         );
         expect(find.text(_en.planHeadlineCheckin), findsOneWidget);
         expect(isEnabled(tester, 'qa.plan.safe'), isTrue);

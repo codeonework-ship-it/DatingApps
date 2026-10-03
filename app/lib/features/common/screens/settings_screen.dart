@@ -28,9 +28,11 @@ import '../../verification/screens/verification_upload_id_screen.dart';
 import '../../intentional_dating/dating_rhythm.dart';
 import '../../../core/providers/runtime_feature_flags_provider.dart';
 import 'about_app_screen.dart';
-import 'help_support_screen.dart';
 import 'language_settings_screen.dart';
 import 'notification_settings_screen.dart';
+import '../../notifications/providers/notification_provider.dart';
+import '../../notifications/screens/notification_inbox_screen.dart';
+import '../../support/widgets/support_entry_points.dart';
 import 'privacy_safety_screen.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -62,6 +64,35 @@ class SettingsScreen extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
                 sliver: SliverList(
                   delegate: SliverChildListDelegate([
+                    // The Settings tab's unread badge counts notifications,
+                    // so the inbox is the first row here (it used to be two
+                    // taps deep, under notification preferences).
+                    Builder(
+                      builder: (context) {
+                        final unread = ref.watch(
+                          notificationProvider.select((s) => s.unreadCount),
+                        );
+                        return _buildSettingsTile(
+                          context,
+                          key: const ValueKey('qa.settings.notification_inbox'),
+                          icon: unread > 0
+                              ? Icons.notifications_active_rounded
+                              : Icons.notifications_none_rounded,
+                          tint: unread > 0
+                              ? Theme.of(context).colorScheme.error
+                              : null,
+                          title: l10n.notificationsInboxTitle,
+                          subtitle: unread > 0
+                              ? l10n.notificationsInboxUnread(unread)
+                              : l10n.notificationsInboxCaughtUp,
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => const NotificationInboxScreen(),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                     // Account first: who is signed in, and the way out, are
                     // never buried below every other setting.
                     ..._buildAccountSection(context, ref, l10n),
@@ -176,7 +207,7 @@ class SettingsScreen extends ConsumerWidget {
                       icon: Icons.language_rounded,
                       title: l10n.settingsLanguageTitle,
                       subtitle: l10n.settingsLanguageSubtitle,
-                      semanticLabel: 'qa.settings.language',
+                      qaId: 'qa.settings.language',
                       onTap: () {
                         Navigator.of(context).push(
                           MaterialPageRoute<void>(
@@ -357,7 +388,7 @@ class SettingsScreen extends ConsumerWidget {
                       icon: Icons.verified_user_rounded,
                       title: l10n.settingsGovernmentVerificationTitle,
                       subtitle: l10n.settingsGovernmentVerificationSubtitle,
-                      semanticLabel: 'qa.settings.government_verification',
+                      qaId: 'qa.settings.government_verification',
                       onTap: () {
                         Navigator.of(context).push(
                           MaterialPageRoute<void>(
@@ -373,7 +404,7 @@ class SettingsScreen extends ConsumerWidget {
                         icon: Icons.badge_outlined,
                         title: l10n.settingsQaVerificationUploadTitle,
                         subtitle: l10n.settingsQaVerificationUploadSubtitle,
-                        semanticLabel: 'qa.settings.verification_upload',
+                        qaId: 'qa.settings.verification_upload',
                         onTap: () {
                           Navigator.of(context).push(
                             MaterialPageRoute<void>(
@@ -383,20 +414,6 @@ class SettingsScreen extends ConsumerWidget {
                           );
                         },
                       ),
-                    _buildSettingsTile(
-                      context,
-                      key: const ValueKey('qa.settings.help_support'),
-                      icon: Icons.help,
-                      title: l10n.settingsHelpSupportTitle,
-                      subtitle: l10n.settingsHelpSupportSubtitle,
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute<void>(
-                            builder: (_) => const HelpSupportScreen(),
-                          ),
-                        );
-                      },
-                    ),
                     _buildSettingsTile(
                       context,
                       key: const ValueKey('qa.settings.about'),
@@ -437,6 +454,13 @@ class SettingsScreen extends ConsumerWidget {
         context,
         l10n.settingsSectionAccount,
         caption: username.isEmpty ? null : l10n.settingsSignedInAs(username),
+      ),
+      // Help sits with the account, near the top, with a badge for unread
+      // replies from the support team.
+      const Padding(
+        key: ValueKey('qa.settings.help_support'),
+        padding: EdgeInsets.only(bottom: ConnectMetrics.cardGap),
+        child: SupportEntryTile(),
       ),
       _buildSettingsTile(
         context,
@@ -636,7 +660,8 @@ class SettingsScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 12),
             Semantics(
-              label: 'qa.settings.theme_selector',
+              container: true,
+              identifier: 'qa.settings.theme_selector',
               child: SegmentedButton<AppThemeChoice>(
                 key: const ValueKey('qa.settings.theme_selector'),
                 segments: AppThemeChoice.values
@@ -683,7 +708,9 @@ class SettingsScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 12),
             Semantics(
-              label: 'qa.settings.theme_presets',
+              container: true,
+              explicitChildNodes: true,
+              identifier: 'qa.settings.theme_presets',
               // One swipeable strip keeps Settings short; every card is
               // built up front so each look stays reachable.
               child: SingleChildScrollView(
@@ -758,7 +785,7 @@ class SettingsScreen extends ConsumerWidget {
     required String title,
     required String subtitle,
     required VoidCallback onTap,
-    String? semanticLabel,
+    String? qaId,
     Color? tint,
     Key? key,
   }) => Padding(
@@ -770,7 +797,7 @@ class SettingsScreen extends ConsumerWidget {
       title: title,
       subtitle: subtitle,
       onTap: onTap,
-      semanticLabel: semanticLabel,
+      qaId: qaId,
     ),
   );
 }
@@ -858,7 +885,8 @@ class _ThemePreviewCard extends StatelessWidget {
     final p = preview;
     const radius = BorderRadius.all(Radius.circular(16));
     return Semantics(
-      label: 'qa.settings.theme_preset.$id',
+      container: true,
+      identifier: 'qa.settings.theme_preset.$id',
       button: true,
       selected: selected,
       child: InkWell(

@@ -154,7 +154,7 @@ void main() {
         // Offline: the translated fallback, not a raw exception.
         server.api.offline('GET /billing/plans');
         await _pullToRefresh(tester);
-        expect(find.text(en.paymentErrorUnreachable), findsOneWidget);
+        expect(find.text(en.networkOfflineTryAgain), findsOneWidget);
       },
     );
   });
@@ -408,7 +408,7 @@ void main() {
         server.api.offline('POST /billing/subscription/me/cancel');
         await _tap(tester, 'qa.membership.auto_renew');
         await _tap(tester, 'qa.membership.auto_renew_off.confirm');
-        expect(find.text(en.paymentErrorUnreachable), findsOneWidget);
+        expect(find.text(en.networkOfflineTryAgain), findsOneWidget);
       },
     );
   });

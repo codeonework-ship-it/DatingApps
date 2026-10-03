@@ -304,6 +304,44 @@ void main() {
   });
 
   group('behind the scenes', () {
+    testWidgets('counts and the completeness percent use German separators '
+        '[case:l10n-profile-stats-german-number-format]', (tester) async {
+      final summary = _summary();
+      (summary['user'] as Map<String, dynamic>)['profile_completion'] = 45;
+      summary['stats'] = {
+        'likes_count': 1234,
+        'matches_count': 4,
+        'messages_count': 12500,
+      };
+      final api = _api()..json('GET /profile/me/summary', summary);
+      await _open(tester, api, locale: const Locale('de'));
+      await _reveal(
+        tester,
+        find.byKey(const ValueKey('qa.profile.owner_console')),
+      );
+      // German puts a no-break space before the sign: "45 %".
+      expect(find.text('45\u00A0%'), findsOneWidget);
+      expect(find.text('45%'), findsNothing);
+      await _reveal(
+        tester,
+        find.byKey(const ValueKey('qa.profile.stat.liked')),
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('qa.profile.stat.liked')),
+          matching: find.text('1.234'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('qa.profile.stat.messages')),
+          matching: find.text('12.500'),
+        ),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('You liked opens the profiles I liked '
         '[case:profile.profile_view.you_liked.action]', (tester) async {
       final api = _api();

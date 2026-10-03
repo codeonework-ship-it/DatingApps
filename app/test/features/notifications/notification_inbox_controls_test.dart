@@ -94,7 +94,7 @@ Future<_Push> _pump(WidgetTester tester, QaApi api) async {
 
 const _readAll = ValueKey('qa.notifications.read_all');
 
-final _offlineText = qaL10n(const Locale('en')).networkCannotReachService;
+final _offlineText = qaL10n(const Locale('en')).networkOfflineTryAgain;
 
 /// Unread rows show a 5 px dot.
 int _unreadDots(WidgetTester tester) => tester

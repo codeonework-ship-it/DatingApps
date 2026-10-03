@@ -10,6 +10,8 @@ import '../../../core/config/feature_flags.dart';
 import '../../../core/platform/browser_context.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
+import '../../../core/widgets/qa_id.dart';
+import '../../common/widgets/language_picker.dart';
 import '../../../l10n/app_localizations.dart';
 import '../auth_messages.dart';
 import '../providers/auth_provider.dart';
@@ -175,23 +177,26 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: GoldBackButton(
-                        key: const ValueKey('qa.signup.back'),
-                        tooltip: l10n.signupBackTooltip,
-                        onTap: () {
-                          notifier.resetAuthFlow();
-                          if (kIsWeb) {
-                            Navigator.of(
-                              context,
-                            ).popUntil((route) => route.isFirst);
-                            setWebRoute('/welcome');
-                          } else {
-                            Navigator.of(context).maybePop();
-                          }
-                        },
-                      ),
+                    Row(
+                      children: [
+                        GoldBackButton(
+                          key: const ValueKey('qa.signup.back'),
+                          tooltip: l10n.signupBackTooltip,
+                          onTap: () {
+                            notifier.resetAuthFlow();
+                            if (kIsWeb) {
+                              Navigator.of(
+                                context,
+                              ).popUntil((route) => route.isFirst);
+                              setWebRoute('/welcome');
+                            } else {
+                              Navigator.of(context).maybePop();
+                            }
+                          },
+                        ),
+                        const Spacer(),
+                        const Flexible(flex: 4, child: LanguagePickerButton()),
+                      ],
                     ),
                     const SizedBox(height: 8),
                     if (widget.introducer) ...[
@@ -223,7 +228,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                               fieldKey: const ValueKey(
                                 'qa.signup.username_field',
                               ),
-                              semanticLabel: 'qa.signup.username_field',
+                              qaId: 'qa.signup.username_field',
                               controller: _usernameController,
                               focusNode: _usernameFocus,
                               enabled: !authState.isLoading,
@@ -243,7 +248,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                               fieldKey: const ValueKey(
                                 'qa.signup.password_field',
                               ),
-                              semanticLabel: 'qa.signup.password_field',
+                              qaId: 'qa.signup.password_field',
                               controller: _passwordController,
                               focusNode: _passwordFocus,
                               enabled: !authState.isLoading,
@@ -271,7 +276,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                               fieldKey: const ValueKey(
                                 'qa.signup.confirm_password_field',
                               ),
-                              semanticLabel: 'qa.signup.confirm_password_field',
+                              qaId: 'qa.signup.confirm_password_field',
                               controller: _confirmPasswordController,
                               focusNode: _confirmPasswordFocus,
                               enabled: !authState.isLoading,
@@ -296,7 +301,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                             const SizedBox(height: 8),
                             _SignupTextField(
                               fieldKey: const ValueKey('qa.signup.name_field'),
-                              semanticLabel: 'qa.signup.name_field',
+                              qaId: 'qa.signup.name_field',
                               controller: _nameController,
                               focusNode: _nameFocus,
                               enabled: !authState.isLoading,
@@ -335,9 +340,8 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
                               ),
                             ],
                             const SizedBox(height: 22),
-                            Semantics(
-                              label: 'qa.signup.create_account_button',
-                              button: true,
+                            QaId(
+                              'qa.signup.create_account_button',
                               child: SizedBox(
                                 height: 56,
                                 child: GlassButton(
@@ -454,7 +458,7 @@ class _SignupTextField extends StatelessWidget {
     required this.hint,
     required this.icon,
     required this.fieldKey,
-    required this.semanticLabel,
+    required this.qaId,
     this.focusNode,
     this.enabled = true,
     this.autofocus = false,
@@ -470,7 +474,7 @@ class _SignupTextField extends StatelessWidget {
   final String hint;
   final IconData icon;
   final Key fieldKey;
-  final String semanticLabel;
+  final String qaId;
   final FocusNode? focusNode;
   final bool enabled;
   final bool autofocus;
@@ -484,9 +488,9 @@ class _SignupTextField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Semantics(
-      label: semanticLabel,
-      textField: true,
+    // The field announces its hint; the automation id is an identifier.
+    return QaId(
+      qaId,
       child: TextField(
         key: fieldKey,
         controller: controller,
@@ -544,9 +548,8 @@ class _DateOfBirthField extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context);
-    return Semantics(
-      label: 'qa.signup.dob_field',
-      button: true,
+    return QaId(
+      'qa.signup.dob_field',
       child: InkWell(
         key: const ValueKey('qa.signup.dob_field'),
         onTap: enabled ? onTap : null,
@@ -797,10 +800,7 @@ String _formatDate(DateTime value) =>
     '${value.month.toString().padLeft(2, '0')}-'
     '${value.day.toString().padLeft(2, '0')}';
 
-/// English keeps the day/month/year layout automation types against; other
-/// languages use their own short date.
+/// The member's own short date (en-US 3/14/1995, en-GB 14/03/1995,
+/// de 14.3.1995). What is sent to the server stays ISO (see [_formatDate]).
 String _displayDate(DateTime value, Locale locale) =>
-    locale.languageCode == 'en'
-    ? '${value.day.toString().padLeft(2, '0')}/'
-          '${value.month.toString().padLeft(2, '0')}/${value.year}'
-    : DateFormat.yMd(locale.toString()).format(value);
+    DateFormat.yMd(locale.toString()).format(value);

@@ -7,6 +7,7 @@ import '../../../core/providers/safety_actions_provider.dart';
 import '../../../core/theme/cinematic_motion.dart';
 import '../../../core/widgets/connect_page.dart';
 import '../../../core/widgets/glass_widgets.dart';
+import '../../../core/widgets/qa_control.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../profile/widgets/profile_showcase.dart';
@@ -164,6 +165,7 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
         photos: photos,
         logline: p.why,
         badges: badges,
+        l10n: l10n,
       );
     }
     return ProfileHeadline(
@@ -303,8 +305,7 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
                             carouselKey: const ValueKey(
                               'qa.profile_detail.carousel',
                             ),
-                            carouselSemanticsLabel:
-                                'qa.profile_detail.carousel',
+                            carouselQaId: 'qa.profile_detail.carousel',
                             frameKeyPrefix: 'qa.profile_detail.thumbnail_',
                           ),
                         ),
@@ -352,7 +353,7 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
                       buttonKey: const ValueKey(
                         'qa.profile_detail.back_button',
                       ),
-                      semanticsLabel: 'qa.profile_detail.back_button',
+                      qaId: 'qa.profile_detail.back_button',
                       icon: Icons.arrow_back_rounded,
                       tooltip: MaterialLocalizations.of(
                         context,
@@ -374,7 +375,7 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
                         buttonKey: const ValueKey(
                           'qa.profile_detail.report_button',
                         ),
-                        semanticsLabel: 'qa.profile_detail.report_button',
+                        qaId: 'qa.profile_detail.report_button',
                         icon: Icons.flag_outlined,
                         tooltip: l10n.memberProfileReport,
                         onPressed: () =>
@@ -501,9 +502,8 @@ class _ActionDock extends StatelessWidget {
     final duration = still ? Duration.zero : const Duration(milliseconds: 480);
     // On the narrowest phones the labels need the icons' room.
     final narrow = MediaQuery.sizeOf(context).width < 360;
-    final message = Semantics(
-      label: 'qa.profile_detail.message_button',
-      button: true,
+    final message = QaControl(
+      id: 'qa.profile_detail.message_button',
       child: GlassButton(
         key: const ValueKey('qa.profile_detail.message_button'),
         label: messageLabel,
@@ -514,9 +514,8 @@ class _ActionDock extends StatelessWidget {
         onPressed: busy ? null : onMessage,
       ),
     );
-    final love = Semantics(
-      label: 'qa.profile_detail.love_button',
-      button: true,
+    final love = QaControl(
+      id: 'qa.profile_detail.love_button',
       child: GlassButton(
         key: const ValueKey('qa.profile_detail.love_button'),
         label: loveLabel,

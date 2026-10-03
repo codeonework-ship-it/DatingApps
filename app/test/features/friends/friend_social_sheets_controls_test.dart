@@ -369,7 +369,7 @@ void main() {
         await tester.tap(_key('qa.friends.intro_submit'));
         await tester.pumpAndSettle();
         expect(
-          find.text(qaL10n(const Locale('en')).networkCannotReachService),
+          find.text(qaL10n(const Locale('en')).networkOfflineTryAgain),
           findsOneWidget,
         );
 

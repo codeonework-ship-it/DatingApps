@@ -69,6 +69,7 @@ import 'package:verified_dating_app/features/profile/screens/setup/setup_photos_
 import 'package:verified_dating_app/features/profile/screens/setup/setup_preferences_screen.dart';
 import 'package:verified_dating_app/features/profile/screens/setup/setup_preview_screen.dart';
 import 'package:verified_dating_app/features/safety/screens/sos_screen.dart';
+import 'package:verified_dating_app/features/support/screens/support_contact_form_screen.dart';
 import 'package:verified_dating_app/features/support/screens/support_ticket_form_screen.dart';
 import 'package:verified_dating_app/features/support/screens/support_ticket_thread_screen.dart';
 import 'package:verified_dating_app/features/support/screens/support_tickets_screen.dart';
@@ -244,6 +245,7 @@ Map<String, Widget Function()> buildScreenMatrix() {
     'EmergencyContactsScreen': EmergencyContactsScreen.new,
     'HelpSupportScreen': HelpSupportScreen.new,
     // support
+    'SupportContactFormScreen': SupportContactFormScreen.new,
     'SupportTicketFormScreen': SupportTicketFormScreen.new,
     'SupportTicketsScreen': SupportTicketsScreen.new,
     'SupportTicketThreadScreen': () =>

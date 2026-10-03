@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/qa_control.dart';
 import '../../../core/widgets/glass_widgets.dart';
 import '../../../l10n/app_localizations.dart';
 import '../providers/verification_provider.dart';
@@ -40,7 +41,9 @@ class VerificationLandingScreen extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Semantics(
-                        label: 'qa.verification.landing_title',
+                        container: true,
+                        header: true,
+                        identifier: 'qa.verification.landing_title',
                         child: Text(
                           l10n.verificationLandingTitle,
                           style: Theme.of(context).textTheme.headlineSmall,
@@ -66,9 +69,8 @@ class VerificationLandingScreen extends ConsumerWidget {
                           ),
                         )
                       else
-                        Semantics(
-                          label: 'qa.verification.landing.start_button',
-                          button: true,
+                        QaControl(
+                          id: 'qa.verification.landing.start_button',
                           child: GlassButton(
                             key: const ValueKey(
                               'qa.verification.landing.start_button',

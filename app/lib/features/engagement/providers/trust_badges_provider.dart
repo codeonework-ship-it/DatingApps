@@ -7,6 +7,7 @@ import '../../../core/utils/logger.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../engagement_l10n.dart';
+import '../../../core/network/api_error_message.dart';
 
 class TrustBadgeItem {
   const TrustBadgeItem({
@@ -140,7 +141,11 @@ class TrustBadgesNotifier extends StateNotifier<TrustBadgesState> {
               final map = entry.cast<String, dynamic>();
               return TrustBadgeItem(
                 code: map['badge_code']?.toString() ?? '',
-                label: map['badge_label']?.toString() ?? 'Unknown badge',
+                // trust_badges_screen shows the label as given, so the
+                // fallback is resolved here in the member's language.
+                label:
+                    map['badge_label']?.toString() ??
+                    _l.engagementTrustBadgeUnknown,
                 status: map['status']?.toString() ?? 'inactive',
                 awardedAt: map['awarded_at']?.toString() ?? '',
               );
@@ -188,9 +193,7 @@ final trustBadgesProvider =
     });
 
 String _extractApiError(DioException e, {required String fallback}) {
-  final data = e.response?.data;
-  if (data is Map && data['error'] != null) {
-    return data['error'].toString();
-  }
-  return fallback;
+  // Known error codes are translated; raw server text only in English
+  // and never when technical (apiErrorMessage policy).
+  return serverErrorMessage(e, fallback: fallback);
 }

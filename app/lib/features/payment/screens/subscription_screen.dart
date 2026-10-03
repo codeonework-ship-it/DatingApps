@@ -9,6 +9,7 @@ import '../platform/checkout_launcher.dart';
 import '../providers/subscription_provider.dart';
 import 'payment_account_card.dart';
 import 'payment_l10n.dart';
+import '../../support/widgets/support_entry_points.dart';
 
 /// Membership: current plan, auto-renew control, plan catalog and payment
 /// history. Plans are bought with a card on the provider's hosted checkout
@@ -83,6 +84,11 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                       state.errorCode,
                       state.error!,
                     ),
+                  ),
+                  SupportContactLink(
+                    key: const Key('membership_contact_support'),
+                    label: l10n.supportPaymentHelpLink,
+                    category: 'payments_billing',
                   ),
                 ],
                 const SizedBox(height: 24),
@@ -217,7 +223,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text(l10n.membershipSwitchTitle(plan.name)),
+        title: Text(l10n.membershipSwitchTitle(plan.nameLabel(l10n))),
         content: Text(
           upgrade
               ? (yearly
@@ -225,11 +231,11 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
                     : l10n.membershipSwitchUpgradeBodyMonthly(price))
               : (yearly
                     ? l10n.membershipSwitchDowngradeBodyYearly(
-                        current.planName,
+                        current.planLabel(l10n),
                         price,
                       )
                     : l10n.membershipSwitchDowngradeBodyMonthly(
-                        current.planName,
+                        current.planLabel(l10n),
                         price,
                       )),
         ),
@@ -259,7 +265,9 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
       return;
     }
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(l10n.membershipSwitchedSnack(plan.name))),
+      SnackBar(
+        content: Text(l10n.membershipSwitchedSnack(plan.nameLabel(l10n))),
+      ),
     );
   }
 
@@ -316,10 +324,10 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
           content: Text(
             periodEnd == null
                 ? l10n.membershipAutoRenewOffBodyPeriodEnd(
-                    subscription.planName,
+                    subscription.planLabel(l10n),
                   )
                 : l10n.membershipAutoRenewOffBodyDate(
-                    subscription.planName,
+                    subscription.planLabel(l10n),
                     paymentDate(context, periodEnd),
                   ),
           ),
@@ -377,7 +385,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text(l10n.membershipSubscribeTitle(plan.name)),
+        title: Text(l10n.membershipSubscribeTitle(plan.nameLabel(l10n))),
         content: Text(body),
         actions: [
           TextButton(
@@ -409,7 +417,7 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
     final paid = await launchHostedCheckout(
       context,
       checkout: checkout,
-      title: plan.name,
+      title: plan.nameLabel(l10n),
     );
     if (!mounted) {
       return;
@@ -538,9 +546,9 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              AppLocalizations.of(
-                sheetContext,
-              ).membershipCelebrateTitle(plan.name),
+              AppLocalizations.of(sheetContext).membershipCelebrateTitle(
+                plan.nameLabel(AppLocalizations.of(sheetContext)),
+              ),
               textAlign: TextAlign.center,
               style: Theme.of(
                 sheetContext,
@@ -626,7 +634,7 @@ class _CurrentPlanHero extends StatelessWidget {
               children: [
                 Expanded(
                   child: GradientText(
-                    sub?.planName ?? l10n.membershipFreePlanName,
+                    sub?.planLabel(l10n) ?? l10n.membershipFreePlanName,
                     gradient: paid
                         ? LinearGradient(
                             colors: [scheme.primary, scheme.primary],
@@ -979,7 +987,7 @@ class _PlanCard extends StatelessWidget {
                         ),
                       ),
                     Text(
-                      plan.name,
+                      plan.nameLabel(l10n),
                       style: theme.textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.w700,
                       ),
@@ -1067,7 +1075,7 @@ class _PlanCard extends StatelessWidget {
                       ? l10n.membershipSwitching
                       : l10n.membershipOpeningSecureCheckout)
                 : hasOtherLivePlan
-                ? l10n.membershipSwitchToPlan(plan.name)
+                ? l10n.membershipSwitchToPlan(plan.nameLabel(l10n))
                 : l10n.membershipSubscribeWithCard,
             icon: isCurrent
                 ? Icons.check

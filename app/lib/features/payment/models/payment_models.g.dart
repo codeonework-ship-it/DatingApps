@@ -7,46 +7,46 @@ part of 'payment_models.dart';
 // **************************************************************************
 
 _$SubscriptionPlanImpl _$$SubscriptionPlanImplFromJson(
-        Map<String, dynamic> json) =>
-    _$SubscriptionPlanImpl(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      monthlyPrice: (json['monthlyPrice'] as num).toDouble(),
-      yearlyPrice: (json['yearlyPrice'] as num).toDouble(),
-      likesPerDay: (json['likesPerDay'] as num?)?.toInt() ?? 10,
-      messagesPerDay: (json['messagesPerDay'] as num?)?.toInt() ?? 20,
-      advancedFilters: json['advancedFilters'] as bool? ?? false,
-      verifiedBadge: json['verifiedBadge'] as bool? ?? false,
-      prioritySupport: json['prioritySupport'] as bool? ?? false,
-      features: json['features'] as Map<String, dynamic>? ?? const {},
-      description: json['description'] as String?,
-      isActive: json['isActive'] as bool? ?? true,
-      createdAt: json['createdAt'] == null
-          ? null
-          : DateTime.parse(json['createdAt'] as String),
-      updatedAt: json['updatedAt'] == null
-          ? null
-          : DateTime.parse(json['updatedAt'] as String),
-    );
+  Map<String, dynamic> json,
+) => _$SubscriptionPlanImpl(
+  id: json['id'] as String,
+  name: json['name'] as String,
+  monthlyPrice: (json['monthlyPrice'] as num).toDouble(),
+  yearlyPrice: (json['yearlyPrice'] as num).toDouble(),
+  likesPerDay: (json['likesPerDay'] as num?)?.toInt() ?? 10,
+  messagesPerDay: (json['messagesPerDay'] as num?)?.toInt() ?? 20,
+  advancedFilters: json['advancedFilters'] as bool? ?? false,
+  verifiedBadge: json['verifiedBadge'] as bool? ?? false,
+  prioritySupport: json['prioritySupport'] as bool? ?? false,
+  features: json['features'] as Map<String, dynamic>? ?? const {},
+  description: json['description'] as String?,
+  isActive: json['isActive'] as bool? ?? true,
+  createdAt: json['createdAt'] == null
+      ? null
+      : DateTime.parse(json['createdAt'] as String),
+  updatedAt: json['updatedAt'] == null
+      ? null
+      : DateTime.parse(json['updatedAt'] as String),
+);
 
 Map<String, dynamic> _$$SubscriptionPlanImplToJson(
-        _$SubscriptionPlanImpl instance) =>
-    <String, dynamic>{
-      'id': instance.id,
-      'name': instance.name,
-      'monthlyPrice': instance.monthlyPrice,
-      'yearlyPrice': instance.yearlyPrice,
-      'likesPerDay': instance.likesPerDay,
-      'messagesPerDay': instance.messagesPerDay,
-      'advancedFilters': instance.advancedFilters,
-      'verifiedBadge': instance.verifiedBadge,
-      'prioritySupport': instance.prioritySupport,
-      'features': instance.features,
-      'description': instance.description,
-      'isActive': instance.isActive,
-      'createdAt': instance.createdAt?.toIso8601String(),
-      'updatedAt': instance.updatedAt?.toIso8601String(),
-    };
+  _$SubscriptionPlanImpl instance,
+) => <String, dynamic>{
+  'id': instance.id,
+  'name': instance.name,
+  'monthlyPrice': instance.monthlyPrice,
+  'yearlyPrice': instance.yearlyPrice,
+  'likesPerDay': instance.likesPerDay,
+  'messagesPerDay': instance.messagesPerDay,
+  'advancedFilters': instance.advancedFilters,
+  'verifiedBadge': instance.verifiedBadge,
+  'prioritySupport': instance.prioritySupport,
+  'features': instance.features,
+  'description': instance.description,
+  'isActive': instance.isActive,
+  'createdAt': instance.createdAt?.toIso8601String(),
+  'updatedAt': instance.updatedAt?.toIso8601String(),
+};
 
 _$SubscriptionImpl _$$SubscriptionImplFromJson(Map<String, dynamic> json) =>
     _$SubscriptionImpl(

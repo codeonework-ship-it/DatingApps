@@ -21,11 +21,20 @@ String datePlanVenueLabel(AppLocalizations l10n, String category) =>
     };
 
 extension DatePlanLabels on DatePlan {
-  /// [DatePlan.summary] in the member's language and date format:
+  /// The match's name, or "Your match" in the member's language when the
+  /// server sent none.
+  String partnerLabel(AppLocalizations l10n) =>
+      partnerName.trim().isEmpty ? l10n.matchesFallbackName : partnerName;
+
+  /// The plan on one line in the member's language and date format:
   /// "Sa. 28. Sep. · 16:00–18:00 · Kaffee · Indiranagar".
   String localizedSummary(AppLocalizations l10n, {String? locale}) {
     final parts = <String>[
-      describeDatePlanWindow(windowStart, windowEnd, locale: locale),
+      describeDatePlanWindow(
+        windowStart,
+        windowEnd,
+        locale: locale ?? l10n.localeName,
+      ),
       datePlanVenueLabel(l10n, venueCategory),
       if (venueName.isNotEmpty) venueName,
       if (venueArea.isNotEmpty) venueArea,
@@ -35,15 +44,29 @@ extension DatePlanLabels on DatePlan {
 }
 
 extension FriendPlanLabels on FriendPlan {
+  /// The friend's name, or "A friend" in the member's language.
+  String friendLabel(AppLocalizations l10n) =>
+      friendName.trim().isEmpty ? l10n.planSharingFriendFallback : friendName;
+
   /// The friend's plan on one line, in the member's language.
   String localizedSummary(AppLocalizations l10n, {String? locale}) {
     final parts = <String>[
-      describeDatePlanWindow(windowStart, windowEnd, locale: locale),
+      describeDatePlanWindow(
+        windowStart,
+        windowEnd,
+        locale: locale ?? l10n.localeName,
+      ),
       datePlanVenueLabel(l10n, venueCategory),
       if (venueArea.isNotEmpty) venueArea,
     ];
     return parts.join(' · ');
   }
+}
+
+extension DatePlanShareGroupLabels on DatePlanShareGroup {
+  /// The group's name, or "Group" in the member's language.
+  String label(AppLocalizations l10n) =>
+      name.trim().isEmpty ? l10n.groupsDetailTitleFallback : name;
 }
 
 /// A plan status in the member's language. Unknown statuses read as the wire

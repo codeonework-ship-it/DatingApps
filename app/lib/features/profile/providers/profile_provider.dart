@@ -7,6 +7,7 @@ import '../../../core/providers/api_client_provider.dart';
 import '../../../core/utils/logger.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../models/profile_models.dart';
+import '../../../core/network/api_error_message.dart';
 
 part 'profile_provider.g.dart';
 
@@ -259,10 +260,12 @@ class ProfileNotifier extends _$ProfileNotifier {
       );
     } on DioException catch (e, stackTrace) {
       log.error('Failed to load profile', e, stackTrace);
-      final data = e.response?.data;
-      final fromServer = data is Map && data['error'] != null;
+      // A server reason is kept only when the member can read it (a known
+      // error code, or plain English for English readers).
+      final serverMessage = serverErrorMessage(e, fallback: '');
+      final fromServer = serverMessage.isNotEmpty;
       final message = fromServer
-          ? data['error'].toString()
+          ? serverMessage
           : 'Failed to load profile. Please try again.';
       state = state.copyWith(
         isLoading: false,

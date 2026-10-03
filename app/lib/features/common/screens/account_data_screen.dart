@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/layout/app_layout.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
+import '../../../core/widgets/qa_control.dart';
 import '../../../l10n/app_localizations.dart';
 import '../providers/account_lifecycle_provider.dart';
 
@@ -141,9 +142,8 @@ class _DeletionCountdown extends ConsumerWidget {
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: AppLayout.space3),
-            Semantics(
-              label: 'qa.account.cancel_deletion_button',
-              button: true,
+            QaControl(
+              id: 'qa.account.cancel_deletion_button',
               child: FilledButton.icon(
                 key: const ValueKey('qa.account.cancel_deletion_button'),
                 onPressed: lifecycle.deletionCancellable
@@ -182,7 +182,7 @@ class _PauseCard extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final paused = lifecycle.deactivated;
     return _SectionCard(
-      actionLabel: 'qa.account.pause_toggle_button',
+      actionQaId: 'qa.account.pause_toggle_button',
       icon: paused ? Icons.visibility_off_outlined : Icons.pause_circle_outline,
       title: paused ? l10n.accountHiddenTitle : l10n.accountTakeBreakTitle,
       body: paused ? l10n.accountHiddenBody : l10n.accountTakeBreakBody,
@@ -241,7 +241,7 @@ class _ExportCardState extends ConsumerState<_ExportCard> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return _SectionCard(
-      actionLabel: 'qa.account.export_button',
+      actionQaId: 'qa.account.export_button',
       icon: Icons.download_outlined,
       title: l10n.accountDownloadTitle,
       body: l10n.accountDownloadBody,
@@ -341,7 +341,7 @@ class _DeleteCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     return _SectionCard(
-      actionLabel: 'qa.account.delete_button',
+      actionQaId: 'qa.account.delete_button',
       icon: Icons.delete_forever_outlined,
       iconColor: AppTheme.danger,
       title: l10n.accountDeleteTitle,
@@ -388,9 +388,8 @@ class _DeleteCard extends ConsumerWidget {
             onPressed: () => Navigator.of(dialogContext).pop('hide'),
             child: Text(l10n.accountHideInstead),
           ),
-          Semantics(
-            label: 'qa.account.delete_confirm_button',
-            button: true,
+          QaControl(
+            id: 'qa.account.delete_confirm_button',
             child: FilledButton(
               key: const ValueKey('qa.account.delete_confirm_button'),
               onPressed: () => Navigator.of(dialogContext).pop('delete'),
@@ -428,7 +427,7 @@ class _SectionCard extends StatelessWidget {
     required this.title,
     required this.body,
     required this.action,
-    required this.actionLabel,
+    required this.actionQaId,
     this.iconColor,
   });
 
@@ -437,12 +436,13 @@ class _SectionCard extends StatelessWidget {
   final String body;
   final Widget action;
 
-  /// Accessibility label for the action.
+  /// Automation id for the action.
   ///
   /// A `ValueKey` is enough for widget tests but never reaches the
   /// accessibility tree, which is all UiAutomator can read. Both are kept: the
-  /// key for tests in process, this label for tests on a device.
-  final String actionLabel;
+  /// key for tests in process, this semantics identifier (Android resource-id)
+  /// for tests on a device. The button is still announced by its own text.
+  final String actionQaId;
   final Color? iconColor;
 
   @override
@@ -473,7 +473,7 @@ class _SectionCard extends StatelessWidget {
           const SizedBox(height: AppLayout.space4),
           SizedBox(
             width: double.infinity,
-            child: Semantics(label: actionLabel, button: true, child: action),
+            child: QaControl(id: actionQaId, child: action),
           ),
         ],
       ),

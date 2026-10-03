@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+
+import '../../../../core/network/api_error_message.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/glass_widgets.dart';
+import '../../../../core/widgets/qa_id.dart';
+import '../../data/india_master_data.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../providers/preference_master_data_provider.dart';
 import '../../providers/profile_setup_provider.dart';
@@ -259,7 +263,12 @@ class _SetupAboutScreenState extends ConsumerState<SetupAboutScreen> {
                                   ),
                                 ),
                                 error: (e, _) => SetupErrorState(
-                                  message: e.toString(),
+                                  message: apiErrorMessage(
+                                    e,
+                                    fallback: AppLocalizations.of(
+                                      context,
+                                    ).commonSomethingWentWrongTryAgain,
+                                  ),
                                   onRetry: () => ref.invalidate(
                                     profileSetupNotifierProvider,
                                   ),
@@ -366,9 +375,9 @@ class _AboutForm extends StatelessWidget {
           Icons.auto_stories_rounded,
         ),
         const SizedBox(height: 8),
-        Semantics(
-          label: 'qa.setup.about.bio_field',
-          textField: true,
+        QaId(
+          'qa.setup.about.bio_field',
+          label: l10n.profileSetupBioLabel,
           child: TextField(
             key: const ValueKey('qa.setup.about.bio_field'),
             controller: bioController,
@@ -408,9 +417,9 @@ class _AboutForm extends StatelessWidget {
           Icons.height_rounded,
         ),
         const SizedBox(height: 8),
-        Semantics(
-          label: 'qa.setup.about.height_dropdown',
-          button: true,
+        QaId(
+          'qa.setup.about.height_dropdown',
+          label: l10n.profileSetupHeightLabel,
           child: GlassDropdown<int>(
             key: const ValueKey('qa.setup.about.height_dropdown'),
             hint: l10n.profileSetupHeightHint,
@@ -436,9 +445,9 @@ class _AboutForm extends StatelessWidget {
           Icons.school_rounded,
         ),
         const SizedBox(height: 8),
-        Semantics(
-          label: 'qa.setup.about.education_dropdown',
-          button: true,
+        QaId(
+          'qa.setup.about.education_dropdown',
+          label: l10n.profileSetupEducationLabel,
           child: GlassDropdown<String>(
             key: const ValueKey('qa.setup.about.education_dropdown'),
             hint: l10n.profileSetupEducationHint,
@@ -459,9 +468,9 @@ class _AboutForm extends StatelessWidget {
           Icons.work_outline_rounded,
         ),
         const SizedBox(height: 8),
-        Semantics(
-          label: 'qa.setup.about.profession_field',
-          textField: true,
+        QaId(
+          'qa.setup.about.profession_field',
+          label: l10n.profileSetupProfessionLabel,
           child: TextField(
             key: const ValueKey('qa.setup.about.profession_field'),
             controller: professionController,
@@ -520,9 +529,9 @@ class _AboutForm extends StatelessWidget {
           Icons.local_bar_rounded,
         ),
         const SizedBox(height: 8),
-        Semantics(
-          label: 'qa.setup.about.drinking_dropdown',
-          button: true,
+        QaId(
+          'qa.setup.about.drinking_dropdown',
+          label: l10n.profileSetupDrinkingLabel,
           child: GlassDropdown<String>(
             key: const ValueKey('qa.setup.about.drinking_dropdown'),
             hint: l10n.profileSetupSelectHint,
@@ -543,9 +552,9 @@ class _AboutForm extends StatelessWidget {
           Icons.smoking_rooms_rounded,
         ),
         const SizedBox(height: 8),
-        Semantics(
-          label: 'qa.setup.about.smoking_dropdown',
-          button: true,
+        QaId(
+          'qa.setup.about.smoking_dropdown',
+          label: l10n.profileSetupSmokingLabel,
           child: GlassDropdown<String>(
             key: const ValueKey('qa.setup.about.smoking_dropdown'),
             hint: l10n.profileSetupSelectHint,
@@ -571,7 +580,7 @@ class _AboutForm extends StatelessWidget {
           value: religion,
           enabled: !isSaving,
           items: religionOptions,
-          labelBuilder: (v) => v,
+          labelBuilder: (v) => profileOptionLabel(l10n, v),
           onChanged: onReligionChanged,
         ),
 
@@ -581,11 +590,10 @@ class _AboutForm extends StatelessWidget {
         SizedBox(
           width: double.infinity,
           height: 54,
-          child: Semantics(
-            label: isSetupFlow
+          child: QaId(
+            isSetupFlow
                 ? 'qa.setup.about.continue_button'
                 : 'qa.setup.about.save_button',
-            button: true,
             child: GlassButton(
               key: ValueKey<String>(
                 isSetupFlow

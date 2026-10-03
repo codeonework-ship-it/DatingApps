@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../social_chat/social_chat_l10n.dart';
+import '../gift_l10n.dart';
 import '../models/rose_gift.dart';
 import 'rose_gift_glyph.dart';
 
@@ -13,6 +14,7 @@ class MessageBubble extends StatelessWidget {
     this.assisted = false,
     this.receivedGiftFrom,
     this.onGiftActions,
+    this.isDeleted = false,
     super.key,
   });
   final String message;
@@ -26,9 +28,18 @@ class MessageBubble extends StatelessWidget {
   final String? receivedGiftFrom;
   final VoidCallback? onGiftActions;
 
+  /// The message was deleted: the bubble shows the translated placeholder
+  /// whatever text is stored.
+  final bool isDeleted;
+
   @override
   Widget build(BuildContext context) {
-    final content = _resolveMessageContent(message);
+    final content = isDeleted
+        ? const _ResolvedMessageContent(
+            layoutType: _MessageLayoutType.plain,
+            plainText: '',
+          )
+        : _resolveMessageContent(message);
     final gift = content.layoutType != _MessageLayoutType.plain;
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
@@ -179,7 +190,13 @@ class MessageBubble extends StatelessWidget {
       plainBuffer.write(raw.substring(previousEnd));
     }
 
-    final plainText = plainBuffer.toString().trim();
+    var plainText = plainBuffer.toString().trim();
+    if (segments.length == 1 &&
+        _isLegacyGiftCaption(plainText, segments.first.gift)) {
+      // Older app builds stored an English caption with the gift; the
+      // bubble's own translated heading says the same.
+      plainText = '';
+    }
     final layoutType = switch (segments.length) {
       0 => _MessageLayoutType.plain,
       1 =>
@@ -208,6 +225,19 @@ class MessageBubble extends StatelessWidget {
         : isFromCurrentUser
         ? scheme.onPrimary
         : scheme.onSurface;
+
+    if (isDeleted) {
+      return Text(
+        chatL10n(context).chatMessageDeletedPlaceholder,
+        key: const ValueKey('qa.chat.message_deleted'),
+        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+          color: textColor.withValues(alpha: .78),
+          fontSize: 15,
+          height: 1.5,
+          fontStyle: FontStyle.italic,
+        ),
+      );
+    }
 
     if (segments.isEmpty) {
       return Text(
@@ -337,7 +367,11 @@ class MessageBubble extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    gestureGift.giftName,
+                    localizedGiftName(
+                      chatL10n(context),
+                      id: gestureGift.giftId,
+                      serverName: gestureGift.giftName,
+                    ),
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: textColor,
                       fontWeight: FontWeight.w800,
@@ -378,7 +412,9 @@ class MessageBubble extends StatelessWidget {
     children: [
       _buildPill(
         context,
-        label: _giftHeading(context, chatL10n(context).chatGiftForYouHeading),
+        label: isFromCurrentUser
+            ? chatL10n(context).chatGiftYouSentHeading
+            : _giftHeading(context, chatL10n(context).chatGiftForYouHeading),
         color: textColor,
       ),
       const SizedBox(height: 12),
@@ -390,7 +426,11 @@ class MessageBubble extends StatelessWidget {
       ),
       const SizedBox(height: 10),
       Text(
-        gift.name,
+        localizedGiftName(
+          chatL10n(context),
+          id: gift.id,
+          serverName: gift.name,
+        ),
         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
           color: textColor,
           fontWeight: FontWeight.w800,
@@ -582,6 +622,12 @@ class MessageBubble extends StatelessWidget {
       giftPrice: int.tryParse(values['gift_price'] ?? '0') ?? 0,
     );
   }
+
+  /// The English caption older builds stored before a gift token
+  /// ("Send Free Rose 🌹" / "Sent Golden Rose 🌹").
+  bool _isLegacyGiftCaption(String text, _GiftPayload? gift) =>
+      gift != null &&
+      (text == 'Send Free Rose 🌹' || text == 'Sent ${gift.name} 🌹');
 
   String _humanizeGestureType(String raw) =>
       _titleCase(raw.replaceAll('_', ' '));

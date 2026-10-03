@@ -254,4 +254,28 @@ void main() {
       expect(tester.takeException(), isNull, reason: '$locale');
     }
   });
+
+  testWidgets('the date of birth (1998-06-20 on the server) reads in the '
+      "member's own date order [case:l10n-edit-profile-dob-locale-format]", (
+    tester,
+  ) async {
+    for (final (locale, shown) in const [
+      (Locale('de'), '20.6.1998'),
+      (Locale('en'), '6/20/1998'),
+      (Locale('en', 'GB'), '20/06/1998'),
+    ]) {
+      await tester.pumpWidget(const SizedBox());
+      final api = QaApi();
+      ProfileBff(api);
+      await _open(tester, api, locale: locale);
+      final l10n = qaL10n(locale);
+      expect(
+        _row(tester, l10n.profileEditDateOfBirth),
+        shown,
+        reason: '$locale',
+      );
+      // Display only: nothing is written back to the server.
+      expect(api.writes, isEmpty, reason: '$locale');
+    }
+  });
 }

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/connect_brand.dart';
+import '../../../core/widgets/qa_id.dart';
+import '../../common/widgets/language_picker.dart';
 import '../../../l10n/app_localizations.dart';
 import 'auth_screen.dart';
 import 'signup_screen.dart';
@@ -47,9 +49,16 @@ class WelcomeScreen extends StatelessWidget {
                                   child: ConnectBrand(),
                                 ),
                               ),
-                              SizedBox(width: 16),
-                              Expanded(flex: 2, child: _Tagline()),
+                              SizedBox(width: 12),
+                              // Signed out there is no Settings yet: the
+                              // language can be changed right here.
+                              Flexible(flex: 2, child: LanguagePickerButton()),
                             ],
+                          ),
+                          const SizedBox(height: 6),
+                          const Align(
+                            alignment: Alignment.centerRight,
+                            child: _Tagline(),
                           ),
                           SizedBox(height: wide ? 40 : 22),
                           if (wide)
@@ -242,9 +251,8 @@ class _WelcomeInvitation extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 26),
-        Semantics(
-          label: 'qa.welcome.signup_button',
-          button: true,
+        QaId(
+          'qa.welcome.signup_button',
           child: _EmberCta(
             key: const ValueKey('qa.welcome.signup_button'),
             label: l10n.welcomeCreateAccount,
@@ -264,9 +272,8 @@ class _WelcomeInvitation extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 6),
-        Semantics(
-          label: 'qa.welcome.signin_button',
-          button: true,
+        QaId(
+          'qa.welcome.signin_button',
           child: TextButton(
             key: const ValueKey('qa.welcome.signin_button'),
             style: TextButton.styleFrom(

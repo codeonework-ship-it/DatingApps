@@ -8,7 +8,10 @@ import '../../../l10n/app_localizations.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../celebrations/reward_ledger.dart';
 import '../engagement_l10n.dart';
+import '../../../core/network/api_error_message.dart';
 
+// Names below are the server's; they are empty when it sent none and the
+// screen then shows "Level 3" / "Level 3 reward" in the member's language.
 class LevelDefinition {
   const LevelDefinition({
     required this.level,
@@ -21,7 +24,7 @@ class LevelDefinition {
   factory LevelDefinition.fromJson(Map<String, dynamic> json) =>
       LevelDefinition(
         level: (json['level'] as num?)?.toInt() ?? 1,
-        name: json['name']?.toString() ?? 'Level',
+        name: json['name']?.toString() ?? '',
         thresholdXp: (json['threshold_xp'] as num?)?.toInt() ?? 0,
         trustGate: json['trust_gate'] == true,
         rewardSummary: json['reward_summary']?.toString() ?? '',
@@ -48,7 +51,7 @@ class LevelReward {
   factory LevelReward.fromJson(Map<String, dynamic> json) => LevelReward(
     key: json['reward_key']?.toString() ?? '',
     level: (json['level'] as num?)?.toInt() ?? 1,
-    name: json['name']?.toString() ?? 'Level reward',
+    name: json['name']?.toString() ?? '',
     description: json['description']?.toString() ?? '',
     type: json['reward_type']?.toString() ?? 'feature',
     trustRequired: json['trust_required'] == true,
@@ -107,7 +110,7 @@ class LevelProgressionView {
       LevelProgressionView(
         totalXp: (json['total_xp'] as num?)?.toInt() ?? 0,
         currentLevel: (json['current_level'] as num?)?.toInt() ?? 1,
-        levelName: json['level_name']?.toString() ?? 'Onboarded',
+        levelName: json['level_name']?.toString() ?? '',
         currentLevelXp: (json['current_level_xp'] as num?)?.toInt() ?? 0,
         nextLevelXp: (json['next_level_xp'] as num?)?.toInt(),
         progressPercent: (json['progress_percent'] as num?)?.toDouble() ?? 0,
@@ -284,13 +287,8 @@ class LevelProgressionNotifier extends StateNotifier<LevelProgressionState> {
   }
 }
 
-String _apiError(DioException error, String fallback) {
-  final data = error.response?.data;
-  if (data is Map && data['error'] != null) {
-    return data['error'].toString();
-  }
-  return fallback;
-}
+String _apiError(DioException error, String fallback) =>
+    serverErrorMessage(error, fallback: fallback);
 
 const _mockView = LevelProgressionView(
   totalXp: 320,

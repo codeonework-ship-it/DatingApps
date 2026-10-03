@@ -7,6 +7,7 @@ import '../../../core/utils/logger.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../engagement_l10n.dart';
+import '../../../core/network/api_error_message.dart';
 
 class CircleChallengeItem {
   const CircleChallengeItem({
@@ -161,7 +162,9 @@ class CircleChallengeNotifier extends StateNotifier<CircleChallengeState> {
         loaded.add(
           CircleChallengeItem(
             id: view['circle_id']?.toString() ?? circleId,
-            city: challenge['city']?.toString() ?? 'Bengaluru',
+            // No guessed city: the card shows only the topic when the
+            // server sent none.
+            city: challenge['city']?.toString() ?? '',
             topic:
                 challenge['topic']?.toString() ??
                 _l.engagementCirclesTopicFallback,
@@ -327,13 +330,8 @@ class CircleChallengeNotifier extends StateNotifier<CircleChallengeState> {
   }
 }
 
-String _extractApiError(DioException e, {required String fallback}) {
-  final data = e.response?.data;
-  if (data is Map && data['error'] != null) {
-    return data['error'].toString();
-  }
-  return fallback;
-}
+String _extractApiError(DioException e, {required String fallback}) =>
+    serverErrorMessage(e, fallback: fallback);
 
 final circleChallengeProvider =
     StateNotifierProvider<CircleChallengeNotifier, CircleChallengeState>((ref) {

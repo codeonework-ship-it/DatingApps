@@ -189,7 +189,7 @@ void main() {
       await tester.tap(find.widgetWithText(FilledButton, 'Remove permission'));
       await _settle(tester);
       expect(
-        find.text(qaL10n(const Locale('en')).networkCannotReachService),
+        find.text(qaL10n(const Locale('en')).networkOfflineTryAgain),
         findsOneWidget,
       );
       expect(find.text('Alice'), findsOneWidget);

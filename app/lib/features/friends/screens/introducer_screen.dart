@@ -7,6 +7,7 @@ import '../../../core/providers/api_client_provider.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../common/screens/account_data_screen.dart';
+import '../../common/widgets/language_picker.dart';
 import '../../intentional_dating/dating_rhythm.dart';
 import '../providers/introducer_provider.dart';
 
@@ -108,6 +109,9 @@ class _IntroducerScreenState extends ConsumerState<IntroducerScreen> {
               : l10n.friendsIntroducerAppTitle,
         ),
         actions: [
+          // Introducer accounts have no Settings screen: the language is
+          // chosen here (it is saved to the account).
+          if (!member) const LanguagePickerButton(iconOnly: true),
           IconButton(
             tooltip: l10n.friendsIntroducerRefresh,
             onPressed: _busy

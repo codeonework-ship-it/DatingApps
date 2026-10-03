@@ -28,6 +28,9 @@ abstract final class SupportLimits {
   static const bodyMax = 5000;
   static const ratingCommentMax = 1000;
   static const attachmentsPerMessage = 5;
+
+  /// Largest screenshot the server accepts (8 MB); checked before uploading.
+  static const imageMaxBytes = 8 * 1024 * 1024;
 }
 
 /// Member-facing status groups. `new` and `open` both read as "Open".

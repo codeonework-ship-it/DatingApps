@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/i18n/number_formats.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
 import '../../../l10n/app_localizations.dart';
@@ -8,6 +9,7 @@ import '../platform/checkout_launcher.dart';
 import '../providers/subscription_provider.dart';
 import '../providers/wallet_provider.dart';
 import 'payment_l10n.dart';
+import '../../support/widgets/support_entry_points.dart';
 
 /// Wallet: coin balance, coin packs bought by card through the provider's
 /// hosted checkout, and the credit history. The balance shown always comes
@@ -67,6 +69,11 @@ class _WalletPaymentScreenState extends ConsumerState<WalletPaymentScreen> {
                       state.error!,
                     ),
                     isError: true,
+                  ),
+                  SupportContactLink(
+                    key: const Key('wallet_contact_support'),
+                    label: l10n.supportPaymentHelpLink,
+                    category: 'payments_billing',
                   ),
                 ],
                 const SizedBox(height: 24),
@@ -246,7 +253,9 @@ class _BalanceHero extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   GradientText(
-                    AppLocalizations.of(context).paymentCoinCount(balance),
+                    AppLocalizations.of(
+                      context,
+                    ).paymentWalletBalanceCoins(balance),
                     gradient: LinearGradient(
                       colors: [scheme.onSurface, scheme.onSurface],
                     ),
@@ -307,7 +316,9 @@ class _PackageCard extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  package.label,
+                  package.label.trim().isEmpty
+                      ? l10n.membershipPaymentReasonCoins
+                      : package.label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -320,7 +331,7 @@ class _PackageCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            '${package.totalCoins}',
+            formatCount(context, package.totalCoins),
             style: theme.textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.w900,
               color: accent,
@@ -401,7 +412,7 @@ class _PurchaseRow extends StatelessWidget {
         style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
       ),
       trailing: Text(
-        '+${purchase.coins}',
+        '+${formatCount(context, purchase.coins)}',
         style: const TextStyle(
           fontWeight: FontWeight.w800,
           color: AppTheme.successGreen,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/i18n/number_formats.dart';
 import '../../l10n/app_localizations.dart';
 import '../auth/providers/auth_provider.dart';
 import 'photo_theme_widgets.dart';
@@ -217,7 +218,7 @@ class PhotoCoverCard extends ConsumerWidget {
                           semanticLabel: l10n.photoThemesLikes,
                         ),
                         const SizedBox(width: 4),
-                        Text('$likes', style: small),
+                        Text(formatCount(context, likes), style: small),
                         const SizedBox(width: 8),
                         Icon(
                           Icons.chat_bubble_rounded,
@@ -227,7 +228,10 @@ class PhotoCoverCard extends ConsumerWidget {
                           semanticLabel: l10n.photoThemesComments,
                         ),
                         const SizedBox(width: 4),
-                        Text('${entry.commentCount}', style: small),
+                        Text(
+                          formatCount(context, entry.commentCount),
+                          style: small,
+                        ),
                       ],
                     ),
                   ],

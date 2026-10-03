@@ -205,7 +205,7 @@ void main() {
         w.api.offline('PUT /clubs/*/posts/*');
         await t.tap(find.text('Post'));
         await qaSettle(t, frames: 50);
-        expect(qaSnackText(t), en.networkCannotReachService);
+        expect(qaSnackText(t), en.networkOfflineTryAgain);
         expect(_typed(t), 'Matthew Rose Sorensen!');
 
         w.heal('PUT /clubs/*/posts/*');

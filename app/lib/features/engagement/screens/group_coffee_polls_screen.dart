@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/widgets/glass_widgets.dart';
 import '../../../l10n/app_localizations.dart';
@@ -19,9 +20,9 @@ class _GroupCoffeePollsScreenState
   final TextEditingController _participantsController = TextEditingController();
   final TextEditingController _deadlineController = TextEditingController();
 
-  final TextEditingController _dayOneController = TextEditingController(
-    text: 'Saturday',
-  );
+  // Weekend days are filled in the member's language once the locale is
+  // known (didChangeDependencies); the member can type any day.
+  final TextEditingController _dayOneController = TextEditingController();
   final TextEditingController _timeOneController = TextEditingController(
     text: '10:00-12:00',
   );
@@ -29,9 +30,7 @@ class _GroupCoffeePollsScreenState
     text: 'Indiranagar',
   );
 
-  final TextEditingController _dayTwoController = TextEditingController(
-    text: 'Sunday',
-  );
+  final TextEditingController _dayTwoController = TextEditingController();
   final TextEditingController _timeTwoController = TextEditingController(
     text: '11:00-13:00',
   );
@@ -40,6 +39,21 @@ class _GroupCoffeePollsScreenState
   );
 
   final TextEditingController _actorUserController = TextEditingController();
+
+  bool _defaultDaysFilled = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_defaultDaysFilled) {
+      return;
+    }
+    _defaultDaysFilled = true;
+    final weekday = DateFormat.EEEE(engagementL10n(context).localeName);
+    // 3 and 4 October 2026 are a Saturday and a Sunday.
+    _dayOneController.text = weekday.format(DateTime(2026, 10, 3));
+    _dayTwoController.text = weekday.format(DateTime(2026, 10, 4));
+  }
 
   @override
   void dispose() {

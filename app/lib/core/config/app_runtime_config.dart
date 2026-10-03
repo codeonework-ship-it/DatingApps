@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
+import '../constants/app_constants.dart';
+
 /// Centralized runtime configuration for Flutter app behavior.
 ///
 /// Priority order for each value:
@@ -36,7 +38,7 @@ class AppRuntimeConfig {
   static String get appName => _pick(<String>[
     _fromEnv('APP_NAME'),
     const String.fromEnvironment('APP_NAME'),
-  ], 'Connect');
+  ], AppBrand.name);
 
   static ThemeMode get themeMode {
     final raw = _pick(<String>[

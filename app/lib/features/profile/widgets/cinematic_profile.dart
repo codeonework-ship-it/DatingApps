@@ -767,7 +767,7 @@ class ProfileBarButton extends StatelessWidget {
     required this.onPressed,
     super.key,
     this.buttonKey,
-    this.semanticsLabel,
+    this.qaId,
   });
 
   final IconData icon;
@@ -777,8 +777,9 @@ class ProfileBarButton extends StatelessWidget {
   /// Key for the inner [IconButton] (automation).
   final Key? buttonKey;
 
-  /// Extra semantics label (automation handles that tests rely on).
-  final String? semanticsLabel;
+  /// Automation id (a semantics identifier; the button is announced by its
+  /// localized [tooltip]).
+  final String? qaId;
 
   @override
   Widget build(BuildContext context) {
@@ -790,10 +791,12 @@ class ProfileBarButton extends StatelessWidget {
         onPressed: onPressed,
       ),
     );
-    if (semanticsLabel == null) {
+    if (qaId == null) {
       return button;
     }
-    return Semantics(label: semanticsLabel, button: true, child: button);
+    return MergeSemantics(
+      child: Semantics(identifier: qaId, child: button),
+    );
   }
 }
 
@@ -837,7 +840,7 @@ class ProfilePhotoReel extends StatefulWidget {
     super.key,
     this.firstIndex = 1,
     this.carouselKey,
-    this.carouselSemanticsLabel,
+    this.carouselQaId,
     this.frameKeyPrefix,
   });
 
@@ -852,11 +855,11 @@ class ProfilePhotoReel extends StatefulWidget {
   /// was looking at when they closed it.
   final Future<int?> Function(int index) onOpen;
 
-  /// Automation key and label for the strip.
+  /// Automation key and id (semantics identifier) for the strip.
   final Key? carouselKey;
-  final String? carouselSemanticsLabel;
+  final String? carouselQaId;
 
-  /// Frame keys are `<prefix><photo index>`.
+  /// Frame keys and automation ids are `<prefix><photo index>`.
   final String? frameKeyPrefix;
 
   @override
@@ -945,15 +948,14 @@ class _ProfilePhotoReelState extends State<ProfilePhotoReel> {
                     key: widget.frameKeyPrefix == null
                         ? null
                         : ValueKey<String>('${widget.frameKeyPrefix}$index'),
-                    semanticsLabel: [
-                      if (widget.frameKeyPrefix != null)
-                        '${widget.frameKeyPrefix}$index',
-                      l10n.memberProfilePhotoLabel(
-                        widget.name,
-                        index + 1,
-                        total,
-                      ),
-                    ].join('\n'),
+                    qaId: widget.frameKeyPrefix == null
+                        ? null
+                        : '${widget.frameKeyPrefix}$index',
+                    semanticsLabel: l10n.memberProfilePhotoLabel(
+                      widget.name,
+                      index + 1,
+                      total,
+                    ),
                     hint: l10n.memberProfileViewPhotoHint,
                     number: index + 1,
                     gap: gap,
@@ -994,12 +996,12 @@ class _ProfilePhotoReelState extends State<ProfilePhotoReel> {
               ),
             ),
             const SizedBox(height: ConnectMetrics.cardGap),
-            if (widget.carouselSemanticsLabel == null)
+            if (widget.carouselQaId == null)
               strip
             else
               Semantics(
                 container: true,
-                label: widget.carouselSemanticsLabel,
+                identifier: widget.carouselQaId,
                 child: strip,
               ),
             const SizedBox(height: 12),
@@ -1021,6 +1023,7 @@ class _ProfilePhotoReelState extends State<ProfilePhotoReel> {
 class _ReelFrame extends StatelessWidget {
   const _ReelFrame({
     required this.semanticsLabel,
+    this.qaId,
     required this.hint,
     required this.number,
     required this.gap,
@@ -1032,6 +1035,9 @@ class _ReelFrame extends StatelessWidget {
   });
 
   final String semanticsLabel;
+
+  /// Automation id for the frame (a semantics identifier, never spoken).
+  final String? qaId;
   final String hint;
   final int number;
   final double gap;
@@ -1045,6 +1051,7 @@ class _ReelFrame extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final perforation = scheme.surface;
     return Semantics(
+      identifier: qaId,
       button: true,
       image: true,
       selected: selected,

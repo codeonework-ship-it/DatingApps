@@ -6,6 +6,7 @@ import '../../../core/providers/runtime_feature_flags_provider.dart';
 import '../../../core/providers/safety_actions_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
+import '../../../core/widgets/qa_control.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../calls/screens/call_history_screen.dart';
 import '../../calls/screens/call_session_screen.dart';
@@ -418,7 +419,8 @@ class _MatchesListScreenState extends ConsumerState<MatchesListScreen> {
                       ),
                       child: conversations
                           ? Semantics(
-                              label: 'qa.matches.match_row.${match.id}',
+                              container: true,
+                              identifier: 'qa.matches.match_row.${match.id}',
                               button: true,
                               child: MatchCard(
                                 key: ValueKey(
@@ -683,9 +685,8 @@ class _MatchesListScreenState extends ConsumerState<MatchesListScreen> {
                 });
               },
             ),
-          Semantics(
-            label: 'qa.matches.unmatch_action',
-            button: true,
+          QaControl(
+            id: 'qa.matches.unmatch_action',
             child: ListTile(
               key: const ValueKey('qa.matches.unmatch_action'),
               leading: Icon(
@@ -730,9 +731,8 @@ class _MatchesListScreenState extends ConsumerState<MatchesListScreen> {
               },
             ),
           ),
-          Semantics(
-            label: 'qa.matches.report_action',
-            button: true,
+          QaControl(
+            id: 'qa.matches.report_action',
             child: ListTile(
               key: const ValueKey('qa.matches.report_action'),
               leading: const Icon(

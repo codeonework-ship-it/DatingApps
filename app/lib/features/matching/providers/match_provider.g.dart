@@ -14,14 +14,14 @@ String _$matchNotifierHash() => r'f46d4c2c3fe4d2e8e22ee3e6218999a3522a635b';
 @ProviderFor(MatchNotifier)
 final matchNotifierProvider =
     AutoDisposeNotifierProvider<MatchNotifier, MatchState>.internal(
-  MatchNotifier.new,
-  name: r'matchNotifierProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$matchNotifierHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+      MatchNotifier.new,
+      name: r'matchNotifierProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$matchNotifierHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
 
 typedef _$MatchNotifier = AutoDisposeNotifier<MatchState>;
 // ignore_for_file: type=lint

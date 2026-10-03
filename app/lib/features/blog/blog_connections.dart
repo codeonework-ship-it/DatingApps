@@ -380,14 +380,23 @@ class _BlogConnectionsState extends ConsumerState<BlogConnectionsScreen> {
                                                   CrossAxisAlignment.start,
                                               children: [
                                                 Text(
-                                                  item['title'] as String,
+                                                  _isUnavailablePublication(
+                                                        item,
+                                                      )
+                                                      ? l10n.blogPublicationUnavailableTitle
+                                                      : item['title'] as String,
                                                   style: Theme.of(
                                                     context,
                                                   ).textTheme.titleLarge,
                                                 ),
                                                 const SizedBox(height: 12),
                                                 SelectableText(
-                                                  item['excerpt'] as String,
+                                                  _isUnavailablePublication(
+                                                        item,
+                                                      )
+                                                      ? l10n.blogPublicationUnavailableExcerpt
+                                                      : item['excerpt']
+                                                            as String,
                                                   key: ValueKey(
                                                     'qa.blog.connections.excerpt.${item['id']}',
                                                   ),
@@ -411,8 +420,9 @@ class _BlogConnectionsState extends ConsumerState<BlogConnectionsScreen> {
                                                     if (item['joint'] == true &&
                                                         item['my_approval'] !=
                                                             true &&
-                                                        item['title'] !=
-                                                            'Sharing unavailable')
+                                                        !_isUnavailablePublication(
+                                                          item,
+                                                        ))
                                                       FilledButton(
                                                         key: ValueKey(
                                                           'qa.blog.connections.approve_copy.${item['id']}',
@@ -493,7 +503,8 @@ class _BlogConnectionsState extends ConsumerState<BlogConnectionsScreen> {
                                                   CrossAxisAlignment.start,
                                               children: [
                                                 Text(
-                                                  '${item['content_type']} · ${item['status']}',
+                                                  '${blogNoticeKindLabel(l10n, item['content_type'])} · '
+                                                  '${blogNoticeStatusLabel(l10n, item['status'])}',
                                                   style: Theme.of(
                                                     context,
                                                   ).textTheme.titleMedium,
@@ -939,4 +950,48 @@ class _BlogExchangeState extends ConsumerState<BlogExchangeScreen> {
           ),
     );
   }
+}
+
+/// The server's English title for a shared public copy whose source changed
+/// or was withdrawn (`blog_publications.go`). The list carries no flag for
+/// it, so the app recognises the title and shows its own translated text.
+const _kUnavailablePublicationTitle = 'Sharing unavailable';
+
+bool _isUnavailablePublication(Map<String, dynamic> item) =>
+    item['title'] == _kUnavailablePublicationTitle;
+
+/// What a review notice is about, as a translated noun. Unknown kinds read
+/// as "Content" rather than a raw code.
+String blogNoticeKindLabel(AppLocalizations l, Object? kind) => switch (kind) {
+  'post' => l.blogNoticeKindPost,
+  'response' => l.blogNoticeKindResponse,
+  'publication' => l.blogNoticeKindPublication,
+  'theme_entry' => l.blogNoticeKindThemeEntry,
+  'club' => l.blogNoticeKindClub,
+  'club_post' => l.blogNoticeKindClubPost,
+  'review' => l.blogNoticeKindReview,
+  'list' => l.blogNoticeKindList,
+  'comment' => l.blogNoticeKindComment,
+  'photo_comment' => l.blogNoticeKindPhotoComment,
+  'social_message' => l.blogNoticeKindChatMessage,
+  'group' => l.blogNoticeKindGroup,
+  _ => l.blogNoticeKindOther,
+};
+
+/// A review notice's outcome, translated. An unknown status is shown as
+/// words ("needs_info" → "Needs info"), never as a raw code.
+String blogNoticeStatusLabel(AppLocalizations l, Object? status) =>
+    switch (status) {
+      'pending' => l.blogNoticeStatusPending,
+      'dismissed' => l.blogNoticeStatusDismissed,
+      'removed' => l.blogNoticeStatusRemoved,
+      'restored' => l.blogNoticeStatusRestored,
+      _ => _humanizeCode('${status ?? ''}'),
+    };
+
+String _humanizeCode(String code) {
+  final words = code.trim().replaceAll(RegExp(r'[_\-]+'), ' ').trim();
+  return words.isEmpty
+      ? words
+      : '${words[0].toUpperCase()}${words.substring(1).toLowerCase()}';
 }

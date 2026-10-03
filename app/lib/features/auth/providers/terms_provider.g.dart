@@ -12,14 +12,14 @@ String _$termsAcceptanceHash() => r'76118ec277adceff61a45967f8039270234fd8a2';
 @ProviderFor(TermsAcceptance)
 final termsAcceptanceProvider =
     AutoDisposeAsyncNotifierProvider<TermsAcceptance, bool>.internal(
-  TermsAcceptance.new,
-  name: r'termsAcceptanceProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$termsAcceptanceHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+      TermsAcceptance.new,
+      name: r'termsAcceptanceProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$termsAcceptanceHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
 
 typedef _$TermsAcceptance = AutoDisposeAsyncNotifier<bool>;
 // ignore_for_file: type=lint

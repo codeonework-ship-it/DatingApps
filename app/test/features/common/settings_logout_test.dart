@@ -59,7 +59,7 @@ Override _recordingPush() => pushNotificationServiceProvider.overrideWith(
 );
 
 Future<ProviderContainer> _openSettings(WidgetTester tester, QaApi api) async {
-  await pumpQa(tester, api, const SettingsScreen(), extra: [_recordingPush()]);
+  await pumpQa(tester, api, const SettingsScreen(), extra: [_recordingPush(), idleNotificationsOverride()]);
   final container = ProviderScope.containerOf(
     tester.element(find.byType(SettingsScreen)),
   );

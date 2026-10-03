@@ -174,7 +174,7 @@ void main() {
     await _tap(tester, 'qa.notifications.push');
 
     expect(_switch(tester, 'qa.notifications.push').value, isTrue);
-    expect(_errorText(tester), en.networkCannotReachService);
+    expect(_errorText(tester), en.networkOfflineTryAgain);
   });
 
   testWidgets(

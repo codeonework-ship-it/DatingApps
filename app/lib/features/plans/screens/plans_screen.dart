@@ -131,7 +131,7 @@ class _MyPlanTile extends StatelessWidget {
           builder: (_) => ChatScreen(
             matchId: plan.matchId,
             otherUserId: plan.partnerUserId,
-            userName: plan.partnerName,
+            userName: plan.partnerLabel(l10n),
             userPhotoUrl: '',
           ),
         ),
@@ -143,7 +143,7 @@ class _MyPlanTile extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  l10n.plansWith(plan.partnerName),
+                  l10n.plansWith(plan.partnerLabel(l10n)),
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
@@ -179,7 +179,7 @@ class _MyPlanTile extends StatelessWidget {
   String _nextActionLine(AppLocalizations l10n, DatePlan plan) =>
       switch (plan.nextAction) {
         'decide' => l10n.plansNextDecide,
-        'await_decision' => l10n.plansNextAwait(plan.partnerName),
+        'await_decision' => l10n.plansNextAwait(plan.partnerLabel(l10n)),
         'upcoming' => l10n.plansNextUpcoming,
         'checkin' => l10n.plansNextCheckin,
         'debrief' => l10n.plansNextDebrief,
@@ -244,7 +244,7 @@ class _FriendPlanTile extends StatelessWidget {
         ? AppTheme.successGreen
         : theme.colorScheme.primary;
     return Semantics(
-      label: 'qa.plans.friend.${plan.latestUpdate}',
+      identifier: 'qa.plans.friend.${plan.latestUpdate}',
       container: true,
       child: GlassContainer(
         key: ValueKey('qa.plans.friend.${plan.planId}'),
@@ -307,13 +307,13 @@ class _FriendPlanTile extends StatelessWidget {
   String _footer(AppLocalizations l10n, FriendPlan plan) {
     final via = plan.via == 'group' ? l10n.plansViaGroup : l10n.plansViaFriend;
     if (plan.needsHelp) {
-      return l10n.plansFriendNeedsHelp(plan.friendName);
+      return l10n.plansFriendNeedsHelp(plan.friendLabel(l10n));
     }
     if (plan.missedCheckin) {
-      return l10n.plansFriendMissedCheckin(plan.friendName);
+      return l10n.plansFriendMissedCheckin(plan.friendLabel(l10n));
     }
     if (plan.checkedInSafe) {
-      return l10n.plansFriendCheckedInSafe(plan.friendName, via);
+      return l10n.plansFriendCheckedInSafe(plan.friendLabel(l10n), via);
     }
     return l10n.plansFriendStatusLine(via, _statusWord(l10n, plan.status));
   }

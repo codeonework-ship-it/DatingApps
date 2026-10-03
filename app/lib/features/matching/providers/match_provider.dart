@@ -6,6 +6,7 @@ import '../../../core/config/feature_flags.dart';
 import '../../../core/providers/api_client_provider.dart';
 import '../../../core/utils/logger.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../../core/network/api_error_message.dart';
 
 part 'match_provider.g.dart';
 
@@ -188,10 +189,7 @@ class MatchNotifier extends _$MatchNotifier {
       );
     } on DioException catch (e, stackTrace) {
       log.error('Failed to load matches', e, stackTrace);
-      final data = e.response?.data;
-      final message = data is Map && data['error'] != null
-          ? data['error'].toString()
-          : kMatchesLoadError;
+      final message = serverErrorMessage(e, fallback: kMatchesLoadError);
       state = state.copyWith(error: message, isLoading: false);
     } catch (e, stackTrace) {
       log.error('Failed to load matches', e, stackTrace);

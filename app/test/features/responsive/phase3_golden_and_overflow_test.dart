@@ -102,11 +102,15 @@ Widget _setupApp(ProfileDraft draft) => ProviderScope(
   ),
 );
 
-Widget _welcomeApp() => MaterialApp(
-  theme: AppTheme.lightTheme,
-  localizationsDelegates: AppLocalizations.localizationsDelegates,
-  supportedLocales: AppLocalizations.supportedLocales,
-  home: const WelcomeScreen(),
+// The welcome screen's language button reads the app language provider, so
+// it needs a ProviderScope like the app gives it.
+Widget _welcomeApp() => ProviderScope(
+  child: MaterialApp(
+    theme: AppTheme.lightTheme,
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
+    home: const WelcomeScreen(),
+  ),
 );
 
 Widget _discoverApp() => ProviderScope(

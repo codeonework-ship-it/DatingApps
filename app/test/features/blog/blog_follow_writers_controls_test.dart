@@ -169,7 +169,7 @@ void main() {
           });
         await pumpQa(tester, api, const BlogDetailScreen(id: 'p1'));
         await _tap(tester, find.byKey(_follow));
-        expect(qaSnackText(tester), _en.networkCannotReachService);
+        expect(qaSnackText(tester), _en.networkOfflineTryAgain);
         expect(_label(tester), _en.blogFollowingButton);
         expect(find.text(_en.blogFollowerCount(5)), findsOneWidget);
 

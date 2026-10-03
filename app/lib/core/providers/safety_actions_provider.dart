@@ -5,6 +5,7 @@ import '../../features/auth/providers/auth_provider.dart';
 import '../config/feature_flags.dart';
 import '../i18n/app_l10n.dart';
 import 'api_client_provider.dart';
+import '../network/api_error_message.dart';
 
 final safetyActionsProvider = Provider<SafetyActions>(SafetyActions.new);
 
@@ -42,11 +43,9 @@ class SafetyActions {
       final reportId = report?['id']?.toString();
       return reportId == null || reportId.trim().isEmpty ? null : reportId;
     } on DioException catch (e) {
-      final data = e.response?.data;
-      if (data is Map && data['error'] != null) {
-        throw StateError(data['error'].toString());
-      }
-      throw StateError(appL10nOf(_ref).safetyReportFailed);
+      throw StateError(
+        serverErrorMessage(e, fallback: appL10nOf(_ref).safetyReportFailed),
+      );
     }
   }
 

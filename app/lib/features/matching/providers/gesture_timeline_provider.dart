@@ -5,6 +5,7 @@ import '../../../core/config/feature_flags.dart';
 import '../../../core/providers/api_client_provider.dart';
 import '../../../core/utils/logger.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../../core/network/api_error_message.dart';
 
 // Client fallback messages. They double as codes for translation via
 // localizeGestureTimelineError (matching_l10n.dart); server errors pass
@@ -327,7 +328,11 @@ class GestureTimelineNotifier extends StateNotifier<GestureTimelineState> {
       final responseMap = responseError is Map
           ? responseError.cast<String, dynamic>()
           : const <String, dynamic>{};
-      final apiMessage = responseMap['error']?.toString();
+      // Known codes translated; raw server text only in English and never
+      // when technical (apiErrorMessage policy).
+      final apiMessage = responseMap.isEmpty
+          ? null
+          : serverErrorMessage(e, fallback: '');
       log.error('Failed to create gesture', e, stackTrace, {
         'correlation_id': correlationId,
         'match_id': _matchId,

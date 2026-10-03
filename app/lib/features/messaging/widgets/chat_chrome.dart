@@ -339,7 +339,8 @@ class ChatComposer extends StatelessWidget {
                         ): onSend,
                       },
                       child: Semantics(
-                        label: 'qa.chat.composer',
+                        container: true,
+                        identifier: 'qa.chat.composer',
                         child: TextField(
                           key: const ValueKey('qa.chat.composer'),
                           controller: controller,

@@ -15,6 +15,7 @@ import 'package:verified_dating_app/core/providers/api_client_provider.dart';
 import 'package:verified_dating_app/core/providers/runtime_feature_flags_provider.dart';
 import 'package:verified_dating_app/core/theme/app_theme.dart';
 import 'package:verified_dating_app/features/auth/providers/auth_provider.dart';
+import 'package:verified_dating_app/features/notifications/providers/notification_provider.dart';
 import 'package:verified_dating_app/l10n/app_localizations.dart';
 
 /// One request the app sent.
@@ -328,4 +329,17 @@ String? qaSnackText(WidgetTester tester) {
       .map((e) => (e.widget as Text).data ?? '')
       .where((t) => t.isNotEmpty)
       .join(' ');
+}
+
+/// A notification provider that loads nothing and opens no realtime socket,
+/// for screens tested on their own that only read the unread count (e.g.
+/// Settings' "Notification inbox" row). In the app the main navigation keeps
+/// the real connection open.
+Override idleNotificationsOverride() => notificationProvider.overrideWith(_IdleNotifications.new);
+
+class _IdleNotifications extends NotificationNotifier {
+  _IdleNotifications(super.ref);
+
+  @override
+  Future<void> bootstrap() async {}
 }

@@ -275,7 +275,13 @@ void main() {
 
         await _type(tester, _deadline, '2020-01-01T00:00:00Z');
         await _tap(tester, _create);
-        expect(find.text('deadline_at must be in the future'), findsOneWidget);
+        // A server reason naming an API field (deadline_at) is technical:
+        // the member reads the translated create failure instead.
+        expect(find.text('deadline_at must be in the future'), findsNothing);
+        expect(
+          find.text(qaL10n(const Locale('en')).engagementCoffeeCreateFailed),
+          findsOneWidget,
+        );
         expect(
           qaFieldText(tester, find.byKey(_deadline)),
           '2020-01-01T00:00:00Z',
@@ -363,10 +369,16 @@ void main() {
                 as Map)[bodyKey],
             '',
           );
+          // The server's reason names API fields (time_window), so it is
+          // technical: the member reads the translated create failure.
           expect(
             find.text(
               'each option requires day, time_window, and neighborhood',
             ),
+            findsNothing,
+          );
+          expect(
+            find.text(qaL10n(const Locale('en')).engagementCoffeeCreateFailed),
             findsOneWidget,
           );
           expect(qaFieldText(tester, find.byKey(key)), '   ');
@@ -379,9 +391,7 @@ void main() {
                   as String;
           expect(sent.codeUnits, unicode.codeUnits);
           expect(
-            find.text(
-              'each option requires day, time_window, and neighborhood',
-            ),
+            find.text(qaL10n(const Locale('en')).engagementCoffeeCreateFailed),
             findsNothing,
           );
         },
@@ -658,6 +668,31 @@ void main() {
         expect(find.text(l.engagementCoffeeFinalize), findsOneWidget);
         await qaUnmount(tester);
       }
+    },
+  );
+
+  testWidgets(
+    'the prefilled weekend days are German for a German member and are sent '
+    'as shown [case:l10n-coffee-poll-default-days-german]',
+    (tester) async {
+      final api = _api([])..json('POST $_list', {'poll': _poll()});
+      await pumpQa(
+        tester,
+        api,
+        const GroupCoffeePollsScreen(),
+        locale: const Locale('de'),
+      );
+      expect(find.text('Samstag'), findsOneWidget);
+      expect(find.text('Sonntag'), findsOneWidget);
+      expect(find.text('Saturday'), findsNothing);
+
+      await _type(tester, _participants, 'ana, ravi');
+      await _tap(tester, _create);
+
+      final options =
+          api.sent('POST', _list).single.body['options'] as List<dynamic>;
+      expect(options.map((o) => (o as Map)['day']), ['Samstag', 'Sonntag']);
+      await qaUnmount(tester);
     },
   );
 }

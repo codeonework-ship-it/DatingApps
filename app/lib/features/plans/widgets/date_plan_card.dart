@@ -52,7 +52,7 @@ class DatePlanCard extends ConsumerWidget {
           state.snapshot.history.isNotEmpty &&
           state.snapshot.history.first.mutualSecondYes) {
         return _Shell(
-          semanticsLabel: 'qa.plan.second_yes',
+          qaId: 'qa.plan.second_yes',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -80,7 +80,7 @@ class DatePlanCard extends ConsumerWidget {
         return const SizedBox.shrink();
       }
       return _Shell(
-        semanticsLabel: 'qa.plan.card.propose',
+        qaId: 'qa.plan.card.propose',
         child: Row(
           children: [
             Icon(
@@ -127,7 +127,7 @@ class DatePlanCard extends ConsumerWidget {
 
     final ownCheckin = plan.checkinFor(viewerId);
     return _Shell(
-      semanticsLabel: 'qa.plan.card.${plan.status}',
+      qaId: 'qa.plan.card.${plan.status}',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -258,21 +258,23 @@ class DatePlanCard extends ConsumerWidget {
 }
 
 class _Shell extends StatelessWidget {
-  const _Shell({required this.semanticsLabel, required this.child});
+  const _Shell({required this.qaId, required this.child});
 
-  final String semanticsLabel;
+  /// Automation id (semantics identifier and key); the card is read by its
+  /// own text.
+  final String qaId;
   final Widget child;
 
   @override
   Widget build(BuildContext context) => Semantics(
-    label: semanticsLabel,
+    identifier: qaId,
     container: true,
     // The chat screen caps the card's height; the card scrolls inside that
     // cap at large text scales so the conversation stays usable.
     child: SingleChildScrollView(
       physics: const ClampingScrollPhysics(),
       child: GlassContainer(
-        key: ValueKey(semanticsLabel),
+        key: ValueKey(qaId),
         margin: const EdgeInsets.fromLTRB(16, 8, 16, 4),
         padding: const EdgeInsets.all(16),
         backgroundColor: Theme.of(context).colorScheme.surface,
@@ -480,7 +482,7 @@ class _Actions extends ConsumerWidget {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text(l10n.planCancelDialogTitle),
-        content: Text(l10n.planCancelDialogBody(plan.partnerName)),
+        content: Text(l10n.planCancelDialogBody(plan.partnerLabel(l10n))),
         actions: [
           TextButton(
             key: const ValueKey('qa.plan.keep_it'),

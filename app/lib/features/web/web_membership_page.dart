@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../payment/providers/subscription_provider.dart';
+import '../payment/screens/payment_l10n.dart';
 
 /// Read-only browser surface while the separately owned native checkout is
 /// integrated. Never instantiate a native WebView in a web build.
@@ -46,10 +47,16 @@ class _WebMembershipPageState extends ConsumerState<WebMembershipPage> {
               const SizedBox(height: 24),
               if (state.subscription != null) ...[
                 Text(
-                  l10n.webMembershipCurrent(state.subscription!.planName),
+                  l10n.webMembershipCurrent(
+                    state.subscription!.planLabel(l10n),
+                  ),
                   style: theme.textTheme.titleMedium,
                 ),
-                Text(l10n.webMembershipStatus(state.subscription!.status)),
+                Text(
+                  l10n.webMembershipStatus(
+                    _statusLabel(l10n, state.subscription!),
+                  ),
+                ),
                 const SizedBox(height: 24),
               ],
               SegmentedButton<String>(
@@ -70,7 +77,7 @@ class _WebMembershipPageState extends ConsumerState<WebMembershipPage> {
               const SizedBox(height: 24),
               if (state.isLoading) const LinearProgressIndicator(),
               if (state.error != null) ...[
-                Text(state.error!),
+                Text(paymentErrorText(l10n, state.errorCode, state.error!)),
                 TextButton(
                   onPressed: () =>
                       ref.read(subscriptionProvider.notifier).load(),
@@ -84,13 +91,20 @@ class _WebMembershipPageState extends ConsumerState<WebMembershipPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(plan.name, style: theme.textTheme.titleLarge),
+                        Text(
+                          plan.nameLabel(l10n),
+                          style: theme.textTheme.titleLarge,
+                        ),
                         const SizedBox(height: 8),
                         Text(
                           plan.isFree
                               ? l10n.webMembershipFree
                               : l10n.webMembershipPrice(
-                                  '₹${plan.priceFor(_cycle).toStringAsFixed(2)}',
+                                  paymentMoney(
+                                    context,
+                                    plan.priceFor(_cycle),
+                                    'INR',
+                                  ),
                                   _cycle,
                                 ),
                         ),
@@ -112,4 +126,19 @@ class _WebMembershipPageState extends ConsumerState<WebMembershipPage> {
       ),
     );
   }
+}
+
+/// The membership status in the member's words (same wording as the app's
+/// status chip), never the raw server status code.
+String _statusLabel(AppLocalizations l10n, UserSubscription sub) {
+  if (!sub.isPaid) {
+    return l10n.membershipStatusFree;
+  }
+  if (sub.isPastDue) {
+    return l10n.membershipStatusPaymentDue;
+  }
+  if (sub.cancelAtPeriodEnd) {
+    return l10n.membershipStatusEnding;
+  }
+  return l10n.membershipStatusActive;
 }

@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/i18n/number_formats.dart';
 import '../../core/providers/runtime_feature_flags_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/cinematic_effects.dart';
@@ -292,7 +293,7 @@ class CoverOfTheWeekCard extends ConsumerWidget {
                               semanticLabel: l10n.todayLikes,
                             ),
                             const SizedBox(width: 4),
-                            Text('$likes', style: small),
+                            Text(formatCount(context, likes), style: small),
                             const SizedBox(width: 12),
                             Icon(
                               Icons.chat_bubble_rounded,
@@ -302,7 +303,10 @@ class CoverOfTheWeekCard extends ConsumerWidget {
                               semanticLabel: l10n.todayComments,
                             ),
                             const SizedBox(width: 4),
-                            Text('${entry.commentCount}', style: small),
+                            Text(
+                              formatCount(context, entry.commentCount),
+                              style: small,
+                            ),
                           ],
                         ),
                       ],
@@ -650,7 +654,7 @@ class _WallChapterCard extends ConsumerWidget {
                     semanticLabel: l10n.todayLikes,
                   ),
                   const SizedBox(width: 4),
-                  Text('$likes', style: muted),
+                  Text(formatCount(context, likes), style: muted),
                   const SizedBox(width: 12),
                   Icon(
                     Icons.chat_bubble_outline_rounded,
@@ -659,7 +663,7 @@ class _WallChapterCard extends ConsumerWidget {
                     semanticLabel: l10n.todayComments,
                   ),
                   const SizedBox(width: 4),
-                  Text('${post.commentCount}', style: muted),
+                  Text(formatCount(context, post.commentCount), style: muted),
                 ],
               ),
             ],

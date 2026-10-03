@@ -7,6 +7,8 @@ import '../../../../core/constants/preference_limits.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/widgets/glass_widgets.dart';
+import '../../../../core/widgets/qa_id.dart';
+import '../../data/india_master_data.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../common/screens/main_navigation_screen.dart';
 import '../../providers/preference_master_data_provider.dart';
@@ -396,11 +398,10 @@ class _SetupPreferencesScreenState extends ConsumerState<SetupPreferencesScreen>
             // ── save button ────────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-              child: Semantics(
-                label: _isSetupFlow
+              child: QaId(
+                _isSetupFlow
                     ? 'qa.setup.preferences.finish_button'
                     : 'qa.setup.preferences.save_button',
-                button: true,
                 child: GlassButton(
                   key: ValueKey<String>(
                     _isSetupFlow
@@ -799,7 +800,7 @@ class _BasicTab extends StatelessWidget {
               children: [
                 _ToggleTile(
                   label: l10n.profileSetupSeriousOnly,
-                  semanticLabel: 'qa.setup.preferences.serious_only_toggle',
+                  qaId: 'qa.setup.preferences.serious_only_toggle',
                   subtitle: l10n.profileSetupSeriousOnlySubtitle,
                   value: seriousOnly,
                   onChanged: onSeriousChanged,
@@ -812,7 +813,7 @@ class _BasicTab extends StatelessWidget {
                 ),
                 _ToggleTile(
                   label: l10n.profileSetupVerifiedOnly,
-                  semanticLabel: 'qa.setup.preferences.verified_only_toggle',
+                  qaId: 'qa.setup.preferences.verified_only_toggle',
                   subtitle: l10n.profileSetupVerifiedOnlySubtitle,
                   value: verifiedOnly,
                   onChanged: onVerifiedChanged,
@@ -825,7 +826,7 @@ class _BasicTab extends StatelessWidget {
                 ),
                 _ToggleTile(
                   label: l10n.profileSetupHookupsOnly,
-                  semanticLabel: 'qa.setup.preferences.hookup_only_toggle',
+                  qaId: 'qa.setup.preferences.hookup_only_toggle',
                   subtitle: l10n.profileSetupHookupsOnlySubtitle,
                   value: hookupOnly,
                   onChanged: onHookupChanged,
@@ -941,6 +942,7 @@ class _AdvancedTab extends StatelessWidget {
       );
 
   Widget _dropdown({
+    required AppLocalizations l10n,
     required String qaId,
     required ColorScheme scheme,
     required String label,
@@ -949,6 +951,19 @@ class _AdvancedTab extends StatelessWidget {
     required ValueChanged<String?> onChanged,
   }) {
     final resolvedValue = options.contains(value) ? value : null;
+    // The stored value stays the master-data word; members read it in their
+    // language (country and language names, lifestyle options).
+    final list = switch (qaId) {
+      'country' => ProfileOptionList.country,
+      'mother_tongue' || 'language' => ProfileOptionList.language,
+      'diet_preference' => ProfileOptionList.dietPreference,
+      'workout_frequency' => ProfileOptionList.workout,
+      'diet_type' => ProfileOptionList.dietType,
+      'sleep_schedule' => ProfileOptionList.sleepSchedule,
+      'travel_style' => ProfileOptionList.travelStyle,
+      'political_comfort_range' => ProfileOptionList.politicalComfort,
+      _ => ProfileOptionList.general,
+    };
     return DropdownButtonFormField<String>(
       key: ValueKey<String>('qa.setup.preferences.$qaId'),
       initialValue: resolvedValue,
@@ -961,7 +976,10 @@ class _AdvancedTab extends StatelessWidget {
           .map(
             (item) => DropdownMenuItem<String>(
               value: item,
-              child: Text(item, overflow: TextOverflow.ellipsis),
+              child: Text(
+                profileOptionLabel(l10n, item, list: list),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           )
           .toList(growable: false),
@@ -990,6 +1008,7 @@ class _AdvancedTab extends StatelessWidget {
             child: Column(
               children: [
                 _dropdown(
+                  l10n: l10n,
                   qaId: 'country',
                   scheme: scheme,
                   label: l10n.profileSetupCountry,
@@ -999,6 +1018,7 @@ class _AdvancedTab extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 _dropdown(
+                  l10n: l10n,
                   qaId: 'state',
                   scheme: scheme,
                   label: l10n.profileSetupStateRegion,
@@ -1008,6 +1028,7 @@ class _AdvancedTab extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 _dropdown(
+                  l10n: l10n,
                   qaId: 'city',
                   scheme: scheme,
                   label: l10n.profileSetupCity,
@@ -1028,6 +1049,7 @@ class _AdvancedTab extends StatelessWidget {
             child: Column(
               children: [
                 _dropdown(
+                  l10n: l10n,
                   qaId: 'religion',
                   scheme: scheme,
                   label: l10n.profileSetupReligionPreference,
@@ -1037,6 +1059,7 @@ class _AdvancedTab extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 _dropdown(
+                  l10n: l10n,
                   qaId: 'mother_tongue',
                   scheme: scheme,
                   label: l10n.profileSetupMotherTongue,
@@ -1046,6 +1069,7 @@ class _AdvancedTab extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 _dropdown(
+                  l10n: l10n,
                   qaId: 'language',
                   scheme: scheme,
                   label: l10n.profileSetupLanguage,
@@ -1066,6 +1090,7 @@ class _AdvancedTab extends StatelessWidget {
             child: Column(
               children: [
                 _dropdown(
+                  l10n: l10n,
                   qaId: 'diet_preference',
                   scheme: scheme,
                   label: l10n.profileSetupDietPreference,
@@ -1075,6 +1100,7 @@ class _AdvancedTab extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 _dropdown(
+                  l10n: l10n,
                   qaId: 'workout_frequency',
                   scheme: scheme,
                   label: l10n.profileSetupWorkoutFrequency,
@@ -1084,6 +1110,7 @@ class _AdvancedTab extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 _dropdown(
+                  l10n: l10n,
                   qaId: 'diet_type',
                   scheme: scheme,
                   label: l10n.profileSetupDietType,
@@ -1093,6 +1120,7 @@ class _AdvancedTab extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 _dropdown(
+                  l10n: l10n,
                   qaId: 'sleep_schedule',
                   scheme: scheme,
                   label: l10n.profileSetupSleepSchedule,
@@ -1102,6 +1130,7 @@ class _AdvancedTab extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 _dropdown(
+                  l10n: l10n,
                   qaId: 'travel_style',
                   scheme: scheme,
                   label: l10n.profileSetupTravelStyle,
@@ -1111,6 +1140,7 @@ class _AdvancedTab extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 _dropdown(
+                  l10n: l10n,
                   qaId: 'political_comfort_range',
                   scheme: scheme,
                   label: l10n.profileSetupPoliticalComfortRange,
@@ -1376,14 +1406,16 @@ class _ToggleTile extends StatelessWidget {
     required this.subtitle,
     required this.value,
     required this.onChanged,
-    this.semanticLabel,
+    this.qaId,
   });
 
   final String label;
   final String subtitle;
   final bool value;
   final ValueChanged<bool> onChanged;
-  final String? semanticLabel;
+
+  /// Automation id: a semantics identifier and the switch's key.
+  final String? qaId;
 
   @override
   Widget build(BuildContext context) {
@@ -1414,19 +1446,21 @@ class _ToggleTile extends StatelessWidget {
               ],
             ),
           ),
-          Semantics(
-            label: semanticLabel ?? label,
-            toggled: value,
-            child: Switch(
-              key: semanticLabel == null
-                  ? null
-                  : ValueKey<String>(semanticLabel!),
-              value: value,
-              onChanged: onChanged,
-              activeThumbColor: scheme.onPrimary,
-              activeTrackColor: scheme.primary,
-              inactiveThumbColor: scheme.outline,
-              inactiveTrackColor: scheme.surfaceContainerHighest,
+          // One node: the switch is announced with its own (translated)
+          // name and state; the automation id is an identifier.
+          MergeSemantics(
+            child: Semantics(
+              identifier: qaId,
+              label: label,
+              child: Switch(
+                key: qaId == null ? null : ValueKey<String>(qaId!),
+                value: value,
+                onChanged: onChanged,
+                activeThumbColor: scheme.onPrimary,
+                activeTrackColor: scheme.primary,
+                inactiveThumbColor: scheme.outline,
+                inactiveTrackColor: scheme.surfaceContainerHighest,
+              ),
             ),
           ),
         ],

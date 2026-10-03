@@ -12,7 +12,8 @@ part of 'payment_models.dart';
 T _$identity<T>(T value) => value;
 
 final _privateConstructorUsedError = UnsupportedError(
-    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
+  'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models',
+);
 
 SubscriptionPlan _$SubscriptionPlanFromJson(Map<String, dynamic> json) {
   return _SubscriptionPlan.fromJson(json);
@@ -44,24 +45,26 @@ mixin _$SubscriptionPlan {
 /// @nodoc
 abstract class $SubscriptionPlanCopyWith<$Res> {
   factory $SubscriptionPlanCopyWith(
-          SubscriptionPlan value, $Res Function(SubscriptionPlan) then) =
-      _$SubscriptionPlanCopyWithImpl<$Res, SubscriptionPlan>;
+    SubscriptionPlan value,
+    $Res Function(SubscriptionPlan) then,
+  ) = _$SubscriptionPlanCopyWithImpl<$Res, SubscriptionPlan>;
   @useResult
-  $Res call(
-      {String id,
-      String name,
-      double monthlyPrice,
-      double yearlyPrice,
-      int likesPerDay,
-      int messagesPerDay,
-      bool advancedFilters,
-      bool verifiedBadge,
-      bool prioritySupport,
-      Map<String, dynamic> features,
-      String? description,
-      bool isActive,
-      DateTime? createdAt,
-      DateTime? updatedAt});
+  $Res call({
+    String id,
+    String name,
+    double monthlyPrice,
+    double yearlyPrice,
+    int likesPerDay,
+    int messagesPerDay,
+    bool advancedFilters,
+    bool verifiedBadge,
+    bool prioritySupport,
+    Map<String, dynamic> features,
+    String? description,
+    bool isActive,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  });
 }
 
 /// @nodoc
@@ -92,99 +95,105 @@ class _$SubscriptionPlanCopyWithImpl<$Res, $Val extends SubscriptionPlan>
     Object? createdAt = freezed,
     Object? updatedAt = freezed,
   }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      monthlyPrice: null == monthlyPrice
-          ? _value.monthlyPrice
-          : monthlyPrice // ignore: cast_nullable_to_non_nullable
-              as double,
-      yearlyPrice: null == yearlyPrice
-          ? _value.yearlyPrice
-          : yearlyPrice // ignore: cast_nullable_to_non_nullable
-              as double,
-      likesPerDay: null == likesPerDay
-          ? _value.likesPerDay
-          : likesPerDay // ignore: cast_nullable_to_non_nullable
-              as int,
-      messagesPerDay: null == messagesPerDay
-          ? _value.messagesPerDay
-          : messagesPerDay // ignore: cast_nullable_to_non_nullable
-              as int,
-      advancedFilters: null == advancedFilters
-          ? _value.advancedFilters
-          : advancedFilters // ignore: cast_nullable_to_non_nullable
-              as bool,
-      verifiedBadge: null == verifiedBadge
-          ? _value.verifiedBadge
-          : verifiedBadge // ignore: cast_nullable_to_non_nullable
-              as bool,
-      prioritySupport: null == prioritySupport
-          ? _value.prioritySupport
-          : prioritySupport // ignore: cast_nullable_to_non_nullable
-              as bool,
-      features: null == features
-          ? _value.features
-          : features // ignore: cast_nullable_to_non_nullable
-              as Map<String, dynamic>,
-      description: freezed == description
-          ? _value.description
-          : description // ignore: cast_nullable_to_non_nullable
-              as String?,
-      isActive: null == isActive
-          ? _value.isActive
-          : isActive // ignore: cast_nullable_to_non_nullable
-              as bool,
-      createdAt: freezed == createdAt
-          ? _value.createdAt
-          : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
-      updatedAt: freezed == updatedAt
-          ? _value.updatedAt
-          : updatedAt // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            id: null == id
+                ? _value.id
+                : id // ignore: cast_nullable_to_non_nullable
+                      as String,
+            name: null == name
+                ? _value.name
+                : name // ignore: cast_nullable_to_non_nullable
+                      as String,
+            monthlyPrice: null == monthlyPrice
+                ? _value.monthlyPrice
+                : monthlyPrice // ignore: cast_nullable_to_non_nullable
+                      as double,
+            yearlyPrice: null == yearlyPrice
+                ? _value.yearlyPrice
+                : yearlyPrice // ignore: cast_nullable_to_non_nullable
+                      as double,
+            likesPerDay: null == likesPerDay
+                ? _value.likesPerDay
+                : likesPerDay // ignore: cast_nullable_to_non_nullable
+                      as int,
+            messagesPerDay: null == messagesPerDay
+                ? _value.messagesPerDay
+                : messagesPerDay // ignore: cast_nullable_to_non_nullable
+                      as int,
+            advancedFilters: null == advancedFilters
+                ? _value.advancedFilters
+                : advancedFilters // ignore: cast_nullable_to_non_nullable
+                      as bool,
+            verifiedBadge: null == verifiedBadge
+                ? _value.verifiedBadge
+                : verifiedBadge // ignore: cast_nullable_to_non_nullable
+                      as bool,
+            prioritySupport: null == prioritySupport
+                ? _value.prioritySupport
+                : prioritySupport // ignore: cast_nullable_to_non_nullable
+                      as bool,
+            features: null == features
+                ? _value.features
+                : features // ignore: cast_nullable_to_non_nullable
+                      as Map<String, dynamic>,
+            description: freezed == description
+                ? _value.description
+                : description // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            isActive: null == isActive
+                ? _value.isActive
+                : isActive // ignore: cast_nullable_to_non_nullable
+                      as bool,
+            createdAt: freezed == createdAt
+                ? _value.createdAt
+                : createdAt // ignore: cast_nullable_to_non_nullable
+                      as DateTime?,
+            updatedAt: freezed == updatedAt
+                ? _value.updatedAt
+                : updatedAt // ignore: cast_nullable_to_non_nullable
+                      as DateTime?,
+          )
+          as $Val,
+    );
   }
 }
 
 /// @nodoc
 abstract class _$$SubscriptionPlanImplCopyWith<$Res>
     implements $SubscriptionPlanCopyWith<$Res> {
-  factory _$$SubscriptionPlanImplCopyWith(_$SubscriptionPlanImpl value,
-          $Res Function(_$SubscriptionPlanImpl) then) =
-      __$$SubscriptionPlanImplCopyWithImpl<$Res>;
+  factory _$$SubscriptionPlanImplCopyWith(
+    _$SubscriptionPlanImpl value,
+    $Res Function(_$SubscriptionPlanImpl) then,
+  ) = __$$SubscriptionPlanImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {String id,
-      String name,
-      double monthlyPrice,
-      double yearlyPrice,
-      int likesPerDay,
-      int messagesPerDay,
-      bool advancedFilters,
-      bool verifiedBadge,
-      bool prioritySupport,
-      Map<String, dynamic> features,
-      String? description,
-      bool isActive,
-      DateTime? createdAt,
-      DateTime? updatedAt});
+  $Res call({
+    String id,
+    String name,
+    double monthlyPrice,
+    double yearlyPrice,
+    int likesPerDay,
+    int messagesPerDay,
+    bool advancedFilters,
+    bool verifiedBadge,
+    bool prioritySupport,
+    Map<String, dynamic> features,
+    String? description,
+    bool isActive,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  });
 }
 
 /// @nodoc
 class __$$SubscriptionPlanImplCopyWithImpl<$Res>
     extends _$SubscriptionPlanCopyWithImpl<$Res, _$SubscriptionPlanImpl>
     implements _$$SubscriptionPlanImplCopyWith<$Res> {
-  __$$SubscriptionPlanImplCopyWithImpl(_$SubscriptionPlanImpl _value,
-      $Res Function(_$SubscriptionPlanImpl) _then)
-      : super(_value, _then);
+  __$$SubscriptionPlanImplCopyWithImpl(
+    _$SubscriptionPlanImpl _value,
+    $Res Function(_$SubscriptionPlanImpl) _then,
+  ) : super(_value, _then);
 
   @pragma('vm:prefer-inline')
   @override
@@ -204,86 +213,88 @@ class __$$SubscriptionPlanImplCopyWithImpl<$Res>
     Object? createdAt = freezed,
     Object? updatedAt = freezed,
   }) {
-    return _then(_$SubscriptionPlanImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      monthlyPrice: null == monthlyPrice
-          ? _value.monthlyPrice
-          : monthlyPrice // ignore: cast_nullable_to_non_nullable
-              as double,
-      yearlyPrice: null == yearlyPrice
-          ? _value.yearlyPrice
-          : yearlyPrice // ignore: cast_nullable_to_non_nullable
-              as double,
-      likesPerDay: null == likesPerDay
-          ? _value.likesPerDay
-          : likesPerDay // ignore: cast_nullable_to_non_nullable
-              as int,
-      messagesPerDay: null == messagesPerDay
-          ? _value.messagesPerDay
-          : messagesPerDay // ignore: cast_nullable_to_non_nullable
-              as int,
-      advancedFilters: null == advancedFilters
-          ? _value.advancedFilters
-          : advancedFilters // ignore: cast_nullable_to_non_nullable
-              as bool,
-      verifiedBadge: null == verifiedBadge
-          ? _value.verifiedBadge
-          : verifiedBadge // ignore: cast_nullable_to_non_nullable
-              as bool,
-      prioritySupport: null == prioritySupport
-          ? _value.prioritySupport
-          : prioritySupport // ignore: cast_nullable_to_non_nullable
-              as bool,
-      features: null == features
-          ? _value._features
-          : features // ignore: cast_nullable_to_non_nullable
-              as Map<String, dynamic>,
-      description: freezed == description
-          ? _value.description
-          : description // ignore: cast_nullable_to_non_nullable
-              as String?,
-      isActive: null == isActive
-          ? _value.isActive
-          : isActive // ignore: cast_nullable_to_non_nullable
-              as bool,
-      createdAt: freezed == createdAt
-          ? _value.createdAt
-          : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
-      updatedAt: freezed == updatedAt
-          ? _value.updatedAt
-          : updatedAt // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
-    ));
+    return _then(
+      _$SubscriptionPlanImpl(
+        id: null == id
+            ? _value.id
+            : id // ignore: cast_nullable_to_non_nullable
+                  as String,
+        name: null == name
+            ? _value.name
+            : name // ignore: cast_nullable_to_non_nullable
+                  as String,
+        monthlyPrice: null == monthlyPrice
+            ? _value.monthlyPrice
+            : monthlyPrice // ignore: cast_nullable_to_non_nullable
+                  as double,
+        yearlyPrice: null == yearlyPrice
+            ? _value.yearlyPrice
+            : yearlyPrice // ignore: cast_nullable_to_non_nullable
+                  as double,
+        likesPerDay: null == likesPerDay
+            ? _value.likesPerDay
+            : likesPerDay // ignore: cast_nullable_to_non_nullable
+                  as int,
+        messagesPerDay: null == messagesPerDay
+            ? _value.messagesPerDay
+            : messagesPerDay // ignore: cast_nullable_to_non_nullable
+                  as int,
+        advancedFilters: null == advancedFilters
+            ? _value.advancedFilters
+            : advancedFilters // ignore: cast_nullable_to_non_nullable
+                  as bool,
+        verifiedBadge: null == verifiedBadge
+            ? _value.verifiedBadge
+            : verifiedBadge // ignore: cast_nullable_to_non_nullable
+                  as bool,
+        prioritySupport: null == prioritySupport
+            ? _value.prioritySupport
+            : prioritySupport // ignore: cast_nullable_to_non_nullable
+                  as bool,
+        features: null == features
+            ? _value._features
+            : features // ignore: cast_nullable_to_non_nullable
+                  as Map<String, dynamic>,
+        description: freezed == description
+            ? _value.description
+            : description // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        isActive: null == isActive
+            ? _value.isActive
+            : isActive // ignore: cast_nullable_to_non_nullable
+                  as bool,
+        createdAt: freezed == createdAt
+            ? _value.createdAt
+            : createdAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime?,
+        updatedAt: freezed == updatedAt
+            ? _value.updatedAt
+            : updatedAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime?,
+      ),
+    );
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$SubscriptionPlanImpl implements _SubscriptionPlan {
-  const _$SubscriptionPlanImpl(
-      {required this.id,
-      required this.name,
-      required this.monthlyPrice,
-      required this.yearlyPrice,
-      this.likesPerDay = 10,
-      this.messagesPerDay = 20,
-      this.advancedFilters = false,
-      this.verifiedBadge = false,
-      this.prioritySupport = false,
-      final Map<String, dynamic> features = const {},
-      this.description,
-      this.isActive = true,
-      this.createdAt,
-      this.updatedAt})
-      : _features = features;
+  const _$SubscriptionPlanImpl({
+    required this.id,
+    required this.name,
+    required this.monthlyPrice,
+    required this.yearlyPrice,
+    this.likesPerDay = 10,
+    this.messagesPerDay = 20,
+    this.advancedFilters = false,
+    this.verifiedBadge = false,
+    this.prioritySupport = false,
+    final Map<String, dynamic> features = const {},
+    this.description,
+    this.isActive = true,
+    this.createdAt,
+    this.updatedAt,
+  }) : _features = features;
 
   factory _$SubscriptionPlanImpl.fromJson(Map<String, dynamic> json) =>
       _$$SubscriptionPlanImplFromJson(json);
@@ -292,7 +303,7 @@ class _$SubscriptionPlanImpl implements _SubscriptionPlan {
   final String id;
   @override
   final String name;
-// Free, Premium, VIP
+  // Free, Premium, VIP
   @override
   final double monthlyPrice;
   @override
@@ -371,53 +382,55 @@ class _$SubscriptionPlanImpl implements _SubscriptionPlan {
   @JsonKey(ignore: true)
   @override
   int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      name,
-      monthlyPrice,
-      yearlyPrice,
-      likesPerDay,
-      messagesPerDay,
-      advancedFilters,
-      verifiedBadge,
-      prioritySupport,
-      const DeepCollectionEquality().hash(_features),
-      description,
-      isActive,
-      createdAt,
-      updatedAt);
+    runtimeType,
+    id,
+    name,
+    monthlyPrice,
+    yearlyPrice,
+    likesPerDay,
+    messagesPerDay,
+    advancedFilters,
+    verifiedBadge,
+    prioritySupport,
+    const DeepCollectionEquality().hash(_features),
+    description,
+    isActive,
+    createdAt,
+    updatedAt,
+  );
 
   @JsonKey(ignore: true)
   @override
   @pragma('vm:prefer-inline')
   _$$SubscriptionPlanImplCopyWith<_$SubscriptionPlanImpl> get copyWith =>
       __$$SubscriptionPlanImplCopyWithImpl<_$SubscriptionPlanImpl>(
-          this, _$identity);
+        this,
+        _$identity,
+      );
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$SubscriptionPlanImplToJson(
-      this,
-    );
+    return _$$SubscriptionPlanImplToJson(this);
   }
 }
 
 abstract class _SubscriptionPlan implements SubscriptionPlan {
-  const factory _SubscriptionPlan(
-      {required final String id,
-      required final String name,
-      required final double monthlyPrice,
-      required final double yearlyPrice,
-      final int likesPerDay,
-      final int messagesPerDay,
-      final bool advancedFilters,
-      final bool verifiedBadge,
-      final bool prioritySupport,
-      final Map<String, dynamic> features,
-      final String? description,
-      final bool isActive,
-      final DateTime? createdAt,
-      final DateTime? updatedAt}) = _$SubscriptionPlanImpl;
+  const factory _SubscriptionPlan({
+    required final String id,
+    required final String name,
+    required final double monthlyPrice,
+    required final double yearlyPrice,
+    final int likesPerDay,
+    final int messagesPerDay,
+    final bool advancedFilters,
+    final bool verifiedBadge,
+    final bool prioritySupport,
+    final Map<String, dynamic> features,
+    final String? description,
+    final bool isActive,
+    final DateTime? createdAt,
+    final DateTime? updatedAt,
+  }) = _$SubscriptionPlanImpl;
 
   factory _SubscriptionPlan.fromJson(Map<String, dynamic> json) =
       _$SubscriptionPlanImpl.fromJson;
@@ -488,24 +501,26 @@ mixin _$Subscription {
 /// @nodoc
 abstract class $SubscriptionCopyWith<$Res> {
   factory $SubscriptionCopyWith(
-          Subscription value, $Res Function(Subscription) then) =
-      _$SubscriptionCopyWithImpl<$Res, Subscription>;
+    Subscription value,
+    $Res Function(Subscription) then,
+  ) = _$SubscriptionCopyWithImpl<$Res, Subscription>;
   @useResult
-  $Res call(
-      {String id,
-      String userId,
-      String planId,
-      DateTime startDate,
-      String status,
-      String billingCycle,
-      DateTime? endDate,
-      DateTime? nextBillingDate,
-      bool autoRenew,
-      String? razorpaySubscriptionId,
-      String? razorpayCustomerId,
-      DateTime? cancelledAt,
-      String? cancelReason,
-      DateTime? updatedAt});
+  $Res call({
+    String id,
+    String userId,
+    String planId,
+    DateTime startDate,
+    String status,
+    String billingCycle,
+    DateTime? endDate,
+    DateTime? nextBillingDate,
+    bool autoRenew,
+    String? razorpaySubscriptionId,
+    String? razorpayCustomerId,
+    DateTime? cancelledAt,
+    String? cancelReason,
+    DateTime? updatedAt,
+  });
 }
 
 /// @nodoc
@@ -536,64 +551,67 @@ class _$SubscriptionCopyWithImpl<$Res, $Val extends Subscription>
     Object? cancelReason = freezed,
     Object? updatedAt = freezed,
   }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      userId: null == userId
-          ? _value.userId
-          : userId // ignore: cast_nullable_to_non_nullable
-              as String,
-      planId: null == planId
-          ? _value.planId
-          : planId // ignore: cast_nullable_to_non_nullable
-              as String,
-      startDate: null == startDate
-          ? _value.startDate
-          : startDate // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-      status: null == status
-          ? _value.status
-          : status // ignore: cast_nullable_to_non_nullable
-              as String,
-      billingCycle: null == billingCycle
-          ? _value.billingCycle
-          : billingCycle // ignore: cast_nullable_to_non_nullable
-              as String,
-      endDate: freezed == endDate
-          ? _value.endDate
-          : endDate // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
-      nextBillingDate: freezed == nextBillingDate
-          ? _value.nextBillingDate
-          : nextBillingDate // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
-      autoRenew: null == autoRenew
-          ? _value.autoRenew
-          : autoRenew // ignore: cast_nullable_to_non_nullable
-              as bool,
-      razorpaySubscriptionId: freezed == razorpaySubscriptionId
-          ? _value.razorpaySubscriptionId
-          : razorpaySubscriptionId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      razorpayCustomerId: freezed == razorpayCustomerId
-          ? _value.razorpayCustomerId
-          : razorpayCustomerId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      cancelledAt: freezed == cancelledAt
-          ? _value.cancelledAt
-          : cancelledAt // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
-      cancelReason: freezed == cancelReason
-          ? _value.cancelReason
-          : cancelReason // ignore: cast_nullable_to_non_nullable
-              as String?,
-      updatedAt: freezed == updatedAt
-          ? _value.updatedAt
-          : updatedAt // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            id: null == id
+                ? _value.id
+                : id // ignore: cast_nullable_to_non_nullable
+                      as String,
+            userId: null == userId
+                ? _value.userId
+                : userId // ignore: cast_nullable_to_non_nullable
+                      as String,
+            planId: null == planId
+                ? _value.planId
+                : planId // ignore: cast_nullable_to_non_nullable
+                      as String,
+            startDate: null == startDate
+                ? _value.startDate
+                : startDate // ignore: cast_nullable_to_non_nullable
+                      as DateTime,
+            status: null == status
+                ? _value.status
+                : status // ignore: cast_nullable_to_non_nullable
+                      as String,
+            billingCycle: null == billingCycle
+                ? _value.billingCycle
+                : billingCycle // ignore: cast_nullable_to_non_nullable
+                      as String,
+            endDate: freezed == endDate
+                ? _value.endDate
+                : endDate // ignore: cast_nullable_to_non_nullable
+                      as DateTime?,
+            nextBillingDate: freezed == nextBillingDate
+                ? _value.nextBillingDate
+                : nextBillingDate // ignore: cast_nullable_to_non_nullable
+                      as DateTime?,
+            autoRenew: null == autoRenew
+                ? _value.autoRenew
+                : autoRenew // ignore: cast_nullable_to_non_nullable
+                      as bool,
+            razorpaySubscriptionId: freezed == razorpaySubscriptionId
+                ? _value.razorpaySubscriptionId
+                : razorpaySubscriptionId // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            razorpayCustomerId: freezed == razorpayCustomerId
+                ? _value.razorpayCustomerId
+                : razorpayCustomerId // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            cancelledAt: freezed == cancelledAt
+                ? _value.cancelledAt
+                : cancelledAt // ignore: cast_nullable_to_non_nullable
+                      as DateTime?,
+            cancelReason: freezed == cancelReason
+                ? _value.cancelReason
+                : cancelReason // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            updatedAt: freezed == updatedAt
+                ? _value.updatedAt
+                : updatedAt // ignore: cast_nullable_to_non_nullable
+                      as DateTime?,
+          )
+          as $Val,
+    );
   }
 }
 
@@ -601,25 +619,27 @@ class _$SubscriptionCopyWithImpl<$Res, $Val extends Subscription>
 abstract class _$$SubscriptionImplCopyWith<$Res>
     implements $SubscriptionCopyWith<$Res> {
   factory _$$SubscriptionImplCopyWith(
-          _$SubscriptionImpl value, $Res Function(_$SubscriptionImpl) then) =
-      __$$SubscriptionImplCopyWithImpl<$Res>;
+    _$SubscriptionImpl value,
+    $Res Function(_$SubscriptionImpl) then,
+  ) = __$$SubscriptionImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {String id,
-      String userId,
-      String planId,
-      DateTime startDate,
-      String status,
-      String billingCycle,
-      DateTime? endDate,
-      DateTime? nextBillingDate,
-      bool autoRenew,
-      String? razorpaySubscriptionId,
-      String? razorpayCustomerId,
-      DateTime? cancelledAt,
-      String? cancelReason,
-      DateTime? updatedAt});
+  $Res call({
+    String id,
+    String userId,
+    String planId,
+    DateTime startDate,
+    String status,
+    String billingCycle,
+    DateTime? endDate,
+    DateTime? nextBillingDate,
+    bool autoRenew,
+    String? razorpaySubscriptionId,
+    String? razorpayCustomerId,
+    DateTime? cancelledAt,
+    String? cancelReason,
+    DateTime? updatedAt,
+  });
 }
 
 /// @nodoc
@@ -627,8 +647,9 @@ class __$$SubscriptionImplCopyWithImpl<$Res>
     extends _$SubscriptionCopyWithImpl<$Res, _$SubscriptionImpl>
     implements _$$SubscriptionImplCopyWith<$Res> {
   __$$SubscriptionImplCopyWithImpl(
-      _$SubscriptionImpl _value, $Res Function(_$SubscriptionImpl) _then)
-      : super(_value, _then);
+    _$SubscriptionImpl _value,
+    $Res Function(_$SubscriptionImpl) _then,
+  ) : super(_value, _then);
 
   @pragma('vm:prefer-inline')
   @override
@@ -648,85 +669,88 @@ class __$$SubscriptionImplCopyWithImpl<$Res>
     Object? cancelReason = freezed,
     Object? updatedAt = freezed,
   }) {
-    return _then(_$SubscriptionImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      userId: null == userId
-          ? _value.userId
-          : userId // ignore: cast_nullable_to_non_nullable
-              as String,
-      planId: null == planId
-          ? _value.planId
-          : planId // ignore: cast_nullable_to_non_nullable
-              as String,
-      startDate: null == startDate
-          ? _value.startDate
-          : startDate // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-      status: null == status
-          ? _value.status
-          : status // ignore: cast_nullable_to_non_nullable
-              as String,
-      billingCycle: null == billingCycle
-          ? _value.billingCycle
-          : billingCycle // ignore: cast_nullable_to_non_nullable
-              as String,
-      endDate: freezed == endDate
-          ? _value.endDate
-          : endDate // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
-      nextBillingDate: freezed == nextBillingDate
-          ? _value.nextBillingDate
-          : nextBillingDate // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
-      autoRenew: null == autoRenew
-          ? _value.autoRenew
-          : autoRenew // ignore: cast_nullable_to_non_nullable
-              as bool,
-      razorpaySubscriptionId: freezed == razorpaySubscriptionId
-          ? _value.razorpaySubscriptionId
-          : razorpaySubscriptionId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      razorpayCustomerId: freezed == razorpayCustomerId
-          ? _value.razorpayCustomerId
-          : razorpayCustomerId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      cancelledAt: freezed == cancelledAt
-          ? _value.cancelledAt
-          : cancelledAt // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
-      cancelReason: freezed == cancelReason
-          ? _value.cancelReason
-          : cancelReason // ignore: cast_nullable_to_non_nullable
-              as String?,
-      updatedAt: freezed == updatedAt
-          ? _value.updatedAt
-          : updatedAt // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
-    ));
+    return _then(
+      _$SubscriptionImpl(
+        id: null == id
+            ? _value.id
+            : id // ignore: cast_nullable_to_non_nullable
+                  as String,
+        userId: null == userId
+            ? _value.userId
+            : userId // ignore: cast_nullable_to_non_nullable
+                  as String,
+        planId: null == planId
+            ? _value.planId
+            : planId // ignore: cast_nullable_to_non_nullable
+                  as String,
+        startDate: null == startDate
+            ? _value.startDate
+            : startDate // ignore: cast_nullable_to_non_nullable
+                  as DateTime,
+        status: null == status
+            ? _value.status
+            : status // ignore: cast_nullable_to_non_nullable
+                  as String,
+        billingCycle: null == billingCycle
+            ? _value.billingCycle
+            : billingCycle // ignore: cast_nullable_to_non_nullable
+                  as String,
+        endDate: freezed == endDate
+            ? _value.endDate
+            : endDate // ignore: cast_nullable_to_non_nullable
+                  as DateTime?,
+        nextBillingDate: freezed == nextBillingDate
+            ? _value.nextBillingDate
+            : nextBillingDate // ignore: cast_nullable_to_non_nullable
+                  as DateTime?,
+        autoRenew: null == autoRenew
+            ? _value.autoRenew
+            : autoRenew // ignore: cast_nullable_to_non_nullable
+                  as bool,
+        razorpaySubscriptionId: freezed == razorpaySubscriptionId
+            ? _value.razorpaySubscriptionId
+            : razorpaySubscriptionId // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        razorpayCustomerId: freezed == razorpayCustomerId
+            ? _value.razorpayCustomerId
+            : razorpayCustomerId // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        cancelledAt: freezed == cancelledAt
+            ? _value.cancelledAt
+            : cancelledAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime?,
+        cancelReason: freezed == cancelReason
+            ? _value.cancelReason
+            : cancelReason // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        updatedAt: freezed == updatedAt
+            ? _value.updatedAt
+            : updatedAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime?,
+      ),
+    );
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$SubscriptionImpl implements _Subscription {
-  const _$SubscriptionImpl(
-      {required this.id,
-      required this.userId,
-      required this.planId,
-      required this.startDate,
-      this.status = 'active',
-      this.billingCycle = 'monthly',
-      this.endDate,
-      this.nextBillingDate,
-      this.autoRenew = true,
-      this.razorpaySubscriptionId,
-      this.razorpayCustomerId,
-      this.cancelledAt,
-      this.cancelReason,
-      this.updatedAt});
+  const _$SubscriptionImpl({
+    required this.id,
+    required this.userId,
+    required this.planId,
+    required this.startDate,
+    this.status = 'active',
+    this.billingCycle = 'monthly',
+    this.endDate,
+    this.nextBillingDate,
+    this.autoRenew = true,
+    this.razorpaySubscriptionId,
+    this.razorpayCustomerId,
+    this.cancelledAt,
+    this.cancelReason,
+    this.updatedAt,
+  });
 
   factory _$SubscriptionImpl.fromJson(Map<String, dynamic> json) =>
       _$$SubscriptionImplFromJson(json);
@@ -742,11 +766,11 @@ class _$SubscriptionImpl implements _Subscription {
   @override
   @JsonKey()
   final String status;
-// active, expired, cancelled
+  // active, expired, cancelled
   @override
   @JsonKey()
   final String billingCycle;
-// monthly, yearly
+  // monthly, yearly
   @override
   final DateTime? endDate;
   @override
@@ -803,21 +827,22 @@ class _$SubscriptionImpl implements _Subscription {
   @JsonKey(ignore: true)
   @override
   int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      userId,
-      planId,
-      startDate,
-      status,
-      billingCycle,
-      endDate,
-      nextBillingDate,
-      autoRenew,
-      razorpaySubscriptionId,
-      razorpayCustomerId,
-      cancelledAt,
-      cancelReason,
-      updatedAt);
+    runtimeType,
+    id,
+    userId,
+    planId,
+    startDate,
+    status,
+    billingCycle,
+    endDate,
+    nextBillingDate,
+    autoRenew,
+    razorpaySubscriptionId,
+    razorpayCustomerId,
+    cancelledAt,
+    cancelReason,
+    updatedAt,
+  );
 
   @JsonKey(ignore: true)
   @override
@@ -827,28 +852,27 @@ class _$SubscriptionImpl implements _Subscription {
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$SubscriptionImplToJson(
-      this,
-    );
+    return _$$SubscriptionImplToJson(this);
   }
 }
 
 abstract class _Subscription implements Subscription {
-  const factory _Subscription(
-      {required final String id,
-      required final String userId,
-      required final String planId,
-      required final DateTime startDate,
-      final String status,
-      final String billingCycle,
-      final DateTime? endDate,
-      final DateTime? nextBillingDate,
-      final bool autoRenew,
-      final String? razorpaySubscriptionId,
-      final String? razorpayCustomerId,
-      final DateTime? cancelledAt,
-      final String? cancelReason,
-      final DateTime? updatedAt}) = _$SubscriptionImpl;
+  const factory _Subscription({
+    required final String id,
+    required final String userId,
+    required final String planId,
+    required final DateTime startDate,
+    final String status,
+    final String billingCycle,
+    final DateTime? endDate,
+    final DateTime? nextBillingDate,
+    final bool autoRenew,
+    final String? razorpaySubscriptionId,
+    final String? razorpayCustomerId,
+    final DateTime? cancelledAt,
+    final String? cancelReason,
+    final DateTime? updatedAt,
+  }) = _$SubscriptionImpl;
 
   factory _Subscription.fromJson(Map<String, dynamic> json) =
       _$SubscriptionImpl.fromJson;
@@ -922,23 +946,24 @@ abstract class $PaymentCopyWith<$Res> {
   factory $PaymentCopyWith(Payment value, $Res Function(Payment) then) =
       _$PaymentCopyWithImpl<$Res, Payment>;
   @useResult
-  $Res call(
-      {String id,
-      String userId,
-      double amount,
-      DateTime transactionDate,
-      String? subscriptionId,
-      String currency,
-      String paymentMethod,
-      String status,
-      String? razorpayPaymentId,
-      String? razorpayOrderId,
-      String? orderId,
-      String? receipt,
-      String? failureReason,
-      double? refundedAmount,
-      DateTime? refundedAt,
-      DateTime? createdAt});
+  $Res call({
+    String id,
+    String userId,
+    double amount,
+    DateTime transactionDate,
+    String? subscriptionId,
+    String currency,
+    String paymentMethod,
+    String status,
+    String? razorpayPaymentId,
+    String? razorpayOrderId,
+    String? orderId,
+    String? receipt,
+    String? failureReason,
+    double? refundedAmount,
+    DateTime? refundedAt,
+    DateTime? createdAt,
+  });
 }
 
 /// @nodoc
@@ -971,99 +996,104 @@ class _$PaymentCopyWithImpl<$Res, $Val extends Payment>
     Object? refundedAt = freezed,
     Object? createdAt = freezed,
   }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      userId: null == userId
-          ? _value.userId
-          : userId // ignore: cast_nullable_to_non_nullable
-              as String,
-      amount: null == amount
-          ? _value.amount
-          : amount // ignore: cast_nullable_to_non_nullable
-              as double,
-      transactionDate: null == transactionDate
-          ? _value.transactionDate
-          : transactionDate // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-      subscriptionId: freezed == subscriptionId
-          ? _value.subscriptionId
-          : subscriptionId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      currency: null == currency
-          ? _value.currency
-          : currency // ignore: cast_nullable_to_non_nullable
-              as String,
-      paymentMethod: null == paymentMethod
-          ? _value.paymentMethod
-          : paymentMethod // ignore: cast_nullable_to_non_nullable
-              as String,
-      status: null == status
-          ? _value.status
-          : status // ignore: cast_nullable_to_non_nullable
-              as String,
-      razorpayPaymentId: freezed == razorpayPaymentId
-          ? _value.razorpayPaymentId
-          : razorpayPaymentId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      razorpayOrderId: freezed == razorpayOrderId
-          ? _value.razorpayOrderId
-          : razorpayOrderId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      orderId: freezed == orderId
-          ? _value.orderId
-          : orderId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      receipt: freezed == receipt
-          ? _value.receipt
-          : receipt // ignore: cast_nullable_to_non_nullable
-              as String?,
-      failureReason: freezed == failureReason
-          ? _value.failureReason
-          : failureReason // ignore: cast_nullable_to_non_nullable
-              as String?,
-      refundedAmount: freezed == refundedAmount
-          ? _value.refundedAmount
-          : refundedAmount // ignore: cast_nullable_to_non_nullable
-              as double?,
-      refundedAt: freezed == refundedAt
-          ? _value.refundedAt
-          : refundedAt // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
-      createdAt: freezed == createdAt
-          ? _value.createdAt
-          : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
-    ) as $Val);
+    return _then(
+      _value.copyWith(
+            id: null == id
+                ? _value.id
+                : id // ignore: cast_nullable_to_non_nullable
+                      as String,
+            userId: null == userId
+                ? _value.userId
+                : userId // ignore: cast_nullable_to_non_nullable
+                      as String,
+            amount: null == amount
+                ? _value.amount
+                : amount // ignore: cast_nullable_to_non_nullable
+                      as double,
+            transactionDate: null == transactionDate
+                ? _value.transactionDate
+                : transactionDate // ignore: cast_nullable_to_non_nullable
+                      as DateTime,
+            subscriptionId: freezed == subscriptionId
+                ? _value.subscriptionId
+                : subscriptionId // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            currency: null == currency
+                ? _value.currency
+                : currency // ignore: cast_nullable_to_non_nullable
+                      as String,
+            paymentMethod: null == paymentMethod
+                ? _value.paymentMethod
+                : paymentMethod // ignore: cast_nullable_to_non_nullable
+                      as String,
+            status: null == status
+                ? _value.status
+                : status // ignore: cast_nullable_to_non_nullable
+                      as String,
+            razorpayPaymentId: freezed == razorpayPaymentId
+                ? _value.razorpayPaymentId
+                : razorpayPaymentId // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            razorpayOrderId: freezed == razorpayOrderId
+                ? _value.razorpayOrderId
+                : razorpayOrderId // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            orderId: freezed == orderId
+                ? _value.orderId
+                : orderId // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            receipt: freezed == receipt
+                ? _value.receipt
+                : receipt // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            failureReason: freezed == failureReason
+                ? _value.failureReason
+                : failureReason // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            refundedAmount: freezed == refundedAmount
+                ? _value.refundedAmount
+                : refundedAmount // ignore: cast_nullable_to_non_nullable
+                      as double?,
+            refundedAt: freezed == refundedAt
+                ? _value.refundedAt
+                : refundedAt // ignore: cast_nullable_to_non_nullable
+                      as DateTime?,
+            createdAt: freezed == createdAt
+                ? _value.createdAt
+                : createdAt // ignore: cast_nullable_to_non_nullable
+                      as DateTime?,
+          )
+          as $Val,
+    );
   }
 }
 
 /// @nodoc
 abstract class _$$PaymentImplCopyWith<$Res> implements $PaymentCopyWith<$Res> {
   factory _$$PaymentImplCopyWith(
-          _$PaymentImpl value, $Res Function(_$PaymentImpl) then) =
-      __$$PaymentImplCopyWithImpl<$Res>;
+    _$PaymentImpl value,
+    $Res Function(_$PaymentImpl) then,
+  ) = __$$PaymentImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call(
-      {String id,
-      String userId,
-      double amount,
-      DateTime transactionDate,
-      String? subscriptionId,
-      String currency,
-      String paymentMethod,
-      String status,
-      String? razorpayPaymentId,
-      String? razorpayOrderId,
-      String? orderId,
-      String? receipt,
-      String? failureReason,
-      double? refundedAmount,
-      DateTime? refundedAt,
-      DateTime? createdAt});
+  $Res call({
+    String id,
+    String userId,
+    double amount,
+    DateTime transactionDate,
+    String? subscriptionId,
+    String currency,
+    String paymentMethod,
+    String status,
+    String? razorpayPaymentId,
+    String? razorpayOrderId,
+    String? orderId,
+    String? receipt,
+    String? failureReason,
+    double? refundedAmount,
+    DateTime? refundedAt,
+    DateTime? createdAt,
+  });
 }
 
 /// @nodoc
@@ -1071,8 +1101,9 @@ class __$$PaymentImplCopyWithImpl<$Res>
     extends _$PaymentCopyWithImpl<$Res, _$PaymentImpl>
     implements _$$PaymentImplCopyWith<$Res> {
   __$$PaymentImplCopyWithImpl(
-      _$PaymentImpl _value, $Res Function(_$PaymentImpl) _then)
-      : super(_value, _then);
+    _$PaymentImpl _value,
+    $Res Function(_$PaymentImpl) _then,
+  ) : super(_value, _then);
 
   @pragma('vm:prefer-inline')
   @override
@@ -1094,95 +1125,98 @@ class __$$PaymentImplCopyWithImpl<$Res>
     Object? refundedAt = freezed,
     Object? createdAt = freezed,
   }) {
-    return _then(_$PaymentImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      userId: null == userId
-          ? _value.userId
-          : userId // ignore: cast_nullable_to_non_nullable
-              as String,
-      amount: null == amount
-          ? _value.amount
-          : amount // ignore: cast_nullable_to_non_nullable
-              as double,
-      transactionDate: null == transactionDate
-          ? _value.transactionDate
-          : transactionDate // ignore: cast_nullable_to_non_nullable
-              as DateTime,
-      subscriptionId: freezed == subscriptionId
-          ? _value.subscriptionId
-          : subscriptionId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      currency: null == currency
-          ? _value.currency
-          : currency // ignore: cast_nullable_to_non_nullable
-              as String,
-      paymentMethod: null == paymentMethod
-          ? _value.paymentMethod
-          : paymentMethod // ignore: cast_nullable_to_non_nullable
-              as String,
-      status: null == status
-          ? _value.status
-          : status // ignore: cast_nullable_to_non_nullable
-              as String,
-      razorpayPaymentId: freezed == razorpayPaymentId
-          ? _value.razorpayPaymentId
-          : razorpayPaymentId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      razorpayOrderId: freezed == razorpayOrderId
-          ? _value.razorpayOrderId
-          : razorpayOrderId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      orderId: freezed == orderId
-          ? _value.orderId
-          : orderId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      receipt: freezed == receipt
-          ? _value.receipt
-          : receipt // ignore: cast_nullable_to_non_nullable
-              as String?,
-      failureReason: freezed == failureReason
-          ? _value.failureReason
-          : failureReason // ignore: cast_nullable_to_non_nullable
-              as String?,
-      refundedAmount: freezed == refundedAmount
-          ? _value.refundedAmount
-          : refundedAmount // ignore: cast_nullable_to_non_nullable
-              as double?,
-      refundedAt: freezed == refundedAt
-          ? _value.refundedAt
-          : refundedAt // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
-      createdAt: freezed == createdAt
-          ? _value.createdAt
-          : createdAt // ignore: cast_nullable_to_non_nullable
-              as DateTime?,
-    ));
+    return _then(
+      _$PaymentImpl(
+        id: null == id
+            ? _value.id
+            : id // ignore: cast_nullable_to_non_nullable
+                  as String,
+        userId: null == userId
+            ? _value.userId
+            : userId // ignore: cast_nullable_to_non_nullable
+                  as String,
+        amount: null == amount
+            ? _value.amount
+            : amount // ignore: cast_nullable_to_non_nullable
+                  as double,
+        transactionDate: null == transactionDate
+            ? _value.transactionDate
+            : transactionDate // ignore: cast_nullable_to_non_nullable
+                  as DateTime,
+        subscriptionId: freezed == subscriptionId
+            ? _value.subscriptionId
+            : subscriptionId // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        currency: null == currency
+            ? _value.currency
+            : currency // ignore: cast_nullable_to_non_nullable
+                  as String,
+        paymentMethod: null == paymentMethod
+            ? _value.paymentMethod
+            : paymentMethod // ignore: cast_nullable_to_non_nullable
+                  as String,
+        status: null == status
+            ? _value.status
+            : status // ignore: cast_nullable_to_non_nullable
+                  as String,
+        razorpayPaymentId: freezed == razorpayPaymentId
+            ? _value.razorpayPaymentId
+            : razorpayPaymentId // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        razorpayOrderId: freezed == razorpayOrderId
+            ? _value.razorpayOrderId
+            : razorpayOrderId // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        orderId: freezed == orderId
+            ? _value.orderId
+            : orderId // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        receipt: freezed == receipt
+            ? _value.receipt
+            : receipt // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        failureReason: freezed == failureReason
+            ? _value.failureReason
+            : failureReason // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        refundedAmount: freezed == refundedAmount
+            ? _value.refundedAmount
+            : refundedAmount // ignore: cast_nullable_to_non_nullable
+                  as double?,
+        refundedAt: freezed == refundedAt
+            ? _value.refundedAt
+            : refundedAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime?,
+        createdAt: freezed == createdAt
+            ? _value.createdAt
+            : createdAt // ignore: cast_nullable_to_non_nullable
+                  as DateTime?,
+      ),
+    );
   }
 }
 
 /// @nodoc
 @JsonSerializable()
 class _$PaymentImpl implements _Payment {
-  const _$PaymentImpl(
-      {required this.id,
-      required this.userId,
-      required this.amount,
-      required this.transactionDate,
-      this.subscriptionId,
-      this.currency = 'INR',
-      this.paymentMethod = 'card',
-      this.status = 'completed',
-      this.razorpayPaymentId,
-      this.razorpayOrderId,
-      this.orderId,
-      this.receipt,
-      this.failureReason,
-      this.refundedAmount,
-      this.refundedAt,
-      this.createdAt});
+  const _$PaymentImpl({
+    required this.id,
+    required this.userId,
+    required this.amount,
+    required this.transactionDate,
+    this.subscriptionId,
+    this.currency = 'INR',
+    this.paymentMethod = 'card',
+    this.status = 'completed',
+    this.razorpayPaymentId,
+    this.razorpayOrderId,
+    this.orderId,
+    this.receipt,
+    this.failureReason,
+    this.refundedAmount,
+    this.refundedAt,
+    this.createdAt,
+  });
 
   factory _$PaymentImpl.fromJson(Map<String, dynamic> json) =>
       _$$PaymentImplFromJson(json);
@@ -1203,11 +1237,11 @@ class _$PaymentImpl implements _Payment {
   @override
   @JsonKey()
   final String paymentMethod;
-// card, upi, wallet
+  // card, upi, wallet
   @override
   @JsonKey()
   final String status;
-// pending, completed, failed
+  // pending, completed, failed
   @override
   final String? razorpayPaymentId;
   @override
@@ -1266,23 +1300,24 @@ class _$PaymentImpl implements _Payment {
   @JsonKey(ignore: true)
   @override
   int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      userId,
-      amount,
-      transactionDate,
-      subscriptionId,
-      currency,
-      paymentMethod,
-      status,
-      razorpayPaymentId,
-      razorpayOrderId,
-      orderId,
-      receipt,
-      failureReason,
-      refundedAmount,
-      refundedAt,
-      createdAt);
+    runtimeType,
+    id,
+    userId,
+    amount,
+    transactionDate,
+    subscriptionId,
+    currency,
+    paymentMethod,
+    status,
+    razorpayPaymentId,
+    razorpayOrderId,
+    orderId,
+    receipt,
+    failureReason,
+    refundedAmount,
+    refundedAt,
+    createdAt,
+  );
 
   @JsonKey(ignore: true)
   @override
@@ -1292,30 +1327,29 @@ class _$PaymentImpl implements _Payment {
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$PaymentImplToJson(
-      this,
-    );
+    return _$$PaymentImplToJson(this);
   }
 }
 
 abstract class _Payment implements Payment {
-  const factory _Payment(
-      {required final String id,
-      required final String userId,
-      required final double amount,
-      required final DateTime transactionDate,
-      final String? subscriptionId,
-      final String currency,
-      final String paymentMethod,
-      final String status,
-      final String? razorpayPaymentId,
-      final String? razorpayOrderId,
-      final String? orderId,
-      final String? receipt,
-      final String? failureReason,
-      final double? refundedAmount,
-      final DateTime? refundedAt,
-      final DateTime? createdAt}) = _$PaymentImpl;
+  const factory _Payment({
+    required final String id,
+    required final String userId,
+    required final double amount,
+    required final DateTime transactionDate,
+    final String? subscriptionId,
+    final String currency,
+    final String paymentMethod,
+    final String status,
+    final String? razorpayPaymentId,
+    final String? razorpayOrderId,
+    final String? orderId,
+    final String? receipt,
+    final String? failureReason,
+    final double? refundedAmount,
+    final DateTime? refundedAt,
+    final DateTime? createdAt,
+  }) = _$PaymentImpl;
 
   factory _Payment.fromJson(Map<String, dynamic> json) = _$PaymentImpl.fromJson;
 

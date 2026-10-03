@@ -117,6 +117,111 @@ const kAuthUsernameFormatMessage =
 const kAuthEnterPasswordMessage = 'Please enter your password.';
 const kAuthPasswordFormatMessage =
     'Password must be 8–72 bytes with letters and numbers.';
+const kAuthUsernameTakenMessage = 'That username is already taken.';
+const kAuthAccountSuspendedMessage = 'This account is suspended.';
+const kAuthAccountLockedMessage = 'Too many sign-in attempts. Try again later.';
+const kAuthTooManyRequestsMessage = 'Too many tries. Wait a moment.';
+const kAuthAccountTypeUnavailableMessage =
+    'This account type is not available right now.';
+const kAuthAgeRangeMessage = 'Enter a name and a date of birth for ages 18–80.';
+const kAuthNetworkMessage = 'Cannot reach the server.';
+
+/// Every message code the provider can put in [AuthState.error].
+/// `localizedAuthMessage` translates each of them.
+const kAuthMessageCodes = <String>{
+  kSessionExpiredMessage,
+  kAuthSignInFailedMessage,
+  kAuthCreateAccountFailedMessage,
+  kAuthCreateAccountGenericMessage,
+  kAuthInvalidCredentialsMessage,
+  kAuthUsernameFormatMessage,
+  kAuthEnterPasswordMessage,
+  kAuthPasswordFormatMessage,
+  kAuthUsernameTakenMessage,
+  kAuthAccountSuspendedMessage,
+  kAuthAccountLockedMessage,
+  kAuthTooManyRequestsMessage,
+  kAuthAccountTypeUnavailableMessage,
+  kAuthAgeRangeMessage,
+  kAuthNetworkMessage,
+};
+
+String _normalizeServerText(String text) =>
+    text.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), ' ').trim();
+
+/// Known server texts (normalized: lower case, punctuation removed) and the
+/// message code each maps to. Sources: backend/internal/services/auth
+/// (service.go, postgres_repository.go), internal/modules/auth/application
+/// (validation errors, sent as "validation error: …"), the mobile BFF
+/// (internal/bff/mobile/server.go login/signup) and the Supabase auth texts
+/// the service passes through (upstreamAuthError).
+const _serverAuthPhrases = <(String, String)>[
+  ('invalid username or password', kAuthInvalidCredentialsMessage),
+  ('invalid login credentials', kAuthInvalidCredentialsMessage),
+  ('username is already taken', kAuthUsernameTakenMessage),
+  ('user already registered', kAuthUsernameTakenMessage),
+  ('already been registered', kAuthUsernameTakenMessage),
+  ('already exists', kAuthUsernameTakenMessage),
+  ('account is suspended or banned', kAuthAccountSuspendedMessage),
+  ('banned', kAuthAccountSuspendedMessage),
+  ('account temporarily locked', kAuthAccountLockedMessage),
+  ('rate limit', kAuthTooManyRequestsMessage),
+  ('too many', kAuthTooManyRequestsMessage),
+  ('account type is unavailable', kAuthAccountTypeUnavailableMessage),
+  ('friend introductions are unavailable', kAuthAccountTypeUnavailableMessage),
+  ('provide a name and date of birth', kAuthAgeRangeMessage),
+  ('username must be', kAuthUsernameFormatMessage),
+  ('password must be', kAuthPasswordFormatMessage),
+  ('password should be', kAuthPasswordFormatMessage),
+  ('password is required', kAuthEnterPasswordMessage),
+  ('username and password are required', kAuthEnterPasswordMessage),
+  ('signup request was rejected', kAuthCreateAccountGenericMessage),
+  (
+    'account created without an active session',
+    kAuthCreateAccountGenericMessage,
+  ),
+];
+
+/// Maps what the server said about a failed sign-in or sign-up to one of the
+/// provider's message codes ([kAuthMessageCodes]), never to raw server text.
+///
+/// Error codes win when they are specific (`TOO_MANY_REQUESTS`); the BFF's
+/// other auth codes only repeat the HTTP status, so the text is matched next,
+/// ignoring case and punctuation. Anything unknown becomes [fallback].
+String authMessageCodeForServerError({
+  Object? message,
+  Object? errorCode,
+  int? statusCode,
+  required String fallback,
+}) {
+  final code = errorCode?.toString().trim().toUpperCase() ?? '';
+  if (code == 'TOO_MANY_REQUESTS' ||
+      code == 'RATE_LIMITED' ||
+      statusCode == 429) {
+    return kAuthTooManyRequestsMessage;
+  }
+  final text = _normalizeServerText(message?.toString() ?? '');
+  if (text.isNotEmpty) {
+    // Already one of ours (e.g. a test double replying with the code).
+    for (final known in kAuthMessageCodes) {
+      if (_normalizeServerText(known) == text) {
+        return known;
+      }
+    }
+    for (final (phrase, mapped) in _serverAuthPhrases) {
+      if (text.contains(phrase)) {
+        return mapped;
+      }
+    }
+  }
+  if (code == 'UNAUTHORIZED' || statusCode == 401) {
+    return kAuthInvalidCredentialsMessage;
+  }
+  if (code == 'CONFLICT' || statusCode == 409) {
+    return kAuthUsernameTakenMessage;
+  }
+  return fallback;
+}
 
 @Riverpod(keepAlive: true)
 class AuthNotifier extends _$AuthNotifier {
@@ -232,9 +337,14 @@ class AuthNotifier extends _$AuthNotifier {
       if (attempt != _attempt) return;
       final session = _sessionFrom(data);
       if (session == null) {
+        log.warning('Signup rejected: ${data['error']}');
         state = state.copyWith(
           isLoading: false,
-          error: data['error']?.toString() ?? kAuthCreateAccountGenericMessage,
+          error: authMessageCodeForServerError(
+            message: data['error'],
+            errorCode: data['error_code'],
+            fallback: kAuthCreateAccountGenericMessage,
+          ),
         );
         return;
       }
@@ -433,9 +543,14 @@ class AuthNotifier extends _$AuthNotifier {
   }) {
     final session = _sessionFrom(data);
     if (session == null) {
+      log.warning('Sign-in rejected: ${data['error']}');
       state = state.copyWith(
         isLoading: false,
-        error: data['error']?.toString() ?? kAuthInvalidCredentialsMessage,
+        error: authMessageCodeForServerError(
+          message: data['error'],
+          errorCode: data['error_code'],
+          fallback: kAuthInvalidCredentialsMessage,
+        ),
       );
       return;
     }
@@ -554,13 +669,24 @@ bool _isStrongPassword(String password) =>
     RegExp('[A-Za-z]').hasMatch(password) &&
     RegExp('[0-9]').hasMatch(password);
 
+/// The message code for a failed credential request. The server's own text
+/// stays in the log; the member reads a translated message.
 String _extractApiError(DioException error, {required String fallback}) {
-  final data = error.response?.data;
-  if (data is Map && data['error'] != null) {
-    return data['error'].toString();
+  final response = error.response;
+  if (response == null) {
+    return switch (error.type) {
+      DioExceptionType.connectionError ||
+      DioExceptionType.connectionTimeout ||
+      DioExceptionType.receiveTimeout ||
+      DioExceptionType.sendTimeout => kAuthNetworkMessage,
+      _ => fallback,
+    };
   }
-  if (data is Map && data['message'] != null) {
-    return data['message'].toString();
-  }
-  return fallback;
+  final data = response.data;
+  return authMessageCodeForServerError(
+    message: data is Map ? (data['error'] ?? data['message']) : null,
+    errorCode: data is Map ? data['error_code'] : null,
+    statusCode: response.statusCode,
+    fallback: fallback,
+  );
 }

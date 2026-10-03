@@ -6,6 +6,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:verified_dating_app/core/auth/auth_session_store.dart';
 import 'package:verified_dating_app/core/widgets/glass_widgets.dart';
@@ -168,7 +169,11 @@ void main() {
       );
       await qaSettle(tester);
       expect(find.byType(DatePickerDialog), findsNothing);
-      expect(find.text('01/01/${_pickedDob.year}'), findsOneWidget);
+      // The member's own short date (en-US: M/d/y).
+      expect(
+        find.text(DateFormat.yMd('en').format(_pickedDob)),
+        findsOneWidget,
+      );
       expect(find.text(_en.signupDobPlaceholder), findsNothing);
 
       // Gender: one choice selected at a time.
@@ -452,7 +457,9 @@ void main() {
     await qaSettle(tester);
 
     expect(api.writeLines, ['POST /auth/signup']);
-    expect(find.text('username already exists'), findsOneWidget);
+    // The server's reason maps to the member's message, never raw.
+    expect(find.text(_en.authErrorUsernameTaken), findsOneWidget);
+    expect(find.text('username already exists'), findsNothing);
     expect(tester.widget<GlassButton>(button).onPressed, isNotNull);
     expect(
       tester.widget<TextField>(_key('qa.signup.username_field')).enabled,
@@ -467,7 +474,9 @@ void main() {
 
     api.offline('POST /auth/signup');
     await _tap(tester, 'qa.signup.create_account_button');
-    expect(find.text(_en.authErrorCreateAccountFailed), findsOneWidget);
+    // Offline says so (and replaces the earlier reason).
+    expect(find.text(_en.authErrorNetwork), findsOneWidget);
+    expect(find.text(_en.authErrorUsernameTaken), findsNothing);
     expect(api.writeLines, ['POST /auth/signup', 'POST /auth/signup']);
     expect(AuthSessionStore.instance.accessToken, isNull);
   });
@@ -486,7 +495,8 @@ void main() {
         'POST /auth/signup',
         'POST /auth/signup/bootstrap',
       ]);
-      expect(find.text('Something broke on our side.'), findsOneWidget);
+      expect(find.text(_en.authErrorCreateAccountFailed), findsOneWidget);
+      expect(find.text('Something broke on our side.'), findsNothing);
       expect(find.byType(SignupScreen), findsOneWidget);
       expect(
         _container(tester).read(authNotifierProvider).isAuthenticated,

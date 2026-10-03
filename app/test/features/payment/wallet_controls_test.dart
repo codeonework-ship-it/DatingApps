@@ -128,7 +128,7 @@ void main() {
       server.api.offline('POST /billing/checkout');
       await tester.tap(_buy('p1'));
       await qaSettle(tester);
-      expect(find.text(en.paymentErrorUnreachable), findsOneWidget);
+      expect(find.text(en.networkOfflineTryAgain), findsOneWidget);
     },
   );
 

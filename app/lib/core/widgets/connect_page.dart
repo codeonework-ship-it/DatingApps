@@ -226,7 +226,7 @@ class ConnectNavTile extends StatelessWidget {
     this.subtitle,
     this.tint,
     this.trailing,
-    this.semanticLabel,
+    this.qaId,
   });
   final IconData icon;
   final String title;
@@ -237,8 +237,9 @@ class ConnectNavTile extends StatelessWidget {
   final Color? tint;
   final Widget? trailing;
 
-  /// Overrides the accessibility label (used by automation).
-  final String? semanticLabel;
+  /// Automation id (a semantics identifier). The tile is still announced by
+  /// its own title and subtitle.
+  final String? qaId;
 
   @override
   Widget build(BuildContext context) {
@@ -326,13 +327,13 @@ class ConnectNavTile extends StatelessWidget {
         ),
       ),
     );
-    if (semanticLabel == null) {
+    if (qaId == null) {
       return Semantics(button: true, child: tile);
     }
     return Semantics(
-      label: semanticLabel,
+      container: true,
+      identifier: qaId,
       button: true,
-      onTap: onTap,
       child: tile,
     );
   }

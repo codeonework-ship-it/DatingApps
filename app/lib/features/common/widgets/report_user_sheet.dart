@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../support/widgets/support_entry_points.dart';
 
 Future<String?> showReportUserSheet({
   required BuildContext context,
@@ -145,6 +146,16 @@ class _ReportUserSheetState extends State<_ReportUserSheet> {
                         : Text(l10n.reportSubmit),
                   ),
                 ),
+                // Something a report can't cover (a threat, a scam that cost
+                // money, a question): a private request to the team. Closes
+                // this sheet without reporting.
+                if (!_isSubmitting)
+                  SupportContactLink(
+                    key: const Key('report_contact_support'),
+                    label: l10n.supportReportHelpLink,
+                    category: 'safety_harassment',
+                    closeCurrent: true,
+                  ),
               ],
             ),
           ),

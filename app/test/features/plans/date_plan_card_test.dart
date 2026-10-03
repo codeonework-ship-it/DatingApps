@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:verified_dating_app/core/providers/api_client_provider.dart';
 import 'package:verified_dating_app/features/auth/providers/auth_provider.dart';
 import 'package:verified_dating_app/features/plans/models/date_plan.dart';
+import 'package:verified_dating_app/features/plans/models/date_plan_labels.dart';
 import 'package:verified_dating_app/features/plans/widgets/date_plan_card.dart';
 import 'package:verified_dating_app/l10n/app_localizations.dart';
 
@@ -275,8 +276,9 @@ void main() {
     final plan = DatePlan.fromJson(_proposedPlan());
     expect(plan.isProposed, isTrue);
     expect(plan.viewerIsInvitee, isTrue);
-    expect(plan.venueLabel, 'Coffee');
-    expect(plan.summary, contains('Indiranagar'));
+    final en = lookupAppLocalizations(const Locale('en'));
+    expect(datePlanVenueLabel(en, plan.venueCategory), 'Coffee');
+    expect(plan.localizedSummary(en), contains('Indiranagar'));
 
     final friend = FriendPlan.fromJson(
       jsonDecode('''
@@ -291,6 +293,26 @@ void main() {
     );
     expect(friend.needsHelp, isTrue);
     expect(friend.checkedInSafe, isFalse);
-    expect(friend.venueLabel, 'A meal');
+    expect(datePlanVenueLabel(en, friend.venueCategory), 'A meal');
+  });
+
+  test('[case:l10n-plan-fallback-names-german] a plan without names reads '
+      'in German', () {
+    final de = lookupAppLocalizations(const Locale('de'));
+    final plan = DatePlan.fromJson(_proposedPlan()..remove('partner_name'));
+    final friend = FriendPlan.fromJson(const <String, dynamic>{'plan_id': 'p'});
+    const group = DatePlanShareGroup(id: 'g', name: '');
+    // The model keeps no English stand-in; the widget-facing label speaks
+    // the member's language.
+    expect(plan.partnerName, isEmpty);
+    expect(plan.partnerLabel(de), de.matchesFallbackName);
+    expect(plan.partnerLabel(de), isNot('Your match'));
+    expect(friend.friendLabel(de), de.planSharingFriendFallback);
+    expect(friend.friendLabel(de), isNot('A friend'));
+    expect(group.label(de), de.groupsDetailTitleFallback);
+    expect(
+      DatePlan.fromJson(_proposedPlan()).partnerLabel(de),
+      isNot(de.matchesFallbackName),
+    );
   });
 }

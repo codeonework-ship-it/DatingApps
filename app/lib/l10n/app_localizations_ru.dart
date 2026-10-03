@@ -12777,4 +12777,601 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get settingsSignOutAllFailed =>
       'Не удалось выйти на других устройствах. Проверь подключение и попробуй ещё раз.';
+
+  @override
+  String get supportPaymentHelpLink => 'Проблема с оплатой? Напиши в поддержку';
+
+  @override
+  String get supportReportHelpLink => 'Нужна помощь? Напиши в поддержку';
+
+  @override
+  String get supportSignedOutHelpLink => 'Другая проблема? Напиши в поддержку';
+
+  @override
+  String get supportGuestSubtitle =>
+      'Не получается войти или что-то другое не работает? Расскажи, что случилось, и мы ответим по электронной почте.';
+
+  @override
+  String get supportGuestEmailLabel => 'Твой email';
+
+  @override
+  String get supportGuestEmailHint => 'Мы ответим на этот адрес';
+
+  @override
+  String get supportGuestNameLabel => 'Твоё имя (необязательно)';
+
+  @override
+  String get supportGuestEmailInvalid =>
+      'Введи действующий адрес электронной почты, чтобы мы могли ответить.';
+
+  @override
+  String get supportGuestSentTitle => 'Запрос отправлен';
+
+  @override
+  String supportGuestSentBody(String reference, String email) {
+    return 'Спасибо. Номер твоего запроса: $reference. Мы ответим на $email.';
+  }
+
+  @override
+  String get supportGuestUnavailableBody =>
+      'Сейчас нельзя отправить запрос в поддержку из приложения. По срочным вопросам пиши на support@connect.example.';
+
+  @override
+  String get supportDraftRestored => 'Мы сохранили твой неотправленный запрос.';
+
+  @override
+  String get supportDraftDiscard => 'Удалить черновик';
+
+  @override
+  String get discoverActionUndo => 'Отменить';
+
+  @override
+  String get discoverActionLike => 'Нравится';
+
+  @override
+  String get discoverActionSuperLike => 'Суперлайк';
+
+  @override
+  String get navQaVerifyShortcut => 'Подтвердить';
+
+  @override
+  String get chatMessageDeletedPlaceholder => 'Сообщение удалено';
+
+  @override
+  String get chatGiftYouSentHeading => 'Подарок от тебя';
+
+  @override
+  String get commonMemberFallbackName => 'Участник';
+
+  @override
+  String get giftNameRoseRedSingle => 'Одна красная роза';
+
+  @override
+  String get giftNameRosePinkSoft => 'Розовая роза';
+
+  @override
+  String get giftNameRoseWhitePure => 'Белая роза';
+
+  @override
+  String get giftNameRoseYellowFriendship => 'Жёлтая роза';
+
+  @override
+  String get giftNameRoseLavenderCrush => 'Лавандовая роза';
+
+  @override
+  String get giftNameRoseBlueRare => 'Синяя роза';
+
+  @override
+  String get giftNameRoseBlackMystery => 'Чёрная роза';
+
+  @override
+  String get giftNameRoseSparkle => 'Сверкающая роза';
+
+  @override
+  String get giftNameRoseHeartPetal => 'Роза с лепестками-сердечками';
+
+  @override
+  String get giftNameRoseNeonGlow => 'Неоновая роза';
+
+  @override
+  String get giftNameRoseRain => 'Дождь из роз';
+
+  @override
+  String get giftNameRoseBurningFlame => 'Пылающая роза';
+
+  @override
+  String get giftNameRoseGolden => 'Золотая роза';
+
+  @override
+  String get giftNameRoseCrystal => 'Хрустальная роза';
+
+  @override
+  String get giftNameRoseBouquet12 => 'Букет роз (12)';
+
+  @override
+  String get giftNameRoseBouquet24 => 'Букет роз (24)';
+
+  @override
+  String get giftNameRoseSeasonalWeekly =>
+      'Сезонная роза, лимитированная серия';
+
+  @override
+  String get giftNameChocolateBox => 'Коробка конфет';
+
+  @override
+  String get giftNameHeartBalloon => 'Шарик-сердце';
+
+  @override
+  String get giftNameTeddyBear => 'Плюшевый мишка';
+
+  @override
+  String get giftNameFlowerBouquet => 'Букет цветов';
+
+  @override
+  String get giftNameJewelleryBox => 'Шкатулка для украшений';
+
+  @override
+  String get giftNameChampagneToast => 'Тост с шампанским';
+
+  @override
+  String get giftNameHeartExplosion => 'Взрыв сердечек';
+
+  @override
+  String get giftNameConfettiShower => 'Дождь из конфетти';
+
+  @override
+  String get giftNameFireworksBurst => 'Фейерверк';
+
+  @override
+  String get giftNameStarShower => 'Звездопад';
+
+  @override
+  String get giftNameGoldenSparkle => 'Золотое сияние';
+
+  @override
+  String get giftNameRainbowWave => 'Радужная волна';
+
+  @override
+  String get giftNameCoffeeDateInvite => 'Приглашение на кофе';
+
+  @override
+  String get giftNamePicnicInvite => 'Приглашение на пикник';
+
+  @override
+  String get giftNameMovieNightInvite => 'Приглашение на киновечер';
+
+  @override
+  String get giftNameSunsetWalkInvite => 'Приглашение на прогулку на закате';
+
+  @override
+  String get giftNameDateNightCard => 'Открытка для свидания';
+
+  @override
+  String get giftNameValentineSurprise => 'Сюрприз ко Дню святого Валентина';
+
+  @override
+  String get giftNameDiamondRing => 'Кольцо с бриллиантом';
+
+  @override
+  String get giftNameLuxuryDate => 'Роскошное свидание';
+
+  @override
+  String get blogPublicationUnavailableTitle => 'Публикация недоступна';
+
+  @override
+  String get blogPublicationUnavailableExcerpt =>
+      'Источник изменился или доступ отозван. Отзови эту ссылку.';
+
+  @override
+  String get blogNoticeKindPost => 'Запись';
+
+  @override
+  String get blogNoticeKindResponse => 'Ответ';
+
+  @override
+  String get blogNoticeKindPublication => 'Публичная копия';
+
+  @override
+  String get blogNoticeKindThemeEntry => 'Фото по теме';
+
+  @override
+  String get blogNoticeKindClub => 'Клуб';
+
+  @override
+  String get blogNoticeKindClubPost => 'Запись в клубе';
+
+  @override
+  String get blogNoticeKindReview => 'Отзыв';
+
+  @override
+  String get blogNoticeKindList => 'Список';
+
+  @override
+  String get blogNoticeKindComment => 'Комментарий';
+
+  @override
+  String get blogNoticeKindPhotoComment => 'Комментарий к фото';
+
+  @override
+  String get blogNoticeKindChatMessage => 'Сообщение в чате';
+
+  @override
+  String get blogNoticeKindGroup => 'Группа';
+
+  @override
+  String get blogNoticeKindOther => 'Контент';
+
+  @override
+  String get blogNoticeStatusPending => 'На проверке';
+
+  @override
+  String get blogNoticeStatusDismissed => 'Без мер';
+
+  @override
+  String get blogNoticeStatusRemoved => 'Удалено';
+
+  @override
+  String get blogNoticeStatusRestored => 'Восстановлено';
+
+  @override
+  String get engagementTrustMilestoneProfileDepth => 'Полнота профиля';
+
+  @override
+  String get engagementTrustMilestoneCommunication => 'Общение';
+
+  @override
+  String get engagementTrustMilestoneConsistency => 'Постоянство';
+
+  @override
+  String get engagementTrustMilestonePromptCompletion => 'Ответы на вопросы';
+
+  @override
+  String get engagementTrustMilestoneActivitySignals => 'Сигналы активности';
+
+  @override
+  String get engagementTrustMilestoneUnsafeSignals => 'Сигналы о безопасности';
+
+  @override
+  String get engagementTrustMilestoneReportPenalty => 'Штраф за жалобы';
+
+  @override
+  String get engagementTrustMilestoneVerification => 'Верификация согласована';
+
+  @override
+  String get engagementTrustMilestoneSafety => 'Безопасность';
+
+  @override
+  String engagementTrustMilestoneLine(String label, String value) {
+    return '$label: $value';
+  }
+
+  @override
+  String get networkOfflineTryAgain =>
+      'Сейчас не удаётся подключиться. Проверь интернет-соединение и попробуй ещё раз.';
+
+  @override
+  String get apiErrorFeatureUnavailable => 'Эта функция сейчас недоступна.';
+
+  @override
+  String get apiErrorConversationUnavailable =>
+      'Этот разговор больше недоступен.';
+
+  @override
+  String get apiErrorMemberUnavailable => 'Этот участник недоступен.';
+
+  @override
+  String get apiErrorChatLocked => 'Сначала разблокируй этот разговор.';
+
+  @override
+  String get apiErrorCopilotDailyLimit =>
+      'Черновики на сегодня закончились. Это сообщение придётся написать самостоятельно.';
+
+  @override
+  String get apiErrorCopilotUnavailable =>
+      'Помощь с черновиком сейчас недоступна.';
+
+  @override
+  String get apiErrorCopilotProfileUnavailable =>
+      'Профиль собеседника сейчас недоступен.';
+
+  @override
+  String get apiErrorDatePlanAlreadyOpen =>
+      'Для этой пары уже есть открытый план свидания.';
+
+  @override
+  String get apiErrorDatePlanMatchInactive =>
+      'Для плана свидания нужна активная пара.';
+
+  @override
+  String get apiErrorDatePlanNotOpen => 'Этот план свидания больше не активен.';
+
+  @override
+  String get apiErrorDatePlanCheckInTooEarly =>
+      'Отметиться можно, когда свидание начнётся.';
+
+  @override
+  String get apiErrorDatePlanDebriefTooEarly =>
+      'Подведение итогов откроется, когда свидание начнётся.';
+
+  @override
+  String get apiErrorSharedAvailabilityChanged =>
+      'Общее свободное время изменилось. Обнови предложенное время или выбери время сам(а).';
+
+  @override
+  String get apiErrorGraduationAlreadyOpen =>
+      'Для этой пары уже есть открытое предложение уйти вдвоём.';
+
+  @override
+  String get apiErrorGraduationMatchInactive =>
+      'Чтобы уйти вдвоём, нужна активная пара.';
+
+  @override
+  String get apiErrorGraduationNotOpen =>
+      'Это предложение уйти вдвоём больше не активно.';
+
+  @override
+  String get apiErrorGraduationAlreadyConfirmed => 'Вы уже ушли вдвоём.';
+
+  @override
+  String get apiErrorOutOfDate =>
+      'Данные устарели. Обнови экран и попробуй ещё раз.';
+
+  @override
+  String get apiErrorOutcomeUncertain =>
+      'Не удалось это подтвердить. Обнови экран и проверь, прежде чем пробовать снова.';
+
+  @override
+  String get apiErrorInsufficientCoins => 'Для этого не хватает монет.';
+
+  @override
+  String get apiErrorChannelReadOnly => 'Этот чат сейчас только для чтения.';
+
+  @override
+  String get apiErrorRoomFull =>
+      'Эта комната сейчас заполнена. Попробуй чуть позже.';
+
+  @override
+  String get apiErrorRoomRemoved =>
+      'Ведущий удалил тебя из этой комнаты. Ты сможешь вернуться, когда эта сессия закончится.';
+
+  @override
+  String get apiErrorRoomNotJoined => 'Тебя нет в этой комнате.';
+
+  @override
+  String get apiErrorDailyMessageLimit =>
+      'Сообщения на сегодня закончились. Попробуй после обновления лимита или улучши тариф.';
+
+  @override
+  String get apiErrorDailyLikeLimit =>
+      'Лайки на сегодня закончились. Попробуй после обновления лимита или улучши тариф.';
+
+  @override
+  String get apiErrorFriendRequired => 'Сначала вам нужно стать друзьями.';
+
+  @override
+  String get apiErrorVouchExists =>
+      'Ты уже написал(а) рекомендацию для этого человека.';
+
+  @override
+  String get apiErrorIntroUnavailable => 'Это знакомство больше недоступно.';
+
+  @override
+  String get apiErrorIntroAlreadyOpen => 'Знакомство этих двоих уже открыто.';
+
+  @override
+  String get apiErrorIntroNotOpen => 'Это знакомство больше не активно.';
+
+  @override
+  String get apiErrorTooManyTries =>
+      'Слишком много попыток. Подожди немного и попробуй ещё раз.';
+
+  @override
+  String get apiErrorQuestCooldown =>
+      'У этого задания перерыв. Попробуй чуть позже.';
+
+  @override
+  String get apiErrorQuestSelfReview =>
+      'Твой ответ на задание проверяет твоя пара, а не ты.';
+
+  @override
+  String get apiErrorQuestNotParticipant =>
+      'Участвовать в задании могут только участники этой пары.';
+
+  @override
+  String get apiErrorPaymentsUnavailable => 'Покупка монет сейчас недоступна.';
+
+  @override
+  String get apiErrorServiceBusy =>
+      'Сервис сейчас перегружен. Попробуй через минуту.';
+
+  @override
+  String get apiErrorSignInAgain => 'Войди снова, чтобы продолжить.';
+
+  @override
+  String get friendsMemberFallback => 'Один участник';
+
+  @override
+  String get friendsActivityFallback => 'Активность';
+
+  @override
+  String get membershipPlanFallback => 'Тариф';
+
+  @override
+  String get membershipSubscriptionFallback => 'Подписка';
+
+  @override
+  String engagementLevelRewardFallback(int level) {
+    return 'Награда за уровень $level';
+  }
+
+  @override
+  String get engagementTrustBadgeUnknown => 'Неизвестный значок';
+
+  @override
+  String get firstChapterComfortDefaultLanguage => 'Русский';
+
+  @override
+  String paymentWalletBalanceCoins(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString монеты',
+      many: '$countString монет',
+      few: '$countString монеты',
+      one: '$countString монета',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get languageIntroSignedOut =>
+      'Выбери язык Connect. Он сразу применится, а при входе сохранится в твоём аккаунте.';
+
+  @override
+  String languagePickerButtonSemantics(String language) {
+    return 'Язык: $language. Сменить язык';
+  }
+
+  @override
+  String get authErrorUsernameTaken =>
+      'Это имя пользователя уже занято. Попробуй другое.';
+
+  @override
+  String get authErrorAccountSuspended =>
+      'Этот аккаунт заблокирован. Если считаешь это ошибкой, напиши в поддержку.';
+
+  @override
+  String get authErrorAccountLocked =>
+      'Слишком много попыток входа. Попробуй снова через несколько минут.';
+
+  @override
+  String get authErrorTooManyRequests =>
+      'Слишком много попыток. Подожди немного и попробуй снова.';
+
+  @override
+  String get authErrorAccountTypeUnavailable =>
+      'Этот тип аккаунта сейчас недоступен.';
+
+  @override
+  String get authErrorNetwork =>
+      'Сейчас не удаётся подключиться. Проверь интернет и попробуй снова.';
+
+  @override
+  String get profileSetupReorderPhoto =>
+      'Перетащи, чтобы изменить порядок фото';
+
+  @override
+  String get profileLanguageAssamese => 'Ассамский';
+
+  @override
+  String get profileLanguageBengali => 'Бенгальский';
+
+  @override
+  String get profileLanguageBodo => 'Бодо';
+
+  @override
+  String get profileLanguageDogri => 'Догри';
+
+  @override
+  String get profileLanguageEnglish => 'Английский';
+
+  @override
+  String get profileLanguageGujarati => 'Гуджарати';
+
+  @override
+  String get profileLanguageHindi => 'Хинди';
+
+  @override
+  String get profileLanguageKannada => 'Каннада';
+
+  @override
+  String get profileLanguageKashmiri => 'Кашмири';
+
+  @override
+  String get profileLanguageKonkani => 'Конкани';
+
+  @override
+  String get profileLanguageMaithili => 'Майтхили';
+
+  @override
+  String get profileLanguageMalayalam => 'Малаялам';
+
+  @override
+  String get profileLanguageManipuri => 'Манипури';
+
+  @override
+  String get profileLanguageMarathi => 'Маратхи';
+
+  @override
+  String get profileLanguageNepali => 'Непальский';
+
+  @override
+  String get profileLanguageOdia => 'Ория';
+
+  @override
+  String get profileLanguagePunjabi => 'Панджаби';
+
+  @override
+  String get profileLanguageSanskrit => 'Санскрит';
+
+  @override
+  String get profileLanguageSantali => 'Сантали';
+
+  @override
+  String get profileLanguageSindhi => 'Синдхи';
+
+  @override
+  String get profileLanguageTamil => 'Тамильский';
+
+  @override
+  String get profileLanguageTelugu => 'Телугу';
+
+  @override
+  String get profileLanguageUrdu => 'Урду';
+
+  @override
+  String get profileCountryIndia => 'Индия';
+
+  @override
+  String get profileCountryUnitedKingdom => 'Великобритания';
+
+  @override
+  String get profileCountryIreland => 'Ирландия';
+
+  @override
+  String get profileCountryGermany => 'Германия';
+
+  @override
+  String get profileCountryAustria => 'Австрия';
+
+  @override
+  String get profileMasterWorkoutSometimes => 'Иногда';
+
+  @override
+  String get profileMasterWorkoutWeekly => 'Каждую неделю';
+
+  @override
+  String get profileMasterTravelRoadTrips => 'Автопутешествия';
+
+  @override
+  String get profileMasterTravelBackpacking => 'Путешествия с рюкзаком';
+
+  @override
+  String get profileMasterTravelLuxuryShort => 'Люкс';
+
+  @override
+  String get profileMasterTravelStaycations => 'Отдых дома';
+
+  @override
+  String get profileMasterPoliticsSimilarShort => 'Похожие';
+
+  @override
+  String get profileMasterPoliticsModerate => 'Умеренные';
+
+  @override
+  String get profileMasterPoliticsAny => 'Любые';
 }

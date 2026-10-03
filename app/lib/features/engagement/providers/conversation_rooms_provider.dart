@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/feature_flags.dart';
+import '../../../core/i18n/app_l10n.dart';
 import '../../../core/i18n/app_locale_provider.dart';
 import '../../../core/network/api_error_message.dart';
 import '../../../core/providers/api_client_provider.dart';
@@ -22,13 +23,9 @@ int _int(Object? v) => v is num ? v.toInt() : 0;
 DateTime? _time(Object? v) =>
     v is String && v.isNotEmpty ? DateTime.tryParse(v)?.toLocal() : null;
 
-/// Room categories, in display order.
-const roomCategories = <String, String>{
-  'talk': 'Talk',
-  'interests': 'Interests',
-  'active': 'Out & about',
-  'city': 'Your city',
-};
+/// Room category keys, in display order. Widgets name them with
+/// `roomCategoryLabel` (room_chat.dart) in the member's language.
+const roomCategories = <String>['talk', 'interests', 'active', 'city'];
 
 class ConversationRoom {
   const ConversationRoom({
@@ -64,7 +61,7 @@ class ConversationRoom {
             (json['title'] ?? json['theme'])?.toString().trim().isNotEmpty ==
                 true
             ? (json['title'] ?? json['theme']).toString()
-            : 'Room',
+            : '',
         description: json['description']?.toString() ?? '',
         lifecycleState: json['lifecycle_state']?.toString() ?? 'scheduled',
         slug: json['slug']?.toString() ?? '',
@@ -90,7 +87,8 @@ class ConversationRoom {
 
   final String id;
 
-  /// The room's name (the API's `title`; `theme` for older servers).
+  /// The room's name (the API's `title`; `theme` for older servers); empty
+  /// when the server sent none.
   final String theme;
   final String description;
 
@@ -130,7 +128,10 @@ class ConversationRoom {
   /// The room's chat channel, set once the member has joined.
   final String channelId;
 
-  String get title => theme;
+  /// The name to show: [theme], or "Room" in the language the app is shown
+  /// in when the server sent none.
+  String get title =>
+      theme.isNotEmpty ? theme : currentAppL10n().roomsRoomFallback;
   bool get isLive => lifecycleState == 'active';
   bool get isClosed => lifecycleState == 'closed';
   bool get isFull => capacity > 0 && participantCount >= capacity;

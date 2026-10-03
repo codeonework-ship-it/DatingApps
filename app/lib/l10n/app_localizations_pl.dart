@@ -12849,4 +12849,608 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get settingsSignOutAllFailed =>
       'Nie udało się wylogować innych urządzeń. Sprawdź połączenie i spróbuj ponownie.';
+
+  @override
+  String get supportPaymentHelpLink =>
+      'Problem z płatnością? Skontaktuj się z pomocą';
+
+  @override
+  String get supportReportHelpLink =>
+      'Potrzebujesz więcej pomocy? Skontaktuj się z pomocą';
+
+  @override
+  String get supportSignedOutHelpLink =>
+      'Inny problem? Skontaktuj się z pomocą';
+
+  @override
+  String get supportGuestSubtitle =>
+      'Nie możesz się zalogować albo coś innego nie działa? Opisz, co się stało, a odpowiemy e-mailem.';
+
+  @override
+  String get supportGuestEmailLabel => 'Twój adres e-mail';
+
+  @override
+  String get supportGuestEmailHint => 'Odpowiemy na ten adres';
+
+  @override
+  String get supportGuestNameLabel => 'Twoje imię (opcjonalnie)';
+
+  @override
+  String get supportGuestEmailInvalid =>
+      'Podaj prawidłowy adres e-mail, abyśmy mogli odpowiedzieć.';
+
+  @override
+  String get supportGuestSentTitle => 'Zgłoszenie wysłane';
+
+  @override
+  String supportGuestSentBody(String reference, String email) {
+    return 'Dziękujemy. Twój numer zgłoszenia to $reference. Odpowiemy na $email.';
+  }
+
+  @override
+  String get supportGuestUnavailableBody =>
+      'Obecnie nie można wysyłać zgłoszeń do pomocy z aplikacji. W pilnych sprawach napisz na support@connect.example.';
+
+  @override
+  String get supportDraftRestored =>
+      'Zachowaliśmy Twoje niewysłane zgłoszenie.';
+
+  @override
+  String get supportDraftDiscard => 'Odrzuć wersję roboczą';
+
+  @override
+  String get discoverActionUndo => 'Cofnij';
+
+  @override
+  String get discoverActionLike => 'Polub';
+
+  @override
+  String get discoverActionSuperLike => 'Superpolubienie';
+
+  @override
+  String get navQaVerifyShortcut => 'Zweryfikuj';
+
+  @override
+  String get chatMessageDeletedPlaceholder => 'Wiadomość usunięta';
+
+  @override
+  String get chatGiftYouSentHeading => 'Prezent od ciebie';
+
+  @override
+  String get commonMemberFallbackName => 'Użytkownik';
+
+  @override
+  String get giftNameRoseRedSingle => 'Jedna czerwona róża';
+
+  @override
+  String get giftNameRosePinkSoft => 'Różowa róża';
+
+  @override
+  String get giftNameRoseWhitePure => 'Biała róża';
+
+  @override
+  String get giftNameRoseYellowFriendship => 'Żółta róża';
+
+  @override
+  String get giftNameRoseLavenderCrush => 'Lawendowa róża';
+
+  @override
+  String get giftNameRoseBlueRare => 'Niebieska róża';
+
+  @override
+  String get giftNameRoseBlackMystery => 'Czarna róża';
+
+  @override
+  String get giftNameRoseSparkle => 'Błyszcząca róża';
+
+  @override
+  String get giftNameRoseHeartPetal => 'Róża z płatkami serc';
+
+  @override
+  String get giftNameRoseNeonGlow => 'Neonowa róża';
+
+  @override
+  String get giftNameRoseRain => 'Deszcz róż';
+
+  @override
+  String get giftNameRoseBurningFlame => 'Płonąca róża';
+
+  @override
+  String get giftNameRoseGolden => 'Złota róża';
+
+  @override
+  String get giftNameRoseCrystal => 'Kryształowa róża';
+
+  @override
+  String get giftNameRoseBouquet12 => 'Bukiet róż (12)';
+
+  @override
+  String get giftNameRoseBouquet24 => 'Bukiet róż (24)';
+
+  @override
+  String get giftNameRoseSeasonalWeekly => 'Limitowana róża sezonowa';
+
+  @override
+  String get giftNameChocolateBox => 'Pudełko czekoladek';
+
+  @override
+  String get giftNameHeartBalloon => 'Balon w kształcie serca';
+
+  @override
+  String get giftNameTeddyBear => 'Pluszowy miś';
+
+  @override
+  String get giftNameFlowerBouquet => 'Bukiet kwiatów';
+
+  @override
+  String get giftNameJewelleryBox => 'Szkatułka na biżuterię';
+
+  @override
+  String get giftNameChampagneToast => 'Toast szampanem';
+
+  @override
+  String get giftNameHeartExplosion => 'Eksplozja serc';
+
+  @override
+  String get giftNameConfettiShower => 'Deszcz konfetti';
+
+  @override
+  String get giftNameFireworksBurst => 'Fajerwerki';
+
+  @override
+  String get giftNameStarShower => 'Deszcz gwiazd';
+
+  @override
+  String get giftNameGoldenSparkle => 'Złoty blask';
+
+  @override
+  String get giftNameRainbowWave => 'Tęczowa fala';
+
+  @override
+  String get giftNameCoffeeDateInvite => 'Zaproszenie na kawę';
+
+  @override
+  String get giftNamePicnicInvite => 'Zaproszenie na piknik';
+
+  @override
+  String get giftNameMovieNightInvite => 'Zaproszenie na wieczór filmowy';
+
+  @override
+  String get giftNameSunsetWalkInvite =>
+      'Zaproszenie na spacer o zachodzie słońca';
+
+  @override
+  String get giftNameDateNightCard => 'Kartka na randkę';
+
+  @override
+  String get giftNameValentineSurprise => 'Walentynkowa niespodzianka';
+
+  @override
+  String get giftNameDiamondRing => 'Pierścionek z diamentem';
+
+  @override
+  String get giftNameLuxuryDate => 'Luksusowa randka';
+
+  @override
+  String get blogPublicationUnavailableTitle => 'Udostępnianie niedostępne';
+
+  @override
+  String get blogPublicationUnavailableExcerpt =>
+      'Źródło się zmieniło lub dostęp został cofnięty. Wycofaj ten link.';
+
+  @override
+  String get blogNoticeKindPost => 'Wpis';
+
+  @override
+  String get blogNoticeKindResponse => 'Odpowiedź';
+
+  @override
+  String get blogNoticeKindPublication => 'Publiczna kopia';
+
+  @override
+  String get blogNoticeKindThemeEntry => 'Zdjęcie tematyczne';
+
+  @override
+  String get blogNoticeKindClub => 'Klub';
+
+  @override
+  String get blogNoticeKindClubPost => 'Wpis w klubie';
+
+  @override
+  String get blogNoticeKindReview => 'Recenzja';
+
+  @override
+  String get blogNoticeKindList => 'Lista';
+
+  @override
+  String get blogNoticeKindComment => 'Komentarz';
+
+  @override
+  String get blogNoticeKindPhotoComment => 'Komentarz do zdjęcia';
+
+  @override
+  String get blogNoticeKindChatMessage => 'Wiadomość na czacie';
+
+  @override
+  String get blogNoticeKindGroup => 'Grupa';
+
+  @override
+  String get blogNoticeKindOther => 'Treść';
+
+  @override
+  String get blogNoticeStatusPending => 'W trakcie weryfikacji';
+
+  @override
+  String get blogNoticeStatusDismissed => 'Bez działań';
+
+  @override
+  String get blogNoticeStatusRemoved => 'Usunięto';
+
+  @override
+  String get blogNoticeStatusRestored => 'Przywrócono';
+
+  @override
+  String get engagementTrustMilestoneProfileDepth => 'Kompletność profilu';
+
+  @override
+  String get engagementTrustMilestoneCommunication => 'Komunikacja';
+
+  @override
+  String get engagementTrustMilestoneConsistency => 'Konsekwencja';
+
+  @override
+  String get engagementTrustMilestonePromptCompletion =>
+      'Odpowiedzi na pytania';
+
+  @override
+  String get engagementTrustMilestoneActivitySignals => 'Sygnały aktywności';
+
+  @override
+  String get engagementTrustMilestoneUnsafeSignals =>
+      'Zgłoszenia bezpieczeństwa';
+
+  @override
+  String get engagementTrustMilestoneReportPenalty => 'Kara za zgłoszenia';
+
+  @override
+  String get engagementTrustMilestoneVerification => 'Weryfikacja spójna';
+
+  @override
+  String get engagementTrustMilestoneSafety => 'Bezpieczeństwo';
+
+  @override
+  String engagementTrustMilestoneLine(String label, String value) {
+    return '$label: $value';
+  }
+
+  @override
+  String get networkOfflineTryAgain =>
+      'Nie można teraz połączyć. Sprawdź połączenie z internetem i spróbuj ponownie.';
+
+  @override
+  String get apiErrorFeatureUnavailable => 'Ta funkcja jest teraz niedostępna.';
+
+  @override
+  String get apiErrorConversationUnavailable =>
+      'Ta rozmowa nie jest już dostępna.';
+
+  @override
+  String get apiErrorMemberUnavailable => 'Ta osoba jest niedostępna.';
+
+  @override
+  String get apiErrorChatLocked => 'Najpierw odblokuj tę rozmowę.';
+
+  @override
+  String get apiErrorCopilotDailyLimit =>
+      'Dzisiejsze szkice zostały wykorzystane. Napisz tę wiadomość samodzielnie.';
+
+  @override
+  String get apiErrorCopilotUnavailable =>
+      'Pomoc w pisaniu jest teraz niedostępna.';
+
+  @override
+  String get apiErrorCopilotProfileUnavailable =>
+      'Profil tej osoby jest teraz niedostępny.';
+
+  @override
+  String get apiErrorDatePlanAlreadyOpen =>
+      'Dla tej pary jest już otwarty plan randki.';
+
+  @override
+  String get apiErrorDatePlanMatchInactive =>
+      'Plany randek wymagają aktywnej pary.';
+
+  @override
+  String get apiErrorDatePlanNotOpen => 'Ten plan randki nie jest już otwarty.';
+
+  @override
+  String get apiErrorDatePlanCheckInTooEarly =>
+      'Możesz się zameldować, gdy plan się zacznie.';
+
+  @override
+  String get apiErrorDatePlanDebriefTooEarly =>
+      'Podsumowanie otworzy się, gdy plan się zacznie.';
+
+  @override
+  String get apiErrorSharedAvailabilityChanged =>
+      'Wspólna dostępność się zmieniła. Odśwież proponowane godziny albo wybierz godzinę samodzielnie.';
+
+  @override
+  String get apiErrorGraduationAlreadyOpen =>
+      'Dla tej pary jest już otwarta propozycja wspólnego odejścia.';
+
+  @override
+  String get apiErrorGraduationMatchInactive =>
+      'Wspólne odejście wymaga aktywnej pary.';
+
+  @override
+  String get apiErrorGraduationNotOpen =>
+      'Ta propozycja wspólnego odejścia nie jest już otwarta.';
+
+  @override
+  String get apiErrorGraduationAlreadyConfirmed => 'Już razem odeszliście.';
+
+  @override
+  String get apiErrorOutOfDate =>
+      'Ten widok jest nieaktualny. Odśwież i spróbuj ponownie.';
+
+  @override
+  String get apiErrorOutcomeUncertain =>
+      'Nie udało się tego potwierdzić. Odśwież, aby sprawdzić, zanim spróbujesz ponownie.';
+
+  @override
+  String get apiErrorInsufficientCoins => 'Masz za mało monet.';
+
+  @override
+  String get apiErrorChannelReadOnly => 'Ten czat jest teraz tylko do odczytu.';
+
+  @override
+  String get apiErrorRoomFull =>
+      'Ten pokój jest teraz pełny. Spróbuj ponownie za chwilę.';
+
+  @override
+  String get apiErrorRoomRemoved =>
+      'Gospodarz usunął cię z tego pokoju. Możesz wrócić, gdy ta sesja się skończy.';
+
+  @override
+  String get apiErrorRoomNotJoined => 'Nie ma cię w tym pokoju.';
+
+  @override
+  String get apiErrorDailyMessageLimit =>
+      'Dzisiejsze wiadomości zostały wykorzystane. Spróbuj po odnowieniu limitu lub zmień plan na wyższy.';
+
+  @override
+  String get apiErrorDailyLikeLimit =>
+      'Dzisiejsze polubienia zostały wykorzystane. Spróbuj po odnowieniu limitu lub zmień plan na wyższy.';
+
+  @override
+  String get apiErrorFriendRequired => 'Najpierw musicie zostać znajomymi.';
+
+  @override
+  String get apiErrorVouchExists => 'Już wystawiono polecenie tej osobie.';
+
+  @override
+  String get apiErrorIntroUnavailable => 'To zapoznanie nie jest już dostępne.';
+
+  @override
+  String get apiErrorIntroAlreadyOpen =>
+      'Zapoznanie tych dwóch osób jest już otwarte.';
+
+  @override
+  String get apiErrorIntroNotOpen => 'To zapoznanie nie jest już otwarte.';
+
+  @override
+  String get apiErrorTooManyTries =>
+      'Zbyt wiele prób. Poczekaj chwilę i spróbuj ponownie.';
+
+  @override
+  String get apiErrorQuestCooldown =>
+      'To zadanie ma przerwę. Spróbuj trochę później.';
+
+  @override
+  String get apiErrorQuestSelfReview =>
+      'Twoją odpowiedź na zadanie ocenia twoja para, nie ty.';
+
+  @override
+  String get apiErrorQuestNotParticipant =>
+      'W zadaniu mogą brać udział tylko osoby z tej pary.';
+
+  @override
+  String get apiErrorPaymentsUnavailable =>
+      'Zakup monet jest teraz niedostępny.';
+
+  @override
+  String get apiErrorServiceBusy =>
+      'Usługa jest teraz przeciążona. Spróbuj ponownie za chwilę.';
+
+  @override
+  String get apiErrorSignInAgain => 'Zaloguj się ponownie, aby kontynuować.';
+
+  @override
+  String get friendsMemberFallback => 'Pewna osoba';
+
+  @override
+  String get friendsActivityFallback => 'Aktywność';
+
+  @override
+  String get membershipPlanFallback => 'Plan';
+
+  @override
+  String get membershipSubscriptionFallback => 'Subskrypcja';
+
+  @override
+  String engagementLevelRewardFallback(int level) {
+    return 'Nagroda za poziom $level';
+  }
+
+  @override
+  String get engagementTrustBadgeUnknown => 'Nieznana odznaka';
+
+  @override
+  String get firstChapterComfortDefaultLanguage => 'Polski';
+
+  @override
+  String paymentWalletBalanceCoins(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString monety',
+      many: '$countString monet',
+      few: '$countString monety',
+      one: '1 moneta',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get languageIntroSignedOut =>
+      'Wybierz język Connect. Zmieni się od razu, a po zalogowaniu zapisze się na twoim koncie.';
+
+  @override
+  String languagePickerButtonSemantics(String language) {
+    return 'Język: $language. Zmień język';
+  }
+
+  @override
+  String get authErrorUsernameTaken =>
+      'Ta nazwa użytkownika jest już zajęta. Spróbuj innej.';
+
+  @override
+  String get authErrorAccountSuspended =>
+      'To konto jest zawieszone. Jeśli uważasz, że to pomyłka, skontaktuj się z pomocą.';
+
+  @override
+  String get authErrorAccountLocked =>
+      'Zbyt wiele prób logowania. Spróbuj ponownie za kilka minut.';
+
+  @override
+  String get authErrorTooManyRequests =>
+      'Zbyt wiele prób. Odczekaj chwilę i spróbuj ponownie.';
+
+  @override
+  String get authErrorAccountTypeUnavailable =>
+      'Ten rodzaj konta jest teraz niedostępny.';
+
+  @override
+  String get authErrorNetwork =>
+      'Nie można się teraz połączyć. Sprawdź połączenie z internetem i spróbuj ponownie.';
+
+  @override
+  String get profileSetupReorderPhoto =>
+      'Przeciągnij, aby zmienić kolejność zdjęcia';
+
+  @override
+  String get profileLanguageAssamese => 'Asamski';
+
+  @override
+  String get profileLanguageBengali => 'Bengalski';
+
+  @override
+  String get profileLanguageBodo => 'Bodo';
+
+  @override
+  String get profileLanguageDogri => 'Dogri';
+
+  @override
+  String get profileLanguageEnglish => 'Angielski';
+
+  @override
+  String get profileLanguageGujarati => 'Gudżarati';
+
+  @override
+  String get profileLanguageHindi => 'Hindi';
+
+  @override
+  String get profileLanguageKannada => 'Kannada';
+
+  @override
+  String get profileLanguageKashmiri => 'Kaszmirski';
+
+  @override
+  String get profileLanguageKonkani => 'Konkani';
+
+  @override
+  String get profileLanguageMaithili => 'Maithili';
+
+  @override
+  String get profileLanguageMalayalam => 'Malajalam';
+
+  @override
+  String get profileLanguageManipuri => 'Manipuri';
+
+  @override
+  String get profileLanguageMarathi => 'Marathi';
+
+  @override
+  String get profileLanguageNepali => 'Nepalski';
+
+  @override
+  String get profileLanguageOdia => 'Orija';
+
+  @override
+  String get profileLanguagePunjabi => 'Pendżabski';
+
+  @override
+  String get profileLanguageSanskrit => 'Sanskryt';
+
+  @override
+  String get profileLanguageSantali => 'Santali';
+
+  @override
+  String get profileLanguageSindhi => 'Sindhi';
+
+  @override
+  String get profileLanguageTamil => 'Tamilski';
+
+  @override
+  String get profileLanguageTelugu => 'Telugu';
+
+  @override
+  String get profileLanguageUrdu => 'Urdu';
+
+  @override
+  String get profileCountryIndia => 'Indie';
+
+  @override
+  String get profileCountryUnitedKingdom => 'Wielka Brytania';
+
+  @override
+  String get profileCountryIreland => 'Irlandia';
+
+  @override
+  String get profileCountryGermany => 'Niemcy';
+
+  @override
+  String get profileCountryAustria => 'Austria';
+
+  @override
+  String get profileMasterWorkoutSometimes => 'Czasami';
+
+  @override
+  String get profileMasterWorkoutWeekly => 'Co tydzień';
+
+  @override
+  String get profileMasterTravelRoadTrips => 'Podróże samochodem';
+
+  @override
+  String get profileMasterTravelBackpacking => 'Podróże z plecakiem';
+
+  @override
+  String get profileMasterTravelLuxuryShort => 'Luksus';
+
+  @override
+  String get profileMasterTravelStaycations => 'Wakacje w domu';
+
+  @override
+  String get profileMasterPoliticsSimilarShort => 'Podobne';
+
+  @override
+  String get profileMasterPoliticsModerate => 'Umiarkowane';
+
+  @override
+  String get profileMasterPoliticsAny => 'Dowolne';
 }

@@ -103,7 +103,7 @@ class _DebriefSheetState extends ConsumerState<_DebriefSheet> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              l10n.debriefTitle(widget.plan.partnerName),
+              l10n.debriefTitle(widget.plan.partnerLabel(l10n)),
               style: theme.textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.w700,
               ),
@@ -258,7 +258,7 @@ Future<void> offerReportAfterUnsafeDebrief({
     context: context,
     builder: (dialogContext) => AlertDialog(
       title: Text(l10n.debriefUnsafeTitle),
-      content: Text(l10n.debriefUnsafeBody(plan.partnerName)),
+      content: Text(l10n.debriefUnsafeBody(plan.partnerLabel(l10n))),
       actions: [
         TextButton(
           key: const ValueKey('qa.debrief.not_now'),

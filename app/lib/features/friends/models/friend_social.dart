@@ -1,6 +1,11 @@
 /// Friend vouches and friend-made intros (BFF `/friends/{id}/vouches`,
 /// `/friends/{id}/intros`, `/users/{id}/vouches`).
+///
+/// Names are empty when the server sent none; widgets show the localized
+/// fallbacks from the `*Label(l10n)` extensions at the bottom of this file.
 library;
+
+import '../../../l10n/app_localizations.dart';
 
 class FriendVouch {
   const FriendVouch({
@@ -17,9 +22,9 @@ class FriendVouch {
   factory FriendVouch.fromJson(Map<String, dynamic> json) => FriendVouch(
     id: json['id']?.toString() ?? '',
     subjectUserId: json['subject_user_id']?.toString() ?? '',
-    subjectName: json['subject_name']?.toString() ?? 'A member',
+    subjectName: json['subject_name']?.toString() ?? '',
     voucherUserId: json['voucher_user_id']?.toString() ?? '',
-    voucherName: json['voucher_name']?.toString() ?? 'A friend',
+    voucherName: json['voucher_name']?.toString() ?? '',
     text: json['text']?.toString() ?? '',
     status: json['status']?.toString() ?? 'pending',
     createdAt: json['created_at']?.toString() ?? '',
@@ -43,7 +48,7 @@ class PublicVouch {
 
   factory PublicVouch.fromJson(Map<String, dynamic> json) => PublicVouch(
     text: json['text']?.toString() ?? '',
-    voucherName: json['voucher_name']?.toString() ?? 'A friend',
+    voucherName: json['voucher_name']?.toString() ?? '',
   );
 
   final String text;
@@ -62,7 +67,7 @@ class IntroPreview {
 
   factory IntroPreview.fromJson(Map<String, dynamic> json) => IntroPreview(
     userId: json['user_id']?.toString() ?? '',
-    name: json['name']?.toString() ?? 'A member',
+    name: json['name']?.toString() ?? '',
     age: (json['age'] as num?)?.toInt(),
     city: json['city']?.toString() ?? '',
     isVerified: json['is_verified'] as bool? ?? false,
@@ -98,7 +103,7 @@ class FriendIntro {
   factory FriendIntro.fromJson(Map<String, dynamic> json) => FriendIntro(
     id: json['id']?.toString() ?? '',
     introducerUserId: json['introducer_user_id']?.toString() ?? '',
-    introducerName: json['introducer_name']?.toString() ?? 'A friend',
+    introducerName: json['introducer_name']?.toString() ?? '',
     message: json['message']?.toString() ?? '',
     status: json['status']?.toString() ?? 'open',
     myDecision: json['my_decision']?.toString() ?? '',
@@ -131,3 +136,30 @@ class FriendIntro {
   bool get awaitingMe => isOpen && myDecision == 'pending';
   bool get isMatched => status == 'matched';
 }
+
+extension FriendVouchLabels on FriendVouch {
+  /// The voucher's name, or "A friend" in the member's language.
+  String voucherLabel(AppLocalizations l10n) =>
+      _nameOr(voucherName, l10n.planSharingFriendFallback);
+}
+
+extension PublicVouchLabels on PublicVouch {
+  /// The voucher's name, or "A friend" in the member's language.
+  String voucherLabel(AppLocalizations l10n) =>
+      _nameOr(voucherName, l10n.planSharingFriendFallback);
+}
+
+extension IntroPreviewLabels on IntroPreview {
+  /// The introduced member's name, or "A member" in the member's language.
+  String nameLabel(AppLocalizations l10n) =>
+      _nameOr(name, l10n.friendsMemberFallback);
+}
+
+extension FriendIntroLabels on FriendIntro {
+  /// The introducer's name, or "A friend" in the member's language.
+  String introducerLabel(AppLocalizations l10n) =>
+      _nameOr(introducerName, l10n.planSharingFriendFallback);
+}
+
+String _nameOr(String name, String fallback) =>
+    name.trim().isEmpty ? fallback : name;

@@ -94,7 +94,7 @@ class _VouchSheetState extends ConsumerState<_VouchSheet> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              l10n.friendsVouchTitle(widget.friend.friendName),
+              l10n.friendsVouchTitle(widget.friend.nameLabel(l10n)),
               style: theme.textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.w700,
               ),
@@ -337,7 +337,7 @@ class _FriendPicker extends StatelessWidget {
             if (friend.friendUserId != exclude)
               ChoiceChip(
                 key: ValueKey('$keyPrefix.${friend.friendUserId}'),
-                label: Text(friend.friendName),
+                label: Text(friend.nameLabel(AppLocalizations.of(context))),
                 selected: selected == friend.friendUserId,
                 onSelected: (_) => onChanged(friend.friendUserId),
               ),

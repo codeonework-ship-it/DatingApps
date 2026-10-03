@@ -1,10 +1,14 @@
+import '../../core/network/api_error_message.dart';
 import '../../l10n/app_localizations.dart';
+import 'gift_l10n.dart';
 
 /// The match chat's error in the reader's language.
 ///
 /// `MessageNotifier` keeps its errors as the English sentences it has always
 /// produced (tests and logs read them), so the screen translates the known
-/// ones here. Anything else — server text — is shown unchanged.
+/// ones here. Anything else is server text: English readers see it as sent
+/// unless it looks technical; other languages get a translated generic
+/// message (server text is English by policy).
 String localizeChatError(AppLocalizations l, String error) {
   final fixed = <String, String>{
     'This match has ended.': l.chatErrorMatchEnded,
@@ -43,13 +47,20 @@ String localizeChatError(AppLocalizations l, String error) {
   }
   final noCoins = _notEnoughCoins.firstMatch(error);
   if (noCoins != null) {
-    return l.chatErrorNotEnoughCoins(noCoins.group(1)!);
+    return l.chatErrorNotEnoughCoins(
+      localizedGiftName(l, serverName: noCoins.group(1)!),
+    );
   }
   final unavailable = _giftUnavailable.firstMatch(error);
   if (unavailable != null) {
-    return l.chatErrorGiftNotAvailable(unavailable.group(1)!);
+    return l.chatErrorGiftNotAvailable(
+      localizedGiftName(l, serverName: unavailable.group(1)!),
+    );
   }
-  return error;
+  final english = l.localeName.split(RegExp('[_-]')).first == 'en';
+  return english && !looksLikeTechnicalErrorText(error)
+      ? error.trim()
+      : l.commonSomethingWentWrongTryAgain;
 }
 
 final _notEnoughCoins = RegExp(r'^Not enough coins to send (.+)\.$');

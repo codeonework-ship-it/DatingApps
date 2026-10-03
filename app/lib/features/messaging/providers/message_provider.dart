@@ -783,7 +783,8 @@ class MessageNotifier extends _$MessageNotifier {
       final reasonCode = (body['reason_code'] ?? '').toString();
       if (kShowDeletedPlaceholderForSender) {
         final placeholder = snapshot.message.copyWith(
-          text: 'Message deleted',
+          // The bubble renders the translated placeholder from isDeleted.
+          text: '',
           isDeleted: true,
           deliveredAt: null,
           readAt: null,
@@ -1519,20 +1520,21 @@ models.Message? _messageFromGiftResponse(
   });
 }
 
+/// The chat text of a gift send, in the server's format: the member's own
+/// note (if any) on its own line, then the structured gift token. No caption
+/// is stored: each reader's bubble titles the gift in their own language.
 String _encodeGiftMessage(RoseGift gift, {String messageText = ''}) {
-  final leadingText = messageText.trim().isNotEmpty
-      ? messageText.trim()
-      : gift.isFree
-      ? 'Send Free Rose 🌹'
-      : 'Sent ${gift.name} 🌹';
+  final note = messageText.trim();
   final safeName = gift.name.replaceAll('|', '/');
   final safeURL = RoseGift.resolvePreferredGifPathById(
     gift.id,
     fallbackUrl: gift.gifUrl,
   ).replaceAll('|', '%7C');
   final safeIcon = (gift.iconKey ?? '').replaceAll('|', '');
-  return '$leadingText\n[gift:id=${gift.id}|icon=$safeIcon|name=$safeName|'
+  final token =
+      '[gift:id=${gift.id}|icon=$safeIcon|name=$safeName|'
       'url=$safeURL|price=${gift.priceCoins}]';
+  return note.isEmpty ? token : '$note\n$token';
 }
 
 String _encodeGestureGiftMessage({

@@ -16,9 +16,6 @@ extension DateTimeExtensions on DateTime {
     return calculatedAge;
   }
 
-  /// Format date as "dd/MM/yyyy"
-  String get formattedDate => '$day/$month/$year';
-
   /// Format date as "HH:mm"
   String get formattedTime =>
       '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
@@ -37,44 +34,22 @@ extension DateTimeExtensions on DateTime {
         day == yesterday.day;
   }
 
-  /// Get human readable time difference.
-  ///
-  /// Pass [l10n] (`AppLocalizations.of(context)`) to get it in the member's
-  /// language; without it the text is English.
-  String getTimeAgo([AppLocalizations? l10n]) {
-    final now = DateTime.now();
-    final difference = now.difference(this);
-
-    if (l10n != null) {
-      if (difference.inSeconds < 60) {
-        return l10n.timeAgoJustNow;
-      } else if (difference.inMinutes < 60) {
-        return l10n.timeAgoMinutes(difference.inMinutes);
-      } else if (difference.inHours < 24) {
-        return l10n.timeAgoHours(difference.inHours);
-      } else if (difference.inDays < 7) {
-        return l10n.timeAgoDays(difference.inDays);
-      } else if (difference.inDays < 30) {
-        return l10n.timeAgoWeeks((difference.inDays / 7).floor());
-      }
-      return l10n.localeName.startsWith('en')
-          ? formattedDate
-          : DateFormat.yMd(l10n.localeName).format(this);
-    }
-
+  /// Human readable time since this moment in the member's language
+  /// ([l10n] is `AppLocalizations.of(context)`): "vor 3 Stunden", then the
+  /// date in the locale's numeric order after a month.
+  String getTimeAgo(AppLocalizations l10n) {
+    final difference = DateTime.now().difference(this);
     if (difference.inSeconds < 60) {
-      return 'Just now';
+      return l10n.timeAgoJustNow;
     } else if (difference.inMinutes < 60) {
-      return '${difference.inMinutes} minute${difference.inMinutes > 1 ? 's' : ''} ago';
+      return l10n.timeAgoMinutes(difference.inMinutes);
     } else if (difference.inHours < 24) {
-      return '${difference.inHours} hour${difference.inHours > 1 ? 's' : ''} ago';
+      return l10n.timeAgoHours(difference.inHours);
     } else if (difference.inDays < 7) {
-      return '${difference.inDays} day${difference.inDays > 1 ? 's' : ''} ago';
+      return l10n.timeAgoDays(difference.inDays);
     } else if (difference.inDays < 30) {
-      final weeks = (difference.inDays / 7).floor();
-      return '$weeks week${weeks > 1 ? 's' : ''} ago';
-    } else {
-      return formattedDate;
+      return l10n.timeAgoWeeks((difference.inDays / 7).floor());
     }
+    return DateFormat.yMd(l10n.localeName).format(this);
   }
 }

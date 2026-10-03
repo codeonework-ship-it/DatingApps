@@ -2,6 +2,7 @@ import 'dart:async';
 import '../blog/blog_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/constants/app_constants.dart';
 import '../../core/platform/browser_context.dart';
 import '../../core/providers/runtime_feature_flags_provider.dart';
 import '../../core/widgets/connect_brand.dart';
@@ -634,7 +635,7 @@ class _WebMemberWorkspaceState extends ConsumerState<WebMemberWorkspace> {
                   child: Row(
                     children: [
                       Text(
-                        'Connect',
+                        AppBrand.name,
                         style: TextStyle(
                           fontSize: 14,
                           color: colors.onSurfaceVariant,

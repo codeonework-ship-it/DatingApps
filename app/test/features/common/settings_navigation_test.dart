@@ -17,6 +17,7 @@ import 'package:verified_dating_app/features/engagement/screens/trust_filter_scr
 import 'package:verified_dating_app/features/friends/screens/friends_screen.dart';
 import 'package:verified_dating_app/features/intentional_dating/dating_rhythm.dart';
 import 'package:verified_dating_app/features/intentional_dating/profile_stories.dart';
+import 'package:verified_dating_app/features/notifications/screens/notification_inbox_screen.dart';
 import 'package:verified_dating_app/features/payment/screens/subscription_screen.dart';
 import 'package:verified_dating_app/features/profile/screens/edit_profile_screen.dart';
 import 'package:verified_dating_app/features/profile/screens/setup/setup_photos_screen.dart';
@@ -69,6 +70,11 @@ Future<void> _expectOpens(
 
 void main() {
   final rows = <(String, String, Type)>[
+    (
+      'common.settings.notification_inbox.action',
+      'qa.settings.notification_inbox',
+      NotificationInboxScreen,
+    ),
     (
       'common.settings.your_dating_rhythm.action',
       'qa.settings.dating_rhythm',
@@ -274,4 +280,18 @@ void main() {
       expect(find.text(l10n.settingsAboutTitle), findsOneWidget);
     }
   });
+
+  testWidgets(
+    'the inbox row is first and says when nothing is unread '
+    '[case:common.settings.notification_inbox.caught_up]',
+    (tester) async {
+      await pumpQa(tester, _permissive(), const SettingsScreen());
+      final row = find.byKey(const ValueKey('qa.settings.notification_inbox'));
+      expect(row, findsOneWidget);
+      expect(
+        find.descendant(of: row, matching: find.text('You are all caught up')),
+        findsOneWidget,
+      );
+    },
+  );
 }

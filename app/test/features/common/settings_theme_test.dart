@@ -28,7 +28,7 @@ QaApi _server() => QaApi()
   );
 
 Future<ProviderContainer> _open(WidgetTester tester, QaApi api) async {
-  await pumpQa(tester, api, const SettingsScreen());
+  await pumpQa(tester, api, const SettingsScreen(), extra: [idleNotificationsOverride()]);
   return ProviderScope.containerOf(tester.element(find.byType(SettingsScreen)));
 }
 
@@ -37,6 +37,15 @@ Set<AppThemeChoice> _selected(WidgetTester tester) => tester
     .selected;
 
 Future<void> _tapSegment(WidgetTester tester, String label) async {
+  // A failed save shows a snack bar; like a member waiting for it to time
+  // out, clear it so it can't sit over the selector (rows above Settings'
+  // theme section move it down the screen).
+  tester
+      .state<ScaffoldMessengerState>(find.byType(ScaffoldMessenger).first)
+      .hideCurrentSnackBar();
+  await tester.pump(const Duration(milliseconds: 400));
+  await tester.ensureVisible(find.byKey(_selector));
+  await tester.pump();
   await tester.tap(
     find.descendant(of: find.byKey(_selector), matching: find.text(label)),
   );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/app_runtime_config.dart';
+import '../../../core/i18n/number_formats.dart';
 import '../../../core/providers/runtime_feature_flags_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/cinematic_motion.dart';
@@ -358,7 +359,10 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
                                       ),
                                       icon: Icons.favorite_rounded,
                                       tint: colors.secondary,
-                                      value: '${profileState.likesCount}',
+                                      value: formatCount(
+                                        context,
+                                        profileState.likesCount,
+                                      ),
                                       label: l10n.memberProfileStatLiked,
                                       onTap: () {
                                         Navigator.of(context).push(
@@ -382,7 +386,10 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
                                       ),
                                       icon: Icons.done_rounded,
                                       tint: colors.primary,
-                                      value: '${profileState.matchesCount}',
+                                      value: formatCount(
+                                        context,
+                                        profileState.matchesCount,
+                                      ),
                                       label: l10n.memberProfileStatMatches,
                                       onTap: () =>
                                           _openMatchesTab(MatchesView.people),
@@ -400,7 +407,10 @@ class _ProfileViewScreenState extends ConsumerState<ProfileViewScreen> {
                                       ),
                                       icon: Icons.chat_bubble_outline_rounded,
                                       tint: colors.tertiary,
-                                      value: '${profileState.messagesCount}',
+                                      value: formatCount(
+                                        context,
+                                        profileState.messagesCount,
+                                      ),
                                       label: l10n.memberProfileStatMessages,
                                       onTap: () => _openMatchesTab(
                                         MatchesView.conversations,
@@ -710,7 +720,7 @@ class _OwnerConsole extends StatelessWidget {
             const SizedBox(height: 16),
             Semantics(
               label: l10n.memberProfileCompleteness(percent),
-              value: '$percent%',
+              value: formatPercent(context, percent),
               child: ExcludeSemantics(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -727,7 +737,7 @@ class _OwnerConsole extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          '$percent%',
+                          formatPercent(context, percent),
                           style: theme.textTheme.titleLarge?.copyWith(
                             fontFamily: AppTheme.displayFamily,
                             color: scheme.primary,

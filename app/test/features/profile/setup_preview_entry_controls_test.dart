@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:verified_dating_app/core/i18n/app_l10n.dart';
 import 'package:verified_dating_app/core/widgets/glass_widgets.dart';
 import 'package:verified_dating_app/features/common/screens/main_navigation_screen.dart';
 import 'package:verified_dating_app/features/profile/screens/setup/profile_setup_entry_screen.dart';
@@ -62,6 +63,57 @@ int _activeDot(WidgetTester tester) {
 }
 
 void main() {
+  group('onboarding errors in German never show raw server or exception '
+      'text [case:l10n.setup.raw_errors]', () {
+    setUp(() => setCurrentAppLocale(const Locale('de')));
+    tearDown(() => setCurrentAppLocale(null));
+    final de = qaL10n(const Locale('de'));
+
+    testWidgets('a refused completion reads the translated fallback', (
+      tester,
+    ) async {
+      final api = QaApi();
+      ProfileBff(api);
+      api.fail(
+        'POST /profile/*/complete',
+        status: 422,
+        message: 'Add one more approved photo',
+      );
+      await _openPreview(tester, api, locale: const Locale('de'));
+      await _tapComplete(tester);
+      expect(qaSnackText(tester), de.profileSetupServerError);
+      expect(find.textContaining('approved photo'), findsNothing);
+      expect(api.writes, hasLength(1));
+    });
+
+    for (final (name, screen) in <(String, Widget)>[
+      ('about', const SetupAboutScreen()),
+      ('photos', const SetupPhotosScreen()),
+      ('preview', const SetupPreviewScreen()),
+    ]) {
+      testWidgets('a draft that fails to load on $name', (tester) async {
+        final api = QaApi();
+        ProfileBff(api);
+        api.fail(
+          'GET /profile/*/draft',
+          status: 500,
+          message: 'pq: relation "profiles" does not exist',
+        );
+        await pumpQa(
+          tester,
+          api,
+          screen,
+          locale: const Locale('de'),
+          extra: qaMasterDataOverrides(),
+        );
+        expect(find.text(de.profileSetupLoadErrorTitle), findsOneWidget);
+        expect(find.text(de.commonSomethingWentWrongTryAgain), findsOneWidget);
+        expect(find.textContaining('relation'), findsNothing);
+        expect(find.textContaining('DioException'), findsNothing);
+      });
+    }
+  });
+
   group('SetupPreviewScreen', () {
     testWidgets(
       'Complete Profile completes on the server and opens the app '
@@ -131,7 +183,7 @@ void main() {
         api.offline('POST /profile/*/complete');
         await _openPreview(tester, api);
         await _tapComplete(tester);
-        expect(qaSnackText(tester), _en.profileSetupNetworkError);
+        expect(qaSnackText(tester), _en.networkOfflineTryAgain);
         expect(api.writes, hasLength(1));
       },
     );

@@ -11,16 +11,19 @@ String _$verificationNotifierHash() =>
 
 /// See also [VerificationNotifier].
 @ProviderFor(VerificationNotifier)
-final verificationNotifierProvider = AutoDisposeAsyncNotifierProvider<
-    VerificationNotifier, VerificationState>.internal(
-  VerificationNotifier.new,
-  name: r'verificationNotifierProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$verificationNotifierHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+final verificationNotifierProvider =
+    AutoDisposeAsyncNotifierProvider<
+      VerificationNotifier,
+      VerificationState
+    >.internal(
+      VerificationNotifier.new,
+      name: r'verificationNotifierProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$verificationNotifierHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
 
 typedef _$VerificationNotifier = AutoDisposeAsyncNotifier<VerificationState>;
 // ignore_for_file: type=lint

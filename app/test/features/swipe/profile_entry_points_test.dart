@@ -237,7 +237,7 @@ void main() {
       expect(api.sent('POST', '/friends/me'), hasLength(1));
       expect(
         qaSnackText(tester),
-        'Cannot reach the local service. Check that the API is running.',
+        "Can't connect right now. Check your internet connection and try again.",
       );
     });
 

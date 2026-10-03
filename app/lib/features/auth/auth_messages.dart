@@ -3,9 +3,11 @@ import 'providers/auth_provider.dart';
 
 /// Shows an [AuthState.error] in the member's language.
 ///
-/// The auth provider keeps its own messages as stable English codes (tests,
-/// automation and the session-end listener compare against them). Those are
-/// translated here; anything else came from the server and is shown as is.
+/// The auth provider keeps its messages as stable English codes
+/// ([kAuthMessageCodes]; tests, automation and the session-end listener
+/// compare against them) and maps every server reply to one of them
+/// (`authMessageCodeForServerError`). Those codes are translated here.
+/// Anything else is never shown raw: it reads as the generic failure.
 String localizedAuthMessage(AppLocalizations l10n, String message) =>
     switch (message) {
       kSessionExpiredMessage => l10n.authErrorSessionExpired,
@@ -16,5 +18,13 @@ String localizedAuthMessage(AppLocalizations l10n, String message) =>
       kAuthUsernameFormatMessage => l10n.authErrorUsernameFormat,
       kAuthEnterPasswordMessage => l10n.authEnterPassword,
       kAuthPasswordFormatMessage => l10n.authErrorPasswordFormat,
-      _ => message,
+      kAuthUsernameTakenMessage => l10n.authErrorUsernameTaken,
+      kAuthAccountSuspendedMessage => l10n.authErrorAccountSuspended,
+      kAuthAccountLockedMessage => l10n.authErrorAccountLocked,
+      kAuthTooManyRequestsMessage => l10n.authErrorTooManyRequests,
+      kAuthAccountTypeUnavailableMessage =>
+        l10n.authErrorAccountTypeUnavailable,
+      kAuthAgeRangeMessage => l10n.signupErrorAgeRange,
+      kAuthNetworkMessage => l10n.authErrorNetwork,
+      _ => l10n.commonSomethingWentWrongTryAgain,
     };

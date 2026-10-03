@@ -191,7 +191,7 @@ void main() {
 
       await _tap(tester, 'qa.privacy.show_age');
 
-      expect(qaSnackText(tester), en.networkCannotReachService);
+      expect(qaSnackText(tester), en.networkOfflineTryAgain);
       expect(_switch(tester, 'qa.privacy.show_age').value, isTrue);
       expect(_switch(tester, 'qa.privacy.show_age').onChanged, isNotNull);
 
@@ -356,7 +356,7 @@ void main() {
       await _tap(tester, 'qa.privacy.friend_search');
 
       expect(_switch(tester, 'qa.privacy.friend_search').value, isTrue);
-      expect(qaSnackText(tester), en.networkCannotReachService);
+      expect(qaSnackText(tester), en.networkOfflineTryAgain);
     },
   );
 
@@ -490,7 +490,7 @@ void main() {
       hasLength(1),
     );
     expect(find.text(en.privacyDiscoveryPaused), findsOneWidget);
-    expect(find.text(en.networkCannotReachService), findsOneWidget);
+    expect(find.text(en.networkOfflineTryAgain), findsOneWidget);
     final resume = tester.widget<FilledButton>(
       find.byKey(const ValueKey('qa.graduation.discovery_resume')),
     );

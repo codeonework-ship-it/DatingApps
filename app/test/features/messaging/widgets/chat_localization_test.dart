@@ -84,11 +84,11 @@ void main() {
     );
     expect(
       localizeChatError(de, 'Not enough coins to send Golden Rose.'),
-      'Nicht genug Coins für Golden Rose.',
+      'Nicht genug Coins für Goldene Rose.',
     );
     expect(
       localizeChatError(de, 'Golden Rose is not available right now.'),
-      'Golden Rose ist gerade nicht verfügbar.',
+      'Goldene Rose ist gerade nicht verfügbar.',
     );
     expect(
       localizeChatError(
@@ -98,7 +98,11 @@ void main() {
       ),
       de.chatErrorFreeGiftUsed,
     );
-    expect(localizeChatError(de, 'Server said no'), 'Server said no');
+    // Unknown server text: never shown untranslated outside English.
+    expect(
+      localizeChatError(de, 'Server said no'),
+      de.commonSomethingWentWrongTryAgain,
+    );
     for (final english in [
       'This match has ended.',
       'Failed to delete message.',

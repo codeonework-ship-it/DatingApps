@@ -157,7 +157,8 @@ void main() {
       await openRooms(tester, s);
 
       await tapRoom(tester, 'r2');
-      expect(qaSnackText(tester), 'This room is full.');
+      // A known error_code is shown in the member's language, not as sent.
+      expect(qaSnackText(tester), en.apiErrorRoomFull);
       expect(find.byType(SocialChatScreen), findsNothing);
       expect(
         find.descendant(of: _tile('r2'), matching: find.text('Join')),
@@ -170,7 +171,7 @@ void main() {
       // Offline, then a server error with no reason: readable fallbacks.
       s.api.offline('POST /rooms/*/join');
       await tapRoom(tester, 'r2');
-      expect(qaSnackText(tester), en.networkCannotReachService);
+      expect(qaSnackText(tester), en.networkOfflineTryAgain);
       await _snackGone(tester);
       s.api.on('POST /rooms/*/join', (_) => const QaReply(500, null));
       await tapRoom(tester, 'r2');
@@ -472,7 +473,7 @@ void main() {
       s.api.offline('POST /rooms');
       await _tapSubmit(tester);
       await tester.pumpAndSettle();
-      expect(_inSheet(en.networkCannotReachService), findsOneWidget);
+      expect(_inSheet(en.networkOfflineTryAgain), findsOneWidget);
       expect(s.sent('POST', '/rooms'), hasLength(3));
       expect(find.byType(SocialChatScreen), findsNothing);
 
@@ -610,7 +611,7 @@ void main() {
         s.api.offline('GET /rooms');
         await tester.tap(find.byKey(_retry));
         await tester.pumpAndSettle();
-        expect(find.text(en.networkCannotReachService), findsOneWidget);
+        expect(find.text(en.networkOfflineTryAgain), findsOneWidget);
         expect(s.sent('GET', '/rooms'), hasLength(2));
 
         s.api.on('GET /rooms', (_) => const QaReply(500, null));

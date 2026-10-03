@@ -390,7 +390,10 @@ void main() {
       await qaSettle(tester);
 
       expect(api.sent('POST', '/auth/login'), hasLength(1));
-      expect(find.text('invalid username or password'), findsOneWidget);
+      // The server's English reason maps to the member's message, never
+      // shown raw.
+      expect(find.text('Invalid username or password.'), findsOneWidget);
+      expect(find.text('invalid username or password'), findsNothing);
       expect(tester.widget<GlassButton>(button).onPressed, isNotNull);
       expect(tester.widget<GlassButton>(button).isLoading, isFalse);
       expect(
@@ -422,12 +425,14 @@ void main() {
         await _type(tester, 'qa.signin.username_field', 'asha');
         await _type(tester, 'qa.signin.password_field', 'Passw0rd!');
         await _tap(tester, 'qa.signin.login_button');
-        expect(find.text('Something broke on our side.'), findsOneWidget);
+        // The server's own outage text is not shown raw.
+        expect(find.text(_en.authErrorSignInFailed), findsOneWidget);
+        expect(find.text('Something broke on our side.'), findsNothing);
 
         api.offline('POST /auth/login');
         await _tap(tester, 'qa.signin.login_button');
-        expect(find.text(_en.authErrorSignInFailed), findsOneWidget);
-        expect(find.text('Something broke on our side.'), findsNothing);
+        expect(find.text(_en.authErrorNetwork), findsOneWidget);
+        expect(find.text(_en.authErrorSignInFailed), findsNothing);
         expect(api.sent('POST', '/auth/login'), hasLength(2));
 
         api.on('POST /auth/login', (_) => qaOk(_session('asha-1')));

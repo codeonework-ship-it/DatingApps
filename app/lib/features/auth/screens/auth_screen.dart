@@ -9,6 +9,8 @@ import '../../../core/config/feature_flags.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
 import '../../../core/widgets/connect_brand.dart';
+import '../../../core/widgets/qa_id.dart';
+import '../../common/widgets/language_picker.dart';
 import '../../../l10n/app_localizations.dart';
 import '../auth_messages.dart';
 import '../../common/screens/main_navigation_screen.dart';
@@ -196,13 +198,19 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
-                                  Align(
-                                    alignment: Alignment.centerLeft,
-                                    child: GoldBackButton(
-                                      key: const ValueKey('qa.signin.back'),
-                                      tooltip: l10n.authBackTooltip,
-                                      onTap: () => _goBack(authNotifier),
-                                    ),
+                                  Row(
+                                    children: [
+                                      GoldBackButton(
+                                        key: const ValueKey('qa.signin.back'),
+                                        tooltip: l10n.authBackTooltip,
+                                        onTap: () => _goBack(authNotifier),
+                                      ),
+                                      const Spacer(),
+                                      const Flexible(
+                                        flex: 4,
+                                        child: LanguagePickerButton(),
+                                      ),
+                                    ],
                                   ),
                                   SizedBox(height: compact ? 4 : 12),
                                   const _AuthHeader(),
@@ -365,7 +373,7 @@ class _CredentialForm extends StatelessWidget {
           const SizedBox(height: 20),
           _GlassTextField(
             fieldKey: const ValueKey('qa.signin.username_field'),
-            semanticLabel: 'qa.signin.username_field',
+            qaId: 'qa.signin.username_field',
             controller: usernameController,
             focusNode: usernameFocusNode,
             autofocus: false,
@@ -380,7 +388,7 @@ class _CredentialForm extends StatelessWidget {
           const SizedBox(height: 14),
           _GlassTextField(
             fieldKey: const ValueKey('qa.signin.password_field'),
-            semanticLabel: 'qa.signin.password_field',
+            qaId: 'qa.signin.password_field',
             controller: passwordController,
             focusNode: passwordFocusNode,
             enabled: !authState.isLoading,
@@ -420,7 +428,7 @@ class _GlassTextField extends StatelessWidget {
     required this.hint,
     required this.prefixIcon,
     required this.fieldKey,
-    required this.semanticLabel,
+    required this.qaId,
     this.focusNode,
     this.autofocus = false,
     this.enabled = true,
@@ -434,7 +442,7 @@ class _GlassTextField extends StatelessWidget {
 
   final TextEditingController controller;
   final Key fieldKey;
-  final String semanticLabel;
+  final String qaId;
   final FocusNode? focusNode;
   final bool autofocus;
   final bool enabled;
@@ -450,9 +458,9 @@ class _GlassTextField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Semantics(
-      label: semanticLabel,
-      textField: true,
+    // The field announces its hint; the automation id is an identifier.
+    return QaId(
+      qaId,
       child: TextField(
         key: fieldKey,
         controller: controller,
@@ -520,9 +528,8 @@ class _LoginAction extends StatelessWidget {
           child: SizedBox(
             width: double.infinity,
             height: 56,
-            child: Semantics(
-              label: 'qa.signin.login_button',
-              button: true,
+            child: QaId(
+              'qa.signin.login_button',
               child: GlassButton(
                 key: const ValueKey('qa.signin.login_button'),
                 label: AppLocalizations.of(context).authSignIn,

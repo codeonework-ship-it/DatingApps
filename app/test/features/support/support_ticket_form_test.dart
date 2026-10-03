@@ -199,7 +199,8 @@ void main() {
       find.text('Use 4 to 120 characters for the subject.'),
       findsOneWidget,
     );
-    expect(api.requests, isEmpty);
+    // Only the category list was read; nothing was sent.
+    expect(api.requests.where((r) => r.method != 'GET'), isEmpty);
   });
 
   testWidgets('safety topic points to SOS and emergency services', (

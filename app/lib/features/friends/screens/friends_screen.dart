@@ -291,7 +291,7 @@ class FriendsScreen extends ConsumerWidget {
                                 context,
                                 ref,
                                 friendId: f.friendUserId,
-                                name: f.friendName,
+                                name: f.nameLabel(l10n),
                               ),
                               onAction: (action) => _onFriendAction(
                                 context,
@@ -332,7 +332,7 @@ class FriendsScreen extends ConsumerWidget {
                                         const SizedBox(height: 4),
                                         Text(
                                           l10n.friendsVouchedForYou(
-                                            vouch.voucherName,
+                                            vouch.voucherLabel(l10n),
                                           ),
                                           style: Theme.of(context)
                                               .textTheme
@@ -423,7 +423,9 @@ class FriendsScreen extends ConsumerWidget {
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          activity.title,
+                                          activity.title.trim().isEmpty
+                                              ? l10n.friendsActivityFallback
+                                              : activity.title,
                                           style: Theme.of(context)
                                               .textTheme
                                               .titleSmall
@@ -475,7 +477,7 @@ class FriendsScreen extends ConsumerWidget {
         if (sent == true && context.mounted) {
           showCommunitySnack(
             context,
-            l10n.friendsVouchSentSnack(friend.friendName),
+            l10n.friendsVouchSentSnack(friend.nameLabel(l10n)),
           );
         }
       case 'intro':
@@ -483,7 +485,7 @@ class FriendsScreen extends ConsumerWidget {
       case 'remove':
         final confirmed = await confirmCommunityAction(
           context,
-          title: l10n.friendsRemoveTitle(friend.friendName),
+          title: l10n.friendsRemoveTitle(friend.nameLabel(l10n)),
           message: l10n.friendsRemoveBody,
           action: l10n.friendsRemoveFriend,
         );
@@ -499,7 +501,7 @@ class FriendsScreen extends ConsumerWidget {
           context,
           ref,
           userId: friend.friendUserId,
-          name: friend.friendName,
+          name: friend.nameLabel(l10n),
         );
         if (blocked) {
           await notifier.load();
@@ -544,7 +546,11 @@ class FriendsScreen extends ConsumerWidget {
       context,
       invitees: [
         for (final f in chosen)
-          (userId: f.friendUserId, name: f.friendName, photoUrl: f.photoUrl),
+          (
+            userId: f.friendUserId,
+            name: f.nameLabel(AppLocalizations.of(context)),
+            photoUrl: f.photoUrl,
+          ),
       ],
     );
   }
@@ -767,10 +773,10 @@ class _CreateGroupSheetState extends State<_CreateGroupSheet> {
                           : _selected.remove(f.friendUserId),
                     ),
                     secondary: _Avatar(
-                      name: f.friendName,
+                      name: f.nameLabel(l10n),
                       photoUrl: f.photoUrl,
                     ),
-                    title: Text(f.friendName),
+                    title: Text(f.nameLabel(l10n)),
                     subtitle: f.username.isEmpty
                         ? null
                         : Text('@${f.username}'),
@@ -933,7 +939,7 @@ class _RequestRow extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _MemberLine(
-            name: friend.friendName,
+            name: friend.nameLabel(l10n),
             photoUrl: friend.photoUrl,
             detail: detail,
             trailing: incoming
@@ -1002,7 +1008,7 @@ class _FriendRow extends StatelessWidget {
       key: ValueKey('qa.friends.friend.$id'),
       padding: const EdgeInsets.fromLTRB(16, 8, 4, 8),
       child: _MemberLine(
-        name: friend.friendName,
+        name: friend.nameLabel(l10n),
         photoUrl: friend.photoUrl,
         detail: detail,
         trailing: Row(
@@ -1011,8 +1017,11 @@ class _FriendRow extends StatelessWidget {
             IconButton(
               key: ValueKey('qa.friends.message.$id'),
               tooltip: unread > 0
-                  ? l10n.friendsMessageTooltipUnread(friend.friendName, unread)
-                  : l10n.friendsMessageTooltip(friend.friendName),
+                  ? l10n.friendsMessageTooltipUnread(
+                      friend.nameLabel(l10n),
+                      unread,
+                    )
+                  : l10n.friendsMessageTooltip(friend.nameLabel(l10n)),
               onPressed: onMessage,
               icon: Badge(
                 isLabelVisible: unread > 0,
@@ -1022,7 +1031,7 @@ class _FriendRow extends StatelessWidget {
             ),
             PopupMenuButton<String>(
               key: ValueKey('qa.friends.menu.$id'),
-              tooltip: l10n.friendsMoreFor(friend.friendName),
+              tooltip: l10n.friendsMoreFor(friend.nameLabel(l10n)),
               onSelected: onAction,
               itemBuilder: (_) => [
                 if (introsEnabled) ...[
@@ -1186,12 +1195,12 @@ class _IntroCard extends StatelessWidget {
     final other = intro.other;
     final l10n = AppLocalizations.of(context);
     final headline = other == null
-        ? l10n.friendsIntroHeadlineSomeone(intro.introducerName)
+        ? l10n.friendsIntroHeadlineSomeone(intro.introducerLabel(l10n))
         : l10n.friendsIntroHeadline(
-            intro.introducerName,
+            intro.introducerLabel(l10n),
             other.age == null
-                ? other.name
-                : l10n.friendsNameAge(other.name, other.age!),
+                ? other.nameLabel(l10n)
+                : l10n.friendsNameAge(other.nameLabel(l10n), other.age!),
           );
     return ConnectPanel(
       key: ValueKey('qa.friends.intro.${intro.id}'),
@@ -1295,7 +1304,7 @@ class _VouchCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            l10n.friendsVouchedForYou(vouch.voucherName),
+            l10n.friendsVouchedForYou(vouch.voucherLabel(l10n)),
             style: theme.textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.w700,
             ),

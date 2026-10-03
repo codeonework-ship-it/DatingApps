@@ -37,15 +37,12 @@ class DailyQuota {
 
   bool get exhausted => !unlimited && remaining <= 0;
 
-  String label(String noun) =>
-      unlimited ? 'Unlimited $noun' : '$remaining of $limit $noun left today';
-
-  /// Translated [label] for the like allowance.
+  /// The like allowance in the member's language.
   String likesLabel(AppLocalizations l10n) => unlimited
       ? l10n.membershipQuotaUnlimitedLikes
       : l10n.membershipQuotaLikesLeftToday(remaining, limit);
 
-  /// Translated [label] for the message allowance.
+  /// The message allowance in the member's language.
   String messagesLabel(AppLocalizations l10n) => unlimited
       ? l10n.membershipQuotaUnlimitedMessages
       : l10n.membershipQuotaMessagesLeftToday(remaining, limit);
@@ -62,7 +59,7 @@ class Entitlements {
 
   factory Entitlements.fromJson(Map<String, dynamic> json) => Entitlements(
     planId: json['plan_id']?.toString() ?? 'free',
-    planName: json['plan_name']?.toString() ?? 'Free',
+    planName: json['plan_name']?.toString() ?? '',
     enforced: json['enforced'] == true,
     likes: DailyQuota.fromJson(
       (json['likes'] as Map?)?.cast<String, dynamic>() ?? const {},
@@ -73,10 +70,20 @@ class Entitlements {
   );
 
   final String planId;
+
+  /// The server's plan name; empty when it sent none. Widgets show
+  /// [planLabel].
   final String planName;
   final bool enforced;
   final DailyQuota likes;
   final DailyQuota messages;
+
+  /// The plan's name for display: "Free" in the member's language for the
+  /// free plan or when the server sent no name.
+  String planLabel(AppLocalizations l10n) =>
+      planId == 'free' || planName.trim().isEmpty
+      ? l10n.membershipFreePlanName
+      : planName;
 }
 
 /// The structured 429 the backend answers when a quota is used up.
@@ -101,40 +108,36 @@ class DailyLimit {
     }
     return DailyLimit(
       kind: code == 'DAILY_LIKE_LIMIT_REACHED' ? 'like' : 'message',
-      planName: map['plan_name']?.toString() ?? 'Free',
+      planName: map['plan_name']?.toString() ?? '',
       limit: (map['limit'] as num?)?.toInt() ?? 0,
       used: (map['used'] as num?)?.toInt() ?? 0,
       resetsAt:
           DateTime.tryParse(map['resets_at']?.toString() ?? '') ??
           DateTime.now().toUtc(),
-      message: map['error']?.toString() ?? 'Daily limit reached.',
+      message: map['error']?.toString() ?? '',
     );
   }
 
   final String kind;
+
+  /// The server's plan name; empty when it sent none.
   final String planName;
   final int limit;
   final int used;
   final DateTime resetsAt;
+
+  /// The server's English explanation, for logs only (empty when none).
   final String message;
 
-  String get headline => kind == 'like'
-      ? "You've used today's $limit likes on $planName"
-      : "You've used today's $limit messages on $planName";
+  String _planLabel(AppLocalizations l10n) =>
+      planName.trim().isEmpty ? l10n.membershipFreePlanName : planName;
 
-  String get resetLabel {
-    final local = resetsAt.toLocal();
-    final h = local.hour.toString().padLeft(2, '0');
-    final m = local.minute.toString().padLeft(2, '0');
-    return 'Resets at $h:$m';
-  }
-
-  /// Translated [headline].
+  /// "You've used today's 10 likes on Free" in the member's language.
   String localizedHeadline(AppLocalizations l10n) => kind == 'like'
-      ? l10n.membershipLikeLimitHeadline(limit, planName)
-      : l10n.membershipMessageLimitHeadline(limit, planName);
+      ? l10n.membershipLikeLimitHeadline(limit, _planLabel(l10n))
+      : l10n.membershipMessageLimitHeadline(limit, _planLabel(l10n));
 
-  /// Translated [resetLabel]; [localeName] is
+  /// "Resets at 00:00" in the member's language; [localeName] is
   /// `Localizations.localeOf(context).toString()`.
   String localizedResetLabel(AppLocalizations l10n, String localeName) =>
       l10n.membershipQuotaResetsAt(

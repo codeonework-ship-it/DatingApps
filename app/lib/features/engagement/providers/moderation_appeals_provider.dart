@@ -8,6 +8,7 @@ import '../../../core/providers/api_client_provider.dart';
 import '../../../core/utils/logger.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../../core/network/api_error_message.dart';
 
 class ModerationAppealItem {
   factory ModerationAppealItem.fromJson(Map<String, dynamic> json) {
@@ -141,11 +142,9 @@ class ModerationAppealsNotifier
       );
     } on DioException catch (e, stackTrace) {
       log.error('Failed to submit moderation appeal', e, stackTrace);
-      final data = e.response?.data;
-      if (data is Map && data['error'] != null) {
-        throw StateError(data['error'].toString());
-      }
-      throw StateError('Failed to submit moderation appeal');
+      throw StateError(
+        serverErrorMessage(e, fallback: 'Failed to submit moderation appeal'),
+      );
     }
     // The appeal is filed. If the list cannot be re-read right now, show the
     // one the server returned instead of reporting a failure (which would

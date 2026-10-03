@@ -15,6 +15,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/config/app_runtime_config.dart';
+import 'core/constants/app_constants.dart';
 import 'core/config/feature_flags.dart';
 import 'core/i18n/app_l10n.dart';
 import 'core/i18n/app_locale_provider.dart';
@@ -32,6 +33,7 @@ import 'features/auth/screens/welcome_screen.dart';
 import 'features/common/screens/main_navigation_screen.dart';
 import 'features/profile/providers/profile_completion_provider.dart';
 import 'features/profile/screens/setup/profile_setup_entry_screen.dart';
+import 'features/support/widgets/support_entry_points.dart';
 import 'l10n/app_localizations.dart';
 
 Future<void> _bootstrap() async {
@@ -136,7 +138,11 @@ Future<void> main() async {
       // Loads the crash-report opt-in and sends reports left by a last crash.
       unawaited(ClientErrorReporter.instance.start());
       // The member's language applies from the first frame, before sign-in.
-      final cachedLocale = await readCachedAppLocale();
+      // On the web a website link may carry its page language
+      // (`/app/?lang=de#/signin`); it seeds the cache when nothing is cached.
+      final cachedLocale = await readCachedAppLocale(
+        launchUri: kIsWeb ? Uri.base : null,
+      );
       if (!kIsWeb &&
           (defaultTargetPlatform == TargetPlatform.android ||
               defaultTargetPlatform == TargetPlatform.iOS)) {
@@ -179,7 +185,7 @@ class DatingApp extends ConsumerWidget {
     setCurrentAppLocale(locale);
     if (kIsWeb) {
       return MaterialApp.router(
-        title: 'Connect',
+        title: AppBrand.name,
         debugShowCheckedModeBanner: false,
         theme: ref.watch(appLightThemeProvider),
         darkTheme: ref.watch(appDarkThemeProvider),
@@ -187,6 +193,7 @@ class DatingApp extends ConsumerWidget {
         locale: locale,
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
+        localeListResolutionCallback: resolveAppLocale,
         routerDelegate: _webRouter,
         routeInformationParser: _WebRouteParser(),
       );
@@ -205,6 +212,7 @@ class DatingApp extends ConsumerWidget {
       locale: locale,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
+      localeListResolutionCallback: resolveAppLocale,
       navigatorObservers: [clientErrorNavigatorObserver],
       home: const _AppGate(),
     );
@@ -428,6 +436,10 @@ class _BackendConnectionIssue extends StatelessWidget {
                 onPressed: onRetry,
                 child: Text(AppLocalizations.of(context).commonRetry),
               ),
+              const SizedBox(height: 8),
+              // Still stuck: the FAQ works offline, and requests can be sent
+              // from there once the connection is back.
+              const SupportCentreButton(),
             ],
           ),
         ),

@@ -34,6 +34,16 @@ class FakeSupportApi {
           final reply = handlerFn == null
               ? (status: 404, body: {'success': false, 'error': 'not found'})
               : handlerFn(options);
+          if (reply.status == 0) {
+            // No answer at all: the device is offline.
+            handler.reject(
+              DioException(
+                requestOptions: options,
+                type: DioExceptionType.connectionError,
+              ),
+            );
+            return;
+          }
           final response = Response<dynamic>(
             requestOptions: options,
             statusCode: reply.status,
@@ -58,6 +68,9 @@ class FakeSupportApi {
 }
 
 FakeReply ok(Object body, {int status = 200}) => (status: status, body: body);
+
+/// The server cannot be reached (no response at all).
+const FakeReply offline = (status: 0, body: '');
 
 FakeReply serverError(int status, String code, {Map<String, dynamic>? extra}) =>
     (

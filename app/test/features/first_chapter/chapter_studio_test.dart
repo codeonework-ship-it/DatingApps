@@ -211,6 +211,32 @@ void main() {
       'I prefer a slower pace',
     );
   });
+  testWidgets(
+    'the comfort card language starts as the app language, in German '
+    '"Deutsch", and is saved as shown [case:l10n-comfort-default-language-german]',
+    (tester) async {
+      final h = Harness();
+      final de = lookupAppLocalizations(const Locale('de'));
+      await h.show(
+        tester,
+        screen: const ComfortCardsScreen(),
+        locale: const Locale('de'),
+      );
+      final language = tester.widget<TextField>(
+        find.byKey(const ValueKey('qa.comfort.language')),
+      );
+      expect(language.controller!.text, 'Deutsch');
+      expect(find.text('English'), findsNothing);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('qa.comfort.original')),
+        'Ich mag es langsam',
+      );
+      await h.tap(tester, de.firstChapterComfortAddCard);
+      await h.tap(tester, de.firstChapterComfortSave);
+      expect(h.writes.single.data['cards'][0]['language'], 'Deutsch');
+    },
+  );
   for (final width in [320.0, 800.0]) {
     testWidgets('studio fits $width at large text', (tester) async {
       final h = Harness();

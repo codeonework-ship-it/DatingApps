@@ -567,7 +567,7 @@ void main() {
       await _tap(tester, const ValueKey('qa.chat.gift_tray_button'));
       await _tap(tester, const ValueKey('qa.chat.gift_item.rose_gold'));
 
-      expect(find.text('Send Golden rose to Maya?'), findsOneWidget);
+      expect(find.text('Send Golden Rose to Maya?'), findsOneWidget);
       expect(find.text('·  20 → 15 left'), findsOneWidget);
       expect(api.sent('POST', '/chat/m1/gifts/send'), isEmpty);
 
@@ -593,7 +593,7 @@ void main() {
       await _tap(tester, const ValueKey('qa.chat.gift_item.rose_gold'));
       await _tap(tester, const ValueKey('qa.chat.gift_confirm.not_now'));
 
-      expect(find.text('Send Golden rose to Maya?'), findsNothing);
+      expect(find.text('Send Golden Rose to Maya?'), findsNothing);
       expect(api.sent('POST', '/chat/m1/gifts/send'), isEmpty);
       expect(_composerText(tester), 'Just because');
       await _close(tester);

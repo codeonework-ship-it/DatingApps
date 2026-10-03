@@ -20967,6 +20967,1080 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t sign out your other devices. Check your connection and try again.'**
   String get settingsSignOutAllFailed;
+
+  /// Membership and wallet screens: link under a payment error that opens a support request about payments.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment problem? Contact support'**
+  String get supportPaymentHelpLink;
+
+  /// Report sheet: link that closes the sheet and opens a safety support request.
+  ///
+  /// In en, this message translates to:
+  /// **'Need more help? Contact support'**
+  String get supportReportHelpLink;
+
+  /// Can't sign in screen: link to the signed-out support form for other problems.
+  ///
+  /// In en, this message translates to:
+  /// **'Something else wrong? Contact support'**
+  String get supportSignedOutHelpLink;
+
+  /// Signed-out support form: subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Can’t sign in, or something else isn’t working? Tell us what happened and we’ll reply by email.'**
+  String get supportGuestSubtitle;
+
+  /// Signed-out support form: email field label.
+  ///
+  /// In en, this message translates to:
+  /// **'Your email'**
+  String get supportGuestEmailLabel;
+
+  /// Signed-out support form: email field hint.
+  ///
+  /// In en, this message translates to:
+  /// **'We’ll reply to this address'**
+  String get supportGuestEmailHint;
+
+  /// Signed-out support form: optional name field label.
+  ///
+  /// In en, this message translates to:
+  /// **'Your name (optional)'**
+  String get supportGuestNameLabel;
+
+  /// Signed-out support form: error when the email address is not valid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid email address so we can reply.'**
+  String get supportGuestEmailInvalid;
+
+  /// Signed-out support form: title once the request is sent.
+  ///
+  /// In en, this message translates to:
+  /// **'Request sent'**
+  String get supportGuestSentTitle;
+
+  /// Signed-out support form: confirmation with the ticket reference and the address replies go to.
+  ///
+  /// In en, this message translates to:
+  /// **'Thanks. Your reference is {reference}. We’ll reply to {email}.'**
+  String supportGuestSentBody(String reference, String email);
+
+  /// Signed-out support form: shown when support requests are switched off.
+  ///
+  /// In en, this message translates to:
+  /// **'Support requests can’t be sent from the app right now. For anything urgent, email support@connect.example.'**
+  String get supportGuestUnavailableBody;
+
+  /// Support form: note when an unsent request was restored after leaving the form.
+  ///
+  /// In en, this message translates to:
+  /// **'We kept your unsent request.'**
+  String get supportDraftRestored;
+
+  /// Support form: button that clears a restored draft.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard draft'**
+  String get supportDraftDiscard;
+
+  /// Discover deck: screen-reader label for the round icon button that brings back the last profile you swiped.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get discoverActionUndo;
+
+  /// Discover deck: screen-reader label for the round heart button that likes the profile shown.
+  ///
+  /// In en, this message translates to:
+  /// **'Like'**
+  String get discoverActionLike;
+
+  /// Discover deck: screen-reader label for the round star button that sends a super like to the profile shown.
+  ///
+  /// In en, this message translates to:
+  /// **'Super like'**
+  String get discoverActionSuperLike;
+
+  /// Test-automation shortcut row (only in QA builds): short button that opens ID verification upload.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify'**
+  String get navQaVerifyShortcut;
+
+  /// Match chat: shown in place of a message you deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Message deleted'**
+  String get chatMessageDeletedPlaceholder;
+
+  /// Match chat: heading on a gift bubble the viewer sent.
+  ///
+  /// In en, this message translates to:
+  /// **'You sent a gift'**
+  String get chatGiftYouSentHeading;
+
+  /// Shown as a member's name when the server sent none (bylines, cards).
+  ///
+  /// In en, this message translates to:
+  /// **'A member'**
+  String get commonMemberFallbackName;
+
+  /// Gift catalog: name of the gift shown in the gift tray, confirm dialog and chat bubble.
+  ///
+  /// In en, this message translates to:
+  /// **'Single Red Rose'**
+  String get giftNameRoseRedSingle;
+
+  /// Gift catalog: name of the gift shown in the gift tray, confirm dialog and chat bubble.
+  ///
+  /// In en, this message translates to:
+  /// **'Pink Rose'**
+  String get giftNameRosePinkSoft;
+
+  /// Gift catalog: name of the gift shown in the gift tray, confirm dialog and chat bubble.
+  ///
+  /// In en, this message translates to:
+  /// **'White Rose'**
+  String get giftNameRoseWhitePure;
+
+  /// Gift catalog: name of the gift shown in the gift tray, confirm dialog and chat bubble.
+  ///
+  /// In en, this message translates to:
+  /// **'Yellow Rose'**
+  String get giftNameRoseYellowFriendship;
+
+  /// Gift catalog: name of the gift shown in the gift tray, confirm dialog and chat bubble.
+  ///
+  /// In en, this message translates to:
+  /// **'Lavender Rose'**
+  String get giftNameRoseLavenderCrush;
+
+  /// Gift catalog: name of the gift shown in the gift tray, confirm dialog and chat bubble.
+  ///
+  /// In en, this message translates to:
+  /// **'Blue Rose'**
+  String get giftNameRoseBlueRare;
+
+  /// Gift catalog: name of the gift shown in the gift tray, confirm dialog and chat bubble.
+  ///
+  /// In en, this message translates to:
+  /// **'Black Rose'**
+  String get giftNameRoseBlackMystery;
+
+  /// Gift catalog: name of the gift shown in the gift tray, confirm dialog and chat bubble.
+  ///
+  /// In en, this message translates to:
+  /// **'Sparkle Rose'**
+  String get giftNameRoseSparkle;
+
+  /// Gift catalog: name of the gift shown in the gift tray, confirm dialog and chat bubble.
+  ///
+  /// In en, this message translates to:
+  /// **'Heart-Petal Rose'**
+  String get giftNameRoseHeartPetal;
+
+  /// Gift catalog: name of the gift shown in the gift tray, confirm dialog and chat bubble.
+  ///
+  /// In en, this message translates to:
+  /// **'Neon Rose'**
+  String get giftNameRoseNeonGlow;
+
+  /// Gift catalog: name of the gift shown in the gift tray, confirm dialog and chat bubble.
+  ///
+  /// In en, this message translates to:
+  /// **'Rose Rain'**
+  String get giftNameRoseRain;
+
+  /// Gift catalog: name of the gift shown in the gift tray, confirm dialog and chat bubble.
+  ///
+  /// In en, this message translates to:
+  /// **'Burning Rose'**
+  String get giftNameRoseBurningFlame;
+
+  /// Gift catalog: name of the gift shown in the gift tray, confirm dialog and chat bubble.
+  ///
+  /// In en, this message translates to:
+  /// **'Golden Rose'**
+  String get giftNameRoseGolden;
+
+  /// Gift catalog: name of the gift shown in the gift tray, confirm dialog and chat bubble.
+  ///
+  /// In en, this message translates to:
+  /// **'Crystal Rose'**
+  String get giftNameRoseCrystal;
+
+  /// Gift catalog: name of the gift shown in the gift tray, confirm dialog and chat bubble.
+  ///
+  /// In en, this message translates to:
+  /// **'Rose Bouquet (12)'**
+  String get giftNameRoseBouquet12;
+
+  /// Gift catalog: name of the gift shown in the gift tray, confirm dialog and chat bubble.
+  ///
+  /// In en, this message translates to:
+  /// **'Rose Bouquet (24)'**
+  String get giftNameRoseBouquet24;
+
+  /// Gift catalog: name of the gift shown in the gift tray, confirm dialog and chat bubble.
+  ///
+  /// In en, this message translates to:
+  /// **'Seasonal Limited Rose'**
+  String get giftNameRoseSeasonalWeekly;
+
+  /// Gift catalog: name of the gift shown in the gift tray, confirm dialog and chat bubble.
+  ///
+  /// In en, this message translates to:
+  /// **'Chocolate Box'**
+  String get giftNameChocolateBox;
+
+  /// Gift catalog: name of the gift shown in the gift tray, confirm dialog and chat bubble.
+  ///
+  /// In en, this message translates to:
+  /// **'Heart Balloon'**
+  String get giftNameHeartBalloon;
+
+  /// Gift catalog: name of the gift shown in the gift tray, confirm dialog and chat bubble.
+  ///
+  /// In en, this message translates to:
+  /// **'Teddy Bear'**
+  String get giftNameTeddyBear;
+
+  /// Gift catalog: name of the gift shown in the gift tray, confirm dialog and chat bubble.
+  ///
+  /// In en, this message translates to:
+  /// **'Flower Bouquet'**
+  String get giftNameFlowerBouquet;
+
+  /// Gift catalog: name of the gift shown in the gift tray, confirm dialog and chat bubble.
+  ///
+  /// In en, this message translates to:
+  /// **'Jewelry Box'**
+  String get giftNameJewelleryBox;
+
+  /// Gift catalog: name of the gift shown in the gift tray, confirm dialog and chat bubble.
+  ///
+  /// In en, this message translates to:
+  /// **'Champagne Toast'**
+  String get giftNameChampagneToast;
+
+  /// Gift catalog: name of the gift shown in the gift tray, confirm dialog and chat bubble.
+  ///
+  /// In en, this message translates to:
+  /// **'Heart Explosion'**
+  String get giftNameHeartExplosion;
+
+  /// Gift catalog: name of the gift shown in the gift tray, confirm dialog and chat bubble.
+  ///
+  /// In en, this message translates to:
+  /// **'Confetti Shower'**
+  String get giftNameConfettiShower;
+
+  /// Gift catalog: name of the gift shown in the gift tray, confirm dialog and chat bubble.
+  ///
+  /// In en, this message translates to:
+  /// **'Fireworks Burst'**
+  String get giftNameFireworksBurst;
+
+  /// Gift catalog: name of the gift shown in the gift tray, confirm dialog and chat bubble.
+  ///
+  /// In en, this message translates to:
+  /// **'Star Shower'**
+  String get giftNameStarShower;
+
+  /// Gift catalog: name of the gift shown in the gift tray, confirm dialog and chat bubble.
+  ///
+  /// In en, this message translates to:
+  /// **'Golden Sparkle'**
+  String get giftNameGoldenSparkle;
+
+  /// Gift catalog: name of the gift shown in the gift tray, confirm dialog and chat bubble.
+  ///
+  /// In en, this message translates to:
+  /// **'Rainbow Wave'**
+  String get giftNameRainbowWave;
+
+  /// Gift catalog: name of the gift shown in the gift tray, confirm dialog and chat bubble.
+  ///
+  /// In en, this message translates to:
+  /// **'Coffee Date Invite'**
+  String get giftNameCoffeeDateInvite;
+
+  /// Gift catalog: name of the gift shown in the gift tray, confirm dialog and chat bubble.
+  ///
+  /// In en, this message translates to:
+  /// **'Picnic Invite'**
+  String get giftNamePicnicInvite;
+
+  /// Gift catalog: name of the gift shown in the gift tray, confirm dialog and chat bubble.
+  ///
+  /// In en, this message translates to:
+  /// **'Movie Night Invite'**
+  String get giftNameMovieNightInvite;
+
+  /// Gift catalog: name of the gift shown in the gift tray, confirm dialog and chat bubble.
+  ///
+  /// In en, this message translates to:
+  /// **'Sunset Walk Invite'**
+  String get giftNameSunsetWalkInvite;
+
+  /// Gift catalog: name of the gift shown in the gift tray, confirm dialog and chat bubble.
+  ///
+  /// In en, this message translates to:
+  /// **'Date Night Card'**
+  String get giftNameDateNightCard;
+
+  /// Gift catalog: name of the gift shown in the gift tray, confirm dialog and chat bubble.
+  ///
+  /// In en, this message translates to:
+  /// **'Valentine\'s Surprise'**
+  String get giftNameValentineSurprise;
+
+  /// Gift catalog: name of the gift shown in the gift tray, confirm dialog and chat bubble.
+  ///
+  /// In en, this message translates to:
+  /// **'Diamond Ring'**
+  String get giftNameDiamondRing;
+
+  /// Gift catalog: name of the gift shown in the gift tray, confirm dialog and chat bubble.
+  ///
+  /// In en, this message translates to:
+  /// **'Luxury Date Experience'**
+  String get giftNameLuxuryDate;
+
+  /// Blog connections: title of a shared public copy whose source changed or was withdrawn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sharing unavailable'**
+  String get blogPublicationUnavailableTitle;
+
+  /// Blog connections: body of a shared public copy whose source changed or was withdrawn.
+  ///
+  /// In en, this message translates to:
+  /// **'The source changed or access was withdrawn. Withdraw this link.'**
+  String get blogPublicationUnavailableExcerpt;
+
+  /// Blog review notices: kind of content a moderation notice is about (noun).
+  ///
+  /// In en, this message translates to:
+  /// **'Post'**
+  String get blogNoticeKindPost;
+
+  /// Blog review notices: kind of content a moderation notice is about (noun).
+  ///
+  /// In en, this message translates to:
+  /// **'Response'**
+  String get blogNoticeKindResponse;
+
+  /// Blog review notices: kind of content a moderation notice is about (noun).
+  ///
+  /// In en, this message translates to:
+  /// **'Public copy'**
+  String get blogNoticeKindPublication;
+
+  /// Blog review notices: kind of content a moderation notice is about (noun).
+  ///
+  /// In en, this message translates to:
+  /// **'Theme photo'**
+  String get blogNoticeKindThemeEntry;
+
+  /// Blog review notices: kind of content a moderation notice is about (noun).
+  ///
+  /// In en, this message translates to:
+  /// **'Club'**
+  String get blogNoticeKindClub;
+
+  /// Blog review notices: kind of content a moderation notice is about (noun).
+  ///
+  /// In en, this message translates to:
+  /// **'Club post'**
+  String get blogNoticeKindClubPost;
+
+  /// Blog review notices: kind of content a moderation notice is about (noun).
+  ///
+  /// In en, this message translates to:
+  /// **'Review'**
+  String get blogNoticeKindReview;
+
+  /// Blog review notices: kind of content a moderation notice is about (noun).
+  ///
+  /// In en, this message translates to:
+  /// **'List'**
+  String get blogNoticeKindList;
+
+  /// Blog review notices: kind of content a moderation notice is about (noun).
+  ///
+  /// In en, this message translates to:
+  /// **'Comment'**
+  String get blogNoticeKindComment;
+
+  /// Blog review notices: kind of content a moderation notice is about (noun).
+  ///
+  /// In en, this message translates to:
+  /// **'Photo comment'**
+  String get blogNoticeKindPhotoComment;
+
+  /// Blog review notices: kind of content a moderation notice is about (noun).
+  ///
+  /// In en, this message translates to:
+  /// **'Chat message'**
+  String get blogNoticeKindChatMessage;
+
+  /// Blog review notices: kind of content a moderation notice is about (noun).
+  ///
+  /// In en, this message translates to:
+  /// **'Group'**
+  String get blogNoticeKindGroup;
+
+  /// Blog review notices: kind of content a moderation notice is about (noun).
+  ///
+  /// In en, this message translates to:
+  /// **'Content'**
+  String get blogNoticeKindOther;
+
+  /// Blog review notices: outcome of a moderation review.
+  ///
+  /// In en, this message translates to:
+  /// **'Under review'**
+  String get blogNoticeStatusPending;
+
+  /// Blog review notices: outcome of a moderation review.
+  ///
+  /// In en, this message translates to:
+  /// **'No action taken'**
+  String get blogNoticeStatusDismissed;
+
+  /// Blog review notices: outcome of a moderation review.
+  ///
+  /// In en, this message translates to:
+  /// **'Removed'**
+  String get blogNoticeStatusRemoved;
+
+  /// Blog review notices: outcome of a moderation review.
+  ///
+  /// In en, this message translates to:
+  /// **'Restored'**
+  String get blogNoticeStatusRestored;
+
+  /// Trust badges: label of one trust milestone score.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile depth'**
+  String get engagementTrustMilestoneProfileDepth;
+
+  /// Trust badges: label of one trust milestone score.
+  ///
+  /// In en, this message translates to:
+  /// **'Communication'**
+  String get engagementTrustMilestoneCommunication;
+
+  /// Trust badges: label of one trust milestone score.
+  ///
+  /// In en, this message translates to:
+  /// **'Consistency'**
+  String get engagementTrustMilestoneConsistency;
+
+  /// Trust badges: label of one trust milestone score.
+  ///
+  /// In en, this message translates to:
+  /// **'Prompts answered'**
+  String get engagementTrustMilestonePromptCompletion;
+
+  /// Trust badges: label of one trust milestone score.
+  ///
+  /// In en, this message translates to:
+  /// **'Activity signals'**
+  String get engagementTrustMilestoneActivitySignals;
+
+  /// Trust badges: label of one trust milestone score.
+  ///
+  /// In en, this message translates to:
+  /// **'Safety flags'**
+  String get engagementTrustMilestoneUnsafeSignals;
+
+  /// Trust badges: label of one trust milestone score.
+  ///
+  /// In en, this message translates to:
+  /// **'Report penalty'**
+  String get engagementTrustMilestoneReportPenalty;
+
+  /// Trust badges: label of one trust milestone score.
+  ///
+  /// In en, this message translates to:
+  /// **'Verification consistent'**
+  String get engagementTrustMilestoneVerification;
+
+  /// Trust badges: label of one trust milestone score.
+  ///
+  /// In en, this message translates to:
+  /// **'Safety'**
+  String get engagementTrustMilestoneSafety;
+
+  /// Trust badges: one milestone row. {label} is the localized score name, {value} its value.
+  ///
+  /// In en, this message translates to:
+  /// **'{label}: {value}'**
+  String engagementTrustMilestoneLine(String label, String value);
+
+  /// Server error (by error_code): shown when the app cannot reach the server (no connection or timeout).
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t connect right now. Check your internet connection and try again.'**
+  String get networkOfflineTryAgain;
+
+  /// Server error (by error_code): the feature is switched off or not part of this release.
+  ///
+  /// In en, this message translates to:
+  /// **'This feature isn\'t available right now.'**
+  String get apiErrorFeatureUnavailable;
+
+  /// Server error (by error_code): the conversation was blocked or closed.
+  ///
+  /// In en, this message translates to:
+  /// **'This conversation is no longer available.'**
+  String get apiErrorConversationUnavailable;
+
+  /// Server error (by error_code): the other member is not available (blocked, paused or gone).
+  ///
+  /// In en, this message translates to:
+  /// **'This member isn\'t available.'**
+  String get apiErrorMemberUnavailable;
+
+  /// Server error (by error_code): the conversation must be unlocked first.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock this conversation first.'**
+  String get apiErrorChatLocked;
+
+  /// Server error (by error_code): the member used today's drafting help.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve used today\'s drafts. Write this one yourself.'**
+  String get apiErrorCopilotDailyLimit;
+
+  /// Server error (by error_code): drafting help is down.
+  ///
+  /// In en, this message translates to:
+  /// **'Drafting help isn\'t available right now.'**
+  String get apiErrorCopilotUnavailable;
+
+  /// Server error (by error_code): the other member's profile cannot be used for drafting.
+  ///
+  /// In en, this message translates to:
+  /// **'Their profile isn\'t available right now.'**
+  String get apiErrorCopilotProfileUnavailable;
+
+  /// Server error (by error_code): a date plan is already open for the match.
+  ///
+  /// In en, this message translates to:
+  /// **'A date plan is already open for this match.'**
+  String get apiErrorDatePlanAlreadyOpen;
+
+  /// Server error (by error_code): date plans need an active match.
+  ///
+  /// In en, this message translates to:
+  /// **'Date plans need an active match.'**
+  String get apiErrorDatePlanMatchInactive;
+
+  /// Server error (by error_code): the date plan is no longer open.
+  ///
+  /// In en, this message translates to:
+  /// **'This date plan is no longer open.'**
+  String get apiErrorDatePlanNotOpen;
+
+  /// Server error (by error_code): check-in tried before the plan starts.
+  ///
+  /// In en, this message translates to:
+  /// **'You can check in once the plan starts.'**
+  String get apiErrorDatePlanCheckInTooEarly;
+
+  /// Server error (by error_code): debrief tried before the plan starts.
+  ///
+  /// In en, this message translates to:
+  /// **'The debrief opens once the plan starts.'**
+  String get apiErrorDatePlanDebriefTooEarly;
+
+  /// Server error (by error_code): shared availability changed since the times were suggested.
+  ///
+  /// In en, this message translates to:
+  /// **'Shared availability has changed. Refresh the suggested times or pick a time yourself.'**
+  String get apiErrorSharedAvailabilityChanged;
+
+  /// Server error (by error_code): a graduation (leave together) proposal is already open.
+  ///
+  /// In en, this message translates to:
+  /// **'A graduation proposal is already open for this match.'**
+  String get apiErrorGraduationAlreadyOpen;
+
+  /// Server error (by error_code): graduation needs an active match.
+  ///
+  /// In en, this message translates to:
+  /// **'Graduating needs an active match.'**
+  String get apiErrorGraduationMatchInactive;
+
+  /// Server error (by error_code): the graduation proposal is no longer open.
+  ///
+  /// In en, this message translates to:
+  /// **'This graduation proposal is no longer open.'**
+  String get apiErrorGraduationNotOpen;
+
+  /// Server error (by error_code): the match already graduated.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve already graduated together.'**
+  String get apiErrorGraduationAlreadyConfirmed;
+
+  /// Server error (by error_code): the screen's data is stale (expired replay cursor).
+  ///
+  /// In en, this message translates to:
+  /// **'This view is out of date. Refresh and try again.'**
+  String get apiErrorOutOfDate;
+
+  /// Server error (by error_code): the server could not confirm whether a repeated request went through.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t confirm that. Refresh to check before trying again.'**
+  String get apiErrorOutcomeUncertain;
+
+  /// Server error (by error_code): not enough coins.
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t have enough coins for this.'**
+  String get apiErrorInsufficientCoins;
+
+  /// Server error (by error_code): the chat is temporarily read-only.
+  ///
+  /// In en, this message translates to:
+  /// **'This chat is read-only right now.'**
+  String get apiErrorChannelReadOnly;
+
+  /// Server error (by error_code): the live room is full.
+  ///
+  /// In en, this message translates to:
+  /// **'This room is full right now. Try again in a little while.'**
+  String get apiErrorRoomFull;
+
+  /// Server error (by error_code): a host removed the member from the room for this session.
+  ///
+  /// In en, this message translates to:
+  /// **'A host removed you from this room. You can rejoin when this session ends.'**
+  String get apiErrorRoomRemoved;
+
+  /// Server error (by error_code): the member is not in the room.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re not in this room.'**
+  String get apiErrorRoomNotJoined;
+
+  /// Server error (by error_code): today's message allowance is used up.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve used today\'s messages. Try again after the reset or upgrade your plan.'**
+  String get apiErrorDailyMessageLimit;
+
+  /// Server error (by error_code): today's like allowance is used up.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve used today\'s likes. Try again after the reset or upgrade your plan.'**
+  String get apiErrorDailyLikeLimit;
+
+  /// Server error (by error_code): the action needs the two members to be friends.
+  ///
+  /// In en, this message translates to:
+  /// **'You need to be friends first.'**
+  String get apiErrorFriendRequired;
+
+  /// Server error (by error_code): the member already vouched for this friend.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve already vouched for them.'**
+  String get apiErrorVouchExists;
+
+  /// Server error (by error_code): the intro is no longer available.
+  ///
+  /// In en, this message translates to:
+  /// **'This intro isn\'t available anymore.'**
+  String get apiErrorIntroUnavailable;
+
+  /// Server error (by error_code): an intro between these two friends is already open.
+  ///
+  /// In en, this message translates to:
+  /// **'An intro for these two is already open.'**
+  String get apiErrorIntroAlreadyOpen;
+
+  /// Server error (by error_code): the intro is no longer open.
+  ///
+  /// In en, this message translates to:
+  /// **'This intro is no longer open.'**
+  String get apiErrorIntroNotOpen;
+
+  /// Server error (by error_code): too many requests in a short time.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many tries. Wait a moment and try again.'**
+  String get apiErrorTooManyTries;
+
+  /// Server error (by error_code): the quest submission is in its cooldown period.
+  ///
+  /// In en, this message translates to:
+  /// **'This quest is cooling down. Try again a little later.'**
+  String get apiErrorQuestCooldown;
+
+  /// Server error (by error_code): a member tried to review their own quest answer.
+  ///
+  /// In en, this message translates to:
+  /// **'Your match reviews your quest answer, not you.'**
+  String get apiErrorQuestSelfReview;
+
+  /// Server error (by error_code): only members of the match can take part in its quest.
+  ///
+  /// In en, this message translates to:
+  /// **'Only members of this match can take part in its quest.'**
+  String get apiErrorQuestNotParticipant;
+
+  /// Server error (by error_code): coin purchases are not set up.
+  ///
+  /// In en, this message translates to:
+  /// **'Coin purchases aren\'t available right now.'**
+  String get apiErrorPaymentsUnavailable;
+
+  /// Server error (by error_code): the service is overloaded or an upstream service failed.
+  ///
+  /// In en, this message translates to:
+  /// **'The service is busy right now. Try again in a moment.'**
+  String get apiErrorServiceBusy;
+
+  /// Server error (by error_code): the session is missing or expired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please sign in again to continue.'**
+  String get apiErrorSignInAgain;
+
+  /// Friends screen intro card: stands in for the introduced member's name when the server sent none.
+  ///
+  /// In en, this message translates to:
+  /// **'A member'**
+  String get friendsMemberFallback;
+
+  /// Friends screen activity list: title of an activity item when the server sent no title.
+  ///
+  /// In en, this message translates to:
+  /// **'Activity'**
+  String get friendsActivityFallback;
+
+  /// Membership screen: name of a subscription plan when the server sent no name.
+  ///
+  /// In en, this message translates to:
+  /// **'Plan'**
+  String get membershipPlanFallback;
+
+  /// Membership screen: name of the member's current subscription when the server sent no plan name.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscription'**
+  String get membershipSubscriptionFallback;
+
+  /// Level & XP screen: name of a level reward when the server sent no name.
+  ///
+  /// In en, this message translates to:
+  /// **'Level {level} reward'**
+  String engagementLevelRewardFallback(int level);
+
+  /// Trust badges screen: label of a badge the server sent without a name.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown badge'**
+  String get engagementTrustBadgeUnknown;
+
+  /// Comfort cards (In my words): the language field is prefilled with the app language's own name, written in that language. Translate as the endonym of your language.
+  ///
+  /// In en, this message translates to:
+  /// **'English'**
+  String get firstChapterComfortDefaultLanguage;
+
+  /// Wallet: the member's coin balance in the hero, with the locale's digit grouping (1,234 / 1.234).
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 coin} other{{count} coins}}'**
+  String paymentWalletBalanceCoins(int count);
+
+  /// Signed-out language sheet (welcome, sign-in, sign-up): explains the choice applies now and is saved to the account at sign-in.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick the language Connect uses. It changes right away, and when you sign in it\'s saved to your account.'**
+  String get languageIntroSignedOut;
+
+  /// Screen reader label of the compact language button (globe + language name) on signed-out screens. {language} is the current language's own name, e.g. 'Deutsch'.
+  ///
+  /// In en, this message translates to:
+  /// **'Language: {language}. Change language'**
+  String languagePickerButtonSemantics(String language);
+
+  /// Sign-up: the server says the username is already taken.
+  ///
+  /// In en, this message translates to:
+  /// **'That username is already taken. Try another one.'**
+  String get authErrorUsernameTaken;
+
+  /// Sign-in: the server says the account is suspended or banned.
+  ///
+  /// In en, this message translates to:
+  /// **'This account is suspended. Contact support if you think this is a mistake.'**
+  String get authErrorAccountSuspended;
+
+  /// Sign-in: the account is temporarily locked after failed attempts.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many sign-in attempts. Try again in a few minutes.'**
+  String get authErrorAccountLocked;
+
+  /// Sign-in/sign-up: rate limited by the server (HTTP 429).
+  ///
+  /// In en, this message translates to:
+  /// **'Too many tries. Wait a moment and try again.'**
+  String get authErrorTooManyRequests;
+
+  /// Sign-up: the chosen account type (e.g. friend/introducer account) is not available.
+  ///
+  /// In en, this message translates to:
+  /// **'This kind of account isn\'t available right now.'**
+  String get authErrorAccountTypeUnavailable;
+
+  /// Sign-in/sign-up: the server could not be reached (offline or timeout).
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t connect right now. Check your internet connection and try again.'**
+  String get authErrorNetwork;
+
+  /// Profile photos: screen reader label of the drag handle that reorders a photo.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag to reorder this photo'**
+  String get profileSetupReorderPhoto;
+
+  /// Name of the language stored as 'Assamese' (mother tongue / spoken languages in profile setup and filters), shown in the member's UI language. The stored value never changes.
+  ///
+  /// In en, this message translates to:
+  /// **'Assamese'**
+  String get profileLanguageAssamese;
+
+  /// Name of the language stored as 'Bengali' (mother tongue / spoken languages in profile setup and filters), shown in the member's UI language. The stored value never changes.
+  ///
+  /// In en, this message translates to:
+  /// **'Bengali'**
+  String get profileLanguageBengali;
+
+  /// Name of the language stored as 'Bodo' (mother tongue / spoken languages in profile setup and filters), shown in the member's UI language. The stored value never changes.
+  ///
+  /// In en, this message translates to:
+  /// **'Bodo'**
+  String get profileLanguageBodo;
+
+  /// Name of the language stored as 'Dogri' (mother tongue / spoken languages in profile setup and filters), shown in the member's UI language. The stored value never changes.
+  ///
+  /// In en, this message translates to:
+  /// **'Dogri'**
+  String get profileLanguageDogri;
+
+  /// Name of the language stored as 'English' (mother tongue / spoken languages in profile setup and filters), shown in the member's UI language. The stored value never changes.
+  ///
+  /// In en, this message translates to:
+  /// **'English'**
+  String get profileLanguageEnglish;
+
+  /// Name of the language stored as 'Gujarati' (mother tongue / spoken languages in profile setup and filters), shown in the member's UI language. The stored value never changes.
+  ///
+  /// In en, this message translates to:
+  /// **'Gujarati'**
+  String get profileLanguageGujarati;
+
+  /// Name of the language stored as 'Hindi' (mother tongue / spoken languages in profile setup and filters), shown in the member's UI language. The stored value never changes.
+  ///
+  /// In en, this message translates to:
+  /// **'Hindi'**
+  String get profileLanguageHindi;
+
+  /// Name of the language stored as 'Kannada' (mother tongue / spoken languages in profile setup and filters), shown in the member's UI language. The stored value never changes.
+  ///
+  /// In en, this message translates to:
+  /// **'Kannada'**
+  String get profileLanguageKannada;
+
+  /// Name of the language stored as 'Kashmiri' (mother tongue / spoken languages in profile setup and filters), shown in the member's UI language. The stored value never changes.
+  ///
+  /// In en, this message translates to:
+  /// **'Kashmiri'**
+  String get profileLanguageKashmiri;
+
+  /// Name of the language stored as 'Konkani' (mother tongue / spoken languages in profile setup and filters), shown in the member's UI language. The stored value never changes.
+  ///
+  /// In en, this message translates to:
+  /// **'Konkani'**
+  String get profileLanguageKonkani;
+
+  /// Name of the language stored as 'Maithili' (mother tongue / spoken languages in profile setup and filters), shown in the member's UI language. The stored value never changes.
+  ///
+  /// In en, this message translates to:
+  /// **'Maithili'**
+  String get profileLanguageMaithili;
+
+  /// Name of the language stored as 'Malayalam' (mother tongue / spoken languages in profile setup and filters), shown in the member's UI language. The stored value never changes.
+  ///
+  /// In en, this message translates to:
+  /// **'Malayalam'**
+  String get profileLanguageMalayalam;
+
+  /// Name of the language stored as 'Manipuri' (mother tongue / spoken languages in profile setup and filters), shown in the member's UI language. The stored value never changes.
+  ///
+  /// In en, this message translates to:
+  /// **'Manipuri'**
+  String get profileLanguageManipuri;
+
+  /// Name of the language stored as 'Marathi' (mother tongue / spoken languages in profile setup and filters), shown in the member's UI language. The stored value never changes.
+  ///
+  /// In en, this message translates to:
+  /// **'Marathi'**
+  String get profileLanguageMarathi;
+
+  /// Name of the language stored as 'Nepali' (mother tongue / spoken languages in profile setup and filters), shown in the member's UI language. The stored value never changes.
+  ///
+  /// In en, this message translates to:
+  /// **'Nepali'**
+  String get profileLanguageNepali;
+
+  /// Name of the language stored as 'Odia' (mother tongue / spoken languages in profile setup and filters), shown in the member's UI language. The stored value never changes.
+  ///
+  /// In en, this message translates to:
+  /// **'Odia'**
+  String get profileLanguageOdia;
+
+  /// Name of the language stored as 'Punjabi' (mother tongue / spoken languages in profile setup and filters), shown in the member's UI language. The stored value never changes.
+  ///
+  /// In en, this message translates to:
+  /// **'Punjabi'**
+  String get profileLanguagePunjabi;
+
+  /// Name of the language stored as 'Sanskrit' (mother tongue / spoken languages in profile setup and filters), shown in the member's UI language. The stored value never changes.
+  ///
+  /// In en, this message translates to:
+  /// **'Sanskrit'**
+  String get profileLanguageSanskrit;
+
+  /// Name of the language stored as 'Santali' (mother tongue / spoken languages in profile setup and filters), shown in the member's UI language. The stored value never changes.
+  ///
+  /// In en, this message translates to:
+  /// **'Santali'**
+  String get profileLanguageSantali;
+
+  /// Name of the language stored as 'Sindhi' (mother tongue / spoken languages in profile setup and filters), shown in the member's UI language. The stored value never changes.
+  ///
+  /// In en, this message translates to:
+  /// **'Sindhi'**
+  String get profileLanguageSindhi;
+
+  /// Name of the language stored as 'Tamil' (mother tongue / spoken languages in profile setup and filters), shown in the member's UI language. The stored value never changes.
+  ///
+  /// In en, this message translates to:
+  /// **'Tamil'**
+  String get profileLanguageTamil;
+
+  /// Name of the language stored as 'Telugu' (mother tongue / spoken languages in profile setup and filters), shown in the member's UI language. The stored value never changes.
+  ///
+  /// In en, this message translates to:
+  /// **'Telugu'**
+  String get profileLanguageTelugu;
+
+  /// Name of the language stored as 'Urdu' (mother tongue / spoken languages in profile setup and filters), shown in the member's UI language. The stored value never changes.
+  ///
+  /// In en, this message translates to:
+  /// **'Urdu'**
+  String get profileLanguageUrdu;
+
+  /// Name of the country stored as 'India' (profile setup and filters). The stored value never changes.
+  ///
+  /// In en, this message translates to:
+  /// **'India'**
+  String get profileCountryIndia;
+
+  /// Name of the country stored as 'United Kingdom' (profile setup and filters). The stored value never changes.
+  ///
+  /// In en, this message translates to:
+  /// **'United Kingdom'**
+  String get profileCountryUnitedKingdom;
+
+  /// Name of the country stored as 'Ireland' (profile setup and filters). The stored value never changes.
+  ///
+  /// In en, this message translates to:
+  /// **'Ireland'**
+  String get profileCountryIreland;
+
+  /// Name of the country stored as 'Germany' (profile setup and filters). The stored value never changes.
+  ///
+  /// In en, this message translates to:
+  /// **'Germany'**
+  String get profileCountryGermany;
+
+  /// Name of the country stored as 'Austria' (profile setup and filters). The stored value never changes.
+  ///
+  /// In en, this message translates to:
+  /// **'Austria'**
+  String get profileCountryAustria;
+
+  /// Display label for the workout frequency option stored as 'Sometimes' (server default master data). The stored value never changes.
+  ///
+  /// In en, this message translates to:
+  /// **'Sometimes'**
+  String get profileMasterWorkoutSometimes;
+
+  /// Display label for the workout frequency option stored as 'Weekly' (server default master data). The stored value never changes.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly'**
+  String get profileMasterWorkoutWeekly;
+
+  /// Display label for the travel style option stored as 'Road Trips' (server default master data). The stored value never changes.
+  ///
+  /// In en, this message translates to:
+  /// **'Road trips'**
+  String get profileMasterTravelRoadTrips;
+
+  /// Display label for the travel style option stored as 'Backpacking' (server default master data). The stored value never changes.
+  ///
+  /// In en, this message translates to:
+  /// **'Backpacking'**
+  String get profileMasterTravelBackpacking;
+
+  /// Display label for the travel style option stored as 'Luxury' (server default master data). The stored value never changes.
+  ///
+  /// In en, this message translates to:
+  /// **'Luxury'**
+  String get profileMasterTravelLuxuryShort;
+
+  /// Display label for the travel style option stored as 'Staycations' (server default master data). The stored value never changes.
+  ///
+  /// In en, this message translates to:
+  /// **'Staycations'**
+  String get profileMasterTravelStaycations;
+
+  /// Display label for the political comfort range option stored as 'Similar' (server default master data). The stored value never changes.
+  ///
+  /// In en, this message translates to:
+  /// **'Similar'**
+  String get profileMasterPoliticsSimilarShort;
+
+  /// Display label for the political comfort range option stored as 'Moderate' (server default master data). The stored value never changes.
+  ///
+  /// In en, this message translates to:
+  /// **'Moderate'**
+  String get profileMasterPoliticsModerate;
+
+  /// Display label for the political comfort range option stored as 'Any' (server default master data). The stored value never changes.
+  ///
+  /// In en, this message translates to:
+  /// **'Any'**
+  String get profileMasterPoliticsAny;
 }
 
 class _AppLocalizationsDelegate

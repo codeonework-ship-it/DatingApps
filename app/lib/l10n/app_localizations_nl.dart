@@ -12675,4 +12675,606 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get settingsSignOutAllFailed =>
       'Je andere apparaten konden niet worden uitgelogd. Controleer je verbinding en probeer het opnieuw.';
+
+  @override
+  String get supportPaymentHelpLink =>
+      'Probleem met een betaling? Neem contact op met support';
+
+  @override
+  String get supportReportHelpLink =>
+      'Meer hulp nodig? Neem contact op met support';
+
+  @override
+  String get supportSignedOutHelpLink =>
+      'Ander probleem? Neem contact op met support';
+
+  @override
+  String get supportGuestSubtitle =>
+      'Kun je niet inloggen of werkt er iets anders niet? Vertel ons wat er is gebeurd, dan antwoorden we per e-mail.';
+
+  @override
+  String get supportGuestEmailLabel => 'Je e-mailadres';
+
+  @override
+  String get supportGuestEmailHint => 'We antwoorden naar dit adres';
+
+  @override
+  String get supportGuestNameLabel => 'Je naam (optioneel)';
+
+  @override
+  String get supportGuestEmailInvalid =>
+      'Vul een geldig e-mailadres in zodat we kunnen antwoorden.';
+
+  @override
+  String get supportGuestSentTitle => 'Verzoek verzonden';
+
+  @override
+  String supportGuestSentBody(String reference, String email) {
+    return 'Bedankt. Je referentie is $reference. We antwoorden naar $email.';
+  }
+
+  @override
+  String get supportGuestUnavailableBody =>
+      'Supportverzoeken kunnen nu niet vanuit de app worden verstuurd. Mail voor iets dringends naar support@connect.example.';
+
+  @override
+  String get supportDraftRestored =>
+      'We hebben je niet-verzonden verzoek bewaard.';
+
+  @override
+  String get supportDraftDiscard => 'Concept verwijderen';
+
+  @override
+  String get discoverActionUndo => 'Ongedaan maken';
+
+  @override
+  String get discoverActionLike => 'Leuk';
+
+  @override
+  String get discoverActionSuperLike => 'Superlike';
+
+  @override
+  String get navQaVerifyShortcut => 'Verifiëren';
+
+  @override
+  String get chatMessageDeletedPlaceholder => 'Bericht verwijderd';
+
+  @override
+  String get chatGiftYouSentHeading => 'Je hebt een cadeau gestuurd';
+
+  @override
+  String get commonMemberFallbackName => 'Een lid';
+
+  @override
+  String get giftNameRoseRedSingle => 'Eén rode roos';
+
+  @override
+  String get giftNameRosePinkSoft => 'Roze roos';
+
+  @override
+  String get giftNameRoseWhitePure => 'Witte roos';
+
+  @override
+  String get giftNameRoseYellowFriendship => 'Gele roos';
+
+  @override
+  String get giftNameRoseLavenderCrush => 'Lavendelroos';
+
+  @override
+  String get giftNameRoseBlueRare => 'Blauwe roos';
+
+  @override
+  String get giftNameRoseBlackMystery => 'Zwarte roos';
+
+  @override
+  String get giftNameRoseSparkle => 'Glitterroos';
+
+  @override
+  String get giftNameRoseHeartPetal => 'Roos met hartjesblaadjes';
+
+  @override
+  String get giftNameRoseNeonGlow => 'Neonroos';
+
+  @override
+  String get giftNameRoseRain => 'Rozenregen';
+
+  @override
+  String get giftNameRoseBurningFlame => 'Brandende roos';
+
+  @override
+  String get giftNameRoseGolden => 'Gouden roos';
+
+  @override
+  String get giftNameRoseCrystal => 'Kristallen roos';
+
+  @override
+  String get giftNameRoseBouquet12 => 'Rozenboeket (12)';
+
+  @override
+  String get giftNameRoseBouquet24 => 'Rozenboeket (24)';
+
+  @override
+  String get giftNameRoseSeasonalWeekly => 'Limited seizoensroos';
+
+  @override
+  String get giftNameChocolateBox => 'Doos bonbons';
+
+  @override
+  String get giftNameHeartBalloon => 'Hartjesballon';
+
+  @override
+  String get giftNameTeddyBear => 'Teddybeer';
+
+  @override
+  String get giftNameFlowerBouquet => 'Bloemenboeket';
+
+  @override
+  String get giftNameJewelleryBox => 'Juwelenkistje';
+
+  @override
+  String get giftNameChampagneToast => 'Proosten met champagne';
+
+  @override
+  String get giftNameHeartExplosion => 'Hartjesexplosie';
+
+  @override
+  String get giftNameConfettiShower => 'Confettiregen';
+
+  @override
+  String get giftNameFireworksBurst => 'Vuurwerk';
+
+  @override
+  String get giftNameStarShower => 'Sterrenregen';
+
+  @override
+  String get giftNameGoldenSparkle => 'Gouden glitter';
+
+  @override
+  String get giftNameRainbowWave => 'Regenbooggolf';
+
+  @override
+  String get giftNameCoffeeDateInvite => 'Uitnodiging voor koffie';
+
+  @override
+  String get giftNamePicnicInvite => 'Uitnodiging voor een picknick';
+
+  @override
+  String get giftNameMovieNightInvite => 'Uitnodiging voor een filmavond';
+
+  @override
+  String get giftNameSunsetWalkInvite =>
+      'Uitnodiging voor een wandeling bij zonsondergang';
+
+  @override
+  String get giftNameDateNightCard => 'Kaart voor een dateavond';
+
+  @override
+  String get giftNameValentineSurprise => 'Valentijnsverrassing';
+
+  @override
+  String get giftNameDiamondRing => 'Diamanten ring';
+
+  @override
+  String get giftNameLuxuryDate => 'Luxe date';
+
+  @override
+  String get blogPublicationUnavailableTitle => 'Delen niet beschikbaar';
+
+  @override
+  String get blogPublicationUnavailableExcerpt =>
+      'De bron is gewijzigd of de toegang is ingetrokken. Trek deze link in.';
+
+  @override
+  String get blogNoticeKindPost => 'Bericht';
+
+  @override
+  String get blogNoticeKindResponse => 'Antwoord';
+
+  @override
+  String get blogNoticeKindPublication => 'Openbare kopie';
+
+  @override
+  String get blogNoticeKindThemeEntry => 'Themafoto';
+
+  @override
+  String get blogNoticeKindClub => 'Club';
+
+  @override
+  String get blogNoticeKindClubPost => 'Clubbericht';
+
+  @override
+  String get blogNoticeKindReview => 'Recensie';
+
+  @override
+  String get blogNoticeKindList => 'Lijst';
+
+  @override
+  String get blogNoticeKindComment => 'Opmerking';
+
+  @override
+  String get blogNoticeKindPhotoComment => 'Opmerking bij foto';
+
+  @override
+  String get blogNoticeKindChatMessage => 'Chatbericht';
+
+  @override
+  String get blogNoticeKindGroup => 'Groep';
+
+  @override
+  String get blogNoticeKindOther => 'Inhoud';
+
+  @override
+  String get blogNoticeStatusPending => 'Wordt beoordeeld';
+
+  @override
+  String get blogNoticeStatusDismissed => 'Geen actie ondernomen';
+
+  @override
+  String get blogNoticeStatusRemoved => 'Verwijderd';
+
+  @override
+  String get blogNoticeStatusRestored => 'Hersteld';
+
+  @override
+  String get engagementTrustMilestoneProfileDepth => 'Profieldiepte';
+
+  @override
+  String get engagementTrustMilestoneCommunication => 'Communicatie';
+
+  @override
+  String get engagementTrustMilestoneConsistency => 'Consistentie';
+
+  @override
+  String get engagementTrustMilestonePromptCompletion => 'Beantwoorde vragen';
+
+  @override
+  String get engagementTrustMilestoneActivitySignals => 'Activiteitssignalen';
+
+  @override
+  String get engagementTrustMilestoneUnsafeSignals => 'Veiligheidsmeldingen';
+
+  @override
+  String get engagementTrustMilestoneReportPenalty => 'Aftrek door meldingen';
+
+  @override
+  String get engagementTrustMilestoneVerification => 'Verificatie klopt';
+
+  @override
+  String get engagementTrustMilestoneSafety => 'Veiligheid';
+
+  @override
+  String engagementTrustMilestoneLine(String label, String value) {
+    return '$label: $value';
+  }
+
+  @override
+  String get networkOfflineTryAgain =>
+      'Er is nu geen verbinding. Controleer je internetverbinding en probeer het opnieuw.';
+
+  @override
+  String get apiErrorFeatureUnavailable =>
+      'Deze functie is nu niet beschikbaar.';
+
+  @override
+  String get apiErrorConversationUnavailable =>
+      'Dit gesprek is niet meer beschikbaar.';
+
+  @override
+  String get apiErrorMemberUnavailable => 'Dit lid is niet beschikbaar.';
+
+  @override
+  String get apiErrorChatLocked => 'Ontgrendel eerst dit gesprek.';
+
+  @override
+  String get apiErrorCopilotDailyLimit =>
+      'Je hebt je concepten voor vandaag gebruikt. Schrijf deze zelf.';
+
+  @override
+  String get apiErrorCopilotUnavailable =>
+      'Schrijfhulp is nu niet beschikbaar.';
+
+  @override
+  String get apiErrorCopilotProfileUnavailable =>
+      'Het profiel is nu niet beschikbaar.';
+
+  @override
+  String get apiErrorDatePlanAlreadyOpen =>
+      'Er staat al een dateplan open voor deze match.';
+
+  @override
+  String get apiErrorDatePlanMatchInactive =>
+      'Dateplannen hebben een actieve match nodig.';
+
+  @override
+  String get apiErrorDatePlanNotOpen => 'Dit dateplan staat niet meer open.';
+
+  @override
+  String get apiErrorDatePlanCheckInTooEarly =>
+      'Je kunt inchecken zodra het plan begint.';
+
+  @override
+  String get apiErrorDatePlanDebriefTooEarly =>
+      'De nabespreking opent zodra het plan begint.';
+
+  @override
+  String get apiErrorSharedAvailabilityChanged =>
+      'De gedeelde beschikbaarheid is veranderd. Vernieuw de voorgestelde tijden of kies zelf een tijd.';
+
+  @override
+  String get apiErrorGraduationAlreadyOpen =>
+      'Er staat al een voorstel om samen verder te gaan open voor deze match.';
+
+  @override
+  String get apiErrorGraduationMatchInactive =>
+      'Samen verder gaan kan alleen met een actieve match.';
+
+  @override
+  String get apiErrorGraduationNotOpen =>
+      'Dit voorstel om samen verder te gaan staat niet meer open.';
+
+  @override
+  String get apiErrorGraduationAlreadyConfirmed =>
+      'Jullie zijn al samen verdergegaan.';
+
+  @override
+  String get apiErrorOutOfDate =>
+      'Deze weergave is verouderd. Vernieuw en probeer het opnieuw.';
+
+  @override
+  String get apiErrorOutcomeUncertain =>
+      'We konden dat niet bevestigen. Vernieuw om het te controleren voordat je het opnieuw probeert.';
+
+  @override
+  String get apiErrorInsufficientCoins =>
+      'Je hebt hier niet genoeg munten voor.';
+
+  @override
+  String get apiErrorChannelReadOnly => 'Deze chat is nu alleen-lezen.';
+
+  @override
+  String get apiErrorRoomFull =>
+      'Deze ruimte is nu vol. Probeer het zo meteen opnieuw.';
+
+  @override
+  String get apiErrorRoomRemoved =>
+      'Een host heeft je uit deze ruimte verwijderd. Je kunt weer meedoen als deze sessie voorbij is.';
+
+  @override
+  String get apiErrorRoomNotJoined => 'Je zit niet in deze ruimte.';
+
+  @override
+  String get apiErrorDailyMessageLimit =>
+      'Je hebt je berichten voor vandaag gebruikt. Probeer het na de reset opnieuw of upgrade je abonnement.';
+
+  @override
+  String get apiErrorDailyLikeLimit =>
+      'Je hebt je likes voor vandaag gebruikt. Probeer het na de reset opnieuw of upgrade je abonnement.';
+
+  @override
+  String get apiErrorFriendRequired => 'Jullie moeten eerst vrienden zijn.';
+
+  @override
+  String get apiErrorVouchExists =>
+      'Je hebt al een aanbeveling voor deze persoon geschreven.';
+
+  @override
+  String get apiErrorIntroUnavailable => 'Deze intro is niet meer beschikbaar.';
+
+  @override
+  String get apiErrorIntroAlreadyOpen =>
+      'Er staat al een intro voor deze twee open.';
+
+  @override
+  String get apiErrorIntroNotOpen => 'Deze intro staat niet meer open.';
+
+  @override
+  String get apiErrorTooManyTries =>
+      'Te veel pogingen. Wacht even en probeer het opnieuw.';
+
+  @override
+  String get apiErrorQuestCooldown =>
+      'Deze quest staat even op pauze. Probeer het wat later opnieuw.';
+
+  @override
+  String get apiErrorQuestSelfReview =>
+      'Je match beoordeelt je antwoord op de quest, niet jij.';
+
+  @override
+  String get apiErrorQuestNotParticipant =>
+      'Alleen de leden van deze match kunnen meedoen aan de quest.';
+
+  @override
+  String get apiErrorPaymentsUnavailable => 'Munten kopen is nu niet mogelijk.';
+
+  @override
+  String get apiErrorServiceBusy =>
+      'De dienst is nu druk. Probeer het zo opnieuw.';
+
+  @override
+  String get apiErrorSignInAgain => 'Log opnieuw in om verder te gaan.';
+
+  @override
+  String get friendsMemberFallback => 'Een lid';
+
+  @override
+  String get friendsActivityFallback => 'Activiteit';
+
+  @override
+  String get membershipPlanFallback => 'Pakket';
+
+  @override
+  String get membershipSubscriptionFallback => 'Abonnement';
+
+  @override
+  String engagementLevelRewardFallback(int level) {
+    return 'Beloning voor level $level';
+  }
+
+  @override
+  String get engagementTrustBadgeUnknown => 'Onbekende badge';
+
+  @override
+  String get firstChapterComfortDefaultLanguage => 'Nederlands';
+
+  @override
+  String paymentWalletBalanceCoins(int count) {
+    final intl.NumberFormat countNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString munten',
+      one: '1 munt',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get languageIntroSignedOut =>
+      'Kies de taal van Connect. Die geldt meteen en wordt bij het inloggen in je account opgeslagen.';
+
+  @override
+  String languagePickerButtonSemantics(String language) {
+    return 'Taal: $language. Taal wijzigen';
+  }
+
+  @override
+  String get authErrorUsernameTaken =>
+      'Die gebruikersnaam is al bezet. Probeer een andere.';
+
+  @override
+  String get authErrorAccountSuspended =>
+      'Dit account is geschorst. Neem contact op met support als je denkt dat dit een vergissing is.';
+
+  @override
+  String get authErrorAccountLocked =>
+      'Te veel inlogpogingen. Probeer het over een paar minuten opnieuw.';
+
+  @override
+  String get authErrorTooManyRequests =>
+      'Te veel pogingen. Wacht even en probeer het opnieuw.';
+
+  @override
+  String get authErrorAccountTypeUnavailable =>
+      'Dit soort account is nu niet beschikbaar.';
+
+  @override
+  String get authErrorNetwork =>
+      'Er is nu geen verbinding. Controleer je internetverbinding en probeer het opnieuw.';
+
+  @override
+  String get profileSetupReorderPhoto => 'Sleep om deze foto te verplaatsen';
+
+  @override
+  String get profileLanguageAssamese => 'Assamees';
+
+  @override
+  String get profileLanguageBengali => 'Bengaals';
+
+  @override
+  String get profileLanguageBodo => 'Bodo';
+
+  @override
+  String get profileLanguageDogri => 'Dogri';
+
+  @override
+  String get profileLanguageEnglish => 'Engels';
+
+  @override
+  String get profileLanguageGujarati => 'Gujarati';
+
+  @override
+  String get profileLanguageHindi => 'Hindi';
+
+  @override
+  String get profileLanguageKannada => 'Kannada';
+
+  @override
+  String get profileLanguageKashmiri => 'Kasjmiri';
+
+  @override
+  String get profileLanguageKonkani => 'Konkani';
+
+  @override
+  String get profileLanguageMaithili => 'Maithili';
+
+  @override
+  String get profileLanguageMalayalam => 'Malayalam';
+
+  @override
+  String get profileLanguageManipuri => 'Manipuri';
+
+  @override
+  String get profileLanguageMarathi => 'Marathi';
+
+  @override
+  String get profileLanguageNepali => 'Nepalees';
+
+  @override
+  String get profileLanguageOdia => 'Odia';
+
+  @override
+  String get profileLanguagePunjabi => 'Punjabi';
+
+  @override
+  String get profileLanguageSanskrit => 'Sanskriet';
+
+  @override
+  String get profileLanguageSantali => 'Santali';
+
+  @override
+  String get profileLanguageSindhi => 'Sindhi';
+
+  @override
+  String get profileLanguageTamil => 'Tamil';
+
+  @override
+  String get profileLanguageTelugu => 'Telugu';
+
+  @override
+  String get profileLanguageUrdu => 'Urdu';
+
+  @override
+  String get profileCountryIndia => 'India';
+
+  @override
+  String get profileCountryUnitedKingdom => 'Verenigd Koninkrijk';
+
+  @override
+  String get profileCountryIreland => 'Ierland';
+
+  @override
+  String get profileCountryGermany => 'Duitsland';
+
+  @override
+  String get profileCountryAustria => 'Oostenrijk';
+
+  @override
+  String get profileMasterWorkoutSometimes => 'Soms';
+
+  @override
+  String get profileMasterWorkoutWeekly => 'Wekelijks';
+
+  @override
+  String get profileMasterTravelRoadTrips => 'Roadtrips';
+
+  @override
+  String get profileMasterTravelBackpacking => 'Backpacken';
+
+  @override
+  String get profileMasterTravelLuxuryShort => 'Luxe';
+
+  @override
+  String get profileMasterTravelStaycations => 'Vakantie thuis';
+
+  @override
+  String get profileMasterPoliticsSimilarShort => 'Vergelijkbaar';
+
+  @override
+  String get profileMasterPoliticsModerate => 'Gematigd';
+
+  @override
+  String get profileMasterPoliticsAny => 'Maakt niet uit';
 }

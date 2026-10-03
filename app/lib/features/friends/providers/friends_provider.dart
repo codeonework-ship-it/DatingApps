@@ -7,6 +7,7 @@ import '../../../core/utils/logger.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../friend_actions.dart';
+import '../../../core/network/api_error_message.dart';
 
 class FriendConnection {
   const FriendConnection({
@@ -25,7 +26,7 @@ class FriendConnection {
   factory FriendConnection.fromJson(Map<String, dynamic> json) =>
       FriendConnection(
         friendUserId: json['friend_user_id']?.toString() ?? '',
-        friendName: json['friend_name']?.toString() ?? 'Friend',
+        friendName: json['friend_name']?.toString() ?? '',
         status: json['status']?.toString() ?? 'accepted',
         direction: json['direction']?.toString() ?? '',
         updatedAt: json['updated_at']?.toString() ?? '',
@@ -36,6 +37,8 @@ class FriendConnection {
         createdAt: json['created_at']?.toString() ?? '',
       );
   final String friendUserId;
+
+  /// Empty when the server sent no name; widgets show [nameLabel].
   final String friendName;
 
   /// `accepted` or `pending`.
@@ -51,6 +54,10 @@ class FriendConnection {
   /// Where the request started: search, match, profile, room or group.
   final String source;
   final String createdAt;
+
+  /// The friend's name, or "Friend" in the member's language.
+  String nameLabel(AppLocalizations l10n) =>
+      friendName.trim().isEmpty ? l10n.groupsFriendFallback : friendName;
 
   bool get isAccepted => status == 'accepted';
   bool get isIncoming => status == 'pending' && direction == 'incoming';
@@ -102,7 +109,7 @@ class FriendActivityItem {
       FriendActivityItem(
         id: json['id']?.toString() ?? '',
         type: json['type']?.toString() ?? '',
-        title: json['title']?.toString() ?? 'Activity',
+        title: json['title']?.toString() ?? '',
         description: json['description']?.toString() ?? '',
         createdAt: json['created_at']?.toString() ?? '',
       );
@@ -412,13 +419,11 @@ final friendsProvider = StateNotifierProvider<FriendsNotifier, FriendsState>((
   return FriendsNotifier(ref);
 });
 
-/// The server's own error message, if it sent one.
+/// The server's reason in the member's language (a known error code, or
+/// plain English server text for English readers), if there is one.
 String? _apiError(DioException e) {
-  final data = e.response?.data;
-  if (data is Map && data['error'] != null) {
-    return data['error'].toString();
-  }
-  return null;
+  final message = serverErrorMessage(e, fallback: '');
+  return message.isEmpty ? null : message;
 }
 
 /// `GET /friends/{me}/search?q=`: members to add as friends. Queries under

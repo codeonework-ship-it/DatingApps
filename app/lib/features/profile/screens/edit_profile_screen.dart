@@ -277,17 +277,14 @@ class _EditProfileContent extends StatelessWidget {
     Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => screen));
   }
 
-  /// English keeps the long-standing dd/MM/yyyy; other locales use their
-  /// own numeric date order.
+  /// The date in the member's own numeric order: 4/12/1997 (US),
+  /// 12/04/1997 (UK), 12.4.1997 (German). Display only; the server keeps ISO.
   static String? _formatDate(BuildContext context, DateTime? date) {
     if (date == null) {
       return null;
     }
     final locale = Localizations.localeOf(context).toString();
-    final format = locale.startsWith('en')
-        ? DateFormat('dd/MM/yyyy', locale)
-        : DateFormat.yMd(locale);
-    return format.format(date);
+    return DateFormat.yMd(locale).format(date);
   }
 
   static String? _join(Iterable<String> values) {

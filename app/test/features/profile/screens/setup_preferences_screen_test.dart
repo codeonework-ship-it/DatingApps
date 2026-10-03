@@ -194,6 +194,7 @@ PreferenceMasterData _masterData() => const PreferenceMasterData(
 Widget _hostApp({
   required bool? isSetupFlow,
   required _FakeProfileSetupNotifier notifier,
+  Locale? locale,
 }) => ProviderScope(
   overrides: [
     profileSetupNotifierProvider.overrideWith(() => notifier),
@@ -201,6 +202,7 @@ Widget _hostApp({
     preferenceMasterDataOfflineProvider.overrideWith((ref) => false),
   ],
   child: MaterialApp(
+    locale: locale,
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
     home: Builder(
@@ -230,6 +232,62 @@ Future<void> _pumpUi(WidgetTester tester) async {
 
 void main() {
   preferencesQAMatrix();
+  testWidgets(
+    'onboarding dropdowns read in German; the stored values stay the master '
+    'data words [case:l10n.setup.preferences_dropdown_labels]',
+    (tester) async {
+      final de = lookupAppLocalizations(const Locale('de'));
+      final notifier = _FakeProfileSetupNotifier(
+        _draft().copyWith(
+          country: 'India',
+          regionState: 'Karnataka',
+          sleepSchedule: 'Early bird',
+        ),
+      );
+      await tester.pumpWidget(
+        _hostApp(
+          isSetupFlow: false,
+          notifier: notifier,
+          locale: const Locale('de'),
+        ),
+      );
+      await tester.tap(find.text('Open Preferences'));
+      await _pumpUi(tester);
+      await tester.tap(find.text(de.profileSetupTabAdvanced));
+      await _pumpUi(tester);
+
+      // Selected values are shown translated, never as the English word.
+      expect(find.text('Indien'), findsOneWidget);
+      expect(find.text('India'), findsNothing);
+      expect(find.text(de.profileMasterSleepEarlyBird), findsOneWidget);
+      // State and city names are proper names and stay as they are.
+      expect(find.text('Karnataka'), findsOneWidget);
+
+      Future<void> pick(String label, String shown) async {
+        final control = find.widgetWithText(
+          DropdownButtonFormField<String>,
+          label,
+        );
+        await tester.ensureVisible(control);
+        await tester.tap(control);
+        await _pumpUi(tester);
+        await tester.tap(find.text(shown).last);
+        await _pumpUi(tester);
+      }
+
+      await pick(de.profileSetupMotherTongue, 'Kannada');
+      await pick(de.profileSetupLanguage, 'Englisch');
+      expect(find.text('English'), findsNothing);
+      await tester.ensureVisible(find.text(de.profileSetupSavePreferences));
+      await tester.tap(find.text(de.profileSetupSavePreferences));
+      await _pumpUi(tester);
+
+      expect(notifier.savedPreferences['country'], 'India');
+      expect(notifier.savedPreferences['motherTongue'], 'Kannada');
+      expect(notifier.savedPreferences['languageTags'], ['English']);
+      expect(notifier.savedPreferences['sleepSchedule'], 'Early bird');
+    },
+  );
   testWidgets('shows Save when opened from non-setup flows', (tester) async {
     final notifier = _FakeProfileSetupNotifier(_draft());
     await tester.pumpWidget(_hostApp(isSetupFlow: false, notifier: notifier));
@@ -365,14 +423,10 @@ void preferencesQAMatrix() {
       tester.widget<Slider>(find.byType(Slider)).onChanged!(123);
       await tester.pump();
       for (final toggle in ['serious_only', 'verified_only', 'hookup_only']) {
-        final semantics = find.byWidgetPredicate(
-          (w) =>
-              w is Semantics &&
-              w.properties.label == 'qa.setup.preferences.${toggle}_toggle',
-        );
-        final control = find.descendant(
-          of: semantics,
-          matching: find.byType(Switch),
+        // The automation id is the switch's key (and a semantics
+        // identifier); its spoken label is the translated toggle name.
+        final control = find.byKey(
+          ValueKey<String>('qa.setup.preferences.${toggle}_toggle'),
         );
         await tester.ensureVisible(control);
         await tester.tap(control);

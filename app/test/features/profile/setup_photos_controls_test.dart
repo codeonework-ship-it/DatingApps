@@ -97,7 +97,7 @@ void main() {
         await _open(tester, api);
         await _tap(tester, find.byKey(_gallery));
 
-        expect(qaSnackText(tester), _en.profileSetupPhotoUpdateFailed);
+        expect(qaSnackText(tester), _en.networkOfflineTryAgain);
         expect(api.sent('POST', '/profile/*/photos'), hasLength(1));
         expect(_rowOrder(tester, ['p1', 'p2']), ['p1', 'p2']);
         expect(find.text(_en.profileSetupPhotoNumber(3)), findsNothing);
@@ -364,7 +364,7 @@ void main() {
         api.offline('POST /profile/*/photos/reorder');
         await _open(tester, api);
         await _dragBelow(tester, from: 'p1', below: 'p2');
-        expect(qaSnackText(tester), _en.profileSetupPhotoUpdateFailed);
+        expect(qaSnackText(tester), _en.networkOfflineTryAgain);
         expect(api.writes, hasLength(1));
         expect(_rowOrder(tester, ['p1', 'p2']), ['p1', 'p2']);
       },

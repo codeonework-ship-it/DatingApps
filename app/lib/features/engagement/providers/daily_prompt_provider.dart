@@ -7,6 +7,7 @@ import '../../../core/utils/logger.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../engagement_l10n.dart';
+import '../../../core/network/api_error_message.dart';
 
 class DailyPromptDefinition {
   const DailyPromptDefinition({
@@ -506,11 +507,9 @@ class DailyPromptNotifier extends StateNotifier<DailyPromptState> {
 }
 
 String _extractApiError(DioException e, {required String fallback}) {
-  final data = e.response?.data;
-  if (data is Map && data['error'] != null) {
-    return data['error'].toString();
-  }
-  return fallback;
+  // Known error codes are translated; raw server text only in English
+  // and never when technical (apiErrorMessage policy).
+  return serverErrorMessage(e, fallback: fallback);
 }
 
 final dailyPromptProvider =

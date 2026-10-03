@@ -139,7 +139,8 @@ class _SwipeCardState extends State<SwipeCard>
     final scheme = Theme.of(context).colorScheme;
 
     return Semantics(
-      label: '${widget.qaScope}.card_root',
+      container: true,
+      identifier: '${widget.qaScope}.card_root',
       child: AnimatedBuilder(
         animation: _flip,
         builder: (context, child) {
@@ -367,7 +368,9 @@ class _SwipeCardState extends State<SwipeCard>
                             // phone; letting it shrink is what keeps it on-card.
                             Flexible(
                               child: Semantics(
-                                label: '${widget.qaScope}.view_more_button',
+                                container: true,
+                                identifier:
+                                    '${widget.qaScope}.view_more_button',
                                 button: true,
                                 child: GestureDetector(
                                   key: ValueKey(
@@ -409,7 +412,9 @@ class _SwipeCardState extends State<SwipeCard>
                             if (onMessageTap != null) ...[
                               const SizedBox(width: 12),
                               Semantics(
-                                label: '${widget.qaScope}.card_message_button',
+                                container: true,
+                                identifier:
+                                    '${widget.qaScope}.card_message_button',
                                 button: true,
                                 child: GestureDetector(
                                   key: ValueKey(
@@ -435,6 +440,14 @@ class _SwipeCardState extends State<SwipeCard>
                                             ?.copyWith(
                                               color: Colors.white,
                                               fontWeight: FontWeight.w700,
+                                              // Keeps the label legible
+                                              // (4.5:1) over a light photo.
+                                              shadows: const [
+                                                Shadow(
+                                                  color: Colors.black54,
+                                                  blurRadius: 4,
+                                                ),
+                                              ],
                                             ),
                                       ),
                                     ],

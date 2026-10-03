@@ -81,7 +81,10 @@ class ComfortCardsScreen extends ConsumerStatefulWidget {
 class _ComfortCardsState extends ConsumerState<ComfortCardsScreen> {
   static const path = '/chapters/comfort';
   final original = TextEditingController(),
-      language = TextEditingController(text: 'English'),
+          // Filled with the app language's own name ("Deutsch") once the
+          // locale is known; the member can change it.
+          language =
+          TextEditingController(),
       translation = TextEditingController(),
       translatedLanguage = TextEditingController();
   String topic = 'pace';
@@ -89,6 +92,19 @@ class _ComfortCardsState extends ConsumerState<ComfortCardsScreen> {
   bool? shared;
   bool busy = false;
   String? error;
+  bool _languageFilled = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_languageFilled) {
+      _languageFilled = true;
+      language.text = AppLocalizations.of(
+        context,
+      ).firstChapterComfortDefaultLanguage;
+    }
+  }
+
   @override
   void dispose() {
     original.dispose();
@@ -187,6 +203,9 @@ class _ComfortCardsState extends ConsumerState<ComfortCardsScreen> {
                       DropdownButtonFormField<String>(
                         key: const ValueKey('qa.comfort.topic'),
                         initialValue: topic,
+                        // Long topic names (German) wrap to the field width
+                        // instead of overflowing it.
+                        isExpanded: true,
                         decoration: InputDecoration(
                           labelText: l10n.firstChapterComfortTopicLabel,
                         ),
@@ -194,7 +213,10 @@ class _ComfortCardsState extends ConsumerState<ComfortCardsScreen> {
                           for (final id in ComfortCardText.topics)
                             DropdownMenuItem(
                               value: id,
-                              child: Text(ComfortCardText.topicLabel(l10n, id)),
+                              child: Text(
+                                ComfortCardText.topicLabel(l10n, id),
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                         ],
                         onChanged: busy

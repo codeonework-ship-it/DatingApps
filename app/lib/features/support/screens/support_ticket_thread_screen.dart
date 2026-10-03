@@ -174,7 +174,19 @@ class _SupportTicketThreadScreenState
         _replyKey = const Uuid().v4();
       }
       if (mounted) {
-        _snack(supportErrorMessage(l10n, error));
+        // The reply stays in the box; offline, one tap sends it again with
+        // the same key, so the server never stores it twice.
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(supportErrorMessage(l10n, error)),
+              persist: false,
+              action: error.offline
+                  ? SnackBarAction(label: l10n.commonRetry, onPressed: _send)
+                  : null,
+            ),
+          );
       }
     } finally {
       if (mounted) {
@@ -262,6 +274,12 @@ class _SupportTicketThreadScreenState
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final thread = _thread;
+    // The team replied or changed the status while this thread is open.
+    ref.listen(supportActivityProvider, (_, next) {
+      if (next?.ticketId == widget.ticketId && !_loading) {
+        _load();
+      }
+    });
 
     final Widget body;
     if (thread == null) {

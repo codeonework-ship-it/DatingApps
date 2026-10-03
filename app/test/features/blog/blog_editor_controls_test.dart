@@ -375,7 +375,7 @@ void main() {
 
         await _scrollToTop(tester);
         expect(
-          find.text(_en.blogEditsStillHere(_en.networkCannotReachService)),
+          find.text(_en.blogEditsStillHere(_en.networkOfflineTryAgain)),
           findsOneWidget,
         );
         expect(

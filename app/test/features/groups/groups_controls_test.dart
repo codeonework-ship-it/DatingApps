@@ -128,7 +128,7 @@ void main() {
         expect(tester.takeException(), isNull);
         expect(find.text(_en.groupsYourGroupsFailed), findsOneWidget);
         expect(find.text(_en.groupsDiscoverFailed), findsOneWidget);
-        expect(find.text(_en.networkCannotReachService), findsNWidgets(2));
+        expect(find.text(_en.networkOfflineTryAgain), findsNWidgets(2));
 
         // Back online: Try again on "Your groups" reloads that list.
         world.api.on(
@@ -290,7 +290,7 @@ void main() {
         world.api.offline('POST /engagement/groups/*/invites/respond');
         await qaSnackGone(tester);
         await qaTap(tester, find.bySemanticsLabel('Decline Trek planners'));
-        expect(find.text(_en.networkCannotReachService), findsOneWidget);
+        expect(find.text(_en.networkOfflineTryAgain), findsOneWidget);
 
         // A 500 without a message: the screen's own fallback.
         world.api.on(
@@ -494,7 +494,7 @@ void main() {
         world.api.offline('POST /engagement/groups/*/join');
         await qaSnackGone(tester);
         await qaTap(tester, qaKey('groups.join.g1'));
-        expect(find.text(_en.networkCannotReachService), findsOneWidget);
+        expect(find.text(_en.networkOfflineTryAgain), findsOneWidget);
         expect(qaKey('groups.join.g1'), findsOneWidget);
 
         world.api.on('POST /engagement/groups/*/join', (c) {

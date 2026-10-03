@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/providers/api_client_provider.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../auth/providers/auth_provider.dart';
 import 'payment_error.dart';
 
@@ -29,7 +30,7 @@ class SubscriptionPlan {
   factory SubscriptionPlan.fromJson(Map<String, dynamic> json) =>
       SubscriptionPlan(
         id: json['id']?.toString() ?? '',
-        name: json['name']?.toString() ?? 'Plan',
+        name: json['name']?.toString() ?? '',
         monthlyPrice: (json['monthly_price'] as num?)?.toDouble() ?? 0,
         yearlyPrice: (json['yearly_price'] as num?)?.toDouble() ?? 0,
         likesPerDay: (json['likes_per_day'] as num?)?.toInt() ?? 0,
@@ -41,6 +42,9 @@ class SubscriptionPlan {
       );
 
   final String id;
+
+  /// The server's plan name; empty when it sent none. Widgets show
+  /// [nameLabel].
   final String name;
   final double monthlyPrice;
   final double yearlyPrice;
@@ -50,6 +54,11 @@ class SubscriptionPlan {
   final bool isActive;
 
   bool get isFree => monthlyPrice <= 0 && yearlyPrice <= 0;
+
+  /// The plan's name, or "Plan" in the member's language when the server
+  /// sent none.
+  String nameLabel(AppLocalizations l10n) =>
+      name.trim().isEmpty ? l10n.membershipPlanFallback : name;
 
   double priceFor(String billingCycle) =>
       billingCycle == 'yearly' ? yearlyPrice : monthlyPrice;
@@ -83,7 +92,7 @@ class UserSubscription {
         id: json['id']?.toString() ?? '',
         userId: json['user_id']?.toString() ?? '',
         planId: json['plan_id']?.toString() ?? '',
-        planName: json['plan_name']?.toString() ?? 'Subscription',
+        planName: json['plan_name']?.toString() ?? '',
         status: json['status']?.toString() ?? 'active',
         billingCycle: json['billing_cycle']?.toString() ?? 'monthly',
         startDate:
@@ -110,6 +119,9 @@ class UserSubscription {
   final String id;
   final String userId;
   final String planId;
+
+  /// The server's plan name; empty when it sent none. Widgets show
+  /// [planLabel].
   final String planName;
   final String status;
   final String billingCycle;
@@ -131,6 +143,11 @@ class UserSubscription {
   bool get isLive => status == 'active' || status == 'past_due';
   double get amount => amountMinor / 100;
   bool get hasCard => cardLast4.isNotEmpty;
+
+  /// The plan's name, or "Subscription" in the member's language when the
+  /// server sent none.
+  String planLabel(AppLocalizations l10n) =>
+      planName.trim().isEmpty ? l10n.membershipSubscriptionFallback : planName;
 }
 
 class BillingPayment {

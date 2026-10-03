@@ -4,12 +4,14 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../core/config/app_runtime_config.dart';
 import '../../../core/config/feature_flags.dart';
+import '../../../core/i18n/app_l10n.dart';
 import '../../../core/providers/api_client_provider.dart';
 import '../../../core/utils/logger.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../payment/providers/entitlements_provider.dart';
 import '../models/discovery_profile.dart';
 import '../discover_l10n.dart';
+import '../../../core/network/api_error_message.dart';
 
 part 'swipe_provider.g.dart';
 
@@ -253,10 +255,10 @@ class SwipeNotifier extends _$SwipeNotifier {
     } on DioException catch (e, stackTrace) {
       if (!isCurrent()) return;
       log.error('Failed to load profiles', e, stackTrace);
-      final data = e.response?.data;
-      final message = data is Map && data['error'] != null
-          ? data['error'].toString()
-          : DiscoverMessages.loadProfiles;
+      final message = serverErrorMessage(
+        e,
+        fallback: DiscoverMessages.loadProfiles,
+      );
       state = state.copyWith(error: message, isLoading: false);
     } catch (e, stackTrace) {
       if (!isCurrent()) return;
@@ -641,7 +643,10 @@ class SwipeNotifier extends _$SwipeNotifier {
 
     return DiscoveryProfile(
       id: map['id']?.toString() ?? map['user_id']?.toString() ?? '',
-      name: map['name']?.toString() ?? 'Unknown',
+      // No name from the server: a neutral placeholder in the member's
+      // language at the time the deck loads.
+      name:
+          map['name']?.toString() ?? currentAppL10n().commonMemberFallbackName,
       dateOfBirth: dob,
       publicAge: (map['age'] as num?)?.toInt(),
       bio: map['bio']?.toString(),

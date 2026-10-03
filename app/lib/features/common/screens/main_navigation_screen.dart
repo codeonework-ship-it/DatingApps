@@ -8,12 +8,12 @@ import 'package:flutter/foundation.dart';
 import '../../../core/constants/preference_limits.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/i18n/option_labels.dart';
 import '../../../core/providers/network_quality_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/couture.dart';
 import '../../../core/theme/cinematic_motion.dart';
 import '../../../core/widgets/glass_widgets.dart';
+import '../../../core/widgets/qa_control.dart';
 import '../../common/screens/settings_screen.dart';
 import '../../celebrations/reward_burst_host.dart';
 import '../../celebrations/rose_rain.dart';
@@ -27,6 +27,7 @@ import '../../matching/screens/matches_list_screen.dart';
 import '../../notifications/providers/notification_provider.dart';
 import '../../notifications/screens/notification_inbox_screen.dart';
 import '../../plans/screens/plans_screen.dart';
+import '../../profile/data/india_master_data.dart';
 import '../../profile/providers/preference_master_data_provider.dart';
 import '../../profile/screens/edit_profile_screen.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -36,6 +37,7 @@ import '../../profile/screens/setup/setup_preferences_screen.dart';
 import '../../swipe/providers/swipe_provider.dart';
 import '../../swipe/screens/home_discovery_screen.dart';
 import '../../swipe/screens/liked_me_screen.dart';
+import '../../support/support_api.dart';
 import '../../support/support_routes.dart';
 import '../../verification/screens/verification_upload_id_screen.dart';
 
@@ -362,13 +364,13 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                           items: [
                             BottomNavigationBarItem(
                               icon: Semantics(
-                                label: 'qa.nav.discover',
-                                button: true,
+                                // Absorbed into the tab tile, which reads the item label.
+                                identifier: 'qa.nav.discover',
                                 child: const CoutureNavIcon(Icons.home_rounded),
                               ),
                               activeIcon: Semantics(
-                                label: 'qa.nav.discover',
-                                button: true,
+                                // Absorbed into the tab tile, which reads the item label.
+                                identifier: 'qa.nav.discover',
                                 child: const CoutureNavIcon(
                                   Icons.home_rounded,
                                   selected: true,
@@ -388,15 +390,15 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                             ),
                             BottomNavigationBarItem(
                               icon: Semantics(
-                                label: 'qa.nav.matches',
-                                button: true,
+                                // Absorbed into the tab tile, which reads the item label.
+                                identifier: 'qa.nav.matches',
                                 child: const CoutureNavIcon(
                                   Icons.favorite_rounded,
                                 ),
                               ),
                               activeIcon: Semantics(
-                                label: 'qa.nav.matches',
-                                button: true,
+                                // Absorbed into the tab tile, which reads the item label.
+                                identifier: 'qa.nav.matches',
                                 child: const CoutureNavIcon(
                                   Icons.favorite_rounded,
                                   selected: true,
@@ -406,13 +408,13 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                             ),
                             BottomNavigationBarItem(
                               icon: Semantics(
-                                label: 'qa.nav.engage',
-                                button: true,
+                                // Absorbed into the tab tile, which reads the item label.
+                                identifier: 'qa.nav.engage',
                                 child: const CoutureNavIcon(Icons.bolt_rounded),
                               ),
                               activeIcon: Semantics(
-                                label: 'qa.nav.engage',
-                                button: true,
+                                // Absorbed into the tab tile, which reads the item label.
+                                identifier: 'qa.nav.engage',
                                 child: const CoutureNavIcon(
                                   Icons.bolt_rounded,
                                   selected: true,
@@ -422,15 +424,15 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                             ),
                             BottomNavigationBarItem(
                               icon: Semantics(
-                                label: 'qa.nav.profile',
-                                button: true,
+                                // Absorbed into the tab tile, which reads the item label.
+                                identifier: 'qa.nav.profile',
                                 child: const CoutureNavIcon(
                                   Icons.person_rounded,
                                 ),
                               ),
                               activeIcon: Semantics(
-                                label: 'qa.nav.profile',
-                                button: true,
+                                // Absorbed into the tab tile, which reads the item label.
+                                identifier: 'qa.nav.profile',
                                 child: const CoutureNavIcon(
                                   Icons.person_rounded,
                                   selected: true,
@@ -440,22 +442,20 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                             ),
                             BottomNavigationBarItem(
                               icon: Semantics(
-                                label: 'qa.nav.settings',
-                                button: true,
-                                child: Badge(
-                                  isLabelVisible: notifications.unreadCount > 0,
-                                  label: Text('${notifications.unreadCount}'),
+                                // Absorbed into the tab tile, which reads the item label.
+                                identifier: 'qa.nav.settings',
+                                child: UnreadNavBadge(
+                                  count: notifications.unreadCount,
                                   child: const CoutureNavIcon(
                                     Icons.settings_rounded,
                                   ),
                                 ),
                               ),
                               activeIcon: Semantics(
-                                label: 'qa.nav.settings',
-                                button: true,
-                                child: Badge(
-                                  isLabelVisible: notifications.unreadCount > 0,
-                                  label: Text('${notifications.unreadCount}'),
+                                // Absorbed into the tab tile, which reads the item label.
+                                identifier: 'qa.nav.settings',
+                                child: UnreadNavBadge(
+                                  count: notifications.unreadCount,
                                   child: const CoutureNavIcon(
                                     Icons.settings_rounded,
                                     selected: true,
@@ -478,6 +478,14 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
   void _showForegroundNotification(AppNotification notification) {
     if (!mounted) {
       return;
+    }
+    // A support reply or status change: refresh the unread badges and any
+    // open thread of that ticket (it reloads itself).
+    final supportTicketId = notification.eventType.startsWith('support.')
+        ? notification.payload['ticket_id']?.toString() ?? ''
+        : '';
+    if (supportTicketId.isNotEmpty) {
+      notifySupportActivity(ref, supportTicketId);
     }
     // Already reading that conversation: the message is on screen.
     if (notification.eventType == 'social.message.new' &&
@@ -566,6 +574,16 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
           label: AppLocalizations.of(context).commonOpen,
           onPressed: () {
             ref.read(notificationProvider.notifier).markRead(notification.id);
+            // Support notifications open their ticket thread.
+            if (openSupportRoute(
+              context,
+              supportTicketId.isEmpty
+                  ? null
+                  : notification.actionRoute ??
+                        '/support/tickets/$supportTicketId',
+            )) {
+              return;
+            }
             Navigator.of(context).push(
               MaterialPageRoute<void>(
                 builder: (_) => const NotificationInboxScreen(),
@@ -717,15 +735,16 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                   ? Row(
                       children: [
                         const Spacer(),
-                        Semantics(
-                          label: 'qa.discovery.filter_button',
-                          button: true,
+                        QaControl(
+                          id: 'qa.discovery.filter_button',
                           child: SizedBox(
                             width: 96,
                             height: 44,
                             child: TextButton(
                               onPressed: () => _openFilterSheet(context),
-                              child: const Text('Filters'),
+                              child: Text(
+                                AppLocalizations.of(context).discoverFilters,
+                              ),
                             ),
                           ),
                         ),
@@ -736,9 +755,8 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
-                          Semantics(
-                            label: 'qa.verification.shortcut_upload',
-                            button: true,
+                          QaControl(
+                            id: 'qa.verification.shortcut_upload',
                             child: SizedBox(
                               width: 112,
                               height: 44,
@@ -751,17 +769,17 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                                     ),
                                   );
                                 },
-                                child: const Text('Verify'),
+                                child: Text(
+                                  AppLocalizations.of(
+                                    context,
+                                  ).navQaVerifyShortcut,
+                                ),
                               ),
                             ),
                           ),
                           const SizedBox(width: 8),
-                          Semantics(
-                            label:
-                                'Edit Profile Kalyan Test Viewer About you '
-                                'Location Dating preferences Kalyan '
-                                'Maharashtra India',
-                            button: true,
+                          QaControl(
+                            id: 'qa.nav.edit_profile_shortcut',
                             child: SizedBox(
                               width: 132,
                               height: 44,
@@ -773,7 +791,9 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                                     ),
                                   );
                                 },
-                                child: const Text('Edit Profile'),
+                                child: Text(
+                                  AppLocalizations.of(context).profileEditTitle,
+                                ),
                               ),
                             ),
                           ),
@@ -877,7 +897,9 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
       final requiredBadgeCodes = trustState.requiredBadgeCodes.toSet();
 
       return Semantics(
-        label: 'qa.filters.sheet',
+        container: true,
+        explicitChildNodes: true,
+        identifier: 'qa.filters.sheet',
         child: DraggableScrollableSheet(
           initialChildSize: 0.9,
           minChildSize: 0.5,
@@ -981,8 +1003,12 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                                 '${_filterAge.start.round()}'
                                 ' – '
                                 '${_filterAge.end.round()}',
+                            // Each thumb keeps its own node; the range is
+                            // named once on the node that holds them.
                             child: Semantics(
-                              label: 'qa.filters.age_range_slider',
+                              container: true,
+                              identifier: 'qa.filters.age_range_slider',
+                              label: l10n.filterAgeRange,
                               child: RangeSlider(
                                 key: const ValueKey(
                                   'qa.filters.age_range_slider',
@@ -1018,6 +1044,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                                   l10n: l10n,
                                   qaLabel: 'Country',
                                   label: l10n.filterCountry,
+                                  list: ProfileOptionList.country,
                                   value: _filterCountry,
                                   options: masterData.countries,
                                   onChanged: (value) => setSheetState(() {
@@ -1058,6 +1085,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                                   l10n: l10n,
                                   qaLabel: 'Mother Tongue',
                                   label: l10n.filterMotherTongue,
+                                  list: ProfileOptionList.language,
                                   value: _filterMotherTongue,
                                   options: masterData.motherTongues,
                                   onChanged: (value) => setSheetState(
@@ -1149,9 +1177,9 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                                         context,
                                       ).textTheme.bodyMedium,
                                     ),
-                                    Semantics(
-                                      label: 'qa.filters.party_lover_switch',
-                                      toggled: _filterPartyLoverOnly,
+                                    QaControl(
+                                      id: 'qa.filters.party_lover_switch',
+                                      label: l10n.filterPartyLoverOnly,
                                       child: Switch(
                                         key: const ValueKey(
                                           'qa.filters.party_lover_switch',
@@ -1181,9 +1209,9 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                                         context,
                                       ).textTheme.bodyMedium,
                                     ),
-                                    Semantics(
-                                      label: 'qa.filters.hookup_switch',
-                                      toggled: _filterHookupOnly,
+                                    QaControl(
+                                      id: 'qa.filters.hookup_switch',
+                                      label: l10n.filterHookupsOnly,
                                       child: Switch(
                                         key: const ValueKey(
                                           'qa.filters.hookup_switch',
@@ -1257,8 +1285,9 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                             value: l10n.commonDistanceKm(
                               _filterDistance.round(),
                             ),
-                            child: Semantics(
-                              label: 'qa.filters.distance_slider',
+                            child: QaControl(
+                              id: 'qa.filters.distance_slider',
+                              label: l10n.filterDistanceKm,
                               child: Slider(
                                 key: const ValueKey(
                                   'qa.filters.distance_slider',
@@ -1295,9 +1324,9 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                                   l10n.filterVerifiedOnlyBody,
                                   style: Theme.of(context).textTheme.bodyMedium,
                                 ),
-                                Semantics(
-                                  label: 'qa.filters.verified_only_switch',
-                                  toggled: _filterVerifiedOnly,
+                                QaControl(
+                                  id: 'qa.filters.verified_only_switch',
+                                  label: l10n.filterVerifiedOnlyBody,
                                   child: Switch(
                                     key: const ValueKey(
                                       'qa.filters.verified_only_switch',
@@ -1343,9 +1372,9 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                                         context,
                                       ).textTheme.bodyMedium,
                                     ),
-                                    Semantics(
-                                      label: 'qa.filters.trust_switch',
-                                      toggled: trustEnabled,
+                                    QaControl(
+                                      id: 'qa.filters.trust_switch',
+                                      label: l10n.filterEnableTrust,
                                       child: Switch(
                                         key: const ValueKey(
                                           'qa.filters.trust_switch',
@@ -1374,8 +1403,11 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                                   ),
                                   style: Theme.of(context).textTheme.bodySmall,
                                 ),
-                                Semantics(
-                                  label: 'qa.filters.trust_badge_slider',
+                                QaControl(
+                                  id: 'qa.filters.trust_badge_slider',
+                                  label: l10n.filterMinimumTrustBadges(
+                                    minimumActiveBadges,
+                                  ),
                                   child: Slider(
                                     key: const ValueKey(
                                       'qa.filters.trust_badge_slider',
@@ -1447,9 +1479,8 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                         Row(
                           children: [
                             Expanded(
-                              child: Semantics(
-                                label: 'qa.filters.reset_button',
-                                button: true,
+                              child: QaControl(
+                                id: 'qa.filters.reset_button',
                                 child: OutlinedButton(
                                   key: const ValueKey(
                                     'qa.filters.reset_button',
@@ -1495,9 +1526,8 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                             ),
                             const SizedBox(width: 12),
                             Expanded(
-                              child: Semantics(
-                                label: 'qa.filters.apply_button',
-                                button: true,
+                              child: QaControl(
+                                id: 'qa.filters.apply_button',
                                 child: ElevatedButton(
                                   key: const ValueKey(
                                     'qa.filters.apply_button',
@@ -1682,16 +1712,19 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
       chips.add(l10n.commonDistanceKm(_filterDistance.round()));
     }
 
-    void addIfSet(String? value) {
+    void addIfSet(
+      String? value, [
+      ProfileOptionList list = ProfileOptionList.general,
+    ]) {
       final normalized = value?.trim();
       if (normalized != null && normalized.isNotEmpty) {
-        chips.add(normalized);
+        chips.add(profileOptionLabel(l10n, normalized, list: list));
       }
     }
 
     addIfSet(_filterReligion);
-    addIfSet(_filterMotherTongue);
-    addIfSet(_filterCountry);
+    addIfSet(_filterMotherTongue, ProfileOptionList.language);
+    addIfSet(_filterCountry, ProfileOptionList.country);
     addIfSet(_filterState);
     addIfSet(_filterCity);
 
@@ -1707,7 +1740,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
 
   /// [qaLabel] is the stable English name the QA id is derived from; [label]
   /// is what the member reads. Option values stay as stored; only their
-  /// display text is translated.
+  /// display text is translated, through the option [list] they belong to.
   Widget _buildDropdownFilterField({
     required AppLocalizations l10n,
     required String qaLabel,
@@ -1715,12 +1748,12 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
     required String? value,
     required List<String> options,
     required ValueChanged<String?> onChanged,
+    ProfileOptionList list = ProfileOptionList.general,
   }) {
     final resolvedValue = options.contains(value) ? value : null;
     final qaId = 'qa.filters.${_qaIdForLabel(qaLabel)}_dropdown';
-    return Semantics(
-      label: qaId,
-      button: true,
+    return QaControl(
+      id: qaId,
       child: InputDecorator(
         decoration: InputDecoration(
           labelText: label,
@@ -1741,7 +1774,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
               ...options.map(
                 (option) => DropdownMenuItem<String>(
                   value: option,
-                  child: Text(localizedProfileOption(l10n, option)),
+                  child: Text(profileOptionLabel(l10n, option, list: list)),
                 ),
               ),
             ],
@@ -1757,4 +1790,39 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
       .toLowerCase()
       .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
       .replaceAll(RegExp(r'^_|_$'), '');
+}
+
+/// The unread-notifications badge on a bottom-navigation icon.
+///
+/// Shows at most "99+", sits inside the tab (the plain Badge anchored past
+/// the icon's corner and was clipped by the screen edge on the last tab),
+/// and is announced as "N unread" to screen readers.
+class UnreadNavBadge extends StatelessWidget {
+  const UnreadNavBadge({super.key, required this.count, required this.child});
+
+  final int count;
+  final Widget child;
+
+  static String labelFor(int count) => count > 99 ? '99+' : '$count';
+
+  @override
+  Widget build(BuildContext context) {
+    if (count <= 0) {
+      return child;
+    }
+    final l10n = AppLocalizations.of(context);
+    final label = labelFor(count);
+    // Pull the badge back over the icon by roughly its own width, so its
+    // end edge stays inside the icon (and the tab) for 1, 2 or 3 characters.
+    final inset = 10.0 + 7.0 * label.length;
+    return Semantics(
+      value: l10n.notificationsInboxUnread(count),
+      child: Badge(
+        label: Text(label, key: const ValueKey('qa.nav.unread_badge')),
+        alignment: AlignmentDirectional.topEnd,
+        offset: Offset(-inset, -2),
+        child: child,
+      ),
+    );
+  }
 }

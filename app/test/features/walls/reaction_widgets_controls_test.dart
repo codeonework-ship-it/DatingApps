@@ -310,7 +310,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       qaSnackText(tester),
-      qaL10n(const Locale('en')).networkCannotReachService,
+      qaL10n(const Locale('en')).networkOfflineTryAgain,
     );
     expect(_likeLabel('3'), findsOneWidget);
     expect(api.sent('PUT', '/themes/t1/entries/e1/like'), hasLength(2));

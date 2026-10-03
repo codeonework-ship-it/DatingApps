@@ -43,20 +43,20 @@ Map<String, dynamic> _$$VerificationImplToJson(_$VerificationImpl instance) =>
     };
 
 _$ReportImpl _$$ReportImplFromJson(Map<String, dynamic> json) => _$ReportImpl(
-      id: json['id'] as String,
-      reporterId: json['reporterId'] as String,
-      reportedUserId: json['reportedUserId'] as String,
-      reason: json['reason'] as String,
-      createdAt: DateTime.parse(json['createdAt'] as String),
-      messageId: json['messageId'] as String?,
-      description: json['description'] as String?,
-      status: json['status'] as String? ?? 'pending',
-      reviewedAt: json['reviewedAt'] == null
-          ? null
-          : DateTime.parse(json['reviewedAt'] as String),
-      reviewedBy: json['reviewedBy'] as String?,
-      action: json['action'] as String?,
-    );
+  id: json['id'] as String,
+  reporterId: json['reporterId'] as String,
+  reportedUserId: json['reportedUserId'] as String,
+  reason: json['reason'] as String,
+  createdAt: DateTime.parse(json['createdAt'] as String),
+  messageId: json['messageId'] as String?,
+  description: json['description'] as String?,
+  status: json['status'] as String? ?? 'pending',
+  reviewedAt: json['reviewedAt'] == null
+      ? null
+      : DateTime.parse(json['reviewedAt'] as String),
+  reviewedBy: json['reviewedBy'] as String?,
+  action: json['action'] as String?,
+);
 
 Map<String, dynamic> _$$ReportImplToJson(_$ReportImpl instance) =>
     <String, dynamic>{

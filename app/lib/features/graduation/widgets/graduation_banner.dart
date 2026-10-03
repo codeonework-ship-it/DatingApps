@@ -40,7 +40,7 @@ class GraduationBanner extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final notifier = ref.read(matchGraduationProvider(matchId).notifier);
     return Semantics(
-      label: 'qa.graduation.banner.${graduation.status}',
+      identifier: 'qa.graduation.banner.${graduation.status}',
       container: true,
       // The chat screen caps the banner's height; it scrolls inside that cap
       // at large text scales so the conversation stays usable.

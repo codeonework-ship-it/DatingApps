@@ -1,0 +1,4 @@
+/* Permission prompts shown by iOS. Keys mirror the NS*UsageDescription entries in Info.plist. */
+"NSCameraUsageDescription" = "Die Kamera wird genutzt, wenn du einen Videoanruf mit einem Match startest.";
+"NSMicrophoneUsageDescription" = "Das Mikrofon wird genutzt, wenn du einen Anruf mit einem Match startest.";
+"NSLocationWhenInUseUsageDescription" = "Dein Standort kann mitgeschickt werden, wenn du einen SOS-Alarm auslöst.";

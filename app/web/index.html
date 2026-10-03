@@ -15,6 +15,10 @@
 </head>
 <body>
   <div id="loading" role="status"><img src="/assets/mark.svg" alt=""><h1>connect</h1><p>Making room for your next hello…</p><p id="slow">Taking longer than expected. <a href="">Try again</a> or <a href="/">return to the website</a>.</p></div>
+  <!-- loading.js translates the loader, the slow-boot note and the title into the
+       member's language (saved choice, then ?lang=, then the browser). <noscript>
+       cannot be scripted, so it stays in English: it is one short sentence and its
+       link opens the website, which has a language switcher in every locale. -->
   <noscript>Connect needs JavaScript for account features. <a href="/">Explore the website</a>.</noscript>
   <script src="loading.js"></script>
   <script src="flutter_bootstrap.js" async></script>

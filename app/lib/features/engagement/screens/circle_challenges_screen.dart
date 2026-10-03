@@ -103,7 +103,9 @@ class _CircleChallengesScreenState
                                     children: [
                                       Expanded(
                                         child: Text(
-                                          '${item.topic} · ${item.city}',
+                                          item.city.trim().isEmpty
+                                              ? item.topic
+                                              : '${item.topic} · ${item.city}',
                                           style: Theme.of(context)
                                               .textTheme
                                               .titleMedium

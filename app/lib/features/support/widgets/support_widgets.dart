@@ -482,6 +482,14 @@ class SupportAttachmentTray extends ChangeNotifier {
   }
 
   Future<void> _upload(SupportDraftAttachment item) async {
+    // Refused before any upload: the server would answer 413 anyway.
+    if (item.bytes.length > SupportLimits.imageMaxBytes) {
+      item
+        ..state = SupportUploadState.failed
+        ..error = _l10n.supportErrorAttachmentTooLarge;
+      _notify();
+      return;
+    }
     item
       ..state = SupportUploadState.uploading
       ..error = null;

@@ -149,9 +149,10 @@ void main() {
         .read(authNotifierProvider.notifier)
         .signIn(username: 'person_one', password: 'Password123');
 
+    // The server's text maps to the provider's message code.
     expect(
       container.read(authNotifierProvider).error,
-      'invalid username or password',
+      kAuthInvalidCredentialsMessage,
     );
     expect(AuthSessionStore.instance.accessToken, isNull);
   });

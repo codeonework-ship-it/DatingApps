@@ -7,14 +7,14 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/i18n/number_formats.dart';
 import '../../../core/providers/runtime_feature_flags_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/glass_widgets.dart';
+import '../../../core/widgets/qa_control.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../engagement/providers/daily_prompt_provider.dart';
-import '../../matching/providers/match_provider.dart';
 import '../../matching/screens/match_notification_screen.dart';
-import '../../messaging/screens/chat_screen.dart';
 import '../discover_l10n.dart';
 import '../models/discovery_profile.dart';
 import '../models/discovery_notification_item.dart';
@@ -737,9 +737,8 @@ class _DesktopDiscoverHeader extends StatelessWidget {
             ],
           ),
         ),
-        Semantics(
-          label: 'qa.discovery.messages_button',
-          button: true,
+        QaControl(
+          id: 'qa.discovery.messages_button',
           child: OutlinedButton.icon(
             onPressed: onOpenMessages,
             icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18),
@@ -755,9 +754,8 @@ class _DesktopDiscoverHeader extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 12),
-        Semantics(
-          label: 'qa.discovery.filter_button',
-          button: true,
+        QaControl(
+          id: 'qa.discovery.filter_button',
           child: FilledButton.icon(
             onPressed: onOpenFilters,
             icon: const Icon(Icons.tune_rounded, size: 18),
@@ -874,7 +872,7 @@ class _DesktopDiscoverAside extends StatelessWidget {
                       child: _DeckStat(
                         value: passCount,
                         label: l10n.discoverStatPassed,
-                        semanticLabel: 'qa.discovery.passed_button',
+                        qaId: 'qa.discovery.passed_button',
                         onTap: () => Navigator.of(context).push(
                           MaterialPageRoute<void>(
                             builder: (_) => const PassedProfilesScreen(),
@@ -1005,12 +1003,14 @@ class _DeckStat extends StatelessWidget {
     required this.value,
     required this.label,
     this.onTap,
-    this.semanticLabel,
+    this.qaId,
   });
   final int value;
   final String label;
   final VoidCallback? onTap;
-  final String? semanticLabel;
+
+  /// Automation id for the tappable stat; its spoken label is the stat itself.
+  final String? qaId;
 
   @override
   Widget build(BuildContext context) {
@@ -1051,7 +1051,8 @@ class _DeckStat extends StatelessWidget {
     );
     if (onTap == null) return body;
     return Semantics(
-      label: semanticLabel,
+      container: true,
+      identifier: qaId,
       button: true,
       child: InkWell(
         onTap: onTap,
@@ -1200,7 +1201,7 @@ class _DiscoverHeader extends StatelessWidget {
               Expanded(
                 child: _MetricPill(
                   label: l10n.discoverStatReady,
-                  value: '$visibleProfiles',
+                  value: formatCount(context, visibleProfiles),
                   icon: Icons.auto_awesome_rounded,
                 ),
               ),
@@ -1208,7 +1209,7 @@ class _DiscoverHeader extends StatelessWidget {
               Expanded(
                 child: _MetricPill(
                   label: l10n.discoverStatLiked,
-                  value: '$likeCount',
+                  value: formatCount(context, likeCount),
                   icon: Icons.favorite_rounded,
                 ),
               ),
@@ -1216,7 +1217,7 @@ class _DiscoverHeader extends StatelessWidget {
               Expanded(
                 child: _MetricPill(
                   label: l10n.discoverStatPassed,
-                  value: '$passCount',
+                  value: formatCount(context, passCount),
                   icon: Icons.history_rounded,
                 ),
               ),
@@ -1239,7 +1240,7 @@ class _DiscoverHeader extends StatelessWidget {
                 child: _ActionChip(
                   icon: Icons.history,
                   label: l10n.discoverStatPassed,
-                  semanticLabel: 'qa.discovery.passed_button',
+                  qaId: 'qa.discovery.passed_button',
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute<void>(
@@ -1254,7 +1255,7 @@ class _DiscoverHeader extends StatelessWidget {
                 child: _ActionChip(
                   icon: Icons.chat_bubble_outline_rounded,
                   label: l10n.discoverMessages,
-                  semanticLabel: 'qa.discovery.messages_button',
+                  qaId: 'qa.discovery.messages_button',
                   onTap: onOpenMessages,
                 ),
               ),
@@ -1264,7 +1265,7 @@ class _DiscoverHeader extends StatelessWidget {
                   icon: Icons.tune_rounded,
                   label: l10n.discoverFilters,
                   primary: true,
-                  semanticLabel: 'qa.discovery.filter_button',
+                  qaId: 'qa.discovery.filter_button',
                   onTap: onOpenFilters,
                 ),
               ),
@@ -1378,7 +1379,7 @@ class _DiscoveryErrorState extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     return _ResponsiveStateCenter(
       child: _PremiumStateCard(
-        semanticLabel: 'qa.discovery.retry_state',
+        qaId: 'qa.discovery.retry_state',
         icon: Icons.cloud_off_rounded,
         eyebrow: l10n.discoverErrorEyebrow,
         title: l10n.discoverErrorTitle,
@@ -1419,7 +1420,7 @@ class _PremiumStateCard extends StatelessWidget {
     required this.message,
     required this.actionLabel,
     required this.onAction,
-    this.semanticLabel,
+    this.qaId,
     this.footer,
   });
   final IconData icon;
@@ -1428,13 +1429,16 @@ class _PremiumStateCard extends StatelessWidget {
   final String message;
   final String actionLabel;
   final VoidCallback onAction;
-  final String? semanticLabel;
+
+  /// Automation id for the card; screen readers read its own text.
+  final String? qaId;
   final Widget? footer;
 
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: semanticLabel,
+      container: true,
+      identifier: qaId,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 430),
         child: GlassContainer(
@@ -1497,9 +1501,8 @@ class _PremiumStateCard extends StatelessWidget {
                 SizedBox(
                   height: 50,
                   width: double.infinity,
-                  child: Semantics(
-                    label: 'qa.discovery.state_action_button',
-                    button: true,
+                  child: QaControl(
+                    id: 'qa.discovery.state_action_button',
                     child: ElevatedButton.icon(
                       key: const ValueKey('qa.discovery.state_action_button'),
                       onPressed: onAction,
@@ -1547,7 +1550,7 @@ class _EmptyState extends StatelessWidget {
         : l10n.discoverDeckPreparingBody;
     return _ResponsiveStateCenter(
       child: _PremiumStateCard(
-        semanticLabel: 'qa.discovery.empty_state',
+        qaId: 'qa.discovery.empty_state',
         icon: Icons.diamond_outlined,
         eyebrow: isSpotlightMode
             ? l10n.memberProfileSpotlight
@@ -1694,7 +1697,7 @@ class _ActionChip extends StatelessWidget {
     required this.label,
     required this.onTap,
     this.primary = false,
-    this.semanticLabel,
+    this.qaId,
   });
   final IconData icon;
   final String label;
@@ -1702,19 +1705,24 @@ class _ActionChip extends StatelessWidget {
 
   /// The filled, primary-coloured chip (Filters).
   final bool primary;
-  final String? semanticLabel;
+
+  /// Automation id; the chip is announced by its visible [label].
+  final String? qaId;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final foreground = primary ? colors.onPrimary : colors.onSurface;
     return Semantics(
-      label: semanticLabel,
+      container: true,
+      identifier: qaId,
+      label: label,
       button: true,
       enabled: onTap != null,
       onTap: onTap,
+      excludeSemantics: true,
       child: Material(
-        key: semanticLabel == null ? null : ValueKey<String>(semanticLabel!),
+        key: qaId == null ? null : ValueKey<String>(qaId!),
         color: primary ? colors.primary : colors.surface,
         borderRadius: BorderRadius.circular(12),
         child: InkWell(

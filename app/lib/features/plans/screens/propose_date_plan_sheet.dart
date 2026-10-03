@@ -687,7 +687,7 @@ class _AcceptDatePlanSheetState extends State<_AcceptDatePlanSheet> {
               children: [
                 for (final group in widget.groups)
                   FilterChip(
-                    label: Text(group.name),
+                    label: Text(group.label(l10n)),
                     selected: _groupIds.contains(group.id),
                     onSelected: (selected) => setState(() {
                       if (selected) {

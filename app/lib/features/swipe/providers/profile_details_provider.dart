@@ -134,7 +134,9 @@ final profileDetailsProvider = FutureProvider.family<ProfileDetails, String>((
 
     return ProfileDetails(
       userId: profile['id']?.toString() ?? userId,
-      name: profile['name']?.toString() ?? 'User',
+      // Empty when the server sent no name; the profile hero shows "Member" (chatMember)
+      // in the member's language (profileHeadlineFrom).
+      name: profile['name']?.toString() ?? '',
       dateOfBirth: DateTime.tryParse(
         (profile['dateOfBirth'] ?? profile['date_of_birth'])?.toString() ?? '',
       ),

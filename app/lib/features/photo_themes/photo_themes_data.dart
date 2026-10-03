@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/i18n/app_l10n.dart';
 import '../../core/providers/api_client_provider.dart';
 import '../auth/providers/auth_provider.dart';
 import '../blog/blog_data.dart';
@@ -121,11 +122,12 @@ class ThemeEntry {
   /// Author only, while featuring is allowed and a higher tier exists.
   final BlogNextTier? nextTier;
 
-  /// The author's first name, for bylines.
+  /// The author's first name, for bylines; a neutral placeholder in the
+  /// app's language when the server sent no name.
   String get firstName {
     final name = authorName.trim();
     if (name.isEmpty) {
-      return 'A member';
+      return currentAppL10n().commonMemberFallbackName;
     }
     return name.split(RegExp(r'\s+')).first;
   }
