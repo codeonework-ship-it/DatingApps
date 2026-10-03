@@ -52,7 +52,10 @@ void main() {
     semantics.dispose();
   });
 
-  testWidgets('a reply is posted and appears in the thread', (tester) async {
+  testWidgets('a reply is posted and appears in the thread '
+      '[case:support.support_ticket_thread.support_reply_input.action]', (
+    tester,
+  ) async {
     final api = FakeSupportApi({
       'GET /support/tickets/ticket-1': (_) =>
           ok(_thread(ticketJson(status: 'pending_member'))),
@@ -91,53 +94,60 @@ void main() {
     expect(find.text('Open'), findsOneWidget);
   });
 
-  testWidgets('resolved: explains reopening by reply and offers a rating', (
-    tester,
-  ) async {
-    final api = FakeSupportApi({
-      'GET /support/tickets/ticket-1': (_) =>
-          ok(_thread(ticketJson(status: 'resolved', canRate: true))),
-      'GET /support/tickets': (_) =>
-          ok({'success': true, 'tickets': <Object>[]}),
-      'POST /support/tickets/ticket-1/rating': (request) => ok({
-        'success': true,
-        'ticket': ticketJson(
-          status: 'resolved',
-          satisfaction: {
-            'rating': (request.data as Map)['rating'],
-            'comment': 'Quick fix',
-            'rated_at': '2026-09-30T12:00:00Z',
-          },
-        ),
-      }),
-    });
-    await pumpSupport(
-      tester,
-      api,
-      const SupportTicketThreadScreen(ticketId: 'ticket-1'),
-    );
+  testWidgets(
+    'resolved: explains reopening by reply and offers a rating '
+    '[case:support.support_ticket_thread.support_rate_x_ratingchanged.action] '
+    '[case:support.support_ticket_thread.support_rating_comment_input.action] '
+    '[case:support.support_ticket_thread.support_rating_submit_rate.action]',
+    (tester) async {
+      final api = FakeSupportApi({
+        'GET /support/tickets/ticket-1': (_) =>
+            ok(_thread(ticketJson(status: 'resolved', canRate: true))),
+        'GET /support/tickets': (_) =>
+            ok({'success': true, 'tickets': <Object>[]}),
+        'POST /support/tickets/ticket-1/rating': (request) => ok({
+          'success': true,
+          'ticket': ticketJson(
+            status: 'resolved',
+            satisfaction: {
+              'rating': (request.data as Map)['rating'],
+              'comment': 'Quick fix',
+              'rated_at': '2026-09-30T12:00:00Z',
+            },
+          ),
+        }),
+      });
+      await pumpSupport(
+        tester,
+        api,
+        const SupportTicketThreadScreen(ticketId: 'ticket-1'),
+      );
 
-    expect(find.text('Resolved'), findsOneWidget);
-    expect(find.textContaining('Reply to reopen it'), findsOneWidget);
+      expect(find.text('Resolved'), findsOneWidget);
+      expect(find.textContaining('Reply to reopen it'), findsOneWidget);
 
-    await tester.ensureVisible(find.byKey(const Key('support_rate_4')));
-    await tester.tap(find.byKey(const Key('support_rate_4')));
-    await tester.pumpAndSettle();
-    await tester.enterText(
-      find.byKey(const Key('support_rating_comment')),
-      'Quick fix',
-    );
-    await tester.ensureVisible(find.byKey(const Key('support_rating_submit')));
-    await tester.tap(find.byKey(const Key('support_rating_submit')));
-    await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byKey(const Key('support_rate_4')));
+      await tester.tap(find.byKey(const Key('support_rate_4')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('support_rating_comment')),
+        'Quick fix',
+      );
+      await tester.ensureVisible(
+        find.byKey(const Key('support_rating_submit')),
+      );
+      await tester.tap(find.byKey(const Key('support_rating_submit')));
+      await tester.pumpAndSettle();
 
-    final post = api.sent('POST', '/support/tickets/ticket-1/rating').single;
-    expect(post.data, {'rating': 4, 'comment': 'Quick fix'});
-    expect(find.byKey(const Key('support_rating_given')), findsOneWidget);
-    expect(find.text('You rated this 4 out of 5.'), findsOneWidget);
-  });
+      final post = api.sent('POST', '/support/tickets/ticket-1/rating').single;
+      expect(post.data, {'rating': 4, 'comment': 'Quick fix'});
+      expect(find.byKey(const Key('support_rating_given')), findsOneWidget);
+      expect(find.text('You rated this 4 out of 5.'), findsOneWidget);
+    },
+  );
 
-  testWidgets('closed: reply disabled, reopen offered until the date', (
+  testWidgets('closed: reply disabled, reopen offered until the date '
+      '[case:support.support_ticket_thread.support_reopen_reopen.action]', (
     tester,
   ) async {
     final api = FakeSupportApi({
@@ -185,7 +195,12 @@ void main() {
     expect(find.text('Open'), findsOneWidget);
   });
 
-  testWidgets('close asks for confirmation first', (tester) async {
+  testWidgets('close asks for confirmation first '
+      '[case:support.support_ticket_thread.support_close_close.action] '
+      '[case:support.support_ticket_thread.close_this_request.action] '
+      '[case:support.support_ticket_thread.support_close_confirm.action]', (
+    tester,
+  ) async {
     final api = FakeSupportApi({
       'GET /support/tickets/ticket-1': (_) => ok(_thread(ticketJson())),
       'GET /support/tickets': (_) =>

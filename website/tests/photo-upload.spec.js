@@ -1,5 +1,6 @@
 import {test, expect} from '@playwright/test';
 import {resolve} from 'node:path';
+import {qaField, qaId} from './support/qa.js';
 
 test('browser upload, reload and onboarding completion preserve the auth gate',async({page,request})=>{
  test.setTimeout(90000);
@@ -28,11 +29,11 @@ test('browser upload, reload and onboarding completion preserve the auth gate',a
  const passwordInput=page.getByRole('textbox',{name:'Password',exact:true});
  await passwordInput.fill(password);
  await expect(passwordInput).toHaveValue(password);
- await page.getByRole('button',{name:'qa.signin.login_button',exact:true}).click();
- await expect(page.getByRole('button',{name:'qa.setup.photos.gallery_button',exact:true})).toBeVisible({timeout:30000});
+ await qaId(page,'qa.signin.login_button').click();
+ await expect(qaId(page,'qa.setup.photos.gallery_button')).toBeVisible({timeout:30000});
  const uploadResponse=page.waitForResponse(r=>r.url().includes(`/profile/${userId}/photos`)&&r.request().method()==='POST');
  const picker=page.waitForEvent('filechooser');
- await page.getByRole('button',{name:'qa.setup.photos.gallery_button',exact:true}).click();
+ await qaId(page,'qa.setup.photos.gallery_button').click();
  await (await picker).setFiles(resolve('public/assets/cafe.png'));
  const uploaded=await uploadResponse;expect(uploaded.ok()).toBe(true);
  const body=await uploaded.json(); photos=body.draft.photos;
@@ -42,19 +43,22 @@ test('browser upload, reload and onboarding completion preserve the auth gate',a
   await page.reload();
   const restored = await (await draftResponse).json();
   expect(restored.draft.photos[0].id).toBe(photos[0].id);
-  await expect(page.getByRole('button',{name:'qa.setup.photos.gallery_button',exact:true})).toBeVisible({timeout:30000});
+  await expect(qaId(page,'qa.setup.photos.gallery_button')).toBeVisible({timeout:30000});
   await page.screenshot({path:'../qa/results/2026-09-27-website/browser-photo-upload.png'});
   const secondResponse=page.waitForResponse(r=>r.url().includes(`/profile/${userId}/photos`)&&r.request().method()==='POST');
   const secondPicker=page.waitForEvent('filechooser');
-  await page.getByRole('button',{name:'qa.setup.photos.gallery_button',exact:true}).click();
+  await qaId(page,'qa.setup.photos.gallery_button').click();
   await (await secondPicker).setFiles(resolve('public/assets/cafe.png'));
   const second=await secondResponse;expect(second.ok()).toBe(true);
   photos=(await second.json()).draft.photos;expect(photos).toHaveLength(2);
   // The resumable root gate advances to About when the second photo persists.
-  const bio=page.getByRole('textbox',{name:/Tell people about you/});
-  await bio.click();await bio.pressSequentially('An isolated browser QA profile for testing onboarding.',{delay:5});await bio.press('Tab');
-  await page.getByRole('button',{name:'qa.setup.about.continue_button',exact:true}).click();
-  await page.getByRole('button',{name:'qa.setup.preview.complete_button',exact:true}).click();
+  // By qa id: the field's accessible name changes as you type (hint, then counter).
+  const bio=qaField(page,'qa.setup.about.bio_field');
+  const about='An isolated browser QA profile for testing onboarding.';
+  await bio.click();await page.waitForTimeout(200); // Flutter attaches its live editor on focus.
+  await bio.pressSequentially(about,{delay:5});await expect(bio).toHaveValue(about);await bio.press('Tab');
+  await qaId(page,'qa.setup.about.continue_button').click();
+  await qaId(page,'qa.setup.preview.complete_button').click();
   await expect(page.getByText('Your pace. Your choice.',{exact:true})).toBeVisible({timeout:30000});
   await expect(page).toHaveURL(/#\/discover$/);
   await page.getByText('Sign out',{exact:true}).click();

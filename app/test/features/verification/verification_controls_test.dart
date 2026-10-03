@@ -21,6 +21,7 @@ import 'package:verified_dating_app/features/verification/screens/verification_s
 import 'package:verified_dating_app/features/verification/screens/verification_upload_id_screen.dart';
 
 import '../../support/qa_api.dart';
+import '../../support/qa_screen_quality.dart';
 
 final _en = qaL10n(const Locale('en'));
 
@@ -515,6 +516,174 @@ void main() {
         expect(find.text(l10n.verificationRetry), findsOneWidget);
         expect(tester.takeException(), isNull, reason: '$locale');
       }
+    });
+  });
+
+  group('screen quality', () {
+    // Landing: the review-status button only replaces Start once the
+    // server's answer (a check under review) has arrived.
+    Finder landingLoaded() =>
+        find.text(_en.verificationViewReviewStatus, skipOffstage: false);
+    // ID step: no server data; its instruction and photo controls are its
+    // content.
+    Finder idLoaded() => find.text(_en.verificationGallery, skipOffstage: false);
+    // Selfie: Submit shows a spinner until the status fetch has settled.
+    Finder selfieLoaded() =>
+        find.text(_en.verificationSubmit, skipOffstage: false);
+    // Status: the pending state only shows once the server answered.
+    Finder statusLoaded() =>
+        find.text(_en.verificationStatusPendingMessage, skipOffstage: false);
+
+    Widget selfie() => VerificationSelfieScreen(idPhoto: XFile(_idPath));
+
+    testWidgets('Verification landing with a check under review lays out on '
+        'phone and tablet in both themes '
+        '[case:verification.verification_landing.layout_matrix]', (
+      tester,
+    ) async {
+      await qaExpectLaysOutOnPhoneAndTablet(
+        tester,
+        api: () => _api(status: 'pending'),
+        build: () => const VerificationLandingScreen(),
+        loaded: landingLoaded,
+      );
+    });
+
+    testWidgets('Verification landing meets tap-target, label and contrast '
+        'guidelines [case:verification.verification_landing.a11y_guidelines]', (
+      tester,
+    ) async {
+      await qaExpectMeetsA11yGuidelines(
+        tester,
+        api: () => _api(status: 'pending'),
+        build: () => const VerificationLandingScreen(),
+        loaded: landingLoaded,
+      );
+    });
+
+    testWidgets('Back on verification landing returns to the screen that '
+        'opened it [case:verification.verification_landing.back_affordance]', (
+      tester,
+    ) async {
+      await qaExpectBackReturnsToOpener(
+        tester,
+        api: _api(status: 'pending'),
+        build: () => const VerificationLandingScreen(),
+        screen: find.byType(VerificationLandingScreen),
+        loaded: landingLoaded(),
+      );
+    });
+
+    testWidgets('ID step lays out on phone and tablet in both themes '
+        '[case:verification.verification_upload_id.layout_matrix]', (
+      tester,
+    ) async {
+      await qaExpectLaysOutOnPhoneAndTablet(
+        tester,
+        api: _api,
+        build: () => const VerificationUploadIdScreen(),
+        loaded: idLoaded,
+      );
+    });
+
+    testWidgets('ID step meets tap-target, label and contrast guidelines '
+        '[case:verification.verification_upload_id.a11y_guidelines]', (
+      tester,
+    ) async {
+      await qaExpectMeetsA11yGuidelines(
+        tester,
+        api: _api,
+        build: () => const VerificationUploadIdScreen(),
+        loaded: idLoaded,
+      );
+    });
+
+    testWidgets('Back on the ID step returns to the screen that opened it '
+        '[case:verification.verification_upload_id.back_affordance]', (
+      tester,
+    ) async {
+      await qaExpectBackReturnsToOpener(
+        tester,
+        api: _api(),
+        build: () => const VerificationUploadIdScreen(),
+        screen: find.byType(VerificationUploadIdScreen),
+        loaded: idLoaded(),
+      );
+    });
+
+    testWidgets('Selfie step lays out on phone and tablet in both themes '
+        '[case:verification.verification_selfie.layout_matrix]', (
+      tester,
+    ) async {
+      await qaExpectLaysOutOnPhoneAndTablet(
+        tester,
+        api: _api,
+        build: selfie,
+        loaded: selfieLoaded,
+      );
+    });
+
+    testWidgets('Selfie step meets tap-target, label and contrast guidelines '
+        '[case:verification.verification_selfie.a11y_guidelines]', (
+      tester,
+    ) async {
+      await qaExpectMeetsA11yGuidelines(
+        tester,
+        api: _api,
+        build: selfie,
+        loaded: selfieLoaded,
+      );
+    });
+
+    testWidgets('Back on the selfie step returns to the screen that opened '
+        'it [case:verification.verification_selfie.back_affordance]', (
+      tester,
+    ) async {
+      await qaExpectBackReturnsToOpener(
+        tester,
+        api: _api(),
+        build: selfie,
+        screen: find.byType(VerificationSelfieScreen),
+        loaded: selfieLoaded(),
+      );
+    });
+
+    testWidgets('Verification status under review lays out on phone and '
+        'tablet in both themes '
+        '[case:verification.verification_status.layout_matrix]', (
+      tester,
+    ) async {
+      await qaExpectLaysOutOnPhoneAndTablet(
+        tester,
+        api: () => _api(status: 'pending'),
+        build: () => const VerificationStatusScreen(),
+        loaded: statusLoaded,
+      );
+    });
+
+    testWidgets('Verification status meets tap-target, label and contrast '
+        'guidelines [case:verification.verification_status.a11y_guidelines]', (
+      tester,
+    ) async {
+      await qaExpectMeetsA11yGuidelines(
+        tester,
+        api: () => _api(status: 'pending'),
+        build: () => const VerificationStatusScreen(),
+        loaded: statusLoaded,
+      );
+    });
+
+    testWidgets('Back on verification status returns to the screen that '
+        'opened it [case:verification.verification_status.back_affordance]', (
+      tester,
+    ) async {
+      await qaExpectBackReturnsToOpener(
+        tester,
+        api: _api(status: 'pending'),
+        build: () => const VerificationStatusScreen(),
+        screen: find.byType(VerificationStatusScreen),
+        loaded: statusLoaded(),
+      );
     });
   });
 }

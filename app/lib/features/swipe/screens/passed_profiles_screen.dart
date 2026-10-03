@@ -101,6 +101,9 @@ class PassedProfilesScreen extends ConsumerWidget {
                             key: ValueKey(
                               'qa.passed_profiles.open.${profile.id}',
                             ),
+                            tooltip: l10n.discoverOpenMemberProfile(
+                              profile.name,
+                            ),
                             icon: const Icon(Icons.chevron_right),
                             onPressed: () {
                               Navigator.of(context).push(

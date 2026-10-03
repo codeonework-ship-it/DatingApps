@@ -109,25 +109,26 @@ Future<void> _swipeAway(WidgetTester tester, String title) async {
 
 void main() {
   group('Read all', () {
-    testWidgets('marks every notification read on the server and in the list '
-        '[case:notifications.notification_inbox.notifications_read_all.action]', (
-      tester,
-    ) async {
-      final api = _inbox();
-      await _pump(tester, api);
-      expect(_unreadDots(tester), 2);
+    testWidgets(
+      'marks every notification read on the server and in the list '
+      '[case:notifications.notification_inbox.notifications_read_all.action]',
+      (tester) async {
+        final api = _inbox();
+        await _pump(tester, api);
+        expect(_unreadDots(tester), 2);
 
-      await tester.tap(find.byKey(_readAll));
-      await tester.pump();
-      // Gone in the next frame: a second tap cannot send it twice.
-      expect(find.byKey(_readAll), findsNothing);
-      await qaSettle(tester);
+        await tester.tap(find.byKey(_readAll));
+        await tester.pump();
+        // Gone in the next frame: a second tap cannot send it twice.
+        expect(find.byKey(_readAll), findsNothing);
+        await qaSettle(tester);
 
-      expect(api.writeLines, ['POST /notifications/me/read-all']);
-      expect(_unreadDots(tester), 0);
-      expect(find.byKey(_readAll), findsNothing);
-      expect(find.text('Someone liked you'), findsOneWidget);
-    });
+        expect(api.writeLines, ['POST /notifications/me/read-all']);
+        expect(_unreadDots(tester), 0);
+        expect(find.byKey(_readAll), findsNothing);
+        expect(find.text('Someone liked you'), findsOneWidget);
+      },
+    );
 
     testWidgets(
       'a failure explains, puts the unread state back and retry works '
@@ -226,6 +227,96 @@ void main() {
         await tester.tap(find.byKey(const ValueKey('qa.notifications.retry')));
         await qaSettle(tester);
         expect(find.text('Back again'), findsOneWidget);
+      },
+    );
+  });
+
+  group('Retry after a failed load', () {
+    const retry = ValueKey('qa.notifications.retry');
+    const loadError = ValueKey('qa.notifications.load_error');
+
+    testWidgets(
+      'Retry reloads the inbox, the unread count and preferences, starts push '
+      'registration and shows the list '
+      '[case:notifications.notification_inbox.notifications_retry.action]',
+      (tester) async {
+        final api = _inbox()..offline('GET /notifications/me');
+        final push = await _pump(tester, api);
+        expect(find.byKey(loadError), findsOneWidget);
+        expect(find.text(_offlineText), findsOneWidget);
+        expect(find.text('You are all caught up'), findsNothing);
+        // Push registration waits for a successful load.
+        expect(push.starts, isEmpty);
+        expect(api.sent('GET', '/notifications/me'), hasLength(1));
+
+        api.json('GET /notifications/me', {
+          'notifications': [
+            _note('n-like', 3, 'like.received', 'Someone liked you'),
+            _note('n-old', 1, 'like.received', 'An older like', read: true),
+          ],
+        });
+        await tester.tap(find.byKey(retry));
+        await tester.pump();
+        // Loading: the button is gone, so it cannot be pressed twice.
+        expect(find.byKey(retry), findsNothing);
+        await qaSettle(tester);
+
+        expect(api.sent('GET', '/notifications/me'), hasLength(2));
+        expect(api.sent('GET', '/notifications/me/unread-count'), hasLength(2));
+        expect(api.sent('GET', '/notifications/me/preferences'), hasLength(2));
+        expect(push.starts, ['me']);
+        expect(find.byKey(loadError), findsNothing);
+        expect(find.byKey(retry), findsNothing);
+        expect(find.text('Someone liked you'), findsOneWidget);
+        expect(find.text('An older like'), findsOneWidget);
+        expect(_unreadDots(tester), 1);
+        expect(find.byKey(_readAll), findsOneWidget);
+        expect(api.writes, isEmpty);
+      },
+    );
+
+    testWidgets(
+      'a Retry that fails again explains, offers Retry again with one request '
+      'per tap, and a later Retry recovers '
+      '[case:notifications.notification_inbox.notifications_retry.api_failure]',
+      (tester) async {
+        final api = _inbox()
+          ..fail('GET /notifications/me', message: 'Inbox is resting.');
+        final push = await _pump(tester, api);
+        expect(find.text('Inbox is resting.'), findsOneWidget);
+
+        // Still down, now offline.
+        api.offline('GET /notifications/me');
+        // A double tap on the same spot.
+        final spot = tester.getCenter(find.byKey(retry));
+        await tester.tapAt(spot);
+        await tester.pump();
+        await tester.tapAt(spot);
+        await qaSettle(tester);
+
+        expect(
+          api.sent('GET', '/notifications/me'),
+          hasLength(2),
+          reason: 'one request per Retry, even when tapped twice',
+        );
+        expect(find.text(_offlineText), findsOneWidget);
+        expect(find.text('Inbox is resting.'), findsNothing);
+        expect(find.text('You are all caught up'), findsNothing);
+        expect(find.byKey(retry).hitTestable(), findsOneWidget);
+        expect(push.starts, isEmpty);
+        expect(tester.takeException(), isNull);
+
+        api.json('GET /notifications/me', {
+          'notifications': [_note('n-back', 4, 'like.received', 'Back again')],
+        });
+        await tester.tap(find.byKey(retry));
+        await qaSettle(tester);
+
+        expect(api.sent('GET', '/notifications/me'), hasLength(3));
+        expect(find.text('Back again'), findsOneWidget);
+        expect(find.text(_offlineText), findsNothing);
+        expect(find.byKey(retry), findsNothing);
+        expect(push.starts, ['me']);
       },
     );
   });

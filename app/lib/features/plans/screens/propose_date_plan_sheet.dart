@@ -10,6 +10,7 @@ import '../../intentional_dating/connection_card.dart';
 import '../models/date_plan_labels.dart';
 import '../providers/plans_provider.dart';
 import '../widgets/plan_preferences_summary.dart';
+import '../widgets/plan_text_limit.dart';
 
 /// Opens the propose sheet for a match. Resolves to the created plan, or null
 /// when the member backed out or the request failed (the error is shown
@@ -450,6 +451,8 @@ class _ProposeDatePlanSheetState extends ConsumerState<_ProposeDatePlanSheet> {
                     controller: _venueName,
                     enabled: !_submitting,
                     maxLength: 120,
+                    inputFormatters: const [PlanRuneLimit(120)],
+                    buildCounter: planRuneCounter(_venueName, 120),
                     decoration: InputDecoration(
                       labelText: l10n.planPlaceLabel,
                       hintText: l10n.planPlaceHint,
@@ -461,6 +464,8 @@ class _ProposeDatePlanSheetState extends ConsumerState<_ProposeDatePlanSheet> {
                     controller: _venueArea,
                     enabled: !_submitting,
                     maxLength: 120,
+                    inputFormatters: const [PlanRuneLimit(120)],
+                    buildCounter: planRuneCounter(_venueArea, 120),
                     decoration: InputDecoration(
                       labelText: l10n.planAreaLabel,
                       hintText: l10n.planAreaHint,
@@ -564,6 +569,8 @@ class _ProposeDatePlanSheetState extends ConsumerState<_ProposeDatePlanSheet> {
               controller: _note,
               enabled: !_submitting,
               maxLength: 280,
+              inputFormatters: const [PlanRuneLimit(280)],
+              buildCounter: planRuneCounter(_note, 280),
               minLines: 2,
               maxLines: 4,
               decoration: InputDecoration(

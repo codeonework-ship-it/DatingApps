@@ -1,3 +1,6 @@
+// Case tags stay whole on one line for the static coverage scanner.
+// ignore_for_file: lines_longer_than_80_chars
+
 // Level & XP (release-excluded flag `level_progression_enabled`; the hub
 // tests cover the gated state): claim, refresh and retry against the
 // recording fake BFF.
@@ -267,7 +270,7 @@ void main() {
     );
 
     testWidgets(
-      'a failed refresh keeps my progress on screen, shows the reason and Retry recovers [case:engagement.level_progression.progression_is_paused_while_an_a_onrefresh.api_failure]',
+      'a failed refresh keeps my progress on screen, shows the reason and Retry recovers [case:engagement.level_progression.progression_is_paused_while_an_a_onrefresh.api_failure] [case:engagement.level_progression.level_retry_retry.action]',
       (tester) async {
         final api = _api();
         await _open(tester, api);
@@ -340,6 +343,44 @@ void main() {
       },
     );
   });
+
+  testWidgets(
+    'with progress on screen, a Retry that fails again shows the new reason in view, keeps my level and ledger, and the next Retry recovers [case:engagement.level_progression.level_retry_retry.api_failure]',
+    (tester) async {
+      final api = _api();
+      await _open(tester, api);
+      api.fail('GET /progression/me/ledger', message: 'Ledger is rebuilding.');
+      await qaPullToRefresh(tester);
+      expect(find.text('Ledger is rebuilding.'), findsOneWidget);
+
+      api.fail(
+        'GET /progression/me/ledger',
+        status: 503,
+        message: 'Still rebuilding.',
+      );
+      final before = api.calls.length;
+      await _tap(tester, _retry);
+
+      expect(
+        api.calls.sublist(before).map((c) => '${c.method} ${c.path}'),
+        unorderedEquals(['GET /progression/me', 'GET /progression/me/ledger']),
+      );
+      expect(find.text('Ledger is rebuilding.'), findsNothing);
+      expect(find.text('Still rebuilding.').hitTestable(), findsOneWidget);
+      expect(find.byKey(_retry).hitTestable(), findsOneWidget);
+      expect(qaEnabled(tester, find.byKey(_retry)), isTrue);
+      expect(find.text('Reliable Participant'), findsWidgets);
+      expect(find.text(en.engagementLevelXp('320')), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      expect(api.writes, isEmpty);
+
+      api.json('GET /progression/me/ledger', _ledger);
+      await _tap(tester, _retry);
+      expect(find.byKey(_retry), findsNothing);
+      expect(find.text('Still rebuilding.'), findsNothing);
+      expect(find.text('Reliable Participant'), findsWidgets);
+    },
+  );
 
   testWidgets(
     'Level & XP renders translated in every locale without overflow [case:engagement.level_progression.l10n]',

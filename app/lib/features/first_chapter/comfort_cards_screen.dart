@@ -124,9 +124,18 @@ class _ComfortCardsState extends ConsumerState<ComfortCardsScreen> {
           IconButton(
             key: const ValueKey('qa.comfort.reload'),
             tooltip: l10n.firstChapterComfortReloadSaved,
+            // "Reload saved version": the unsaved draft gives way to what the
+            // server holds, or the reload would change nothing on screen.
             onPressed: busy
                 ? null
-                : () => ref.invalidate(chapterResourceProvider(path)),
+                : () {
+                    setState(() {
+                      cards = null;
+                      shared = null;
+                      error = null;
+                    });
+                    ref.invalidate(chapterResourceProvider(path));
+                  },
             icon: const Icon(Icons.refresh),
           ),
         ],
@@ -269,9 +278,11 @@ class _ComfortCardsState extends ConsumerState<ComfortCardsScreen> {
                         onPressed: busy
                             ? null
                             : () {
+                                // Spaces alone are not a translation, so
+                                // they never ask for a translation language.
                                 if (original.text.trim().isEmpty ||
                                     language.text.trim().length < 2 ||
-                                    (translation.text.isNotEmpty &&
+                                    (translation.text.trim().isNotEmpty &&
                                         translatedLanguage.text.trim().length <
                                             2)) {
                                   setState(

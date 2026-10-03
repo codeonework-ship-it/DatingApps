@@ -9,6 +9,7 @@ import 'package:verified_dating_app/features/common/screens/main_navigation_scre
 import 'package:verified_dating_app/features/profile/screens/setup/setup_preferences_screen.dart';
 
 import '../../support/qa_api.dart';
+import '../../support/qa_screen_quality.dart';
 import 'support/profile_bff.dart';
 
 // Control-level tests for preferences (SetupPreferencesScreen) on the real
@@ -22,6 +23,9 @@ const _back = ValueKey('qa.setup.preferences.back_button');
 ValueKey<String> _k(String id) => ValueKey('qa.setup.preferences.$id');
 
 final _en = qaL10n(const Locale('en'));
+
+/// A 240-character entry: no field truncates what the member wrote.
+final _long = List.filled(24, 'longtext! ').join().trim();
 
 Future<List<Object?>> _open(
   WidgetTester tester,
@@ -293,72 +297,78 @@ void main() {
       },
     );
 
-    testWidgets('tapping the distance track saves that distance '
-        '[case:profile.setup_preferences.setup_preferences_distance_distancechanged.action]', (
-      tester,
-    ) async {
-      final api = QaApi();
-      final bff = ProfileBff(api);
-      await _open(tester, api);
-      final slider = find.byKey(_k('distance'));
-      final box = tester.getRect(slider);
-      await tester.tapAt(Offset(box.left + box.width * 0.75, box.center.dy));
-      await qaSettle(tester, frames: 3);
-      final km = tester.widget<Slider>(slider).value.round();
-      expect(km, greaterThan(300));
-      expect(find.text(_en.profileSetupMaxDistanceTitle(km)), findsOneWidget);
-      await _tap(tester, find.byKey(_save));
-      expect(_prefs(bff)['max_distance_km'], km);
-    });
+    testWidgets(
+      'tapping the distance track saves that distance '
+      '[case:profile.setup_preferences.setup_preferences_distance_distancechanged.action]',
+      (tester) async {
+        final api = QaApi();
+        final bff = ProfileBff(api);
+        await _open(tester, api);
+        final slider = find.byKey(_k('distance'));
+        final box = tester.getRect(slider);
+        await tester.tapAt(Offset(box.left + box.width * 0.75, box.center.dy));
+        await qaSettle(tester, frames: 3);
+        final km = tester.widget<Slider>(slider).value.round();
+        expect(km, greaterThan(300));
+        expect(find.text(_en.profileSetupMaxDistanceTitle(km)), findsOneWidget);
+        await _tap(tester, find.byKey(_save));
+        expect(_prefs(bff)['max_distance_km'], km);
+      },
+    );
 
-    testWidgets('Men toggles off and on, and the choice is saved '
-        '[case:profile.setup_preferences.setup_preferences_seeking_x_seekingtoggled.action]', (
-      tester,
-    ) async {
-      final api = QaApi();
-      final bff = ProfileBff(api);
-      await _open(tester, api);
-      await _tap(tester, find.byKey(_k('seeking_M')));
-      await _tap(tester, find.byKey(_k('seeking_Other')));
-      await _tap(tester, find.byKey(_save));
-      expect(_prefs(bff)['seeking_genders'], unorderedEquals(['F', 'Other']));
-    });
+    testWidgets(
+      'Men toggles off and on, and the choice is saved '
+      '[case:profile.setup_preferences.setup_preferences_seeking_x_seekingtoggled.action]',
+      (tester) async {
+        final api = QaApi();
+        final bff = ProfileBff(api);
+        await _open(tester, api);
+        await _tap(tester, find.byKey(_k('seeking_M')));
+        await _tap(tester, find.byKey(_k('seeking_Other')));
+        await _tap(tester, find.byKey(_save));
+        expect(_prefs(bff)['seeking_genders'], unorderedEquals(['F', 'Other']));
+      },
+    );
 
-    testWidgets('no gender selected is blocked with the localized message '
-        '[case:profile.setup_preferences.setup_preferences_seeking_x_seekingtoggled.validation]', (
-      tester,
-    ) async {
-      final api = QaApi();
-      ProfileBff(api);
-      await _open(tester, api);
-      await _tap(tester, find.byKey(_k('seeking_M')));
-      await _tap(tester, find.byKey(_k('seeking_F')));
-      await _tap(tester, find.byKey(_save));
-      expect(qaSnackText(tester), _en.profileSetupSelectGenderPreference);
-      expect(api.writes, isEmpty);
-    });
+    testWidgets(
+      'no gender selected is blocked with the localized message '
+      '[case:profile.setup_preferences.setup_preferences_seeking_x_seekingtoggled.validation]',
+      (tester) async {
+        final api = QaApi();
+        ProfileBff(api);
+        await _open(tester, api);
+        await _tap(tester, find.byKey(_k('seeking_M')));
+        await _tap(tester, find.byKey(_k('seeking_F')));
+        await _tap(tester, find.byKey(_save));
+        expect(qaSnackText(tester), _en.profileSetupSelectGenderPreference);
+        expect(api.writes, isEmpty);
+      },
+    );
 
-    for (final (tag, toggle, field, from) in [
+    // The case id's middle (slug) is a literal here so the coverage scanner
+    // expands the interpolated tag below.
+    for (final (slug, toggle, field, from) in [
       (
-        '[case:profile.setup_preferences.setup_preferences_serious_only_toggle_seriouschanged.action]',
+        'serious_relationship_only_onseriouschanged',
         'serious_only_toggle',
         'serious_only',
         true,
       ),
       (
-        '[case:profile.setup_preferences.setup_preferences_verified_only_toggle_verifiedchanged.action]',
+        'verified_profiles_only_onverifiedchanged',
         'verified_only_toggle',
         'verified_only',
         false,
       ),
       (
-        '[case:profile.setup_preferences.setup_preferences_hookup_only_toggle_hookupchanged.action]',
+        'hookups_only_onhookupchanged',
         'hookup_only_toggle',
         'hookup_only',
         false,
       ),
     ]) {
-      testWidgets('$toggle flips and lands in the draft $tag', (tester) async {
+      testWidgets('$toggle flips and lands in the draft '
+          '[case:profile.setup_preferences.$slug.action]', (tester) async {
         final api = QaApi();
         final bff = ProfileBff(api);
         await _open(tester, api);
@@ -392,93 +402,62 @@ void main() {
   });
 
   group('Advanced tab dropdowns', () {
-    for (final (tag, id, field, option, lifestyle) in [
+    // slug: the case id's tail after `setup_preferences_x_`, a literal so the
+    // coverage scanner expands the interpolated tag below.
+    for (final (slug, id, field, option, lifestyle) in [
+      ('countrychanged', 'country', 'country', 'Canada', false),
+      ('statechanged', 'state', 'state', 'Karnataka', false),
+      ('citychanged', 'city', 'city', 'Bengaluru', false),
+      ('religionchanged', 'religion', 'religion', 'Hindu', true),
       (
-        '[case:profile.setup_preferences.setup_preferences_x_countrychanged.action]',
-        'country',
-        'country',
-        'Canada',
-        false,
-      ),
-      (
-        '[case:profile.setup_preferences.state_region_onstatechanged.action]',
-        'state',
-        'state',
-        'Karnataka',
-        false,
-      ),
-      (
-        '[case:profile.setup_preferences.city_oncitychanged.action]',
-        'city',
-        'city',
-        'Bengaluru',
-        false,
-      ),
-      (
-        '[case:profile.setup_preferences.religion_preference_onreligionchanged.action]',
-        'religion',
-        'religion',
-        'Hindu',
-        true,
-      ),
-      (
-        '[case:profile.setup_preferences.mother_tongue_onmothertonguechange.action]',
+        'mothertonguechanged',
         'mother_tongue',
         'mother_tongue',
         'Kannada',
         false,
       ),
+      ('languagechanged', 'language', 'language_tags', 'English', false),
       (
-        '[case:profile.setup_preferences.language_onlanguagechanged.action]',
-        'language',
-        'language_tags',
-        'English',
-        false,
-      ),
-      (
-        '[case:profile.setup_preferences.diet_preference_ondietpreferencechan.action]',
+        'dietpreferencechange',
         'diet_preference',
         'diet_preference',
         'Veg',
         false,
       ),
       (
-        '[case:profile.setup_preferences.workout_frequency_onworkoutfrequencych.action]',
+        'workoutfrequencychan',
         'workout_frequency',
         'workout_frequency',
         'Often',
         false,
       ),
+      ('diettypechanged', 'diet_type', 'diet_type', 'Balanced', false),
       (
-        '[case:profile.setup_preferences.diet_type_ondiettypechanged.action]',
-        'diet_type',
-        'diet_type',
-        'Balanced',
-        false,
-      ),
-      (
-        '[case:profile.setup_preferences.sleep_schedule_onsleepschedulechang.action]',
+        'sleepschedulechanged',
         'sleep_schedule',
         'sleep_schedule',
         'Early bird',
         false,
       ),
       (
-        '[case:profile.setup_preferences.travel_style_ontravelstylechanged.action]',
+        'travelstylechanged',
         'travel_style',
         'travel_style',
         'Adventurous',
         false,
       ),
       (
-        '[case:profile.setup_preferences.political_comfort_range_onpoliticalcomfortra.action]',
+        'politicalcomfortrang',
         'political_comfort_range',
         'political_comfort_range',
         'Moderate',
         false,
       ),
     ]) {
-      testWidgets('$id: "$option" is shown and saved $tag', (tester) async {
+      testWidgets('$id: "$option" is shown and saved '
+          '[case:profile.setup_preferences.setup_preferences_x_$slug.action]', (
+        tester,
+      ) async {
         final api = QaApi();
         final bff = ProfileBff(
           api,
@@ -487,11 +466,23 @@ void main() {
           ),
         );
         await _open(tester, api, advanced: true);
+        final saved = field == 'language_tags' ? [option] : option;
+        expect(_shown(tester, id), isNot(option), reason: 'starts elsewhere');
         await _choose(tester, id, option);
         expect(_shown(tester, id), option);
         await _tap(tester, find.byKey(_save));
         final sent = lifestyle ? _lifestyle(bff) : _prefs(bff);
-        expect(sent[field], field == 'language_tags' ? [option] : option);
+        expect(sent[field], saved);
+        expect(bff.draft[field], saved, reason: 'the server kept it');
+        expect(find.byType(SetupPreferencesScreen), findsNothing);
+
+        // Reopened, the screen shows the saved choice from the server.
+        await tester.tap(find.byKey(const ValueKey('qa.test.launcher')));
+        await qaSettle(tester);
+        await tester.tap(find.text(_en.profileSetupTabAdvanced));
+        await qaSettle(tester, frames: 5);
+        await tester.ensureVisible(find.byKey(_k(id)));
+        expect(_shown(tester, id), option);
       });
     }
 
@@ -524,144 +515,161 @@ void main() {
   });
 
   group('Advanced tab text fields', () {
-    for (final (actionTag, validationTag, id, field, isList) in [
-      (
-        '[case:profile.setup_preferences.instagram_handle_without_input.action]',
-        '[case:profile.setup_preferences.instagram_handle_without_input.validation]',
-        'instagram_field',
-        'instagram_handle',
-        false,
-      ),
-      (
-        '[case:profile.setup_preferences.intent_tags_long_term_marriage_c_input.action]',
-        '[case:profile.setup_preferences.intent_tags_long_term_marriage_c_input.validation]',
-        'intent_tags_field',
-        'intent_tags',
-        true,
-      ),
-      (
-        '[case:profile.setup_preferences.hobbies_comma_separated_input.action]',
-        '[case:profile.setup_preferences.hobbies_comma_separated_input.validation]',
-        'hobbies_field',
-        'hobbies',
-        true,
-      ),
-      (
-        '[case:profile.setup_preferences.favourite_books_comma_separated_input.action]',
-        '[case:profile.setup_preferences.favourite_books_comma_separated_input.validation]',
-        'books_field',
-        'favorite_books',
-        true,
-      ),
-      (
-        '[case:profile.setup_preferences.favourite_novels_comma_separated_input.action]',
-        '[case:profile.setup_preferences.favourite_novels_comma_separated_input.validation]',
-        'novels_field',
-        'favorite_novels',
-        true,
-      ),
-      (
-        '[case:profile.setup_preferences.favourite_songs_comma_separated_input.action]',
-        '[case:profile.setup_preferences.favourite_songs_comma_separated_input.validation]',
-        'songs_field',
-        'favorite_songs',
-        true,
-      ),
-      (
-        '[case:profile.setup_preferences.extra_curricular_activities_comm_input.action]',
-        '[case:profile.setup_preferences.extra_curricular_activities_comm_input.validation]',
-        'extra_curriculars_field',
-        'extra_curriculars',
-        true,
-      ),
-      (
-        '[case:profile.setup_preferences.additional_information_input.action]',
-        '[case:profile.setup_preferences.additional_information_input.validation]',
-        'additional_info_field',
-        'additional_info',
-        false,
-      ),
-      (
-        '[case:profile.setup_preferences.pet_preference_input.action]',
-        '[case:profile.setup_preferences.pet_preference_input.validation]',
-        'pet_preference_field',
-        'pet_preference',
-        false,
-      ),
-      (
-        '[case:profile.setup_preferences.tags_comma_separated_input.action]',
-        '[case:profile.setup_preferences.tags_comma_separated_input.validation]',
-        'deal_breakers_field',
-        'deal_breaker_tags',
-        true,
-      ),
+    // id is both the field's QA id and the middle of its case ids
+    // (setup_preferences_<id>_input.*), so the interpolated tags expand.
+    for (final (id, field, isList) in [
+      ('instagram_field', 'instagram_handle', false),
+      ('intent_tags_field', 'intent_tags', true),
+      ('hobbies_field', 'hobbies', true),
+      ('books_field', 'favorite_books', true),
+      ('novels_field', 'favorite_novels', true),
+      ('songs_field', 'favorite_songs', true),
+      ('extra_curriculars_field', 'extra_curriculars', true),
+      ('additional_info_field', 'additional_info', false),
+      ('pet_preference_field', 'pet_preference', false),
+      ('deal_breakers_field', 'deal_breaker_tags', true),
     ]) {
-      testWidgets('$id: typed text is saved $actionTag', (tester) async {
+      testWidgets(
+        '$id: typed text is saved trimmed '
+        '[case:profile.setup_preferences.setup_preferences_${id}_input.action]',
+        (tester) async {
+          final api = QaApi();
+          final bff = ProfileBff(api);
+          await _open(tester, api, advanced: true);
+          await tester.ensureVisible(find.byKey(_k(id)));
+          await tester.enterText(
+            find.byKey(_k(id)),
+            isList ? ' hiking, jazz , ' : '  maya.draws  ',
+          );
+          await _tap(tester, find.byKey(_save));
+          expect(
+            _prefs(bff)[field],
+            isList ? ['hiking', 'jazz'] : 'maya.draws',
+          );
+          expect(bff.draft[field], isList ? ['hiking', 'jazz'] : 'maya.draws');
+        },
+      );
+
+      testWidgets(
+        '$id: blanks are dropped, duplicates collapse, emoji, RTL '
+        'and long text are kept whole '
+        '[case:profile.setup_preferences.setup_preferences_${id}_input.validation]',
+        (tester) async {
+          final api = QaApi();
+          final bff = ProfileBff(
+            api,
+            draft: qaDraftJson(
+              extra: {
+                field: isList ? ['old'] : 'old',
+              },
+            ),
+          );
+          await _open(tester, api, advanced: true);
+          await tester.ensureVisible(find.byKey(_k(id)));
+          // Only spaces and commas: nothing is stored, not an empty string.
+          await tester.enterText(
+            find.byKey(_k(id)),
+            isList ? ' , ,  ' : '    ',
+          );
+          await _tap(tester, find.byKey(_save));
+          expect(_prefs(bff).containsKey(field), isTrue);
+          expect(_prefs(bff)[field], isList ? isEmpty : isNull);
+
+          // Reopen: unicode and repeated entries.
+          api.calls.clear();
+          await tester.tap(find.byKey(const ValueKey('qa.test.launcher')));
+          await qaSettle(tester);
+          await tester.tap(find.text(_en.profileSetupTabAdvanced));
+          await qaSettle(tester, frames: 5);
+          await tester.ensureVisible(find.byKey(_k(id)));
+          await tester.enterText(
+            find.byKey(_k(id)),
+            isList
+                ? 'Café, 東京, नमस्ते, مرحبا بك, 🎸🌊, $_long, Café, 🎸🌊'
+                : ' Ünïcødé 東京 नमस्ते مرحبا بك 🎸🌊 $_long ',
+          );
+          await _tap(tester, find.byKey(_save));
+          final expected = isList
+              ? ['Café', '東京', 'नमस्ते', 'مرحبا بك', '🎸🌊', _long]
+              : 'Ünïcødé 東京 नमस्ते مرحبا بك 🎸🌊 $_long';
+          expect(_prefs(bff)[field], expected);
+          expect(bff.draft[field], expected);
+
+          // Reopened, the field shows exactly what the server kept.
+          await tester.tap(find.byKey(const ValueKey('qa.test.launcher')));
+          await qaSettle(tester);
+          await tester.tap(find.text(_en.profileSetupTabAdvanced));
+          await qaSettle(tester, frames: 5);
+          await tester.ensureVisible(find.byKey(_k(id)));
+          final shown = tester
+              .widget<TextField>(find.byKey(_k(id)))
+              .controller!
+              .text;
+          expect(
+            isList ? shown.split(',').map((t) => t.trim()).toList() : shown,
+            expected,
+          );
+        },
+      );
+    }
+
+    testWidgets(
+      'a leading @ on the Instagram handle is dropped, as the '
+      'field label asks '
+      '[case:profile.setup_preferences.setup_preferences_instagram_field_input.validation]',
+      (tester) async {
         final api = QaApi();
         final bff = ProfileBff(api);
         await _open(tester, api, advanced: true);
-        await tester.ensureVisible(find.byKey(_k(id)));
+        await tester.ensureVisible(find.byKey(_k('instagram_field')));
         await tester.enterText(
-          find.byKey(_k(id)),
-          isList ? ' hiking, jazz , ' : '  maya.draws  ',
+          find.byKey(_k('instagram_field')),
+          ' @maya.draws ',
         );
         await _tap(tester, find.byKey(_save));
-        expect(_prefs(bff)[field], isList ? ['hiking', 'jazz'] : 'maya.draws');
-        expect(bff.draft[field], isList ? ['hiking', 'jazz'] : 'maya.draws');
-      });
+        expect(_prefs(bff)['instagram_handle'], 'maya.draws');
 
-      testWidgets('$id: blanks are dropped, duplicates collapse, unicode is '
-          'kept $validationTag', (tester) async {
-        final api = QaApi();
-        final bff = ProfileBff(
-          api,
-          draft: qaDraftJson(
-            extra: {
-              field: isList ? ['old'] : 'old',
-            },
-          ),
-        );
-        await _open(tester, api, advanced: true);
-        await tester.ensureVisible(find.byKey(_k(id)));
-        // Only spaces and commas: nothing is stored, not an empty string.
-        await tester.enterText(find.byKey(_k(id)), isList ? ' , ,  ' : '    ');
-        await _tap(tester, find.byKey(_save));
-        expect(_prefs(bff).containsKey(field), isTrue);
-        expect(_prefs(bff)[field], isList ? isEmpty : isNull);
-
-        // Reopen: unicode and repeated entries.
-        api.calls.clear();
+        // Only an @ is no handle at all.
         await tester.tap(find.byKey(const ValueKey('qa.test.launcher')));
         await qaSettle(tester);
         await tester.tap(find.text(_en.profileSetupTabAdvanced));
         await qaSettle(tester, frames: 5);
-        await tester.ensureVisible(find.byKey(_k(id)));
-        await tester.enterText(
-          find.byKey(_k(id)),
-          isList ? 'Café, 東京, नमस्ते, Café' : ' Ünïcødé 東京 नमस्ते ',
+        await tester.ensureVisible(find.byKey(_k('instagram_field')));
+        expect(
+          tester
+              .widget<TextField>(find.byKey(_k('instagram_field')))
+              .controller!
+              .text,
+          'maya.draws',
         );
+        await tester.enterText(find.byKey(_k('instagram_field')), '@');
         await _tap(tester, find.byKey(_save));
         expect(
-          _prefs(bff)[field],
-          isList ? ['Café', '東京', 'नमस्ते'] : 'Ünïcødé 東京 नमस्ते',
+          bff.patches.lastWhere(
+            (p) => p.containsKey('seeking_genders'),
+          )['instagram_handle'],
+          isNull,
         );
-      });
-    }
+      },
+    );
   });
 
-  testWidgets('Retry reloads preferences that failed to load '
-      '[case:profile.setup_preferences.setup_preferences_retry_button.action]', (tester) async {
-    final api = QaApi();
-    final bff = ProfileBff(api);
-    api.fail('GET /profile/*/draft');
-    await _open(tester, api);
-    expect(find.text(_en.profileSetupPreferencesLoadFailed), findsOneWidget);
-    bff.install();
-    await _tap(tester, find.byKey(_k('retry_button')));
-    expect(api.sent('GET', '/profile/me/draft'), hasLength(2));
-    expect(find.byKey(_k('age_range')), findsOneWidget);
-    expect(find.text(_en.profileSetupAgeRangeTitle(21, 40)), findsOneWidget);
-  });
+  testWidgets(
+    'Retry reloads preferences that failed to load '
+    '[case:profile.setup_preferences.setup_preferences_retry_button.action]',
+    (tester) async {
+      final api = QaApi();
+      final bff = ProfileBff(api);
+      api.fail('GET /profile/*/draft');
+      await _open(tester, api);
+      expect(find.text(_en.profileSetupPreferencesLoadFailed), findsOneWidget);
+      bff.install();
+      await _tap(tester, find.byKey(_k('retry_button')));
+      expect(api.sent('GET', '/profile/me/draft'), hasLength(2));
+      expect(find.byKey(_k('age_range')), findsOneWidget);
+      expect(find.text(_en.profileSetupAgeRangeTitle(21, 40)), findsOneWidget);
+    },
+  );
 
   testWidgets('renders translated in every locale '
       '[case:profile.setup_preferences.l10n]', (tester) async {
@@ -677,5 +685,163 @@ void main() {
       expect(find.text(l10n.profileSetupAgeRangeTitle(21, 40)), findsOneWidget);
       expect(tester.takeException(), isNull, reason: '$locale');
     }
+  });
+
+  group('screen quality', () {
+    // A member who filled in every preference, so both tabs are full.
+    QaApi server() {
+      final api = QaApi();
+      ProfileBff(
+        api,
+        draft: qaDraftJson(
+          extra: const {
+            'country': 'India',
+            'state': 'Karnataka',
+            'city': 'Bengaluru',
+            'religion': 'Hindu',
+            'mother_tongue': 'Kannada',
+            'language_tags': ['English'],
+            'diet_preference': 'Veg',
+            'workout_frequency': 'Often',
+            'diet_type': 'Balanced',
+            'sleep_schedule': 'Early bird',
+            'travel_style': 'Adventurous',
+            'political_comfort_range': 'Moderate',
+            'instagram_handle': 'ananya.makes',
+            'intent_tags': ['long-term', 'marriage'],
+            'hobbies': ['pottery', 'trail running', 'jazz'],
+            'favorite_books': ['The God of Small Things'],
+            'favorite_novels': ['A Suitable Boy'],
+            'favorite_songs': ['Kun Faya Kun'],
+            'extra_curriculars': ['choir', 'debate'],
+            'additional_info':
+                'Happiest outdoors; I will always say yes to a long walk '
+                'and a good filter coffee afterwards.',
+            'pet_preference': 'Dogs',
+            'deal_breaker_tags': ['smoking', 'rudeness to waiters'],
+          },
+        ),
+      );
+      return api;
+    }
+
+    // The age range only renders, with the member's 21-40, once the draft
+    // arrived.
+    Finder loaded() =>
+        find.text(_en.profileSetupAgeRangeTitle(21, 40), skipOffstage: false);
+
+    Future<void> showAdvanced(WidgetTester tester) async {
+      await tester.tap(find.text(_en.profileSetupTabAdvanced));
+      await qaSettle(tester, frames: 5);
+      expect(_shown(tester, 'city'), 'Bengaluru', reason: 'Advanced loaded');
+    }
+
+    testWidgets('preferences with every field filled lay out on phone and '
+        'tablet in both themes, on both tabs '
+        '[case:profile.setup_preferences.layout_matrix]', (tester) async {
+      for (final setupFlow in [true, false]) {
+        await qaExpectLaysOutOnPhoneAndTablet(
+          tester,
+          api: server,
+          build: () => SetupPreferencesScreen(isSetupFlow: setupFlow),
+          extra: qaMasterDataOverrides,
+          loaded: loaded,
+        );
+      }
+      // The Advanced tab, scrolled through to the deal-breakers.
+      for (final theme in qaQualityThemes.entries) {
+        for (final device in qaQualitySizes.entries) {
+          final where = 'Advanced ${device.key} [${theme.key}]';
+          await qaQualityPump(
+            tester,
+            server(),
+            const SetupPreferencesScreen(),
+            theme: theme.value,
+            size: device.value,
+            extra: qaMasterDataOverrides(),
+          );
+          await showAdvanced(tester);
+          expect(tester.takeException(), isNull, reason: where);
+          await qaScrollThrough(
+            tester,
+            onStep: () => expect(tester.takeException(), isNull, reason: where),
+          );
+          expect(
+            find.byKey(_k('deal_breakers_field')),
+            findsOneWidget,
+            reason: 'scrolled to the end on $where',
+          );
+          await qaQualityUnmount(tester);
+        }
+      }
+    });
+
+    testWidgets('preferences meet tap-target, label and contrast guidelines '
+        'on both tabs [case:profile.setup_preferences.a11y_guidelines]', (
+      tester,
+    ) async {
+      for (final setupFlow in [true, false]) {
+        await qaExpectMeetsA11yGuidelines(
+          tester,
+          api: server,
+          build: () => SetupPreferencesScreen(isSetupFlow: setupFlow),
+          extra: qaMasterDataOverrides,
+          loaded: loaded,
+        );
+      }
+      final semantics = tester.ensureSemantics();
+      for (final theme in qaQualityThemes.entries) {
+        await qaQualityPump(
+          tester,
+          server(),
+          const SetupPreferencesScreen(),
+          theme: theme.value,
+          extra: qaMasterDataOverrides(),
+        );
+        await showAdvanced(tester);
+        Future<void> check(String part) async {
+          for (final guideline in [
+            androidTapTargetGuideline,
+            labeledTapTargetGuideline,
+            textContrastGuideline,
+          ]) {
+            final result = await guideline.evaluate(tester);
+            expect(
+              result.passed,
+              isTrue,
+              reason:
+                  'Advanced$part: ${guideline.description} '
+                  '[${theme.key}]:\n${result.reason}',
+            );
+          }
+        }
+
+        // Every viewport of the Advanced tab, top to the deal-breakers.
+        await check('');
+        var step = 0;
+        await qaScrollThrough(
+          tester,
+          onStep: () async => check(', scrolled x${++step}'),
+        );
+        expect(find.byKey(_k('deal_breakers_field')), findsOneWidget);
+        await qaQualityUnmount(tester);
+      }
+      semantics.dispose();
+    });
+
+    testWidgets('Back on preferences returns to the screen that opened it '
+        '[case:profile.setup_preferences.back_affordance]', (tester) async {
+      final api = server();
+      await qaExpectBackReturnsToOpener(
+        tester,
+        api: api,
+        build: () => const SetupPreferencesScreen(),
+        extra: qaMasterDataOverrides(),
+        screen: find.byType(SetupPreferencesScreen),
+        back: find.byKey(_back),
+        loaded: loaded(),
+      );
+      expect(api.writes, isEmpty, reason: 'editing Back does not save');
+    });
   });
 }

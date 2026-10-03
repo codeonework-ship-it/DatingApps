@@ -198,15 +198,22 @@ class _Actions extends StatelessWidget {
               style: FilledButton.styleFrom(minimumSize: _tapTarget),
               onPressed: busy
                   ? null
-                  : () => Navigator.of(context).push(
-                      MaterialPageRoute<Graduation?>(
-                        builder: (_) => GraduationCelebrationScreen(
-                          matchId: matchId,
-                          partnerName: partnerName,
-                          pendingGraduationId: graduation.id,
+                  : () async {
+                      final confirmed = await Navigator.of(context).push(
+                        MaterialPageRoute<Graduation?>(
+                          builder: (_) => GraduationCelebrationScreen(
+                            matchId: matchId,
+                            partnerName: partnerName,
+                            pendingGraduationId: graduation.id,
+                          ),
                         ),
-                      ),
-                    ),
+                      );
+                      // Null: the member backed out. Otherwise show the
+                      // confirmation even if the reload after it failed.
+                      if (confirmed != null) {
+                        notifier.adopt(confirmed);
+                      }
+                    },
               child: Text(l10n.graduationConfirm),
             ),
           ),

@@ -44,6 +44,7 @@ def _channel_messages(member, channel_id: str) -> list[str]:
     return [str(m.get("body") or "") for m in response.body.get("messages", [])]
 
 
+@pytest.mark.case("journeys.e2e.friends_social_chat")
 def test_friend_search_sends_request_to_counterpart(app, device_member, counterpart_factory):
     other = counterpart_factory("fs", "Cora Searchable")
     counterpart_factory.cleanups.append(lambda: remove_friend(other, device_member.user_id))
@@ -76,6 +77,7 @@ def test_friend_search_sends_request_to_counterpart(app, device_member, counterp
     app.wait_for_text("Request sent · Found you by name", timeout=10)
 
 
+@pytest.mark.case("journeys.e2e.friends_social_chat")
 def test_incoming_request_accept_and_friend_chat(app, device_member, counterpart_factory):
     other = counterpart_factory("fc", "Mira Chatwell")
     counterpart_factory.cleanups.append(lambda: remove_friend(other, device_member.user_id))

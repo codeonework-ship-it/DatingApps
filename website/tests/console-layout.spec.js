@@ -37,6 +37,8 @@ const pages = [
   'business/investor-pack/', 'business/spend/', 'reports/', 'reports/revenue/?mode=all', 'reports/retention/', 'activity/', 'reports/most-reported-members/',
   'reports/member-directory/', 'system/', 'system/jobs/', 'system/traffic/', 'system/capacity/', 'system/third-party/',
   'billing/transactions/',
+  'qa-lab/', 'qa-lab/runs/', 'qa-lab/runs/latest/', 'qa-lab/cases/', 'qa-lab/cases/?result=fail',
+  'qa-lab/cases/console.layout.phone/',
 ];
 
 async function consoleUp() {

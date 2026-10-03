@@ -148,6 +148,11 @@ ENDPOINT_PROBES: dict[str, list[Probe]] = {
         anon("POST", "/auth/logout", {}),
         P("unknown token", "anon", "POST", "/auth/logout", {}, ANON),
     ],
+    "POST /auth/sessions/revoke": [
+        anon("POST", "/auth/sessions/revoke", {"all_sessions": True}),
+        P("unknown token", "anon", "POST", "/auth/sessions/revoke", {"all_sessions": True}, ANON),
+        bad("POST", "/auth/sessions/revoke", ["all_sessions"], label="body is not a JSON object"),
+    ],
     "DELETE /notifications/{userID}/devices/{deviceID}": [
         anon("DELETE", "/notifications/{me}/devices/{uuid}"),
         foreign("DELETE", "/notifications/{me}/devices/{uuid}", expect={403}),
@@ -545,6 +550,10 @@ ENDPOINT_PROBES: dict[str, list[Probe]] = {
     "POST /support/tickets/{ticketID}/rating": [
         anon("POST", "/support/tickets/{uuid}/rating", {"rating": 5}),
         gated("POST", "/support/tickets/{uuid}/rating", {"rating": 5}, flag="support_ticketing_enabled"),
+    ],
+    "POST /support/tickets/{ticketID}/messages": [
+        anon("POST", "/support/tickets/{uuid}/messages", {"body": "Hello again"}),
+        gated("POST", "/support/tickets/{uuid}/messages", {"body": "Hello again"}, flag="support_ticketing_enabled"),
     ],
     "POST /support/tickets/{ticketID}/reopen": [
         anon("POST", "/support/tickets/{uuid}/reopen", {}),
@@ -1352,6 +1361,7 @@ CASE_ENDPOINTS = {
     'common.privacy_safety.graduation_discovery_resume.api_contract': ['GET /matches/{matchID}/graduation', 'GET /account/{userID}/discovery/pause', 'POST /account/{userID}/discovery/pause', 'POST /account/{userID}/discovery/resume'],
     'common.privacy_safety.graduation_discovery_pause.api_contract': ['GET /matches/{matchID}/graduation', 'GET /account/{userID}/discovery/pause', 'POST /account/{userID}/discovery/pause', 'POST /account/{userID}/discovery/resume'],
     'common.settings.settings_logout.api_contract': ['POST /auth/logout', 'DELETE /notifications/{userID}/devices/{deviceID}'],
+    'common.settings.settings_logout_all.api_contract': ['POST /auth/sessions/revoke', 'POST /auth/logout', 'DELETE /notifications/{userID}/devices/{deviceID}'],
     'common.settings.settings_theme_selector_selectionchanged.api_contract': ['PATCH /settings/{userID}'],
     'common.settings.settings_theme_preset_x.api_contract': ['PATCH /settings/{userID}'],
     'common.community_actions.report_could_not_be_submitted_onsubmit.api_contract': ['POST /blog/reports/{kind}/{contentID}'],
@@ -1371,6 +1381,7 @@ CASE_ENDPOINTS = {
     'engagement.group_coffee_polls.coffee_finalize_x.api_contract': ['POST /engagement/group-coffee-polls/{pollID}/finalize', 'GET /engagement/group-coffee-polls'],
     'engagement.level_progression.progression_is_paused_while_an_a_onrefresh.api_contract': ['GET /progression/{userID}', 'GET /progression/{userID}/ledger'],
     'engagement.level_progression.level_claim_x_claim.api_contract': ['POST /progression/{userID}/rewards/claim', 'GET /progression/{userID}', 'GET /progression/{userID}/ledger'],
+    'engagement.level_progression.level_retry_retry.api_contract': ['GET /progression/{userID}', 'GET /progression/{userID}/ledger'],
     'engagement.level_progression.level_retry_retry_2.api_contract': ['GET /progression/{userID}', 'GET /progression/{userID}/ledger'],
     'engagement.match_nudges.nudges_send_x.api_contract': ['POST /engagement/match-nudges/send'],
     'engagement.room_chat.room_chat_menu.api_contract': ['POST /rooms/{roomID}/leave', 'POST /rooms/{roomID}/moderate', 'GET /rooms'],
@@ -1383,6 +1394,7 @@ CASE_ENDPOINTS = {
     'engagement.room_chat.room_member_remove.api_contract': ['POST /rooms/{roomID}/moderate'],
     'engagement.trust_badges.no_trust_history_available_yet_onrefresh.api_contract': ['GET /users/{userID}/trust-badges'],
     'engagement.trust_filter.save_trust_filters_onrefresh.api_contract': ['GET /discovery/{userID}/filters/trust'],
+    'common.main_navigation.filters_trust_retry.api_contract': ['GET /discovery/{userID}/filters/trust'],
     'engagement.trust_filter.trust_filter_save.api_contract': ['PATCH /discovery/{userID}/filters/trust'],
     'engagement.voice_icebreakers.voice_share.api_contract': ['POST /engagement/voice-icebreakers/start', 'POST /engagement/voice-icebreakers/{icebreakerID}/send'],
     'engagement.voice_icebreakers.voice_listen_x.api_contract': ['POST /engagement/voice-icebreakers/{icebreakerID}/play'],
@@ -1445,6 +1457,7 @@ CASE_ENDPOINTS = {
     'messaging.copilot_sheet.copilot_use.api_contract': ['POST /matches/{matchID}/copilot/draft'],
     'notifications.notification_inbox.notifications_read_all.api_contract': ['POST /notifications/{userID}/read-all'],
     'notifications.notification_inbox.notifications_refresh_refresh.api_contract': ['POST /notifications/{userID}/devices', 'GET /notifications/{userID}', 'GET /notifications/{userID}/unread-count', 'GET /notifications/{userID}/preferences'],
+    'notifications.notification_inbox.notifications_retry.api_contract': ['POST /notifications/{userID}/devices', 'GET /notifications/{userID}', 'GET /notifications/{userID}/unread-count', 'GET /notifications/{userID}/preferences'],
     'notifications.notification_inbox.notifications_item_x_dismissed.api_contract': ['DELETE /notifications/{userID}/{notificationID}'],
     'notifications.notification_inbox.inkwell_ontap.api_contract': ['POST /notifications/{userID}/{notificationID}/read', 'POST /social/channels/{channelID}/read'],
     'payment.subscription.your_plan_renews_automatically_a_onrefresh.api_contract': ['GET /billing/plans', 'GET /billing/subscription/{userID}', 'GET /billing/payments/{userID}', 'GET /billing/account'],
@@ -1504,6 +1517,8 @@ CASE_ENDPOINTS = {
     'support.support_ticket_thread.support_close_close.api_contract': ['POST /support/tickets/{ticketID}/close'],
     'support.support_ticket_thread.support_rating_submit_rate.api_contract': ['POST /support/tickets/{ticketID}/rating'],
     'support.support_ticket_thread.support_reopen_reopen.api_contract': ['POST /support/tickets/{ticketID}/reopen'],
+    'support.support_ticket_thread.retry.api_contract': ['POST /support/tickets/{ticketID}/messages'],
+    'support.support_contact_form.support_guest_submit.api_contract': ['POST /support/contact'],
     'support.support_widgets.retry_upload.api_contract': ['POST /support/attachments'],
     'swipe.home_discovery.today_profile_x_openprofile.api_contract': ['POST /profile/views', 'POST /swipe'],
     'swipe.home_discovery.spotlight_rail_row_x_openspotlightprofile.api_contract': ['POST /profile/views', 'POST /swipe'],
@@ -1534,7 +1549,6 @@ CASE_ENDPOINTS = {
     'swipe.spotlight_profiles.undo_icon_undo_onundo.api_contract': ['POST /swipe', 'GET /matches/{userID}'],
     'verification.verification_selfie.verification_selfie_submit_button.api_contract': ['POST /verification/{userID}/submit'],
     'web.web_member_workspace.sign_out.api_contract': ['POST /auth/logout', 'DELETE /notifications/{userID}/devices/{deviceID}'],
-    'web.web_membership_page.retry.api_contract': ['GET /billing/plans', 'GET /billing/subscription/{userID}', 'GET /billing/payments/{userID}', 'GET /billing/account'],
     'site.contact.api_contract': ['POST /support/contact'],
 }
 

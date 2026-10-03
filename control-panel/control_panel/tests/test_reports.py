@@ -16,8 +16,9 @@ REVENUE = {
     "totals": [
         {"currency": "INR", "market": "IN", "gross": "1000.00", "gross_minor": 100000, "net": "900.00", "net_minor": 90000,
          "paying_members": 12, "refund_rate": 0.05},
+        # Go writes the suppression marker into the value itself (suppressCount, business_reports.go).
         {"currency": "INR", "market": "IN-KA", "gross": "500.00", "gross_minor": 50000, "net": "450.00", "net_minor": 45000,
-         "paying_members": 3, "refund_rate": 0.0, "suppressed": ["paying_members"]},
+         "paying_members": "<5", "refund_rate": 0.0},
         {"currency": "EUR", "market": "DE", "gross": "20.00", "gross_minor": 2000, "net": "20.00", "net_minor": 2000,
          "paying_members": 7, "refund_rate": 0.1},
     ],
@@ -35,7 +36,7 @@ class ReportServerTest(ConsoleCaseTest):
         return api, self.client.get(reverse("report_view", args=["revenue"]), query)
 
     def test_catalog_lists_reports_and_searches(self):
-        """The catalog lists business and product reports and finds them by keyword. [case:console.reports.catalog.search]"""
+        """The catalog lists business and product reports and finds them by keyword. [case:console.reports.catalog.search] [case:console.reports.report_catalog.renders] [case:console.reports.report_catalog.filters]"""
         self.bff()
         response = self.client.get(reverse("report_catalog"))
         card = '<span class="report-card-title">'
@@ -87,14 +88,14 @@ class ReportServerTest(ConsoleCaseTest):
         self.assertContains(response, reverse("report_view", args=["liquidity"]) + "?since=2026-09-01&amp;city=Bengaluru")
 
     def test_role_refusal_is_shown_not_crashed(self):
-        """Go's 403 renders as not available to your role. [case:console.reports.view.denied]"""
+        """Go's 403 renders as not available to your role. [case:console.reports.view.denied] [case:console.reports.report_view.renders]"""
         self.bff().business_report.return_value = bff_error("forbidden", status=403)
         response = self.client.get(reverse("report_view", args=["revenue"]))
         self.assertEqual(response.status_code, 403)
         self.assertContains(response, "not available to your role", status_code=403)
 
     def test_unknown_report_is_404(self):
-        """[case:console.reports.view.unknown]"""
+        """[case:console.reports.view.unknown] [case:console.reports.report_view.renders]"""
         self.bff()
         self.assertEqual(self.client.get(reverse("report_view", args=["nope"])).status_code, 404)
 
@@ -128,7 +129,7 @@ class ReportServerTest(ConsoleCaseTest):
         self.assertTrue(response.content.startswith(b"%PDF"))
 
     def test_analytics_reports_use_go_column_metadata(self):
-        """Product reports take their tables and units from Go. [case:console.reports.view.analytics_tables]"""
+        """Product reports take their tables and units from Go. [case:console.reports.view.analytics_tables] [case:console.reports.report_view.renders]"""
         api = self.bff()
         api.analytics_report.return_value = APIResult(True, {"tables": {"triangle": {
             "columns": [{"key": "cohort_week", "label": "Week", "kind": "dimension"},

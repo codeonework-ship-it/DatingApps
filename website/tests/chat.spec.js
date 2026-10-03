@@ -1,5 +1,6 @@
 import {test, expect} from '@playwright/test';
 import {qaMember} from './support/member.js';
+import {qaField, qaId} from './support/qa.js';
 
 // Never the shared QA account: signing in invalidates its other sessions.
 const member = qaMember();
@@ -69,7 +70,7 @@ for (const width of [390, 1440]) {
     await password.press('Tab');
     await expect(username).toHaveValue(member.username);
     const loginResponse = page.waitForResponse(r=>r.url().endsWith('/v1/auth/login')&&r.request().method()==='POST');
-    await page.getByRole('button',{name:'qa.signin.login_button',exact:true}).click();
+    await qaId(page,'qa.signin.login_button').click();
     self = (await (await loginResponse).json()).user_id;
     await expect(page).toHaveURL(/#\/discover$/,{timeout:30000});
     await page.goto('/app/#/matches');
@@ -78,11 +79,12 @@ for (const width of [390, 1440]) {
     await expect(page.getByRole('checkbox',{name:'Conversations',exact:true})).toBeChecked();
     const search = page.getByRole('textbox',{name:/Search conversations/});
     await enterText(search, 'Maya', page);
-    await expect(page.getByRole('button',{name:/^qa.matches.match_row.chat-ui-arjun/})).toHaveCount(0);
+    await expect(qaId(page,'qa.matches.match_row.chat-ui-maya')).toBeVisible();
+    await expect(qaId(page,'qa.matches.match_row.chat-ui-arjun')).toHaveCount(0);
     await enterText(search, '', page);
     await page.screenshot({path:`../qa/results/chat-redesign/inbox-${width}.png`});
-    await page.getByRole('button',{name:/^qa.matches.match_row.chat-ui-maya/}).click();
-    const composer = page.getByRole('textbox',{name:/Write a message|qa.chat.composer/});
+    await qaId(page,'qa.matches.match_row.chat-ui-maya').click();
+    const composer = qaField(page,'qa.chat.composer');
     await expect(composer).toBeVisible();
     await expect(page.getByText('Active now',{exact:true})).toHaveCount(0);
     await expect(page.getByText(messages[0].text,{exact:false})).toBeVisible();
@@ -94,19 +96,19 @@ for (const width of [390, 1440]) {
     const sentRequest = page.waitForRequest(r => r.url().endsWith('/chat/chat-ui-maya/messages') && r.method() === 'POST');
     await composer.press('Enter');
     expect((await sentRequest).postDataJSON().text).toBe('Coffee and a cinnamon roll? I’m in.');
-    await expect(page.getByRole('button',{name:/^qa.chat.message.chat-ui-5/})).toBeVisible();
+    await expect(qaId(page,'qa.chat.message.chat-ui-5').and(page.getByRole('button'))).toBeVisible();
     // Flutter's inactive semantic textarea can retain its old DOM value;
     // the send control reflects the live controller's empty draft.
     await expect(page.getByRole('button',{name:'Send message',exact:true})).toBeDisabled();
     refused=true;
     await enterText(composer, 'Please keep this draft', page);
     await composer.press('Enter');
-    const quota = page.getByRole('group',{name:/^qa.chat.daily_limit_banner/});
+    const quota = qaId(page,'qa.chat.daily_limit_banner');
     await expect(quota).toBeVisible();
     await expect(composer).toHaveValue('Please keep this draft');
     refused=false;
     await page.getByRole('button',{name:'Send message',exact:true}).click();
-    await expect(page.getByRole('button',{name:/^qa.chat.message.chat-ui-6 Please keep this draft/})).toBeVisible();
+    await expect(qaId(page,'qa.chat.message.chat-ui-6').and(page.getByRole('button',{name:/Please keep this draft/}))).toBeVisible();
     await expect(quota).toHaveCount(0);
     await page.getByRole('button',{name:'Send a gift',exact:true}).click();
     await expect(page.getByText('A little something for them',{exact:true})).toBeVisible();

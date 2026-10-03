@@ -49,7 +49,21 @@ async function startServer(extraEnv) {
 }
 
 const catalog = JSON.parse(readFileSync(join(repo, 'qa/catalog/feature_catalog.json'), 'utf8'));
-const manualCase = catalog.features.flatMap(f => f.cases.map(c => ({...c, feature: f}))).find(c => c.status === 'not_automated');
+// A case to stand in for one that needs a real device. QA Lab only treats a
+// case as manual when no test automates it, and at 100% coverage no case
+// qualifies, so the spec serves QA Lab a copy of the catalog in which the
+// first case has no automated test (the real catalog is untouched).
+const allCases = catalog.features.flatMap(f => f.cases.map(c => ({...c, feature: f})));
+const manualCase = allCases.find(c => c.status === 'not_automated') || allCases[0];
+function catalogWithManualCase() {
+  const copy = structuredClone(catalog);
+  for (const f of copy.features) {
+    for (const c of f.cases) {
+      if (c.id === manualCase.id) Object.assign(c, {status: 'not_automated', automated_by: []});
+    }
+  }
+  return copy;
+}
 
 let lab;
 let results;
@@ -59,7 +73,10 @@ test.beforeAll(async () => {
   results = mkdtempSync(join(tmpdir(), 'qa-lab-spec-'));
   const manual = join(results, 'manual_cases.json');
   writeFileSync(manual, JSON.stringify({[manualCase.id]: 'QA Lab spec: stands in for a case that needs a real device'}));
-  lab = await startServer({QA_LAB: '1', QA_LAB_SELFTEST: '1', QA_LAB_RESULTS_DIR: results, QA_LAB_MANUAL_CASES: manual, NODE_ENV: 'development'});
+  const catalogPath = join(results, 'feature_catalog.json');
+  writeFileSync(catalogPath, JSON.stringify(catalogWithManualCase()));
+  lab = await startServer({QA_LAB: '1', QA_LAB_SELFTEST: '1', QA_LAB_RESULTS_DIR: results, QA_LAB_MANUAL_CASES: manual,
+    QA_LAB_CATALOG: catalogPath, NODE_ENV: 'development'});
 });
 
 test.afterAll(async () => {
@@ -129,7 +146,7 @@ test('case browser filters by area and status and selects cases', async ({page})
   await signIn(page);
   await page.getByRole('tab', {name: 'Cases'}).click();
   const area = manualCase.feature.area;
-  await page.getByLabel('Area').selectOption(area);
+  await page.getByLabel('Area', {exact: true}).selectOption(area);
   const expected = catalog.features.filter(f => f.area === area).reduce((n, f) => n + f.cases.length, 0);
   await expect(page.locator('#caseCount')).toContainText(`${expected} case`);
   await page.getByLabel('Search cases').fill(manualCase.id);
@@ -146,8 +163,13 @@ test('case browser filters by area and status and selects cases', async ({page})
 
 test('a run streams live progress, lands in history and exports reports', async ({page}) => {
   await signIn(page);
+  // The suite picker fills in after the environment probe; unchecking before
+  // that unchecked nothing and started every suite (a full Flutter run).
+  const selftest = page.locator('#suitePicker label', {hasText: 'selftest'}).getByRole('checkbox');
+  await expect(selftest).toBeVisible();
   for (const box of await page.locator('#suitePicker input[type=checkbox]:not([disabled])').all()) await box.uncheck();
-  await page.locator('#suitePicker label', {hasText: 'selftest'}).getByRole('checkbox').check();
+  await selftest.check();
+  await expect(page.locator('#suitePicker input[type=checkbox]:checked')).toHaveCount(1);
   await page.getByLabel('Seed data first').uncheck();
   await page.getByLabel('Catalog rescan').selectOption('none');
   const started = page.waitForResponse(r => r.url().endsWith('/qa-lab/api/runs') && r.request().method() === 'POST');

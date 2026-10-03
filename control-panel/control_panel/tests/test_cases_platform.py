@@ -158,7 +158,7 @@ class LogPagesTest(ConsoleCaseTest):
         """[case:console.activities.activity_feed.renders]"""
         api = self.bff()
         self.client.get(reverse("activity_feed"), {"limit": "99999"})
-        api.list_activities.assert_called_with(limit=1000)
+        api.list_activities.assert_called_with(limit=500)  # Go returns at most 500 (adminActivitiesSpec)
         api.list_activities.return_value = bff_error()
         response = self.client.get(reverse("activity_feed"))
         self.assertEqual(response.status_code, 200)

@@ -620,6 +620,9 @@ class _GenderSelector extends StatelessWidget {
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 180),
                   padding: const EdgeInsets.symmetric(vertical: 12),
+                  // A 48pt tap target (Android/iOS accessibility minimum).
+                  constraints: const BoxConstraints(minHeight: 48),
+                  alignment: Alignment.center,
                   decoration: BoxDecoration(
                     color: value == option.$1
                         ? scheme.primaryContainer

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import uuid
+
 import pytest
 
 from client import wait_for
@@ -58,3 +60,25 @@ def test_notification_preference_mutes_category(make_member):
         assert not [n for n in (likes or []) if not n["is_read"]], likes
     finally:
         b.patch(prefs, {"notify_likes": True}).ok()
+
+
+@pytest.mark.case("notifications.notification_inbox.notifications_retry.api_contract",
+                  "notifications.notification_inbox.notifications_refresh_refresh.api_contract")
+def test_inbox_load_registers_the_device_and_reads_list_count_and_preferences(make_member):
+    """The inbox (first load, pull to refresh and Retry) registers the push device and reads the
+    list, the unread count and the preferences for the signed-in member."""
+    member = make_member("nt_inbox", "F", "M")
+    base = f"/notifications/{member.user_id}"
+    device = member.post(f"{base}/devices", {"provider": "fcm", "platform": "android",
+                                              "token": f"e2e-{uuid.uuid4()}"}).ok(201)
+    assert device["registered"] is True and device["device_id"]
+    try:
+        listed = member.get(base, params={"limit": 20}).ok()
+        assert isinstance(listed["notifications"], list) and "next_after" in listed.body
+        count = member.get(f"{base}/unread-count").ok()["unread_count"]
+        assert isinstance(count, int) and count >= 0
+        prefs = member.get(f"{base}/preferences").ok()["preferences"]
+        for key in ("notify_new_match", "notify_new_message", "notify_likes", "notify_safety"):
+            assert isinstance(prefs[key], bool), (key, prefs)
+    finally:
+        member.delete(f"{base}/devices/{device['device_id']}")

@@ -214,29 +214,26 @@ const _message = ValueKey('qa.profile_detail.message_button');
 
 void main() {
   group('profile page (any entry point, empty deck)', () {
-    testWidgets(
-      'Love saves one like for this member and closes '
-      '[case:swipe.profile_details.profile_detail_love_button_love.action] '
-      '[case:swipe.profile_details.profile_detail_love_button_love.api_contract]',
-      (tester) async {
-        final server = _Server();
-        final results = await _open(
-          tester,
-          server,
-          () => ProfileDetailsScreen(profile: _anya()),
-        );
-        await tester.tap(find.byKey(_love));
-        await tester.tap(find.byKey(_love), warnIfMissed: false); // double tap
-        await _settle(tester);
+    testWidgets('Love saves one like for this member and closes '
+        '[case:swipe.profile_details.profile_detail_love_button_love.action] '
+        '', (tester) async {
+      final server = _Server();
+      final results = await _open(
+        tester,
+        server,
+        () => ProfileDetailsScreen(profile: _anya()),
+      );
+      await tester.tap(find.byKey(_love));
+      await tester.tap(find.byKey(_love), warnIfMissed: false); // double tap
+      await _settle(tester);
 
-        expect(server.swipes, [
-          {'user_id': 'me', 'target_user_id': 'anya', 'is_like': true},
-        ]);
-        expect(results, [ProfileDetailsAction.love]);
-        expect(find.byType(ProfileDetailsScreen), findsNothing);
-        expect(find.text('Super like sent to Anya'), findsOneWidget);
-      },
-    );
+      expect(server.swipes, [
+        {'user_id': 'me', 'target_user_id': 'anya', 'is_like': true},
+      ]);
+      expect(results, [ProfileDetailsAction.love]);
+      expect(find.byType(ProfileDetailsScreen), findsNothing);
+      expect(find.text('Super like sent to Anya'), findsOneWidget);
+    });
 
     testWidgets('Love that makes a match shows the match screen '
         '[case:swipe.profile_details.openers_handle_result]', (tester) async {
@@ -269,31 +266,28 @@ void main() {
       },
     );
 
-    testWidgets(
-      'Message without a match sends a like, explains, stays '
-      '[case:swipe.profile_details.profile_detail_message_button_message.api_contract]',
-      (tester) async {
-        final server = _Server();
-        final results = await _open(
-          tester,
-          server,
-          () => ProfileDetailsScreen(profile: _anya()),
-        );
-        await tester.tap(find.byKey(_message));
-        await _settle(tester);
-        expect(server.swipes, [
-          {'user_id': 'me', 'target_user_id': 'anya', 'is_like': true},
-        ]);
-        expect(
-          find.text(
-            'Love sent to Anya. You can chat as soon as they like you back.',
-          ),
-          findsOneWidget,
-        );
-        expect(find.byType(ProfileDetailsScreen), findsOneWidget);
-        expect(results, isEmpty, reason: 'it must not fall back to the list');
-      },
-    );
+    testWidgets('Message without a match sends a like, explains, stays '
+        '', (tester) async {
+      final server = _Server();
+      final results = await _open(
+        tester,
+        server,
+        () => ProfileDetailsScreen(profile: _anya()),
+      );
+      await tester.tap(find.byKey(_message));
+      await _settle(tester);
+      expect(server.swipes, [
+        {'user_id': 'me', 'target_user_id': 'anya', 'is_like': true},
+      ]);
+      expect(
+        find.text(
+          'Love sent to Anya. You can chat as soon as they like you back.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.byType(ProfileDetailsScreen), findsOneWidget);
+      expect(results, isEmpty, reason: 'it must not fall back to the list');
+    });
 
     testWidgets('Message whose like makes the match opens the chat', (
       tester,

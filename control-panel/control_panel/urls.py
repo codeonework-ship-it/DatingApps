@@ -8,6 +8,7 @@ from . import views_analytics
 from . import views_reports
 from . import views_activity
 from . import views_system
+from . import views_qa_lab
 
 urlpatterns = [
     # ── Member activity (every member action, live tail) ──────────────────────
@@ -18,6 +19,12 @@ urlpatterns = [
     path("system/traffic/", views_system.system_requests, name="system_requests"),
     path("system/capacity/", views_system.system_capacity, name="system_capacity"),
     path("system/third-party/", views_system.system_third_party, name="system_third_party"),
+    # ── QA Lab (local only: QA_LAB_ENABLED; read-only test runs and coverage) ─
+    path("qa-lab/", views_qa_lab.qa_lab_overview, name="qa_lab"),
+    path("qa-lab/runs/", views_qa_lab.qa_lab_runs, name="qa_lab_runs"),
+    path("qa-lab/runs/<str:run_id>/", views_qa_lab.qa_lab_run_detail, name="qa_lab_run_detail"),
+    path("qa-lab/cases/", views_qa_lab.qa_lab_cases, name="qa_lab_cases"),
+    path("qa-lab/cases/<str:case_id>/", views_qa_lab.qa_lab_case_detail, name="qa_lab_case_detail"),
     # ── Report server (catalog, parameters, groups, Excel/CSV/PDF) ────────────
     path("reports/", views_reports.report_catalog, name="report_catalog"),
     path("reports/<slug:report_id>/", views_reports.report_view, name="report_view"),

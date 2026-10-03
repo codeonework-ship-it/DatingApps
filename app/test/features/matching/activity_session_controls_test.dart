@@ -8,6 +8,7 @@ import 'package:verified_dating_app/features/matching/providers/activity_session
 import 'package:verified_dating_app/features/matching/screens/activity_session_screen.dart';
 
 import '../../support/qa_api.dart';
+import '../swipe/qa_screen_checks.dart';
 
 final _questions = buildDefaultActivityQuestions();
 
@@ -81,9 +82,7 @@ Future<void> _answerAll(WidgetTester tester, {int except = -1}) async {
 
 void main() {
   testWidgets('opening starts a session for this match '
-      '', (
-    tester,
-  ) async {
+      '', (tester) async {
     final api = _api();
     await _open(tester, api);
 
@@ -217,9 +216,7 @@ void main() {
 
   testWidgets('Submit sends every answer, then shows the summary '
       '[case:matching.activity_session.activity_submit.action] '
-      '', (
-    tester,
-  ) async {
+      '', (tester) async {
     final api = _api();
     await _open(tester, api);
     await _answerAll(tester);
@@ -260,9 +257,7 @@ void main() {
 
   testWidgets('waiting on the other person: Refresh Summary fetches it '
       '[case:matching.activity_session.activity_refresh_summary.action] '
-      '', (
-    tester,
-  ) async {
+      '', (tester) async {
     final api = _api()
       ..json('POST /activities/sessions/act-1/submit', {'session': _session()})
       ..json(
@@ -307,9 +302,7 @@ void main() {
   testWidgets('when time is up the summary loads once, and Load Summary '
       'fetches it again '
       '[case:matching.activity_session.activity_time_up_load.action] '
-      '', (
-    tester,
-  ) async {
+      '', (tester) async {
     final api = _api(left: Duration.zero)
       ..json(
         'GET /activities/sessions/act-1/summary',
@@ -361,5 +354,99 @@ void main() {
       '2-Min This-or-That result: completed • 2/2 completed • '
           'You both picked the long walk.',
     ]);
+  });
+
+  group('screen checks', () {
+    Future<void> pumpActivity(
+      WidgetTester tester, {
+      Size size = const Size(430, 932),
+      ThemeData? theme,
+      Locale? locale,
+      bool launcher = false,
+    }) async {
+      const screen = ActivitySessionScreen(
+        matchId: 'm1',
+        otherUserId: 'maya',
+        otherUserName: 'Maya',
+      );
+      await pumpQa(
+        tester,
+        _api(),
+        theme == null ? screen : qaThemed(theme, screen),
+        size: size,
+        locale: locale,
+        launcher: launcher,
+      );
+    }
+
+    Finder firstAnswer() =>
+        find.byKey(ValueKey('qa.activity.answer.${_questions.first.id}.0'));
+
+    testWidgets('a running session meets the tap-target, label and contrast '
+        'guidelines [case:matching.activity_session.a11y_guidelines]', (
+      tester,
+    ) async {
+      await pumpActivity(tester, launcher: true);
+      expect(firstAnswer(), findsOneWidget);
+      await qaExpectA11y(tester);
+      await _close(tester);
+    });
+
+    testWidgets('pushed from the chat it shows a back button that returns '
+        '[case:matching.activity_session.back_affordance]', (tester) async {
+      await pumpActivity(tester, launcher: true);
+      expect(find.byType(BackButton), findsOneWidget);
+
+      await tester.tap(find.byType(BackButton));
+      await qaSettle(tester);
+
+      expect(find.byType(ActivitySessionScreen), findsNothing);
+      expect(find.byKey(const ValueKey('qa.test.launcher')), findsOneWidget);
+      await _close(tester);
+    });
+
+    testWidgets('a running session lays out on phones and tablets in both '
+        'themes [case:matching.activity_session.layout_matrix]', (
+      tester,
+    ) async {
+      await qaExpectLayout(
+        tester,
+        pump: (size, theme) => pumpActivity(tester, size: size, theme: theme),
+        check: (where) {
+          expect(firstAnswer(), findsOneWidget, reason: where);
+          expect(
+            find.text('Complete this with Maya'),
+            findsOneWidget,
+            reason: where,
+          );
+        },
+      );
+    });
+
+    testWidgets('the activity renders translated in every language '
+        '[case:matching.activity_session.l10n]', (tester) async {
+      await qaExpectTranslated(
+        tester,
+        pump: (locale) => pumpActivity(tester, locale: locale),
+        fixture: {'Maya'},
+        check: (l10n, where) {
+          expect(
+            find.text(l10n.matchesActivityTitle),
+            findsOneWidget,
+            reason: where,
+          );
+          expect(
+            find.text(l10n.matchesActivityCompleteWith('Maya')),
+            findsOneWidget,
+            reason: where,
+          );
+          expect(
+            find.text(l10n.matchesActivityInstructions),
+            findsOneWidget,
+            reason: where,
+          );
+        },
+      );
+    });
   });
 }

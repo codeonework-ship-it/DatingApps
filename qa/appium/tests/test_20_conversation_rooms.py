@@ -52,6 +52,7 @@ def _leave_via_api(member, room_id: str) -> None:
     member.api.post(f"/rooms/{room_id}/leave", {})
 
 
+@pytest.mark.case("journeys.e2e.rooms_groups")
 def test_rooms_list_join_send_and_leave(app, device_member, counterpart_factory):
     room = next(r for r in _rooms(device_member) if r.get("title") == SEEDED_ROOM)
     room_id = room["id"]

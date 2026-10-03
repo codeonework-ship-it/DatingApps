@@ -83,58 +83,86 @@ void main() {
     ),
   };
 
-  themes.forEach((themeLabel, theme) {
-    targets.forEach((label, target) {
-      testWidgets('$label meets accessibility guidelines [$themeLabel]', (
-        tester,
-      ) async {
-        final failing = <String, String>{};
-        await pumpAndCollectLayoutErrors(
-          tester,
-          target.build(),
-          target.size,
-          theme,
-          overrides: target.overrides,
-          whileMounted: () async {
-            for (final entry in guidelines.entries) {
-              final evaluation = await entry.value.evaluate(tester);
-              if (!evaluation.passed) {
-                failing[entry.key] = evaluation.reason ?? '';
-              }
-            }
-          },
-        );
-
-        final known = _knownFailures['$label [$themeLabel]'] ?? const {};
-        final problems = <String>[];
-        for (final guideline in guidelines.keys) {
-          final reason = failing[guideline];
-          final nodes = reason == null
-              ? 0
-              : 'SemanticsNode#'.allMatches(reason).length;
-          final ceiling = known[guideline]?.nodes ?? 0;
-          if (nodes > ceiling) {
-            problems.add(
-              '$guideline: $nodes failing node(s), allowlist permits $ceiling'
-              '\n$reason',
-            );
-          } else if (nodes < ceiling) {
-            problems.add(
-              '$guideline improved: $nodes failing node(s), allowlist still '
-              'says $ceiling. '
-              '${nodes == 0 ? 'Delete' : 'Lower'} the "$label [$themeLabel]" '
-              '$guideline entry in _knownFailures.',
-            );
+  Future<void> checkGuidelines(
+    WidgetTester tester,
+    String label,
+    _Target target,
+    String themeLabel,
+    ThemeData theme,
+  ) async {
+    final failing = <String, String>{};
+    await pumpAndCollectLayoutErrors(
+      tester,
+      target.build(),
+      target.size,
+      theme,
+      overrides: target.overrides,
+      whileMounted: () async {
+        for (final entry in guidelines.entries) {
+          final evaluation = await entry.value.evaluate(tester);
+          if (!evaluation.passed) {
+            failing[entry.key] = evaluation.reason ?? '';
           }
         }
-        expect(
-          problems,
-          isEmpty,
-          reason:
-              '$label [$themeLabel] accessibility:\n${problems.join('\n\n')}',
+      },
+    );
+
+    final known = _knownFailures['$label [$themeLabel]'] ?? const {};
+    final problems = <String>[];
+    for (final guideline in guidelines.keys) {
+      final reason = failing[guideline];
+      final nodes = reason == null
+          ? 0
+          : 'SemanticsNode#'.allMatches(reason).length;
+      final ceiling = known[guideline]?.nodes ?? 0;
+      if (nodes > ceiling) {
+        problems.add(
+          '$guideline: $nodes failing node(s), allowlist permits $ceiling'
+          '\n$reason',
         );
-      });
+      } else if (nodes < ceiling) {
+        problems.add(
+          '$guideline improved: $nodes failing node(s), allowlist still '
+          'says $ceiling. '
+          '${nodes == 0 ? 'Delete' : 'Lower'} the "$label [$themeLabel]" '
+          '$guideline entry in _knownFailures.',
+        );
+      }
+    }
+    expect(
+      problems,
+      isEmpty,
+      reason: '$label [$themeLabel] accessibility:\n${problems.join('\n\n')}',
+    );
+  }
+
+  themes.forEach((themeLabel, theme) {
+    targets.forEach((label, target) {
+      final feature = _caseFeatures[label];
+      if (feature == null) {
+        // The browser shell is not a catalog screen.
+        testWidgets(
+          '$label meets accessibility guidelines [$themeLabel]',
+          (tester) => checkGuidelines(tester, label, target, themeLabel, theme),
+        );
+        return;
+      }
+      // Every matrix screen proves `<feature>.a11y_guidelines`: labelled tap
+      // targets, 48x48 tap targets and AA contrast, with the ratchet below.
+      testWidgets(
+        '$label meets accessibility guidelines [$themeLabel] '
+        '[case:$feature.a11y_guidelines]',
+        (tester) => checkGuidelines(tester, label, target, themeLabel, theme),
+      );
     });
+  });
+
+  test('every matrix screen names its catalog feature', () {
+    expect(
+      _caseFeatures.keys.toSet(),
+      buildScreenMatrix().keys.toSet(),
+      reason: 'Add the catalog feature id of each new screen to _caseFeatures',
+    );
   });
 
   test('every allowlisted accessibility failure names a real check', () {
@@ -170,57 +198,95 @@ const _contrast = 'text contrast';
 const _webDesktop = 'WebMemberWorkspace desktop 1440x900';
 const _webPhone = 'WebMemberWorkspace phone';
 
-// Shared reasons, so each class of debt reads the same wherever it appears.
-const _swipeCardLinks =
-    'SwipeCard\'s inline "View more" and "Message" text actions are 14-15pt '
-    'tall. SwipeCard is shared with the golden-pinned discovery deck, so '
-    'growing them needs a golden refresh.';
-const _contrastBacklog =
-    'Contrast backlog: theme-dependent text colours need a design pass across '
-    'the Daylight/Ember themes and presets, not a per-screen patch.';
-
 /// Per-screen, per-theme, per-guideline accessibility debt.
 ///
 /// `nodes` is the exact number of failing semantics nodes today. The suite
 /// fails if it grows, and also fails if it shrinks until the entry is lowered
 /// or deleted, so this map can only get smaller. Do not add entries: fix the
 /// screen.
-const _knownFailures = <String, Map<String, _Known>>{
-  // ── Tap targets and labels ──────────────────────────────────────────────
-  'SpotlightProfilesScreen [light]': {
-    _tapTargets: (nodes: 2, why: _swipeCardLinks),
-  },
-  'SpotlightProfilesScreen [dark]': {
-    _tapTargets: (nodes: 2, why: _swipeCardLinks),
-  },
-  // ── Text contrast ───────────────────────────────────────────────────────
-  'CallSessionScreen [light]': {
-    _contrast: (
-      nodes: 1,
-      why: '"Call session" title, 1.05:1 on its ground. $_contrastBacklog',
-    ),
-  },
-  'LevelProgressionScreen [light]': {
-    _contrast: (
-      nodes: 2,
-      why:
-          'Signed-out notice and Retry on an error-red card. $_contrastBacklog',
-    ),
-  },
-  'LevelProgressionScreen [dark]': {
-    _contrast: (
-      nodes: 2,
-      why:
-          'Signed-out notice and Retry on an error-red card. $_contrastBacklog',
-    ),
-  },
-  'SubscriptionScreen [light]': {
-    _contrast: (nodes: 1, why: 'Signed-out notice, 3.74:1. $_contrastBacklog'),
-  },
-  'WalletPaymentScreen [light]': {
-    _contrast: (
-      nodes: 1,
-      why: 'Muted footnote, under 4.5:1. $_contrastBacklog',
-    ),
-  },
+const _knownFailures = <String, Map<String, _Known>>{};
+
+/// Catalog feature id of each matrix screen (qa/catalog/feature_catalog.json).
+/// The guideline test of a screen proves `<feature>.a11y_guidelines`.
+const _caseFeatures = <String, String>{
+  'WelcomeScreen': 'auth.welcome',
+  'WebEntryScreen': 'web.web_entry',
+  'AuthScreen': 'auth.auth',
+  'AccountRecoveryScreen': 'auth.account_recovery',
+  'SignupScreen': 'auth.signup',
+  'UserAgreementScreen': 'auth.user_agreement',
+  'BlogScreen': 'blog.blog',
+  'BlogDetailScreen': 'blog.blog_detail',
+  'BlogWritersScreen': 'blog.blog_writers',
+  'CallHistoryScreen': 'calls.call_history',
+  'CallSessionScreen': 'calls.call_session',
+  'ClubsScreen': 'clubs.clubs',
+  'ClubDetailScreen': 'clubs.club_detail',
+  'MyListsScreen': 'clubs.my_lists',
+  'TitleDetailScreen': 'clubs.title_detail',
+  'AboutAppScreen': 'common.about_app',
+  'BlockedUsersScreen': 'common.blocked_users',
+  'EmergencyContactsScreen': 'common.emergency_contacts',
+  'HelpSupportScreen': 'common.help_support',
+  'SupportContactFormScreen': 'support.support_contact_form',
+  'SupportTicketFormScreen': 'support.support_ticket_form',
+  'SupportTicketsScreen': 'support.support_tickets',
+  'SupportTicketThreadScreen': 'support.support_ticket_thread',
+  'LanguageSettingsScreen': 'common.language_settings',
+  'MainNavigationScreen': 'common.main_navigation',
+  'ModerationAppealsScreen': 'common.moderation_appeals',
+  'NotificationSettingsScreen': 'common.notification_settings',
+  'AccountDataScreen': 'common.account_data',
+  'PrivacySafetyScreen': 'common.privacy_safety',
+  'SettingsScreen': 'common.settings',
+  'CircleChallengesScreen': 'engagement.circle_challenges',
+  'GroupsScreen': 'groups.groups',
+  'GroupDetailScreen': 'groups.group_detail',
+  'CreateGroupScreen': 'groups.create_group',
+  'ConversationRoomsScreen': 'engagement.conversation_rooms',
+  'DailyPromptScreen': 'engagement.daily_prompt',
+  'EngagementHubScreen': 'engagement.engagement_hub',
+  'GroupCoffeePollsScreen': 'engagement.group_coffee_polls',
+  'LevelProgressionScreen': 'engagement.level_progression',
+  'MatchNudgesScreen': 'engagement.match_nudges',
+  'TrustBadgesScreen': 'engagement.trust_badges',
+  'TrustFilterScreen': 'engagement.trust_filter',
+  'VoiceIcebreakersScreen': 'engagement.voice_icebreakers',
+  'FriendsScreen': 'friends.friends',
+  'PlansScreen': 'plans.plans',
+  'GraduationCelebrationScreen': 'graduation.graduation_celebration',
+  'ActivitySessionScreen': 'matching.activity_session',
+  'MatchNotificationScreen': 'matching.match_notification',
+  'MatchesListScreen': 'matching.matches_list',
+  'ChatScreen': 'messaging.chat',
+  'NotificationInboxScreen': 'notifications.notification_inbox',
+  'PhotoThemesScreen': 'photo_themes.photo_themes',
+  'PhotoThemeGalleryScreen': 'photo_themes.photo_theme_gallery',
+  'CheckoutWebViewScreen': 'payment.checkout_webview',
+  'SubscriptionScreen': 'payment.subscription',
+  'WalletPaymentScreen': 'payment.wallet_payment',
+  'EditProfileScreen': 'profile.edit_profile',
+  'ProfileViewScreen': 'profile.profile_view',
+  'ProfileViewersScreen': 'profile.profile_viewers',
+  'ProfileSetupEntryScreen': 'profile.profile_setup_entry',
+  'SetupAboutScreen': 'profile.setup_about',
+  'SetupPhotosScreen': 'profile.setup_photos',
+  'SetupPreferencesScreen': 'profile.setup_preferences',
+  'SetupPreviewScreen': 'profile.setup_preview',
+  'SosScreen': 'safety.sos',
+  'HomeDiscoveryScreen': 'swipe.home_discovery',
+  'LikedProfilesScreen': 'swipe.liked_profiles',
+  'PassedProfilesScreen': 'swipe.passed_profiles',
+  'ProfileDetailsScreen': 'swipe.profile_details',
+  'SpotlightProfilesScreen': 'swipe.spotlight_profiles',
+  'VerificationLandingScreen': 'verification.verification_landing',
+  'VerificationSelfieScreen': 'verification.verification_selfie',
+  'VerificationStatusScreen': 'verification.verification_status',
+  'VerificationUploadIdScreen': 'verification.verification_upload_id',
+  'ChapterStudioScreen': 'first_chapter.chapter_studio',
+  'CityPilotScreen': 'city_pilot.city_pilot',
+  'ComfortCardsScreen': 'first_chapter.comfort_cards',
+  'IntroducerScreen': 'friends.introducer',
+  'LikedMeScreen': 'swipe.liked_me',
+  'SocialChatScreen': 'social_chat.social_chat',
 };

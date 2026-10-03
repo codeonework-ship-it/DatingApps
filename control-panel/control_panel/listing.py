@@ -31,6 +31,17 @@ PAGE_SIZES = (10, 25, 50, 100)
 EXPORT_MAX_ROWS = 50_000
 EXPORT_PAGE = 200
 _DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+def is_day(value: str) -> bool:
+    """A real calendar day as YYYY-MM-DD (Go refuses 2026-13-01 or 2026-02-30 with a 400)."""
+    if not _DATE.match(value or ""):
+        return False
+    try:
+        date.fromisoformat(value)
+    except ValueError:
+        return False
+    return True
 # Excel would evaluate these as formulas when a cell starts with them.
 _FORMULA_PREFIX = ("=", "+", "-", "@", "\t", "\r")
 
@@ -136,7 +147,7 @@ def parse(request: HttpRequest, spec: ListSpec) -> ListQuery:
         raw = g.get(f.name, "").strip()[: f.max_length]
         if f.kind == "choice" and f.choices and raw not in {v for v, _ in f.choices}:
             raw = ""
-        if f.kind == "date" and raw and not _DATE.match(raw):
+        if f.kind == "date" and raw and not is_day(raw):
             raw = ""
         filters[f.name] = raw
     q = g.get("q", "").strip()[:200] if spec.searchable else ""

@@ -89,7 +89,7 @@ class CatalogPagingTest(ConsoleCaseTest):
         api.list_catalog_gifts.assert_called_once_with(limit=25, offset=0, sort="sort_order", order="asc")
 
     def test_excel_export_holds_every_matching_gift(self):
-        """Export Excel pages through Go with the same filters and writes Go's keys. [case:console.lists.export.xlsx]"""
+        """Export Excel pages through Go with the same filters and writes Go's keys. [case:console.lists.export.xlsx] [case:console.catalog.catalog_list.export]"""
         api = self.bff()
         api.list_catalog_gifts.side_effect = [_catalog([_gift(i) for i in range(200)], 230, limit=200),
                                               _catalog([_gift(i) for i in range(200, 230)], 230, limit=200, offset=200)]
@@ -197,7 +197,7 @@ class GroupCoverPagingTest(ConsoleCaseTest):
         self.assertNotContains(response, 'href="?status=')
 
     def test_export_lists_covers_with_go_keys(self):
-        """Excel carries the cover record (owner, check note, size) for the filtered queue. [case:console.lists.export.xlsx]"""
+        """Excel carries the cover record (owner, check note, size) for the filtered queue. [case:console.lists.export.xlsx] [case:console.moderation_group_covers.group_covers.export]"""
         api = self.bff()
         api.group_covers.return_value = _page("items", [{"cover_id": CASE, "group_id": OTHER, "group_name": "Book club",
                                                          "owner_user_id": MEMBER, "status": "pending", "reason": "Needs a look",
@@ -252,7 +252,7 @@ class BlogReviewPagingTest(ConsoleCaseTest):
         self.assertIn("dir=desc", response.context["page"].next_url)
 
     def test_excel_export_has_every_case_but_no_reported_content(self):
-        """Export pages through the whole queue; snapshots (private prose) are never written to the file. [case:console.lists.export.xlsx]"""
+        """Export pages through the whole queue; snapshots (private prose) are never written to the file. [case:console.lists.export.xlsx] [case:console.moderation_blog.blog_reviews.export]"""
         api = self.bff()
         api.blog_reviews.side_effect = [
             APIResult(True, {"cases": [_blog_case(i) for i in range(200)], "metrics": {}, "total": 260, "limit": 200, "offset": 0}),

@@ -3649,5 +3649,7 @@
   "profileMasterTravelStaycations": "Staycations",
   "profileMasterPoliticsSimilarShort": "Similar",
   "profileMasterPoliticsModerate": "Moderate",
-  "profileMasterPoliticsAny": "Any"
+  "profileMasterPoliticsAny": "Any",
+  "discoverOpenMemberProfile": "Open {name}'s profile",
+  "chatCopilotDisclosureText": "Say it in your own words. If you send it as drafted, they will see it was written with help."
 }

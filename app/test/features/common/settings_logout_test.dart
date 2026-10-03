@@ -30,6 +30,7 @@ import '../../support/qa_api.dart';
 const _logout = ValueKey('qa.settings.logout');
 const _logoutConfirm = ValueKey('qa.settings.logout.confirm');
 const _logoutCancel = ValueKey('qa.settings.logout.cancel');
+const _logoutDialog = ValueKey('qa.settings.logout.dialog');
 const _logoutAll = ValueKey('qa.settings.logout_all');
 const _logoutAllConfirm = ValueKey('qa.settings.logout_all.confirm');
 const _deviceKey = 'push.me.fcm.device_id';
@@ -59,7 +60,12 @@ Override _recordingPush() => pushNotificationServiceProvider.overrideWith(
 );
 
 Future<ProviderContainer> _openSettings(WidgetTester tester, QaApi api) async {
-  await pumpQa(tester, api, const SettingsScreen(), extra: [_recordingPush(), idleNotificationsOverride()]);
+  await pumpQa(
+    tester,
+    api,
+    const SettingsScreen(),
+    extra: [_recordingPush(), idleNotificationsOverride()],
+  );
   final container = ProviderScope.containerOf(
     tester.element(find.byType(SettingsScreen)),
   );
@@ -131,7 +137,8 @@ void main() {
 
   testWidgets(
     'Logout unregisters this device, revokes the session and shows Welcome '
-    '[case:common.settings.settings_logout.action]',
+    '[case:common.settings.settings_logout.action] '
+    '[case:common.settings.x_confirm.action]',
     (tester) async {
       final api = _server();
       final container = await _openSettings(tester, api);
@@ -140,7 +147,15 @@ void main() {
         'qa-refresh',
       );
 
-      await _signOut(tester);
+      await tester.tap(find.byKey(_logout));
+      await tester.pumpAndSettle();
+      expect(find.byKey(_logoutDialog), findsOneWidget);
+      // Nothing is sent until the member confirms.
+      expect(api.writeLines, isEmpty);
+      await tester.tap(find.byKey(_logoutConfirm));
+      await qaSettle(tester);
+      // Confirm closed the dialog and the sign-out ran.
+      expect(find.byKey(_logoutDialog), findsNothing);
 
       expect(api.writeLines, [
         'DELETE /notifications/me/devices/device-42',
@@ -222,19 +237,37 @@ void main() {
   );
 
   testWidgets('Sign out asks first; Cancel keeps the member signed in '
-      '[case:common.settings.settings_logout.confirm_cancel]', (tester) async {
+      '[case:common.settings.settings_logout.confirm_cancel] '
+      '[case:common.settings.cancel.action] '
+      '[case:common.settings.x_cancel.action]', (tester) async {
     final api = _server();
     final container = await _openSettings(tester, api);
+    expect(find.byKey(_logoutDialog), findsNothing);
 
     await tester.tap(find.byKey(_logout));
     await tester.pumpAndSettle();
+    // The confirmation dialog is presented with both choices.
+    expect(find.byKey(_logoutDialog), findsOneWidget);
+    expect(find.byType(AlertDialog), findsOneWidget);
+    expect(find.byKey(_logoutConfirm), findsOneWidget);
     final l10n = qaL10n(const Locale('en'));
+    expect(
+      find.descendant(
+        of: find.byKey(_logoutCancel),
+        matching: find.text(l10n.commonCancel),
+      ),
+      findsOneWidget,
+    );
     expect(find.text(l10n.settingsSignOutConfirmTitle), findsOneWidget);
     expect(find.text(l10n.settingsSignOutConfirmBody), findsOneWidget);
 
     await tester.tap(find.byKey(_logoutCancel));
     await qaSettle(tester);
 
+    // Cancel closed only the dialog: Settings is back underneath.
+    expect(find.byKey(_logoutDialog), findsNothing);
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(find.byKey(_logout).hitTestable(), findsOneWidget);
     expect(api.writeLines, isEmpty);
     expect(find.byType(SettingsScreen), findsOneWidget);
     expect(find.byType(WelcomeScreen), findsNothing);
@@ -244,7 +277,9 @@ void main() {
 
   testWidgets('an offline sign-out deletes the push token so the old device '
       'record cannot deliver this member\'s pushes '
-      '[case:common.settings.settings_logout.push_token_deleted]', (tester) async {
+      '[case:common.settings.settings_logout.push_token_deleted]', (
+    tester,
+  ) async {
     final api = _server()
       ..offline('DELETE /notifications/me/devices/device-42')
       ..offline('POST /auth/logout');
@@ -314,55 +349,56 @@ void main() {
     },
   );
 
-  testWidgets('signing out from the Settings tab inside the real app gate '
-      'shows Welcome without errors [case:common.settings.settings_logout.app_gate]', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(430, 932);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
-    final api = _server();
-    for (var depth = 6; depth <= 7; depth++) {
-      api.json('GET ${List.filled(depth, '/*').join()}', <String, dynamic>{});
-    }
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: qaOverrides(
-          api,
-          extra: [
-            _recordingPush(),
-            appThemeProvider.overrideWith(_PinnedTheme.new),
-            appLocaleProvider.overrideWith(_PinnedLocale.new),
-            notificationProvider.overrideWith(_QuietNotifications.new),
-          ],
+  testWidgets(
+    'signing out from the Settings tab inside the real app gate '
+    'shows Welcome without errors [case:common.settings.settings_logout.app_gate]',
+    (tester) async {
+      tester.view.physicalSize = const Size(430, 932);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final api = _server();
+      for (var depth = 6; depth <= 7; depth++) {
+        api.json('GET ${List.filled(depth, '/*').join()}', <String, dynamic>{});
+      }
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: qaOverrides(
+            api,
+            extra: [
+              _recordingPush(),
+              appThemeProvider.overrideWith(_PinnedTheme.new),
+              appLocaleProvider.overrideWith(_PinnedLocale.new),
+              notificationProvider.overrideWith(_QuietNotifications.new),
+            ],
+          ),
+          child: const DatingApp(),
         ),
-        child: const DatingApp(),
-      ),
-    );
-    await qaSettle(tester);
-    final container = ProviderScope.containerOf(
-      tester.element(find.byType(DatingApp)),
-    );
-    // The member is on the Settings tab of the main navigation.
-    container.read(mainNavigationIndexProvider.notifier).state = 4;
-    await qaSettle(tester);
-    expect(find.byType(SettingsScreen), findsOneWidget);
+      );
+      await qaSettle(tester);
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(DatingApp)),
+      );
+      // The member is on the Settings tab of the main navigation.
+      container.read(mainNavigationIndexProvider.notifier).state = 4;
+      await qaSettle(tester);
+      expect(find.byType(SettingsScreen), findsOneWidget);
 
-    await _signOut(tester);
-    await qaSettle(tester);
+      await _signOut(tester);
+      await qaSettle(tester);
 
-    expect(tester.takeException(), isNull);
-    expect(find.byType(WelcomeScreen), findsOneWidget);
-    expect(find.byType(SettingsScreen), findsNothing);
-    expect(find.byType(MainNavigationScreen), findsNothing);
-    expect(api.writeLines, [
-      'DELETE /notifications/me/devices/device-42',
-      'POST /auth/logout',
-    ]);
-    expect(container.read(authNotifierProvider).isAuthenticated, isFalse);
-    // The next member starts on Today.
-    expect(container.read(mainNavigationIndexProvider), 0);
-  });
+      expect(tester.takeException(), isNull);
+      expect(find.byType(WelcomeScreen), findsOneWidget);
+      expect(find.byType(SettingsScreen), findsNothing);
+      expect(find.byType(MainNavigationScreen), findsNothing);
+      expect(api.writeLines, [
+        'DELETE /notifications/me/devices/device-42',
+        'POST /auth/logout',
+      ]);
+      expect(container.read(authNotifierProvider).isAuthenticated, isFalse);
+      // The next member starts on Today.
+      expect(container.read(mainNavigationIndexProvider), 0);
+    },
+  );
 }
 
 /// The gate loads the account's theme and language on sign-in; this suite is

@@ -72,8 +72,10 @@ Future<void> reportCommunityItem(
       }
     },
   );
-  // The sheet closes on success; say so, as the other report flows do.
+  // The sheet closes on success; say so, as the other report flows do. A
+  // failure message from an earlier try is replaced, not queued in front.
   if (reportId != null && context.mounted) {
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
     showCommunitySnack(context, l10n.communityReportSubmitted);
   }
 }

@@ -94,7 +94,7 @@ class ClientErrorsViewTest(TestCase):
 
     @patch('control_panel.views_client_errors.GoBFFClient')
     def test_filters_and_pagination_pass_through(self, cls):
-        """[case:console.client_errors.client_errors.renders]"""
+        """[case:console.client_errors.client_errors.renders] [case:console.client_errors.client_errors.filters]"""
         cls.return_value.list_client_errors.return_value = APIResult(True, {
             'issues': [_issue()], 'total': 120, 'summary': {}})
         response = self.client.get(reverse('client_errors'), {
@@ -111,7 +111,7 @@ class ClientErrorsViewTest(TestCase):
 
     @patch('control_panel.views_client_errors.GoBFFClient')
     def test_unknown_filters_fall_back_to_defaults(self, cls):
-        """[case:console.client_errors.client_errors.renders]"""
+        """[case:console.client_errors.client_errors.renders] [case:console.client_errors.client_errors.filters]"""
         cls.return_value.list_client_errors.return_value = APIResult(True, {'issues': [], 'total': 0})
         response = self.client.get(reverse('client_errors'), {
             'status': 'deleted', 'platform': 'symbian', 'fatal': 'maybe', 'sort': 'random', 'offset': '-5'})

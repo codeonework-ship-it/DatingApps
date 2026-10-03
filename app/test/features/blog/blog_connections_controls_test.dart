@@ -383,7 +383,9 @@ void main() {
 
   group('connections hub', () {
     testWidgets('Refresh reloads the current list from the server '
-        '[case:blog.blog_connections.blog_connections_refresh.action]', (t) async {
+        '[case:blog.blog_connections.blog_connections_refresh.action]', (
+      t,
+    ) async {
       var round = 0;
       final api = QaApi()
         ..on('GET /blog/responses', (_) {
@@ -444,53 +446,56 @@ void main() {
       },
     );
 
+    testWidgets('When connections fail to load, Try again loads them '
+        '[case:blog.blog_connections.blog_retry_retry.action]', (t) async {
+      var fail = true;
+      final api = QaApi()
+        ..on(
+          'GET /blog/responses',
+          (_) => fail
+              ? const QaReply(503, null)
+              : qaOk({
+                  'responses': [responseRow()],
+                  'next_cursor': '',
+                }),
+        );
+      await pumpQa(t, api, const BlogConnectionsScreen());
+      expect(find.text(en.blogConnectionsLoadFailed), findsOneWidget);
+      fail = false;
+      await t.tap(find.text(en.blogTryAgain));
+      await qaSettle(t);
+      expect(api.sent('GET', '/blog/responses'), hasLength(2));
+      expect(find.text(en.blogConnectionsLoadFailed), findsNothing);
+      expect(find.text('Alex'), findsOneWidget);
+    });
+
     testWidgets(
-      'When connections fail to load, Try again loads them '
-      '[case:blog.blog_connections.blog_retry_retry.action]',
+      'Open private exchange opens that exchange '
+      '[case:blog.blog_connections.blog_connections_open_exchange_item.action]',
       (t) async {
-        var fail = true;
         final api = QaApi()
-          ..on(
-            'GET /blog/responses',
-            (_) => fail
-                ? const QaReply(503, null)
-                : qaOk({
-                    'responses': [responseRow()],
-                    'next_cursor': '',
-                  }),
-          );
+          ..json('GET /blog/responses', {
+            'responses': [
+              responseRow(),
+              responseRow(id: 'ex2', partner: 'Sam'),
+            ],
+            'next_cursor': '',
+          })
+          ..json('GET /blog/responses/ex1', {'response': exchange()});
         await pumpQa(t, api, const BlogConnectionsScreen());
-        expect(find.text(en.blogConnectionsLoadFailed), findsOneWidget);
-        fail = false;
-        await t.tap(find.text(en.blogTryAgain));
-        await qaSettle(t);
-        expect(api.sent('GET', '/blog/responses'), hasLength(2));
-        expect(find.text(en.blogConnectionsLoadFailed), findsNothing);
-        expect(find.text('Alex'), findsOneWidget);
+        await tapIn(t, key('qa.blog.connections.open_exchange.ex1'));
+        expect(find.byType(BlogExchangeScreen), findsOneWidget);
+        expect(
+          t.widget<BlogExchangeScreen>(find.byType(BlogExchangeScreen)).id,
+          'ex1',
+        );
+        expect(api.sent('GET', '/blog/responses/ex1'), hasLength(1));
+        expect(find.text(en.blogExchangeTitle), findsOneWidget);
+        expect(find.text(en.blogExchangeWith('Alex')), findsOneWidget);
+        expect(find.text('A private hello'), findsOneWidget);
+        await done(t);
       },
     );
-
-    testWidgets('Open private exchange opens that exchange '
-        '[case:blog.blog_connections.blog_connections_open_exchange_item.action]', (t) async {
-      final api = QaApi()
-        ..json('GET /blog/responses', {
-          'responses': [responseRow(), responseRow(id: 'ex2', partner: 'Sam')],
-          'next_cursor': '',
-        })
-        ..json('GET /blog/responses/ex1', {'response': exchange()});
-      await pumpQa(t, api, const BlogConnectionsScreen());
-      await tapIn(t, key('qa.blog.connections.open_exchange.ex1'));
-      expect(find.byType(BlogExchangeScreen), findsOneWidget);
-      expect(
-        t.widget<BlogExchangeScreen>(find.byType(BlogExchangeScreen)).id,
-        'ex1',
-      );
-      expect(api.sent('GET', '/blog/responses/ex1'), hasLength(1));
-      expect(find.text(en.blogExchangeTitle), findsOneWidget);
-      expect(find.text(en.blogExchangeWith('Alex')), findsOneWidget);
-      expect(find.text('A private hello'), findsOneWidget);
-      await done(t);
-    });
 
     testWidgets(
       'More loads the next page with the server cursor; Previous returns '
@@ -531,21 +536,22 @@ void main() {
         (_) => qaOk({'publications': items(), 'next_cursor': ''}),
       );
 
-    testWidgets('A shared excerpt can be selected and copied exactly '
-        '[case:blog.blog_connections.blog_connections_excerpt_item_input.action]', (
-      t,
-    ) async {
-      final clipboard = FakeClipboard()..install(t);
-      final api = linksApi(() => [publication()]);
-      await pumpQa(
-        t,
-        api,
-        const BlogConnectionsScreen(section: 'publications'),
-      );
-      await copyAllOf(t, key('qa.blog.connections.excerpt.pub1'));
-      expect(clipboard.text, 'Coffee and a bookshop.');
-      expect(api.writes, isEmpty);
-    });
+    testWidgets(
+      'A shared excerpt can be selected and copied exactly '
+      '[case:blog.blog_connections.blog_connections_excerpt_item_input.action]',
+      (t) async {
+        final clipboard = FakeClipboard()..install(t);
+        final api = linksApi(() => [publication()]);
+        await pumpQa(
+          t,
+          api,
+          const BlogConnectionsScreen(section: 'publications'),
+        );
+        await copyAllOf(t, key('qa.blog.connections.excerpt.pub1'));
+        expect(clipboard.text, 'Coffee and a bookshop.');
+        expect(api.writes, isEmpty);
+      },
+    );
 
     testWidgets(
       'Emoji, RTL and line breaks in a shared excerpt show byte-for-byte '
@@ -844,150 +850,148 @@ void main() {
       await done(t);
     });
 
+    testWidgets('An unavailable exchange says so and Try again reloads it '
+        '[case:blog.blog_connections.blog_retry_retry_2.action]', (t) async {
+      var fail = true;
+      final api = QaApi()
+        ..on(
+          'GET /blog/responses/ex1',
+          (_) =>
+              fail ? const QaReply(404, null) : qaOk({'response': exchange()}),
+        );
+      await pumpQa(t, api, const BlogExchangeScreen(id: 'ex1'));
+      expect(find.text(en.blogExchangeUnavailable), findsOneWidget);
+      fail = false;
+      await t.tap(find.text(en.blogTryAgain));
+      await qaSettle(t);
+      expect(api.sent('GET', '/blog/responses/ex1'), hasLength(2));
+      expect(find.text(en.blogExchangeWith('Alex')), findsOneWidget);
+      await done(t);
+    });
+
+    /// One exchange command (`action`, button key, resulting status) that
+    /// the server accepts.
+    Future<void> commandSucceeds(
+      WidgetTester t,
+      (String, String, String) row,
+    ) async {
+      var status = 'pending';
+      final api = QaApi()
+        ..on(
+          'GET /blog/responses/ex1',
+          (_) => qaOk({'response': exchange(status: status)}),
+        )
+        ..on('POST /blog/responses/ex1', (c) {
+          status = row.$3;
+          return QaReply(200, {
+            'response': exchange(status: row.$3),
+          }, delay: const Duration(milliseconds: 200));
+        });
+      await pumpQa(t, api, const BlogExchangeScreen(id: 'ex1'));
+      expect(find.text(en.blogAcceptExchange), findsOneWidget);
+      expect(find.text(en.blogDeclineKindly), findsOneWidget);
+      await t.tap(key(row.$2));
+      await t.pump();
+      expect(
+        t.widget<ButtonStyleButton>(key(row.$2)).onPressed,
+        isNull,
+        reason: 'busy',
+      );
+      await t.tap(key(row.$2), warnIfMissed: false);
+      await qaSettle(t);
+      expect(api.writeLines, ['POST /blog/responses/ex1']);
+      expect(api.writes.single.body, {'action': row.$1, 'expected_version': 3});
+      expect(api.sent('GET', '/blog/responses/ex1'), hasLength(2));
+      expect(key('qa.blog.exchange.accept'), findsNothing);
+      expect(key('qa.blog.exchange.decline'), findsNothing);
+      if (row.$1 == 'accept') {
+        expect(find.text(en.blogOneStoryEach), findsOneWidget);
+        expect(key('qa.blog.exchange.contribute'), findsOneWidget);
+      } else {
+        expect(find.text(en.blogExchangeClosedNote), findsOneWidget);
+      }
+      await done(t);
+    }
+
     testWidgets(
-      'An unavailable exchange says so and Try again reloads it '
-      '[case:blog.blog_connections.blog_retry_retry_2.action]',
-      (t) async {
-        var fail = true;
-        final api = QaApi()
-          ..on(
-            'GET /blog/responses/ex1',
-            (_) => fail
-                ? const QaReply(404, null)
-                : qaOk({'response': exchange()}),
-          );
-        await pumpQa(t, api, const BlogExchangeScreen(id: 'ex1'));
-        expect(find.text(en.blogExchangeUnavailable), findsOneWidget);
-        fail = false;
-        await t.tap(find.text(en.blogTryAgain));
-        await qaSettle(t);
-        expect(api.sent('GET', '/blog/responses/ex1'), hasLength(2));
-        expect(find.text(en.blogExchangeWith('Alex')), findsOneWidget);
-        await done(t);
-      },
+      'The accept button sends one versioned command and the exchange '
+      'shows its new state '
+      '[case:blog.blog_connections.blog_exchange_accept.action]',
+      (t) =>
+          commandSucceeds(t, ('accept', 'qa.blog.exchange.accept', 'accepted')),
     );
 
-    for (final row in [
-      (
-        'accept',
-        'qa.blog.exchange.accept',
-        'accepted',
-        '[case:blog.blog_connections.accept_an_exchange.action]',
-      ),
-      (
+    testWidgets(
+      'The decline button sends one versioned command and the exchange '
+      'shows its new state '
+      '[case:blog.blog_connections.blog_exchange_decline.action]',
+      (t) => commandSucceeds(t, (
         'decline',
         'qa.blog.exchange.decline',
         'declined',
-        '[case:blog.blog_connections.decline_kindly.action]',
-      ),
-    ]) {
-      testWidgets(
-        'The ${row.$1} button sends one versioned command and the exchange '
-        'shows its new state ${row.$4}',
-        (t) async {
-          var status = 'pending';
-          final api = QaApi()
-            ..on(
-              'GET /blog/responses/ex1',
-              (_) => qaOk({'response': exchange(status: status)}),
-            )
-            ..on('POST /blog/responses/ex1', (c) {
-              status = row.$3;
-              return QaReply(200, {
-                'response': exchange(status: row.$3),
-              }, delay: const Duration(milliseconds: 200));
-            });
-          await pumpQa(t, api, const BlogExchangeScreen(id: 'ex1'));
-          expect(find.text(en.blogAcceptExchange), findsOneWidget);
-          expect(find.text(en.blogDeclineKindly), findsOneWidget);
-          await t.tap(key(row.$2));
-          await t.pump();
-          expect(
-            t.widget<ButtonStyleButton>(key(row.$2)).onPressed,
-            isNull,
-            reason: 'busy',
-          );
-          await t.tap(key(row.$2), warnIfMissed: false);
-          await qaSettle(t);
-          expect(api.writeLines, ['POST /blog/responses/ex1']);
-          expect(api.writes.single.body, {
-            'action': row.$1,
-            'expected_version': 3,
-          });
-          expect(api.sent('GET', '/blog/responses/ex1'), hasLength(2));
-          expect(key('qa.blog.exchange.accept'), findsNothing);
-          expect(key('qa.blog.exchange.decline'), findsNothing);
-          if (row.$1 == 'accept') {
-            expect(find.text(en.blogOneStoryEach), findsOneWidget);
-            expect(key('qa.blog.exchange.contribute'), findsOneWidget);
-          } else {
-            expect(find.text(en.blogExchangeClosedNote), findsOneWidget);
-          }
-          await done(t);
-        },
+      )),
+    );
+
+    /// One exchange command (`action`, button key) that fails twice, then
+    /// goes through.
+    Future<void> commandFailsThenRetries(
+      WidgetTester t,
+      (String, String) row,
+    ) async {
+      var status = 'pending';
+      final api = QaApi()
+        ..on(
+          'GET /blog/responses/ex1',
+          (_) => qaOk({'response': exchange(status: status)}),
+        )
+        ..fail(
+          'POST /blog/responses/ex1',
+          status: 409,
+          message: 'This exchange changed. Refresh and try again.',
+        );
+      await pumpQa(t, api, const BlogExchangeScreen(id: 'ex1'));
+      await t.tap(key(row.$2));
+      await qaSettle(t);
+      expect(
+        find.text('This exchange changed. Refresh and try again.'),
+        findsOneWidget,
       );
+      for (final k in ['qa.blog.exchange.accept', 'qa.blog.exchange.decline']) {
+        expect(t.widget<ButtonStyleButton>(key(k)).onPressed, isNotNull);
+      }
+
+      api.on('POST /blog/responses/ex1', (_) => const QaReply(500, null));
+      await t.tap(key(row.$2));
+      await qaSettle(t);
+      expect(find.text(en.blogExchangeChangeFailed), findsOneWidget);
+
+      api.on('POST /blog/responses/ex1', (_) {
+        status = row.$1 == 'accept' ? 'accepted' : 'declined';
+        return qaOk();
+      });
+      await t.tap(key(row.$2));
+      await qaSettle(t);
+      expect(api.writes, hasLength(3));
+      expect(api.writes.map((c) => c.body['action']).toSet(), {row.$1});
+      expect(find.text(en.blogExchangeChangeFailed), findsNothing);
+      expect(key(row.$2), findsNothing);
+      await done(t);
     }
 
-    for (final row in [
-      (
-        'accept',
-        'qa.blog.exchange.accept',
-        '[case:blog.blog_connections.accept_an_exchange.api_failure]',
-      ),
-      (
-        'decline',
-        'qa.blog.exchange.decline',
-        '[case:blog.blog_connections.decline_kindly.api_failure]',
-      ),
-    ]) {
-      testWidgets(
-        'A failed ${row.$1} explains, keeps the exchange pending with both '
-        'buttons usable, and the retry is a single request ${row.$3}',
-        (t) async {
-          var status = 'pending';
-          final api = QaApi()
-            ..on(
-              'GET /blog/responses/ex1',
-              (_) => qaOk({'response': exchange(status: status)}),
-            )
-            ..fail(
-              'POST /blog/responses/ex1',
-              status: 409,
-              message: 'This exchange changed. Refresh and try again.',
-            );
-          await pumpQa(t, api, const BlogExchangeScreen(id: 'ex1'));
-          await t.tap(key(row.$2));
-          await qaSettle(t);
-          expect(
-            find.text('This exchange changed. Refresh and try again.'),
-            findsOneWidget,
-          );
-          for (final k in [
-            'qa.blog.exchange.accept',
-            'qa.blog.exchange.decline',
-          ]) {
-            expect(t.widget<ButtonStyleButton>(key(k)).onPressed, isNotNull);
-          }
+    testWidgets(
+      'A failed accept explains, keeps the exchange pending with both '
+      'buttons usable, and the retry is a single request '
+      '[case:blog.blog_connections.blog_exchange_accept.api_failure]',
+      (t) => commandFailsThenRetries(t, ('accept', 'qa.blog.exchange.accept')),
+    );
 
-          api.on('POST /blog/responses/ex1', (_) => const QaReply(500, null));
-          await t.tap(key(row.$2));
-          await qaSettle(t);
-          expect(find.text(en.blogExchangeChangeFailed), findsOneWidget);
-
-          api.on('POST /blog/responses/ex1', (_) {
-            status = row.$1 == 'accept' ? 'accepted' : 'declined';
-            return qaOk();
-          });
-          await t.tap(key(row.$2));
-          await qaSettle(t);
-          expect(api.writes, hasLength(3));
-          expect(api.writes.map((c) => c.body['action']).toSet(), {row.$1});
-          expect(find.text(en.blogExchangeChangeFailed), findsNothing);
-          expect(key(row.$2), findsNothing);
-          await done(t);
-        },
-      );
-    }
+    testWidgets(
+      'A failed decline explains, keeps the exchange pending with both '
+      'buttons usable, and the retry is a single request '
+      '[case:blog.blog_connections.blog_exchange_decline.api_failure]',
+      (t) =>
+          commandFailsThenRetries(t, ('decline', 'qa.blog.exchange.decline')),
+    );
 
     testWidgets(
       'Add my contribution opens the contribution composer; the words are '
@@ -1031,72 +1035,121 @@ void main() {
       },
     );
 
-    for (final row in [
-      (
-        'qa.blog.exchange.my_story',
-        'My words, kept.',
-        '[case:blog.blog_connections.selectabletext_input_input_2.action]',
-      ),
-      (
-        'qa.blog.exchange.partner_story',
-        'Their words, revealed.',
-        '[case:blog.blog_connections.selectabletext_input_input_3.action]',
-      ),
-    ]) {
-      testWidgets(
-        'A contribution can be selected and copied exactly ${row.$3}',
-        (t) async {
-          final clipboard = FakeClipboard()..install(t);
-          final api = QaApi()
-            ..json('GET /blog/responses/ex1', {
-              'response': exchange(
-                status: 'accepted',
-                myStory: 'My words, kept.',
-                partnerStory: 'Their words, revealed.',
-                revealed: true,
-              ),
-            });
-          await pumpQa(t, api, const BlogExchangeScreen(id: 'ex1'));
-          expect(find.text(en.blogPartnerContribution('Alex')), findsOneWidget);
-          await copyAllOf(t, key(row.$1));
-          expect(clipboard.text, row.$2);
-          expect(api.writes, isEmpty);
-          await done(t);
-        },
-      );
+    /// Selects all of one contribution (key, expected text) and copies it.
+    Future<void> contributionCopies(
+      WidgetTester t,
+      (String, String) row,
+    ) async {
+      final clipboard = FakeClipboard()..install(t);
+      final api = QaApi()
+        ..json('GET /blog/responses/ex1', {
+          'response': exchange(
+            status: 'accepted',
+            myStory: 'My words, kept.',
+            partnerStory: 'Their words, revealed.',
+            revealed: true,
+          ),
+        });
+      await pumpQa(t, api, const BlogExchangeScreen(id: 'ex1'));
+      expect(find.text(en.blogPartnerContribution('Alex')), findsOneWidget);
+      await copyAllOf(t, key(row.$1));
+      expect(clipboard.text, row.$2);
+      expect(api.writes, isEmpty);
+      await done(t);
     }
 
-    for (final row in [
-      (
+    testWidgets(
+      'My contribution can be selected and copied exactly '
+      '[case:blog.blog_connections.blog_exchange_my_story_input.action]',
+      (t) => contributionCopies(t, (
         'qa.blog.exchange.my_story',
-        'Mine 🌿\nשלום — first light',
-        '[case:blog.blog_connections.selectabletext_input_input_2.validation]',
-      ),
-      (
+        'My words, kept.',
+      )),
+    );
+
+    testWidgets(
+      'The partner’s revealed contribution can be selected and copied '
+      'exactly '
+      '[case:blog.blog_connections.blog_exchange_partner_story_input.action]',
+      (t) => contributionCopies(t, (
         'qa.blog.exchange.partner_story',
-        'مرحبا — café 👩🏽‍🍳\n  two spaces',
-        '[case:blog.blog_connections.selectabletext_input_input_3.validation]',
-      ),
-    ]) {
-      testWidgets('Emoji, RTL and line breaks in a contribution show and copy '
-          'byte-for-byte ${row.$3}', (t) async {
-        final clipboard = FakeClipboard()..install(t);
+        'Their words, revealed.',
+      )),
+    );
+
+    /// Shows one contribution (key, text) with emoji, right-to-left text and
+    /// line breaks, then copies it.
+    Future<void> contributionKeepsText(
+      WidgetTester t,
+      (String, String) row,
+    ) async {
+      final clipboard = FakeClipboard()..install(t);
+      final api = QaApi()
+        ..json('GET /blog/responses/ex1', {
+          'response': exchange(
+            status: 'accepted',
+            myStory: row.$1.endsWith('my_story') ? row.$2 : 'x',
+            partnerStory: row.$1.endsWith('partner_story') ? row.$2 : 'y',
+            revealed: true,
+          ),
+        });
+      await pumpQa(t, api, const BlogExchangeScreen(id: 'ex1'));
+      expect(t.takeException(), isNull);
+      expect(t.widget<SelectableText>(key(row.$1)).data, row.$2);
+      await copyAllOf(t, key(row.$1));
+      expect(clipboard.text, row.$2);
+      await done(t);
+    }
+
+    testWidgets(
+      'My contribution: empty shows Add my contribution instead; emoji, RTL, '
+      'line breaks and a long story show and copy byte-for-byte '
+      '[case:blog.blog_connections.blog_exchange_my_story_input.validation]',
+      (t) async {
+        final api = QaApi()
+          ..json('GET /blog/responses/ex1', {
+            'response': exchange(status: 'accepted'),
+          });
+        await pumpQa(t, api, const BlogExchangeScreen(id: 'ex1'));
+        expect(key('qa.blog.exchange.my_story'), findsNothing);
+        expect(key('qa.blog.exchange.contribute'), findsOneWidget);
+        await done(t);
+
+        await contributionKeepsText(t, (
+          'qa.blog.exchange.my_story',
+          'Mine 🌿\nשלום — first light',
+        ));
+        await contributionKeepsText(t, (
+          'qa.blog.exchange.my_story',
+          'A long day. ' * 25,
+        ));
+      },
+    );
+
+    testWidgets(
+      'The partner’s contribution: hidden until revealed; emoji, RTL, '
+      'leading spaces and line breaks show and copy byte-for-byte '
+      '[case:blog.blog_connections.blog_exchange_partner_story_input.validation]',
+      (t) async {
         final api = QaApi()
           ..json('GET /blog/responses/ex1', {
             'response': exchange(
               status: 'accepted',
-              myStory: row.$1.endsWith('my_story') ? row.$2 : 'x',
-              partnerStory: row.$1.endsWith('partner_story') ? row.$2 : 'y',
-              revealed: true,
+              myStory: 'Mine',
+              partnerStory: 'Not yet',
             ),
           });
         await pumpQa(t, api, const BlogExchangeScreen(id: 'ex1'));
-        expect(t.widget<SelectableText>(key(row.$1)).data, row.$2);
-        await copyAllOf(t, key(row.$1));
-        expect(clipboard.text, row.$2);
+        expect(key('qa.blog.exchange.partner_story'), findsNothing);
+        expect(find.text('Not yet'), findsNothing);
         await done(t);
-      });
-    }
+
+        await contributionKeepsText(t, (
+          'qa.blog.exchange.partner_story',
+          'مرحبا — café 👩🏽‍🍳\n  two spaces',
+        ));
+      },
+    );
 
     testWidgets(
       'Shape a date together opens the date plan sheet for this match, '
@@ -1176,9 +1229,7 @@ void main() {
     );
 
     testWidgets('Try First Chapter Studio opens the studio for this match '
-        '[case:blog.blog_connections.blog_exchange_studio.action]', (
-      t,
-    ) async {
+        '[case:blog.blog_connections.blog_exchange_studio.action]', (t) async {
       final api = QaApi()
         ..json('GET /blog/responses/ex1', {
           'response': exchange(

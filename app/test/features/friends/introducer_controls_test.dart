@@ -11,6 +11,7 @@ import 'package:verified_dating_app/features/friends/screens/introducer_screen.d
 import 'package:verified_dating_app/features/intentional_dating/dating_rhythm.dart';
 
 import '../../support/qa_api.dart';
+import '../../support/qa_screen_quality.dart';
 
 // The introducer workspace (friends who only introduce) and the member's
 // "Your introducers" controls. Every command is asserted by its request,
@@ -739,5 +740,58 @@ void main() {
       expect(find.text(l10n.friendsIntroducerAskPermission), findsOneWidget);
       await tester.pumpWidget(const SizedBox());
     }
+  });
+
+  group('screen quality', () {
+    final en = qaL10n(const Locale('en'));
+
+    testWidgets('both workspaces lay out on phone and tablet in both themes '
+        '[case:friends.introducer.layout_matrix]', (tester) async {
+      // Member: "Your introducers" with a pending request.
+      await qaExpectLaysOutOnPhoneAndTablet(
+        tester,
+        api: () => _World().api,
+        build: () => const IntroducerScreen(memberControls: true),
+        loaded: () => find.text('Alice', skipOffstage: false),
+      );
+      // Introducer account: its own workspace.
+      await qaExpectLaysOutOnPhoneAndTablet(
+        tester,
+        api: () => _World().api,
+        build: IntroducerScreen.new,
+        accountKind: 'introducer',
+        loaded: () =>
+            find.text(en.friendsIntroducerAskPermission, skipOffstage: false),
+      );
+    });
+
+    testWidgets('both workspaces meet tap-target, label and contrast '
+        'guidelines [case:friends.introducer.a11y_guidelines]', (tester) async {
+      await qaExpectMeetsA11yGuidelines(
+        tester,
+        api: () => _World().api,
+        build: () => const IntroducerScreen(memberControls: true),
+        loaded: () => find.text('Alice', skipOffstage: false),
+      );
+      await qaExpectMeetsA11yGuidelines(
+        tester,
+        api: () => _World().api,
+        build: IntroducerScreen.new,
+        accountKind: 'introducer',
+        loaded: () =>
+            find.text(en.friendsIntroducerAskPermission, skipOffstage: false),
+      );
+    });
+
+    testWidgets('Back on "Your introducers" returns to the opener '
+        '[case:friends.introducer.back_affordance]', (tester) async {
+      await qaExpectBackReturnsToOpener(
+        tester,
+        api: _World().api,
+        build: () => const IntroducerScreen(memberControls: true),
+        screen: find.byType(IntroducerScreen),
+        loaded: find.text(en.friendsIntroducerMemberTitle),
+      );
+    });
   });
 }

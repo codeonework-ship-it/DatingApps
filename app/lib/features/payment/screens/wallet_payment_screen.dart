@@ -442,8 +442,14 @@ class _InlineNote extends StatelessWidget {
         children: [
           Icon(Icons.info_outline, size: 18, color: color),
           const SizedBox(width: 8),
+          // The tint and icon carry the accent; the words stay onSurface.
+          // Accent-coloured text on its own 12% tint was 3.8:1 (under WCAG
+          // AA 4.5:1) for the signed-out and error notes.
           Expanded(
-            child: Text(message, style: TextStyle(color: color, fontSize: 13)),
+            child: Text(
+              message,
+              style: TextStyle(color: scheme.onSurface, fontSize: 13),
+            ),
           ),
         ],
       ),

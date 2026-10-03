@@ -78,7 +78,6 @@ class _BigPicker extends SupportImagePicker {
 void main() {
   group('signed-out contact form', () {
     testWidgets(
-      '[case:support.support_contact_form.support_guest_submit.api_contract] '
       '[case:support.support_contact_form.support_guest_submit.action] sends '
       'the contact payload and confirms with the reference and address',
       (tester) async {
@@ -364,7 +363,6 @@ void main() {
     );
 
     testWidgets(
-      '[case:support.support_ticket_thread.try_again_onrefresh.api_contract] '
       'a reply notification for this ticket reloads the open thread',
       (tester) async {
         var agentSaid = <Map<String, dynamic>>[];

@@ -160,7 +160,12 @@ class _CopilotSheetState extends ConsumerState<_CopilotSheet> {
             ),
             const SizedBox(height: AppLayout.space2),
             Text(
-              l.chatCopilotDisclosure(draft.disclosure, draft.remainingToday),
+              // The server's disclosure is English only; the reader gets the
+              // same promise in their own language.
+              l.chatCopilotDisclosure(
+                l.chatCopilotDisclosureText,
+                draft.remainingToday,
+              ),
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),

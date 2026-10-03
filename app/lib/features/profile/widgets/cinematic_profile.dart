@@ -259,7 +259,7 @@ class CinematicProfileHero extends StatelessWidget {
     super.key,
     this.onOpenPhoto,
     this.photoKey,
-    this.photoSemanticsLabel,
+    this.photoQaId,
     this.footer,
   });
 
@@ -275,9 +275,10 @@ class CinematicProfileHero extends StatelessWidget {
   /// Automation key for the photo's tap target.
   final Key? photoKey;
 
-  /// Extra label merged onto the photo's tap target (automation handles
-  /// that existing tests rely on).
-  final String? photoSemanticsLabel;
+  /// Automation id of the photo's tap target: a semantics identifier
+  /// (Android resource-id, web `flt-semantics-identifier`), never part of the
+  /// spoken label.
+  final String? photoQaId;
 
   /// Shown under the title block (a loading indicator, for example).
   final Widget? footer;
@@ -302,7 +303,8 @@ class CinematicProfileHero extends StatelessWidget {
           child: Semantics(
             image: true,
             button: onOpenPhoto != null,
-            label: [?photoSemanticsLabel, photoLabel].join('\n'),
+            identifier: photoQaId,
+            label: photoLabel,
             onTapHint: onOpenPhoto == null
                 ? null
                 : l10n.memberProfileViewPhotoHint,

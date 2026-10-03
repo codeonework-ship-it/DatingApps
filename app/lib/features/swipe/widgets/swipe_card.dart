@@ -193,12 +193,15 @@ class _SwipeCardState extends State<SwipeCard>
                 child: Container(
                   decoration: BoxDecoration(
                     borderRadius: const BorderRadius.all(Radius.circular(20)),
+                    // Dark enough under the name and the text links for
+                    // white text to keep 4.5:1 over a light photo.
                     gradient: LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
+                      stops: const [0.25, 0.9],
                       colors: [
                         Colors.transparent,
-                        Colors.black.withValues(alpha: 0.56),
+                        Colors.black.withValues(alpha: 0.64),
                       ],
                     ),
                   ),
@@ -359,7 +362,6 @@ class _SwipeCardState extends State<SwipeCard>
                       ],
 
                       if (onTap != null) ...[
-                        const SizedBox(height: 8),
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -377,34 +379,44 @@ class _SwipeCardState extends State<SwipeCard>
                                     '${widget.qaScope}.view_more_button',
                                   ),
                                   onTap: onTap,
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      // The outer Flexible can only shrink this
-                                      // row if something inside it will yield.
-                                      Flexible(
-                                        child: Text(
-                                          AppLocalizations.of(
-                                            context,
-                                          ).discoverViewMore,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .labelSmall
-                                              ?.copyWith(
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.w700,
-                                              ),
+                                  // The label is small; the target is not:
+                                  // 48pt tall so a thumb (and the tap-target
+                                  // guideline) can hit it.
+                                  behavior: HitTestBehavior.opaque,
+                                  child: ConstrainedBox(
+                                    constraints: const BoxConstraints(
+                                      minHeight: _linkTapHeight,
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        // The outer Flexible can only shrink
+                                        // this row if something inside it
+                                        // will yield.
+                                        Flexible(
+                                          child: Text(
+                                            AppLocalizations.of(
+                                              context,
+                                            ).discoverViewMore,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .labelSmall
+                                                ?.copyWith(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.w700,
+                                                ),
+                                          ),
                                         ),
-                                      ),
-                                      const SizedBox(width: 2),
-                                      const Icon(
-                                        Icons.chevron_right,
-                                        size: 14,
-                                        color: Colors.white,
-                                      ),
-                                    ],
+                                        const SizedBox(width: 2),
+                                        const Icon(
+                                          Icons.chevron_right,
+                                          size: 14,
+                                          color: Colors.white,
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
@@ -421,36 +433,42 @@ class _SwipeCardState extends State<SwipeCard>
                                     '${widget.qaScope}.card_message_button',
                                   ),
                                   onTap: onMessageTap,
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(
-                                        Icons.message_rounded,
-                                        size: 15,
-                                        color: Colors.white,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        AppLocalizations.of(
-                                          context,
-                                        ).memberProfileMessage,
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .labelMedium
-                                            ?.copyWith(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.w700,
-                                              // Keeps the label legible
-                                              // (4.5:1) over a light photo.
-                                              shadows: const [
-                                                Shadow(
-                                                  color: Colors.black54,
-                                                  blurRadius: 4,
-                                                ),
-                                              ],
-                                            ),
-                                      ),
-                                    ],
+                                  behavior: HitTestBehavior.opaque,
+                                  child: ConstrainedBox(
+                                    constraints: const BoxConstraints(
+                                      minHeight: _linkTapHeight,
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(
+                                          Icons.message_rounded,
+                                          size: 15,
+                                          color: Colors.white,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          AppLocalizations.of(
+                                            context,
+                                          ).memberProfileMessage,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .labelMedium
+                                              ?.copyWith(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.w700,
+                                                // Keeps the label legible
+                                                // (4.5:1) over a light photo.
+                                                shadows: const [
+                                                  Shadow(
+                                                    color: Colors.black54,
+                                                    blurRadius: 4,
+                                                  ),
+                                                ],
+                                              ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
@@ -469,6 +487,10 @@ class _SwipeCardState extends State<SwipeCard>
     );
   }
 }
+
+/// Height of the card's text links ("View more", "Message"): the minimum
+/// tap target, centred on the small label.
+const double _linkTapHeight = 48;
 
 class _SwipeCardPrimaryImage extends StatefulWidget {
   const _SwipeCardPrimaryImage({required this.photoUrls});

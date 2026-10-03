@@ -2,6 +2,7 @@
 // ignore_for_file: lines_longer_than_80_chars
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/intl.dart';
 import 'package:verified_dating_app/features/intentional_dating/profile_stories.dart';
@@ -14,6 +15,7 @@ import 'package:verified_dating_app/features/swipe/screens/liked_me_screen.dart'
 import 'package:verified_dating_app/features/swipe/screens/liked_profiles_screen.dart';
 
 import '../../support/qa_api.dart';
+import '../../support/qa_screen_quality.dart';
 import 'support/profile_bff.dart';
 
 // Control-level tests for the member's own profile (ProfileViewScreen) and
@@ -163,7 +165,9 @@ void main() {
     });
 
     testWidgets('Retry while still offline explains again and stays usable '
-        '[case:profile.profile_view.profile_retry.api_failure]', (tester) async {
+        '[case:profile.profile_view.profile_retry.api_failure]', (
+      tester,
+    ) async {
       final api = _api()..offline('GET /profile/me/summary');
       await _open(tester, api);
       await _reveal(tester, find.byKey(_retry));
@@ -343,7 +347,9 @@ void main() {
     });
 
     testWidgets('You liked opens the profiles I liked '
-        '[case:profile.profile_view.profile_stat_liked.action]', (tester) async {
+        '[case:profile.profile_view.profile_stat_liked.action]', (
+      tester,
+    ) async {
       final api = _api();
       await _open(tester, api);
       await _reveal(
@@ -462,5 +468,99 @@ void main() {
       expect(find.text(l10n.profileViewersViewedAt(at)), findsOneWidget);
       expect(tester.takeException(), isNull, reason: '$locale');
     }
+  });
+
+  group('screen quality', () {
+    // My Profile as a member with history sees it: summary, photos, a
+    // viewer, two members who liked them and an approved vouch.
+    QaApi server() => _api()
+      ..json('GET /discovery/me/liked-me', {
+        'profiles': [
+          {
+            'id': 'cara',
+            'name': 'Cara',
+            'age': 29,
+            'liked_at': '2026-10-01T09:00:00Z',
+          },
+          {
+            'id': 'devi',
+            'name': 'Devi',
+            'age': 33,
+            'liked_at': '2026-10-02T11:30:00Z',
+          },
+        ],
+        'count': 2,
+      })
+      ..json('GET /users/me/vouches', {
+        'vouches': [
+          {
+            'text': 'Warm, curious and always on time.',
+            'voucher_name': 'Meera',
+          },
+        ],
+      })
+      ..json('GET /profile/me/stories', {
+        'published': true,
+        'stories': [
+          {'prompt_id': 'weekend', 'text': 'Farmers market, then a long swim.'},
+        ],
+      })
+      ..json('GET /profile/me/showcase', {
+        'enabled': true,
+        'chapters': [
+          {
+            'id': 'c1',
+            'title': 'Slow Sundays',
+            'excerpt': 'Coffee, a long walk and a market.',
+            'published_at': '2026-09-30T10:00:00Z',
+            'like_count': 4,
+            'comment_count': 1,
+          },
+        ],
+        'photos': <Object>[],
+      })
+      ..json('GET /profile/me/showcase/consent', {'visible': true});
+    // The notification bell reads an idle inbox (the main navigation owns
+    // the live connection in the app).
+    List<Override> extra() => [
+      ...qaMasterDataOverrides(),
+      idleNotificationsOverride(),
+    ];
+
+    // The starring photo and the owner console only render once the summary
+    // and the published preview arrived.
+    Finder loaded() => find.byKey(_heroPhoto, skipOffstage: false);
+
+    testWidgets('My Profile with its summary and photos lays out on phone and '
+        'tablet in both themes [case:profile.profile_view.layout_matrix]', (
+      tester,
+    ) async {
+      await qaExpectLaysOutOnPhoneAndTablet(
+        tester,
+        api: () {
+          final api = server();
+          addTearDown(() => expect(api.unhandled.map((c) => c.path), isEmpty));
+          return api;
+        },
+        build: () => const ProfileViewScreen(),
+        extra: extra,
+        loaded: loaded,
+      );
+    });
+
+    testWidgets('My Profile meets tap-target, label and contrast guidelines '
+        '[case:profile.profile_view.a11y_guidelines]', (tester) async {
+      await qaExpectMeetsA11yGuidelines(
+        tester,
+        api: () {
+          final api = server();
+          addTearDown(() => expect(api.unhandled.map((c) => c.path), isEmpty));
+          return api;
+        },
+        build: () => const ProfileViewScreen(),
+        extra: extra,
+        loaded: loaded,
+      );
+    });
   });
 }

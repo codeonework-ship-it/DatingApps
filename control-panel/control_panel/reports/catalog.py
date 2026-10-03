@@ -30,6 +30,14 @@ A_GRAIN = Param("grain", "Grain", choices=(("day", "Day"), ("week", "Week"), ("m
 A_GENDER = Param("gender", "Gender", choices=(("female", "Female"), ("male", "Male"), ("other", "Other")))
 A_CITY = Param("city", "City", "text")
 ANALYTICS_PARAMS = (A_FROM, A_TO, A_GRAIN, A_GENDER)
+# Go defaults retention cohorts and safety trends to weeks (only when grain is
+# absent), so the report server must not override that with "day".
+A_GRAIN_WEEK = Param("grain", "Grain", choices=A_GRAIN.choices, default="week")
+WEEKLY_PARAMS = (A_FROM, A_TO, A_GRAIN_WEEK, A_GENDER)
+A_METRIC = Param("metric", "Metric", choices=(
+    ("dau", "Daily active members"), ("wau", "Weekly active members"), ("mau", "Monthly active members"),
+    ("signups", "Signups"), ("matches", "Matches"), ("messages_sent", "Messages sent"), ("dates_kept", "Dates kept")),
+    default="dau", help="One metric per run (Go's /admin/analytics/definitions lists them all).")
 
 
 def _money(key: str, label: str, **kw) -> Field:
@@ -125,7 +133,10 @@ CONVERSION = Report(
             _count("created", "Created"), _count("completed", "Completed"), _count("paid", "Paid"),
             _count("refunded", "Refunded"), _count("abandoned_or_expired", "Abandoned/expired"), _count("open", "Open"),
             _rate("completion_rate", "Completion"), _rate("paid_rate", "Paid rate"), _rate("refund_rate", "Refund rate"),
-        ), group_by=("kind",), groupable=("kind", "product", "platform")),
+        ), group_by=("kind",), groupable=("kind", "product", "platform"),
+            # Go's funnel never buckets but still caps a window at 400 *day*
+            # buckets by default; month keeps long conversion windows valid.
+            query=lambda p: {**p, "bucket": "month"}),
     ),
     keywords=("checkout", "cohort", "free to paid", "ltv"),
 )
@@ -199,12 +210,16 @@ PRODUCT = tuple(
     for name, title, description, params, keywords in (
         ("kpis", "Headline KPIs", "DAU, WAU, MAU, stickiness, new members and the north-star rates, with the week before.",
          (A_TO, A_GENDER), ("dau", "mau", "stickiness")),
-        ("trends", "Active members over time", "DAU, WAU and MAU by period.", ANALYTICS_PARAMS, ("dau", "wau", "mau")),
+        ("trends", "Active members over time", "One metric (DAU by default; WAU, MAU, signups and more) by period.",
+         (A_FROM, A_TO, A_GRAIN, A_GENDER, A_METRIC), ("dau", "wau", "mau")),
         ("funnel", "Activation funnel", "Signup to first match and first date, by step.", ANALYTICS_PARAMS, ("activation", "onboarding")),
-        ("retention", "Retention cohorts", "Weekly retention triangle by signup cohort.", ANALYTICS_PARAMS, ("cohort", "churn")),
-        ("engagement", "Engagement", "Likes, matches, messages and plans per active member.", ANALYTICS_PARAMS, ("messages", "matches")),
-        ("liquidity", "Liquidity by city", "Supply, demand and match rates by city.", ANALYTICS_PARAMS + (A_CITY,), ("city", "market")),
-        ("safety", "Safety health", "Reports, blocks and SOS per 1,000 DAU, and response times.", ANALYTICS_PARAMS, ("reports", "blocks", "sos")),
+        ("retention", "Retention cohorts", "Weekly retention triangle by signup cohort.", WEEKLY_PARAMS, ("cohort", "churn")),
+        ("engagement", "Engagement", "Reach, actions and repeat use of each product surface among active members.",
+         ANALYTICS_PARAMS, ("messages", "matches")),
+        # Go's liquidity report has no gender filter (it splits by gender itself).
+        ("liquidity", "Liquidity by city", "Supply, demand and match rates by city.", (A_FROM, A_TO, A_GRAIN, A_CITY), ("city", "market")),
+        ("safety", "Safety health", "Reports and blocks per 1,000 DAU, queue response times and reports by surface.",
+         WEEKLY_PARAMS, ("reports", "blocks", "sos")),
     )
 )
 
@@ -305,12 +320,16 @@ MEMBER_360 = Report(
             WHEN, _count("coins", "Coins"), Field("amount", "Amount", MONEY, SUM, minor="amount_minor"), CURRENCY,
             Field("source", "Source"), Field("provider", "Provider"), Field("purchase_ref", "Reference", width=30),
         ), key="coin_purchases", paged=True, groupable=("currency", "source"), query=_member("user_id")),
+        # Go lists only active tickets unless asked for all, and has no date filter for tickets.
         _admin("list_support_tickets", "Support tickets", ("tickets",), (
             WHEN, Field("reference", "Reference"), Field("subject", "Subject", width=40), Field("status", "Status"),
             Field("priority", "Priority"), Field("category", "Category"), Field("team", "Team"),
-        ), key="support_tickets", paged=True, groupable=("status", "category"), query=_member("member")),
+        ), key="support_tickets", paged=True, groupable=("status", "category"),
+            query=lambda p: {"member": p["member"], "status": "all"}),
+        # SOS rows carry triggered_at (Go sends no created_at for alerts).
         _admin("list_sos_alerts", "SOS alerts", ("alerts",), (
-            WHEN, Field("emergency_level", "Level"), Field("status", "Status"), Field("resolved_at", "Resolved (UTC)"),
+            Field("triggered_at", "Triggered (UTC)", DATE, width=22), Field("emergency_level", "Level"), Field("status", "Status"),
+            Field("resolved_at", "Resolved (UTC)"),
         ), key="sos_alerts", paged=True, query=_member("user_id")),
     ),
     keywords=("member", "user", "profile", "360", "timeline", "history", "customer"),
@@ -320,7 +339,7 @@ DIRECTORY = Report(
     "member-directory", "Member directory", "Members",
     "Members with status, gender and verification filters, grouped by city or gender. Export the full list to Excel.",
     ("admin", "users"), (
-        Param("q", "Name, phone or id", "text"),
+        Param("q", "Name, username or phone", "text"),
         Param("status", "Status", choices=(("active", "Active"), ("suspended", "Suspended"), ("banned", "Banned"))),
         Param("gender", "Gender", choices=(("female", "Female"), ("male", "Male"), ("other", "Other"))),
         Param("verified", "Verified", choices=(("yes", "Yes"), ("no", "No"))),
@@ -670,14 +689,16 @@ API_TRAFFIC = Report(
     "Requests, server errors, refused requests and latency percentiles by period, overall and by route.",
     ("admin", "system/requests"), (S_FROM, S_TO, S_GRAIN),
     datasets=(
-        _admin("system_requests", "Overall", ("rows",), TRAFFIC_FIELDS, key="overall", query=_system(group_by="none"),
+        # Go returns 500 rows unless asked (5,000 at most); Go fills only the
+        # group_by column, so "By route" rows carry no method.
+        _admin("system_requests", "Overall", ("rows",), TRAFFIC_FIELDS, key="overall", query=_system(group_by="none", limit=5000),
                chart=Chart("line", "bucket", ("requests", "server_errors", "p95_ms"), title="Requests, 5xx and p95")),
         _admin("system_requests", "By route", ("rows",), (
-            Field("method", "Method"), Field("route", "Route", width=36), *TRAFFIC_FIELDS[1:]),
-            key="by_route", query=_system(group_by="route"), groupable=("method",)),
+            Field("bucket", "Period", DATE, width=20), Field("route", "Route", width=36), *TRAFFIC_FIELDS[1:]),
+            key="by_route", query=_system(group_by="route", limit=5000), groupable=("route",)),
         _admin("system_requests", "By status class", ("rows",), (
             Field("bucket", "Period", DATE, width=20), Field("status_class", "Status class"), _count("requests", "Requests")),
-            key="by_status", query=_system(group_by="status_class"), group_by=("status_class",), groupable=("status_class",)),
+            key="by_status", query=_system(group_by="status_class", limit=5000), group_by=("status_class",), groupable=("status_class",)),
     ),
     keywords=("server", "requests", "latency", "errors", "traffic", "api", "consumption", "p95"),
 )

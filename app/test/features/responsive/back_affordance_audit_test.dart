@@ -32,8 +32,8 @@ const _exempt = {
   'CheckoutWebViewScreen',
 };
 
-/// True when the pushed screen shows a visible back or close control.
-bool _hasBackAffordance(WidgetTester tester, BuildContext context) {
+/// The visible back or close control of the pushed screen, or null.
+Finder? _backControl(WidgetTester tester, BuildContext context) {
   final strings = MaterialLocalizations.of(context);
   final labels = {
     strings.backButtonTooltip,
@@ -52,43 +52,61 @@ bool _hasBackAffordance(WidgetTester tester, BuildContext context) {
     Icons.chevron_left,
     Icons.chevron_left_rounded,
   };
-  if (find.byType(BackButton).hitTestable().evaluate().isNotEmpty ||
-      find.byType(CloseButton).hitTestable().evaluate().isNotEmpty ||
-      find.byType(BackButtonIcon).hitTestable().evaluate().isNotEmpty) {
-    return true;
-  }
-  for (final element in find.byType(IconButton).hitTestable().evaluate()) {
-    final button = element.widget as IconButton;
-    final icon = button.icon;
-    if (labels.contains(button.tooltip) ||
-        (icon is Icon && icons.contains(icon.icon))) {
-      return true;
+  for (final type in [BackButton, CloseButton, BackButtonIcon]) {
+    final found = find.byType(type).hitTestable();
+    if (found.evaluate().isNotEmpty) {
+      return found.first;
     }
   }
-  for (final element in find.byType(Tooltip).hitTestable().evaluate()) {
-    if (labels.contains((element.widget as Tooltip).message)) {
-      return true;
+  final buttons = find.byWidgetPredicate((w) {
+    if (w is! IconButton) {
+      return false;
     }
+    final icon = w.icon;
+    return labels.contains(w.tooltip) ||
+        (icon is Icon && icons.contains(icon.icon));
+  }).hitTestable();
+  if (buttons.evaluate().isNotEmpty) {
+    return buttons.first;
   }
-  return find
+  final tooltips = find
+      .byWidgetPredicate((w) => w is Tooltip && labels.contains(w.message))
+      .hitTestable();
+  if (tooltips.evaluate().isNotEmpty) {
+    return tooltips.first;
+  }
+  final semantics = find
       .byWidgetPredicate(
         (w) =>
             w is Semantics &&
             (w.properties.label == 'Back' ||
                 w.properties.label == strings.backButtonTooltip),
       )
-      .evaluate()
-      .isNotEmpty;
+      .hitTestable();
+  return semantics.evaluate().isEmpty ? null : semantics.first;
 }
 
 void main() {
   final screens = buildScreenMatrix();
 
+  test('every pushed screen names its catalog feature', () {
+    final pushed = screens.keys.where(
+      (k) => !_roots.contains(k) && !_exempt.contains(k),
+    );
+    expect(
+      _caseFeatures.keys.toSet(),
+      pushed.toSet(),
+      reason: 'Add the catalog feature id of each new screen to _caseFeatures',
+    );
+  });
+
   for (final entry in screens.entries) {
     if (_roots.contains(entry.key)) {
       continue;
     }
-    testWidgets('${entry.key} shows a way back when pushed', (tester) async {
+    final feature = _caseFeatures[entry.key];
+    testWidgets('${entry.key} shows a way back when pushed '
+        '[case:$feature.back_affordance]', (tester) async {
       tester.view.physicalSize = const Size(390, 844);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
@@ -121,14 +139,102 @@ void main() {
           reason: 'the terms gate needs a way out',
         );
       } else if (!_exempt.contains(entry.key)) {
+        final back = _backControl(tester, context);
         expect(
-          _hasBackAffordance(tester, context),
-          isTrue,
+          back,
+          isNotNull,
           reason: '${entry.key} has no back or close button when pushed',
         );
+        // Using it must return to the opener, not just exist.
+        await tester.tap(back!, warnIfMissed: false);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 600));
+        tester.takeException();
+        expect(
+          find.text('launcher'),
+          findsOneWidget,
+          reason:
+              '${entry.key}: its back/close control did not return to the '
+              'screen that opened it',
+        );
+        expect(navigator.currentState!.canPop(), isFalse);
       }
       await tester.pumpWidget(const SizedBox());
       await tester.pump(const Duration(seconds: 1));
     });
   }
 }
+
+/// Catalog feature id of each pushed screen (qa/catalog/feature_catalog.json).
+/// Its test proves `<feature>.back_affordance`: a visible back or close
+/// control that returns to the opener.
+const _caseFeatures = <String, String>{
+  'AccountRecoveryScreen': 'auth.account_recovery',
+  'SignupScreen': 'auth.signup',
+  'BlogScreen': 'blog.blog',
+  'BlogDetailScreen': 'blog.blog_detail',
+  'BlogWritersScreen': 'blog.blog_writers',
+  'CallHistoryScreen': 'calls.call_history',
+  'CallSessionScreen': 'calls.call_session',
+  'ClubsScreen': 'clubs.clubs',
+  'ClubDetailScreen': 'clubs.club_detail',
+  'MyListsScreen': 'clubs.my_lists',
+  'TitleDetailScreen': 'clubs.title_detail',
+  'AboutAppScreen': 'common.about_app',
+  'BlockedUsersScreen': 'common.blocked_users',
+  'EmergencyContactsScreen': 'common.emergency_contacts',
+  'HelpSupportScreen': 'common.help_support',
+  'SupportContactFormScreen': 'support.support_contact_form',
+  'SupportTicketFormScreen': 'support.support_ticket_form',
+  'SupportTicketsScreen': 'support.support_tickets',
+  'SupportTicketThreadScreen': 'support.support_ticket_thread',
+  'LanguageSettingsScreen': 'common.language_settings',
+  'ModerationAppealsScreen': 'common.moderation_appeals',
+  'NotificationSettingsScreen': 'common.notification_settings',
+  'AccountDataScreen': 'common.account_data',
+  'PrivacySafetyScreen': 'common.privacy_safety',
+  'CircleChallengesScreen': 'engagement.circle_challenges',
+  'GroupsScreen': 'groups.groups',
+  'GroupDetailScreen': 'groups.group_detail',
+  'CreateGroupScreen': 'groups.create_group',
+  'ConversationRoomsScreen': 'engagement.conversation_rooms',
+  'DailyPromptScreen': 'engagement.daily_prompt',
+  'GroupCoffeePollsScreen': 'engagement.group_coffee_polls',
+  'LevelProgressionScreen': 'engagement.level_progression',
+  'MatchNudgesScreen': 'engagement.match_nudges',
+  'TrustBadgesScreen': 'engagement.trust_badges',
+  'TrustFilterScreen': 'engagement.trust_filter',
+  'VoiceIcebreakersScreen': 'engagement.voice_icebreakers',
+  'FriendsScreen': 'friends.friends',
+  'PlansScreen': 'plans.plans',
+  'GraduationCelebrationScreen': 'graduation.graduation_celebration',
+  'ActivitySessionScreen': 'matching.activity_session',
+  'MatchNotificationScreen': 'matching.match_notification',
+  'ChatScreen': 'messaging.chat',
+  'NotificationInboxScreen': 'notifications.notification_inbox',
+  'PhotoThemesScreen': 'photo_themes.photo_themes',
+  'PhotoThemeGalleryScreen': 'photo_themes.photo_theme_gallery',
+  'SubscriptionScreen': 'payment.subscription',
+  'WalletPaymentScreen': 'payment.wallet_payment',
+  'EditProfileScreen': 'profile.edit_profile',
+  'ProfileViewersScreen': 'profile.profile_viewers',
+  'SetupAboutScreen': 'profile.setup_about',
+  'SetupPhotosScreen': 'profile.setup_photos',
+  'SetupPreferencesScreen': 'profile.setup_preferences',
+  'SetupPreviewScreen': 'profile.setup_preview',
+  'SosScreen': 'safety.sos',
+  'LikedProfilesScreen': 'swipe.liked_profiles',
+  'PassedProfilesScreen': 'swipe.passed_profiles',
+  'ProfileDetailsScreen': 'swipe.profile_details',
+  'SpotlightProfilesScreen': 'swipe.spotlight_profiles',
+  'VerificationLandingScreen': 'verification.verification_landing',
+  'VerificationSelfieScreen': 'verification.verification_selfie',
+  'VerificationStatusScreen': 'verification.verification_status',
+  'VerificationUploadIdScreen': 'verification.verification_upload_id',
+  'ChapterStudioScreen': 'first_chapter.chapter_studio',
+  'CityPilotScreen': 'city_pilot.city_pilot',
+  'ComfortCardsScreen': 'first_chapter.comfort_cards',
+  'IntroducerScreen': 'friends.introducer',
+  'LikedMeScreen': 'swipe.liked_me',
+  'SocialChatScreen': 'social_chat.social_chat',
+};

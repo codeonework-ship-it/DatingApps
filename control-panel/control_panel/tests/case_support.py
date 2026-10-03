@@ -9,6 +9,11 @@ ways a console change must be refused.
 """
 from __future__ import annotations
 
+import base64
+import csv
+import io
+import re
+import zlib
 from unittest.mock import MagicMock, patch
 
 from django.contrib.messages import get_messages
@@ -43,6 +48,43 @@ def login(client: Client, *, roles=None, username="console_admin", user_id="0000
         session["operator_roles"] = list(roles)
     session.save()
     return client
+
+
+def workbook(response) -> tuple[dict[str, list[tuple]], dict]:
+    """Every sheet's rows (values only) and the About sheet as a dict."""
+    from openpyxl import load_workbook
+
+    wb = load_workbook(io.BytesIO(response.content))
+    sheets = {name: list(wb[name].iter_rows(values_only=True)) for name in wb.sheetnames}
+    about = {r[0]: r[1] for r in sheets.get("About", []) if r and r[0] is not None}
+    return sheets, about
+
+
+def csv_rows(response) -> list[list[str]]:
+    """A CSV export's rows (the UTF-8 BOM is checked and dropped)."""
+    assert response.content.startswith("\ufeff".encode()), "CSV must start with a UTF-8 BOM"
+    return list(csv.reader(io.StringIO(response.content.decode("utf-8-sig"))))
+
+
+def pdf_text(response) -> str:
+    """The text drawn on a ReportLab PDF's pages (ASCII85 + Flate streams
+    decoded, every Tj string joined), so a test can assert what was printed."""
+    raw = response.content
+    assert raw.startswith(b"%PDF"), "not a PDF"
+    parts = []
+    for mo in re.finditer(rb"stream\r?\n(.*?)endstream", raw, re.S):
+        data = mo.group(1).strip()
+        try:
+            if data.endswith(b"~>"):
+                data = base64.a85decode(b"<~" + data if not data.startswith(b"<~") else data, adobe=True)
+            data = zlib.decompress(data)
+        except (ValueError, zlib.error):
+            continue
+        for text in re.findall(rb"\(((?:\\.|[^\\)])*)\)\s*Tj", data):
+            # PDF string escapes: \ddd octal (WinAnsi, e.g. \267 is "·") or an escaped character.
+            text = re.sub(rb"\\([0-7]{1,3})", lambda m: bytes([int(m.group(1), 8)]), text)
+            parts.append(re.sub(rb"\\(.)", rb"\1", text).decode("cp1252", errors="replace"))
+    return "".join(parts)
 
 
 def flash(response) -> list[str]:

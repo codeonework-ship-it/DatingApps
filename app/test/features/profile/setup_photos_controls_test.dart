@@ -9,6 +9,7 @@ import 'package:verified_dating_app/features/profile/screens/setup/setup_about_s
 import 'package:verified_dating_app/features/profile/screens/setup/setup_photos_screen.dart';
 
 import '../../support/qa_api.dart';
+import '../../support/qa_screen_quality.dart';
 import 'support/profile_bff.dart';
 
 // Control-level tests for the photo step (SetupPhotosScreen): uploads from
@@ -229,7 +230,9 @@ void main() {
     });
 
     testWidgets('Cancel closes the question and keeps the photo '
-        '[case:profile.setup_photos.setup_photos_cancel_delete.action]', (tester) async {
+        '[case:profile.setup_photos.setup_photos_cancel_delete.action]', (
+      tester,
+    ) async {
       final api = QaApi();
       final bff = ProfileBff(api);
       await _open(tester, api);
@@ -462,20 +465,23 @@ void main() {
       expect(api.writes, isEmpty);
     });
 
-    testWidgets('Retry reloads photos that failed to load '
-        '[case:profile.setup_photos.something_went_wrong_please_try_onretry.action]', (tester) async {
-      final api = QaApi();
-      final bff = ProfileBff(api);
-      api.fail('GET /profile/*/draft');
-      await _open(tester, api);
-      expect(find.text(_en.profileSetupLoadErrorTitle), findsOneWidget);
-      expect(find.byKey(_gallery), findsNothing);
-      bff.install();
-      await _tap(tester, find.text(_en.profileSetupRetry));
-      expect(api.sent('GET', '/profile/me/draft'), hasLength(2));
-      expect(find.byKey(_delete('p1')), findsOneWidget);
-      expect(find.byKey(_delete('p2')), findsOneWidget);
-    });
+    testWidgets(
+      'Retry reloads photos that failed to load '
+      '[case:profile.setup_photos.something_went_wrong_please_try_onretry.action]',
+      (tester) async {
+        final api = QaApi();
+        final bff = ProfileBff(api);
+        api.fail('GET /profile/*/draft');
+        await _open(tester, api);
+        expect(find.text(_en.profileSetupLoadErrorTitle), findsOneWidget);
+        expect(find.byKey(_gallery), findsNothing);
+        bff.install();
+        await _tap(tester, find.text(_en.profileSetupRetry));
+        expect(api.sent('GET', '/profile/me/draft'), hasLength(2));
+        expect(find.byKey(_delete('p1')), findsOneWidget);
+        expect(find.byKey(_delete('p2')), findsOneWidget);
+      },
+    );
   });
 
   testWidgets('renders translated in every locale '
@@ -492,6 +498,66 @@ void main() {
       expect(find.text(l10n.profileSetupPrimaryPhoto), findsOneWidget);
       expect(tester.takeException(), isNull, reason: '$locale');
     }
+  });
+
+  group('screen quality', () {
+    // A member with four photos, one still in moderation.
+    QaApi server() {
+      final api = QaApi();
+      final bff = ProfileBff(api, draft: qaDraftJson(photoCount: 4));
+      bff.draft = {
+        ...bff.draft,
+        'photos': [
+          for (final p in bff.photos)
+            p['id'] == 'p4' ? {...p, 'moderation_status': 'pending'} : p,
+        ],
+      };
+      return api;
+    }
+
+    // Each photo's delete control only renders once the draft arrived.
+    Finder loaded() => find.byKey(_delete('p4'), skipOffstage: false);
+
+    testWidgets('the photo step with four photos lays out on phone and tablet '
+        'in both themes, in setup and from Edit Profile '
+        '[case:profile.setup_photos.layout_matrix]', (tester) async {
+      for (final setupFlow in [true, false]) {
+        await qaExpectLaysOutOnPhoneAndTablet(
+          tester,
+          api: server,
+          build: () => SetupPhotosScreen(isSetupFlow: setupFlow),
+          extra: qaMasterDataOverrides,
+          loaded: loaded,
+        );
+      }
+    });
+
+    testWidgets('the photo step meets tap-target, label and contrast '
+        'guidelines [case:profile.setup_photos.a11y_guidelines]', (
+      tester,
+    ) async {
+      for (final setupFlow in [true, false]) {
+        await qaExpectMeetsA11yGuidelines(
+          tester,
+          api: server,
+          build: () => SetupPhotosScreen(isSetupFlow: setupFlow),
+          extra: qaMasterDataOverrides,
+          loaded: loaded,
+        );
+      }
+    });
+
+    testWidgets('Back on the photo step returns to the screen that opened it '
+        '[case:profile.setup_photos.back_affordance]', (tester) async {
+      await qaExpectBackReturnsToOpener(
+        tester,
+        api: server(),
+        build: () => const SetupPhotosScreen(),
+        extra: qaMasterDataOverrides(),
+        screen: find.byType(SetupPhotosScreen),
+        loaded: loaded(),
+      );
+    });
   });
 }
 

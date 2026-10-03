@@ -18,6 +18,7 @@ import 'package:verified_dating_app/features/swipe/screens/spotlight_profiles_sc
 
 import '../../support/qa_api.dart';
 import 'discover_qa_fixtures.dart';
+import 'qa_screen_checks.dart';
 
 const _like = ValueKey('qa.discovery.like_button');
 const _pass = ValueKey('qa.discovery.pass_button');
@@ -64,9 +65,7 @@ void main() {
   group('Like', () {
     testWidgets('saves one like for the top card and deals the next '
         '[case:swipe.home_discovery.like_icon_favorite_onlike.action] '
-        '', (
-      tester,
-    ) async {
+        '', (tester) async {
       final api = qaDiscoverApi(deck: [_anya, _bina]);
       await _openDeck(tester, api);
       expect(_name('Anya, 29'), findsOneWidget);
@@ -78,47 +77,55 @@ void main() {
       expect(_name('Bina, 31'), findsOneWidget);
     });
 
-    testWidgets('a mutual like opens the match screen, and Send Message '
-        'opens the chat '
-        '[case:swipe.home_discovery.like_icon_favorite_onlike.action] '
-        '[case:matching.match_notification.match_notification_send_message.action]', (
-      tester,
-    ) async {
-      final api = qaDiscoverApi(
-        deck: [_anya, _bina],
-        swipe: {'match_id': 'match-anya'},
-      );
-      await _openDeck(tester, api);
-      await _tap(tester, _like);
+    testWidgets(
+      'a mutual like opens the match screen, and Send Message '
+      'opens the chat '
+      '[case:swipe.home_discovery.like_icon_favorite_onlike.action] '
+      '[case:matching.match_notification.match_notification_send_message.action]',
+      (tester) async {
+        final api = qaDiscoverApi(
+          deck: [_anya, _bina],
+          swipe: {'match_id': 'match-anya'},
+        );
+        await _openDeck(tester, api);
+        await _tap(tester, _like);
 
-      expect(find.byType(MatchNotificationScreen), findsOneWidget);
-      expect(find.text("It's a match!"), findsOneWidget);
-      expect(find.text('You and Anya liked each other'), findsOneWidget);
+        expect(find.byType(MatchNotificationScreen), findsOneWidget);
+        expect(find.text("It's a match!"), findsOneWidget);
+        expect(find.text('You and Anya liked each other'), findsOneWidget);
 
-      await _tap(tester, const ValueKey('qa.match_notification.send_message'));
-      expect(find.byType(ChatScreen), findsOneWidget);
-      expect(find.byType(MatchNotificationScreen), findsNothing);
-      final chat = tester.widget<ChatScreen>(find.byType(ChatScreen));
-      expect(chat.matchId, 'match-anya');
-      expect(chat.otherUserId, 'anya');
-      expect(api.sent('GET', '/chat/match-anya/messages'), isNotEmpty);
-    });
+        await _tap(
+          tester,
+          const ValueKey('qa.match_notification.send_message'),
+        );
+        expect(find.byType(ChatScreen), findsOneWidget);
+        expect(find.byType(MatchNotificationScreen), findsNothing);
+        final chat = tester.widget<ChatScreen>(find.byType(ChatScreen));
+        expect(chat.matchId, 'match-anya');
+        expect(chat.otherUserId, 'anya');
+        expect(api.sent('GET', '/chat/match-anya/messages'), isNotEmpty);
+      },
+    );
 
-    testWidgets('Keep Swiping closes the match screen back to the deck '
-        '[case:matching.match_notification.match_notification_keep_swiping.action]', (
-      tester,
-    ) async {
-      final api = qaDiscoverApi(
-        deck: [_anya, _bina],
-        swipe: {'match_id': 'match-anya'},
-      );
-      await _openDeck(tester, api);
-      await _tap(tester, _like);
-      await _tap(tester, const ValueKey('qa.match_notification.keep_swiping'));
+    testWidgets(
+      'Keep Swiping closes the match screen back to the deck '
+      '[case:matching.match_notification.match_notification_keep_swiping.action]',
+      (tester) async {
+        final api = qaDiscoverApi(
+          deck: [_anya, _bina],
+          swipe: {'match_id': 'match-anya'},
+        );
+        await _openDeck(tester, api);
+        await _tap(tester, _like);
+        await _tap(
+          tester,
+          const ValueKey('qa.match_notification.keep_swiping'),
+        );
 
-      expect(find.byType(MatchNotificationScreen), findsNothing);
-      expect(_name('Bina, 31'), findsOneWidget);
-    });
+        expect(find.byType(MatchNotificationScreen), findsNothing);
+        expect(_name('Bina, 31'), findsOneWidget);
+      },
+    );
 
     testWidgets('a server error keeps the card and says so '
         '[case:swipe.home_discovery.like_icon_favorite_onlike.api_failure]', (
@@ -144,7 +151,9 @@ void main() {
         'it and keeps the card '
         '[case:swipe.home_discovery.like_icon_favorite_onlike.api_failure] '
         '[case:swipe.home_discovery.not_now.action] '
-        '[case:swipe.home_discovery.discovery_daily_limit_not_now.action]', (tester) async {
+        '[case:swipe.home_discovery.discovery_daily_limit_not_now.action]', (
+      tester,
+    ) async {
       final api = qaDiscoverApi(deck: [_anya, _bina])
         ..on('POST /swipe', (_) => qaDailyLikeLimit());
       await _openDeck(tester, api);
@@ -160,7 +169,9 @@ void main() {
     });
 
     testWidgets('See plans on the limit sheet opens the plans '
-        '[case:swipe.home_discovery.discovery_daily_limit_see_plans.action]', (tester) async {
+        '[case:swipe.home_discovery.discovery_daily_limit_see_plans.action]', (
+      tester,
+    ) async {
       final api = qaDiscoverApi(deck: [_anya])
         ..on('POST /swipe', (_) => qaDailyLikeLimit());
       await _openDeck(tester, api);
@@ -172,21 +183,18 @@ void main() {
   });
 
   group('Super like', () {
-    testWidgets(
-      'saves a like for the top card, confirms it and deals the '
-      'next '
-      '[case:swipe.home_discovery.super_like_icon_star_onsuperlike.action] '
-      '',
-      (tester) async {
-        final api = qaDiscoverApi(deck: [_anya, _bina]);
-        await _openDeck(tester, api);
-        await _tap(tester, _superLike);
+    testWidgets('saves a like for the top card, confirms it and deals the '
+        'next '
+        '[case:swipe.home_discovery.super_like_icon_star_onsuperlike.action] '
+        '', (tester) async {
+      final api = qaDiscoverApi(deck: [_anya, _bina]);
+      await _openDeck(tester, api);
+      await _tap(tester, _superLike);
 
-        expect(qaSwipes(api), [qaSwipeBody('anya', like: true)]);
-        expect(qaSnackText(tester), 'Super like sent to Anya');
-        expect(_name('Bina, 31'), findsOneWidget);
-      },
-    );
+      expect(qaSwipes(api), [qaSwipeBody('anya', like: true)]);
+      expect(qaSnackText(tester), 'Super like sent to Anya');
+      expect(_name('Bina, 31'), findsOneWidget);
+    });
 
     testWidgets(
       'offline: retried once, then explained; the card stays '
@@ -209,9 +217,7 @@ void main() {
   group('Pass and Undo', () {
     testWidgets('Pass saves a pass for the top card and deals the next '
         '[case:swipe.home_discovery.pass_icon_close_onpass.action] '
-        '', (
-      tester,
-    ) async {
+        '', (tester) async {
       final api = qaDiscoverApi(deck: [_anya, _bina]);
       await _openDeck(tester, api);
       await _tap(tester, _pass);
@@ -257,72 +263,67 @@ void main() {
   });
 
   group('card Message', () {
-    testWidgets(
-      'without a match: one like for this member, explained, and '
-      'the member leaves the deck '
-      '[case:swipe.home_discovery.x_card_message_button_message.action] '
-      '',
-      (tester) async {
-        final api = qaDiscoverApi(deck: [_anya, _bina]);
-        await _openDeck(tester, api);
-        final before = api.sent('GET', '/matches/me').length;
+    testWidgets('without a match: one like for this member, explained, and '
+        'the member leaves the deck '
+        '[case:swipe.home_discovery.x_card_message_button_message.action] '
+        '', (tester) async {
+      final api = qaDiscoverApi(deck: [_anya, _bina]);
+      await _openDeck(tester, api);
+      final before = api.sent('GET', '/matches/me').length;
 
-        await _tap(tester, _cardMessage);
+      await _tap(tester, _cardMessage);
 
-        expect(
-          api.sent('GET', '/matches/me').length,
-          greaterThan(before),
-          reason: 'looks for an existing match first',
-        );
-        expect(qaSwipes(api), [qaSwipeBody('anya', like: true)]);
-        expect(
-          qaSnackText(tester),
-          'Love sent to Anya. You can chat as soon as they like you back.',
-        );
-        expect(find.byType(ChatScreen), findsNothing);
-        expect(_name('Bina, 31'), findsOneWidget);
-      },
-    );
+      expect(
+        api.sent('GET', '/matches/me').length,
+        greaterThan(before),
+        reason: 'looks for an existing match first',
+      );
+      expect(qaSwipes(api), [qaSwipeBody('anya', like: true)]);
+      expect(
+        qaSnackText(tester),
+        'Love sent to Anya. You can chat as soon as they like you back.',
+      );
+      expect(find.byType(ChatScreen), findsNothing);
+      expect(_name('Bina, 31'), findsOneWidget);
+    });
 
-    testWidgets(
-      'with a match: opens that chat and sends no like '
-      '[case:swipe.home_discovery.x_card_message_button_message.action]',
-      (tester) async {
-        final api = qaDiscoverApi(
-          deck: [_anya, _bina],
-          matches: [qaMatchRow('match-anya', 'anya', 'Anya')],
-        );
-        await _openDeck(tester, api);
-        await _tap(tester, _cardMessage);
+    testWidgets('with a match: opens that chat and sends no like '
+        '[case:swipe.home_discovery.x_card_message_button_message.action]', (
+      tester,
+    ) async {
+      final api = qaDiscoverApi(
+        deck: [_anya, _bina],
+        matches: [qaMatchRow('match-anya', 'anya', 'Anya')],
+      );
+      await _openDeck(tester, api);
+      await _tap(tester, _cardMessage);
 
-        expect(find.byType(ChatScreen), findsOneWidget);
-        expect(
-          tester.widget<ChatScreen>(find.byType(ChatScreen)).matchId,
-          'match-anya',
-        );
-        expect(qaSwipes(api), isEmpty);
-      },
-    );
+      expect(find.byType(ChatScreen), findsOneWidget);
+      expect(
+        tester.widget<ChatScreen>(find.byType(ChatScreen)).matchId,
+        'match-anya',
+      );
+      expect(qaSwipes(api), isEmpty);
+    });
 
-    testWidgets(
-      'a like that makes the match opens the chat straight away '
-      '[case:swipe.home_discovery.x_card_message_button_message.action]',
-      (tester) async {
-        final api = qaDiscoverApi(
-          deck: [_anya, _bina],
-          swipe: {'match_id': 'match-new'},
-        );
-        await _openDeck(tester, api);
-        await _tap(tester, _cardMessage);
+    testWidgets('a like that makes the match opens the chat straight away '
+        '[case:swipe.home_discovery.x_card_message_button_message.action]', (
+      tester,
+    ) async {
+      final api = qaDiscoverApi(
+        deck: [_anya, _bina],
+        swipe: {'match_id': 'match-new'},
+      );
+      await _openDeck(tester, api);
+      await _tap(tester, _cardMessage);
 
-        expect(qaSwipes(api), [qaSwipeBody('anya', like: true)]);
-        expect(find.byType(ChatScreen), findsOneWidget);
-        expect(
-          tester.widget<ChatScreen>(find.byType(ChatScreen)).matchId,
-          'match-new',
-        );
-      },
-    );
+      expect(qaSwipes(api), [qaSwipeBody('anya', like: true)]);
+      expect(find.byType(ChatScreen), findsOneWidget);
+      expect(
+        tester.widget<ChatScreen>(find.byType(ChatScreen)).matchId,
+        'match-new',
+      );
+    });
 
     testWidgets(
       'the daily like limit is explained with a way to the plans '
@@ -342,29 +343,26 @@ void main() {
   });
 
   group('View more (profile from the deck)', () {
-    testWidgets(
-      'opens the profile and records the view '
-      '[case:swipe.home_discovery.x_view_more_button_openprofile.action] '
-      '',
-      (tester) async {
-        final api = qaDiscoverApi(deck: [_anya, _bina]);
-        await _openDeck(tester, api);
-        await _tap(tester, _viewMore);
+    testWidgets('opens the profile and records the view '
+        '[case:swipe.home_discovery.x_view_more_button_openprofile.action] '
+        '', (tester) async {
+      final api = qaDiscoverApi(deck: [_anya, _bina]);
+      await _openDeck(tester, api);
+      await _tap(tester, _viewMore);
 
-        expect(find.byType(ProfileDetailsScreen), findsOneWidget);
-        expect(
-          tester
-              .widget<ProfileDetailsScreen>(find.byType(ProfileDetailsScreen))
-              .profile
-              .id,
-          'anya',
-        );
-        expect(api.sent('POST', '/profile/views').single.body, {
-          'viewer_user_id': 'me',
-          'viewed_user_id': 'anya',
-        });
-      },
-    );
+      expect(find.byType(ProfileDetailsScreen), findsOneWidget);
+      expect(
+        tester
+            .widget<ProfileDetailsScreen>(find.byType(ProfileDetailsScreen))
+            .profile
+            .id,
+        'anya',
+      );
+      expect(api.sent('POST', '/profile/views').single.body, {
+        'viewer_user_id': 'me',
+        'viewed_user_id': 'anya',
+      });
+    });
 
     testWidgets('Love there likes this member, closes, and the deck moves on '
         '[case:discover.profile_entry_points.discover_view_more.love]', (
@@ -417,68 +415,63 @@ void main() {
   });
 
   group('error and empty states', () {
-    testWidgets(
-      'a failed load shows the error; Try Again reloads the deck '
-      '[case:swipe.home_discovery.discovery_state_action_button_retry.action] '
-      '',
-      (tester) async {
-        final api = qaDiscoverApi(deck: [_anya])..fail('GET /discovery/me');
-        await _openDeck(tester, api);
-        expect(
-          find.text('Something broke on our side.'),
-          findsOneWidget,
-          reason: 'the server message is shown as sent',
-        );
-        expect(api.sent('GET', '/discovery/me'), hasLength(1));
-
-        api.json('GET /discovery/me', {
-          'candidates': [_anya],
-        });
-        await _tap(tester, const ValueKey('qa.discovery.state_action_button'));
-
-        expect(api.sent('GET', '/discovery/me'), hasLength(2));
-        expect(api.sent('GET', '/discovery/me').last.query, {
-          'limit': 50,
-          'mode': 'all',
-        });
-        expect(_name('Anya, 29'), findsOneWidget);
-      },
-    );
-
-    testWidgets('offline retry keeps the error state with the localized '
-        'message '
-        '[case:swipe.home_discovery.discovery_state_action_button_retry.api_failure]', (
-      tester,
-    ) async {
-      final api = qaDiscoverApi()..offline('GET /discovery/me');
+    testWidgets('a failed load shows the error; Try Again reloads the deck '
+        '[case:swipe.home_discovery.discovery_state_action_button_retry.action] '
+        '', (tester) async {
+      final api = qaDiscoverApi(deck: [_anya])..fail('GET /discovery/me');
       await _openDeck(tester, api);
+      expect(
+        find.text('Something broke on our side.'),
+        findsOneWidget,
+        reason: 'the server message is shown as sent',
+      );
+      expect(api.sent('GET', '/discovery/me'), hasLength(1));
+
+      api.json('GET /discovery/me', {
+        'candidates': [_anya],
+      });
       await _tap(tester, const ValueKey('qa.discovery.state_action_button'));
 
       expect(api.sent('GET', '/discovery/me'), hasLength(2));
-      expect(
-        find.text('Failed to load profiles. Please try again.'),
-        findsOneWidget,
-      );
+      expect(api.sent('GET', '/discovery/me').last.query, {
+        'limit': 50,
+        'mode': 'all',
+      });
+      expect(_name('Anya, 29'), findsOneWidget);
     });
 
     testWidgets(
-      'the empty deck refreshes on Refresh '
-      '[case:swipe.home_discovery.discovery_state_action_button_refresh.action] '
-      '',
+      'offline retry keeps the error state with the localized '
+      'message '
+      '[case:swipe.home_discovery.discovery_state_action_button_retry.api_failure]',
       (tester) async {
-        final api = qaDiscoverApi();
+        final api = qaDiscoverApi()..offline('GET /discovery/me');
         await _openDeck(tester, api);
-        expect(find.text('No profiles'), findsOneWidget);
-
-        api.json('GET /discovery/me', {
-          'candidates': [_bina],
-        });
         await _tap(tester, const ValueKey('qa.discovery.state_action_button'));
 
         expect(api.sent('GET', '/discovery/me'), hasLength(2));
-        expect(_name('Bina, 31'), findsOneWidget);
+        expect(
+          find.text('Failed to load profiles. Please try again.'),
+          findsOneWidget,
+        );
       },
     );
+
+    testWidgets('the empty deck refreshes on Refresh '
+        '[case:swipe.home_discovery.discovery_state_action_button_refresh.action] '
+        '', (tester) async {
+      final api = qaDiscoverApi();
+      await _openDeck(tester, api);
+      expect(find.text('No profiles'), findsOneWidget);
+
+      api.json('GET /discovery/me', {
+        'candidates': [_bina],
+      });
+      await _tap(tester, const ValueKey('qa.discovery.state_action_button'));
+
+      expect(api.sent('GET', '/discovery/me'), hasLength(2));
+      expect(_name('Bina, 31'), findsOneWidget);
+    });
 
     testWidgets(
       'a refresh that fails turns the empty state into the error '
@@ -536,9 +529,7 @@ void main() {
     });
 
     testWidgets('Passed opens the passed list with the member just passed '
-        '[case:swipe.home_discovery.passed_2.action]', (
-      tester,
-    ) async {
+        '[case:swipe.home_discovery.passed_2.action]', (tester) async {
       final api = qaDiscoverApi(deck: [_anya, _bina]);
       await _openDeck(tester, api);
       await _tap(tester, _pass);
@@ -555,28 +546,25 @@ void main() {
       qaCandidate('tara', 'Tara', spotlight: true),
     ];
 
-    testWidgets(
-      'a card opens that member and records the view '
-      '[case:swipe.home_discovery.spotlight_rail_card_x_openprofile.action] '
-      '',
-      (tester) async {
-        final api = qaDiscoverApi(deck: [_anya], spotlight: spotlight);
-        await _openDeck(tester, api);
-        await _tap(tester, const ValueKey('qa.spotlight.rail.card.1'));
+    testWidgets('a card opens that member and records the view '
+        '[case:swipe.home_discovery.spotlight_rail_card_x_openprofile.action] '
+        '', (tester) async {
+      final api = qaDiscoverApi(deck: [_anya], spotlight: spotlight);
+      await _openDeck(tester, api);
+      await _tap(tester, const ValueKey('qa.spotlight.rail.card.1'));
 
-        expect(
-          tester
-              .widget<ProfileDetailsScreen>(find.byType(ProfileDetailsScreen))
-              .profile
-              .id,
-          'tara',
-        );
-        expect(api.sent('POST', '/profile/views').single.body, {
-          'viewer_user_id': 'me',
-          'viewed_user_id': 'tara',
-        });
-      },
-    );
+      expect(
+        tester
+            .widget<ProfileDetailsScreen>(find.byType(ProfileDetailsScreen))
+            .profile
+            .id,
+        'tara',
+      );
+      expect(api.sent('POST', '/profile/views').single.body, {
+        'viewer_user_id': 'me',
+        'viewed_user_id': 'tara',
+      });
+    });
 
     testWidgets('Love from a rail profile likes that member, not the deck card '
         '[case:discover.profile_entry_points.spotlight_rail.love]', (
@@ -633,20 +621,21 @@ void main() {
       },
     );
 
-    testWidgets('View more opens the full Spotlight screen with the rail '
-        '[case:swipe.home_discovery.spotlight_rail_view_more_viewmore.action]', (
-      tester,
-    ) async {
-      final api = qaDiscoverApi(deck: [_anya], spotlight: spotlight);
-      await _openDeck(tester, api);
-      await _tap(tester, const ValueKey('qa.spotlight.rail.view_more'));
+    testWidgets(
+      'View more opens the full Spotlight screen with the rail '
+      '[case:swipe.home_discovery.spotlight_rail_view_more_viewmore.action]',
+      (tester) async {
+        final api = qaDiscoverApi(deck: [_anya], spotlight: spotlight);
+        await _openDeck(tester, api);
+        await _tap(tester, const ValueKey('qa.spotlight.rail.view_more'));
 
-      final screen = tester.widget<SpotlightProfilesScreen>(
-        find.byType(SpotlightProfilesScreen),
-      );
-      expect(screen.profiles.map((p) => p.id), ['sami', 'tara']);
-      expect(find.text('Spotlight Matches'), findsOneWidget);
-    });
+        final screen = tester.widget<SpotlightProfilesScreen>(
+          find.byType(SpotlightProfilesScreen),
+        );
+        expect(screen.profiles.map((p) => p.id), ['sami', 'tara']);
+        expect(find.text('Spotlight Matches'), findsOneWidget);
+      },
+    );
   });
 
   group('Today rail', () {
@@ -657,8 +646,7 @@ void main() {
 
     testWidgets(
       'a pick opens that member and records the view '
-      '[case:swipe.home_discovery.discover_today_card_x_openprofile.action] '
-      '[case:swipe.home_discovery.discover_today_card_x_openprofile.api_contract]',
+      '[case:swipe.home_discovery.discover_today_card_x_openprofile.action]',
       (tester) async {
         final api = qaDiscoverApi(deck: [_anya], today: today);
         await _openDeck(
@@ -736,7 +724,9 @@ void main() {
     );
 
     testWidgets('Fits your week opens the dating rhythm settings '
-        '[case:swipe.home_discovery.discover_today_fits_your_week.action]', (tester) async {
+        '[case:swipe.home_discovery.discover_today_fits_your_week.action]', (
+      tester,
+    ) async {
       final api = qaDiscoverApi(deck: [_anya], today: today);
       await _openDeck(
         tester,
@@ -753,38 +743,36 @@ void main() {
   });
 
   group('Today screen', () {
-    testWidgets(
-      'Meet <name> opens the pick; Love there likes that member '
-      '[case:swipe.home_discovery.today_profile_x_openprofile.action] '
-      '[case:swipe.home_discovery.today_profile_x_openprofile.api_contract]',
-      (tester) async {
-        final api = qaDiscoverApi(
-          deck: [_anya],
-          today: [
-            qaCandidate('asha', 'Asha', reasons: ['Shares your intent']),
-          ],
-        );
-        await _openDeck(
-          tester,
-          api,
-          browseOnly: false,
-          flags: {
-            'curated_daily_set_enabled': true,
-            'intentional_dating_enabled': true,
-          },
-        );
-        await _tap(tester, const ValueKey('qa.today.profile.asha'));
-        expect(api.sent('POST', '/profile/views').single.body, {
-          'viewer_user_id': 'me',
-          'viewed_user_id': 'asha',
-        });
-        await _tap(tester, _love);
+    testWidgets('Meet <name> opens the pick; Love there likes that member '
+        '[case:swipe.home_discovery.today_profile_x_openprofile.action]', (
+      tester,
+    ) async {
+      final api = qaDiscoverApi(
+        deck: [_anya],
+        today: [
+          qaCandidate('asha', 'Asha', reasons: ['Shares your intent']),
+        ],
+      );
+      await _openDeck(
+        tester,
+        api,
+        browseOnly: false,
+        flags: {
+          'curated_daily_set_enabled': true,
+          'intentional_dating_enabled': true,
+        },
+      );
+      await _tap(tester, const ValueKey('qa.today.profile.asha'));
+      expect(api.sent('POST', '/profile/views').single.body, {
+        'viewer_user_id': 'me',
+        'viewed_user_id': 'asha',
+      });
+      await _tap(tester, _love);
 
-        expect(qaSwipes(api), [qaSwipeBody('asha', like: true)]);
-        expect(find.byType(ProfileDetailsScreen), findsNothing);
-        expect(find.byKey(const ValueKey('qa.today.screen')), findsOneWidget);
-      },
-    );
+      expect(qaSwipes(api), [qaSwipeBody('asha', like: true)]);
+      expect(find.byType(ProfileDetailsScreen), findsNothing);
+      expect(find.byKey(const ValueKey('qa.today.screen')), findsOneWidget);
+    });
 
     testWidgets('a Today pick whose like hits the daily limit says so '
         '[case:swipe.home_discovery.today_profile_x_openprofile.api_failure]', (
@@ -810,31 +798,439 @@ void main() {
       expect(qaSnackText(tester), contains("You've used today's 10 likes"));
     });
 
-    testWidgets('Explore profiles opens the deck; Back to Today returns '
-        '[case:intentional_dating.today_introductions.today_explore_profiles.action] '
-        '[case:swipe.home_discovery.discovery_back_to_today.action]', (tester) async {
-      final api = qaDiscoverApi(deck: [_anya]);
-      await _openDeck(
+    testWidgets(
+      'Explore profiles opens the deck; Back to Today returns '
+      '[case:intentional_dating.today_introductions.today_explore_profiles.action] '
+      '[case:swipe.home_discovery.discovery_back_to_today.action]',
+      (tester) async {
+        final api = qaDiscoverApi(deck: [_anya]);
+        await _openDeck(
+          tester,
+          api,
+          browseOnly: false,
+          flags: {
+            'curated_daily_set_enabled': true,
+            'intentional_dating_enabled': true,
+          },
+        );
+        expect(find.text('A little breathing room.'), findsOneWidget);
+
+        await tester.ensureVisible(find.text('Explore profiles'));
+        await tester.tap(find.text('Explore profiles'));
+        await qaSettle(tester);
+        qaDropImageErrors(tester);
+        expect(find.text('Explore'), findsOneWidget);
+        expect(_name('Anya, 29'), findsOneWidget);
+
+        await _tap(tester, const ValueKey('qa.discovery.back_to_today'));
+        expect(find.byKey(const ValueKey('qa.today.screen')), findsOneWidget);
+        expect(_name('Anya, 29'), findsNothing);
+      },
+    );
+  });
+
+  // The browser window lays Discover out as a two-column desk: deck on the
+  // left, an aside with deck stats, Today, Spotlight rows and the bell in
+  // the header. On the VM kIsWeb is false, so the screen's test switch turns
+  // that layout on; everything below is the real desktop widget tree.
+  group('browser desk', () {
+    final today = [
+      qaCandidate('asha', 'Asha', reasons: ['Shares your intent']),
+      qaCandidate('dev', 'Dev', reasons: ['Shows up']),
+    ];
+    final spotlight = [
+      qaCandidate('sami', 'Sami', spotlight: true),
+      qaCandidate('tara', 'Tara', spotlight: true),
+    ];
+
+    Future<void> openDesk(
+      WidgetTester tester,
+      QaApi api, {
+      Map<String, bool> flags = const {},
+    }) async {
+      HomeDiscoveryScreen.debugBrowserLayout = true;
+      addTearDown(() => HomeDiscoveryScreen.debugBrowserLayout = false);
+      await pumpQa(
         tester,
         api,
-        browseOnly: false,
-        flags: {
-          'curated_daily_set_enabled': true,
-          'intentional_dating_enabled': true,
+        const HomeDiscoveryScreen(browseOnly: true),
+        size: const Size(1440, 900),
+        flags: {'curated_daily_set_enabled': false, ...flags},
+        extra: qaDiscoverExtras(),
+      );
+      qaDropImageErrors(tester);
+      expect(find.text('Your deck'), findsOneWidget, reason: 'desk layout');
+    }
+
+    testWidgets(
+      'a Today pick in the aside opens that member and records the view '
+      '[case:swipe.home_discovery.discover_today_card_x_opentodayprofile.action]',
+      (tester) async {
+        final api = qaDiscoverApi(deck: [_anya], today: today);
+        await openDesk(tester, api, flags: {'curated_daily_set_enabled': true});
+        await _tap(tester, const ValueKey('qa.discover.today.card.1'));
+
+        expect(
+          tester
+              .widget<ProfileDetailsScreen>(find.byType(ProfileDetailsScreen))
+              .profile
+              .id,
+          'dev',
+        );
+        expect(api.sent('POST', '/profile/views').single.body, {
+          'viewer_user_id': 'me',
+          'viewed_user_id': 'dev',
+        });
+
+        await _tap(tester, _love);
+        expect(qaSwipes(api), [qaSwipeBody('dev', like: true)]);
+        expect(find.byType(ProfileDetailsScreen), findsNothing);
+        expect(_name('Anya, 29'), findsOneWidget, reason: 'deck untouched');
+      },
+    );
+
+    testWidgets(
+      'an offline Love from an aside Today pick fails visibly and keeps the '
+      'profile open '
+      '[case:swipe.home_discovery.discover_today_card_x_opentodayprofile.api_failure]',
+      (tester) async {
+        final api = qaDiscoverApi(deck: [_anya], today: today)
+          ..offline('POST /swipe');
+        await openDesk(tester, api, flags: {'curated_daily_set_enabled': true});
+        await _tap(tester, const ValueKey('qa.discover.today.card.0'));
+        await _tap(tester, _love);
+
+        // One automatic retry for a dropped connection, then it gives up.
+        expect(qaSwipes(api), [
+          qaSwipeBody('asha', like: true),
+          qaSwipeBody('asha', like: true),
+        ]);
+        expect(
+          qaSnackText(tester),
+          'Unable to like right now. Please try again.',
+        );
+        expect(
+          tester
+              .widget<ProfileDetailsScreen>(find.byType(ProfileDetailsScreen))
+              .profile
+              .id,
+          'asha',
+        );
+
+        // Back online (and the message read), the same Love goes through.
+        await tester.pump(const Duration(seconds: 6));
+        await qaSettle(tester);
+        api.json('POST /swipe', <String, dynamic>{});
+        await _tap(tester, _love);
+        expect(qaSwipes(api).last, qaSwipeBody('asha', like: true));
+        expect(find.byType(ProfileDetailsScreen), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'a Spotlight row in the aside opens that member and records the view '
+      '[case:swipe.home_discovery.spotlight_rail_row_x_openspotlightprofile.action]',
+      (tester) async {
+        final api = qaDiscoverApi(deck: [_anya], spotlight: spotlight);
+        await openDesk(tester, api);
+        await _tap(tester, const ValueKey('qa.spotlight.rail.row.1'));
+
+        expect(
+          tester
+              .widget<ProfileDetailsScreen>(find.byType(ProfileDetailsScreen))
+              .profile
+              .id,
+          'tara',
+        );
+        expect(api.sent('POST', '/profile/views').single.body, {
+          'viewer_user_id': 'me',
+          'viewed_user_id': 'tara',
+        });
+
+        await _tap(tester, _love);
+        expect(qaSwipes(api), [qaSwipeBody('tara', like: true)]);
+        expect(qaSnackText(tester), 'Super like sent to Tara');
+      },
+    );
+
+    testWidgets(
+      'a Spotlight row Love refused by the daily limit fails with the '
+      'explanation; the profile stays open '
+      '[case:swipe.home_discovery.spotlight_rail_row_x_openspotlightprofile.api_failure]',
+      (tester) async {
+        final api = qaDiscoverApi(deck: [_anya], spotlight: spotlight)
+          ..on('POST /swipe', (_) => qaDailyLikeLimit());
+        await openDesk(tester, api);
+        await _tap(tester, const ValueKey('qa.spotlight.rail.row.0'));
+        await _tap(tester, _love);
+
+        expect(qaSwipes(api), [qaSwipeBody('sami', like: true)]);
+        expect(find.byType(ProfileDetailsScreen), findsOneWidget);
+        expect(qaSnackText(tester), contains("You've used today's 10 likes"));
+      },
+    );
+
+    testWidgets(
+      'View all opens the full Spotlight screen with every '
+      'Spotlight member '
+      '[case:swipe.home_discovery.spotlight_rail_view_all_viewspotlight.action]',
+      (tester) async {
+        final api = qaDiscoverApi(deck: [_anya], spotlight: spotlight);
+        await openDesk(tester, api);
+        await _tap(tester, const ValueKey('qa.spotlight.rail.view_all'));
+
+        final screen = tester.widget<SpotlightProfilesScreen>(
+          find.byType(SpotlightProfilesScreen),
+        );
+        expect(screen.profiles.map((p) => p.id), ['sami', 'tara']);
+      },
+    );
+
+    testWidgets('the header bell opens the notifications dialog; Who liked '
+        'me opens the list '
+        '[case:swipe.home_discovery.discovery_notifications_button.action] '
+        '[case:swipe.home_discovery.discovery_notifications_button_2.action]', (
+      tester,
+    ) async {
+      final api = qaDiscoverApi(
+        deck: [_anya],
+        likedMe: [qaCandidate('cara', 'Cara')],
+      );
+      await openDesk(tester, api);
+      await _tap(tester, const ValueKey('qa.discovery.notifications_button'));
+
+      expect(find.byType(Dialog), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(Dialog),
+          matching: find.text('Latest unread notifications'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('1 new like'), findsOneWidget);
+
+      await _tap(
+        tester,
+        const ValueKey('qa.discovery.notification.who_liked_me'),
+      );
+      expect(find.byType(LikedMeScreen), findsOneWidget);
+      expect(find.byType(Dialog), findsNothing);
+      expect(find.text('Cara, 29'), findsOneWidget);
+    });
+
+    testWidgets('with nothing unread the bell dialog says so and closes on '
+        'tap outside '
+        '[case:swipe.home_discovery.discovery_notifications_button_2.action]', (
+      tester,
+    ) async {
+      final api = qaDiscoverApi(deck: [_anya]);
+      await openDesk(tester, api);
+      await _tap(tester, const ValueKey('qa.discovery.notifications_button'));
+      expect(find.text('No unread notifications'), findsOneWidget);
+
+      await tester.tapAt(const Offset(10, 10));
+      await qaSettle(tester);
+      expect(find.byType(Dialog), findsNothing);
+    });
+
+    testWidgets('the Passed stat counts passes and opens the passed list '
+        '[case:swipe.home_discovery.passed.action]', (tester) async {
+      final api = qaDiscoverApi(deck: [_anya, _bina]);
+      await openDesk(tester, api);
+      await _tap(tester, _pass);
+      expect(qaSwipes(api), [qaSwipeBody('anya', like: false)]);
+      final stat = find.ancestor(
+        of: find.text('Passed'),
+        matching: find.byType(InkWell),
+      );
+      expect(
+        find.descendant(of: stat, matching: find.text('1')),
+        findsOneWidget,
+        reason: 'the stat counts the pass',
+      );
+
+      await tester.tap(stat);
+      await qaSettle(tester, frames: 12);
+
+      expect(find.byType(PassedProfilesScreen), findsOneWidget);
+      expect(find.text('Anya, 29'), findsOneWidget);
+    });
+  });
+
+  group('screen checks', () {
+    Future<void> pumpDeck(
+      WidgetTester tester, {
+      Size size = const Size(430, 932),
+      ThemeData? theme,
+      Locale? locale,
+    }) async {
+      const screen = HomeDiscoveryScreen(browseOnly: true);
+      await pumpQa(
+        tester,
+        qaDiscoverApi(
+          deck: [_anya, _bina],
+          spotlight: [qaCandidate('sami', 'Sami', spotlight: true)],
+        ),
+        theme == null ? screen : qaThemed(theme, screen),
+        size: size,
+        locale: locale,
+        flags: {'curated_daily_set_enabled': false},
+        extra: qaDiscoverExtras(),
+      );
+      qaDropImageErrors(tester);
+    }
+
+    testWidgets('the populated deck meets the tap-target, label and contrast '
+        'guidelines [case:swipe.home_discovery.a11y_guidelines]', (
+      tester,
+    ) async {
+      await pumpDeck(tester);
+      expect(_name('Anya, 29'), findsOneWidget);
+      await qaExpectA11y(tester);
+    });
+
+    testWidgets('the deck lays out on phones and tablets in both themes '
+        '[case:swipe.home_discovery.layout_matrix]', (tester) async {
+      await qaExpectLayout(
+        tester,
+        pump: (size, theme) => pumpDeck(tester, size: size, theme: theme),
+        check: (where) {
+          expect(_name('Anya, 29'), findsOneWidget, reason: where);
+          expect(find.byKey(_like), findsOneWidget, reason: where);
+          expect(find.byKey(_pass), findsOneWidget, reason: where);
         },
       );
-      expect(find.text('A little breathing room.'), findsOneWidget);
+    });
 
-      await tester.ensureVisible(find.text('Explore profiles'));
-      await tester.tap(find.text('Explore profiles'));
-      await qaSettle(tester);
+    testWidgets('the deck renders translated in every language '
+        '[case:swipe.home_discovery.l10n]', (tester) async {
+      await qaExpectTranslated(
+        tester,
+        pump: (locale) => pumpDeck(tester, locale: locale),
+        fixture: {'Anya', 'Bina', 'Sami', 'Designer', 'sketches strangers'},
+        check: (l10n, where) {
+          expect(_name('Anya, 29'), findsOneWidget, reason: where);
+          expect(
+            find.text(l10n.discoverStatPassed, findRichText: true),
+            findsWidgets,
+            reason: where,
+          );
+        },
+      );
+    });
+
+    Future<List<Object?>> pumpMatch(
+      WidgetTester tester, {
+      Size size = const Size(430, 932),
+      ThemeData? theme,
+      Locale? locale,
+      bool launcher = true,
+    }) {
+      const screen = MatchNotificationScreen(
+        matchId: 'match-anya',
+        otherUserId: 'anya',
+        otherUserName: 'Anya',
+        otherUserPhotoUrl: '',
+      );
+      return pumpQa(
+        tester,
+        qaDiscoverApi(),
+        theme == null ? screen : qaThemed(theme, screen),
+        size: size,
+        locale: locale,
+        launcher: launcher,
+        extra: qaDiscoverExtras(),
+      );
+    }
+
+    testWidgets('the match screen meets the tap-target, label and contrast '
+        'guidelines [case:matching.match_notification.a11y_guidelines]', (
+      tester,
+    ) async {
+      await pumpMatch(tester);
       qaDropImageErrors(tester);
-      expect(find.text('Explore'), findsOneWidget);
-      expect(_name('Anya, 29'), findsOneWidget);
+      expect(find.text('You and Anya liked each other'), findsOneWidget);
+      await qaExpectA11y(tester);
+    });
 
-      await _tap(tester, const ValueKey('qa.discovery.back_to_today'));
-      expect(find.byKey(const ValueKey('qa.today.screen')), findsOneWidget);
-      expect(_name('Anya, 29'), findsNothing);
+    testWidgets('the match screen shows a back button that returns to the '
+        'deck [case:matching.match_notification.back_affordance]', (
+      tester,
+    ) async {
+      final results = await pumpMatch(tester);
+      qaDropImageErrors(tester);
+      expect(find.byType(BackButton), findsOneWidget);
+
+      await tester.tap(find.byType(BackButton));
+      await qaSettle(tester);
+
+      expect(find.byType(MatchNotificationScreen), findsNothing);
+      expect(find.byKey(const ValueKey('qa.test.launcher')), findsOneWidget);
+      expect(results, [null]);
+    });
+
+    testWidgets('the match screen lays out on phones and tablets in both '
+        'themes [case:matching.match_notification.layout_matrix]', (
+      tester,
+    ) async {
+      await qaExpectLayout(
+        tester,
+        pump: (size, theme) async {
+          await pumpMatch(tester, size: size, theme: theme, launcher: false);
+          qaDropImageErrors(tester);
+        },
+        check: (where) {
+          expect(
+            find.byKey(const ValueKey('qa.match_notification.send_message')),
+            findsOneWidget,
+            reason: where,
+          );
+          expect(
+            find.byKey(const ValueKey('qa.match_notification.keep_swiping')),
+            findsOneWidget,
+            reason: where,
+          );
+        },
+      );
+    });
+
+    testWidgets('the match screen renders translated in every language '
+        '[case:matching.match_notification.l10n]', (tester) async {
+      await qaExpectTranslated(
+        tester,
+        pump: (locale) async {
+          await pumpMatch(tester, locale: locale, launcher: false);
+          qaDropImageErrors(tester);
+        },
+        fixture: {'Anya'},
+        check: (l10n, where) {
+          expect(
+            find.text(l10n.matchesNewMatchTitle),
+            findsOneWidget,
+            reason: where,
+          );
+          expect(
+            find.text(l10n.matchesItsAMatch),
+            findsOneWidget,
+            reason: where,
+          );
+          expect(
+            find.text(l10n.matchesLikedEachOther('Anya')),
+            findsOneWidget,
+            reason: where,
+          );
+          expect(
+            find.text(l10n.matchesSendMessage),
+            findsOneWidget,
+            reason: where,
+          );
+          expect(
+            find.text(l10n.matchesKeepSwiping),
+            findsOneWidget,
+            reason: where,
+          );
+        },
+      );
     });
   });
 }

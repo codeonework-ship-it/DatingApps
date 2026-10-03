@@ -85,7 +85,7 @@ Future<List<String?>> _openPicker(
 
 /// A photo's sheet, as the gallery and Today open it, on a fake BFF that
 /// answers likes like the server does.
-QaApi _photoApi({Map<String, dynamic>? saved}) {
+QaApi _photoApi() {
   final api = QaApi()
     ..on('GET /themes/t1/entries/e1/photo', (_) => qaOk(_png))
     ..json('GET /themes/t1/entries/e1/comments', {'comments': <dynamic>[]})

@@ -3649,5 +3649,7 @@
   "profileMasterTravelStaycations": "Отдых дома",
   "profileMasterPoliticsSimilarShort": "Похожие",
   "profileMasterPoliticsModerate": "Умеренные",
-  "profileMasterPoliticsAny": "Любые"
+  "profileMasterPoliticsAny": "Любые",
+  "discoverOpenMemberProfile": "Открыть профиль: {name}",
+  "chatCopilotDisclosureText": "Скажи своими словами. Если отправишь черновик без изменений, собеседник увидит, что он написан с помощью."
 }

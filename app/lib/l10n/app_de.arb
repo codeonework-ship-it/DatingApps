@@ -3213,7 +3213,7 @@
   "webDestModerationAppeals": "Einsprüche gegen Moderation",
   "webDestNotificationPreferences": "Benachrichtigungseinstellungen",
   "webDestHelpSupport": "Hilfe & Support",
-  "webNavExplore": "Entdecken",
+  "webNavExplore": "Erkunden",
   "webNavMyProfile": "Mein Profil",
   "webNavAllFeatures": "Alle Funktionen",
   "webNavMoreForYou": "Mehr für dich",
@@ -3649,5 +3649,7 @@
   "profileMasterTravelStaycations": "Urlaub zu Hause",
   "profileMasterPoliticsSimilarShort": "Ähnlich",
   "profileMasterPoliticsModerate": "Gemäßigt",
-  "profileMasterPoliticsAny": "Egal"
+  "profileMasterPoliticsAny": "Egal",
+  "discoverOpenMemberProfile": "Profil von {name} öffnen",
+  "chatCopilotDisclosureText": "Sag es mit deinen eigenen Worten. Wenn du den Entwurf unverändert sendest, sieht die andere Person, dass er mit Hilfe geschrieben wurde."
 }

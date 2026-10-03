@@ -22,6 +22,7 @@ import 'package:verified_dating_app/features/profile/providers/profile_completio
 import 'package:verified_dating_app/main.dart';
 
 import '../../support/qa_api.dart';
+import '../../support/qa_screen_quality.dart';
 
 final _en = qaL10n(const Locale('en'));
 
@@ -345,4 +346,26 @@ void main() {
       }
     },
   );
+
+  group('screen quality', () {
+    testWidgets('Terms lay out on phone and tablet in both themes '
+        '[case:auth.user_agreement.layout_matrix]', (tester) async {
+      await qaExpectLaysOutOnPhoneAndTablet(
+        tester,
+        api: _termsApi,
+        build: UserAgreementScreen.new,
+        loaded: () => _key('qa.terms.accept_checkbox'),
+      );
+    });
+
+    testWidgets('Terms meet tap-target, label and contrast guidelines '
+        '[case:auth.user_agreement.a11y_guidelines]', (tester) async {
+      await qaExpectMeetsA11yGuidelines(
+        tester,
+        api: _termsApi,
+        build: UserAgreementScreen.new,
+        loaded: () => _key('qa.terms.accept_checkbox'),
+      );
+    });
+  });
 }

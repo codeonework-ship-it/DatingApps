@@ -10,6 +10,7 @@ import 'package:verified_dating_app/features/blog/blog_writers_screen.dart';
 import 'package:verified_dating_app/l10n/app_localizations.dart';
 
 import '../../support/qa_api.dart';
+import '../../support/qa_screen_checks.dart';
 
 final AppLocalizations _en = qaL10n(const Locale('en'));
 
@@ -233,35 +234,32 @@ void main() {
   });
 
   group('Writers you follow', () {
-    testWidgets(
-      'a list that cannot load explains and Try again reloads '
-      '[case:blog.blog_writers.blog_retry_retry.action]',
-      (tester) async {
-        var loads = 0;
-        final api = _api()
-          ..on('GET /blog/subscriptions', (_) {
-            loads++;
-            return switch (loads) {
-              1 => qaError(503, message: 'Writers are resting. Try soon.'),
-              2 => const QaReply(500, <String, dynamic>{}),
-              _ => qaOk({
-                'writers': [_writer('writer', 'Meera')],
-              }),
-            };
-          });
-        await pumpQa(tester, api, const BlogWritersScreen());
-        expect(find.text('Writers are resting. Try soon.'), findsOneWidget);
+    testWidgets('a list that cannot load explains and Try again reloads '
+        '[case:blog.blog_writers.blog_retry_retry.action]', (tester) async {
+      var loads = 0;
+      final api = _api()
+        ..on('GET /blog/subscriptions', (_) {
+          loads++;
+          return switch (loads) {
+            1 => qaError(503, message: 'Writers are resting. Try soon.'),
+            2 => const QaReply(500, <String, dynamic>{}),
+            _ => qaOk({
+              'writers': [_writer('writer', 'Meera')],
+            }),
+          };
+        });
+      await pumpQa(tester, api, const BlogWritersScreen());
+      expect(find.text('Writers are resting. Try soon.'), findsOneWidget);
 
-        await _tap(tester, find.byKey(const ValueKey('qa.blog.retry')));
-        expect(find.text(_en.blogWritersLoadFailed), findsOneWidget);
+      await _tap(tester, find.byKey(const ValueKey('qa.blog.retry')));
+      expect(find.text(_en.blogWritersLoadFailed), findsOneWidget);
 
-        await _tap(tester, find.byKey(const ValueKey('qa.blog.retry')));
-        expect(api.sent('GET', '/blog/subscriptions'), hasLength(3));
-        expect(find.text('Meera'), findsOneWidget);
-        expect(find.text(_en.blogFollowerCount(3)), findsOneWidget);
-        expect(find.byKey(const ValueKey('qa.blog.retry')), findsNothing);
-      },
-    );
+      await _tap(tester, find.byKey(const ValueKey('qa.blog.retry')));
+      expect(api.sent('GET', '/blog/subscriptions'), hasLength(3));
+      expect(find.text('Meera'), findsOneWidget);
+      expect(find.text(_en.blogFollowerCount(3)), findsOneWidget);
+      expect(find.byKey(const ValueKey('qa.blog.retry')), findsNothing);
+    });
 
     testWidgets('pull to refresh reloads the writers '
         '[case:blog.blog_writers.an_untitled_chapter_onrefresh.action]', (
@@ -445,6 +443,52 @@ void main() {
         expect(tester.takeException(), isNull, reason: '$locale empty');
         expect(find.text(l10n.blogNoWriters), findsOneWidget);
       }
+    });
+  });
+
+  group('Writers you follow: screen quality', () {
+    QaApi writersApi() => _api()
+      ..json('GET /blog/subscriptions', {
+        'writers': [
+          _writer('writer', 'Meera', followers: 1200),
+          _writer(
+            'w2',
+            'Ana Maria de los Santos Ferreira',
+            latestTitle:
+                'A very long latest chapter title that wraps on a small phone',
+            latestPostId: 'p2',
+          ),
+        ],
+      });
+
+    testWidgets('lays out with writers on phone and tablet, both themes '
+        '[case:blog.blog_writers.layout_matrix]', (tester) async {
+      await qaExpectLaysOutEverywhere(
+        tester,
+        writersApi(),
+        BlogWritersScreen.new,
+        loaded: find.text('Ana Maria de los Santos Ferreira'),
+      );
+    });
+
+    testWidgets('meets tap-target, label and contrast guidelines '
+        '[case:blog.blog_writers.a11y_guidelines]', (tester) async {
+      await qaExpectMeetsA11yGuidelines(
+        tester,
+        writersApi(),
+        BlogWritersScreen.new,
+        loaded: find.text('Meera'),
+      );
+    });
+
+    testWidgets('pushed, Back returns to the feed '
+        '[case:blog.blog_writers.back_affordance]', (tester) async {
+      await qaExpectBackReturns(
+        tester,
+        writersApi(),
+        BlogWritersScreen.new,
+        screen: BlogWritersScreen,
+      );
     });
   });
 }

@@ -1,5 +1,6 @@
 import {test, expect} from '@playwright/test';
 import {qaMember} from './support/member.js';
+import {qaId} from './support/qa.js';
 
 // Never the shared QA account: signing in invalidates its other sessions.
 const member = qaMember();
@@ -113,7 +114,7 @@ test('browser login, live stream, deep links, preferences and reload recovery',a
   await password.pressSequentially(member.password,{delay:15});
   await password.press('Tab');
   await expect(username).toHaveValue(member.username);
-  await page.getByRole('button',{name:'qa.signin.login_button',exact:true}).click();
+  await qaId(page,'qa.signin.login_button').click();
   await expect(page.getByText('Your pace. Your choice.',{exact:true})).toBeVisible({timeout:30000});
   await expect.poll(()=>socketEvents.some(e=>e.includes('stream.connected')),{timeout:15000}).toBe(true);
   await page.getByText('Preferences',{exact:true}).click();

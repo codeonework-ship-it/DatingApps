@@ -69,112 +69,216 @@ Future<void> _expectOpens(
 }
 
 void main() {
-  final rows = <(String, String, Type)>[
-    (
-      'common.settings.notification_inbox.action',
-      'qa.settings.notification_inbox',
-      NotificationInboxScreen,
-    ),
-    (
-      'common.settings.your_dating_rhythm.action',
-      'qa.settings.dating_rhythm',
-      DatingRhythmScreen,
-    ),
-    (
-      'common.settings.your_profile_stories.action',
-      'qa.settings.profile_stories',
-      ProfileStoriesScreen,
-    ),
-    (
-      'common.settings.blog_open_chapters.action',
-      'qa.settings.blog',
-      BlogScreen,
-    ),
-    (
-      'common.settings.edit_profile.action',
-      'qa.settings.edit_profile',
-      EditProfileScreen,
-    ),
-    ('common.settings.photos.action', 'qa.settings.photos', SetupPhotosScreen),
-    (
-      'common.settings.settings_language.action',
-      'qa.settings.language',
-      LanguageSettingsScreen,
-    ),
-    (
-      'common.settings.dating_preferences.action',
-      'qa.settings.dating_preferences',
-      SetupPreferencesScreen,
-    ),
-    (
-      'common.settings.account_data.action',
-      'qa.settings.account_data',
-      AccountDataScreen,
-    ),
-    (
-      'common.settings.notifications.action',
-      'qa.settings.notifications',
-      NotificationSettingsScreen,
-    ),
-    (
-      'common.settings.trust_badges.action',
-      'qa.settings.trust_badges',
-      TrustBadgesScreen,
-    ),
-    (
-      'common.settings.trust_filters.action',
-      'qa.settings.trust_filters',
-      TrustFilterScreen,
-    ),
-    (
-      'common.settings.conversation_rooms.action',
-      'qa.settings.conversation_rooms',
-      ConversationRoomsScreen,
-    ),
-    (
-      'common.settings.friends_connections.action',
-      'qa.settings.friends',
-      FriendsScreen,
-    ),
-    (
-      'common.settings.call_history.action',
-      'qa.settings.call_history',
-      CallHistoryScreen,
-    ),
-    (
-      'common.settings.match_nudges.action',
-      'qa.settings.match_nudges',
-      MatchNudgesScreen,
-    ),
-    (
-      'common.settings.subscriptions.action',
-      'qa.settings.subscriptions',
-      SubscriptionScreen,
-    ),
-    (
-      'common.settings.privacy_safety.action',
-      'qa.settings.privacy_safety',
-      PrivacySafetyScreen,
-    ),
-    (
-      'common.settings.settings_government_verification.action',
-      'qa.settings.government_verification',
-      VerificationLandingScreen,
-    ),
-    (
-      'common.settings.help_support.action',
-      'qa.settings.help_support',
-      HelpSupportScreen,
-    ),
-    ('common.settings.about.action', 'qa.settings.about', AboutAppScreen),
-  ];
-
+  // One test per row, each naming its catalog case literally (the QA Lab
+  // reads the ids from the test names as written).
   group('Settings rows', () {
-    for (final (caseId, key, screen) in rows) {
-      testWidgets('$key opens $screen [case:$caseId]', (tester) async {
-        await _expectOpens(tester, ValueKey(key), screen);
-      });
-    }
+    testWidgets(
+      'Notification inbox opens NotificationInboxScreen '
+      '[case:common.settings.settings_notification_inbox.action]',
+      (tester) => _expectOpens(
+        tester,
+        const ValueKey('qa.settings.notification_inbox'),
+        NotificationInboxScreen,
+      ),
+    );
+
+    testWidgets(
+      'Your dating rhythm opens DatingRhythmScreen '
+      '[case:common.settings.settings_dating_rhythm.action]',
+      (tester) => _expectOpens(
+        tester,
+        const ValueKey('qa.settings.dating_rhythm'),
+        DatingRhythmScreen,
+      ),
+    );
+
+    testWidgets(
+      'Your profile stories opens ProfileStoriesScreen '
+      '[case:common.settings.settings_profile_stories.action]',
+      (tester) => _expectOpens(
+        tester,
+        const ValueKey('qa.settings.profile_stories'),
+        ProfileStoriesScreen,
+      ),
+    );
+
+    testWidgets(
+      'Blog · Open Chapters opens BlogScreen '
+      '[case:common.settings.settings_blog.action]',
+      (tester) =>
+          _expectOpens(tester, const ValueKey('qa.settings.blog'), BlogScreen),
+    );
+
+    testWidgets(
+      'Edit Profile opens EditProfileScreen '
+      '[case:common.settings.settings_edit_profile.action]',
+      (tester) => _expectOpens(
+        tester,
+        const ValueKey('qa.settings.edit_profile'),
+        EditProfileScreen,
+      ),
+    );
+
+    testWidgets(
+      'Photos opens SetupPhotosScreen '
+      '[case:common.settings.settings_photos.action]',
+      (tester) => _expectOpens(
+        tester,
+        const ValueKey('qa.settings.photos'),
+        SetupPhotosScreen,
+      ),
+    );
+
+    testWidgets(
+      'Language opens LanguageSettingsScreen '
+      '[case:common.settings.settings_language.action]',
+      (tester) => _expectOpens(
+        tester,
+        const ValueKey('qa.settings.language'),
+        LanguageSettingsScreen,
+      ),
+    );
+
+    testWidgets(
+      'Dating Preferences opens SetupPreferencesScreen '
+      '[case:common.settings.settings_dating_preferences.action]',
+      (tester) => _expectOpens(
+        tester,
+        const ValueKey('qa.settings.dating_preferences'),
+        SetupPreferencesScreen,
+      ),
+    );
+
+    testWidgets(
+      'Account & Data opens AccountDataScreen '
+      '[case:common.settings.settings_account_data.action]',
+      (tester) => _expectOpens(
+        tester,
+        const ValueKey('qa.settings.account_data'),
+        AccountDataScreen,
+      ),
+    );
+
+    testWidgets(
+      'Notifications opens NotificationSettingsScreen '
+      '[case:common.settings.settings_notifications.action]',
+      (tester) => _expectOpens(
+        tester,
+        const ValueKey('qa.settings.notifications'),
+        NotificationSettingsScreen,
+      ),
+    );
+
+    testWidgets(
+      'Trust Badges opens TrustBadgesScreen '
+      '[case:common.settings.settings_trust_badges.action]',
+      (tester) => _expectOpens(
+        tester,
+        const ValueKey('qa.settings.trust_badges'),
+        TrustBadgesScreen,
+      ),
+    );
+
+    testWidgets(
+      'Trust Filters opens TrustFilterScreen '
+      '[case:common.settings.settings_trust_filters.action]',
+      (tester) => _expectOpens(
+        tester,
+        const ValueKey('qa.settings.trust_filters'),
+        TrustFilterScreen,
+      ),
+    );
+
+    testWidgets(
+      'Conversation Rooms opens ConversationRoomsScreen '
+      '[case:common.settings.settings_conversation_rooms.action]',
+      (tester) => _expectOpens(
+        tester,
+        const ValueKey('qa.settings.conversation_rooms'),
+        ConversationRoomsScreen,
+      ),
+    );
+
+    testWidgets(
+      'Friends & Connections opens FriendsScreen '
+      '[case:common.settings.settings_friends.action]',
+      (tester) => _expectOpens(
+        tester,
+        const ValueKey('qa.settings.friends'),
+        FriendsScreen,
+      ),
+    );
+
+    testWidgets(
+      'Call History opens CallHistoryScreen '
+      '[case:common.settings.settings_call_history.action]',
+      (tester) => _expectOpens(
+        tester,
+        const ValueKey('qa.settings.call_history'),
+        CallHistoryScreen,
+      ),
+    );
+
+    testWidgets(
+      'Match Nudges opens MatchNudgesScreen '
+      '[case:common.settings.settings_match_nudges.action]',
+      (tester) => _expectOpens(
+        tester,
+        const ValueKey('qa.settings.match_nudges'),
+        MatchNudgesScreen,
+      ),
+    );
+
+    testWidgets(
+      'Subscriptions opens SubscriptionScreen '
+      '[case:common.settings.settings_subscriptions.action]',
+      (tester) => _expectOpens(
+        tester,
+        const ValueKey('qa.settings.subscriptions'),
+        SubscriptionScreen,
+      ),
+    );
+
+    testWidgets(
+      'Privacy & Safety opens PrivacySafetyScreen '
+      '[case:common.settings.settings_privacy_safety.action]',
+      (tester) => _expectOpens(
+        tester,
+        const ValueKey('qa.settings.privacy_safety'),
+        PrivacySafetyScreen,
+      ),
+    );
+
+    testWidgets(
+      'Government verification opens VerificationLandingScreen '
+      '[case:common.settings.settings_government_verification.action]',
+      (tester) => _expectOpens(
+        tester,
+        const ValueKey('qa.settings.government_verification'),
+        VerificationLandingScreen,
+      ),
+    );
+
+    testWidgets(
+      'About opens AboutAppScreen '
+      '[case:common.settings.settings_about.action]',
+      (tester) => _expectOpens(
+        tester,
+        const ValueKey('qa.settings.about'),
+        AboutAppScreen,
+      ),
+    );
+
+    // The support row has no catalog case of its own (the support centre
+    // is covered by the support suites); kept as a navigation check.
+    testWidgets(
+      'Help & Support opens HelpSupportScreen',
+      (tester) => _expectOpens(
+        tester,
+        const ValueKey('qa.settings.help_support'),
+        HelpSupportScreen,
+      ),
+    );
 
     // Automation-only entry: present only in builds made with
     // --dart-define=ENABLE_QA_AUTOMATION=true (the Appium runner). A shipped
@@ -281,17 +385,16 @@ void main() {
     }
   });
 
-  testWidgets(
-    'the inbox row is first and says when nothing is unread '
-    '[case:common.settings.settings_notification_inbox.caught_up]',
-    (tester) async {
-      await pumpQa(tester, _permissive(), const SettingsScreen());
-      final row = find.byKey(const ValueKey('qa.settings.notification_inbox'));
-      expect(row, findsOneWidget);
-      expect(
-        find.descendant(of: row, matching: find.text('You are all caught up')),
-        findsOneWidget,
-      );
-    },
-  );
+  testWidgets('the inbox row is first and says when nothing is unread '
+      '[case:common.settings.settings_notification_inbox.caught_up]', (
+    tester,
+  ) async {
+    await pumpQa(tester, _permissive(), const SettingsScreen());
+    final row = find.byKey(const ValueKey('qa.settings.notification_inbox'));
+    expect(row, findsOneWidget);
+    expect(
+      find.descendant(of: row, matching: find.text('You are all caught up')),
+      findsOneWidget,
+    );
+  });
 }

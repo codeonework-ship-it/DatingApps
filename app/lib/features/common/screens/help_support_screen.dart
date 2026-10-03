@@ -24,6 +24,11 @@ class HelpSupportScreen extends ConsumerWidget {
     final summary = tickets.valueOrNull;
     final unread = summary?.unreadTotal ?? 0;
     final open = summary?.openTotal ?? 0;
+    // A failed load or pull-to-refresh is said out loud (the badge and the
+    // counts would otherwise just look empty); contact stays available.
+    final loadError = tickets.hasError && !tickets.isLoading && !disabled
+        ? tickets.error
+        : null;
 
     Widget section(String label, Widget child, {String? title}) => Padding(
       padding: const EdgeInsets.only(top: ConnectMetrics.sectionGap),
@@ -78,6 +83,37 @@ class HelpSupportScreen extends ConsumerWidget {
                                   crossAxisAlignment:
                                       CrossAxisAlignment.stretch,
                                   children: [
+                                    if (loadError != null) ...[
+                                      SupportNotice(
+                                        key: const Key(
+                                          'support_tickets_load_error',
+                                        ),
+                                        icon: Icons.cloud_off_rounded,
+                                        title:
+                                            l10n.supportTicketsLoadErrorTitle,
+                                        message: supportErrorMessage(
+                                          l10n,
+                                          loadError,
+                                        ),
+                                        action: TextButton.icon(
+                                          key: const Key(
+                                            'support_tickets_retry',
+                                          ),
+                                          onPressed: () => ref
+                                              .read(
+                                                supportTicketsProvider.notifier,
+                                              )
+                                              .refresh(),
+                                          icon: const Icon(
+                                            Icons.refresh_rounded,
+                                          ),
+                                          label: Text(l10n.supportTryAgain),
+                                        ),
+                                      ),
+                                      const SizedBox(
+                                        height: ConnectMetrics.cardGap,
+                                      ),
+                                    ],
                                     ConnectNavTile(
                                       key: const Key('create_support_ticket'),
                                       icon: Icons.support_agent_rounded,

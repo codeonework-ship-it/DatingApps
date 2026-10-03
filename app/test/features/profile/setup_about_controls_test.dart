@@ -9,6 +9,7 @@ import 'package:verified_dating_app/features/profile/screens/setup/setup_preview
 import 'package:verified_dating_app/features/profile/screens/setup/setup_shared_widgets.dart';
 
 import '../../support/qa_api.dart';
+import '../../support/qa_screen_quality.dart';
 import 'support/profile_bff.dart';
 
 // Control-level tests for "About you" (SetupAboutScreen): every control's
@@ -396,25 +397,28 @@ void main() {
     expect(bff.draft['bio'], 'Typed, then went back.');
   });
 
-  testWidgets('Retry reloads a draft that failed to load '
-      '[case:profile.setup_about.something_went_wrong_please_try_onretry.action]', (tester) async {
-    final api = QaApi();
-    final bff = ProfileBff(api);
-    api.fail('GET /profile/*/draft');
-    await _open(tester, api);
-    expect(find.text(_en.profileSetupLoadErrorTitle), findsOneWidget);
-    expect(find.byKey(_bio), findsNothing);
+  testWidgets(
+    'Retry reloads a draft that failed to load '
+    '[case:profile.setup_about.something_went_wrong_please_try_onretry.action]',
+    (tester) async {
+      final api = QaApi();
+      final bff = ProfileBff(api);
+      api.fail('GET /profile/*/draft');
+      await _open(tester, api);
+      expect(find.text(_en.profileSetupLoadErrorTitle), findsOneWidget);
+      expect(find.byKey(_bio), findsNothing);
 
-    bff.install();
-    await tester.tap(find.text(_en.profileSetupRetry));
-    await qaSettle(tester);
-    expect(api.sent('GET', '/profile/me/draft'), hasLength(2));
-    expect(find.byKey(_bio), findsOneWidget);
-    expect(
-      tester.widget<TextField>(find.byKey(_bio)).controller!.text,
-      'This is a sufficiently long bio for tests.',
-    );
-  });
+      bff.install();
+      await tester.tap(find.text(_en.profileSetupRetry));
+      await qaSettle(tester);
+      expect(api.sent('GET', '/profile/me/draft'), hasLength(2));
+      expect(find.byKey(_bio), findsOneWidget);
+      expect(
+        tester.widget<TextField>(find.byKey(_bio)).controller!.text,
+        'This is a sufficiently long bio for tests.',
+      );
+    },
+  );
 
   testWidgets('renders translated in every locale '
       '[case:profile.setup_about.l10n]', (tester) async {
@@ -442,5 +446,73 @@ void main() {
       );
       expect(tester.takeException(), isNull, reason: '$locale');
     }
+  });
+
+  group('screen quality', () {
+    // A member with every About field filled in.
+    QaApi server() {
+      final api = QaApi();
+      ProfileBff(
+        api,
+        draft: qaDraftJson(
+          extra: const {
+            'height_cm': 168,
+            'education': "Master's",
+            'profession': 'Product designer at a climate start-up',
+            'income_range': '₹10L – ₹20L',
+            'religion': 'Hindu',
+            'drinking': 'Socially',
+            'smoking': 'Never',
+          },
+        ),
+      );
+      return api;
+    }
+
+    // The bio field only renders, filled, once the draft arrived.
+    Finder loaded() => find.widgetWithText(
+      TextField,
+      'This is a sufficiently long bio for tests.',
+      skipOffstage: false,
+    );
+
+    testWidgets('About you with a full draft lays out on phone and tablet in '
+        'both themes, in setup and from Edit Profile '
+        '[case:profile.setup_about.layout_matrix]', (tester) async {
+      for (final setupFlow in [true, false]) {
+        await qaExpectLaysOutOnPhoneAndTablet(
+          tester,
+          api: server,
+          build: () => SetupAboutScreen(isSetupFlow: setupFlow),
+          extra: qaMasterDataOverrides,
+          loaded: loaded,
+        );
+      }
+    });
+
+    testWidgets('About you meets tap-target, label and contrast guidelines '
+        '[case:profile.setup_about.a11y_guidelines]', (tester) async {
+      for (final setupFlow in [true, false]) {
+        await qaExpectMeetsA11yGuidelines(
+          tester,
+          api: server,
+          build: () => SetupAboutScreen(isSetupFlow: setupFlow),
+          extra: qaMasterDataOverrides,
+          loaded: loaded,
+        );
+      }
+    });
+
+    testWidgets('Back on About you returns to the screen that opened it '
+        '[case:profile.setup_about.back_affordance]', (tester) async {
+      await qaExpectBackReturnsToOpener(
+        tester,
+        api: server(),
+        build: () => const SetupAboutScreen(),
+        extra: qaMasterDataOverrides(),
+        screen: find.byType(SetupAboutScreen),
+        loaded: loaded(),
+      );
+    });
   });
 }

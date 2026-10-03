@@ -4,7 +4,6 @@
 // screen or sheet that follows, and what the member reads on failure.
 
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:verified_dating_app/core/permissions/device_permission_service.dart';
 import 'package:verified_dating_app/features/calls/screens/call_history_screen.dart';
@@ -19,6 +18,7 @@ import 'package:verified_dating_app/features/swipe/screens/home_discovery_screen
 
 import '../../support/qa_api.dart';
 import '../swipe/discover_qa_fixtures.dart';
+import '../swipe/qa_screen_checks.dart';
 
 class _GrantedPermissions extends DevicePermissionService {
   const _GrantedPermissions();
@@ -234,7 +234,7 @@ void main() {
 
     testWidgets('Call history opens the call history '
         '[case:matching.matches_list.calls_history.action]', (tester) async {
-      final api = _api()..json('GET /calls/history/me', {'history': []});
+      final api = _api()..json('GET /calls/history/me', {'history': <dynamic>[]});
       await _open(tester, api, view: MatchesView.people);
       await _tap(tester, const ValueKey('qa.calls.history'));
 
@@ -265,7 +265,9 @@ void main() {
     // retry, so a member with no matches yet stayed on "Unable to load".
     testWidgets('Retry that succeeds with no matches shows the empty state '
         '[case:matching.matches_list.matches_retry.api_failure] '
-        '[case:matching.matches_list.matches_retry.clears_error]', (tester) async {
+        '[case:matching.matches_list.matches_retry.clears_error]', (
+      tester,
+    ) async {
       final api = _api()..offline('GET /matches/me');
       await _open(tester, api, view: MatchesView.people);
       expect(
@@ -284,9 +286,7 @@ void main() {
   group('rows and cards', () {
     testWidgets('a conversation row marks it read and opens the chat '
         '[case:matching.matches_list.matches_match_row_x.action] '
-        '[case:matching.matches_list.matches_match_row_x.api_contract]', (
-      tester,
-    ) async {
+        '', (tester) async {
       final api = _api();
       await _open(tester, api, view: MatchesView.conversations);
       await _tap(tester, const ValueKey('qa.matches.match_row.m1'));
@@ -312,7 +312,9 @@ void main() {
     });
 
     testWidgets('Open chat on a match card opens the chat '
-        '[case:matching.match_overview_card.matches_person_x_chat.action]', (tester) async {
+        '[case:matching.match_overview_card.matches_person_x_chat.action]', (
+      tester,
+    ) async {
       final api = _api();
       await _open(tester, api, view: MatchesView.people);
       await _tap(tester, const ValueKey('qa.matches.person.m2.chat'));
@@ -355,20 +357,21 @@ void main() {
       expect(find.byKey(const ValueKey('qa.matches.nudge_action')), findsOne);
     });
 
-    testWidgets('First Chapter on a match card opens the chapter studio '
-        '[case:matching.matches_list.matches_person_x_chapter_chapter.action]', (
-      tester,
-    ) async {
-      final api = _api();
-      await _open(tester, api, view: MatchesView.people);
-      await _tap(tester, const ValueKey('qa.matches.person.m1.chapter'));
+    testWidgets(
+      'First Chapter on a match card opens the chapter studio '
+      '[case:matching.matches_list.matches_person_x_chapter_chapter.action]',
+      (tester) async {
+        final api = _api();
+        await _open(tester, api, view: MatchesView.people);
+        await _tap(tester, const ValueKey('qa.matches.person.m1.chapter'));
 
-      final studio = tester.widget<ChapterStudioScreen>(
-        find.byType(ChapterStudioScreen),
-      );
-      expect(studio.matchId, 'm1');
-      expect(studio.partnerName, 'Maya');
-    });
+        final studio = tester.widget<ChapterStudioScreen>(
+          find.byType(ChapterStudioScreen),
+        );
+        expect(studio.matchId, 'm1');
+        expect(studio.partnerName, 'Maya');
+      },
+    );
 
     testWidgets('Plan a date on a match card proposes a plan '
         '[case:matching.matches_list.matches_person_x_plan_plan.action]', (
@@ -472,50 +475,48 @@ void main() {
       expect(qaSnackText(tester), 'Friend request sent to Maya.');
     });
 
-    testWidgets(
-      'Send a nudge sends it and confirms '
-      '[case:matching.matches_list.matches_nudge_action.action] '
-      '[case:matching.matches_list.matches_nudge_action.api_contract] '
-      ''
-      '[case:matching.matches_list.matches_match_row_x_options.api_contract]',
-      (tester) async {
-        final api = _api();
-        await _openOptions(tester, api);
-        await _tap(tester, const ValueKey('qa.matches.nudge_action'));
-
-        final nudge = api.sent('POST', '/engagement/match-nudges/send').single;
-        expect(nudge.body['match_id'], 'm1');
-        expect(nudge.body.values, contains('maya'));
-        expect(qaSnackText(tester), 'Nudge sent to Maya.');
-        expect(
-          find.byKey(const ValueKey('qa.matches.nudge_action')),
-          findsNothing,
-          reason: 'the sheet closed',
-        );
-      },
-    );
-
-    testWidgets('a refused nudge shows the reason '
-        '[case:matching.matches_list.matches_nudge_action.api_failure] '
-        '[case:matching.matches_list.matches_match_row_x_options.api_failure] '
-        '[case:matching.matches_list.matches_person_x_options_options.api_failure]', (
-      tester,
-    ) async {
-      final api = _api()
-        ..fail(
-          'POST /engagement/match-nudges/send',
-          status: 429,
-          message: 'You already nudged Maya today.',
-        );
+    testWidgets('Send a nudge sends it and confirms '
+        '[case:matching.matches_list.matches_nudge_action.action] '
+        '', (tester) async {
+      final api = _api();
       await _openOptions(tester, api);
       await _tap(tester, const ValueKey('qa.matches.nudge_action'));
 
-      expect(qaSnackText(tester), 'You already nudged Maya today.');
+      final nudge = api.sent('POST', '/engagement/match-nudges/send').single;
+      expect(nudge.body['match_id'], 'm1');
+      expect(nudge.body.values, contains('maya'));
+      expect(qaSnackText(tester), 'Nudge sent to Maya.');
+      expect(
+        find.byKey(const ValueKey('qa.matches.nudge_action')),
+        findsNothing,
+        reason: 'the sheet closed',
+      );
     });
+
+    testWidgets(
+      'a refused nudge shows the reason '
+      '[case:matching.matches_list.matches_nudge_action.api_failure] '
+      '[case:matching.matches_list.matches_match_row_x_options.api_failure] '
+      '[case:matching.matches_list.matches_person_x_options_options.api_failure]',
+      (tester) async {
+        final api = _api()
+          ..fail(
+            'POST /engagement/match-nudges/send',
+            status: 429,
+            message: 'You already nudged Maya today.',
+          );
+        await _openOptions(tester, api);
+        await _tap(tester, const ValueKey('qa.matches.nudge_action'));
+
+        expect(qaSnackText(tester), 'You already nudged Maya today.');
+      },
+    );
 
     testWidgets('Close conversation asks first; Keep talking keeps it '
         '[case:matching.matches_list.matches_unmatch_action_2.action] '
-        '[case:matching.matches_list.matches_close_dialog_keep.action]', (tester) async {
+        '[case:matching.matches_list.matches_close_dialog_keep.action]', (
+      tester,
+    ) async {
       final api = _api();
       await _openOptions(tester, api);
       await _tap(tester, const ValueKey('qa.matches.unmatch_action'));
@@ -530,7 +531,6 @@ void main() {
 
     testWidgets('Close conversation ends the match and removes the row '
         '[case:matching.matches_list.matches_unmatch_action.action] '
-        '[case:matching.matches_list.matches_unmatch_action.api_contract] '
         '[case:matching.matches_list.matches_close_dialog_confirm.action]', (
       tester,
     ) async {
@@ -562,9 +562,7 @@ void main() {
 
     testWidgets('Report sends the report; Appeal opens the appeal '
         '[case:matching.matches_list.matches_report_action.action] '
-        '[case:matching.matches_list.matches_report_action.api_contract] '
         '[case:matching.matches_list.submit_report_onsubmit.action] '
-        '[case:matching.matches_list.submit_report_onsubmit.api_contract] '
         '[case:matching.matches_list.appeal.action]', (tester) async {
       final api = _api();
       await _openOptions(tester, api);
@@ -603,6 +601,147 @@ void main() {
       expect(api.sent('POST', '/safety/report'), hasLength(1));
       expect(qaSnackText(tester), 'Failed to submit report. Please try again.');
       expect(find.textContaining('Report submitted'), findsNothing);
+    });
+  });
+
+  group('screen checks', () {
+    Future<void> pumpMatches(
+      WidgetTester tester,
+      MatchesView view, {
+      Size size = const Size(430, 932),
+      ThemeData? theme,
+      Locale? locale,
+    }) async {
+      const screen = MatchesListScreen();
+      await pumpQa(
+        tester,
+        _api(),
+        theme == null ? screen : qaThemed(theme, screen),
+        size: size,
+        locale: locale,
+        flags: {
+          'curated_daily_set_enabled': false,
+          'intentional_dating_enabled': true,
+        },
+        extra: [
+          ...qaDiscoverExtras(),
+          matchesViewProvider.overrideWith((ref) => view),
+        ],
+      );
+      qaDropImageErrors(tester);
+    }
+
+    Finder person(String id) => find.byKey(ValueKey('qa.matches.person.$id'));
+
+    for (final view in [MatchesView.people, MatchesView.conversations]) {
+      testWidgets('the ${view.name} view meets the tap-target, label and '
+          'contrast guidelines [case:matching.matches_list.a11y_guidelines]', (
+        tester,
+      ) async {
+        await pumpMatches(tester, view);
+        expect(
+          view == MatchesView.people ? person('m1') : _row('m1'),
+          findsOneWidget,
+        );
+        await qaExpectA11y(tester);
+      });
+
+      testWidgets('the ${view.name} view lays out on phones and tablets in '
+          'both themes [case:matching.matches_list.layout_matrix]', (
+        tester,
+      ) async {
+        await qaExpectLayout(
+          tester,
+          pump: (size, theme) =>
+              pumpMatches(tester, view, size: size, theme: theme),
+          check: (where) {
+            final first = view == MatchesView.people
+                ? person('m1')
+                : _row('m1');
+            expect(first, findsOneWidget, reason: where);
+          },
+        );
+      });
+    }
+
+    testWidgets('both views render translated in every language '
+        '[case:matching.matches_list.l10n]', (tester) async {
+      for (final view in [MatchesView.people, MatchesView.conversations]) {
+        await qaExpectTranslated(
+          tester,
+          pump: (locale) => pumpMatches(tester, view, locale: locale),
+          fixture: {'Maya', 'Arjun', 'See you Sunday?', 'Coffee?'},
+          check: (l10n, where) {
+            expect(
+              find.text(
+                view == MatchesView.people
+                    ? l10n.matchesSubtitlePeople
+                    : l10n.matchesSubtitleConversations,
+              ),
+              findsOneWidget,
+              reason: '$where ${view.name}',
+            );
+            expect(
+              find.text(l10n.matchesTabPeople),
+              findsOneWidget,
+              reason: '$where ${view.name}',
+            );
+            expect(
+              find.text(l10n.matchesTabConversations),
+              findsOneWidget,
+              reason: '$where ${view.name}',
+            );
+          },
+        );
+      }
+    });
+
+    testWidgets('a match card renders translated in every language '
+        '[case:matching.match_overview_card.l10n]', (tester) async {
+      await qaExpectTranslated(
+        tester,
+        pump: (locale) =>
+            pumpMatches(tester, MatchesView.people, locale: locale),
+        fixture: {'Maya', 'Arjun', 'See you Sunday?', 'Coffee?'},
+        check: (l10n, where) {
+          final card = person('m1');
+          expect(card, findsOneWidget, reason: where);
+          Finder inCard(String text) =>
+              find.descendant(of: card, matching: find.text(text));
+          // Maya has 2 unread messages; Arjun none.
+          expect(
+            inCard(l10n.matchesChatUnread(2)),
+            findsOneWidget,
+            reason: where,
+          );
+          expect(
+            find.descendant(
+              of: person('m2'),
+              matching: find.text(l10n.matchesOpenChat),
+            ),
+            findsOneWidget,
+            reason: where,
+          );
+          expect(
+            inCard(l10n.matchesActionPlanDate),
+            findsOneWidget,
+            reason: where,
+          );
+          expect(
+            inCard(l10n.matchesFirstChapter),
+            findsOneWidget,
+            reason: where,
+          );
+          expect(
+            find.descendant(
+              of: card,
+              matching: find.byTooltip(l10n.matchesOptionsTooltip('Maya')),
+            ),
+            findsOneWidget,
+            reason: where,
+          );
+        },
+      );
     });
   });
 }

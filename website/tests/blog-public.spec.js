@@ -131,3 +131,14 @@ test('Share without a share sheet copies, and a withdrawn story hands out nothin
  await expect(page.locator('#status')).toContainText('no longer shared');
  expect(await page.evaluate(()=>window.__copied)).toBeUndefined();
 });
+test('the story page loads with a language and one h1 before any id is resolved [case:site.story.idle_state]',async({page})=>{
+ const requests=[];page.on('request',r=>{if(r.url().includes('/v1/blog/'))requests.push(r.url());});
+ await page.goto('/story.html');
+ await expect(page.locator('html')).toHaveAttribute('lang','en');
+ await expect(page.locator('h1')).toHaveCount(1);
+ await expect(page.locator('h1')).toHaveText(/There’s a story\s*behind every spark\./);
+ await expect(page.locator('#status')).toHaveText('This Chapter link is incomplete.');
+ await expect(page.locator('#chapter')).toBeHidden();
+ await expect(page.locator('#retry')).toBeHidden();
+ expect(requests).toEqual([]);
+});

@@ -114,7 +114,7 @@ class SupportQueueViewTest(SupportTestBase):
 
     @patch('control_panel.views_support.GoBFFClient')
     def test_queue_renders_filters_badges_and_controls(self, cls):
-        """[case:console.support.support_queue.renders]"""
+        """[case:console.support.support_queue.renders] [case:console.support.support_queue.filters]"""
         api = cls.return_value
         api.list_support_tickets.return_value = APIResult(True, {
             'success': True, 'tickets': [_ticket(), _ticket(id=OTHER, reference='CN-2026-000124', assignee=None,
@@ -153,7 +153,7 @@ class SupportQueueViewTest(SupportTestBase):
 
     @patch('control_panel.views_support.GoBFFClient')
     def test_invalid_filters_fall_back_to_defaults(self, cls):
-        """[case:console.support.support_queue.renders]"""
+        """[case:console.support.support_queue.renders] [case:console.support.support_queue.filters]"""
         api = cls.return_value
         api.list_support_tickets.return_value = APIResult(True, {'tickets': [], 'total': 0})
         api.support_agents.return_value = AGENTS
@@ -586,7 +586,7 @@ class SupportDashboardTest(SupportTestBase):
 
     @patch('control_panel.views_support.GoBFFClient')
     def test_dashboard_renders_kpis_charts_and_safety(self, cls):
-        """[case:console.support.support_dashboard.renders]"""
+        """[case:console.support.support_dashboard.renders] [case:console.support.support_dashboard.filters]"""
         api = cls.return_value
         api.support_dashboard.return_value = APIResult(True, self.PAYLOAD)
         api.support_agents.return_value = AGENTS

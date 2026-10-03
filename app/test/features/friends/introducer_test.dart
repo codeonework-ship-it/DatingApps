@@ -57,7 +57,7 @@ class _Api {
               ],
             };
           if (o.path == '/friends/friend/intros')
-            data = {'made': [], 'received': []};
+            data = {'made': <dynamic>[], 'received': <dynamic>[]};
           if (o.path == '/introducer/invites')
             data = {
               'code': 'private-one-use-invitation',

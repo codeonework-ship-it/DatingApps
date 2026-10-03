@@ -1,5 +1,6 @@
 import {test, expect} from '@playwright/test';
 import {qaMember} from './support/member.js';
+import {qaId, qaIdPrefix} from './support/qa.js';
 
 // Never the shared QA account: signing in invalidates its other sessions.
 const member = qaMember();
@@ -25,17 +26,16 @@ test('browser app keeps Daylight and hides the theme picker', async ({page}) => 
   await expect(password).toHaveValue(
     member.password,
   );
-  await page
-    .getByRole('button', {name: 'qa.signin.login_button', exact: true})
-    .click();
+  await qaId(page, 'qa.signin.login_button').click();
   await expect(page).toHaveURL(/#\/discover$/, {timeout: 30000});
 
   await page.goto('/app/#/settings');
-  await expect(page.getByRole('button', {name: /^Dating Preferences/})).toBeVisible({
+  // Account comes first; the theme picker (mobile only) would follow it, so
+  // it would be on screen here if it were shown.
+  await expect(page.getByRole('button', {name: /^Sign out of all devices/})).toBeVisible({
     timeout: 15000,
   });
-  await expect(
-    page.getByRole('button', {name: /qa\.settings\.theme_preset\./}),
-  ).toHaveCount(0);
+  // Neither the strip (qa.settings.theme_presets) nor any preset tile.
+  await expect(qaIdPrefix(page, 'qa.settings.theme_preset')).toHaveCount(0);
   await expect(page.getByText('Appearance', {exact: true})).toHaveCount(0);
 });

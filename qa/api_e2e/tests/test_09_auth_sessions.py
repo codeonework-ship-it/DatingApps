@@ -8,6 +8,7 @@ working with the shared test password.
 from __future__ import annotations
 
 import datetime as dt
+import uuid
 
 import pytest
 
@@ -98,6 +99,30 @@ def test_revoke_all_sessions_signs_out_everywhere(make_member):
     for session in (phone, laptop):
         assert _works(session["access_token"], member.user_id) == 401
         assert Api().post("/auth/refresh", {"refresh_token": session["refresh_token"]}).status == 401
+    assert login(member.username).status == 200
+
+
+@pytest.mark.case("common.settings.settings_logout_all.api_contract")
+def test_sign_out_of_all_devices_unregisters_the_push_device_and_ends_every_session(make_member):
+    """Settings > Sign out of all devices: the app drops this phone's push device, revokes every
+    session and then logs out; the push device is gone and no session survives."""
+    member = make_member("ses_all", "F", "M")
+    phone, laptop = login(member.username).ok(), login(member.username).ok()
+    api = Api(phone["access_token"])
+    devices = f"/notifications/{member.user_id}/devices"
+    device = api.post(devices, {"provider": "fcm", "platform": "android", "token": f"e2e-{uuid.uuid4()}"}).ok(201)
+    assert device["registered"] is True and device["device_id"]
+    assert api.delete(f"{devices}/{device['device_id']}").ok()["success"] is True
+    # Unregistering is idempotent (the token is disabled, not deleted): a repeat is still 200.
+    assert api.delete(f"{devices}/{device['device_id']}").ok()["success"] is True
+    assert api.delete(f"{devices}/{uuid.uuid4()}").status == 404
+    revoked = api.post("/auth/sessions/revoke", {"all_sessions": True}).ok()
+    assert revoked["success"] is True and revoked["all_sessions"] is True
+    for session in (phone, laptop):
+        assert _works(session["access_token"], member.user_id) == 401
+        assert Api().post("/auth/refresh", {"refresh_token": session["refresh_token"]}).status == 401
+    # The app's trailing logout with the now-dead token is refused, not a 5xx.
+    assert api.post("/auth/logout", {}).status == 401
     assert login(member.username).status == 200
 
 

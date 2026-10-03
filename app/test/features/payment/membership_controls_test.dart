@@ -14,6 +14,7 @@ import 'package:webview_flutter_platform_interface/webview_flutter_platform_inte
 
 import '../../support/checkout_webview_fake.dart';
 import '../../support/qa_api.dart';
+import '../../support/qa_screen_quality.dart';
 import 'billing_fake.dart';
 
 final AppLocalizations en = qaL10n(const Locale('en'));
@@ -745,5 +746,71 @@ void main() {
       expect(find.text(l10n.membershipAutoRenew), findsOneWidget);
       expect(tester.takeException(), isNull, reason: '$locale');
     }
+  });
+
+  group('screen quality', () {
+    // A paying Silver member with a payment on file: the hero, auto-renew,
+    // catalog and history all render.
+    BillingServer server() => BillingServer(
+      subscription: paidSubscription(planId: 'silver', planName: 'Silver'),
+    )..payments = [
+        {
+          'id': 'pay-1',
+          'amount': 9.99,
+          'currency': 'INR',
+          'status': 'success',
+          'payment_method': 'card',
+          'billing_reason': 'subscription_create',
+          'card_brand': 'visa',
+          'card_last4': '4242',
+          'created_at': '2026-09-01T00:00:00Z',
+        },
+      ];
+    // "Your membership" heads the hero only once the paid subscription has
+    // arrived (before that it reads "Your plan").
+    Finder loaded() =>
+        find.text(en.membershipYourMembership, skipOffstage: false);
+
+    testWidgets('Membership with a paid plan lays out on phone and tablet in '
+        'both themes [case:payment.subscription.layout_matrix]', (
+      tester,
+    ) async {
+      await qaExpectLaysOutOnPhoneAndTablet(
+        tester,
+        api: () => server().api,
+        build: () => const SubscriptionScreen(),
+        loaded: loaded,
+      );
+    });
+
+    testWidgets('Membership meets tap-target, label and contrast guidelines, '
+        'also with its error notice showing '
+        '[case:payment.subscription.a11y_guidelines]', (tester) async {
+      await qaExpectMeetsA11yGuidelines(
+        tester,
+        api: () => server().api,
+        build: () => const SubscriptionScreen(),
+        loaded: loaded,
+      );
+      // REGRESSION: the error notice was error-red text on its own 12% red
+      // tint, 3.8:1 in the light theme (under WCAG AA 4.5:1).
+      await qaExpectMeetsA11yGuidelines(
+        tester,
+        api: () => (server()..api.offline('GET /billing/subscription/me')).api,
+        build: () => const SubscriptionScreen(),
+        loaded: () => find.byKey(const Key('membership_contact_support')),
+      );
+    });
+
+    testWidgets('Back on Membership returns to the screen that opened it '
+        '[case:payment.subscription.back_affordance]', (tester) async {
+      await qaExpectBackReturnsToOpener(
+        tester,
+        api: server().api,
+        build: () => const SubscriptionScreen(),
+        screen: find.byType(SubscriptionScreen),
+        loaded: loaded(),
+      );
+    });
   });
 }

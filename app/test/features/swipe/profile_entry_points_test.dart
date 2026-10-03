@@ -4,6 +4,8 @@
 // the unavailable state. Every test asserts the request(s) sent, where the
 // member ends up and the visible text.
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:verified_dating_app/features/common/screens/moderation_appeals_screen.dart';
@@ -20,6 +22,7 @@ import 'package:verified_dating_app/features/web/web_member_workspace.dart';
 
 import '../../support/qa_api.dart';
 import 'discover_qa_fixtures.dart';
+import 'qa_screen_checks.dart';
 
 const _love = ValueKey('qa.profile_detail.love_button');
 const _message = ValueKey('qa.profile_detail.message_button');
@@ -109,28 +112,36 @@ void main() {
     // Regression (2026-10-02): Love → "It's a match!" → Send Message opened
     // the chat and the profile page then popped the top route — the chat —
     // so the member landed back on the profile instead of in the chat.
-    testWidgets('Love that makes a match → Send Message stays in the chat; '
-        'the profile closes underneath '
-        '[case:swipe.profile_details.profile_detail_love_button_love.action] '
-        '[case:matching.match_notification.match_notification_send_message.action]', (
-      tester,
-    ) async {
-      final api = qaDiscoverApi(swipe: {'match_id': 'match-anya'});
-      final results = await _openProfile(tester, api, qaMember('anya', 'Anya'));
-      await _tap(tester, _love);
-      expect(find.byType(MatchNotificationScreen), findsOneWidget);
+    testWidgets(
+      'Love that makes a match → Send Message stays in the chat; '
+      'the profile closes underneath '
+      '[case:swipe.profile_details.profile_detail_love_button_love.action] '
+      '[case:matching.match_notification.match_notification_send_message.action]',
+      (tester) async {
+        final api = qaDiscoverApi(swipe: {'match_id': 'match-anya'});
+        final results = await _openProfile(
+          tester,
+          api,
+          qaMember('anya', 'Anya'),
+        );
+        await _tap(tester, _love);
+        expect(find.byType(MatchNotificationScreen), findsOneWidget);
 
-      await _tap(tester, const ValueKey('qa.match_notification.send_message'));
+        await _tap(
+          tester,
+          const ValueKey('qa.match_notification.send_message'),
+        );
 
-      expect(find.byType(ChatScreen), findsOneWidget);
-      expect(
-        tester.widget<ChatScreen>(find.byType(ChatScreen)).matchId,
-        'match-anya',
-      );
-      expect(find.byType(ProfileDetailsScreen), findsNothing);
-      expect(results, [ProfileDetailsAction.love]);
-      expect(qaSwipes(api), [qaSwipeBody('anya', like: true)]);
-    });
+        expect(find.byType(ChatScreen), findsOneWidget);
+        expect(
+          tester.widget<ChatScreen>(find.byType(ChatScreen)).matchId,
+          'match-anya',
+        );
+        expect(find.byType(ProfileDetailsScreen), findsNothing);
+        expect(results, [ProfileDetailsAction.love]);
+        expect(qaSwipes(api), [qaSwipeBody('anya', like: true)]);
+      },
+    );
 
     testWidgets('Love → match → Keep Swiping closes match and profile '
         '[case:swipe.profile_details.profile_detail_love_button_love.action]', (
@@ -165,9 +176,7 @@ void main() {
 
     testWidgets('Report sends the report; the confirmation offers Appeal '
         '[case:swipe.profile_details.report.action] '
-        ''
         '[case:swipe.profile_details.submit_report_onsubmit.action] '
-        '[case:swipe.profile_details.submit_report_onsubmit.api_contract] '
         '[case:swipe.profile_details.appeal.action]', (tester) async {
       final api = qaDiscoverApi()
         ..json('POST /safety/report', {
@@ -321,7 +330,9 @@ void main() {
     );
 
     testWidgets('an unavailable profile offers Retry, which reloads it '
-        '[case:swipe.profile_details.profile_detail_retry_retry.action]', (tester) async {
+        '[case:swipe.profile_details.profile_detail_retry_retry.action]', (
+      tester,
+    ) async {
       final api = qaDiscoverApi()..fail('GET /profile/anya', status: 404);
       await _openProfile(tester, api, qaMember('anya', 'Anya'));
       expect(
@@ -357,7 +368,9 @@ void main() {
     });
 
     testWidgets('Go back on an unavailable profile closes it '
-        '[case:swipe.profile_details.profile_detail_go_back_back.action]', (tester) async {
+        '[case:swipe.profile_details.profile_detail_go_back_back.action]', (
+      tester,
+    ) async {
       final api = qaDiscoverApi()..fail('GET /profile/anya', status: 404);
       final results = await _openProfile(tester, api, qaMember('anya', 'Anya'));
       await _tap(tester, const ValueKey('qa.profile_detail.go_back'));
@@ -419,17 +432,16 @@ void main() {
   });
 
   group('Passed profiles list', () {
-    testWidgets(
-      'the chevron opens that member '
-      '[case:swipe.passed_profiles.passed_profiles_open_x.action]',
-      (tester) async {
-        final api = qaDiscoverApi(deck: [_anya, _bina]);
-        await _openPassedList(tester, api);
-        await _tap(tester, const ValueKey('qa.passed_profiles.open.anya'));
+    testWidgets('the chevron opens that member '
+        '[case:swipe.passed_profiles.passed_profiles_open_x.action]', (
+      tester,
+    ) async {
+      final api = qaDiscoverApi(deck: [_anya, _bina]);
+      await _openPassedList(tester, api);
+      await _tap(tester, const ValueKey('qa.passed_profiles.open.anya'));
 
-        expect(_profilePage(tester).profile.id, 'anya');
-      },
-    );
+      expect(_profilePage(tester).profile.id, 'anya');
+    });
 
     testWidgets('Love on a passed member likes them and they leave the list '
         '[case:discover.profile_entry_points.passed_list.love]', (
@@ -496,9 +508,7 @@ void main() {
         '[case:discover.profile_entry_points.liked_you.love] '
         '[case:discover.profile_entry_points.liked_you.own_rule] '
         '[case:swipe.liked_me.liked_me_open_x_open.action] '
-        '', (
-      tester,
-    ) async {
+        '', (tester) async {
       final api = qaDiscoverApi(likedMe: [cara]);
       await openLikedYou(tester, api);
       await _tap(tester, const ValueKey('qa.liked_me.open.cara'));
@@ -583,6 +593,185 @@ void main() {
 
       expect(qaSwipes(api), [qaSwipeBody('cara', like: true)]);
       expect(find.byType(MatchNotificationScreen), findsOneWidget);
+    });
+  });
+
+  // Screen-level checks of the liked list, the passed list and the profile
+  // page, each with real content (a member liked / passed on the deck, a
+  // full profile), not their empty state.
+  group('screen checks', () {
+    /// Likes (or passes on) Anya on the deck, then pushes the liked (or
+    /// passed) list over it, in [theme] when given.
+    Future<void> openList(
+      WidgetTester tester, {
+      required bool liked,
+      Size size = const Size(430, 932),
+      ThemeData? theme,
+      Locale? locale,
+    }) async {
+      await pumpQa(
+        tester,
+        qaDiscoverApi(deck: [_anya, _bina]),
+        const HomeDiscoveryScreen(browseOnly: true),
+        size: size,
+        locale: locale,
+        flags: {'curated_daily_set_enabled': false},
+        extra: qaDiscoverExtras(),
+      );
+      qaDropImageErrors(tester);
+      await _tap(
+        tester,
+        ValueKey(
+          liked ? 'qa.discovery.like_button' : 'qa.discovery.pass_button',
+        ),
+      );
+      final Widget list = liked
+          ? const LikedProfilesScreen()
+          : const PassedProfilesScreen();
+      unawaited(
+        Navigator.of(tester.element(find.byType(HomeDiscoveryScreen))).push(
+          MaterialPageRoute<void>(
+            builder: (_) => theme == null ? list : qaThemed(theme, list),
+          ),
+        ),
+      );
+      await qaSettle(tester);
+      qaDropImageErrors(tester);
+    }
+
+    Finder row({required bool liked}) => find.byKey(
+      ValueKey('qa.${liked ? 'liked' : 'passed'}_profiles.open.anya'),
+    );
+
+    for (final liked in [true, false]) {
+      final name = liked ? 'liked_profiles' : 'passed_profiles';
+      final label = liked ? 'liked list' : 'passed list';
+
+      testWidgets('the $label meets the tap-target, label and contrast '
+          'guidelines [case:swipe.$name.a11y_guidelines]', (tester) async {
+        await openList(tester, liked: liked);
+        expect(row(liked: liked), findsOneWidget);
+        await qaExpectA11y(tester);
+      });
+
+      testWidgets('the $label shows a back button that returns to the deck '
+          '[case:swipe.$name.back_affordance]', (tester) async {
+        await openList(tester, liked: liked);
+        expect(find.byType(BackButton), findsOneWidget);
+
+        await tester.tap(find.byType(BackButton));
+        await qaSettle(tester);
+
+        expect(
+          find.byType(liked ? LikedProfilesScreen : PassedProfilesScreen),
+          findsNothing,
+        );
+        expect(
+          find.textContaining('Bina, 31'),
+          findsOneWidget,
+          reason: 'back on the deck',
+        );
+      });
+
+      testWidgets('the $label lays out on phones and tablets in both themes '
+          '[case:swipe.$name.layout_matrix]', (tester) async {
+        await qaExpectLayout(
+          tester,
+          pump: (size, theme) =>
+              openList(tester, liked: liked, size: size, theme: theme),
+          check: (where) {
+            expect(row(liked: liked), findsOneWidget, reason: where);
+            expect(find.text('Anya, 29'), findsWidgets, reason: where);
+          },
+        );
+      });
+
+      testWidgets('the $label renders translated in every language '
+          '[case:swipe.$name.l10n]', (tester) async {
+        await qaExpectTranslated(
+          tester,
+          pump: (locale) async {
+            await openList(tester, liked: liked, locale: locale);
+            // Only the list itself is judged, not the deck underneath.
+          },
+          fixture: {'Anya', 'Bina', 'Designer', 'sketches strangers'},
+          check: (l10n, where) {
+            expect(
+              find.text(
+                liked
+                    ? l10n.discoverLikedProfilesTitle(1)
+                    : l10n.discoverPassedProfilesTitle,
+              ),
+              findsOneWidget,
+              reason: where,
+            );
+            expect(row(liked: liked), findsOneWidget, reason: where);
+          },
+        );
+      });
+    }
+
+    Future<void> openPage(
+      WidgetTester tester, {
+      Size size = const Size(430, 932),
+      ThemeData? theme,
+      Locale? locale,
+    }) async {
+      final page = ProfileDetailsScreen(profile: qaMember('anya', 'Anya'));
+      await pumpQa(
+        tester,
+        qaDiscoverApi(deck: [_anya]),
+        theme == null ? page : qaThemed(theme, page),
+        size: size,
+        locale: locale,
+        launcher: true,
+        flags: {'curated_daily_set_enabled': false},
+        extra: qaDiscoverExtras(),
+      );
+      qaDropImageErrors(tester);
+    }
+
+    testWidgets('the profile page meets the tap-target, label and contrast '
+        'guidelines [case:swipe.profile_details.a11y_guidelines]', (
+      tester,
+    ) async {
+      await openPage(tester);
+      expect(find.byKey(_love), findsOneWidget);
+      await qaExpectA11y(tester);
+    });
+
+    testWidgets('the profile page lays out on phones and tablets in both '
+        'themes [case:swipe.profile_details.layout_matrix]', (tester) async {
+      await qaExpectLayout(
+        tester,
+        pump: (size, theme) => openPage(tester, size: size, theme: theme),
+        check: (where) {
+          expect(find.byKey(_love), findsOneWidget, reason: where);
+          expect(find.byKey(_message), findsOneWidget, reason: where);
+          expect(find.byKey(_back), findsOneWidget, reason: where);
+        },
+      );
+    });
+
+    testWidgets('the profile page renders translated in every language '
+        '[case:swipe.profile_details.l10n]', (tester) async {
+      await qaExpectTranslated(
+        tester,
+        pump: (locale) => openPage(tester, locale: locale),
+        fixture: {'Anya', 'Designer', 'sketches strangers'},
+        check: (l10n, where) {
+          expect(
+            find.text(l10n.memberProfileLove, findRichText: true),
+            findsWidgets,
+            reason: where,
+          );
+          expect(
+            find.text(l10n.memberProfileMessage, findRichText: true),
+            findsWidgets,
+            reason: where,
+          );
+        },
+      );
     });
   });
 }

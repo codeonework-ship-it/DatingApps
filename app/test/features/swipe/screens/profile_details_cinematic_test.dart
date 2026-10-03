@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:verified_dating_app/core/providers/api_client_provider.dart';
@@ -219,6 +220,34 @@ void main() {
     await tester.tap(readMore);
     await tester.pumpAndSettle();
     expect(find.text('Read less'), findsOneWidget);
+  });
+
+  testWidgets('screen readers never hear a qa id; the hero photo keeps it as '
+      'an identifier', (tester) async {
+    // Regression (2026-10-03): the hero photo was announced as
+    // "qa.profile_detail.thumbnail_0 Anya…, photo 1 of 3".
+    final semantics = tester.ensureSemantics();
+    await _pump(tester);
+    final labels = <String>[];
+    final identifiers = <String>[];
+    void walk(SemanticsNode node) {
+      final data = node.getSemanticsData();
+      labels.add(data.label);
+      identifiers.add(data.identifier);
+      node.visitChildren((child) {
+        walk(child);
+        return true;
+      });
+    }
+
+    walk(tester.binding.pipelineOwner.semanticsOwner!.rootSemanticsNode!);
+    expect(labels.where((l) => l.contains('qa.')), isEmpty);
+    expect(identifiers, contains('qa.profile_detail.thumbnail_0'));
+    final hero = tester.getSemantics(
+      find.byKey(const ValueKey('qa.profile_detail.thumbnail_0')),
+    );
+    expect(hero.label, startsWith('Anya'));
+    semantics.dispose();
   });
 
   testWidgets('empty sections are hidden and no raw nulls are shown', (

@@ -1,6 +1,7 @@
 import {test, expect} from '@playwright/test';
 import {createMember, qaMember, signIn} from './support/member.js';
 import {dismissRewards} from './support/app.js';
+import {qaId} from './support/qa.js';
 
 const member = qaMember();
 
@@ -24,7 +25,7 @@ test('story toolbar keeps the cursor in the story',async({page})=>{
  const password = page.getByRole('textbox',{name:'Password',exact:true});
  await typeInto(password,member.password);
  await password.press('Tab');
- await page.getByRole('button',{name:'qa.signin.login_button',exact:true}).click();
+ await qaId(page,'qa.signin.login_button').click();
  await expect(page).toHaveURL(/#\/discover$/,{timeout:30000});
 
  await page.goto('/app/#/blog');

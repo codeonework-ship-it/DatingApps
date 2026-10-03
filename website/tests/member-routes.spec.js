@@ -1,5 +1,6 @@
 import {test, expect} from '@playwright/test';
 import {qaMember} from './support/member.js';
+import {qaId, qaIdPrefix} from './support/qa.js';
 
 // Never the shared QA account: signing in invalidates its other sessions.
 const member = qaMember();
@@ -45,7 +46,7 @@ for(const width of [390,1440]) {
   await typeInto(password,member.password);
   await password.press('Tab');
   await expect(username).toHaveValue(member.username);
-  await page.getByRole('button',{name:'qa.signin.login_button',exact:true}).click();
+  await qaId(page,'qa.signin.login_button').click();
   await expect(page).toHaveURL(/#\/discover$/,{timeout:30000});
   await page.goto('/app/#/features');
   await expect(page.getByText('Make this space yours.',{exact:true})).toBeVisible({timeout:30000});
@@ -61,18 +62,19 @@ for(const width of [390,1440]) {
     await expect(page.getByText('Loading your saved profile',{exact:true})).toHaveCount(0,{timeout:10000});
     if(route === 'icebreakers') {
      // The recorder appears after choosing a match; a member without matches sees a calm note.
-     await expect(page.getByRole('button',{name:'qa.voice.recording_button',exact:true})
+     // The recorder carries only a widget key (no web qa id), so it is found by its label.
+     await expect(page.getByRole('button',{name:'Record your hello',exact:true})
       .or(page.getByRole('button',{name:'Who would you like to say hello to?'}))
       .or(page.getByText('When you have a match, you can share a voice introduction here. No rush.',{exact:true})).first()).toBeVisible();
     }
     if(route === 'membership') {
-     await expect(page.getByText('Subscribe with card',{exact:true}).first()).toBeVisible();
+     await expect(page.getByRole('button',{name:'Subscribe with card',exact:true}).first()).toBeVisible();
     }
     if(route === 'verification') {
-     await expect(page.getByText(/^(Start secure verification|View review status|View verified status)$/).first()).toBeVisible();
+     await expect(qaId(page,'qa.verification.landing.start_button').or(qaId(page,'qa.verification.landing.status_button')).first()).toBeVisible();
     }
     if(route === 'settings') {
-     await expect(page.getByRole('button',{name:/qa\.settings\.theme_preset\./})).toHaveCount(0);
+     await expect(qaIdPrefix(page,'qa.settings.theme_preset')).toHaveCount(0);
     }
     await page.screenshot({path:`../qa/results/2026-09-27-website/route-${route}-${width}.png`});
    });

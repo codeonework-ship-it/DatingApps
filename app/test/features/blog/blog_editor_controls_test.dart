@@ -723,6 +723,35 @@ void main() {
         expect(api.writes, isEmpty);
       },
     );
+
+    testWidgets(
+      'tapping into the title and the story is not an edit: back leaves '
+      'without asking [case:blog.blog_editor.leave_editor.action]',
+      (tester) async {
+        // Regression (2026-10-03): focusing a field notified the controllers,
+        // which marked the chapter edited, so Back asked "Leave without
+        // saving?" with nothing typed (and on the web the rebuild dropped
+        // the first key typed after the tap).
+        final api = _api();
+        final popped = await pumpQa(
+          tester,
+          api,
+          const BlogEditor(),
+          launcher: true,
+        );
+        for (final field in [find.byKey(_title), _story]) {
+          await tester.ensureVisible(field);
+          await tester.tap(field);
+          await qaSettle(tester, frames: 3);
+        }
+        await tester.tap(find.byType(BackButton));
+        await qaSettle(tester);
+        expect(find.text(_en.blogLeaveEditorTitle), findsNothing);
+        expect(find.byType(BlogEditor), findsNothing);
+        expect(popped, [null]);
+        expect(api.writes, isEmpty);
+      },
+    );
   });
 
   group('saved version', () {
@@ -1012,7 +1041,7 @@ void main() {
       '[case:blog.blog_editor.blog_editor_add_photo.action] '
       '[case:blog.blog_editor.add_to_private_draft.action] '
       '[case:blog.blog_editor.blog_editor_photo_alt.action] '
-      '[case:blog.blog_editor.add_to_private_draft.action]',
+      '[case:blog.blog_editor.blog_editor_photo_add.action]',
       (tester) async {
         final picker = _mockPicker(tester, _photoPath);
         final api = _api();
@@ -1076,7 +1105,9 @@ void main() {
     );
 
     testWidgets('Cancel closes the photo description and sends nothing '
-        '[case:blog.blog_editor.blog_editor_photo_cancel.action]', (tester) async {
+        '[case:blog.blog_editor.blog_editor_photo_cancel.action]', (
+      tester,
+    ) async {
       _mockPicker(tester, _photoPath);
       final api = _api();
       serveUpload(api);
@@ -1222,7 +1253,9 @@ void main() {
     });
 
     testWidgets('Remove photo deletes it from this version of the draft '
-        '[case:blog.blog_editor.blog_editor_remove_photo_x.action]', (tester) async {
+        '[case:blog.blog_editor.blog_editor_remove_photo_x.action]', (
+      tester,
+    ) async {
       final api = _api();
       final withPhoto = _chapter(
         version: 2,

@@ -13374,4 +13374,13 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get profileMasterPoliticsAny => 'Любые';
+
+  @override
+  String discoverOpenMemberProfile(String name) {
+    return 'Открыть профиль: $name';
+  }
+
+  @override
+  String get chatCopilotDisclosureText =>
+      'Скажи своими словами. Если отправишь черновик без изменений, собеседник увидит, что он написан с помощью.';
 }

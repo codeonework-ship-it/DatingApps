@@ -1,0 +1,31 @@
+{% extends "control_panel/base.html" %}
+{% load custom_filters %}
+{% block title %}QA Lab cases · {{ project_name }}{% endblock %}
+{% block topbar_title %}QA Lab · Cases{% endblock %}
+{% block content %}
+{% include "control_panel/qa_lab/_nav.html" %}
+<div class="glass-card mb-4">{% include "control_panel/partials/_list_controls.html" with list_label="Filter catalog cases" search_placeholder="e.g. account_recovery, Love, blog-editor.spec.js" %}</div>
+<div class="glass-card">
+  {% include "control_panel/partials/_list_toolbar.html" %}
+  {% if cases %}
+  <div class="table-responsive">
+    <table class="glass-table">
+      <thead><tr><th scope="col">Case</th><th scope="col">Area</th><th scope="col">Kind</th><th scope="col">Result</th><th scope="col">Gate</th><th scope="col" class="num">Tests</th><th scope="col">Last result (UTC)</th></tr></thead>
+      <tbody>{% for c in cases %}
+        <tr>
+          <td class="mw-cell-xl">{% if c.linkable %}<a class="font-monospace small text-break" href="{% url 'qa_lab_case_detail' c.id %}">{{ c.id }}</a>{% else %}<span class="font-monospace small text-break">{{ c.id }}</span>{% endif %}<div class="small text-muted">{{ c.title|truncatechars:140 }}</div></td>
+          <td class="small">{{ c.area|default:"—" }}<div class="text-muted">{{ c.screen }}</div></td>
+          <td class="small">{{ c.kind|default:"—" }}</td>
+          <td>{% include "control_panel/qa_lab/_result_badge.html" with result=c.result %}</td>
+          <td class="small">{% if c.ok %}<span class="badge badge-active">Verified</span>{% else %}<span title="{{ c.reason_label }}">{{ c.reason|replace:"_: " }}</span>{% endif %}</td>
+          <td class="num">{{ c.tests|thousands }}</td>
+          <td class="small text-nowrap">{% if c.last_at %}{{ c.last_at|isodate|date:"M d, H:i"|default:c.last_at }}{% else %}—{% endif %}</td>
+        </tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% elif has_catalog %}<p class="text-muted text-center py-4 mb-0">No cases match these filters.</p>
+  {% else %}<p class="text-muted text-center py-4 mb-0" data-qa-empty>No catalog cases yet. Regenerate the catalog with <code>python3 qa/catalog/tools/regenerate.py</code>.</p>{% endif %}
+  {% include "control_panel/partials/_pagination.html" %}
+</div>
+{% endblock %}

@@ -295,7 +295,12 @@ def operator_nav(request) -> dict[str, Any]:
     context still shows the full sidebar."""
     session = getattr(request, "session", None)
     roles = stored_roles(session) if session is not None else None
-    return {"nav_hidden": {key: not shown for key, shown in nav_visibility(roles).items()}}
+    # QA Lab has no Go route: the console decides (qa_lab.visible), and the
+    # link is only drawn when ``qa_lab_nav`` is true (hidden by default).
+    from . import qa_lab
+
+    return {"nav_hidden": {key: not shown for key, shown in nav_visibility(roles).items()},
+            "qa_lab_nav": qa_lab.visible(roles)}
 
 
 def _ok(result: Any) -> bool:

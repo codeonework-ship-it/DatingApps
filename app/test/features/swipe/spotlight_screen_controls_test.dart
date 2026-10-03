@@ -14,6 +14,7 @@ import 'package:verified_dating_app/features/swipe/screens/spotlight_profiles_sc
 
 import '../../support/qa_api.dart';
 import 'discover_qa_fixtures.dart';
+import 'qa_screen_checks.dart';
 
 const _like = ValueKey('qa.spotlight.like_button');
 const _pass = ValueKey('qa.spotlight.pass_button');
@@ -72,22 +73,19 @@ void main() {
   qaSilenceNetworkImages();
 
   group('deck buttons', () {
-    testWidgets(
-      'Like saves a like for the member on the card and moves on '
-      '[case:swipe.spotlight_profiles.like_icon_favorite_onlike.action] '
-      '',
-      (tester) async {
-        final api = qaDiscoverApi();
-        await _openSpotlight(tester, api);
-        expect(_card('Sami, 24'), findsOneWidget);
+    testWidgets('Like saves a like for the member on the card and moves on '
+        '[case:swipe.spotlight_profiles.like_icon_favorite_onlike.action] '
+        '', (tester) async {
+      final api = qaDiscoverApi();
+      await _openSpotlight(tester, api);
+      expect(_card('Sami, 24'), findsOneWidget);
 
-        await _tap(tester, _like);
+      await _tap(tester, _like);
 
-        expect(qaSwipes(api), [qaSwipeBody('sami', like: true)]);
-        expect(qaSnackText(tester), 'Super like sent to Sami');
-        expect(_card('Tara, 35'), findsOneWidget);
-      },
-    );
+      expect(qaSwipes(api), [qaSwipeBody('sami', like: true)]);
+      expect(qaSnackText(tester), 'Super like sent to Sami');
+      expect(_card('Tara, 35'), findsOneWidget);
+    });
 
     testWidgets(
       'a refused Like keeps the card and explains '
@@ -105,19 +103,16 @@ void main() {
       },
     );
 
-    testWidgets(
-      'Super like saves a like and moves on '
-      '[case:swipe.spotlight_profiles.super_like_icon_star_onsuperlike.action] '
-      '',
-      (tester) async {
-        final api = qaDiscoverApi();
-        await _openSpotlight(tester, api);
-        await _tap(tester, _superLike);
+    testWidgets('Super like saves a like and moves on '
+        '[case:swipe.spotlight_profiles.super_like_icon_star_onsuperlike.action] '
+        '', (tester) async {
+      final api = qaDiscoverApi();
+      await _openSpotlight(tester, api);
+      await _tap(tester, _superLike);
 
-        expect(qaSwipes(api), [qaSwipeBody('sami', like: true)]);
-        expect(_card('Tara, 35'), findsOneWidget);
-      },
-    );
+      expect(qaSwipes(api), [qaSwipeBody('sami', like: true)]);
+      expect(_card('Tara, 35'), findsOneWidget);
+    });
 
     testWidgets(
       'a Super like over the daily limit is explained '
@@ -183,23 +178,22 @@ void main() {
       expect(qaSwipes(api), [qaSwipeBody('sami', like: false)]);
     });
 
-    testWidgets(
-      'an offline Pass keeps the card and says so '
-      '[case:swipe.spotlight_profiles.pass_icon_close_onpass.api_failure]',
-      (tester) async {
-        final api = qaDiscoverApi()..offline('POST /swipe');
-        await _openSpotlight(tester, api);
-        await _tap(tester, _pass);
+    testWidgets('an offline Pass keeps the card and says so '
+        '[case:swipe.spotlight_profiles.pass_icon_close_onpass.api_failure]', (
+      tester,
+    ) async {
+      final api = qaDiscoverApi()..offline('POST /swipe');
+      await _openSpotlight(tester, api);
+      await _tap(tester, _pass);
 
-        expect(qaSwipes(api), hasLength(2), reason: 'one automatic retry');
-        expect(_card('Sami, 24'), findsOneWidget);
-        expect(find.text('Passed (0)'), findsOneWidget);
-        expect(
-          qaSnackText(tester),
-          'Unable to pass right now. Please try again.',
-        );
-      },
-    );
+      expect(qaSwipes(api), hasLength(2), reason: 'one automatic retry');
+      expect(_card('Sami, 24'), findsOneWidget);
+      expect(find.text('Passed (0)'), findsOneWidget);
+      expect(
+        qaSnackText(tester),
+        'Unable to pass right now. Please try again.',
+      );
+    });
 
     testWidgets('Undo shows the last card again (local only, no request) '
         '[case:swipe.spotlight_profiles.undo_icon_undo_onundo.action]', (
@@ -252,24 +246,23 @@ void main() {
       );
     }
 
-    testWidgets(
-      'Message with a match opens that chat, no like '
-      '[case:swipe.spotlight_profiles.x_card_message_button_message.action] '
-      '[case:discover.profile_entry_points.spotlight_screen.message_2]',
-      (tester) async {
-        final api = qaDiscoverApi(
-          matches: [qaMatchRow('match-sami', 'sami', 'Sami')],
-        );
-        await _openSpotlight(tester, api);
-        await _tap(tester, _cardMessage);
+    testWidgets('Message with a match opens that chat, no like '
+        '[case:swipe.spotlight_profiles.x_card_message_button_message.action] '
+        '[case:discover.profile_entry_points.spotlight_screen.message_2]', (
+      tester,
+    ) async {
+      final api = qaDiscoverApi(
+        matches: [qaMatchRow('match-sami', 'sami', 'Sami')],
+      );
+      await _openSpotlight(tester, api);
+      await _tap(tester, _cardMessage);
 
-        expect(
-          tester.widget<ChatScreen>(find.byType(ChatScreen)).matchId,
-          'match-sami',
-        );
-        expect(qaSwipes(api), isEmpty);
-      },
-    );
+      expect(
+        tester.widget<ChatScreen>(find.byType(ChatScreen)).matchId,
+        'match-sami',
+      );
+      expect(qaSwipes(api), isEmpty);
+    });
 
     testWidgets(
       'Message over the daily limit is explained, no chat '
@@ -289,28 +282,25 @@ void main() {
   group('View more', () {
     // Regression (2026-10-02): the Spotlight screen opened profiles without
     // recording the view, unlike every other way into a profile.
-    testWidgets(
-      'opens the member on the card and records the view '
-      '[case:swipe.spotlight_profiles.x_view_more_button_openprofile.action] '
-      '',
-      (tester) async {
-        final api = qaDiscoverApi();
-        await _openSpotlight(tester, api);
-        await _tap(tester, _viewMore);
+    testWidgets('opens the member on the card and records the view '
+        '[case:swipe.spotlight_profiles.x_view_more_button_openprofile.action] '
+        '', (tester) async {
+      final api = qaDiscoverApi();
+      await _openSpotlight(tester, api);
+      await _tap(tester, _viewMore);
 
-        expect(
-          tester
-              .widget<ProfileDetailsScreen>(find.byType(ProfileDetailsScreen))
-              .profile
-              .id,
-          'sami',
-        );
-        expect(api.sent('POST', '/profile/views').single.body, {
-          'viewer_user_id': 'me',
-          'viewed_user_id': 'sami',
-        });
-      },
-    );
+      expect(
+        tester
+            .widget<ProfileDetailsScreen>(find.byType(ProfileDetailsScreen))
+            .profile
+            .id,
+        'sami',
+      );
+      expect(api.sent('POST', '/profile/views').single.body, {
+        'viewer_user_id': 'me',
+        'viewed_user_id': 'sami',
+      });
+    });
 
     testWidgets('Love on a Spotlight profile (Discover → Spotlight → View '
         'more) likes that member and the screen moves on '
@@ -372,18 +362,22 @@ void main() {
   });
 
   group('header and filters', () {
-    testWidgets(
-      'Back closes Spotlight '
-      '[case:swipe.spotlight_profiles.spotlight_back_button_back.action]',
-      (tester) async {
-        final api = qaDiscoverApi();
-        await _openSpotlight(tester, api);
-        await _tap(tester, const ValueKey('qa.spotlight.back_button'));
+    testWidgets('Back closes Spotlight '
+        '[case:swipe.spotlight_profiles.spotlight_back_button_back.action] '
+        '[case:swipe.spotlight_profiles.back_affordance]', (tester) async {
+      final api = qaDiscoverApi();
+      await _openSpotlight(tester, api);
+      // A visible, labelled way back when pushed.
+      expect(find.bySemanticsLabel('Back'), findsWidgets);
+      expect(
+        find.byKey(const ValueKey('qa.spotlight.back_button')).hitTestable(),
+        findsOneWidget,
+      );
+      await _tap(tester, const ValueKey('qa.spotlight.back_button'));
 
-        expect(find.byType(SpotlightProfilesScreen), findsNothing);
-        expect(find.byKey(const ValueKey('qa.test.launcher')), findsOneWidget);
-      },
-    );
+      expect(find.byType(SpotlightProfilesScreen), findsNothing);
+      expect(find.byKey(const ValueKey('qa.test.launcher')), findsOneWidget);
+    });
 
     testWidgets('Messages points the member to Discover '
         '[case:swipe.spotlight_profiles.messages.action]', (tester) async {
@@ -394,45 +388,54 @@ void main() {
       expect(qaSnackText(tester), 'Open chats from Discover');
     });
 
-    testWidgets('the bell says there is nothing new '
-        '[case:swipe.spotlight_profiles.spotlight_notifications_button.action]', (
-      tester,
-    ) async {
-      final api = qaDiscoverApi();
-      await _openSpotlight(tester, api);
-      await _tap(tester, const ValueKey('qa.spotlight.notifications_button'));
+    testWidgets(
+      'the bell says there is nothing new '
+      '[case:swipe.spotlight_profiles.spotlight_notifications_button.action]',
+      (tester) async {
+        final api = qaDiscoverApi();
+        await _openSpotlight(tester, api);
+        await _tap(tester, const ValueKey('qa.spotlight.notifications_button'));
 
-      expect(qaSnackText(tester), 'No new notifications');
-    });
+        expect(qaSnackText(tester), 'No new notifications');
+      },
+    );
 
-    testWidgets('Filters → Verified only → Apply hides unverified members '
-        '[case:swipe.spotlight_profiles.filters_onfilters.action] '
-        '[case:swipe.spotlight_profiles.apply.action] '
-        '[case:swipe.spotlight_profiles.spotlight_filters_verified_only.action] '
-        '[case:swipe.spotlight_profiles.spotlight_filters_apply.action]', (tester) async {
-      final api = qaDiscoverApi();
-      await _openSpotlight(tester, api, profiles: [_tara, _uma]);
-      expect(_card('Tara, 35'), findsOneWidget);
+    testWidgets(
+      'Filters → Verified only → Apply hides unverified members '
+      '[case:swipe.spotlight_profiles.filters_onfilters.action] '
+      '[case:swipe.spotlight_profiles.apply.action] '
+      '[case:swipe.spotlight_profiles.spotlight_filters_verified_only.action] '
+      '[case:swipe.spotlight_profiles.spotlight_filters_apply.action]',
+      (tester) async {
+        final api = qaDiscoverApi();
+        await _openSpotlight(tester, api, profiles: [_tara, _uma]);
+        expect(_card('Tara, 35'), findsOneWidget);
 
-      await _tap(tester, const ValueKey('qa.spotlight.filters_button'));
-      expect(find.text('Verified only'), findsOneWidget);
-      await _tap(tester, const ValueKey('qa.spotlight.filters.verified_only'));
-      await _tap(tester, const ValueKey('qa.spotlight.filters.apply'));
+        await _tap(tester, const ValueKey('qa.spotlight.filters_button'));
+        expect(find.text('Verified only'), findsOneWidget);
+        await _tap(
+          tester,
+          const ValueKey('qa.spotlight.filters.verified_only'),
+        );
+        await _tap(tester, const ValueKey('qa.spotlight.filters.apply'));
 
-      expect(
-        find.byKey(const ValueKey('qa.spotlight.filters.apply')),
-        findsNothing,
-        reason: 'the sheet closed',
-      );
-      expect(_card('Tara, 35'), findsNothing);
-      expect(_card('Uma, 41'), findsOneWidget);
-      expect(find.text('Verified only'), findsOneWidget, reason: 'chip');
-      expect(api.writes, isEmpty, reason: 'filtering is local');
-    });
+        expect(
+          find.byKey(const ValueKey('qa.spotlight.filters.apply')),
+          findsNothing,
+          reason: 'the sheet closed',
+        );
+        expect(_card('Tara, 35'), findsNothing);
+        expect(_card('Uma, 41'), findsOneWidget);
+        expect(find.text('Verified only'), findsOneWidget, reason: 'chip');
+        expect(api.writes, isEmpty, reason: 'filtering is local');
+      },
+    );
 
     testWidgets('the age range slider narrows the members shown '
         '[case:swipe.spotlight_profiles.spotlight_filters_age_range.action] '
-        '[case:swipe.spotlight_profiles.spotlight_filters_apply.action]', (tester) async {
+        '[case:swipe.spotlight_profiles.spotlight_filters_apply.action]', (
+      tester,
+    ) async {
       final api = qaDiscoverApi();
       await _openSpotlight(tester, api, profiles: [_sami, _uma]);
       await _tap(tester, const ValueKey('qa.spotlight.filters_button'));
@@ -461,7 +464,9 @@ void main() {
     });
 
     testWidgets('Reset puts the filters back before applying '
-        '[case:swipe.spotlight_profiles.spotlight_filters_reset.action]', (tester) async {
+        '[case:swipe.spotlight_profiles.spotlight_filters_reset.action]', (
+      tester,
+    ) async {
       final api = qaDiscoverApi();
       await _openSpotlight(tester, api, profiles: [_tara, _uma]);
       await _tap(tester, const ValueKey('qa.spotlight.filters_button'));
@@ -505,7 +510,9 @@ void main() {
     });
 
     testWidgets('filters that match nobody say so '
-        '[case:swipe.spotlight_profiles.spotlight_filters_apply.action]', (tester) async {
+        '[case:swipe.spotlight_profiles.spotlight_filters_apply.action]', (
+      tester,
+    ) async {
       final api = qaDiscoverApi();
       await _openSpotlight(tester, api, profiles: [_tara]);
       await _tap(tester, const ValueKey('qa.spotlight.filters_button'));
@@ -513,6 +520,114 @@ void main() {
       await _tap(tester, const ValueKey('qa.spotlight.filters.apply'));
 
       expect(find.text('No spotlight profiles match filters'), findsOneWidget);
+    });
+  });
+
+  testWidgets(
+    'Undo is local and keeps working while the server fails; a pass that '
+    'fails offline keeps the card, says why, and succeeds on retry '
+    '[case:swipe.spotlight_profiles.undo_icon_undo_onundo.api_failure]',
+    (tester) async {
+      final api = qaDiscoverApi();
+      await _openSpotlight(tester, api);
+      await _tap(tester, _pass);
+      expect(_card('Tara, 35'), findsOneWidget);
+      expect(find.text('Passed (1)'), findsOneWidget);
+
+      // The server goes away: Undo still steps back, with no request.
+      api.offline('POST /swipe');
+      final before = api.calls.length;
+      await _tap(tester, _undo);
+      expect(_card('Sami, 24'), findsOneWidget);
+      expect(find.text('Passed (0)'), findsOneWidget);
+      expect(api.calls.length, before, reason: 'Undo never calls the server');
+
+      // Passing Sami again now fails: the card and the count stay put.
+      await _tap(tester, _pass);
+      // The pass is tried twice (one automatic retry for a dropped
+      // connection), then reported.
+      expect(qaSwipes(api).skip(1), [
+        qaSwipeBody('sami', like: false),
+        qaSwipeBody('sami', like: false),
+      ]);
+      expect(_card('Sami, 24'), findsOneWidget);
+      expect(find.text('Passed (0)'), findsOneWidget);
+      expect(
+        qaSnackText(tester),
+        'Unable to pass right now. Please try again.',
+      );
+
+      // Back online (and the message read), the retry is saved and the
+      // deck moves on.
+      await tester.pump(const Duration(seconds: 6));
+      await qaSettle(tester);
+      api.json('POST /swipe', <String, dynamic>{});
+      await _tap(tester, _pass);
+      expect(qaSwipes(api).last, qaSwipeBody('sami', like: false));
+      expect(_card('Tara, 35'), findsOneWidget);
+      expect(find.text('Passed (1)'), findsOneWidget);
+    },
+  );
+
+  group('screen checks', () {
+    Future<void> pumpSpotlight(
+      WidgetTester tester, {
+      Size size = const Size(430, 932),
+      ThemeData? theme,
+      Locale? locale,
+      bool launcher = false,
+    }) async {
+      final screen = SpotlightProfilesScreen(profiles: [_sami, _tara, _uma]);
+      await pumpQa(
+        tester,
+        qaDiscoverApi(),
+        theme == null ? screen : qaThemed(theme, screen),
+        size: size,
+        locale: locale,
+        launcher: launcher,
+        flags: {'curated_daily_set_enabled': false},
+        extra: qaDiscoverExtras(),
+      );
+      qaDropImageErrors(tester);
+    }
+
+    testWidgets('a populated Spotlight meets the tap-target, label and '
+        'contrast guidelines [case:swipe.spotlight_profiles.a11y_guidelines]', (
+      tester,
+    ) async {
+      await pumpSpotlight(tester, launcher: true);
+      expect(_card('Sami, 24'), findsOneWidget);
+      await qaExpectA11y(tester);
+    });
+
+    testWidgets('Spotlight lays out on phones and tablets in both themes '
+        '[case:swipe.spotlight_profiles.layout_matrix]', (tester) async {
+      await qaExpectLayout(
+        tester,
+        pump: (size, theme) => pumpSpotlight(tester, size: size, theme: theme),
+        check: (where) {
+          expect(_card('Sami, 24'), findsOneWidget, reason: where);
+          expect(find.byKey(_like), findsOneWidget, reason: where);
+          expect(find.byKey(_undo), findsOneWidget, reason: where);
+        },
+      );
+    });
+
+    testWidgets('Spotlight renders translated in every language '
+        '[case:swipe.spotlight_profiles.l10n]', (tester) async {
+      await qaExpectTranslated(
+        tester,
+        pump: (locale) => pumpSpotlight(tester, locale: locale),
+        fixture: {'Sami', 'Designer', 'sketches strangers'},
+        check: (l10n, where) {
+          expect(
+            find.text(l10n.discoverSpotlightTitle),
+            findsOneWidget,
+            reason: where,
+          );
+          expect(_card('Sami, 24'), findsOneWidget, reason: where);
+        },
+      );
     });
   });
 }

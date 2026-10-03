@@ -54,6 +54,11 @@ class _CallSessionScreenState extends ConsumerState<CallSessionScreen> {
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           foregroundColor: Colors.white,
+          // The theme's title colour is meant for light grounds; on the call
+          // screen's fixed night ground it was unreadable (1.05:1).
+          titleTextStyle: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(color: Colors.white),
           title: Text(l.callsSessionTitle),
         ),
         body: SafeArea(
@@ -122,6 +127,7 @@ class _CallSessionScreenState extends ConsumerState<CallSessionScreen> {
                         if (state.activeSession != null)
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               _ControlButton(
                                 key: const ValueKey('qa.calls.join_live_room'),
@@ -194,20 +200,32 @@ class _ControlButton extends StatelessWidget {
   final Color color;
   final Color foregroundColor;
 
+  // The round button carries the label for screen readers (its tooltip);
+  // the caption under it is the same words, so it is not announced twice.
+  // Captions wrap instead of pushing the row off screen in long languages.
   @override
-  Widget build(BuildContext context) => Column(
-    children: [
-      IconButton.filled(
-        onPressed: onPressed,
-        style: IconButton.styleFrom(
-          backgroundColor: color,
-          foregroundColor: foregroundColor,
-          minimumSize: const Size(56, 56),
+  Widget build(BuildContext context) => Expanded(
+    child: Column(
+      children: [
+        IconButton.filled(
+          onPressed: onPressed,
+          tooltip: label,
+          style: IconButton.styleFrom(
+            backgroundColor: color,
+            foregroundColor: foregroundColor,
+            minimumSize: const Size(56, 56),
+          ),
+          icon: Icon(icon),
         ),
-        icon: Icon(icon),
-      ),
-      const SizedBox(height: 6),
-      Text(label, style: const TextStyle(color: Colors.white70)),
-    ],
+        const SizedBox(height: 6),
+        ExcludeSemantics(
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.white70),
+          ),
+        ),
+      ],
+    ),
   );
 }

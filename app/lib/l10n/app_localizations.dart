@@ -22041,6 +22041,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Any'**
   String get profileMasterPoliticsAny;
+
+  /// Liked / Passed profiles lists: spoken label (tooltip) of the chevron button that opens a member's profile.
+  ///
+  /// In en, this message translates to:
+  /// **'Open {name}\'s profile'**
+  String discoverOpenMemberProfile(String name);
+
+  /// Writing helper (Help me say it): the disclosure shown under every draft, before the drafts-left count. Shown in the reader's language instead of the server's English text.
+  ///
+  /// In en, this message translates to:
+  /// **'Say it in your own words. If you send it as drafted, they will see it was written with help.'**
+  String get chatCopilotDisclosureText;
 }
 
 class _AppLocalizationsDelegate

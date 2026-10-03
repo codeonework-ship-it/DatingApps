@@ -72,7 +72,8 @@ class Dataset:
     # ("admin", "<GoBFFClient method>") reads an admin endpoint instead.
     source: tuple[str, str] | None = None
     # Admin sources: the method's arguments from the report parameters;
-    # "_args" holds positional ones (e.g. the member id).
+    # "_args" holds positional ones (e.g. the member id). Business/analytics
+    # sources: the query sent to Go instead of the report parameters.
     query: Callable[[dict], dict] | None = None
     # Admin list sources are paged through Go (500 a call) up to the cap.
     paged: bool = False

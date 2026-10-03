@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:verified_dating_app/features/city_pilot/city_pilot_screen.dart';
 
 import '../../support/qa_api.dart';
+import '../../support/qa_screen_checks.dart';
 
 // City pilot controls: every test performs the real gesture and asserts the
 // request the server receives, what the member sees afterwards and — for
@@ -274,7 +275,9 @@ void main() {
     });
 
     testWidgets('Stay in pilot closes the question and keeps me in '
-        '[case:city_pilot.city_pilot.city_pilot_leave_stay.action]', (tester) async {
+        '[case:city_pilot.city_pilot.city_pilot_leave_stay.action]', (
+      tester,
+    ) async {
       final world = _World();
       await _open(tester, world);
       final loads = world.loads;
@@ -373,7 +376,9 @@ void main() {
     );
 
     testWidgets('Not now closes the terms without booking '
-        '[case:city_pilot.city_pilot.city_pilot_booking_not_now.action]', (tester) async {
+        '[case:city_pilot.city_pilot.city_pilot_booking_not_now.action]', (
+      tester,
+    ) async {
       final world = _World();
       await _open(tester, world);
       await _tapKey(tester, 'qa.city_pilot.reserve.ev-open');
@@ -439,7 +444,9 @@ void main() {
     });
 
     testWidgets('Cancel my place cancels the booking and offers Reserve again '
-        '[case:city_pilot.city_pilot.city_pilot_cancel_event.action]', (tester) async {
+        '[case:city_pilot.city_pilot.city_pilot_cancel_event.action]', (
+      tester,
+    ) async {
       final world = _World();
       await _open(tester, world);
       final loads = world.loads;
@@ -586,7 +593,9 @@ void main() {
     );
 
     testWidgets('Skip closes the questions and sends nothing '
-        '[case:city_pilot.city_pilot.city_pilot_feedback_skip.action]', (tester) async {
+        '[case:city_pilot.city_pilot.city_pilot_feedback_skip.action]', (
+      tester,
+    ) async {
       final world = _World();
       await _open(tester, world);
       final loads = world.loads;
@@ -630,7 +639,9 @@ void main() {
 
   group('loading', () {
     testWidgets('Refresh pilot reloads and shows what changed '
-        '[case:city_pilot.city_pilot.city_pilot_refresh.action]', (tester) async {
+        '[case:city_pilot.city_pilot.city_pilot_refresh.action]', (
+      tester,
+    ) async {
       final world = _World();
       await _open(tester, world);
       final loads = world.loads;
@@ -733,5 +744,40 @@ void main() {
       expect(find.text(l10n.cityPilotCancelPlace), findsOneWidget);
       await tester.pumpWidget(const SizedBox());
     }
+  });
+
+  group('screen quality', () {
+    testWidgets('lays out with experiences on phone and tablet, both themes '
+        '[case:city_pilot.city_pilot.layout_matrix]', (tester) async {
+      await qaExpectLaysOutEverywhere(
+        tester,
+        _World().api,
+        CityPilotScreen.new,
+        loaded: find.text('Picnic in the park'),
+      );
+    });
+
+    testWidgets('meets tap-target, label and contrast guidelines '
+        '[case:city_pilot.city_pilot.a11y_guidelines]', (tester) async {
+      await qaExpectMeetsA11yGuidelines(
+        tester,
+        _World().api,
+        CityPilotScreen.new,
+        // Tall, so the pilot panel and every experience card are checked,
+        // not just the introduction above the fold.
+        size: const Size(500, 3600),
+        loaded: find.text(_en.cityPilotLeave),
+      );
+    });
+
+    testWidgets('pushed, Back returns to where the member came from '
+        '[case:city_pilot.city_pilot.back_affordance]', (tester) async {
+      await qaExpectBackReturns(
+        tester,
+        _World().api,
+        CityPilotScreen.new,
+        screen: CityPilotScreen,
+      );
+    });
   });
 }

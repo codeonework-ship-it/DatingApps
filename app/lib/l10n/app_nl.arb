@@ -3649,5 +3649,7 @@
   "profileMasterTravelStaycations": "Vakantie thuis",
   "profileMasterPoliticsSimilarShort": "Vergelijkbaar",
   "profileMasterPoliticsModerate": "Gematigd",
-  "profileMasterPoliticsAny": "Maakt niet uit"
+  "profileMasterPoliticsAny": "Maakt niet uit",
+  "discoverOpenMemberProfile": "Profiel van {name} openen",
+  "chatCopilotDisclosureText": "Zeg het in je eigen woorden. Als je het ongewijzigd verstuurt, ziet de ander dat het met hulp is geschreven."
 }

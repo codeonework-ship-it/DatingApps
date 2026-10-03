@@ -1,0 +1,101 @@
+{% extends "control_panel/base.html" %}
+{% load custom_filters %}
+{% block title %}QA Lab · {{ project_name }}{% endblock %}
+{% block topbar_title %}QA Lab · Overview{% endblock %}
+{% block content %}
+{% include "control_panel/qa_lab/_nav.html" %}
+{% if not total %}
+<div class="glass-card mb-4 text-center py-4" data-qa-empty>
+  <i class="bi bi-clipboard2-x icon-xl text-muted" aria-hidden="true"></i>
+  <h2 class="h5 mt-2">No QA Lab data yet</h2>
+  <p class="text-muted mb-0">The case catalog has no cases to show. Regenerate it with <code>python3 qa/catalog/tools/regenerate.py</code>, then start a run in QA Lab.</p>
+</div>
+{% else %}
+<div class="auto-grid mb-4">
+  <div class="kpi-card kpi-aqua"><div class="kpi-value">{{ automated_pct }}%</div><div class="kpi-label">Automated · {{ automated|thousands }} of {{ total|thousands }}</div></div>
+  <div class="kpi-card {% if verified_pct >= 100 %}kpi-green{% else %}kpi-gold{% endif %}"><div class="kpi-value">{{ verified_pct }}%</div><div class="kpi-label">Verified (gate) · {{ verified|thousands }} of {{ total|thousands }}</div></div>
+  <div class="kpi-card kpi-red"><div class="kpi-value">{{ failing|thousands }}</div><div class="kpi-label">Failing cases</div></div>
+  <div class="kpi-card kpi-purple"><div class="kpi-value">{{ not_run|thousands }}</div><div class="kpi-label">Not run or skipped</div></div>
+  <div class="kpi-card"><div class="kpi-value">{{ gap_count|thousands }}</div><div class="kpi-label">Gate gaps</div></div>
+</div>
+<p class="small text-muted mb-4">Catalog {{ catalog_generated|default:"—" }} · {{ feature_count|thousands }} features · {{ total|thousands }} cases. A case is <strong>verified</strong> when it is automated and its latest result passed, or it is manual and its last check passed (<code>qa/lab/coverage_gate.py</code>){% if not gate_loaded %}; the gate script was not found, so results come from the ledger alone{% endif %}.</p>
+{% endif %}
+
+<div class="row g-3 mb-4">
+  <div class="col-lg-5">
+    <section class="glass-card h-100" aria-labelledby="latest-run-heading">
+      <div class="card-title-row"><h2 class="h5 mb-0" id="latest-run-heading">Latest run</h2>{% if run_count %}<a class="small" href="{% url 'qa_lab_runs' %}">All {{ run_count|thousands }} run{{ run_count|pluralize }}</a>{% endif %}</div>
+      {% if latest %}
+      <p class="mb-2"><a class="font-monospace" href="{% url 'qa_lab_run_detail' latest.id %}">{{ latest.id }}</a> {% include "control_panel/qa_lab/_test_status.html" with status=latest.status %}</p>
+      <dl class="row small mb-0">
+        <dt class="col-5">Mode</dt><dd class="col-7">{{ latest.mode|default:"—" }}</dd>
+        <dt class="col-5">By</dt><dd class="col-7">{{ latest.by|default:"—" }}</dd>
+        <dt class="col-5">Started</dt><dd class="col-7">{{ latest.startedAt|isodate|date:"M d, H:i"|default:"—" }}{% if latest.duration %} · {{ latest.duration }}{% endif %}</dd>
+        <dt class="col-5">Suites</dt><dd class="col-7">{{ latest.suites|join:", "|default:"—" }}</dd>
+        <dt class="col-5">Tests</dt><dd class="col-7">{{ latest.tests.passed|default:0|thousands }} passed · {{ latest.tests.failed|default:0|thousands }} failed · {{ latest.tests.skipped|default:0|thousands }} skipped</dd>
+        <dt class="col-5">Cases</dt><dd class="col-7">{{ latest.cases.pass|default:0|thousands }} pass · {{ latest.cases.fail|default:0|thousands }} fail · {{ latest.cases.notRun|default:0|thousands }} not run</dd>
+        <dt class="col-5">Verified in run</dt><dd class="col-7">{% if latest.coverage.verifiedPct is not None %}{{ latest.coverage.verifiedPct }}%{% else %}—{% endif %}</dd>
+        {% if latest.diff.against %}<dt class="col-5">Vs {{ latest.diff.against }}</dt><dd class="col-7">{{ latest.diff.fixed|default:0 }} fixed · {{ latest.diff.regressed|default:0 }} regressed · {{ latest.diff.newlyFailing|default:0 }} newly failing</dd>{% endif %}
+      </dl>
+      {% else %}
+      <p class="text-muted mb-0" data-qa-no-runs>No runs yet. Open QA Lab to start the first one.</p>
+      {% endif %}
+    </section>
+  </div>
+  <div class="col-lg-7">
+    <section class="glass-card h-100" aria-labelledby="status-heading">
+      <h2 class="h5" id="status-heading">Case status</h2>
+      {% if breakdown %}
+      <div class="table-responsive">
+        <table class="glass-table">
+          <thead><tr><th scope="col">Result</th><th scope="col" class="num">Cases</th><th scope="col">Share of catalog</th></tr></thead>
+          <tbody>{% for b in breakdown %}
+            <tr>
+              <td><a href="{% url 'qa_lab_cases' %}?result={{ b.key }}">{% include "control_panel/qa_lab/_result_badge.html" with result=b.key %}</a></td>
+              <td class="num">{{ b.count|thousands }}</td>
+              <td class="minw-col"><div class="progress progress-thin mb-1" role="img" aria-label="{{ b.label }}: {{ b.pct }}%"><div class="progress-bar progress-fill" style="--pct: {{ b.pct }}%"></div></div><span class="small text-muted">{{ b.pct }}%</span></td>
+            </tr>{% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}<p class="text-muted mb-0">No cases yet.</p>{% endif %}
+    </section>
+  </div>
+</div>
+
+<section class="glass-card mb-4" aria-labelledby="gaps-heading">
+  <div class="card-title-row"><h2 class="h5 mb-0" id="gaps-heading">Gaps by reason</h2><span class="small text-muted">{{ gap_count|default:0|thousands }} case{{ gap_count|pluralize }} not verified</span></div>
+  {% for g in gaps %}
+  <details class="mb-2" data-gap-reason="{{ g.reason }}"{% if forloop.first %} open{% endif %}>
+    <summary><strong>{{ g.label }}</strong> · {{ g.count|thousands }}</summary>
+    <p class="small text-muted mb-1 mt-2">By area: {% for area, n in g.areas %}{{ area }} {{ n }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+    <ul class="small mb-1">{% for c in g.cases %}<li>{% if c.linkable %}<a class="font-monospace text-break" href="{% url 'qa_lab_case_detail' c.id %}">{{ c.id }}</a>{% else %}<span class="font-monospace text-break">{{ c.id }}</span>{% endif %} <span class="text-muted">{{ c.title }}</span></li>{% endfor %}</ul>
+    <a class="small" href="{% url 'qa_lab_cases' %}?reason={{ g.reason|urlencode }}">{% if g.more %}All {{ g.count|thousands }} ({{ g.more|thousands }} more){% else %}Open in Cases{% endif %}</a>
+  </details>
+  {% empty %}
+  <p class="text-muted mb-0">{% if total %}No gaps: every case is verified.{% else %}Nothing to show yet.{% endif %}</p>
+  {% endfor %}
+</section>
+
+<section class="glass-card" aria-labelledby="areas-heading">
+  <h2 class="h5" id="areas-heading">By area</h2>
+  {% if by_area %}
+  <div class="table-responsive">
+    <table class="glass-table">
+      <thead><tr><th scope="col">Area</th><th scope="col" class="num">Cases</th><th scope="col" class="num">Pass</th><th scope="col" class="num">Fail</th><th scope="col" class="num">Not run</th><th scope="col" class="num">Gaps</th><th scope="col" class="num">Verified</th></tr></thead>
+      <tbody>{% for a in by_area %}
+        <tr>
+          <td><a href="{% url 'qa_lab_cases' %}?area={{ a.area|urlencode }}">{{ a.area|default:"(no area)" }}</a></td>
+          <td class="num">{{ a.cases|thousands }}</td>
+          <td class="num">{{ a.pass|thousands }}</td>
+          <td class="num">{% if a.fail %}<a href="{% url 'qa_lab_cases' %}?area={{ a.area|urlencode }}&amp;result=fail" class="text-danger-light">{{ a.fail|thousands }}</a>{% else %}0{% endif %}</td>
+          <td class="num">{{ a.not_run|thousands }}</td>
+          <td class="num">{{ a.gaps|thousands }}</td>
+          <td class="num">{{ a.verified_pct }}%</td>
+        </tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}<p class="text-muted mb-0">No cases yet.</p>{% endif %}
+</section>
+{% endblock %}

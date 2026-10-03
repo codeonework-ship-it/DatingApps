@@ -120,3 +120,16 @@ X_FRAME_OPTIONS = "DENY"
 if env_bool("DJANGO_TRUST_PROXY_HEADERS"):
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 LOGIN_URL = "/login/"
+
+# QA Lab in the console (control_panel/qa_lab.py): read-only views of what
+# QA Lab (website/qa-lab, QA_LAB=1, never in production) writes to disk.
+# Unset QA_LAB_ENABLED follows DEBUG at request time; runs are started in
+# QA Lab itself at QA_LAB_URL. Paths default to the repository's own files.
+_qa_lab_enabled = os.getenv("QA_LAB_ENABLED", "").strip()
+QA_LAB_ENABLED = env_bool("QA_LAB_ENABLED") if _qa_lab_enabled else None
+REPO_ROOT = BASE_DIR.parent
+QA_LAB_RESULTS_DIR = os.getenv("QA_LAB_RESULTS_DIR") or str(REPO_ROOT / "qa" / "results" / "qa_lab")
+QA_LAB_CATALOG_PATH = os.getenv("QA_LAB_CATALOG_PATH") or str(REPO_ROOT / "qa" / "catalog" / "feature_catalog.json")
+QA_LAB_MANUAL_CASES_PATH = os.getenv("QA_LAB_MANUAL_CASES_PATH") or str(REPO_ROOT / "qa" / "catalog" / "manual_cases.json")
+QA_LAB_GATE_PATH = os.getenv("QA_LAB_GATE_PATH") or str(REPO_ROOT / "qa" / "lab" / "coverage_gate.py")
+QA_LAB_URL = os.getenv("QA_LAB_URL", "http://127.0.0.1:4190/qa-lab/")

@@ -97,7 +97,7 @@ Map<String, dynamic> qaMember(
 /// sees it; commands change it the way the server does.
 class GroupsWorld {
   GroupsWorld() {
-    api
+    _HealthyRoutes(api, _healthy)
       ..on(
         'GET /engagement/group-categories',
         (_) => qaOk({'categories': categories}),
@@ -143,7 +143,7 @@ class GroupsWorld {
       })
       ..on('POST /engagement/groups', (c) {
         final b = c.body;
-        final id = 'new';
+        const id = 'new';
         final g = qaGroup(
           id: id,
           kind: b['kind'] as String,
@@ -163,8 +163,7 @@ class GroupsWorld {
         return qaOk({'group': g});
       })
       ..on('PATCH /engagement/groups/*', (c) {
-        final g = groups[_id(c)]!;
-        g
+        final g = groups[_id(c)]!
           ..['name'] = c.body['name']
           ..['description'] = c.body['description']
           ..['city'] = c.body['city']
@@ -256,6 +255,49 @@ class GroupsWorld {
       })
       ..on('GET /engagement/groups/*/cover', (_) => qaOk(qaPng))
       ..on('GET /social/channels', (_) => qaOk({'channels': channels}))
+      // A group's chat (`ch-<group id>`): the channel, its messages and the
+      // read mark.
+      ..on('GET /social/channels/*', (c) {
+        final id = c.path.split('/')[3];
+        final g = groups[id.replaceFirst('ch-', '')];
+        return qaOk({
+          'channel': {
+            'id': id,
+            'kind': 'group',
+            'ref_id': g?['id'] ?? '',
+            'title': g?['name'] ?? '',
+            'member_count': g?['member_count'] ?? 0,
+          },
+        });
+      })
+      ..on(
+        'GET /social/channels/*/messages',
+        (c) => qaOk({
+          'messages': [
+            for (final m in chatMessages)
+              {...m, 'channel_id': c.path.split('/')[3]},
+          ],
+          'has_more': false,
+          'realtime_cursor': 0,
+        }),
+      )
+      ..on('POST /social/channels/*/read', (_) => qaOk({'read': true}))
+      // Friend links, for Add friend on a chat sender or a member.
+      ..on('GET /friends/me', (_) => qaOk({'friends': friendLinks}))
+      ..on(
+        'GET /friends/me/activities',
+        (_) => qaOk({'activities': <Object>[]}),
+      )
+      ..on('POST /friends/me', (c) {
+        final row = {
+          'friend_user_id': c.body['friend_user_id'],
+          'friend_name': 'Asha',
+          'status': 'pending',
+          'direction': 'outgoing',
+        };
+        friendLinks.add(row);
+        return qaOk({'friend': row});
+      })
       ..on(
         'POST /blog/reports/group/*',
         (_) => qaOk({
@@ -269,6 +311,14 @@ class GroupsWorld {
 
   final api = QaApi();
 
+  /// The fixture's own handler for every route, so a test that failed one
+  /// route can bring it back with [heal].
+  final _healthy = <String, QaHandler>{};
+
+  /// Puts [route] (as registered by the fixture, e.g.
+  /// `'POST /engagement/groups/*/join'`) back to its working handler.
+  void heal(String route) => api.on(route, _healthy[route]!);
+
   /// What an upload leaves the cover as (`pending` or `approved`).
   String coverStatusAfterUpload = 'pending';
 
@@ -280,6 +330,24 @@ class GroupsWorld {
   final groups = <String, Map<String, dynamic>>{};
   final members = <String, List<Map<String, dynamic>>>{};
   final channels = <Map<String, dynamic>>[];
+
+  /// Messages in every group chat: one from Asha.
+  final chatMessages = <Map<String, dynamic>>[
+    {
+      'id': 'm1',
+      'sender_id': 'asha',
+      'sender_name': 'Asha',
+      'sender_photo_url': '',
+      'body': 'Who is bringing snacks?',
+      'client_message_id': 'client-m1',
+      'created_at': '2026-10-01T18:00:00Z',
+      'deleted': false,
+      'mine': false,
+    },
+  ];
+
+  /// The member's friend links (`GET /friends/me`); none to start with.
+  final friendLinks = <Map<String, dynamic>>[];
 
   final friends = <Map<String, dynamic>>[
     {'user_id': 'asha', 'name': 'Asha', 'status': 'member'},
@@ -353,3 +421,15 @@ Future<void> qaTeardown(WidgetTester tester) async {
 /// Overrides the gallery/camera picker (the real one is an OS sheet).
 Override qaPickerOverride(QaCoverPicker picker) =>
     groupCoverPickerProvider.overrideWithValue(picker.call);
+
+/// Registers routes on [api] and remembers each handler in [healthy].
+class _HealthyRoutes {
+  _HealthyRoutes(this.api, this.healthy);
+  final QaApi api;
+  final Map<String, QaHandler> healthy;
+
+  void on(String route, QaHandler handler) {
+    healthy[route] = handler;
+    api.on(route, handler);
+  }
+}

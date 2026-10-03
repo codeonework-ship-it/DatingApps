@@ -47,6 +47,7 @@ def test_discovery_profile_detail_surface(app):
 
 @pytest.mark.requires_appium
 @pytest.mark.profile_detail
+@pytest.mark.case("journeys.e2e.back_navigation")
 def test_discovery_profile_detail_back_preserves_deck(app):
     _open_profile_detail(app)
 

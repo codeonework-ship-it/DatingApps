@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../support/widgets/support_entry_points.dart';
 
+/// The longest description the report endpoints accept (the content report
+/// queue refuses more than 1,000 characters), so a long note is stopped while
+/// typing instead of failing on submit.
+const reportDescriptionMaxLength = 1000;
+
 Future<String?> showReportUserSheet({
   required BuildContext context,
   required Future<String?> Function({
@@ -29,6 +34,9 @@ class _ReportUserSheetState extends State<_ReportUserSheet> {
   final _controller = TextEditingController();
   String _reason = 'inappropriate';
   bool _isSubmitting = false;
+
+  /// Shown inside the sheet: a snack bar alone would sit behind it.
+  bool _failed = false;
 
   @override
   void dispose() {
@@ -73,6 +81,9 @@ class _ReportUserSheetState extends State<_ReportUserSheet> {
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
+                  // Full width, so a long reason in any language fits
+                  // (ellipsized) instead of overflowing the field.
+                  isExpanded: true,
                   initialValue: _reason,
                   items: [
                     DropdownMenuItem(
@@ -104,11 +115,39 @@ class _ReportUserSheetState extends State<_ReportUserSheet> {
                   controller: _controller,
                   enabled: !_isSubmitting,
                   maxLines: 3,
+                  maxLength: reportDescriptionMaxLength,
                   decoration: InputDecoration(
                     labelText: l10n.reportDescriptionLabel,
                     hintText: l10n.reportDescriptionHint,
                   ),
                 ),
+                if (_failed)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Semantics(
+                      liveRegion: true,
+                      child: Row(
+                        key: const Key('report_sheet_error'),
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.error_outline_rounded,
+                            color: Theme.of(context).colorScheme.error,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              l10n.reportSubmitFailed,
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(
+                                    color: Theme.of(context).colorScheme.error,
+                                  ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
@@ -116,7 +155,10 @@ class _ReportUserSheetState extends State<_ReportUserSheet> {
                     onPressed: _isSubmitting
                         ? null
                         : () async {
-                            setState(() => _isSubmitting = true);
+                            setState(() {
+                              _isSubmitting = true;
+                              _failed = false;
+                            });
                             try {
                               final reportId = await widget.onSubmit(
                                 reason: _reason,
@@ -126,11 +168,14 @@ class _ReportUserSheetState extends State<_ReportUserSheet> {
                               Navigator.of(context).pop(reportId);
                             } catch (e) {
                               if (!mounted) return;
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(l10n.reportSubmitFailed),
-                                ),
-                              );
+                              setState(() => _failed = true);
+                              ScaffoldMessenger.of(context)
+                                ..hideCurrentSnackBar()
+                                ..showSnackBar(
+                                  SnackBar(
+                                    content: Text(l10n.reportSubmitFailed),
+                                  ),
+                                );
                             } finally {
                               if (mounted) {
                                 setState(() => _isSubmitting = false);

@@ -15,15 +15,18 @@ from urllib.parse import urlencode
 from django.http import QueryDict
 from django.urls import reverse
 
+from ..listing import is_day
 from ..services.go_client import GoBFFClient
 from .model import AVG, BOOL, DATE, INT, MAX, MIN, MONEY, NUMBER, PCT, SUM, TEXT, Dataset, Field, Report
 
-_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 _UUID = re.compile(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
 _USERNAME = re.compile(r"^@?[A-Za-z0-9._]{2,40}$")
 ADMIN_PAGE = 500
 MAX_ROWS = 5_000  # per dataset on screen and in exports
 SUPPRESSED = "<5"
+# Currencies without minor units (Go's zeroDecimalCurrencies in business_reports.go):
+# their *_minor integers are already whole units.
+ZERO_DECIMAL = frozenset({"JPY", "KRW", "VND", "CLP", "ISK", "UGX"})
 
 
 # ── Parameters ────────────────────────────────────────────────────────────
@@ -34,7 +37,7 @@ def read_params(report: Report, query: QueryDict | dict) -> dict[str, str]:
     for p in report.params:
         raw = str(query.get(p.name, "") or "").strip()
         if p.kind == "date":
-            value = raw if _DATE.match(raw) else ""
+            value = raw if is_day(raw) else ""
         elif p.kind == "int":
             value = raw if raw.isdigit() and (p.min is None or int(raw) >= p.min) and (p.max is None or int(raw) <= p.max) else ""
         elif p.kind == "text":
@@ -67,9 +70,15 @@ def typed(f: Field, row: dict) -> Any:
     if f.key in set(row.get("suppressed") or []):
         return SUPPRESSED
     raw = f.get(row) if f.get else row.get(f.key)
+    # Business reports write the suppression marker into the value itself
+    # ("paying_members": "<5"); analytics reports list the key in "suppressed".
+    if isinstance(raw, str) and raw.strip() == SUPPRESSED:
+        return SUPPRESSED
     if f.type == MONEY:
         minor = row.get(f.minor) if f.minor else None
         if isinstance(minor, (int, float)) and not isinstance(minor, bool):
+            if str(row.get("currency") or "").upper() in ZERO_DECIMAL:
+                return minor
             return round(minor / 100, 2)
         return _number(raw)
     if f.type in (INT, NUMBER, PCT):
@@ -217,8 +226,8 @@ def _auto_datasets(data: dict) -> list[Dataset]:
 
 
 def _drill_href(f: Field, row: dict, report_params: dict[str, str]) -> str:
-    if not f.drill:
-        return ""
+    if not f.drill or row.get("pooled"):
+        return ""  # a pooled row ("other cities …") is not one city or member
     target, mapping = f.drill
     params = {k: v for k, v in report_params.items() if k in ("since", "until", "from", "to")}
     for param, key in mapping.items():
@@ -386,22 +395,28 @@ def run(report: Report, params: dict[str, str], *, group_overrides: dict[str, tu
             rows.extend(page)
             offset += len(page)
             total = result.data.get("total") if isinstance(result.data, dict) else None
-            if len(page) < ADMIN_PAGE or (isinstance(total, int) and offset >= total):
+            # Some endpoints cap a page below 500 (support tickets, media and
+            # account recovery at 200), so a short page is only the end when
+            # Go sends no total; with a total, read until it is reached.
+            if not page or (isinstance(total, int) and not isinstance(total, bool) and offset >= total):
+                break
+            if not isinstance(total, int) and len(page) < ADMIN_PAGE:
                 break
         return rows, len(rows) >= MAX_ROWS
 
-    def fetch(source: tuple[str, str]) -> dict:
+    def fetch(source: tuple[str, str], query: dict | None = None) -> dict:
         nonlocal denied
-        if source not in responses:
+        query = dict(params) if query is None else dict(query)
+        cache_key = (source, tuple(sorted(query.items())))
+        if cache_key not in responses:
             kind, name = source
-            query = dict(params)
             result = client.business_report(name, query) if kind == "business" else client.analytics_report(name, query)
             if not result.ok:
                 if result.status_code == 403:
                     denied = True
                 errors.append(result.error or "The report source is unavailable.")
-            responses[source] = result.data if result.ok and isinstance(result.data, dict) else {}
-        return responses[source]
+            responses[cache_key] = result.data if result.ok and isinstance(result.data, dict) else {}
+        return responses[cache_key]
 
     main = fetch(report.source) if report.source[0] != "admin" else {}
     specs = list(report.datasets) + (_auto_datasets(main) if report.auto_tables else [])
@@ -422,7 +437,7 @@ def run(report: Report, params: dict[str, str], *, group_overrides: dict[str, tu
             else:
                 raw = [r for r in data if isinstance(r, dict)] if isinstance(data, list) else []
         else:
-            data = fetch(spec.source) if spec.source else main
+            data = fetch(spec.source, spec.query(params) if spec.query else None) if spec.source else main
             raw = _rows_at(data, spec.path)
             truncated = len(raw) > MAX_ROWS
         if spec.row_filter is not None:

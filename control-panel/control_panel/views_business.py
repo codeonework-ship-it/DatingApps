@@ -18,13 +18,13 @@ from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_GET, require_POST
 
+from . import listing
 from .services.go_client import GoBFFClient
 
 TIMEZONES = ("UTC", "Asia/Kolkata", "Europe/London", "Europe/Berlin", "Europe/Paris", "Europe/Warsaw")
 MODES = ("live", "sandbox", "all")
 BUCKETS = ("day", "week", "month")
 CSV_REPORTS = set(GoBFFClient.BUSINESS_REPORTS)
-_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 _TABLE = re.compile(r"^[a-z_]{1,40}$")
 _UUID = re.compile(r"^[0-9a-fA-F-]{36}$")
 
@@ -50,7 +50,7 @@ def _filters(request: HttpRequest, *, default_bucket: str = "") -> dict[str, str
     out: dict[str, str] = {}
     for key in ("since", "until"):
         value = request.GET.get(key, "").strip()
-        if value and _DATE.match(value):
+        if value and listing.is_day(value):
             out[key] = value
     tz = request.GET.get("tz", "").strip()
     if tz in TIMEZONES:
@@ -236,7 +236,9 @@ def business_conversion(request: HttpRequest) -> HttpResponse:
     client = GoBFFClient()
     conv_filters = {k: v for k, v in filters.items() if k != "bucket"}
     result = client.business_report("conversion", conv_filters)
-    funnel_result = client.business_report("funnel", conv_filters)
+    # Go's funnel never buckets but caps a window at 400 *day* buckets by
+    # default, so a long conversion window would make it fail; month keeps it valid.
+    funnel_result = client.business_report("funnel", {**conv_filters, "bucket": "month"})
     data = result.data if result.ok else {}
     funnel = funnel_result.data if funnel_result.ok else {}
     ltv_rows = data.get("ltv") or []

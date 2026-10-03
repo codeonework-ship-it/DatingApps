@@ -69,7 +69,9 @@ void main() {
   });
 
   group('My tickets', () {
-    testWidgets('lists reference, subject, status chips and unread replies', (
+    testWidgets('lists reference, subject, status chips and unread replies, '
+        'and a request opens its thread '
+        '[case:support.support_tickets.support_ticket_x.action]', (
       tester,
     ) async {
       final api = FakeSupportApi({

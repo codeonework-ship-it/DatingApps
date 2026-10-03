@@ -31,7 +31,7 @@ class _Api {
             }
             data = {'visible': enabled};
           } else if (r.path.endsWith('/showcase')) {
-            data = {'enabled': enabled, 'chapters': chapters, 'photos': []};
+            data = {'enabled': enabled, 'chapters': chapters, 'photos': <dynamic>[]};
           }
           h.resolve(Response(requestOptions: r, statusCode: 200, data: data));
         },

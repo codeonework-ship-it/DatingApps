@@ -1,0 +1,35 @@
+{% extends "control_panel/base.html" %}
+{% load custom_filters %}
+{% block title %}QA Lab runs · {{ project_name }}{% endblock %}
+{% block topbar_title %}QA Lab · Runs{% endblock %}
+{% block content %}
+{% include "control_panel/qa_lab/_nav.html" %}
+<div class="glass-card mb-4">{% include "control_panel/partials/_list_controls.html" with list_label="Filter QA Lab runs" search_placeholder="e.g. 20261003, local_control_admin, playwright" %}</div>
+<div class="glass-card">
+  {% include "control_panel/partials/_list_toolbar.html" %}
+  {% if runs %}
+  <div class="table-responsive">
+    <table class="glass-table">
+      <thead><tr><th scope="col">Run</th><th scope="col">Status</th><th scope="col">Started (UTC)</th><th scope="col">Took</th><th scope="col">Mode</th><th scope="col">By</th><th scope="col">Suites</th><th scope="col" class="num">Tests passed</th><th scope="col" class="num">Tests failed</th><th scope="col" class="num">Cases pass / fail</th><th scope="col" class="num">Verified</th></tr></thead>
+      <tbody>{% for r in runs %}
+        <tr>
+          <td><a class="font-monospace" href="{% url 'qa_lab_run_detail' r.id %}">{{ r.id }}</a></td>
+          <td>{% include "control_panel/qa_lab/_test_status.html" with status=r.status %}</td>
+          <td class="small text-nowrap">{{ r.startedAt|isodate|date:"M d, H:i:s"|default:"—" }}</td>
+          <td class="small text-nowrap">{{ r.duration|default:"—" }}</td>
+          <td class="small">{{ r.mode|default:"—" }}</td>
+          <td class="small">{{ r.by|default:"—" }}</td>
+          <td class="small">{{ r.suites|join:", "|default:"—" }}</td>
+          <td class="num">{{ r.tests.passed|default:0|thousands }}</td>
+          <td class="num">{% if r.tests.failed %}<span class="text-danger-light">{{ r.tests.failed|thousands }}</span>{% else %}0{% endif %}</td>
+          <td class="num">{{ r.cases.pass|default:0|thousands }} / {{ r.cases.fail|default:0|thousands }}</td>
+          <td class="num">{% if r.coverage.verifiedPct is not None %}{{ r.coverage.verifiedPct }}%{% else %}—{% endif %}</td>
+        </tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% elif has_history %}<p class="text-muted text-center py-4 mb-0">No runs match these filters.</p>
+  {% else %}<p class="text-muted text-center py-4 mb-0" data-qa-no-runs>No runs yet. Open QA Lab to start the first one.</p>{% endif %}
+  {% include "control_panel/partials/_pagination.html" %}
+</div>
+{% endblock %}

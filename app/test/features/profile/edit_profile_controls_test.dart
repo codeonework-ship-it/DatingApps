@@ -9,6 +9,7 @@ import 'package:verified_dating_app/features/profile/screens/setup/setup_photos_
 import 'package:verified_dating_app/features/profile/screens/setup/setup_preferences_screen.dart';
 
 import '../../support/qa_api.dart';
+import '../../support/qa_screen_quality.dart';
 import 'support/profile_bff.dart';
 
 // Control-level tests for Edit Profile (EditProfileScreen): refresh and
@@ -62,7 +63,9 @@ Future<void> _save(WidgetTester tester, Key key) async {
 
 void main() {
   testWidgets('Refresh reloads the draft and shows what changed elsewhere '
-      '[case:profile.edit_profile.edit_profile_refresh.action]', (tester) async {
+      '[case:profile.edit_profile.edit_profile_refresh.action]', (
+    tester,
+  ) async {
     final api = QaApi();
     final bff = ProfileBff(api);
     await _open(tester, api);
@@ -77,7 +80,9 @@ void main() {
   });
 
   testWidgets('a failed refresh shows the error with Retry '
-      '[case:profile.edit_profile.edit_profile_refresh.action]', (tester) async {
+      '[case:profile.edit_profile.edit_profile_refresh.action]', (
+    tester,
+  ) async {
     final api = QaApi();
     ProfileBff(api);
     await _open(tester, api);
@@ -87,21 +92,24 @@ void main() {
     expect(find.text(_en.profileSetupRetry), findsOneWidget);
   });
 
-  testWidgets('Retry reloads a profile that failed to load '
-      '[case:profile.edit_profile.something_went_wrong_please_try_onretry.action]', (tester) async {
-    final api = QaApi();
-    final bff = ProfileBff(api);
-    api.fail('GET /profile/*/draft');
-    await _open(tester, api);
-    expect(find.text(_en.profileSetupLoadErrorTitle), findsOneWidget);
-    expect(find.byKey(_section('about_you')), findsNothing);
+  testWidgets(
+    'Retry reloads a profile that failed to load '
+    '[case:profile.edit_profile.something_went_wrong_please_try_onretry.action]',
+    (tester) async {
+      final api = QaApi();
+      final bff = ProfileBff(api);
+      api.fail('GET /profile/*/draft');
+      await _open(tester, api);
+      expect(find.text(_en.profileSetupLoadErrorTitle), findsOneWidget);
+      expect(find.byKey(_section('about_you')), findsNothing);
 
-    bff.install();
-    await _tap(tester, find.text(_en.profileSetupRetry));
-    expect(api.sent('GET', '/profile/me/draft'), hasLength(2));
-    expect(find.byKey(_section('about_you')), findsOneWidget);
-    expect(_row(tester, _en.profileEditName), 'Ananya');
-  });
+      bff.install();
+      await _tap(tester, find.text(_en.profileSetupRetry));
+      expect(api.sent('GET', '/profile/me/draft'), hasLength(2));
+      expect(find.byKey(_section('about_you')), findsOneWidget);
+      expect(_row(tester, _en.profileEditName), 'Ananya');
+    },
+  );
 
   testWidgets('Edit About opens About you; the saved bio shows on return '
       '[case:profile.edit_profile.about_you_onaction.action]', (tester) async {
@@ -277,5 +285,65 @@ void main() {
       // Display only: nothing is written back to the server.
       expect(api.writes, isEmpty, reason: '$locale');
     }
+  });
+
+  group('screen quality', () {
+    QaApi server() {
+      final api = QaApi();
+      ProfileBff(
+        api,
+        draft: qaDraftJson(
+          extra: const {
+            'profession': 'Analyst',
+            'country': 'India',
+            'state': 'Karnataka',
+            'city': 'Bengaluru',
+            'hobbies': ['chess', 'jazz'],
+            'instagram_handle': 'ananya.makes',
+            'diet_preference': 'Veg',
+          },
+        ),
+      );
+      return api;
+    }
+
+    // The About section's edit action only renders once the draft arrived.
+    Finder loaded() => find.byKey(_section('about_you'), skipOffstage: false);
+
+    testWidgets('Edit Profile with a full draft lays out on phone and tablet '
+        'in both themes [case:profile.edit_profile.layout_matrix]', (
+      tester,
+    ) async {
+      await qaExpectLaysOutOnPhoneAndTablet(
+        tester,
+        api: server,
+        build: () => const EditProfileScreen(),
+        extra: qaMasterDataOverrides,
+        loaded: loaded,
+      );
+    });
+
+    testWidgets('Edit Profile meets tap-target, label and contrast guidelines '
+        '[case:profile.edit_profile.a11y_guidelines]', (tester) async {
+      await qaExpectMeetsA11yGuidelines(
+        tester,
+        api: server,
+        build: () => const EditProfileScreen(),
+        extra: qaMasterDataOverrides,
+        loaded: loaded,
+      );
+    });
+
+    testWidgets('Back on Edit Profile returns to the screen that opened it '
+        '[case:profile.edit_profile.back_affordance]', (tester) async {
+      await qaExpectBackReturnsToOpener(
+        tester,
+        api: server(),
+        build: () => const EditProfileScreen(),
+        extra: qaMasterDataOverrides(),
+        screen: find.byType(EditProfileScreen),
+        loaded: loaded(),
+      );
+    });
   });
 }

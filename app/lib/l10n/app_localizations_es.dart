@@ -13293,4 +13293,13 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get profileMasterPoliticsAny => 'Cualquiera';
+
+  @override
+  String discoverOpenMemberProfile(String name) {
+    return 'Abrir el perfil de $name';
+  }
+
+  @override
+  String get chatCopilotDisclosureText =>
+      'Dilo con tus propias palabras. Si lo envías tal cual, verán que se escribió con ayuda.';
 }

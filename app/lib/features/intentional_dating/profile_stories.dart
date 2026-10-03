@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/api_error_message.dart';
@@ -159,7 +160,10 @@ class _StoryEditorState extends ConsumerState<_StoryEditor> {
           ((s['photo_id'] as String? ?? '').isNotEmpty &&
               (s['photo_description'] as String? ?? '').trim().isEmpty),
     );
-    if (invalid || !form.currentState!.validate()) {
+    // Validate every field even when the check above already failed, so
+    // the member sees which field needs words.
+    final fieldsValid = form.currentState!.validate();
+    if (invalid || !fieldsValid) {
       setState(() {
         preview = false;
         error = l10n.storiesIncomplete;
@@ -189,7 +193,8 @@ class _StoryEditorState extends ConsumerState<_StoryEditor> {
                       if ((s['photo_id'] as String? ?? '').isNotEmpty)
                         'photo_id': s['photo_id'],
                       if ((s['photo_id'] as String? ?? '').isNotEmpty)
-                        'photo_description': s['photo_description'] ?? '',
+                        'photo_description':
+                            (s['photo_description'] as String? ?? '').trim(),
                     },
                   )
                   .toList(),
@@ -413,7 +418,12 @@ class _StoryEditorState extends ConsumerState<_StoryEditor> {
               const SizedBox(height: 12),
               TextFormField(
                 initialValue: story['photo_description'] as String? ?? '',
-                maxLength: 160,
+                maxLength: storyPhotoDescriptionMax,
+                // maxLength counts what the eye sees (a family emoji is one);
+                // the server counts code points, so cap those too.
+                inputFormatters: const [
+                  CodePointLimitFormatter(storyPhotoDescriptionMax),
+                ],
                 enabled: !saving,
                 decoration: InputDecoration(
                   labelText: l10n.storiesPhotoDescriptionLabel,
@@ -428,6 +438,42 @@ class _StoryEditorState extends ConsumerState<_StoryEditor> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// The longest photo description the server accepts, in code points.
+const storyPhotoDescriptionMax = 160;
+
+/// Caps text at [max] Unicode code points (runes), the unit the server
+/// counts. A longer paste is cut at the limit, on a whole character, so a
+/// joined emoji is never left half.
+class CodePointLimitFormatter extends TextInputFormatter {
+  const CodePointLimitFormatter(this.max);
+  final int max;
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (newValue.text.runes.length <= max) {
+      return newValue;
+    }
+    final kept = StringBuffer();
+    var count = 0;
+    for (final character in newValue.text.characters) {
+      final runes = character.runes.length;
+      if (count + runes > max) {
+        break;
+      }
+      kept.write(character);
+      count += runes;
+    }
+    final text = kept.toString();
+    return TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
     );
   }
 }

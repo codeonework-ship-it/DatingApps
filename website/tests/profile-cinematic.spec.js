@@ -1,6 +1,7 @@
 import {test, expect} from '@playwright/test';
 import {createMember} from './support/member.js';
 import {api, apiLogin, bringIntoView, dismissRewards, noOverflow, shots, signInWithToken, watchApp} from './support/app.js';
+import {qaId} from './support/qa.js';
 
 // Cinematic profile (2026-10-02): the owner's "STARRING" view with the
 // "This is how you appear" console, and another member's "INTRODUCING" view
@@ -53,7 +54,7 @@ for (const width of [320, 390, 1440]) {
     };
     for (const name of Object.keys(tools)) await expect(page.getByRole('button', {name, exact: true})).toBeVisible();
     // Another member's actions never appear on your own profile.
-    await expect(page.getByRole('button', {name: /qa\.profile_detail\.(message|love|report)_button/})).toHaveCount(0);
+    for (const action of ['message', 'love', 'report']) await expect(qaId(page, `qa.profile_detail.${action}_button`)).toHaveCount(0);
     await expect(page.getByText('INTRODUCING', {exact: true})).toHaveCount(0);
     expect(await noOverflow(page), 'profile overflows').toBe(true);
     await dismissRewards(page, 1500);
@@ -85,7 +86,7 @@ for (const width of [320, 390, 1440]) {
     await expect(page.getByText(/^THIS IS HOW YOU APPEAR/)).toHaveCount(0);
     // Photo strip: the hero photo plus the carousel of the rest.
     await expect(page.getByRole('button', {name: /photo 1 of 2$/})).toBeVisible();
-    await expect(page.getByRole('group', {name: 'qa.profile_detail.carousel'})).toBeVisible();
+    await expect(qaId(page, 'qa.profile_detail.carousel')).toBeVisible();
     await expect(page.getByRole('button', {name: /photo 2 of 2$/})).toBeVisible();
     // Floating dock and top bar.
     const message = page.getByRole('button', {name: 'Message', exact: true}).last();
@@ -156,7 +157,7 @@ test.describe('edge cases', () => {
     const password = page.getByRole('textbox', {name: 'Password', exact: true});
     await typeInto(password, member.password);
     await password.press('Tab');
-    await page.getByRole('button', {name: 'qa.signin.login_button', exact: true}).click();
+    await qaId(page, 'qa.signin.login_button').click();
     await expect(page).toHaveURL(/#\/(discover|profile)$/, {timeout: 30000});
     testInfo.annotations.push({type: 'landing after deep-link sign-in', description: page.url()});
     await expect(page.getByRole('button', {name: 'My profile', exact: true}).first()).toBeVisible({timeout: 30000});

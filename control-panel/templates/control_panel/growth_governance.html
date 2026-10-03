@@ -63,7 +63,7 @@
           </td>
           <td>{{ edge.confidence|floatformat:2 }}</td>
           <td>{{ edge.review_status|capfirst }}{% if edge.reviewed_at %}<div class="text-muted small">{{ edge.reviewed_at|isodate|date:"M d, Y H:i"|default:"—" }}</div>{% endif %}</td>
-          <td class="text-muted small">{% for key, value in edge.evidence.items %}{{ key }}: {{ value }}{% if not forloop.last %} · {% endif %}{% empty %}—{% endfor %}</td>
+          <td class="text-muted small">{% for key, value in edge.evidence|pairs %}{{ key }}: {{ value }}{% if not forloop.last %} · {% endif %}{% empty %}—{% endfor %}</td>
           <td class="text-muted small">{{ edge.created_at|isodate|date:"M d, Y H:i"|default:"—" }}</td>
         </tr>
       {% endfor %}

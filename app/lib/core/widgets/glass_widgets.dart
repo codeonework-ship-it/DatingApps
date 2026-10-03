@@ -234,9 +234,16 @@ class _GlassButtonState extends State<GlassButton>
       ),
     );
 
+    // The label already says what the visible text says (and "loading"
+    // while busy); excluding the child stops screen readers reading the
+    // button twice ("Sign in Sign in"). It is its own node, so its role and
+    // tap never fold into a surrounding card (a plan card read as one big
+    // "Subscribe" button); QaControl's MergeSemantics still merges it.
     return Semantics(
+      container: true,
       button: true,
       enabled: isEnabled,
+      excludeSemantics: true,
       label: widget.isLoading
           ? l10nOrEnglish(context).commonLoadingLabel(widget.label)
           : widget.label,

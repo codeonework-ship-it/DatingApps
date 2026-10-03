@@ -961,13 +961,19 @@ class _EditGroupSheetState extends ConsumerState<_EditGroupSheet> {
 
   Future<void> save() async {
     final l10n = AppLocalizations.of(context);
+    final trimmed = name.text.trim();
+    // The same rule as creating a group; the server refuses shorter names.
+    if (trimmed.length < 3) {
+      setState(() => error = l10n.groupsCreateNameTooShort);
+      return;
+    }
     setState(() {
       busy = true;
       error = null;
     });
     try {
       await groupsApi(ref).update(widget.group.id, {
-        'name': name.text.trim(),
+        'name': trimmed,
         'description': description.text.trim(),
         'city': city.text.trim(),
         'cover_color': coverColor,

@@ -119,7 +119,8 @@ void main() {
 
     testWidgets(
       'a refresh while offline shows the retry notice without crashing, and '
-      'Try again loads your groups [case:groups.groups.load_failed_retry.action]',
+      'Try again loads your groups '
+      '[case:groups.groups.load_failed_retry.action]',
       (tester) async {
         final world = _world();
         await _open(tester, world);

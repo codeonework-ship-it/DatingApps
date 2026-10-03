@@ -546,9 +546,7 @@ void main() {
     );
 
     testWidgets('Comments that fail to load offer Try again, which loads them '
-        '[case:blog.blog_social.blog_retry_retry.action]', (
-      t,
-    ) async {
+        '[case:blog.blog_social.blog_retry_retry.action]', (t) async {
       var fail = true;
       final api = QaApi()
         ..on(

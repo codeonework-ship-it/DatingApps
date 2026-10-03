@@ -82,6 +82,7 @@ def _open_friends(app) -> None:
         app.scroll_to_text("Your people", timeout=20)
 
 
+@pytest.mark.case("journeys.e2e.rooms_groups")
 def test_create_group_from_friends_invite_chat_and_leave(app, device_member, counterpart_factory):
     first = counterpart_factory("g1", "Ada Grouper")
     second = counterpart_factory("g2", "Ben Grouper")

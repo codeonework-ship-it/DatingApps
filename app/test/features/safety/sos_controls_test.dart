@@ -5,12 +5,14 @@
 // and OS permission prompts are an emulator check.
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:verified_dating_app/core/permissions/device_permission_service.dart';
 import 'package:verified_dating_app/features/safety/screens/sos_screen.dart';
 import 'package:verified_dating_app/l10n/app_localizations.dart';
 
 import '../../support/qa_api.dart';
+import '../../support/qa_screen_quality.dart';
 
 final AppLocalizations en = qaL10n(const Locale('en'));
 
@@ -422,5 +424,63 @@ void main() {
       expect(find.text(l10n.safetySosActivatedTitle), findsOneWidget);
       expect(tester.takeException(), isNull, reason: '$locale');
     }
+  });
+
+  group('screen quality', () {
+    final history = [
+      {
+        'id': 'sos-1',
+        'user_id': 'me',
+        'emergency_level': 'high',
+        'message': 'Need help',
+        'latitude': 19.07,
+        'longitude': 72.87,
+        'status': 'open',
+        'triggered_at': '2026-10-02T21:15:00Z',
+      },
+    ];
+    List<Override> location() => [
+      devicePermissionServiceProvider.overrideWithValue(_Location(null)),
+    ];
+    Finder loaded() => find.text(
+      en.safetySosHistoryHeading(
+        en.safetySosAlertLevelHigh,
+        en.safetySosAlertStatusOpen,
+      ),
+      skipOffstage: false,
+    );
+
+    testWidgets('SOS with its history lays out on phone and tablet in both '
+        'themes [case:safety.sos.layout_matrix]', (tester) async {
+      await qaExpectLaysOutOnPhoneAndTablet(
+        tester,
+        api: () => _SosServer(alerts: history).api,
+        build: () => const SosScreen(),
+        extra: location,
+        loaded: loaded,
+      );
+    });
+
+    testWidgets('SOS meets tap-target, label and contrast guidelines '
+        '[case:safety.sos.a11y_guidelines]', (tester) async {
+      await qaExpectMeetsA11yGuidelines(
+        tester,
+        api: () => _SosServer(alerts: history).api,
+        build: () => const SosScreen(),
+        extra: location,
+        loaded: loaded,
+      );
+    });
+
+    testWidgets('Back on SOS returns to the screen that opened it '
+        '[case:safety.sos.back_affordance]', (tester) async {
+      await qaExpectBackReturnsToOpener(
+        tester,
+        api: _SosServer(alerts: history).api,
+        build: () => const SosScreen(),
+        extra: location(),
+        screen: find.byType(SosScreen),
+      );
+    });
   });
 }

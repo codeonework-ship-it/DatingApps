@@ -11782,7 +11782,7 @@ class AppLocalizationsPl extends AppLocalizations {
   String get webDestHelpSupport => 'Pomoc i wsparcie';
 
   @override
-  String get webNavExplore => 'Odkrywaj';
+  String get webNavExplore => 'Przeglądaj';
 
   @override
   String get webNavMyProfile => 'Mój profil';
@@ -13453,4 +13453,13 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get profileMasterPoliticsAny => 'Dowolne';
+
+  @override
+  String discoverOpenMemberProfile(String name) {
+    return 'Otwórz profil: $name';
+  }
+
+  @override
+  String get chatCopilotDisclosureText =>
+      'Powiedz to własnymi słowami. Jeśli wyślesz szkic bez zmian, druga osoba zobaczy, że powstał z pomocą.';
 }

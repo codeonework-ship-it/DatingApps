@@ -7,6 +7,7 @@ import 'package:verified_dating_app/features/plans/screens/plans_screen.dart';
 import 'package:verified_dating_app/features/social_chat/social_chat_screen.dart';
 
 import '../../support/qa_api.dart';
+import '../../support/qa_screen_quality.dart';
 
 // Friends screen controls: each test performs the real gesture and asserts
 // the request the server receives, where the member lands and what they
@@ -822,4 +823,41 @@ void main() {
       }
     },
   );
+
+  group('screen quality', () {
+    testWidgets('Friends with requests, chats, intros and vouches lays out on '
+        'phone and tablet in both themes [case:friends.friends.layout_matrix]', (
+      tester,
+    ) async {
+      await qaExpectLaysOutOnPhoneAndTablet(
+        tester,
+        api: () => _World().api,
+        build: FriendsScreen.new,
+        loaded: () => find.text('Meera', skipOffstage: false),
+      );
+      await _teardown(tester);
+    });
+
+    testWidgets('Friends meets tap-target, label and contrast guidelines '
+        '[case:friends.friends.a11y_guidelines]', (tester) async {
+      await qaExpectMeetsA11yGuidelines(
+        tester,
+        api: () => _World().api,
+        build: FriendsScreen.new,
+        loaded: () => find.text('Meera', skipOffstage: false),
+      );
+      await _teardown(tester);
+    });
+
+    testWidgets('Back on Friends is visible and returns to the opener '
+        '[case:friends.friends.back_affordance]', (tester) async {
+      await qaExpectBackReturnsToOpener(
+        tester,
+        api: _World().api,
+        build: FriendsScreen.new,
+        screen: find.byType(FriendsScreen),
+        loaded: find.text('Meera', skipOffstage: false),
+      );
+    });
+  });
 }

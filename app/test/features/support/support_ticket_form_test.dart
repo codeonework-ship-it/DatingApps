@@ -49,7 +49,10 @@ Future<void> _submit(WidgetTester tester) async {
 }
 
 void main() {
-  testWidgets('creates a ticket with the contract payload and opens it', (
+  testWidgets('creates a ticket with the contract payload and opens it '
+      '[case:support.support_ticket_form.submit_support_ticket.action] '
+      '[case:support.support_ticket_form.support_subject_input.action] '
+      '[case:support.support_ticket_form.support_description_input.action]', (
     tester,
   ) async {
     final api = FakeSupportApi({
@@ -84,7 +87,10 @@ void main() {
     );
   });
 
-  testWidgets('uploads screenshots first and sends their ids', (tester) async {
+  testWidgets('uploads screenshots first and sends their ids '
+      '[case:support.support_ticket_form.support_add_screenshot.action]', (
+    tester,
+  ) async {
     final api = FakeSupportApi({
       'POST /support/attachments': (_) => ok({
         'success': true,
@@ -183,7 +189,9 @@ void main() {
     expect(keys, hasLength(2));
   });
 
-  testWidgets('validates the subject before calling the server', (
+  testWidgets('validates the subject before calling the server: a topic '
+      'first, 4 to 120 characters, spaces do not count '
+      '[case:support.support_ticket_form.support_subject_input.validation]', (
     tester,
   ) async {
     final api = FakeSupportApi({});
@@ -198,6 +206,20 @@ void main() {
     expect(
       find.text('Use 4 to 120 characters for the subject.'),
       findsOneWidget,
+    );
+    await tester.enterText(find.byKey(const Key('support_subject')), '       ');
+    await _submit(tester);
+    expect(
+      find.text('Use 4 to 120 characters for the subject.'),
+      findsOneWidget,
+    );
+    await tester.enterText(find.byKey(const Key('support_subject')), 's' * 150);
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const Key('support_subject')))
+          .controller!
+          .text,
+      hasLength(120),
     );
     // Only the category list was read; nothing was sent.
     expect(api.requests.where((r) => r.method != 'GET'), isEmpty);

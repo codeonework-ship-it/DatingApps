@@ -14,6 +14,7 @@ import 'package:webview_flutter_platform_interface/webview_flutter_platform_inte
 
 import '../../support/checkout_webview_fake.dart';
 import '../../support/qa_api.dart';
+import '../../support/qa_screen_quality.dart';
 import 'billing_fake.dart';
 
 final AppLocalizations en = qaL10n(const Locale('en'));
@@ -242,5 +243,43 @@ void main() {
         }
       },
     );
+  });
+
+  group('screen quality', () {
+    // The provider page is the scripted web view; what is judged is the
+    // app's chrome around it (title, close, secure note) once the web view
+    // has been created and asked to load this checkout.
+    Finder loaded() => find.byKey(const ValueKey('qa.checkout.provider_page'));
+    Widget build() =>
+        CheckoutWebViewScreen(checkout: _checkout, planName: 'Silver');
+
+    testWidgets('Checkout chrome lays out on phone and tablet in both themes '
+        '[case:payment.checkout_webview.layout_matrix]', (tester) async {
+      await qaExpectLaysOutOnPhoneAndTablet(
+        tester,
+        api: QaApi.new,
+        build: build,
+        loaded: () {
+          expect(webView.loaded.last, _checkout.checkoutUrl);
+          return loaded();
+        },
+      );
+    });
+
+    testWidgets('Checkout chrome meets tap-target, label and contrast '
+        'guidelines [case:payment.checkout_webview.a11y_guidelines]', (
+      tester,
+    ) async {
+      await qaExpectMeetsA11yGuidelines(
+        tester,
+        api: QaApi.new,
+        build: build,
+        loaded: () {
+          expect(webView.loaded.last, _checkout.checkoutUrl);
+          expect(find.text(en.paymentCheckoutSecureNote), findsOneWidget);
+          return loaded();
+        },
+      );
+    });
   });
 }

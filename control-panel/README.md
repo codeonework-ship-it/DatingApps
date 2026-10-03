@@ -75,3 +75,16 @@ On the production VPS logs go to Loki and are browsed in Grafana instead
 - `GRAFANA_BASE_URL=https://<domain>/grafana`
 
 `/?user_id=<uuid>` then opens Grafana Explore with a Loki line filter for that member.
+
+## QA Lab results
+
+The **QA Lab** section (sidebar, under Quality) shows QA Lab's test runs, case
+coverage and coverage-gate gaps, read from the files QA Lab writes. It is
+read-only: runs are started in QA Lab itself (`website/qa-lab`, `QA_LAB=1`).
+
+- `QA_LAB_ENABLED` (unset: on only when `DJANGO_DEBUG` is true; off: every page is a 404 and the link is hidden)
+- `QA_LAB_URL` (default `http://127.0.0.1:4190/qa-lab/`, the "Open QA Lab" button)
+- `QA_LAB_RESULTS_DIR` (default `../qa/results/qa_lab`), `QA_LAB_CATALOG_PATH`,
+  `QA_LAB_MANUAL_CASES_PATH`, `QA_LAB_GATE_PATH` (default `../qa/lab/coverage_gate.py`)
+
+Admin, ops_admin and analyst operators can read it; other or unknown roles get a 403.

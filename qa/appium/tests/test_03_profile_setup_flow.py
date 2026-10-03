@@ -145,6 +145,7 @@ def test_profile_setup_uploads_gallery_photos_and_continues(app, appium_config):
 @pytest.mark.signup
 @pytest.mark.profile_setup
 @pytest.mark.signup_workflow
+@pytest.mark.case("journeys.e2e.signup_to_discover")
 def test_complete_username_signup_profile_workflow(app, appium_config):
     _signup_to_profile_setup(app, appium_config, name=_random_name("Appium Complete"))
     _upload_one_gallery_photo(

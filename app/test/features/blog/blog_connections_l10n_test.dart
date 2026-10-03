@@ -11,7 +11,9 @@ final de = qaL10n(const Locale('de'));
 
 void main() {
   testWidgets('a shared link whose source changed reads in German and offers '
-      'no approval [case:l10n.blog_connections.publication_unavailable]', (t) async {
+      'no approval [case:l10n.blog_connections.publication_unavailable]', (
+    t,
+  ) async {
     final api = QaApi()
       ..json('GET /blog/publications', {
         'publications': [

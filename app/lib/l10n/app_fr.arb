@@ -3649,5 +3649,7 @@
   "profileMasterTravelStaycations": "Vacances à la maison",
   "profileMasterPoliticsSimilarShort": "Similaires",
   "profileMasterPoliticsModerate": "Modérées",
-  "profileMasterPoliticsAny": "Peu importe"
+  "profileMasterPoliticsAny": "Peu importe",
+  "discoverOpenMemberProfile": "Ouvrir le profil de {name}",
+  "chatCopilotDisclosureText": "Dis-le avec tes propres mots. Si tu l'envoies tel quel, l'autre personne verra qu'il a été écrit avec de l'aide."
 }

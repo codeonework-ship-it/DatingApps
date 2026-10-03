@@ -10,6 +10,7 @@ import 'package:verified_dating_app/features/swipe/screens/liked_me_screen.dart'
 
 import '../../support/qa_api.dart';
 import 'discover_qa_fixtures.dart';
+import 'qa_screen_checks.dart';
 
 final _ago = DateTime.now()
     .subtract(const Duration(hours: 2))
@@ -51,8 +52,7 @@ void main() {
   });
 
   testWidgets('Like back sends a like; the liker leaves the list '
-      '[case:swipe.liked_me.liked_me_like_back_x_likeback.action] '
-      '[case:swipe.liked_me.liked_me_like_back_x_likeback.api_contract]', (
+      '[case:swipe.liked_me.liked_me_like_back_x_likeback.action]', (
     tester,
   ) async {
     final api = qaDiscoverApi(likedMe: [_cara, _devi]);
@@ -97,10 +97,7 @@ void main() {
   });
 
   testWidgets('Pass sends a pass, says so privately, and removes the liker '
-      '[case:swipe.liked_me.liked_me_pass_x_pass.action] '
-      '[case:swipe.liked_me.liked_me_pass_x_pass.api_contract]', (
-    tester,
-  ) async {
+      '[case:swipe.liked_me.liked_me_pass_x_pass.action]', (tester) async {
     final api = qaDiscoverApi(likedMe: [_cara, _devi]);
     await _open(tester, api);
     await _tap(tester, const ValueKey('qa.liked_me.pass.devi'));
@@ -161,43 +158,127 @@ void main() {
     );
   });
 
-  testWidgets(
-    'pull to refresh reloads the list '
-    '[case:swipe.liked_me.liked_me_refresh_refresh.action] '
-    '',
-    (tester) async {
-      final api = qaDiscoverApi(likedMe: [_cara]);
-      await _open(tester, api);
-      final before = api.sent('GET', '/discovery/me/liked-me').length;
-      api.json('GET /discovery/me/liked-me', {
-        'profiles': [_cara, _devi],
-        'count': 2,
-      });
+  testWidgets('pull to refresh reloads the list '
+      '[case:swipe.liked_me.liked_me_refresh_refresh.action] '
+      '', (tester) async {
+    final api = qaDiscoverApi(likedMe: [_cara]);
+    await _open(tester, api);
+    final before = api.sent('GET', '/discovery/me/liked-me').length;
+    api.json('GET /discovery/me/liked-me', {
+      'profiles': [_cara, _devi],
+      'count': 2,
+    });
 
-      await tester.fling(_card('cara'), const Offset(0, 400), 1000);
-      await qaSettle(tester, frames: 20);
+    await tester.fling(_card('cara'), const Offset(0, 400), 1000);
+    await qaSettle(tester, frames: 20);
 
-      expect(api.sent('GET', '/discovery/me/liked-me').length, before + 1);
-      expect(_card('devi'), findsOneWidget);
-      expect(find.text('Liked you · 2'), findsOneWidget);
-    },
-  );
+    expect(api.sent('GET', '/discovery/me/liked-me').length, before + 1);
+    expect(_card('devi'), findsOneWidget);
+    expect(find.text('Liked you · 2'), findsOneWidget);
+  });
 
   // Regression (2026-10-02): a failed pull to refresh ended the spinner
   // with no word, leaving a possibly stale list.
-  testWidgets(
-    'a failed pull to refresh keeps the list and says so '
-    '[case:swipe.liked_me.liked_me_refresh_refresh.api_failure]',
-    (tester) async {
-      final api = qaDiscoverApi(likedMe: [_cara]);
-      await _open(tester, api);
-      api.fail('GET /discovery/me/liked-me', message: 'Likes are resting.');
+  testWidgets('a failed pull to refresh keeps the list and says so '
+      '[case:swipe.liked_me.liked_me_refresh_refresh.api_failure]', (
+    tester,
+  ) async {
+    final api = qaDiscoverApi(likedMe: [_cara]);
+    await _open(tester, api);
+    api.fail('GET /discovery/me/liked-me', message: 'Likes are resting.');
 
-      await tester.fling(_card('cara'), const Offset(0, 400), 1000);
-      await qaSettle(tester, frames: 20);
+    await tester.fling(_card('cara'), const Offset(0, 400), 1000);
+    await qaSettle(tester, frames: 20);
 
+    expect(_card('cara'), findsOneWidget);
+    expect(qaSnackText(tester), 'Likes are resting.');
+  });
+
+  group('screen checks', () {
+    Future<void> pumpLiked(
+      WidgetTester tester, {
+      Size size = const Size(430, 932),
+      ThemeData? theme,
+      Locale? locale,
+      bool launcher = false,
+    }) => pumpQa(
+      tester,
+      qaDiscoverApi(likedMe: [_cara, _devi]),
+      theme == null
+          ? const LikedMeScreen()
+          : qaThemed(theme, const LikedMeScreen()),
+      size: size,
+      locale: locale,
+      launcher: launcher,
+      flags: {'curated_daily_set_enabled': false},
+      extra: qaDiscoverExtras(),
+    );
+
+    testWidgets('the populated list meets the tap-target, label and contrast '
+        'guidelines [case:swipe.liked_me.a11y_guidelines]', (tester) async {
+      await pumpLiked(tester, launcher: true);
       expect(_card('cara'), findsOneWidget);
-      expect(qaSnackText(tester), 'Likes are resting.');
-    },
-  );
+      await qaExpectA11y(tester);
+    });
+
+    testWidgets('pushed, it shows a back button that returns to the opener '
+        '[case:swipe.liked_me.back_affordance]', (tester) async {
+      await pumpLiked(tester, launcher: true);
+      expect(find.byType(BackButton), findsOneWidget);
+
+      await tester.tap(find.byType(BackButton));
+      await qaSettle(tester);
+
+      expect(find.byType(LikedMeScreen), findsNothing);
+      expect(find.byKey(const ValueKey('qa.test.launcher')), findsOneWidget);
+    });
+
+    testWidgets('lays out on phones and tablets in both themes '
+        '[case:swipe.liked_me.layout_matrix]', (tester) async {
+      await qaExpectLayout(
+        tester,
+        pump: (size, theme) => pumpLiked(tester, size: size, theme: theme),
+        check: (where) {
+          expect(_card('cara'), findsOneWidget, reason: where);
+          expect(
+            find.byKey(const ValueKey('qa.liked_me.like_back.devi')),
+            findsOneWidget,
+            reason: where,
+          );
+        },
+      );
+    });
+
+    testWidgets('renders translated in every language with no English left '
+        '[case:swipe.liked_me.l10n]', (tester) async {
+      await qaExpectTranslated(
+        tester,
+        pump: (locale) => pumpLiked(tester, locale: locale),
+        fixture: {'Cara', 'Devi', 'Designer', 'sketches strangers'},
+        check: (l10n, where) {
+          expect(
+            find.text(l10n.discoverLikedMeTitleCount(2)),
+            findsOneWidget,
+            reason: where,
+          );
+          expect(
+            find.text(l10n.discoverLikedMeIntro),
+            findsOneWidget,
+            reason: where,
+          );
+          expect(
+            find.text(l10n.discoverLikeBack),
+            findsNWidgets(2),
+            reason: where,
+          );
+          expect(find.text(l10n.discoverPass), findsNWidgets(2), reason: where);
+          expect(
+            find.text(l10n.discoverLikedHoursAgo(2)),
+            findsNWidgets(2),
+            reason: where,
+          );
+        },
+      );
+    });
+  });
 }

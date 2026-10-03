@@ -1,0 +1,109 @@
+{% extends "control_panel/base.html" %}
+{% load custom_filters %}
+{% block title %}QA Lab run {{ run_id }} · {{ project_name }}{% endblock %}
+{% block topbar_title %}QA Lab · Run {{ run_id }}{% endblock %}
+{% block content %}
+{% include "control_panel/qa_lab/_nav.html" %}
+<p class="mb-3"><a href="{% url 'qa_lab_runs' %}"><i class="bi bi-arrow-left" aria-hidden="true"></i> All runs</a></p>
+
+<section class="glass-card mb-4" aria-labelledby="run-heading">
+  <div class="card-title-row">
+    <h2 class="h5 mb-0 text-break" id="run-heading">Run <span class="font-monospace">{{ head.id }}</span></h2>
+    {% include "control_panel/qa_lab/_test_status.html" with status=head.status %}
+  </div>
+  <div class="row g-3">
+    <div class="col-lg-6">
+      <dl class="row small mb-0">
+        <dt class="col-5">Mode</dt><dd class="col-7">{{ head.mode|default:"—" }}</dd>
+        <dt class="col-5">By</dt><dd class="col-7">{{ head.by|default:"—" }}</dd>
+        <dt class="col-5">Started</dt><dd class="col-7">{{ head.startedAt|isodate|date:"Y-m-d H:i:s"|default:"—" }}</dd>
+        <dt class="col-5">Finished</dt><dd class="col-7">{{ head.finishedAt|isodate|date:"Y-m-d H:i:s"|default:"—" }}{% if duration %} · {{ duration }}{% endif %}</dd>
+        <dt class="col-5">Suites</dt><dd class="col-7">{{ suite_names|join:", "|default:"—" }}</dd>
+        {% if run_request.areas %}<dt class="col-5">Areas</dt><dd class="col-7">{{ run_request.areas|join:", " }}</dd>{% endif %}
+        {% if run_request.features %}<dt class="col-5">Features</dt><dd class="col-7 text-break">{{ run_request.features|join:", " }}</dd>{% endif %}
+        {% if run_request.cases %}<dt class="col-5">Selected cases</dt><dd class="col-7">{{ run_request.cases|length|thousands }}</dd>{% endif %}
+        {% if run_request.rescan %}<dt class="col-5">Rescan</dt><dd class="col-7">{{ run_request.rescan }}</dd>{% endif %}
+      </dl>
+    </div>
+    <div class="col-lg-6">
+      <dl class="row small mb-0">
+        <dt class="col-5">Tests</dt><dd class="col-7">{{ tests.total|default:0|thousands }} · {{ tests.passed|default:0|thousands }} passed · {{ tests.failed|default:0|thousands }} failed · {{ tests.skipped|default:0|thousands }} skipped</dd>
+        <dt class="col-5">Cases in scope</dt><dd class="col-7">{{ cases.inScope|default:0|thousands }}</dd>
+        <dt class="col-5">Case results</dt><dd class="col-7">{{ cases.pass|default:0|thousands }} pass · {{ cases.fail|default:0|thousands }} fail · {{ cases.skipped|default:0|thousands }} skipped · {{ cases.notRun|default:0|thousands }} not run · {{ cases.unmatched|default:0|thousands }} unmatched</dd>
+        <dt class="col-5">Coverage</dt><dd class="col-7">{% if coverage %}automated {{ coverage.automatedPct|default:0 }}% · verified {{ coverage.verifiedPct|default:0 }}%{% else %}—{% endif %}</dd>
+        {% if unknown_tags %}<dt class="col-5">Unknown tags</dt><dd class="col-7 font-monospace text-break">{{ unknown_tags|join:", " }}</dd>{% endif %}
+      </dl>
+    </div>
+  </div>
+</section>
+
+<section class="glass-card mb-4" aria-labelledby="steps-heading">
+  <h2 class="h5" id="steps-heading">Steps and suites</h2>
+  {% if steps %}
+  <div class="table-responsive">
+    <table class="glass-table">
+      <thead><tr><th scope="col">Step</th><th scope="col">Status</th><th scope="col" class="num">Passed</th><th scope="col" class="num">Failed</th><th scope="col" class="num">Skipped</th><th scope="col">Took</th><th scope="col">Detail</th></tr></thead>
+      <tbody>{% for s in steps %}
+        <tr>
+          <td class="font-monospace small">{{ s.name }}</td>
+          <td>{% include "control_panel/qa_lab/_test_status.html" with status=s.status %}</td>
+          <td class="num">{% if s.counts %}{{ s.counts.passed|default:0|thousands }}{% else %}—{% endif %}</td>
+          <td class="num">{% if s.counts %}{{ s.counts.failed|default:0|thousands }}{% else %}—{% endif %}</td>
+          <td class="num">{% if s.counts %}{{ s.counts.skipped|default:0|thousands }}{% else %}—{% endif %}</td>
+          <td class="small text-nowrap">{{ s.duration|default:"—" }}</td>
+          <td class="small text-break minw-col-md" title="{{ s.detail|default:'' }}">{{ s.detail|default:''|truncatechars:100 }}{% if s.exitCode is not None and s.exitCode != 0 %} <span class="text-muted">exit {{ s.exitCode }}</span>{% endif %}</td>
+        </tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+  {% if suites %}
+  <h3 class="h6 mt-3">Recorded test results by suite</h3>
+  <div class="table-responsive">
+    <table class="glass-table">
+      <thead><tr><th scope="col">Suite</th><th scope="col" class="num">Tests</th><th scope="col" class="num">Passed</th><th scope="col" class="num">Failed</th><th scope="col" class="num">Skipped</th></tr></thead>
+      <tbody>{% for s in suites %}
+        <tr><td class="font-monospace small">{{ s.suite }}</td><td class="num">{{ s.total|thousands }}</td><td class="num">{{ s.passed|thousands }}</td><td class="num">{% if s.failed %}<span class="text-danger-light">{{ s.failed|thousands }}</span>{% else %}0{% endif %}</td><td class="num">{{ s.skipped|thousands }}</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% elif not steps %}<p class="text-muted mb-0">No steps or test results recorded for this run.</p>{% endif %}
+</section>
+
+<section class="glass-card mb-4" aria-labelledby="failed-heading">
+  <h2 class="h5" id="failed-heading">Failed tests ({{ failed_total|thousands }})</h2>
+  {% for t in failed %}
+  <div class="inset-panel p-3 mb-2" data-failed-test>
+    <p class="mb-1"><span class="badge badge-purple">{{ t.suite }}</span> <span class="font-monospace small text-break">{{ t.file }}</span>{% if t.durationMs is not None %} <span class="small text-muted">· {{ t.durationMs|thousands }} ms</span>{% endif %}</p>
+    <p class="mb-1 text-break">{{ t.test }}</p>
+    {% if t.case_links %}<p class="small mb-1">Cases: {% for c in t.case_links %}{% if c.ok %}<a class="font-monospace text-break" href="{% url 'qa_lab_case_detail' c.id %}">{{ c.id }}</a>{% else %}<span class="font-monospace text-break">{{ c.id }}</span>{% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}</p>{% endif %}
+    {% if t.message %}<pre class="code-block small p-2 mb-0 text-break">{{ t.message|truncatechars:4000 }}</pre>{% endif %}
+  </div>
+  {% empty %}<p class="text-muted mb-0">No failed tests.</p>{% endfor %}
+  {% if failed_total > failed|length %}<p class="small text-muted mb-0">Showing the first {{ failed|length }}; the rest are in QA Lab's raw output.</p>{% endif %}
+</section>
+
+<section class="glass-card mb-4" aria-labelledby="diff-heading">
+  <h2 class="h5" id="diff-heading">Diff{% if diff_against_ok %} vs <a class="font-monospace" href="{% url 'qa_lab_run_detail' diff_against %}">{{ diff_against }}</a>{% elif diff_against %} vs <span class="font-monospace">{{ diff_against }}</span>{% else %} vs previous run{% endif %}</h2>
+  {% if diff %}
+  <div class="auto-grid mb-3">{% for d in diff_lists %}<div class="kpi-card{% if d.key == 'regressed' or d.key == 'newlyFailing' %} kpi-red{% elif d.key == 'fixed' or d.key == 'newlyPassing' %} kpi-green{% endif %}"><div class="kpi-value">{{ d.count|thousands }}</div><div class="kpi-label">{{ d.label }}</div></div>{% endfor %}</div>
+  {% for d in diff_lists %}{% if d.count %}
+  <details class="mb-2" data-diff="{{ d.key }}"{% if d.key == 'regressed' %} open{% endif %}>
+    <summary>{{ d.label }} ({{ d.count|thousands }})</summary>
+    <ul class="small mt-2 mb-1">{% for c in d.ids %}<li>{% if c.ok %}<a class="font-monospace text-break" href="{% url 'qa_lab_case_detail' c.id %}">{{ c.id }}</a>{% else %}<span class="font-monospace text-break">{{ c.id }}</span>{% endif %}</li>{% endfor %}</ul>
+    {% if d.more %}<p class="small text-muted mb-0">and {{ d.more|thousands }} more.</p>{% endif %}
+  </details>
+  {% endif %}{% endfor %}
+  {% else %}<p class="text-muted mb-0">No diff recorded (the first run, or diff.json is missing).</p>{% endif %}
+</section>
+
+<section class="glass-card" aria-labelledby="failing-cases-heading">
+  <h2 class="h5" id="failing-cases-heading">Failing cases ({{ failing_cases_total|thousands }})</h2>
+  {% if failing_cases %}
+  <ul class="small mb-0">{% for c in failing_cases %}
+    <li class="mb-1">{% if c.ok %}<a class="font-monospace text-break" href="{% url 'qa_lab_case_detail' c.id %}">{{ c.id }}</a>{% else %}<span class="font-monospace text-break">{{ c.id }}</span>{% endif %}{% if c.area %} <span class="text-muted">· {{ c.area }}</span>{% endif %}{% if c.test %}<div class="text-muted text-break">{{ c.test.suite }}: {{ c.test.file }} › {{ c.test.test|truncatechars:200 }}</div>{% endif %}</li>{% endfor %}
+  </ul>
+  {% if failing_cases_total > failing_cases|length %}<p class="small text-muted mb-0">Showing the first {{ failing_cases|length }}.</p>{% endif %}
+  {% else %}<p class="text-muted mb-0">No failing cases.</p>{% endif %}
+</section>
+{% endblock %}

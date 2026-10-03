@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/widgets/connect_page.dart';
+import '../../core/widgets/sheet_close_bar.dart';
 import '../../l10n/app_localizations.dart';
 import '../auth/providers/auth_provider.dart';
 import 'groups_data.dart';
-import '../../core/widgets/sheet_close_bar.dart';
 
 /// Cover colour roles a group may pick, with their display labels; resolved
 /// from the member's theme so every theme keeps its contrast.

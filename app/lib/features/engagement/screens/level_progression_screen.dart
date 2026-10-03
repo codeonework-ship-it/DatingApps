@@ -474,18 +474,29 @@ class _ErrorCard extends StatelessWidget {
   final String message;
   final VoidCallback onRetry;
   @override
-  Widget build(BuildContext context) => Card(
-    color: Theme.of(context).colorScheme.errorContainer,
-    child: ListTile(
-      leading: const Icon(Icons.error_outline_rounded),
-      title: Text(message),
-      trailing: TextButton(
-        key: const ValueKey('qa.level.retry'),
-        onPressed: onRetry,
-        child: Text(engagementL10n(context).commonRetry),
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    // Text, icon and Retry all use the on-error-container colour: the theme
+    // defaults (on-surface text, primary Retry) failed contrast on the
+    // error container.
+    return Card(
+      color: colors.errorContainer,
+      child: ListTile(
+        iconColor: colors.onErrorContainer,
+        textColor: colors.onErrorContainer,
+        leading: const Icon(Icons.error_outline_rounded),
+        title: Text(message),
+        trailing: TextButton(
+          key: const ValueKey('qa.level.retry'),
+          style: TextButton.styleFrom(
+            foregroundColor: colors.onErrorContainer,
+          ),
+          onPressed: onRetry,
+          child: Text(engagementL10n(context).commonRetry),
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 /// A friendly name for a known XP ledger source; unknown sources are shown

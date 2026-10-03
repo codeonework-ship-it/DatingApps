@@ -13,6 +13,7 @@ import 'package:verified_dating_app/features/payment/screens/wallet_payment_scre
 
 import '../../support/qa_api.dart';
 import '../swipe/discover_qa_fixtures.dart';
+import '../swipe/qa_screen_checks.dart';
 
 Map<String, dynamic> _msg(
   String id,
@@ -172,7 +173,6 @@ void main() {
 
     testWidgets('Send posts the message, clears the composer and reloads '
         '[case:messaging.chat.chat_send_button_send.action] '
-        '[case:messaging.chat.chat_send_button_send.api_contract] '
         '[case:messaging.chat.chat_composer.action]', (tester) async {
       final api = _api();
       await _open(tester, api);
@@ -282,9 +282,7 @@ void main() {
     });
 
     testWidgets('a starter fills the composer in an empty chat '
-        '[case:messaging.chat.chat_starter_x_starter.action]', (
-      tester,
-    ) async {
+        '[case:messaging.chat.chat_starter_x_starter.action]', (tester) async {
       final api = _api(messages: []);
       await _open(tester, api);
       await _tap(tester, const ValueKey('qa.chat.starter.0'));
@@ -323,9 +321,7 @@ void main() {
     });
 
     testWidgets('Share a voice hello opens voice hellos for this match '
-        '[case:messaging.chat.chat_voice_hello.action]', (
-      tester,
-    ) async {
+        '[case:messaging.chat.chat_voice_hello.action]', (tester) async {
       final api = _api();
       await _open(tester, api);
       await _tap(tester, const ValueKey('qa.chat.voice_hello'));
@@ -382,7 +378,6 @@ void main() {
     testWidgets('Delete for everyone removes the message; the server delete '
         'follows the undo window '
         '[case:messaging.chat.chat_message_x_longpress.action] '
-        '[case:messaging.chat.chat_message_x_longpress.api_contract] '
         '[case:messaging.chat.delete_icon_delete_outline.action] '
         '[case:messaging.chat.chat_delete_message_action.action]', (
       tester,
@@ -427,7 +422,9 @@ void main() {
     });
 
     testWidgets('Cancel keeps the message '
-        '[case:messaging.chat.chat_delete_message_cancel.action]', (tester) async {
+        '[case:messaging.chat.chat_delete_message_cancel.action]', (
+      tester,
+    ) async {
       final api = _api();
       await _open(tester, api);
       await tester.longPress(
@@ -466,9 +463,7 @@ void main() {
   group('gift tray and gift send', () {
     testWidgets('the gift button opens the tray and records the open '
         '[case:messaging.chat.chat_gift_tray_button_gift.action] '
-        '[case:messaging.chat.chat_gift_tray_button_gift.api_contract]', (
-      tester,
-    ) async {
+        '', (tester) async {
       final api = _api();
       await _open(tester, api);
       await _tap(tester, const ValueKey('qa.chat.gift_tray_button'));
@@ -484,7 +479,9 @@ void main() {
 
     testWidgets('the tray still opens when the open cannot be recorded '
         '[case:messaging.chat.chat_gift_tray_button_gift.api_failure] '
-        '[case:messaging.chat.chat_gift_tray_close.api_failure]', (tester) async {
+        '[case:messaging.chat.chat_gift_tray_close.api_failure]', (
+      tester,
+    ) async {
       final api = _api()..offline('POST /chat/m1/gifts/events');
       await _open(tester, api);
       await _tap(tester, const ValueKey('qa.chat.gift_tray_button'));
@@ -508,7 +505,9 @@ void main() {
     });
 
     testWidgets('a collection chip filters the gifts; All gifts shows all '
-        '[case:messaging.chat.chat_gift_category_category.action]', (tester) async {
+        '[case:messaging.chat.chat_gift_category_category.action]', (
+      tester,
+    ) async {
       final api = _api();
       await _open(tester, api);
       await _tap(tester, const ValueKey('qa.chat.gift_tray_button'));
@@ -534,7 +533,7 @@ void main() {
     testWidgets('a free gift is sent in one tap with the note, then the tray '
         'closes '
         '[case:messaging.chat.chat_gift_item_x.action] '
-        '[case:messaging.chat.chat_gift_item_x.api_contract]', (tester) async {
+        '', (tester) async {
       final api = _api();
       await _open(tester, api);
       await _type(tester, 'For Sunday');
@@ -585,7 +584,9 @@ void main() {
     });
 
     testWidgets('Not now sends nothing and keeps the note '
-        '[case:messaging.chat.chat_gift_confirm_not_now.action]', (tester) async {
+        '[case:messaging.chat.chat_gift_confirm_not_now.action]', (
+      tester,
+    ) async {
       final api = _api();
       await _open(tester, api);
       await _type(tester, 'Just because');
@@ -640,12 +641,9 @@ void main() {
     testWidgets('the wide layout: Send a little joy opens the tray, Find the '
         'words opens the copilot, All conversations goes back '
         '[case:messaging.chat.chat_sidebar_gift_gift.action] '
-        ''
         '[case:messaging.chat.chat_sidebar_gift_gift.api_failure] '
         '[case:messaging.chat.chat_sidebar_copilot_copilot.action] '
-        '[case:messaging.chat.chat_sidebar_back_back.action]', (
-      tester,
-    ) async {
+        '[case:messaging.chat.chat_sidebar_back_back.action]', (tester) async {
       final api = _api()..offline('POST /chat/m1/gifts/events');
       await _open(tester, api, size: const Size(1200, 900));
       await _tap(tester, const ValueKey('qa.chat.sidebar.gift'));
@@ -681,7 +679,6 @@ void main() {
 
     testWidgets('Hide gift hides it from this chat only '
         '[case:messaging.chat.chat_gift_receiver_actions_giftactions.action] '
-        '[case:messaging.chat.chat_gift_receiver_actions_giftactions.api_contract] '
         '[case:messaging.chat.hide_icon_visibility_off_outline.action] '
         '[case:messaging.chat.chat_gift_hide.action]', (tester) async {
       final api = _api(messages: received);
@@ -701,7 +698,9 @@ void main() {
 
     testWidgets('long-pressing a received gift opens the same choices; '
         'Cancel keeps it '
-        '[case:messaging.chat.chat_gift_receiver_cancel.action]', (tester) async {
+        '[case:messaging.chat.chat_gift_receiver_cancel.action]', (
+      tester,
+    ) async {
       final api = _api(messages: received);
       await _open(tester, api);
       await tester.longPress(find.byKey(const ValueKey('qa.chat.message.g1')));
@@ -809,16 +808,12 @@ void main() {
     testWidgets('drafts in the chosen kind and tone; Use and edit fills the '
         'composer and the send carries the draft id '
         '[case:messaging.chat.chat_copilot_button_copilot.action] '
-        '[case:messaging.chat.chat_copilot_button_copilot.api_contract] '
         '[case:messaging.copilot_sheet.showmodalbottomsheet_open.action] '
         '[case:messaging.copilot_sheet.copilot_kind_x.action] '
         '[case:messaging.copilot_sheet.copilot_tone_x.action] '
         '[case:messaging.copilot_sheet.copilot_generate.action] '
-        '[case:messaging.copilot_sheet.copilot_generate.api_contract] '
         '[case:messaging.copilot_sheet.copilot_use.action] '
-        '[case:messaging.copilot_sheet.copilot_use.api_contract]', (
-      tester,
-    ) async {
+        '', (tester) async {
       final api = _api();
       await _open(tester, api);
       await _tap(tester, const ValueKey('qa.chat.copilot_button'));
@@ -842,7 +837,10 @@ void main() {
       });
       expect(find.text('Coffee walk on Sunday?'), findsOneWidget);
       expect(
-        find.text('Say it in your own words. 4 drafts left today.'),
+        find.text(
+          'Say it in your own words. If you send it as drafted, they will '
+          'see it was written with help. 4 drafts left today.',
+        ),
         findsOneWidget,
       );
 
@@ -913,6 +911,167 @@ void main() {
       expect(find.text('You have used today’s drafts.'), findsOneWidget);
       expect(_composerText(tester), isEmpty);
       await _close(tester);
+    });
+  });
+
+  group('screen checks', () {
+    Future<void> pumpChat(
+      WidgetTester tester, {
+      List<Map<String, dynamic>>? messages,
+      Size size = const Size(430, 932),
+      ThemeData? theme,
+      Locale? locale,
+    }) async {
+      const screen = ChatScreen(
+        matchId: 'm1',
+        otherUserId: 'maya',
+        userName: 'Maya',
+        userPhotoUrl: '',
+      );
+      await pumpQa(
+        tester,
+        _api(messages: messages),
+        theme == null ? screen : qaThemed(theme, screen),
+        size: size,
+        locale: locale,
+        launcher: true,
+        flags: {
+          'date_plans_enabled': false,
+          'graduation_enabled': false,
+          'intentional_dating_enabled': false,
+        },
+        extra: qaDiscoverExtras(),
+      );
+      qaDropImageErrors(tester);
+    }
+
+    testWidgets('a conversation meets the tap-target, label and contrast '
+        'guidelines [case:messaging.chat.a11y_guidelines]', (tester) async {
+      await pumpChat(tester);
+      expect(find.text('Ideal Sunday?'), findsOneWidget);
+      await qaExpectA11y(tester);
+      await _close(tester);
+    });
+
+    testWidgets('a conversation and an empty chat lay out on phones and '
+        'tablets in both themes [case:messaging.chat.layout_matrix]', (
+      tester,
+    ) async {
+      for (final empty in [false, true]) {
+        await qaExpectLayout(
+          tester,
+          pump: (size, theme) => pumpChat(
+            tester,
+            messages: empty ? const [] : null,
+            size: size,
+            theme: theme,
+          ),
+          check: (where) {
+            expect(
+              find.byKey(const ValueKey('qa.chat.composer')),
+              findsOneWidget,
+              reason: where,
+            );
+            expect(
+              find.byKey(const ValueKey('qa.chat.send_button')),
+              findsOneWidget,
+              reason: where,
+            );
+            if (!empty) {
+              expect(find.text('Ideal Sunday?'), findsOneWidget, reason: where);
+            }
+          },
+          reset: () => _close(tester),
+        );
+      }
+    });
+
+    testWidgets('a conversation and an empty chat render translated in '
+        'every language [case:messaging.chat.l10n]', (tester) async {
+      for (final empty in [false, true]) {
+        await qaExpectTranslated(
+          tester,
+          pump: (locale) => pumpChat(
+            tester,
+            messages: empty ? const [] : null,
+            locale: locale,
+          ),
+          reset: () => _close(tester),
+          fixture: {'Maya', 'A walk sounds perfect.', 'Ideal Sunday?'},
+          check: (l10n, where) {
+            expect(
+              find.byTooltip(l10n.chatSendMessageTooltip),
+              findsOneWidget,
+              reason: where,
+            );
+            if (empty) {
+              expect(
+                find.text(l10n.chatWelcomeTitle),
+                findsOneWidget,
+                reason: where,
+              );
+              expect(
+                find.text(l10n.chatWelcomeBody),
+                findsOneWidget,
+                reason: where,
+              );
+            } else {
+              expect(find.text('Ideal Sunday?'), findsOneWidget, reason: where);
+            }
+          },
+        );
+      }
+    });
+
+    testWidgets('Help me say it renders translated in every language, the '
+        'draft disclosure included [case:messaging.copilot_sheet.l10n]', (
+      tester,
+    ) async {
+      await qaExpectTranslated(
+        tester,
+        pump: (locale) async {
+          await pumpChat(tester, locale: locale);
+          await _tap(tester, const ValueKey('qa.chat.copilot_button'));
+          await _tap(tester, const ValueKey('qa.copilot.generate'));
+        },
+        reset: () => _close(tester),
+        // The draft itself is the member's to edit: fixture content.
+        fixture: {
+          'Maya',
+          'Coffee walk on Sunday?',
+          'A walk sounds perfect.',
+          'Ideal Sunday?',
+        },
+        check: (l10n, where) {
+          final sheet = find.byType(BottomSheet);
+          expect(sheet, findsOneWidget, reason: where);
+          Finder inSheet(String text) =>
+              find.descendant(of: sheet, matching: find.text(text));
+          expect(inSheet(l10n.chatHelpMeSayIt), findsOneWidget, reason: where);
+          expect(
+            inSheet(l10n.chatCopilotIntro('Maya')),
+            findsOneWidget,
+            reason: where,
+          );
+          expect(
+            inSheet(l10n.chatCopilotTryAnother),
+            findsOneWidget,
+            reason: where,
+          );
+          expect(
+            inSheet(l10n.chatCopilotUseAndEdit),
+            findsOneWidget,
+            reason: where,
+          );
+          expect(
+            inSheet(
+              l10n.chatCopilotDisclosure(l10n.chatCopilotDisclosureText, 4),
+            ),
+            findsOneWidget,
+            reason: where,
+          );
+        },
+      );
     });
   });
 }

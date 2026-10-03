@@ -22,7 +22,7 @@
       <dt>Session</dt><dd class="font-monospace">{{ a.session_id|default:"—" }}</dd>
       <dt>Request ID</dt><dd class="font-monospace">{{ a.request_id|default:"—" }}</dd>
       <dt>Correlation</dt><dd class="font-monospace">{% if a.correlation_id %}<a href="{% url 'domain_events' %}?correlation_id={{ a.correlation_id|urlencode }}">{{ a.correlation_id }}</a>{% else %}—{% endif %}</dd>
-      {% if a.details %}<dt>Details</dt><dd><code class="code-block">{% for k, v in a.details.items %}{{ k }}: {{ v }}{% if not forloop.last %}
+      {% if a.details %}<dt>Details</dt><dd><code class="code-block">{% for k, v in a.details|pairs %}{{ k }}: {{ v }}{% if not forloop.last %}
 {% endif %}{% endfor %}</code></dd>{% endif %}
     </dl>
   </td>

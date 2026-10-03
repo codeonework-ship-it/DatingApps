@@ -13121,6 +13121,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get profileMasterPoliticsAny => 'Any';
+
+  @override
+  String discoverOpenMemberProfile(String name) {
+    return 'Open $name\'s profile';
+  }
+
+  @override
+  String get chatCopilotDisclosureText =>
+      'Say it in your own words. If you send it as drafted, they will see it was written with help.';
 }
 
 /// The translations for English, as used in the United Kingdom (`en_GB`).
@@ -26240,4 +26249,13 @@ class AppLocalizationsEnGb extends AppLocalizationsEn {
 
   @override
   String get profileMasterPoliticsAny => 'Any';
+
+  @override
+  String discoverOpenMemberProfile(String name) {
+    return 'Open $name\'s profile';
+  }
+
+  @override
+  String get chatCopilotDisclosureText =>
+      'Say it in your own words. If you send it as drafted, they will see it was written with help.';
 }

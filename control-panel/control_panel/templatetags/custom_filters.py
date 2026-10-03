@@ -72,3 +72,11 @@ def bytes_filter(value):
             return f"{size:.0f} {unit}" if unit == "B" else f"{size:.1f} {unit}"
         size /= 1024
     return value
+
+
+@register.filter(name="pairs")
+def pairs_filter(value):
+    """A dict's (key, value) pairs, sorted by key. Use it instead of
+    ``d.items`` in templates: Django looks up a key named "items" before the
+    method, so a details dict that records ``items`` broke the page."""
+    return sorted(value.items(), key=lambda kv: str(kv[0])) if isinstance(value, dict) else []

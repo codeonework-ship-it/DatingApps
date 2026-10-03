@@ -13277,4 +13277,13 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get profileMasterPoliticsAny => 'Maakt niet uit';
+
+  @override
+  String discoverOpenMemberProfile(String name) {
+    return 'Profiel van $name openen';
+  }
+
+  @override
+  String get chatCopilotDisclosureText =>
+      'Zeg het in je eigen woorden. Als je het ongewijzigd verstuurt, ziet de ander dat het met hulp is geschreven.';
 }

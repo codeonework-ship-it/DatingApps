@@ -9,6 +9,7 @@ import '../../common/widgets/report_user_sheet.dart';
 import '../models/date_plan.dart';
 import '../models/date_plan_labels.dart';
 import '../providers/plans_provider.dart';
+import '../widgets/plan_text_limit.dart';
 
 /// The ten-second post-date debrief. Answers stay private to the member; the
 /// other member only learns that a debrief was given. Resolves to the updated
@@ -160,6 +161,8 @@ class _DebriefSheetState extends ConsumerState<_DebriefSheet> {
               key: const ValueKey('qa.debrief.note'),
               controller: _note,
               maxLength: 280,
+              inputFormatters: const [PlanRuneLimit(280)],
+              buildCounter: planRuneCounter(_note, 280),
               maxLines: 2,
               decoration: InputDecoration(labelText: l10n.debriefNoteLabel),
             ),

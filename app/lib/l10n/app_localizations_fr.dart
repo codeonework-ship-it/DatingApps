@@ -13372,4 +13372,13 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get profileMasterPoliticsAny => 'Peu importe';
+
+  @override
+  String discoverOpenMemberProfile(String name) {
+    return 'Ouvrir le profil de $name';
+  }
+
+  @override
+  String get chatCopilotDisclosureText =>
+      'Dis-le avec tes propres mots. Si tu l\'envoies tel quel, l\'autre personne verra qu\'il a été écrit avec de l\'aide.';
 }

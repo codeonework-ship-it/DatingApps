@@ -59,5 +59,5 @@ docs only. **Release** refers to the first release scope in
 3. Identity-verification vendor and voice-moderation vendor.
 4. Mobile coin sales: store in-app purchase vs. Stripe.
 5. Whether Razorpay is needed; whether Supabase mode is retired.
-6. Gift animation source (licensed assets vs. Giphy API).
+6. Gift animation source and GIF search, proposed in `GIFTS_EMOJI_GIFS_PRD_2026-10-03.md` (not built): commission an original Lottie gift set (D4), and serve GIF search from GIPHY (or KLIPY/Tenor after a terms check) only through our own server proxy with a rating cap, or a curated in-house library with no third party (D2). Animated emoji: Noto Animated Emoji, licence and attribution to be verified.
 7. Whether to switch the writing copilot from the offline template provider to the Anthropic Claude API (key management, spend cap, prompt review, data-processing terms).

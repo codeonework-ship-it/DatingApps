@@ -284,7 +284,7 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
                         eyebrow: l10n.memberProfileIntroducing,
                         photoHeight: photoHeight,
                         photoKey: ValueKey<String>(heroKey),
-                        photoSemanticsLabel: heroKey,
+                        photoQaId: heroKey,
                         onOpenPhoto: () => openGallery(0),
                         footer: detailsAsync.isLoading && details == null
                             ? const _SceneLoader()

@@ -1,5 +1,6 @@
 import {test, expect} from '@playwright/test';
 import {dismissRewards, scrollUntil, watchApp} from './support/app.js';
+import {qaField, qaId, qaIdPrefix} from './support/qa.js';
 import {bff, isolatedCast, like, likedBy, nextSwipe, retire, signInAs, spotlightAge, tokenFor, typeInto} from './support/journeys.js';
 
 // Critical web-app journeys end to end in a real browser, against the real
@@ -13,9 +14,13 @@ import {bff, isolatedCast, like, likedBy, nextSwipe, retire, signInAs, spotlight
 // member is ever liked. Everyone is retired at the end.
 
 const introducing = page => page.getByText('INTRODUCING', {exact: true});
-const dockLove = page => page.getByRole('button', {name: 'Love', exact: true}).last();
-const dockMessage = page => page.getByRole('button', {name: 'Message', exact: true}).last();
-const composer = page => page.getByRole('textbox', {name: /qa\.chat\.composer/});
+// The profile dock's buttons, by qa id (their spoken names are checked in
+// profile-cinematic.spec.js).
+const dockLove = page => qaId(page, 'qa.profile_detail.love_button');
+const dockMessage = page => qaId(page, 'qa.profile_detail.message_button');
+const composer = page => qaField(page, 'qa.chat.composer');
+// The photo inside a swipe card (`qa.<scope>.card_root`); its name starts "Name, age".
+const cardPhoto = (page, scope) => qaId(page, `qa.${scope}.card_root`).getByRole('img').first();
 // A snack bar: the visible text (Flutter also announces it in a polite live region).
 const escapeRe = text => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const snack = (page, text) => page.locator('flt-semantics').getByText(text, {exact: true}).last();
@@ -103,12 +108,12 @@ test.describe('profile Love and Message from every entry point', () => {
       const text = `Hello ${c.name.split(' ')[0]}, lovely to match! ${Date.now()}`;
       await typeInto(page, composer(page), text);
       const sent = page.waitForResponse(r => r.url().endsWith(`/v1/chat/${matchId}/messages`) && r.request().method() === 'POST');
-      await page.getByRole('button', {name: /qa\.chat\.send_button|Send message/}).first().click();
+      await page.getByRole('button', {name: 'Send message', exact: true}).first().click();
       const response = await sent;
       expect(response.status()).toBeLessThan(300);
       expect(response.request().postDataJSON()).toEqual({sender_id: viewer.userId, text});
-      // The bubble is a message button: "qa.chat.message.<id> <text> <time> Sent".
-      const bubble = page.getByRole('button', {name: new RegExp(`qa\\.chat\\.message\\.[0-9a-f-]+ ${escapeRe(text)} .*Sent$`)});
+      // The bubble is a message button (qa id `qa.chat.message.<id>`) named "<text> <time> Sent".
+      const bubble = qaIdPrefix(page, 'qa.chat.message.').and(page.getByRole('button', {name: new RegExp(`^${escapeRe(text)} .*Sent$`)}));
       await expect(bubble).toBeVisible({timeout: 10000});
       // The composer is empty and ready for the next message. (The browser's
       // textarea keeps stale text until Flutter re-attaches its editor on
@@ -134,7 +139,7 @@ test.describe('profile Love and Message from every entry point', () => {
       await signInAs(page, viewer);
       await dismissRewards(page, 3000);
       await openDeck(page);
-      const viewMore = page.getByRole('button', {name: /qa\.discovery\.view_more_button/});
+      const viewMore = qaId(page, 'qa.discovery.view_more_button');
       await expect(viewMore).toBeVisible({timeout: 20000});
       await viewMore.click();
       const first = await openedProfile(page, candidates);
@@ -192,8 +197,8 @@ test.describe('profile Love and Message from every entry point', () => {
       await dismissRewards(page, 3000);
       await openDeck(page);
       await page.getByRole('button', {name: 'View all', exact: true}).click({timeout: 20000});
-      const viewMore = page.getByRole('button', {name: /^qa\.spotlight\.view_more_button/});
-      const card = page.getByRole('img', {name: /^qa\.spotlight\.card_root /});
+      const viewMore = qaId(page, 'qa.spotlight.view_more_button');
+      const card = cardPhoto(page, 'spotlight');
       const current = async () => {
         await expect(card).toBeVisible({timeout: 15000});
         const label = await card.getAttribute('aria-label');
@@ -210,7 +215,7 @@ test.describe('profile Love and Message from every entry point', () => {
       // Card 2: the card's own Message — no match yet, so it sends a like and explains.
       const second = await current();
       expect(second).toBeTruthy();
-      const swipe = await nextSwipe(page, second.userId, () => page.getByRole('button', {name: /^qa\.spotlight\.card_message_button/}).click());
+      const swipe = await nextSwipe(page, second.userId, () => qaId(page, 'qa.spotlight.card_message_button').click());
       expect(swipe.body).toEqual({user_id: viewer.userId, target_user_id: second.userId, is_like: true});
       expect(swipe.status).toBe(200);
       expect(swipe.response.mutual_match).toBe(false);
@@ -218,7 +223,7 @@ test.describe('profile Love and Message from every entry point', () => {
       await expect(composer(page)).toHaveCount(0);
       expect(await likedBy(second, viewer)).toBe(true);
       // Message keeps the card; Like moves on (a repeated like is accepted).
-      const again = await nextSwipe(page, second.userId, () => page.getByRole('button', {name: /^qa\.spotlight\.like_button/}).click());
+      const again = await nextSwipe(page, second.userId, () => qaId(page, 'qa.spotlight.like_button').click());
       expect(again.status).toBe(200);
       await expect.poll(current, {timeout: 10000}).not.toBe(second);
       // Card 3 likes the viewer first: View more → Message makes the match and opens chat.
@@ -244,7 +249,7 @@ test.describe('profile Love and Message from every entry point', () => {
       await dismissRewards(page, 3000);
       await openDeck(page);
       await page.getByRole('button', {name: 'View all', exact: true}).click({timeout: 20000});
-      const card = page.getByRole('img', {name: /^qa\.spotlight\.card_root /});
+      const card = cardPhoto(page, 'spotlight');
       const current = async () => {
         await expect(card).toBeVisible({timeout: 15000});
         const label = await card.getAttribute('aria-label');
@@ -254,7 +259,7 @@ test.describe('profile Love and Message from every entry point', () => {
       for (const [button, isLike] of [['like', true], ['pass', false], ['superlike', true]]) {
         const who = await current();
         expect(who, `card ${decisions.length + 1} is one of this test's candidates`).toBeTruthy();
-        const swipe = await nextSwipe(page, who.userId, () => page.getByRole('button', {name: new RegExp(`^qa\\.spotlight\\.${button}_button`)}).click());
+        const swipe = await nextSwipe(page, who.userId, () => qaId(page, `qa.spotlight.${button}_button`).click());
         expect(swipe.body).toEqual({user_id: viewer.userId, target_user_id: who.userId, is_like: isLike});
         expect(swipe.status).toBe(200);
         decisions.push([button, who]);
@@ -262,10 +267,10 @@ test.describe('profile Love and Message from every entry point', () => {
         if (button === 'pass') {
           await expect(page.getByRole('button', {name: 'Passed (1)', exact: true})).toBeVisible();
           // Undo steps back to the passed card (on this screen only).
-          await page.getByRole('button', {name: /^qa\.spotlight\.undo_button/}).click();
+          await qaId(page, 'qa.spotlight.undo_button').click();
           await expect.poll(current).toBe(who);
           await expect(page.getByRole('button', {name: 'Passed (0)', exact: true})).toBeVisible();
-          const again = await nextSwipe(page, who.userId, () => page.getByRole('button', {name: /^qa\.spotlight\.pass_button/}).click());
+          const again = await nextSwipe(page, who.userId, () => qaId(page, 'qa.spotlight.pass_button').click());
           expect(again.status).toBe(200);
           await expect.poll(current, {timeout: 10000}).not.toBe(who);
         }

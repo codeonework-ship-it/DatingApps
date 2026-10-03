@@ -3,7 +3,7 @@ import '../../intentional_dating/dating_rhythm.dart';
 import 'dart:async';
 import 'dart:math' as math;
 
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, visibleForTesting;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -56,6 +56,12 @@ class HomeDiscoveryScreen extends ConsumerStatefulWidget {
   /// An offstage Today screen must not open a second quota dialog when the
   /// same discovery provider is used from Matches.
   final bool isActive;
+
+  /// Widget tests run on the VM, where [kIsWeb] is a constant false. Set
+  /// this to lay the screen out as a browser window does (the two-column
+  /// desk with the aside) so its controls can be exercised; reset it after.
+  @visibleForTesting
+  static bool debugBrowserLayout = false;
 
   @override
   ConsumerState<HomeDiscoveryScreen> createState() =>
@@ -302,7 +308,9 @@ class _HomeDiscoveryScreenState extends ConsumerState<HomeDiscoveryScreen>
     return LayoutBuilder(
       builder: (context, viewport) {
         // Browser windows get a two-column desk instead of the phone stack.
-        final desktop = kIsWeb && viewport.maxWidth >= _desktopBreakpoint;
+        final desktop =
+            (kIsWeb || HomeDiscoveryScreen.debugBrowserLayout) &&
+            viewport.maxWidth >= _desktopBreakpoint;
         return Scaffold(
           appBar: _browsing && !widget.browseOnly
               ? AppBar(
@@ -1032,10 +1040,16 @@ class _DeckStat extends StatelessWidget {
           const SizedBox(height: 4),
           Row(
             children: [
-              Text(
-                label,
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: scheme.onSurfaceVariant,
+              // A third of the aside: long labels ("Übersprungen") must
+              // shrink, not push the chevron out of the panel.
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
                 ),
               ),
               if (onTap != null)
@@ -2030,8 +2044,8 @@ class _SpotlightRail extends StatelessWidget {
                 key: const ValueKey('qa.spotlight.rail.view_more'),
                 onPressed: onViewMore,
                 style: TextButton.styleFrom(
-                  visualDensity: VisualDensity.compact,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  // Compact to look at, 48pt to hit.
+                  tapTargetSize: MaterialTapTargetSize.padded,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 8,
                     vertical: 4,
@@ -2096,12 +2110,15 @@ class _SpotlightRail extends StatelessWidget {
                             ),
                           DecoratedBox(
                             decoration: BoxDecoration(
+                              // The name sits on the bottom third: keep it
+                              // at 4.5:1 over a light photo.
                               gradient: LinearGradient(
                                 begin: Alignment.topCenter,
                                 end: Alignment.bottomCenter,
+                                stops: const [0.3, 0.85],
                                 colors: [
                                   Colors.transparent,
-                                  Colors.black.withValues(alpha: 0.58),
+                                  Colors.black.withValues(alpha: 0.72),
                                 ],
                               ),
                             ),

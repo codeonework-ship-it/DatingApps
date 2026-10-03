@@ -119,7 +119,8 @@ def test_notification_preference_toggle_round_trip(couple, key):
     assert a.patch(path, {key: True}).ok()["preferences"][key] is True
 
 
-@pytest.mark.case("engagement.trust_filter.save_trust_filters_onrefresh.api_contract")
+@pytest.mark.case("engagement.trust_filter.save_trust_filters_onrefresh.api_contract",
+                  "common.main_navigation.filters_trust_retry.api_contract")
 def test_trust_filter_is_readable_with_the_badge_catalogue(couple):
     a, _, _ = couple
     body = a.get(f"/discovery/{a.user_id}/filters/trust").ok()
@@ -201,7 +202,8 @@ def test_circle_join_weekly_challenge_and_one_entry_per_week(make_member):
     circle = "circle-blr-fitness"
     joined = member.post(f"/engagement/circles/{circle}/join", {"user_id": member.user_id}).ok()["membership"]
     assert joined["circle_id"] == circle and joined["user_id"] == member.user_id and joined["is_joined"] is True
-    state = member.get(f"/engagement/circles/{circle}/challenge").ok()["circle_challenge"]
+    # The app reads the challenge with ?user_id=<me> (circle_challenge_provider.dart).
+    state = member.get(f"/engagement/circles/{circle}/challenge", params={"user_id": member.user_id}).ok()["circle_challenge"]
     challenge = state["challenge"]
     assert state["is_joined"] is True and challenge["circle_id"] == circle and challenge["prompt_text"]
     assert challenge["id"] == f"{circle}-{challenge['week_key']}"
@@ -241,7 +243,7 @@ def test_daily_prompt_answer_edit_and_responders(couple):
                   "engagement.group_coffee_polls.finalize_poll_onrefresh.api_contract",
                   "engagement.group_coffee_polls.coffee_vote.api_contract_route")
 def test_coffee_poll_create_vote_and_finalize(make_member):
-    a, b, c = make_member("cp_a", "F", "M"), make_member("cp_b", "M", "F"), make_member("cp_c", "F", "M")
+    a, b, c = make_member("cq_a", "F", "M"), make_member("cq_b", "M", "F"), make_member("cq_c", "F", "M")
     befriend(a, b)
     befriend(a, c)
     poll = a.post("/engagement/group-coffee-polls", {
@@ -264,6 +266,7 @@ def test_coffee_poll_create_vote_and_finalize(make_member):
 
 
 @pytest.mark.case("engagement.level_progression.progression_is_paused_while_an_a_onrefresh.api_contract",
+                  "engagement.level_progression.level_retry_retry.api_contract",
                   "engagement.level_progression.level_retry_retry_2.api_contract",
                   "engagement.level_progression.level_claim_x_claim.api_contract")
 def test_progression_state_ledger_and_a_locked_reward(make_member):
@@ -309,7 +312,7 @@ def test_match_nudge_send_and_click(make_member):
                   "engagement.voice_icebreakers.voice_share.api_contract",
                   "engagement.voice_icebreakers.voice_listen_x.api_contract")
 def test_voice_icebreaker_start_send_and_play(make_member):
-    a, b = make_member("vo_a", "F", "M"), make_member("vo_b", "M", "F")
+    a, b = make_member("vi_a", "F", "M"), make_member("vi_b", "M", "F")
     match_id = match(a, b)
     prompts = a.get("/engagement/voice-icebreakers/prompts").ok()["prompts"]
     assert prompts and prompts[0]["id"] and prompts[0]["prompt_text"]
@@ -347,7 +350,7 @@ def test_mini_activity_start_submit_and_summary(couple):
     assert done["status"] == "completed", done
     summary = a.get(f"/activities/sessions/{session['id']}/summary").ok()
     assert summary["summary"]["session_id"] == session["id"]
-    assert summary["summary"]["responses_submitted"] == 2 and summary["summary"]["participants_pending"] == 0
+    assert summary["summary"]["responses_submitted"] == 2 and summary["summary"]["participants_pending"] == []
     assert b.post(f"/activities/sessions/{session['id']}/submit", {"user_id": b.user_id,
                                                                     "responses": ["again"]}).status == 409
 
@@ -403,8 +406,7 @@ def test_receiver_hides_a_gift_from_their_chat(make_member):
 
 BILLING_READ_CASES = ("payment.subscription.your_plan_renews_automatically_a_onrefresh.api_contract",
                       "payment.subscription.payment_check_status_x_check.api_contract",
-                      "payment.subscription.payment_resume_checkout_x_resume.api_contract",
-                      "web.web_membership_page.retry.api_contract")
+                      "payment.subscription.payment_resume_checkout_x_resume.api_contract")
 
 
 @pytest.mark.billing
@@ -554,7 +556,8 @@ def test_opening_a_profile_records_a_view_the_owner_can_see(make_member):
 @pytest.mark.case("verification.verification_selfie.verification_selfie_submit_button.api_contract")
 def test_identity_verification_submission_goes_to_review(make_member):
     member = make_member("idv_a", "F", "M")
-    assert member.get(f"/verification/{member.user_id}").ok()["status"] in ("unverified", "not_submitted", "none", "")
+    # Never submitted: Go answers status null (the app reads null as "not submitted").
+    assert member.get(f"/verification/{member.user_id}").ok()["status"] is None
     submitted = member.api.call("POST", f"/verification/{member.user_id}/submit", files={
         "id_document": ("id.png", png_bytes((20, 40, 60)), "image/png"),
         "selfie": ("selfie.png", png_bytes((60, 40, 20)), "image/png")}).ok()
@@ -574,6 +577,8 @@ SUPPORT_CASES = ("common.help_support.if_someone_is_in_immediate_dange_onrefresh
                  "support.support_ticket_thread.support_close_close.api_contract",
                  "support.support_ticket_thread.support_rating_submit_rate.api_contract",
                  "support.support_ticket_thread.support_reopen_reopen.api_contract",
+                 "support.support_ticket_thread.retry.api_contract",
+                 "support.support_contact_form.support_guest_submit.api_contract",
                  "site.contact.api_contract")
 
 
@@ -587,10 +592,14 @@ def test_support_ticket_lifecycle(make_member):
         for method, path, body in (("GET", "/support/tickets", None),
                                    ("POST", f"/support/tickets/{uuid.uuid4()}/close", {}),
                                    ("POST", f"/support/tickets/{uuid.uuid4()}/rating", {"rating": 5}),
-                                   ("POST", f"/support/tickets/{uuid.uuid4()}/reopen", {})):
+                                   ("POST", f"/support/tickets/{uuid.uuid4()}/reopen", {}),
+                                   ("POST", f"/support/tickets/{uuid.uuid4()}/messages", {"body": "Any update?"})):
             gated = member.api.call(method, path, json=body)
             assert gated.status == 403 and gated["error_code"] == "FEATURE_DISABLED", gated.text
             assert gated["feature_flag"] == "support_ticketing_enabled"
+        contact = Api().post("/support/contact", {"email": "qa-contact@example.test", "name": "QA", "category": "technical",
+                                                  "subject": "E2E contact form", "description": "Automated check."})
+        assert contact.status == 403 and contact["error_code"] == "FEATURE_DISABLED", contact.text
         return
     upload = member.api.call("POST", "/support/attachments", files={"file": ("s.png", png_bytes(), "image/png")}).ok(201)
     created = member.post("/support/tickets", {"category": "technical", "subject": "E2E app question",
@@ -606,6 +615,21 @@ def test_support_ticket_lifecycle(make_member):
     assert rated["satisfaction"]["rating"] == 5
     reopened = member.post(f"/support/tickets/{ticket['id']}/reopen", {"reason": "e2e reopen"}).ok()["ticket"]
     assert reopened["status"] not in ("closed", "resolved")
+    # The thread's Retry resends the reply: a valid reply is stored on the member's ticket.
+    reply = member.post(f"/support/tickets/{ticket['id']}/messages", {"body": "E2E follow-up"}).ok(201)
+    assert reply["message"]["author"] == "member" and reply["message"]["body"] == "E2E follow-up"
+    assert reply["ticket"]["id"] == ticket["id"]
+    thread = member.get(f"/support/tickets/{ticket['id']}").ok()
+    assert "E2E follow-up" in [m["body"] for m in thread["messages"]]
+    assert member.post(f"/support/tickets/{ticket['id']}/messages", {"body": ""}).status == 400
+    other = make_member("sup_b", "M", "F")
+    assert other.post(f"/support/tickets/{ticket['id']}/messages", {"body": "not mine"}).status in (403, 404)
+    # Signed-out contact form: a valid request gets a reference; a bad email is refused.
+    contact = Api().post("/support/contact", {"email": "qa-contact@example.test", "name": "QA", "category": "technical",
+                                              "subject": "E2E contact form", "description": "Automated contract check."})
+    assert contact.status == 202 and contact["received"] is True and contact["reference"], contact.text
+    assert Api().post("/support/contact", {"email": "not-an-email", "category": "technical", "subject": "E2E",
+                                           "description": "x"}).status == 400
 
 
 CITY_PILOT_CASES = ("city_pilot.city_pilot.city_pilot_join.api_contract",

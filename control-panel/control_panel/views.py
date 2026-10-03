@@ -388,7 +388,8 @@ def reject_verification(request: HttpRequest, user_id: str) -> HttpResponse:
 
 @require_GET
 def activity_feed(request: HttpRequest) -> HttpResponse:
-    limit = _bounded_int(request.GET.get("limit", "200"), 200, maximum=1000)
+    # Go's /admin/activities returns at most 500 rows (adminActivitiesSpec.MaxLimit).
+    limit = _bounded_int(request.GET.get("limit", "200"), 200, maximum=500)
     status = (request.GET.get("status") or "").strip().lower()
     action = (request.GET.get("action") or "").strip().lower()
     user_id = (request.GET.get("user_id") or "").strip().lower()
@@ -904,7 +905,7 @@ def catalog_delete(request: HttpRequest, gift_id: str) -> HttpResponse:
 
 USER_LIST = listing.ListSpec(
     name="users",
-    search_label="Search name, phone or ID",
+    search_label="Search name, username or phone",
     filters=(
         listing.Filter("status", "Status", (("active", "Active"), ("suspended", "Suspended"), ("banned", "Banned"))),
         listing.Filter("gender", "Gender", (("male", "Male"), ("female", "Female"), ("other", "Other"))),
@@ -1836,7 +1837,7 @@ def billing_revenue_analytics(request: HttpRequest) -> HttpResponse:
     params: dict[str, str] = {}
     for key in ("since", "until"):
         value = request.GET.get(key, "").strip()
-        if len(value) == 10 and value[4] == "-" and value[7] == "-":
+        if listing.is_day(value):
             params[key] = value
     tz = request.GET.get("tz", "").strip()
     if tz in ("UTC", "Asia/Kolkata"):

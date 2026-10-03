@@ -43,7 +43,7 @@ AREAS = {"analytics": "Analytics", "business": "Business reports", "engagement":
          "support": "Support desk", "users": "Members", "billing": "Billing", "verifications": "Verification queue", "appeals": "Appeals",
          "safety": "Safety (SOS)", "account-recovery": "Account recovery", "catalog": "Gift catalog", "config": "Feature flags", "progression": "Progression",
          "client-errors": "Client errors", "growth": "Growth governance", "": "Dashboard", "login": "Auth", "logout": "Auth", "activities": "Activity feed",
-         "audit": "Audit log", "events": "Domain events", "activity": "Member activity", "system": "Server activity", "reports": "Report server"}
+         "audit": "Audit log", "events": "Domain events", "activity": "Member activity", "system": "Server activity", "reports": "Report server", "qa-lab": "QA Lab"}
 SMOKE = {"suite": "django", "runner": "pytest qa/console_smoke (live console)", "file": "qa/console_smoke/test_console_smoke.py", "test": "test_nav_page_loads_cleanly"}
 
 
@@ -228,10 +228,15 @@ def template_forms(root, tpl, seen=None):
             if not any(f["name"] == nm for f in fields):
                 fields.append({"name": nm, "type": typ, "label": label})
         out.append({"method": method, "action": action.group(1) if action else None, "fields": fields, "template": tpl})
-    for inc in re.findall(r"\{%\s*include\s+\"([^\"]+)\"|\{%\s*include\s+'([^']+)'", src):
-        t = inc[0] or inc[1]
-        if "partials/_list" not in t:  # the shared list toolbar is modelled from ListSpec
-            out += template_forms(root, t, seen)
+    for mo in re.finditer(r"\{%\s*include\s+(?:\"([^\"]+)\"|'([^']+)')([^%]*)%\}", src):
+        t = mo.group(1) or mo.group(2)
+        if "partials/_list" in t:  # the shared list toolbar is modelled from ListSpec
+            continue
+        # A page that includes a shared header with show_filters=False shows
+        # none of that header's filter form (analytics data page).
+        if re.search(r"\bshow_filters\s*=\s*False\b", mo.group(3) or ""):
+            continue
+        out += template_forms(root, t, seen)
     return out
 
 

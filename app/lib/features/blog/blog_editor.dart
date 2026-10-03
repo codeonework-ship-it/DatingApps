@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -52,9 +54,17 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
     invitation = saved?.invitation ?? '';
     topic = saved?.topic ?? '';
     allowFeaturing = saved?.allowFeaturing ?? false;
+    _seen = _content();
     title.addListener(changed);
     body.addListener(changed);
   }
+
+  /// What was last written, so a notification that only moves the cursor or
+  /// the selection (tapping into a field) does not count as an edit.
+  late String _seen;
+
+  String _content() =>
+      '${title.text}\u0000${jsonEncode(body.document.toJson())}';
 
   /// Plain-text chapters open as paragraphs, so they save back unchanged.
   static RichDocument _documentOf(BlogPost? post) =>
@@ -64,6 +74,14 @@ class _BlogEditorState extends ConsumerState<BlogEditor> {
   AppLocalizations get l10n => AppLocalizations.of(context);
 
   void changed() {
+    // Tapping a field notifies too; a screen-wide rebuild then marked the
+    // chapter edited ("Leave without saving?" with nothing typed) and, on the
+    // web, landed while the input was attaching, dropping the first key.
+    final content = _content();
+    if (content == _seen) {
+      return;
+    }
+    _seen = content;
     if (mounted) {
       setState(() {
         dirty = true;

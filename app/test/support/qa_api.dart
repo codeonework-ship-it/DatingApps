@@ -255,6 +255,7 @@ Future<List<Object?>> pumpQa(
   Locale? locale,
   bool launcher = false,
   bool settle = true,
+  ThemeData? theme,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -270,7 +271,7 @@ Future<List<Object?>> pumpQa(
         extra: extra,
       ),
       child: MaterialApp(
-        theme: AppTheme.lightTheme,
+        theme: theme ?? AppTheme.lightTheme,
         locale: locale,
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
@@ -335,7 +336,8 @@ String? qaSnackText(WidgetTester tester) {
 /// for screens tested on their own that only read the unread count (e.g.
 /// Settings' "Notification inbox" row). In the app the main navigation keeps
 /// the real connection open.
-Override idleNotificationsOverride() => notificationProvider.overrideWith(_IdleNotifications.new);
+Override idleNotificationsOverride() =>
+    notificationProvider.overrideWith(_IdleNotifications.new);
 
 class _IdleNotifications extends NotificationNotifier {
   _IdleNotifications(super.ref);

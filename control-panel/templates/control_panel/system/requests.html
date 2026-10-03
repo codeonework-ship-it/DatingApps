@@ -34,7 +34,7 @@
       <tbody>{% for r in rows %}
         <tr>
           <td class="small text-nowrap">{{ r.bucket|slice:":16"|cut:"T" }}</td>
-          {% if params.group_by != "none" %}<td class="font-monospace small">{% if params.group_by == "route" %}{{ r.method }} {{ r.route }}{% elif params.group_by == "status_class" %}{{ r.status_class }}{% elif params.group_by == "method" %}{{ r.method }}{% else %}{{ r.service }}{% endif %}</td>{% endif %}
+          {% if params.group_by != "none" %}<td class="font-monospace small">{% if params.group_by == "route" %}{{ r.route }}{% elif params.group_by == "status_class" %}{{ r.status_class }}{% elif params.group_by == "method" %}{{ r.method }}{% else %}{{ r.service }}{% endif %}</td>{% endif %}
           <td class="num">{{ r.requests|default:0|thousands }}</td>
           <td class="num{% if r.server_errors %} text-danger-light{% endif %}">{{ r.server_errors|default:0|thousands }}</td>
           <td class="num">{{ r.refused|default:0|thousands }}</td>

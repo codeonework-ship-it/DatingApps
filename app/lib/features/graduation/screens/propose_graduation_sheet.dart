@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/layout/app_layout.dart';
@@ -22,6 +23,53 @@ Future<Graduation?> showProposeGraduationSheet({
   builder: (_) =>
       _ProposeGraduationSheet(matchId: matchId, partnerName: partnerName),
 );
+
+/// The longest note the server accepts, in Unicode code points
+/// (`graduationMaxNoteRunes` in the BFF).
+const _maxNoteCodePoints = 200;
+
+/// Keeps the note within [max] code points, cutting on a whole character
+/// (an emoji is never split), like the field's own length limit does for
+/// characters.
+class _CodePointLimit extends TextInputFormatter {
+  const _CodePointLimit(this.max);
+
+  final int max;
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    // Let an input method finish composing; the next edit is bounded.
+    if (newValue.text.runes.length <= max || newValue.composing.isValid) {
+      return newValue;
+    }
+    if (oldValue.text.runes.length == max && oldValue.selection.isCollapsed) {
+      return oldValue;
+    }
+    var used = 0;
+    final kept = StringBuffer();
+    for (final character in newValue.text.characters) {
+      final size = character.runes.length;
+      if (used + size > max) {
+        break;
+      }
+      used += size;
+      kept.write(character);
+    }
+    final text = kept.toString();
+    int clamp(int offset) =>
+        offset < 0 || offset > text.length ? text.length : offset;
+    return TextEditingValue(
+      text: text,
+      selection: TextSelection(
+        baseOffset: clamp(newValue.selection.baseOffset),
+        extentOffset: clamp(newValue.selection.extentOffset),
+      ),
+    );
+  }
+}
 
 class _ProposeGraduationSheet extends ConsumerStatefulWidget {
   const _ProposeGraduationSheet({
@@ -118,7 +166,28 @@ class _ProposeGraduationSheetState
             TextField(
               key: const ValueKey('qa.graduation.note'),
               controller: _note,
-              maxLength: 200,
+              // The server bounds the note in code points, so an emoji with
+              // a skin tone counts twice: limit and count the same way here
+              // instead of the field's own per-character limit.
+              maxLength: _maxNoteCodePoints,
+              maxLengthEnforcement: MaxLengthEnforcement.none,
+              inputFormatters: const [_CodePointLimit(_maxNoteCodePoints)],
+              buildCounter:
+                  (
+                    context, {
+                    required currentLength,
+                    required maxLength,
+                    required isFocused,
+                  }) {
+                    final used = _note.text.runes.length;
+                    return Text(
+                      '$used/$_maxNoteCodePoints',
+                      semanticsLabel: MaterialLocalizations.of(context)
+                          .remainingTextFieldCharacterCount(
+                            _maxNoteCodePoints - used,
+                          ),
+                    );
+                  },
               maxLines: 3,
               minLines: 2,
               decoration: InputDecoration(

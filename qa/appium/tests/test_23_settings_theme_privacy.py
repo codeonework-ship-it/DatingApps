@@ -209,3 +209,81 @@ def test_crash_reports_switch_persists_on_device(app):
     switch.click()
     assert _wait_api(lambda: _pref_opt_in(app) == "true", timeout=8)
     assert _checked(_switch(app, title))
+
+
+def _account_settings(member) -> dict:
+    return member.api.get(f"/settings/{member.user_id}").require_status(200).body["settings"]
+
+
+def _restart_app(app, package: str) -> None:
+    app.driver.terminate_app(package)
+    time.sleep(1.5)
+    app.driver.activate_app(package)
+    time.sleep(5)
+
+
+@pytest.mark.case("journeys.e2e.theme_language")
+def test_look_and_language_persist_after_restart(app, device_member, appium_config):
+    """Choose a look and a language in Settings; both are saved to the account
+    and both are still applied after the app is killed and relaunched."""
+    original = _account_settings(device_member)
+    original_theme = str(original.get("theme") or "")
+    original_locale = str(original.get("locale") or "")
+    mode = original_theme.split(":")[0] or "auto"
+    look = "snow" if original_theme.endswith(":gothic") else "gothic"
+    package = appium_config.app_package
+    try:
+        # Look.
+        _open_theme_strip(app)
+        _tap_look(app, look)
+        _wait_title_card_gone(app)
+        assert _wait_api(lambda: _account_settings(device_member).get("theme") == f"{mode}:{look}"), (
+            f"look not saved: {_account_settings(device_member).get('theme')!r}"
+        )
+
+        # Language: Settings > Language > Deutsch repaints at once.
+        app.go_today()
+        app.open_tab("Settings")
+        app.wait_for_tab("settings")
+        app.scroll_into_middle("Language")
+        app.tap_text("Language")
+        app.wait_for_text("qa.settings.language.de", timeout=15)
+        app.tap_qa("qa.settings.language.de", timeout=10)
+        app.wait_for_text("Sprache", timeout=15)
+        assert _wait_api(lambda: _account_settings(device_member).get("locale") == "de"), (
+            f"language not saved: {_account_settings(device_member).get('locale')!r}"
+        )
+        app.save_artifact("settings_language_de")
+
+        # Kill and relaunch: the shell comes back in German with the same look.
+        _restart_app(app, package)
+        app.wait_for_text("Einstellungen", timeout=30)
+        assert not app.is_text_visible("Already a member?", timeout=2), "relaunch signed the member out"
+        app.open_tab("Settings")
+        app.wait_for_text("Mach es zu deinem", timeout=20)
+        app.scroll_to_text("qa.settings.theme_presets", timeout=30)
+        time.sleep(1.2)
+        assert _wait_api(lambda: _card_selected(app, look), timeout=10), f"{look} look not selected after relaunch"
+        settings = _account_settings(device_member)
+        assert settings.get("theme") == f"{mode}:{look}" and settings.get("locale") == "de", settings
+        app.save_artifact("settings_after_relaunch_de")
+
+        # Back to the member's own language through the UI (now labelled in German).
+        app.scroll_into_middle("Sprache")
+        app.tap_text("Sprache")
+        restore_id = f"qa.settings.language.{original_locale}" if original_locale else "qa.settings.language.device"
+        app.wait_for_text(restore_id, timeout=15)
+        app.tap_qa(restore_id, timeout=10)
+        app.wait_for_text("Language", timeout=15)
+        assert _wait_api(lambda: str(_account_settings(device_member).get("locale") or "") == original_locale)
+    finally:
+        settings = _account_settings(device_member)
+        changes = {}
+        if str(settings.get("theme") or "") != original_theme:
+            changes["theme"] = original_theme
+        if str(settings.get("locale") or "") != original_locale:
+            changes["locale"] = original_locale
+        if changes:
+            device_member.api.patch(f"/settings/{device_member.user_id}", changes)
+            # The account's stored language wins on the next launch.
+            _restart_app(app, package)

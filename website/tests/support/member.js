@@ -8,6 +8,7 @@ import {execFileSync} from 'node:child_process';
 import {randomBytes} from 'node:crypto';
 import {resolve} from 'node:path';
 import {expect} from '@playwright/test';
+import {qaId} from './qa.js';
 import {websiteDir} from './site.js';
 
 export function createMember(prefix = 'qaweb') {
@@ -48,7 +49,7 @@ export async function signIn(page, member) {
   await password.press('Tab');
   await expect(username).toHaveValue(member.username);
   const login = page.waitForResponse(r => r.url().endsWith('/v1/auth/login') && r.request().method() === 'POST');
-  await page.getByRole('button', {name: 'qa.signin.login_button', exact: true}).click();
+  await qaId(page, 'qa.signin.login_button').click();
   expect((await login).status()).toBe(200);
   await expect(page).toHaveURL(/#\/discover$/, {timeout: 30000});
 }

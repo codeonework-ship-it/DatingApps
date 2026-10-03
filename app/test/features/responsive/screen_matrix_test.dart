@@ -45,9 +45,9 @@ void main() {
   for (final MapEntry(key: themeLabel, value: theme) in themes.entries) {
     devices.forEach((deviceLabel, size) {
       screens.forEach((screenLabel, build) {
-        testWidgets('$screenLabel lays out on $deviceLabel [$themeLabel]', (
-          tester,
-        ) async {
+        final feature = _caseFeatures[screenLabel];
+        testWidgets('$screenLabel lays out on $deviceLabel [$themeLabel] '
+            '[case:$feature.layout_matrix]', (tester) async {
           final errors = await pumpAndCollectLayoutErrors(
             tester,
             build(),
@@ -95,6 +95,16 @@ void main() {
     });
   }
 
+  test('every screen in the matrix names its catalog feature', () {
+    // The layout cases are tagged `[case:<feature>.layout_matrix]`; a screen
+    // without an entry here would run untagged and prove nothing in QA Lab.
+    expect(
+      _caseFeatures.keys.toSet(),
+      screens.keys.toSet(),
+      reason: 'Add the catalog feature id of each new screen to _caseFeatures',
+    );
+  });
+
   test('every screen in the app is covered by this matrix', () {
     final declared = Directory('lib/features')
         .listSync(recursive: true)
@@ -118,3 +128,88 @@ void main() {
     );
   });
 }
+
+/// Catalog feature id of each screen (qa/catalog/feature_catalog.json). The
+/// layout test of a screen proves `<feature>.layout_matrix`.
+const _caseFeatures = <String, String>{
+  'WelcomeScreen': 'auth.welcome',
+  'WebEntryScreen': 'web.web_entry',
+  'AuthScreen': 'auth.auth',
+  'AccountRecoveryScreen': 'auth.account_recovery',
+  'SignupScreen': 'auth.signup',
+  'UserAgreementScreen': 'auth.user_agreement',
+  'BlogScreen': 'blog.blog',
+  'BlogDetailScreen': 'blog.blog_detail',
+  'BlogWritersScreen': 'blog.blog_writers',
+  'CallHistoryScreen': 'calls.call_history',
+  'CallSessionScreen': 'calls.call_session',
+  'ClubsScreen': 'clubs.clubs',
+  'ClubDetailScreen': 'clubs.club_detail',
+  'MyListsScreen': 'clubs.my_lists',
+  'TitleDetailScreen': 'clubs.title_detail',
+  'AboutAppScreen': 'common.about_app',
+  'BlockedUsersScreen': 'common.blocked_users',
+  'EmergencyContactsScreen': 'common.emergency_contacts',
+  'HelpSupportScreen': 'common.help_support',
+  'SupportContactFormScreen': 'support.support_contact_form',
+  'SupportTicketFormScreen': 'support.support_ticket_form',
+  'SupportTicketsScreen': 'support.support_tickets',
+  'SupportTicketThreadScreen': 'support.support_ticket_thread',
+  'LanguageSettingsScreen': 'common.language_settings',
+  'MainNavigationScreen': 'common.main_navigation',
+  'ModerationAppealsScreen': 'common.moderation_appeals',
+  'NotificationSettingsScreen': 'common.notification_settings',
+  'AccountDataScreen': 'common.account_data',
+  'PrivacySafetyScreen': 'common.privacy_safety',
+  'SettingsScreen': 'common.settings',
+  'CircleChallengesScreen': 'engagement.circle_challenges',
+  'GroupsScreen': 'groups.groups',
+  'GroupDetailScreen': 'groups.group_detail',
+  'CreateGroupScreen': 'groups.create_group',
+  'ConversationRoomsScreen': 'engagement.conversation_rooms',
+  'DailyPromptScreen': 'engagement.daily_prompt',
+  'EngagementHubScreen': 'engagement.engagement_hub',
+  'GroupCoffeePollsScreen': 'engagement.group_coffee_polls',
+  'LevelProgressionScreen': 'engagement.level_progression',
+  'MatchNudgesScreen': 'engagement.match_nudges',
+  'TrustBadgesScreen': 'engagement.trust_badges',
+  'TrustFilterScreen': 'engagement.trust_filter',
+  'VoiceIcebreakersScreen': 'engagement.voice_icebreakers',
+  'FriendsScreen': 'friends.friends',
+  'PlansScreen': 'plans.plans',
+  'GraduationCelebrationScreen': 'graduation.graduation_celebration',
+  'ActivitySessionScreen': 'matching.activity_session',
+  'MatchNotificationScreen': 'matching.match_notification',
+  'MatchesListScreen': 'matching.matches_list',
+  'ChatScreen': 'messaging.chat',
+  'NotificationInboxScreen': 'notifications.notification_inbox',
+  'PhotoThemesScreen': 'photo_themes.photo_themes',
+  'PhotoThemeGalleryScreen': 'photo_themes.photo_theme_gallery',
+  'CheckoutWebViewScreen': 'payment.checkout_webview',
+  'SubscriptionScreen': 'payment.subscription',
+  'WalletPaymentScreen': 'payment.wallet_payment',
+  'EditProfileScreen': 'profile.edit_profile',
+  'ProfileViewScreen': 'profile.profile_view',
+  'ProfileViewersScreen': 'profile.profile_viewers',
+  'ProfileSetupEntryScreen': 'profile.profile_setup_entry',
+  'SetupAboutScreen': 'profile.setup_about',
+  'SetupPhotosScreen': 'profile.setup_photos',
+  'SetupPreferencesScreen': 'profile.setup_preferences',
+  'SetupPreviewScreen': 'profile.setup_preview',
+  'SosScreen': 'safety.sos',
+  'HomeDiscoveryScreen': 'swipe.home_discovery',
+  'LikedProfilesScreen': 'swipe.liked_profiles',
+  'PassedProfilesScreen': 'swipe.passed_profiles',
+  'ProfileDetailsScreen': 'swipe.profile_details',
+  'SpotlightProfilesScreen': 'swipe.spotlight_profiles',
+  'VerificationLandingScreen': 'verification.verification_landing',
+  'VerificationSelfieScreen': 'verification.verification_selfie',
+  'VerificationStatusScreen': 'verification.verification_status',
+  'VerificationUploadIdScreen': 'verification.verification_upload_id',
+  'ChapterStudioScreen': 'first_chapter.chapter_studio',
+  'CityPilotScreen': 'city_pilot.city_pilot',
+  'ComfortCardsScreen': 'first_chapter.comfort_cards',
+  'IntroducerScreen': 'friends.introducer',
+  'LikedMeScreen': 'swipe.liked_me',
+  'SocialChatScreen': 'social_chat.social_chat',
+};

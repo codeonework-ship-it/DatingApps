@@ -13,6 +13,7 @@ import 'package:verified_dating_app/features/profile/screens/setup/setup_photos_
 import 'package:verified_dating_app/features/profile/screens/setup/setup_preview_screen.dart';
 
 import '../../support/qa_api.dart';
+import '../../support/qa_screen_quality.dart';
 import 'support/profile_bff.dart';
 
 // Control-level tests for the last setup step (SetupPreviewScreen) and the
@@ -245,20 +246,23 @@ void main() {
       expect(api.writes, isEmpty);
     });
 
-    testWidgets('Retry reloads a preview that failed to load '
-        '[case:profile.setup_preview.something_went_wrong_please_try_onretry.action]', (tester) async {
-      final api = QaApi();
-      final bff = ProfileBff(api);
-      api.fail('GET /profile/*/draft');
-      await _openPreview(tester, api);
-      expect(find.text(_en.profileSetupLoadErrorTitle), findsOneWidget);
-      expect(find.byKey(_complete), findsNothing);
-      bff.install();
-      await tester.tap(find.text(_en.profileSetupRetry));
-      await qaSettle(tester);
-      expect(api.sent('GET', '/profile/me/draft'), hasLength(2));
-      expect(find.byKey(_complete), findsOneWidget);
-    });
+    testWidgets(
+      'Retry reloads a preview that failed to load '
+      '[case:profile.setup_preview.something_went_wrong_please_try_onretry.action]',
+      (tester) async {
+        final api = QaApi();
+        final bff = ProfileBff(api);
+        api.fail('GET /profile/*/draft');
+        await _openPreview(tester, api);
+        expect(find.text(_en.profileSetupLoadErrorTitle), findsOneWidget);
+        expect(find.byKey(_complete), findsNothing);
+        bff.install();
+        await tester.tap(find.text(_en.profileSetupRetry));
+        await qaSettle(tester);
+        expect(api.sent('GET', '/profile/me/draft'), hasLength(2));
+        expect(find.byKey(_complete), findsOneWidget);
+      },
+    );
 
     testWidgets('renders translated in every locale '
         '[case:profile.setup_preview.l10n]', (tester) async {
@@ -345,6 +349,71 @@ void main() {
         expect(find.text(l10n.profileSetupAboutTitle), findsOneWidget);
         expect(tester.takeException(), isNull, reason: '$locale');
       }
+    });
+  });
+
+  group('screen quality', () {
+    // A finished draft: three photos, the About fields and preferences.
+    QaApi server() {
+      final api = QaApi();
+      ProfileBff(
+        api,
+        draft: qaDraftJson(
+          photoCount: 3,
+          extra: const {
+            'height_cm': 168,
+            'education': "Master's",
+            'profession': 'Product designer',
+            'city': 'Bengaluru',
+            'state': 'Karnataka',
+            'country': 'India',
+            'hobbies': ['pottery', 'trail running', 'jazz'],
+            'drinking': 'Socially',
+          },
+        ),
+      );
+      return api;
+    }
+
+    // Complete Profile only renders once the draft arrived.
+    Finder loaded() => find.byKey(_complete, skipOffstage: false);
+
+    testWidgets('the preview of a finished profile lays out on phone and '
+        'tablet in both themes [case:profile.setup_preview.layout_matrix]', (
+      tester,
+    ) async {
+      await qaExpectLaysOutOnPhoneAndTablet(
+        tester,
+        api: server,
+        build: () => const SetupPreviewScreen(),
+        extra: qaMasterDataOverrides,
+        loaded: loaded,
+      );
+    });
+
+    testWidgets('the preview meets tap-target, label and contrast guidelines '
+        '[case:profile.setup_preview.a11y_guidelines]', (tester) async {
+      await qaExpectMeetsA11yGuidelines(
+        tester,
+        api: server,
+        build: () => const SetupPreviewScreen(),
+        extra: qaMasterDataOverrides,
+        loaded: loaded,
+      );
+    });
+
+    testWidgets('Back on the preview returns to the step that opened it '
+        '[case:profile.setup_preview.back_affordance]', (tester) async {
+      final api = server();
+      await qaExpectBackReturnsToOpener(
+        tester,
+        api: api,
+        build: () => const SetupPreviewScreen(),
+        extra: qaMasterDataOverrides(),
+        screen: find.byType(SetupPreviewScreen),
+        loaded: loaded(),
+      );
+      expect(api.sent('POST', '/profile/*/complete'), isEmpty);
     });
   });
 }

@@ -123,6 +123,36 @@ class MatchGraduationNotifier extends StateNotifier<MatchGraduationState> {
     failure: GraduationFailure.withdraw,
   );
 
+  /// Shows [graduation], which a command just returned, as the match's
+  /// current one. Openers call this with the result a graduation screen pops
+  /// so the chat reflects the outcome even when the reload after the command
+  /// failed (otherwise the stale proposal and its buttons would come back).
+  void adopt(Graduation graduation) {
+    if (!mounted) {
+      return;
+    }
+    final current = state.graduation;
+    if (current != null &&
+        current.id == graduation.id &&
+        current.status == graduation.status &&
+        state.error == null) {
+      return;
+    }
+    final snapshot = state.snapshot;
+    state = state.copyWith(
+      clearError: true,
+      loaded: true,
+      snapshot: MatchGraduationSnapshot(
+        graduation: graduation,
+        history: snapshot.history,
+        canPropose: !graduation.isOpen && !graduation.isConfirmed,
+        graduated: graduation.isConfirmed || snapshot.graduated,
+        unlockState: snapshot.unlockState,
+        discoveryPaused: graduation.isConfirmed || snapshot.discoveryPaused,
+      ),
+    );
+  }
+
   Future<Graduation?> _mutate({
     required String path,
     required Map<String, dynamic> data,

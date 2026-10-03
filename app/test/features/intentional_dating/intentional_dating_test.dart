@@ -283,7 +283,8 @@ void main() {
     expect(find.text('Bookstore'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
-  testWidgets('counterproposal submits the version that was shown', (
+  testWidgets('counterproposal submits the version that was shown '
+      '[case:plans.propose_date_plan_sheet.plan_submit.action]', (
     tester,
   ) async {
     final api = _Api();

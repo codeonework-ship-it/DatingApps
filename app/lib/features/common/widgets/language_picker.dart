@@ -30,12 +30,15 @@ AppLanguage currentAppLanguage(BuildContext context, Locale? chosen) {
 
 /// Applies [locale] (null = follow the device). Signed out it only changes
 /// this device (and is carried into the next account that signs in); signed
-/// in it is saved to the account, and a failed save is reported.
+/// in it is saved to the account, and a failed save is reported: through
+/// [onFailed] when given (e.g. inside a sheet, where a snack bar would sit
+/// behind it), otherwise as a snack bar.
 Future<bool> chooseAppLanguage(
   BuildContext context,
   WidgetRef ref,
-  Locale? locale,
-) async {
+  Locale? locale, {
+  ValueChanged<String>? onFailed,
+}) async {
   final messenger = ScaffoldMessenger.maybeOf(context);
   // Read before the await: the strings switch language with the choice.
   final failure = AppLocalizations.of(context).languageSaveFailed;
@@ -43,7 +46,11 @@ Future<bool> chooseAppLanguage(
     await ref.read(appLocaleProvider.notifier).select(locale);
     return true;
   } on Object {
-    messenger?.showSnackBar(SnackBar(content: Text(failure)));
+    if (onFailed != null) {
+      onFailed(failure);
+    } else {
+      messenger?.showSnackBar(SnackBar(content: Text(failure)));
+    }
     return false;
   }
 }
@@ -54,12 +61,21 @@ Future<bool> chooseAppLanguage(
 /// [qaPrefix] keeps each surface's automation ids stable:
 /// `<qaPrefix>device` and `<qaPrefix><tag>`.
 class LanguageOptionList extends ConsumerWidget {
-  const LanguageOptionList({required this.qaPrefix, this.onChosen, super.key});
+  const LanguageOptionList({
+    required this.qaPrefix,
+    this.onChosen,
+    this.onFailed,
+    super.key,
+  });
 
   final String qaPrefix;
 
   /// Called after a choice was applied (e.g. to close a sheet).
   final VoidCallback? onChosen;
+
+  /// Called with the message when a choice could not be saved; without it
+  /// the failure is shown as a snack bar.
+  final ValueChanged<String>? onFailed;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -67,7 +83,12 @@ class LanguageOptionList extends ConsumerWidget {
     final selected = ref.watch(appLocaleProvider);
 
     Future<void> choose(Locale? locale) async {
-      final applied = await chooseAppLanguage(context, ref, locale);
+      final applied = await chooseAppLanguage(
+        context,
+        ref,
+        locale,
+        onFailed: onFailed,
+      );
       if (applied) {
         onChosen?.call();
       }
@@ -164,55 +185,99 @@ Future<void> showLanguagePickerSheet(BuildContext context) =>
       isScrollControlled: true,
       showDragHandle: true,
       useSafeArea: true,
-      builder: (sheetContext) => Consumer(
-        // A Consumer inside the sheet: the sheet is its own route and does
-        // not rebuild with the screen that opened it.
-        builder: (context, ref, _) {
-          final l10n = AppLocalizations.of(context);
-          final theme = Theme.of(context);
-          final signedIn = ref.watch(
-            authNotifierProvider.select((s) => s.isAuthenticated),
-          );
-          return Semantics(
-            container: true,
-            identifier: 'qa.language.sheet',
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxHeight: MediaQuery.sizeOf(context).height * 0.85,
-              ),
-              child: ListView(
-                shrinkWrap: true,
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(8, 0, 8, 4),
-                    child: Text(
-                      l10n.languageTitle,
-                      style: theme.textTheme.titleLarge,
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(8, 0, 8, 12),
-                    child: Text(
-                      signedIn
-                          ? l10n.languageIntro
-                          : l10n.languageIntroSignedOut,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ),
-                  LanguageOptionList(
-                    qaPrefix: 'qa.language.option.',
-                    onChosen: () => Navigator.of(sheetContext).maybePop(),
-                  ),
-                ],
+      builder: (sheetContext) =>
+          _LanguageSheet(onChosen: () => Navigator.of(sheetContext).maybePop()),
+    );
+
+/// The sheet's content. Its own route, so it watches the session itself
+/// rather than rebuilding with the screen that opened it. A failed save is
+/// explained inside the sheet: a snack bar would be hidden behind it.
+class _LanguageSheet extends ConsumerStatefulWidget {
+  const _LanguageSheet({required this.onChosen});
+
+  final VoidCallback onChosen;
+
+  @override
+  ConsumerState<_LanguageSheet> createState() => _LanguageSheetState();
+}
+
+class _LanguageSheetState extends ConsumerState<_LanguageSheet> {
+  String? _failure;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final signedIn = ref.watch(
+      authNotifierProvider.select((s) => s.isAuthenticated),
+    );
+    final failure = _failure;
+    return Semantics(
+      container: true,
+      identifier: 'qa.language.sheet',
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.85,
+        ),
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 0, 8, 4),
+              child: Text(
+                l10n.languageTitle,
+                style: theme.textTheme.titleLarge,
               ),
             ),
-          );
-        },
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 0, 8, 12),
+              child: Text(
+                signedIn ? l10n.languageIntro : l10n.languageIntroSignedOut,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+            if (failure != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(8, 0, 8, 12),
+                child: Semantics(
+                  liveRegion: true,
+                  child: Row(
+                    key: const ValueKey('qa.language.sheet.error'),
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.error_outline_rounded, color: scheme.error),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          failure,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: scheme.error,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            LanguageOptionList(
+              qaPrefix: 'qa.language.option.',
+              onChosen: widget.onChosen,
+              onFailed: (message) {
+                if (mounted) {
+                  setState(() => _failure = message);
+                }
+              },
+            ),
+          ],
+        ),
       ),
     );
+  }
+}
 
 /// Compact language button (globe + the current language's own name) for
 /// signed-out screens and screens without Settings.

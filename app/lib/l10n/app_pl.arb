@@ -3213,7 +3213,7 @@
   "webDestModerationAppeals": "Odwołania od moderacji",
   "webDestNotificationPreferences": "Ustawienia powiadomień",
   "webDestHelpSupport": "Pomoc i wsparcie",
-  "webNavExplore": "Odkrywaj",
+  "webNavExplore": "Przeglądaj",
   "webNavMyProfile": "Mój profil",
   "webNavAllFeatures": "Wszystkie funkcje",
   "webNavMoreForYou": "Więcej dla ciebie",
@@ -3649,5 +3649,7 @@
   "profileMasterTravelStaycations": "Wakacje w domu",
   "profileMasterPoliticsSimilarShort": "Podobne",
   "profileMasterPoliticsModerate": "Umiarkowane",
-  "profileMasterPoliticsAny": "Dowolne"
+  "profileMasterPoliticsAny": "Dowolne",
+  "discoverOpenMemberProfile": "Otwórz profil: {name}",
+  "chatCopilotDisclosureText": "Powiedz to własnymi słowami. Jeśli wyślesz szkic bez zmian, druga osoba zobaczy, że powstał z pomocą."
 }

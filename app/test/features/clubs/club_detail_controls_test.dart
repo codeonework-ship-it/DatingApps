@@ -127,7 +127,7 @@ void main() {
 
       w.heal('POST /blog/reports/*/*');
       await t.tap(find.text('Submit report'));
-      await qaSettle(t, frames: 60); // let the failure snack expire
+      await qaSettle(t);
       expect(w.api.sent('POST', '/blog/reports/club/club-1'), hasLength(2));
       expect(find.text('Submit report'), findsNothing);
       expect(find.text('Report submitted. Thank you.'), findsOneWidget);

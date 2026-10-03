@@ -689,9 +689,9 @@ class _ProfileInfoRow extends StatelessWidget {
           child: Text(
             row.label,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurface.withValues(alpha: 0.58),
+              // Full-strength onSurfaceVariant: a faded onSurface fell just
+              // short of 4.5:1 contrast on the glass card.
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -703,9 +703,9 @@ class _ProfileInfoRow extends StatelessWidget {
                 ? AppLocalizations.of(context).profileEditNotSet
                 : row.value!.trim(),
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurface.withValues(
-                alpha: row.isEmpty ? 0.45 : 0.90,
-              ),
+              color: row.isEmpty
+                  ? Theme.of(context).colorScheme.onSurfaceVariant
+                  : Theme.of(context).colorScheme.onSurface,
               fontWeight: row.isEmpty ? FontWeight.w500 : FontWeight.w700,
             ),
           ),

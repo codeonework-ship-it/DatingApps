@@ -4,12 +4,14 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:verified_dating_app/core/permissions/device_permission_service.dart';
 import 'package:verified_dating_app/features/calls/screens/call_history_screen.dart';
 import 'package:verified_dating_app/features/calls/screens/call_session_screen.dart';
 
 import '../../support/qa_api.dart';
+import '../../support/qa_screen_quality.dart';
 
 class _Permissions extends DevicePermissionService {
   const _Permissions(this.granted);
@@ -227,8 +229,9 @@ void main() {
     Future<void> openHistory(WidgetTester tester, QaApi api) =>
         pumpQa(tester, api, const CallHistoryScreen());
 
-    testWidgets('loads the member\'s calls '
-        '[case:calls.call_history.join_live_room_onrefresh.api_contract]', (
+    // The API contract behind the history is proven against the real BFF in
+    // qa/api_e2e; this checks what the screen asks for and shows.
+    testWidgets('loads the member\'s calls', (
       tester,
     ) async {
       final api = _api();
@@ -292,6 +295,112 @@ void main() {
         find.byKey(const ValueKey('qa.calls.history.join.call-1')),
         findsNothing,
         reason: 'an ended call has no room to join',
+      );
+    });
+  });
+
+  group('screen quality', () {
+    List<Override> permitted() => [
+      devicePermissionServiceProvider.overrideWithValue(
+        const _Permissions(true),
+      ),
+    ];
+    Widget session() => const CallSessionScreen(
+      matchId: 'match-12345678',
+      recipientUserId: 'maya',
+      recipientName: 'Maya',
+    );
+
+    testWidgets('Call history with calls lays out on phone and tablet in '
+        'both themes [case:calls.call_history.layout_matrix]', (tester) async {
+      await qaExpectLaysOutOnPhoneAndTablet(
+        tester,
+        api: _api,
+        build: () => const CallHistoryScreen(),
+        loaded: () => find.text('Ended · 4:05'),
+      );
+    });
+
+    testWidgets('Call history meets tap-target, label and contrast guidelines '
+        '[case:calls.call_history.a11y_guidelines]', (tester) async {
+      await qaExpectMeetsA11yGuidelines(
+        tester,
+        api: _api,
+        build: () => const CallHistoryScreen(),
+        loaded: () => find.text('Ended · 4:05'),
+      );
+    });
+
+    testWidgets('Back on call history returns to the opener '
+        '[case:calls.call_history.back_affordance]', (tester) async {
+      await qaExpectBackReturnsToOpener(
+        tester,
+        api: _api(),
+        build: () => const CallHistoryScreen(),
+        screen: find.byType(CallHistoryScreen),
+        loaded: find.text('Ended · 4:05'),
+      );
+    });
+
+    testWidgets('An active call lays out on phone and tablet in both themes '
+        '[case:calls.call_session.layout_matrix]', (tester) async {
+      await qaExpectLaysOutOnPhoneAndTablet(
+        tester,
+        api: _api,
+        build: session,
+        extra: permitted,
+        loaded: () => find.byKey(const ValueKey('qa.calls.end')),
+      );
+    });
+
+    testWidgets('An active call meets tap-target, label and contrast '
+        'guidelines [case:calls.call_session.a11y_guidelines]', (tester) async {
+      await qaExpectMeetsA11yGuidelines(
+        tester,
+        api: _api,
+        build: session,
+        extra: permitted,
+        loaded: () => find.byKey(const ValueKey('qa.calls.end')),
+      );
+    });
+
+    testWidgets('Call history renders in all 10 languages with no English '
+        'left [case:calls.call_history.l10n]', (tester) async {
+      await qaExpectRendersInAllLocales(
+        tester,
+        api: _api,
+        build: () => const CallHistoryScreen(),
+        expected: [
+          (l) => l.callsHistoryTitle,
+          (l) => l.callsActiveSession,
+          (l) => l.callsHistoryMatch('match-12'),
+        ],
+        // "Match" is the word these languages use too.
+        allow: {'Match match-12'},
+        prepare: (tester, l) async {
+          // The join control is an icon; its tooltip is the spoken label.
+          expect(find.byTooltip(l.callsJoinLiveRoom), findsOneWidget);
+        },
+      );
+    });
+
+    testWidgets('An active call and a failed one render in all 10 languages '
+        'with no English left [case:calls.call_session.l10n]', (tester) async {
+      await qaExpectRendersInAllLocales(
+        tester,
+        api: _api,
+        build: session,
+        extra: permitted,
+        expected: [(l) => l.callsSessionTitle, (l) => l.callsSessionActive],
+        allow: {'Maya'},
+      );
+      await qaExpectRendersInAllLocales(
+        tester,
+        api: () => _api()..on('POST /calls/start', (_) => _bare500),
+        build: session,
+        extra: permitted,
+        expected: [(l) => l.chatTryAgain, (l) => l.callsSessionUnavailable],
+        allow: {'Maya'},
       );
     });
   });

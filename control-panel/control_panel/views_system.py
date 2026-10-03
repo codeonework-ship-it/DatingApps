@@ -13,7 +13,6 @@ and third-party usage. Go enforces it; the sidebar mirrors it.
 """
 from __future__ import annotations
 
-import re
 
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
@@ -23,7 +22,6 @@ from . import listing
 from .services.go_client import GoBFFClient
 from .views import _base_context
 
-_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 C = listing.Column
 
 TABS = (
@@ -48,7 +46,7 @@ def _context(active: str, **extra) -> dict:
 
 
 def _dates(request: HttpRequest) -> dict[str, str]:
-    return {k: v for k in ("from", "to") if _DATE.match(v := request.GET.get(k, "").strip())}
+    return {k: v for k in ("from", "to") if listing.is_day(v := request.GET.get(k, "").strip())}
 
 
 def _details(row: dict) -> str:
@@ -116,6 +114,7 @@ def system_jobs(request: HttpRequest) -> HttpResponse:
                                base_context=lambda: _context("system_jobs"), context_name="runs", extra=extra)
 
 
+METHODS = ("GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS", "OTHER")  # Go's systemMethods
 GROUPS = (("none", "Overall"), ("route", "Route"), ("status_class", "Status class"), ("method", "Method"), ("service", "Service"))
 
 
@@ -125,9 +124,13 @@ def system_requests(request: HttpRequest) -> HttpResponse:
     params = _dates(request)
     params["grain"] = g.get("grain") if g.get("grain") in ("hour", "day") else "hour"
     params["group_by"] = g.get("group_by") if g.get("group_by") in dict(GROUPS) else "none"
-    for key in ("route", "method", "service"):
-        if (value := g.get(key, "").strip()[:120]):
+    # Go truncates route at 300 characters and service at 64, and refuses a
+    # method outside its list with a 400, so only send a method it accepts.
+    for key, limit in (("route", 300), ("service", 64)):
+        if (value := g.get(key, "").strip()[:limit]):
             params[key] = value
+    if (method := g.get("method", "").strip().upper()) in METHODS:
+        params["method"] = method
     if g.get("status_class") in ("2xx", "3xx", "4xx", "5xx"):
         params["status_class"] = g["status_class"]
     result = GoBFFClient().system_requests(**params)

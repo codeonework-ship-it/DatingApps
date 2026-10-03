@@ -1,0 +1,19 @@
+{% comment %}QA Lab section header: tabs, the hand-off to QA Lab (runs are
+started there, never from the console) and notes about missing or unreadable
+result files (control_panel/qa_lab.py).{% endcomment %}
+<div class="page-header">
+  <div>
+    <h1><i class="bi bi-clipboard2-check header-icon" aria-hidden="true"></i> QA Lab</h1>
+    <p class="text-muted mb-0">Test runs, case coverage and the coverage gate, read from the files QA Lab writes. Read-only: runs are started in QA Lab. Times in UTC.</p>
+  </div>
+  <div class="page-actions">
+    <a class="btn btn-glow" href="{{ qa_lab_url }}" target="_blank" rel="noopener noreferrer" data-qa-lab-link><i class="bi bi-box-arrow-up-right" aria-hidden="true"></i>Open QA Lab to start a run</a>
+  </div>
+</div>
+<p class="small text-muted mb-3"><i class="bi bi-info-circle" aria-hidden="true"></i> Runs are started in QA Lab (local only, its own operator sign-in). This console only reads the results.</p>
+{% if qa_tabs %}
+<nav aria-label="QA Lab sections" class="mb-3 d-flex flex-wrap gap-2">
+  {% for t in qa_tabs %}<a href="{% url t.url_name %}" class="btn {% if t.active %}btn-glow{% else %}btn-glass{% endif %} btn-sm"{% if t.active %} aria-current="page"{% endif %}><i class="bi {{ t.icon }}" aria-hidden="true"></i>{{ t.label }}</a>{% endfor %}
+</nav>
+{% endif %}
+{% for p in problems %}<div class="alert-glass warning mb-3" role="status"><i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>{{ p }}</div>{% endfor %}

@@ -136,20 +136,20 @@ def pdf(result: RunResult) -> HttpResponse:
     styles = getSampleStyleSheet()
     small = styles["BodyText"].clone("small", fontSize=7.5, leading=9)
     cell_style = styles["BodyText"].clone("cell", fontSize=7, leading=8.5)
-    story = [Paragraph(result.report.title, styles["Title"]),
-             Paragraph(result.report.description, small)]
+    story = [Paragraph(_pdf(result.report.title), styles["Title"]),
+             Paragraph(_pdf(result.report.description), small)]
     params = " · ".join(f"{label}: {value}" for label, value in _parameters(result)) or "Default parameters"
-    story += [Paragraph(f"{params} · generated {datetime.now(timezone.utc):%Y-%m-%d %H:%M} UTC", small), Spacer(1, 6 * mm)]
+    story += [Paragraph(_pdf(f"{params} · generated {datetime.now(timezone.utc):%Y-%m-%d %H:%M} UTC"), small), Spacer(1, 6 * mm)]
     for err in result.errors:
-        story.append(Paragraph(f"Unavailable: {err}", small))
+        story.append(Paragraph(_pdf(f"Unavailable: {err}"), small))
     for ds in result.datasets:
-        story.append(Paragraph(ds.spec.title, styles["Heading3"]))
+        story.append(Paragraph(_pdf(ds.spec.title), styles["Heading3"]))
         if not ds.rows:
             story += [Paragraph("No data for these parameters.", small), Spacer(1, 4 * mm)]
             continue
-        data = [[Paragraph(f"<b>{f.label}</b>", cell_style) for f in ds.fields]]
+        data = [[Paragraph(f"<b>{_pdf(f.label)}</b>", cell_style) for f in ds.fields]]
         for row in ds.rows:
-            data.append([Paragraph(_xml(c.text), cell_style) for c in row.cells])
+            data.append([Paragraph(_pdf(c.text), cell_style) for c in row.cells])
         width = doc.width / max(1, len(ds.fields))
         table = LongTable(data, colWidths=[width] * len(ds.fields), repeatRows=1)
         style = [
@@ -165,13 +165,13 @@ def pdf(result: RunResult) -> HttpResponse:
         table.setStyle(TableStyle(style))
         story += [table, Spacer(1, 3 * mm)]
         if ds.spec.note:
-            story.append(Paragraph(ds.spec.note, small))
+            story.append(Paragraph(_pdf(ds.spec.note), small))
         story.append(Spacer(1, 5 * mm))
 
     def footer(canvas, doc_):
         canvas.saveState()
         canvas.setFont("Helvetica", 7)
-        canvas.drawString(12 * mm, 7 * mm, f"{result.report.title} · counts from 1 to 4 shown as <5")
+        canvas.drawString(12 * mm, 7 * mm, _glyphs(f"{result.report.title} · counts from 1 to 4 shown as <5"))
         canvas.drawRightString(doc_.pagesize[0] - 12 * mm, 7 * mm, f"Page {doc_.page}")
         canvas.restoreState()
 
@@ -181,6 +181,29 @@ def pdf(result: RunResult) -> HttpResponse:
 
 def _xml(text: str) -> str:
     return str(text).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+# The PDF uses the built-in Helvetica (WinAnsi): characters outside it would
+# print as the wrong glyph (≤ came out as £), so they are spelled out.
+_GLYPHS = {"≤": "<=", "≥": ">=", "→": "->", "←": "<-", "₹": "INR ", "−": "-", "…": "...", "✓": "yes"}
+
+
+def _glyphs(text: str) -> str:
+    out = []
+    for ch in str(text):
+        ch = _GLYPHS.get(ch, ch)
+        try:
+            ch.encode("cp1252")
+        except UnicodeEncodeError:
+            ch = "?"
+        out.append(ch)
+    return "".join(out)
+
+
+def _pdf(text) -> str:
+    """Paragraph-safe text: no markup is interpreted (a parameter such as a
+    search could otherwise break the export) and every glyph is printable."""
+    return _xml(_glyphs("" if text is None else text))
 
 
 def _attachment(body: bytes, content_type: str, filename: str) -> HttpResponse:

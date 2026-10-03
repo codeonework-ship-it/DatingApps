@@ -1124,12 +1124,16 @@ class _QuotaPill extends StatelessWidget {
         children: [
           Icon(icon, size: 14, color: scheme.onPrimaryContainer),
           const SizedBox(width: 6),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: scheme.onPrimaryContainer,
+          // Flexible: on a 320pt phone a long quota ("Unlimited messages a
+          // day") overflowed the pill; it wraps inside the pill instead.
+          Flexible(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: scheme.onPrimaryContainer,
+              ),
             ),
           ),
         ],
@@ -1248,7 +1252,8 @@ class _InlineError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = Theme.of(context).colorScheme.error;
+    final scheme = Theme.of(context).colorScheme;
+    final color = scheme.error;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -1259,8 +1264,14 @@ class _InlineError extends StatelessWidget {
         children: [
           Icon(Icons.info_outline, size: 18, color: color),
           const SizedBox(width: 8),
+          // The tint and icon carry the accent; the words stay onSurface.
+          // Accent-coloured text on its own 12% tint was 3.8:1 (under WCAG
+          // AA 4.5:1) for the signed-out and error notice.
           Expanded(
-            child: Text(message, style: TextStyle(color: color, fontSize: 13)),
+            child: Text(
+              message,
+              style: TextStyle(color: scheme.onSurface, fontSize: 13),
+            ),
           ),
         ],
       ),
@@ -1285,7 +1296,8 @@ class _SandboxControls extends StatelessWidget {
             fontSize: 10,
             letterSpacing: 1,
             fontWeight: FontWeight.w800,
-            color: Theme.of(context).colorScheme.tertiary,
+            // Tertiary on the light glass was 3.9:1 at 10pt (under 4.5:1).
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
         const SizedBox(height: 8),

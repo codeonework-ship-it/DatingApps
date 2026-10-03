@@ -1,0 +1,76 @@
+{% extends "control_panel/base.html" %}
+{% load custom_filters %}
+{% block title %}QA Lab case · {{ project_name }}{% endblock %}
+{% block topbar_title %}QA Lab · Case{% endblock %}
+{% block content %}
+{% include "control_panel/qa_lab/_nav.html" %}
+<p class="mb-3"><a href="{% url 'qa_lab_cases' %}"><i class="bi bi-arrow-left" aria-hidden="true"></i> All cases</a></p>
+
+<section class="glass-card mb-4" aria-labelledby="case-heading">
+  <h2 class="h5 text-break" id="case-heading">{{ case.title|default:case_id }}</h2>
+  <p class="font-monospace small text-break mb-2">{{ case_id }}</p>
+  <p class="mb-3">{% include "control_panel/qa_lab/_result_badge.html" with result=row.result %} {% if row.ok %}<span class="badge badge-active">Verified (gate)</span>{% else %}<span class="badge badge-warning">Gap</span> <span class="small text-muted">{{ reason_label|default:row.reason }}</span>{% endif %}</p>
+  <div class="row g-3">
+    <div class="col-lg-6">
+      <dl class="row small mb-0">
+        <dt class="col-4">Area</dt><dd class="col-8">{{ feature.area|default:"—" }}</dd>
+        <dt class="col-4">Feature</dt><dd class="col-8"><span class="font-monospace text-break">{{ feature.id|default:"—" }}</span>{% if feature.screen %} · {{ feature.screen }}{% endif %}</dd>
+        {% if feature.route %}<dt class="col-4">Route</dt><dd class="col-8 text-break">{{ feature.route }}</dd>{% endif %}
+        <dt class="col-4">Kind</dt><dd class="col-8">{{ case.type|default:"—" }}{% if case.level %} · {{ case.level }}{% endif %}</dd>
+        <dt class="col-4">Catalog status</dt><dd class="col-8">{{ case.status|default:"—" }}{% if case.mapped_by %} · mapped by {{ case.mapped_by }}{% endif %}</dd>
+      </dl>
+    </div>
+    <div class="col-lg-6">
+      <dl class="row small mb-0">
+        <dt class="col-4">Latest result</dt><dd class="col-8">{% if ledger.result %}{{ ledger.result }}{% if ledger.run %} in {% if ledger_run_ok %}<a class="font-monospace" href="{% url 'qa_lab_run_detail' ledger.run %}">{{ ledger.run }}</a>{% else %}{{ ledger.run }}{% endif %}{% endif %}{% if ledger.at %} · {{ ledger.at|isodate|date:"Y-m-d H:i"|default:ledger.at }}{% endif %}{% else %}Never run in QA Lab{% endif %}</dd>
+        {% if manual.result %}<dt class="col-4">Manual check</dt><dd class="col-8">{{ manual.result }}{% if manual.by %} by {{ manual.by }}{% endif %}{% if manual.at %} · {{ manual.at|isodate|date:"Y-m-d H:i"|default:manual.at }}{% endif %}{% if manual.note %}<div class="text-muted text-break">{{ manual.note }}</div>{% endif %}</dd>{% endif %}
+        {% if case.expected %}<dt class="col-4">Expected</dt><dd class="col-8 text-break">{{ case.expected }}</dd>{% endif %}
+        {% if case.seed_needs %}<dt class="col-4">Seed</dt><dd class="col-8">{{ case.seed_needs|join:" · " }}</dd>{% endif %}
+        {% if case.notes %}<dt class="col-4">Notes</dt><dd class="col-8 text-break">{{ case.notes }}</dd>{% endif %}
+      </dl>
+    </div>
+  </div>
+  {% if case.steps %}
+  <h3 class="h6 mt-3">Steps</h3>
+  <ol class="small mb-0">{% for s in case.steps %}<li class="text-break">{{ s }}</li>{% endfor %}</ol>
+  {% endif %}
+</section>
+
+<section class="glass-card mb-4" aria-labelledby="proof-heading">
+  <h2 class="h5" id="proof-heading">Tests that prove it{% if automated_by_total %} ({{ automated_by_total|thousands }}){% endif %}</h2>
+  {% for a in automated_by %}
+  <div class="inset-panel p-2 mb-2"><span class="badge badge-purple">{{ a.suite|default:"?" }}</span> <span class="font-monospace small text-break">{{ a.file }}</span>{% if a.via == "tag" %} <span class="badge badge-aqua" title="The test names this case">tag</span>{% endif %}<div class="small text-break">{{ a.test }}</div></div>
+  {% empty %}<p class="text-muted mb-0">No test is mapped to this case.</p>{% endfor %}
+  {% if automated_by_total and automated_by_total > automated_by|length %}<p class="small text-muted mb-0">{{ automated_by_total|thousands }} tests in total; the catalog lists the first {{ automated_by|length }}.</p>{% endif %}
+</section>
+
+<section class="glass-card mb-4" aria-labelledby="latest-heading">
+  <h2 class="h5" id="latest-heading">Latest results</h2>
+  {% for t in ledger_tests %}
+  <div class="inset-panel p-2 mb-2">
+    {% include "control_panel/qa_lab/_test_status.html" with status=t.status %} <span class="badge badge-purple">{{ t.suite }}</span> <span class="font-monospace small text-break">{{ t.file }}</span>
+    <div class="small text-break">{{ t.test }}</div>
+    {% if t.message %}<pre class="code-block small p-2 mt-1 mb-0 text-break">{{ t.message|truncatechars:4000 }}</pre>{% endif %}
+  </div>
+  {% empty %}<p class="text-muted mb-0">No executed result yet.</p>{% endfor %}
+</section>
+
+<section class="glass-card" aria-labelledby="history-heading">
+  <h2 class="h5" id="history-heading">Recent runs</h2>
+  {% if history %}
+  <div class="table-responsive">
+    <table class="glass-table">
+      <thead><tr><th scope="col">Run</th><th scope="col">Run status</th><th scope="col">Case result</th><th scope="col">Tests in that run</th></tr></thead>
+      <tbody>{% for h in history %}
+        <tr>
+          <td><a class="font-monospace small" href="{% url 'qa_lab_run_detail' h.run.id %}">{{ h.run.id }}</a><div class="small text-muted">{{ h.run.startedAt|isodate|date:"M d, H:i"|default:"" }}</div></td>
+          <td>{% include "control_panel/qa_lab/_test_status.html" with status=h.run.status %}</td>
+          <td>{{ h.result|default:"—" }}{% if h.via %} <span class="small text-muted">via {{ h.via }}</span>{% endif %}</td>
+          <td class="small">{% for t in h.tests %}<div class="text-break">{% include "control_panel/qa_lab/_test_status.html" with status=t.status %} {{ t.suite }}: {{ t.test|truncatechars:160 }}</div>{% empty %}—{% endfor %}{% if h.tests_total and h.tests_total > h.tests|length %}<div class="text-muted">{{ h.tests_total|thousands }} in total</div>{% endif %}</td>
+        </tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}<p class="text-muted mb-0">This case was not in any of the last runs.</p>{% endif %}
+</section>
+{% endblock %}

@@ -73,6 +73,12 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
   String? _filterPersonalityType;
   bool _filterPartyLoverOnly = false;
   bool _filterHookupOnly = false;
+  // The last Apply could not save the trust filters (its snack bar says so),
+  // which the sheet must not mistake for a failed load.
+  bool _trustSaveFailed = false;
+  // Apply reached discovery during the open sheet; otherwise its edits are
+  // dropped when it closes.
+  bool _filtersApplied = false;
   late AnimationController _fabController;
 
   @override
@@ -818,13 +824,64 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
     }
   }
 
-  void _openFilterSheet(BuildContext context) {
-    showModalBottomSheet<void>(
+  Future<void> _openFilterSheet(BuildContext context) async {
+    // Edits count only once applied. Closing, dragging the sheet away or
+    // leaving for dating preferences drops them, so neither the next opening
+    // nor the active-filter chips show filters discovery is not using.
+    final before = _captureFilters();
+    _filtersApplied = false;
+    _trustSaveFailed = false;
+    await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: _buildFilterSheet,
     );
+    if (!mounted) {
+      return;
+    }
+    // Rebuild either way: the chips show what was just applied.
+    setState(() {
+      if (!_filtersApplied) {
+        _restoreFilters(before);
+      }
+    });
+  }
+
+  _FilterValues _captureFilters() => (
+    seeded: _filtersSeededFromProfile,
+    age: _filterAge,
+    distance: _filterDistance,
+    verifiedOnly: _filterVerifiedOnly,
+    religion: _filterReligion,
+    motherTongue: _filterMotherTongue,
+    country: _filterCountry,
+    state: _filterState,
+    city: _filterCity,
+    relationshipStatus: _filterRelationshipStatus,
+    smoking: _filterSmoking,
+    drinking: _filterDrinking,
+    personalityType: _filterPersonalityType,
+    partyLoverOnly: _filterPartyLoverOnly,
+    hookupOnly: _filterHookupOnly,
+  );
+
+  void _restoreFilters(_FilterValues values) {
+    _filtersSeededFromProfile = values.seeded;
+    _filterAge = values.age;
+    _filterDistance = values.distance;
+    _filterVerifiedOnly = values.verifiedOnly;
+    _filterReligion = values.religion;
+    _filterMotherTongue = values.motherTongue;
+    _filterCountry = values.country;
+    _filterState = values.state;
+    _filterCity = values.city;
+    _filterRelationshipStatus = values.relationshipStatus;
+    _filterSmoking = values.smoking;
+    _filterDrinking = values.drinking;
+    _filterPersonalityType = values.personalityType;
+    _filterPartyLoverOnly = values.partyLoverOnly;
+    _filterHookupOnly = values.hookupOnly;
   }
 
   /// Treats an empty or whitespace-only stored value as unset.
@@ -1171,12 +1228,15 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Text(
-                                      l10n.filterPartyLoverOnly,
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.bodyMedium,
+                                    Expanded(
+                                      child: Text(
+                                        l10n.filterPartyLoverOnly,
+                                        style: Theme.of(
+                                          context,
+                                        ).textTheme.bodyMedium,
+                                      ),
                                     ),
+                                    const SizedBox(width: 12),
                                     QaControl(
                                       id: 'qa.filters.party_lover_switch',
                                       label: l10n.filterPartyLoverOnly,
@@ -1203,12 +1263,15 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Text(
-                                      l10n.filterHookupsOnly,
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.bodyMedium,
+                                    Expanded(
+                                      child: Text(
+                                        l10n.filterHookupsOnly,
+                                        style: Theme.of(
+                                          context,
+                                        ).textTheme.bodyMedium,
+                                      ),
                                     ),
+                                    const SizedBox(width: 12),
                                     QaControl(
                                       id: 'qa.filters.hookup_switch',
                                       label: l10n.filterHookupsOnly,
@@ -1320,10 +1383,17 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(
-                                  l10n.filterVerifiedOnlyBody,
-                                  style: Theme.of(context).textTheme.bodyMedium,
+                                // Long labels (and German) wrap instead of
+                                // pushing the switch off the sheet.
+                                Expanded(
+                                  child: Text(
+                                    l10n.filterVerifiedOnlyBody,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodyMedium,
+                                  ),
                                 ),
+                                const SizedBox(width: 12),
                                 QaControl(
                                   id: 'qa.filters.verified_only_switch',
                                   label: l10n.filterVerifiedOnlyBody,
@@ -1366,12 +1436,15 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Text(
-                                      l10n.filterEnableTrust,
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.bodyMedium,
+                                    Expanded(
+                                      child: Text(
+                                        l10n.filterEnableTrust,
+                                        style: Theme.of(
+                                          context,
+                                        ).textTheme.bodyMedium,
+                                      ),
                                     ),
+                                    const SizedBox(width: 12),
                                     QaControl(
                                       id: 'qa.filters.trust_switch',
                                       label: l10n.filterEnableTrust,
@@ -1471,6 +1544,59 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                                       ).colorScheme.primary,
                                     ),
                                   ),
+                                // The saved trust filters could not be read:
+                                // the controls above are defaults, not what
+                                // the member saved. Say so and offer a retry
+                                // (a failed Apply explains itself instead).
+                                if (trustState.error != null &&
+                                    !trustState.isLoading &&
+                                    !trustState.isSaving &&
+                                    !_trustSaveFailed)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 8),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.error_outline_rounded,
+                                          size: 18,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.error,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            localizeTrustFilterError(
+                                                  l10n,
+                                                  trustState.error,
+                                                ) ??
+                                                l10n.matchesTrustErrorLoad,
+                                            key: const ValueKey(
+                                              'qa.filters.trust_load_error',
+                                            ),
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .bodySmall
+                                                ?.copyWith(
+                                                  color: Theme.of(
+                                                    context,
+                                                  ).colorScheme.error,
+                                                ),
+                                          ),
+                                        ),
+                                        QaControl(
+                                          id: 'qa.filters.trust_retry',
+                                          child: TextButton(
+                                            key: const ValueKey(
+                                              'qa.filters.trust_retry',
+                                            ),
+                                            onPressed: trustNotifier.load,
+                                            child: Text(l10n.commonRetry),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                               ],
                             ),
                           ),
@@ -1507,13 +1633,9 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                                             _filterPartyLoverOnly = false;
                                             _filterHookupOnly = false;
                                           });
-                                          ref
-                                              .read(
-                                                swipeNotifierProvider.notifier,
-                                              )
-                                              .setManualFilters(
-                                                const <String, String>{},
-                                              );
+                                          // Only the controls: like every
+                                          // other edit, Apply puts it in
+                                          // effect and Close drops it.
                                           setSheetState(() {
                                             trustEnabled = false;
                                             minimumActiveBadges = 0;
@@ -1537,6 +1659,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                                       : () async {
                                           final messenger =
                                               ScaffoldMessenger.of(context);
+                                          _trustSaveFailed = false;
                                           await trustNotifier.save(
                                             enabled: trustEnabled,
                                             minimumActiveBadges:
@@ -1549,15 +1672,22 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
                                             trustFilterNotifierProvider,
                                           );
                                           if (latestTrust.error != null) {
+                                            _trustSaveFailed = true;
+                                            // The client fallback is an
+                                            // English code; show it in the
+                                            // member's language.
+                                            final message =
+                                                localizeTrustFilterError(
+                                                  l10n,
+                                                  latestTrust.error,
+                                                ) ??
+                                                l10n.matchesTrustErrorSave;
                                             messenger.showSnackBar(
-                                              SnackBar(
-                                                content: Text(
-                                                  latestTrust.error!,
-                                                ),
-                                              ),
+                                              SnackBar(content: Text(message)),
                                             );
                                             return;
                                           }
+                                          _filtersApplied = true;
                                           ref
                                               .read(
                                                 swipeNotifierProvider.notifier,
@@ -1792,6 +1922,25 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
       .replaceAll(RegExp(r'^_|_$'), '');
 }
 
+/// The Discover filter values the sheet edits, kept to undo unapplied edits.
+typedef _FilterValues = ({
+  bool seeded,
+  RangeValues age,
+  double distance,
+  bool verifiedOnly,
+  String? religion,
+  String? motherTongue,
+  String? country,
+  String? state,
+  String? city,
+  String? relationshipStatus,
+  String? smoking,
+  String? drinking,
+  String? personalityType,
+  bool partyLoverOnly,
+  bool hookupOnly,
+});
+
 /// The unread-notifications badge on a bottom-navigation icon.
 ///
 /// Shows at most "99+", sits inside the tab (the plain Badge anchored past
@@ -1805,23 +1954,78 @@ class UnreadNavBadge extends StatelessWidget {
 
   static String labelFor(int count) => count > 99 ? '99+' : '$count';
 
+  /// How far past the glyph's centre the badge's end edge sits.
+  static const double endPastCentre = 14;
+
   @override
   Widget build(BuildContext context) {
     if (count <= 0) {
       return child;
     }
     final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final label = labelFor(count);
-    // Pull the badge back over the icon by roughly its own width, so its
-    // end edge stays inside the icon (and the tab) for 1, 2 or 3 characters.
-    final inset = 10.0 + 7.0 * label.length;
+    final rtl = Directionality.of(context) == TextDirection.rtl;
+    // The badge's end edge is pinned just past the glyph and it grows back
+    // over the glyph, so "3", "53" and "99+" all end in the same place: inside
+    // the tab and clear of the bar's rounded corner, even when a look turns
+    // the selected icon into a wide pill on the last tab (2026-10-03: "53"
+    // sat at the pill's corner and the bar's curve cut it off). Large text
+    // sizes are capped so the badge cannot grow into the corner either.
+    final pill = MediaQuery.withClampedTextScaling(
+      maxScaleFactor: 1.3,
+      child: DecoratedBox(
+        key: const ValueKey('qa.nav.unread_badge_pill'),
+        decoration: ShapeDecoration(
+          color: scheme.error,
+          shape: StadiumBorder(
+            side: BorderSide(color: scheme.surface, width: 1.5),
+          ),
+        ),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minWidth: 19, minHeight: 19),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 5.5),
+            child: Center(
+              widthFactor: 1,
+              child: Text(
+                label,
+                key: const ValueKey('qa.nav.unread_badge'),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: scheme.onError,
+                  fontWeight: FontWeight.w700,
+                  height: 1,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
     return Semantics(
       value: l10n.notificationsInboxUnread(count),
-      child: Badge(
-        label: Text(label, key: const ValueKey('qa.nav.unread_badge')),
-        alignment: AlignmentDirectional.topEnd,
-        offset: Offset(-inset, -2),
-        child: child,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          child,
+          Positioned.fill(
+            child: OverflowBox(
+              minWidth: 0,
+              maxWidth: double.infinity,
+              minHeight: 0,
+              maxHeight: double.infinity,
+              alignment: Alignment.topCenter,
+              child: Transform.translate(
+                offset: Offset(rtl ? -endPastCentre : endPastCentre, -3),
+                child: FractionalTranslation(
+                  translation: Offset(rtl ? 0.5 : -0.5, 0),
+                  child: pill,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

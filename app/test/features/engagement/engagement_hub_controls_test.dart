@@ -1,3 +1,6 @@
+// Case tags stay whole on one line for the static coverage scanner.
+// ignore_for_file: lines_longer_than_80_chars
+
 // Engage hub: every tile opens its screen (and that screen starts loading
 // from the BFF), runtime flags hide gated tiles, and the hub renders in every
 // locale.
@@ -71,107 +74,107 @@ void main() {
         );
   });
 
-  for (final (tile, title, screen, firstRequest, tag) in [
+  for (final (tile, title, screen, firstRequest, slug) in [
     (
       'blog',
       'Blog · Open Chapters',
       BlogScreen,
       null,
-      '[case:engagement.engagement_hub.blog_open_chapters.action]',
+      'blog_open_chapters',
     ),
     (
       'photo_themes',
       'Photo Themes',
       PhotoThemesScreen,
       null,
-      '[case:engagement.engagement_hub.photo_themes.action]',
+      'photo_themes',
     ),
     (
       'clubs',
       'Book & Film Clubs',
       ClubsScreen,
       null,
-      '[case:engagement.engagement_hub.book_film_clubs.action]',
+      'book_film_clubs',
     ),
     (
       'city_pilot',
       'The City Pilot',
       CityPilotScreen,
       null,
-      '[case:engagement.engagement_hub.the_city_pilot.action]',
+      'the_city_pilot',
     ),
     (
       'daily_prompt',
       'Daily Prompt Streak',
       DailyPromptScreen,
       null,
-      '[case:engagement.engagement_hub.daily_prompt_streak.action]',
+      'daily_prompt_streak',
     ),
     (
       'voice_icebreakers',
       'Guided Voice Icebreakers',
       VoiceIcebreakersScreen,
       '/engagement/voice-icebreakers/prompts',
-      '[case:engagement.engagement_hub.guided_voice_icebreakers.action]',
+      'guided_voice_icebreakers',
     ),
     (
       'circles',
       'Local Circle Challenges',
       CircleChallengesScreen,
       '/engagement/circles/circle-blr-books/challenge',
-      '[case:engagement.engagement_hub.local_circle_challenges.action]',
+      'local_circle_challenges',
     ),
     (
       'coffee_polls',
       'Group Coffee Poll',
       GroupCoffeePollsScreen,
       '/engagement/group-coffee-polls',
-      '[case:engagement.engagement_hub.group_coffee_poll.action]',
+      'group_coffee_poll',
     ),
     (
       'groups',
       'Groups',
       GroupsScreen,
       null,
-      '[case:engagement.engagement_hub.groups.action]',
+      'groups',
     ),
     (
       'conversation_rooms',
       'Conversation Rooms',
       ConversationRoomsScreen,
       null,
-      '[case:engagement.engagement_hub.conversation_rooms.action]',
+      'conversation_rooms',
     ),
     (
       'friends',
       'Friends & Introductions',
       FriendsScreen,
       null,
-      '[case:engagement.engagement_hub.friends_introductions.action]',
+      'friends_introductions',
     ),
     (
       'level_xp',
       'Level & XP',
       LevelProgressionScreen,
       '/progression/me',
-      '[case:engagement.engagement_hub.level_xp.action]',
+      'level_xp',
     ),
     (
       'trust_badges',
       'Trust Badges',
       TrustBadgesScreen,
       '/users/me/trust-badges',
-      '[case:engagement.engagement_hub.trust_badges.action]',
+      'trust_badges',
     ),
     (
       'trust_filters',
       'Trust Filters',
       TrustFilterScreen,
       '/discovery/me/filters/trust',
-      '[case:engagement.engagement_hub.trust_filters.action]',
+      'trust_filters',
     ),
   ]) {
-    testWidgets('$title tile opens $screen and Back returns to the hub $tag', (
+    testWidgets('$title tile opens $screen and Back returns to the hub [case:engagement.engagement_hub.$slug.action]', (
       tester,
     ) async {
       final api = _api();

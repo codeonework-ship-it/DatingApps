@@ -202,7 +202,12 @@ class SupportTicketCard extends ConsumerWidget {
                         ),
                       ),
                     ),
-                    SupportStatusChip(status: ticket.memberStatus),
+                    const SizedBox(width: 8),
+                    // A long status ("En attente de votre réponse") wraps
+                    // inside its pill instead of pushing the row off screen.
+                    Flexible(
+                      child: SupportStatusChip(status: ticket.memberStatus),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 8),

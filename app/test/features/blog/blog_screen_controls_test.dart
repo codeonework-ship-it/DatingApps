@@ -15,6 +15,7 @@ import 'package:verified_dating_app/features/engagement/screens/level_progressio
 import 'package:verified_dating_app/l10n/app_localizations.dart';
 
 import '../../support/qa_api.dart';
+import '../../support/qa_screen_checks.dart';
 
 final AppLocalizations _en = qaL10n(const Locale('en'));
 
@@ -278,9 +279,7 @@ void main() {
     });
 
     testWidgets('a feed that cannot load explains and Try again reloads '
-        '[case:blog.blog.blog_retry_retry.action]', (
-      tester,
-    ) async {
+        '[case:blog.blog.blog_retry_retry.action]', (tester) async {
       var loads = 0;
       final api = _api()
         ..on('GET /blog/posts', (call) {
@@ -422,55 +421,63 @@ void main() {
       expect(find.text(_en.blogLatest('Rain on the terrace')), findsOneWidget);
     });
 
-    for (final (key, section, tag) in [
-      (
-        'qa.blog.connections',
-        'responses',
-        '[case:blog.blog.private_responses_sharing_and_no.action]',
-      ),
-      (
-        'qa.blog.private_responses',
-        'responses',
-        '[case:blog.blog.private_responses.action]',
-      ),
-      (
-        'qa.blog.shared_links',
-        'publications',
-        '[case:blog.blog.shared_links.action]',
-      ),
-      (
-        'qa.blog.review_notices',
-        'notices',
-        '[case:blog.blog.review_notices.action]',
-      ),
-    ]) {
-      testWidgets('$key opens the $section section $tag', (tester) async {
-        final api = _api()..json('GET /blog/$section', {section: <dynamic>[]});
-        await pumpQa(tester, api, const BlogScreen());
-        await _tap(tester, find.byKey(ValueKey(key)));
-        expect(find.byType(BlogConnectionsScreen), findsOneWidget);
-        expect(api.sent('GET', '/blog/$section'), hasLength(1));
-        final label = switch (section) {
-          'responses' => _en.blogPrivateResponses,
-          'publications' => _en.blogSharedLinks,
-          _ => _en.blogReviewNotices,
-        };
-        expect(
-          tester
-              .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, label))
-              .selected,
-          isTrue,
-        );
-        expect(
-          find.text(switch (section) {
-            'responses' => _en.blogResponsesEmpty,
-            'publications' => _en.blogPublicationsEmpty,
-            _ => _en.blogNoticesEmpty,
-          }),
-          findsOneWidget,
-        );
-      });
+    /// Taps the control behind [key] and checks Connections opened on
+    /// [section], loaded from the server.
+    Future<void> opensSection(
+      WidgetTester tester,
+      String key,
+      String section,
+    ) async {
+      final api = _api()..json('GET /blog/$section', {section: <dynamic>[]});
+      await pumpQa(tester, api, const BlogScreen());
+      await _tap(tester, find.byKey(ValueKey(key)));
+      expect(find.byType(BlogConnectionsScreen), findsOneWidget);
+      expect(api.sent('GET', '/blog/$section'), hasLength(1));
+      final label = switch (section) {
+        'responses' => _en.blogPrivateResponses,
+        'publications' => _en.blogSharedLinks,
+        _ => _en.blogReviewNotices,
+      };
+      expect(
+        tester
+            .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, label))
+            .selected,
+        isTrue,
+      );
+      expect(
+        find.text(switch (section) {
+          'responses' => _en.blogResponsesEmpty,
+          'publications' => _en.blogPublicationsEmpty,
+          _ => _en.blogNoticesEmpty,
+        }),
+        findsOneWidget,
+      );
     }
+
+    testWidgets(
+      'Private responses, sharing and notices opens Connections on the '
+      'responses [case:blog.blog.blog_connections.action]',
+      (tester) => opensSection(tester, 'qa.blog.connections', 'responses'),
+    );
+
+    testWidgets(
+      'Private responses opens Connections on the responses '
+      '[case:blog.blog.blog_private_responses.action]',
+      (tester) =>
+          opensSection(tester, 'qa.blog.private_responses', 'responses'),
+    );
+
+    testWidgets(
+      'Shared links opens Connections on the shared links '
+      '[case:blog.blog.blog_shared_links.action]',
+      (tester) => opensSection(tester, 'qa.blog.shared_links', 'publications'),
+    );
+
+    testWidgets(
+      'Review notices opens Connections on the notices '
+      '[case:blog.blog.blog_review_notices.action]',
+      (tester) => opensSection(tester, 'qa.blog.review_notices', 'notices'),
+    );
 
     testWidgets('Photo unavailable · Retry loads the photo again '
         '[case:blog.blog.blog_photo_retry_x.action]', (tester) async {
@@ -551,9 +558,7 @@ void main() {
     });
 
     testWidgets('an unavailable chapter explains and Try again loads it '
-        '[case:blog.blog.blog_retry_retry_2.action]', (
-      tester,
-    ) async {
+        '[case:blog.blog.blog_retry_retry_2.action]', (tester) async {
       var loads = 0;
       final api = _api(feed: [_post('p1', title: 'Rain on the terrace')])
         ..on('GET /blog/posts/*', (call) {
@@ -680,36 +685,37 @@ void main() {
   });
 
   group('delete, report and block', () {
-    testWidgets('Delete asks first; Cancel keeps the chapter and sends nothing '
-        '[case:blog.blog.cancel.action] [case:blog.blog.blog_confirm_cancel.action]', (
-      tester,
-    ) async {
-      final api = _api(
-        feed: [_post('p1', author: 'me', name: 'Me')],
-      );
-      await _openFromFeed(tester, api, 'p1');
-      await _tap(tester, find.byKey(const ValueKey('qa.blog.detail.delete')));
-      expect(find.byType(AlertDialog), findsOneWidget);
-      expect(find.text(_en.blogDeleteChapterTitle), findsOneWidget);
-      expect(find.text(_en.blogDeleteChapterMessage), findsOneWidget);
-      expect(
-        find.byKey(const ValueKey('qa.blog.confirm.cancel')),
-        findsOneWidget,
-      );
-      expect(
-        find.descendant(
-          of: find.byKey(const ValueKey('qa.blog.confirm.ok')),
-          matching: find.text(_en.blogDeleteChapter),
-        ),
-        findsOneWidget,
-      );
+    testWidgets(
+      'Delete asks first; Cancel keeps the chapter and sends nothing '
+      '[case:blog.blog.cancel.action] [case:blog.blog.blog_confirm_cancel.action]',
+      (tester) async {
+        final api = _api(
+          feed: [_post('p1', author: 'me', name: 'Me')],
+        );
+        await _openFromFeed(tester, api, 'p1');
+        await _tap(tester, find.byKey(const ValueKey('qa.blog.detail.delete')));
+        expect(find.byType(AlertDialog), findsOneWidget);
+        expect(find.text(_en.blogDeleteChapterTitle), findsOneWidget);
+        expect(find.text(_en.blogDeleteChapterMessage), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('qa.blog.confirm.cancel')),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: find.byKey(const ValueKey('qa.blog.confirm.ok')),
+            matching: find.text(_en.blogDeleteChapter),
+          ),
+          findsOneWidget,
+        );
 
-      await tester.tap(find.byKey(const ValueKey('qa.blog.confirm.cancel')));
-      await qaSettle(tester);
-      expect(find.byType(AlertDialog), findsNothing);
-      expect(find.byType(BlogDetailScreen), findsOneWidget);
-      expect(_commands(api), isEmpty);
-    });
+        await tester.tap(find.byKey(const ValueKey('qa.blog.confirm.cancel')));
+        await qaSettle(tester);
+        expect(find.byType(AlertDialog), findsNothing);
+        expect(find.byType(BlogDetailScreen), findsOneWidget);
+        expect(_commands(api), isEmpty);
+      },
+    );
 
     testWidgets(
       'Delete chapter deletes this version and returns to the refreshed feed '
@@ -790,9 +796,7 @@ void main() {
 
     testWidgets('Report chapter sends the reason and details, then confirms '
         '[case:blog.blog.blog_detail_report.action] '
-        '[case:blog.blog.blog_detail_report_submit.action]', (
-      tester,
-    ) async {
+        '[case:blog.blog.blog_detail_report_submit.action]', (tester) async {
       final api = _api(feed: [_post('p1')])
         ..json('POST /blog/posts/*/report', {
           'report': {'id': 'r1'},
@@ -986,5 +990,78 @@ void main() {
       expect(find.text(l10n.blogInvitationWhatNext), findsOneWidget);
       expect(find.text(l10n.blogRespondPrivately), findsOneWidget);
     }
+  });
+
+  group('screen quality', () {
+    QaApi feedApi() => _api(
+      feed: [
+        _post('p1', invitation: 'what_next'),
+        _post(
+          'p2',
+          name: 'Ana Maria de los Santos',
+          title: 'A very long chapter title that has to wrap on a small phone',
+        ),
+      ],
+    );
+
+    testWidgets('the feed lays out with chapters on phone and tablet, both '
+        'themes [case:blog.blog.layout_matrix]', (tester) async {
+      await qaExpectLaysOutEverywhere(
+        tester,
+        feedApi(),
+        BlogScreen.new,
+        loaded: find.byKey(const ValueKey('qa.blog.post.p2')),
+      );
+    });
+
+    testWidgets('the feed meets tap-target, label and contrast guidelines '
+        '[case:blog.blog.a11y_guidelines]', (tester) async {
+      await qaExpectMeetsA11yGuidelines(
+        tester,
+        feedApi(),
+        BlogScreen.new,
+        loaded: find.text(_en.blogWriteChapter),
+      );
+    });
+
+    testWidgets('the feed, pushed, has a Back that returns '
+        '[case:blog.blog.back_affordance]', (tester) async {
+      await qaExpectBackReturns(
+        tester,
+        feedApi(),
+        BlogScreen.new,
+        screen: BlogScreen,
+      );
+    });
+
+    testWidgets('a chapter page lays out on phone and tablet, both themes '
+        '[case:blog.blog_detail.layout_matrix]', (tester) async {
+      await qaExpectLaysOutEverywhere(
+        tester,
+        feedApi(),
+        () => const BlogDetailScreen(id: 'p1'),
+        loaded: find.text(_en.blogRespondPrivately),
+      );
+    });
+
+    testWidgets('a chapter page meets tap-target, label and contrast '
+        'guidelines [case:blog.blog_detail.a11y_guidelines]', (tester) async {
+      await qaExpectMeetsA11yGuidelines(
+        tester,
+        feedApi(),
+        () => const BlogDetailScreen(id: 'p1'),
+        loaded: find.text('Chapter p1'),
+      );
+    });
+
+    testWidgets('a chapter page, pushed, has a Back that returns '
+        '[case:blog.blog_detail.back_affordance]', (tester) async {
+      await qaExpectBackReturns(
+        tester,
+        feedApi(),
+        () => const BlogDetailScreen(id: 'p1'),
+        screen: BlogDetailScreen,
+      );
+    });
   });
 }

@@ -15,6 +15,7 @@ import 'package:verified_dating_app/features/auth/screens/auth_screen.dart';
 import 'package:verified_dating_app/features/auth/screens/signup_screen.dart';
 
 import '../../support/qa_api.dart';
+import '../../support/qa_screen_quality.dart';
 
 final _en = qaL10n(const Locale('en'));
 
@@ -536,5 +537,49 @@ void main() {
       );
       expect(tester.takeException(), isNull, reason: '$locale');
     }
+  });
+
+  group('screen quality', () {
+    testWidgets('Sign-up lays out on phone and tablet in both themes '
+        '[case:auth.signup.layout_matrix]', (tester) async {
+      await qaExpectLaysOutOnPhoneAndTablet(
+        tester,
+        api: QaApi.new,
+        build: SignupScreen.new,
+        extra: () => [_signedOut],
+        loaded: () => _key('qa.signup.create_account_button'),
+      );
+      // The friend-only variant has a different form.
+      await qaExpectLaysOutOnPhoneAndTablet(
+        tester,
+        api: QaApi.new,
+        build: () => const SignupScreen(introducer: true),
+        extra: () => [_signedOut],
+        loaded: () => find.text(_en.signupCreateFriendAccount),
+      );
+    });
+
+    testWidgets('Sign-up meets tap-target, label and contrast guidelines '
+        '[case:auth.signup.a11y_guidelines]', (tester) async {
+      await qaExpectMeetsA11yGuidelines(
+        tester,
+        api: QaApi.new,
+        build: SignupScreen.new,
+        extra: () => [_signedOut],
+        loaded: () => _key('qa.signup.create_account_button'),
+      );
+    });
+
+    testWidgets('Back on sign-up returns to the opener '
+        '[case:auth.signup.back_affordance]', (tester) async {
+      await qaExpectBackReturnsToOpener(
+        tester,
+        api: QaApi(),
+        build: SignupScreen.new,
+        extra: [_signedOut],
+        screen: find.byType(SignupScreen),
+        loaded: _key('qa.signup.create_account_button'),
+      );
+    });
   });
 }

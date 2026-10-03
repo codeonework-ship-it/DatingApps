@@ -93,7 +93,14 @@ class _SupportTicketThreadScreenState
       ref.invalidate(supportTicketsProvider);
       _scrollToEnd();
     } on Object catch (error) {
-      if (mounted) {
+      if (!mounted) {
+        return;
+      }
+      if (_thread != null) {
+        // A refresh of a thread already on screen: keep showing it and say
+        // the update did not come through, rather than failing silently.
+        _snack(supportErrorMessage(AppLocalizations.of(context), error));
+      } else {
         setState(() => _loadError = error);
       }
     } finally {
@@ -312,6 +319,7 @@ class _SupportTicketThreadScreenState
     } else {
       body = Column(
         children: [
+          const _PinnedBack(),
           Expanded(
             child: RefreshIndicator(
               onRefresh: _load,
@@ -355,6 +363,22 @@ class _SupportTicketThreadScreenState
   }
 }
 
+/// The way back, pinned above the conversation: the thread opens scrolled
+/// to its newest message, so a back button in the scrolling header would be
+/// out of sight.
+class _PinnedBack extends StatelessWidget {
+  const _PinnedBack();
+
+  @override
+  Widget build(BuildContext context) => const Align(
+    alignment: AlignmentDirectional.centerStart,
+    child: Padding(
+      padding: EdgeInsetsDirectional.only(start: 8, top: 4),
+      child: BackButton(key: Key('support_thread_back')),
+    ),
+  );
+}
+
 class _ThreadBody extends StatelessWidget {
   const _ThreadBody({
     required this.thread,
@@ -393,11 +417,7 @@ class _ThreadBody extends StatelessWidget {
           physics: const AlwaysScrollableScrollPhysics(),
           padding: EdgeInsets.fromLTRB(gutter, 12, gutter, 24),
           children: [
-            ConnectPageHeader(
-              leading: const BackButton(),
-              eyebrow: ticket.reference,
-              title: ticket.subject,
-            ),
+            ConnectPageHeader(eyebrow: ticket.reference, title: ticket.subject),
             const SizedBox(height: 12),
             Wrap(
               spacing: 8,

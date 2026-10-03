@@ -143,3 +143,19 @@ test('Pass the Chapter: Share passes the remix link, with a copy fallback [case:
   expect(Object.fromEntries(copied.searchParams)).toEqual({scene: first.id, beginning: '1', surprise: '0'});
   expect(watch.problems()).toEqual([]);
 });
+
+test('Pass the Chapter: the studio loads with a language and one h1 while the catalogue is pending [case:site.chapter.idle_state]', async ({page}) => {
+  // Hold the catalogue so the page is asserted in its idle (loading) state.
+  let release;
+  const held = new Promise(resolve => { release = resolve; });
+  await page.route('**/v1/chapters/catalogue', async route => { await held; await route.continue(); });
+  await page.goto('/chapter.html');
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+  await expect(page.locator('h1')).toHaveCount(1);
+  await expect(page.locator('h1')).toHaveText(/What happens\s*next is yours\./);
+  await expect(page.locator('#status')).toHaveText('Opening your chapter…');
+  await expect(page.locator('#studio')).toBeHidden();
+  release();
+  await expect(page.locator('#studio')).toBeVisible();
+  await expect(page.locator('h1')).toHaveCount(1);
+});

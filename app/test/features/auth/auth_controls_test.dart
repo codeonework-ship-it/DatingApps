@@ -18,6 +18,7 @@ import 'package:verified_dating_app/features/auth/screens/welcome_screen.dart';
 import 'package:verified_dating_app/features/common/screens/main_navigation_screen.dart';
 
 import '../../support/qa_api.dart';
+import '../../support/qa_screen_quality.dart';
 
 final _en = qaL10n(const Locale('en'));
 
@@ -685,7 +686,8 @@ void main() {
     );
 
     testWidgets('Show password toggles the new password '
-        '[case:auth.account_recovery.recovery_new_password_input.action]', (
+        '[case:auth.account_recovery.recovery_new_password_input.action] '
+        '[case:auth.account_recovery.recovery_password_visibility.action]', (
       tester,
     ) async {
       await open(tester, recoveryApi());
@@ -800,4 +802,74 @@ void main() {
       }
     });
   });
+
+  group('screen quality', () {
+    final screens = <String, (Widget Function(), String)>{
+      'Welcome': (WelcomeScreen.new, 'qa.welcome.signup_button'),
+      'Sign in': (AuthScreen.new, 'qa.signin.login_button'),
+      'Account recovery': (
+        () => const AccountRecoveryScreen(initialUsername: 'Member_One'),
+        'qa.recovery.submit',
+      ),
+    };
+    testWidgets('Welcome lays out on phone and tablet in both themes '
+        '[case:auth.welcome.layout_matrix]', (tester) async {
+      await _laysOut(tester, screens['Welcome']!);
+    });
+    testWidgets('Welcome meets tap-target, label and contrast guidelines '
+        '[case:auth.welcome.a11y_guidelines]', (tester) async {
+      await _meetsGuidelines(tester, screens['Welcome']!);
+    });
+    testWidgets('Sign in lays out on phone and tablet in both themes '
+        '[case:auth.auth.layout_matrix]', (tester) async {
+      await _laysOut(tester, screens['Sign in']!);
+    });
+    testWidgets('Sign in meets tap-target, label and contrast guidelines '
+        '[case:auth.auth.a11y_guidelines]', (tester) async {
+      await _meetsGuidelines(tester, screens['Sign in']!);
+    });
+    testWidgets('Account recovery lays out on phone and tablet in both themes '
+        '[case:auth.account_recovery.layout_matrix]', (tester) async {
+      await _laysOut(tester, screens['Account recovery']!);
+    });
+    testWidgets('Account recovery meets tap-target, label and contrast '
+        'guidelines [case:auth.account_recovery.a11y_guidelines]', (
+      tester,
+    ) async {
+      await _meetsGuidelines(tester, screens['Account recovery']!);
+    });
+    testWidgets('Back on account recovery returns to sign in '
+        '[case:auth.account_recovery.back_affordance]', (tester) async {
+      await qaExpectBackReturnsToOpener(
+        tester,
+        api: QaApi(),
+        build: () => const AccountRecoveryScreen(initialUsername: 'Member_One'),
+        extra: [_signedOut],
+        screen: find.byType(AccountRecoveryScreen),
+        loaded: _key('qa.recovery.submit'),
+      );
+    });
+  });
 }
+
+Future<void> _laysOut(
+  WidgetTester tester,
+  (Widget Function(), String) screen,
+) => qaExpectLaysOutOnPhoneAndTablet(
+  tester,
+  api: QaApi.new,
+  build: screen.$1,
+  extra: () => [_signedOut],
+  loaded: () => _key(screen.$2),
+);
+
+Future<void> _meetsGuidelines(
+  WidgetTester tester,
+  (Widget Function(), String) screen,
+) => qaExpectMeetsA11yGuidelines(
+  tester,
+  api: QaApi.new,
+  build: screen.$1,
+  extra: () => [_signedOut],
+  loaded: () => _key(screen.$2),
+);

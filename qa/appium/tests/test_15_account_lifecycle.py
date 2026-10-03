@@ -54,6 +54,7 @@ def test_account_data_screen_shows_every_journey(app):
 
 @pytest.mark.requires_appium
 @pytest.mark.account_lifecycle
+@pytest.mark.case("journeys.e2e.account_lifecycle")
 def test_pause_hides_profile_and_can_be_undone(app, api_client, qa_user_id):
     app.sign_in_existing_user()
     try:
@@ -80,6 +81,7 @@ def test_pause_hides_profile_and_can_be_undone(app, api_client, qa_user_id):
 
 @pytest.mark.requires_appium
 @pytest.mark.account_lifecycle
+@pytest.mark.case("journeys.e2e.account_lifecycle")
 def test_export_produces_the_members_own_data(app, api_client, qa_user_id):
     app.sign_in_existing_user()
     _open_account_data(app)
@@ -122,6 +124,7 @@ def test_delete_requires_confirmation_and_offers_hiding(app):
 
 @pytest.mark.requires_appium
 @pytest.mark.account_lifecycle
+@pytest.mark.case("journeys.e2e.account_lifecycle")
 def test_scheduled_deletion_can_be_cancelled(app, api_client, qa_user_id):
     """The grace window is the member's recovery path, so it is exercised."""
     app.sign_in_existing_user()

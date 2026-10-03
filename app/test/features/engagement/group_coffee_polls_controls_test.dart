@@ -1,3 +1,6 @@
+// Case tags stay whole on one line for the static coverage scanner.
+// ignore_for_file: lines_longer_than_80_chars
+
 // Group Coffee Polls: create, vote, finalize, refresh and every form field,
 // asserted against the recording fake BFF (request body, list reload and
 // what the member sees).
@@ -299,34 +302,31 @@ void main() {
   });
 
   group('option fields', () {
-    for (final (name, field, bodyKey, typed, actionTag, validationTag) in [
+    for (final (name, field, bodyKey, typed, slug) in [
       (
         'Day',
         'qa.coffee.option1.day',
         'day',
         'Friday',
-        '[case:engagement.group_coffee_polls.day_input.action]',
-        '[case:engagement.group_coffee_polls.day_input.validation]',
+        'day',
       ),
       (
         'Time window',
         'qa.coffee.option1.time',
         'time_window',
         '18:00-19:30',
-        '[case:engagement.group_coffee_polls.time_window_input.action]',
-        '[case:engagement.group_coffee_polls.time_window_input.validation]',
+        'time',
       ),
       (
         'Neighborhood',
         'qa.coffee.option1.area',
         'neighborhood',
         'Jayanagar',
-        '[case:engagement.group_coffee_polls.neighborhood_input.action]',
-        '[case:engagement.group_coffee_polls.neighborhood_input.validation]',
+        'area',
       ),
     ]) {
       testWidgets(
-        '$name field edits option 1 in the create request $actionTag',
+        '$name field edits option 1 in the create request [case:engagement.group_coffee_polls.x_${slug}_input.action]',
         (tester) async {
           final api = _api()..json('POST $_list', {'poll': _poll()});
           await _open(tester, api);
@@ -344,7 +344,7 @@ void main() {
       );
 
       testWidgets(
-        '$name blank is refused by the server with its message and kept; emoji/RTL is preserved $validationTag',
+        '$name blank is refused by the server with its message and kept; emoji/RTL is preserved [case:engagement.group_coffee_polls.x_${slug}_input.validation]',
         (tester) async {
           const unicode = 'שישי 🌙 ليلة';
           final api = _api()
@@ -382,6 +382,15 @@ void main() {
             findsOneWidget,
           );
           expect(qaFieldText(tester, find.byKey(key)), '   ');
+
+          // Surrounding spaces are trimmed before sending.
+          await _type(tester, key, '  $typed  ');
+          await _tap(tester, _create);
+          expect(
+            ((api.sent('POST', _list).last.body['options'] as List).first
+                as Map)[bodyKey],
+            typed,
+          );
 
           await _type(tester, key, unicode);
           await _tap(tester, _create);

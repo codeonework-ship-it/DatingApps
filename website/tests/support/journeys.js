@@ -11,6 +11,7 @@
 import {randomBytes} from 'node:crypto';
 import {crc32, deflateSync} from 'node:zlib';
 import {expect} from '@playwright/test';
+import {qaId} from './qa.js';
 
 const BFF = 'http://127.0.0.1:18081/v1';
 
@@ -164,7 +165,7 @@ export async function signInAs(page, member) {
   const password = page.getByRole('textbox', {name: 'Password', exact: true});
   await typeInto(page, password, member.password);
   await password.press('Tab');
-  await page.getByRole('button', {name: 'qa.signin.login_button', exact: true}).click();
+  await qaId(page, 'qa.signin.login_button').click();
   const response = await login;
   expect(response.status()).toBe(200);
   await expect(page).toHaveURL(/#\/discover$/, {timeout: 30000});

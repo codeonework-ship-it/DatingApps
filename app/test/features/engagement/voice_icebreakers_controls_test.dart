@@ -19,6 +19,7 @@ import 'package:verified_dating_app/features/engagement/providers/voice_audio_de
 import 'package:verified_dating_app/features/engagement/screens/voice_icebreakers_screen.dart';
 
 import '../../support/qa_api.dart';
+import '../../support/qa_screen_checks.dart';
 import 'engagement_qa.dart';
 
 const _record = ValueKey('qa.voice.recording_button');
@@ -224,18 +225,17 @@ Future<void> _type(WidgetTester tester, String text) async {
   await tester.pump();
 }
 
-/// A widget test that always unmounts the screen and lets the recorder and
-/// player finish disposing: the record plugin serialises every call behind
-/// one global lock, so a dispose left pending would stall the next test.
-void _voiceTest(String description, WidgetTesterCallback body) {
-  testWidgets(description, (tester) async {
-    await body(tester);
-    await qaUnmount(tester);
-    for (var i = 0; i < 10; i++) {
-      await tester.pump(const Duration(milliseconds: 10));
-    }
-  });
-}
+/// Wraps a widget test body so it always unmounts the screen and lets the
+/// recorder and player finish disposing: the record plugin serialises every
+/// call behind one global lock, so a dispose left pending would stall the
+/// next test.
+WidgetTesterCallback _voice(WidgetTesterCallback body) => (tester) async {
+  await body(tester);
+  await qaUnmount(tester);
+  for (var i = 0; i < 10; i++) {
+    await tester.pump(const Duration(milliseconds: 10));
+  }
+};
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -249,9 +249,9 @@ void main() {
   });
 
   group('recording', () {
-    _voiceTest(
+    testWidgets(
       'Record starts the microphone, counts seconds, and Stop keeps a clip ready to share [case:engagement.voice_icebreakers.voice_recording_button.action]',
-      (tester) async {
+      _voice((tester) async {
         final api = _api();
         await _open(tester, api);
         expect(_recordLabel(tester), en.engagementVoiceRecord);
@@ -284,12 +284,12 @@ void main() {
           reason: 'no transcript yet',
         );
         expect(api.writes, isEmpty);
-      },
+      }),
     );
 
-    _voiceTest(
+    testWidgets(
       'recording stops by itself at 45 seconds [case:engagement.voice_icebreakers.voice_recording_button.action]',
-      (tester) async {
+      _voice((tester) async {
         await _open(tester, _api());
         await _recordClip(tester, 45);
         await tester.pump();
@@ -297,18 +297,65 @@ void main() {
         expect(_recordLabel(tester), en.engagementVoiceRecordAgain(45));
         await tester.pump(const Duration(seconds: 5));
         expect(_recordLabel(tester), en.engagementVoiceRecordAgain(45));
-      },
+      }),
     );
 
-    _voiceTest(
+    testWidgets(
       'a clip under 20 seconds asks for a longer one and cannot be shared [case:engagement.voice_icebreakers.voice_recording_button.action]',
-      (tester) async {
+      _voice((tester) async {
         await _open(tester, _api());
         await _type(tester, 'Hello there');
         await _recordClip(tester, 8);
         expect(find.text(en.engagementVoiceRecordingShort), findsOneWidget);
         expect(qaEnabled(tester, find.byKey(_share)), isFalse);
-      },
+      }),
+    );
+
+    testWidgets(
+      'Record again drops the kept clip, records a new one and the new one is what is shared [case:engagement.voice_icebreakers.voice_recording_button.action]',
+      _voice((tester) async {
+        final api = _api()
+          ..json('POST /engagement/voice-icebreakers/start', {
+            'voice_icebreaker': {'id': 'vi-9'},
+          })
+          ..json('POST /engagement/voice-icebreakers/vi-9/send', {
+            'voice_icebreaker': _intro(id: 'vi-9', sender: 'me'),
+          });
+        await _open(tester, api);
+        await _type(tester, 'Hello there');
+        await _recordClip(tester, 25);
+        expect(_recordLabel(tester), en.engagementVoiceRecordAgain(25));
+        expect(find.byKey(_discard), findsOneWidget);
+        expect(qaEnabled(tester, find.byKey(_share)), isTrue);
+        expect(_device.recorder.where((m) => m == 'start'), hasLength(1));
+
+        // Record again: the 25 s clip is gone and the microphone runs again.
+        await _tap(tester, _record);
+        expect(_device.recorder.where((m) => m == 'start'), hasLength(2));
+        expect(_recordLabel(tester), en.engagementVoiceStop(0));
+        expect(find.byKey(_discard), findsNothing);
+        expect(find.text(en.engagementVoiceRecordingReady), findsNothing);
+        expect(qaEnabled(tester, find.byKey(_share)), isFalse);
+        expect(qaFieldText(tester, find.byKey(_transcript)), 'Hello there');
+
+        for (var i = 0; i < 31; i++) {
+          await tester.pump(const Duration(seconds: 1));
+        }
+        await _tap(tester, _record);
+        expect(_device.recorder.where((m) => m == 'stop'), hasLength(2));
+        expect(_recordLabel(tester), en.engagementVoiceRecordAgain(31));
+        expect(api.writes, isEmpty);
+
+        await _tap(tester, _share);
+        await _settleUpload(tester);
+        final form =
+            api
+                    .sent('POST', '/engagement/voice-icebreakers/vi-9/send')
+                    .single
+                    .data!
+                as FormData;
+        expect(Map.fromEntries(form.fields)['duration_seconds'], '31');
+      }),
     );
 
     for (final (label, setUpDevice, message) in [
@@ -323,9 +370,9 @@ void main() {
         'Unable to start recording. Check microphone access and try again.',
       ),
     ]) {
-      _voiceTest(
-        'Record with $label explains it and nothing is recorded [case:engagement.voice_icebreakers.voice_recording_button.permission_denied]',
-        (tester) async {
+      testWidgets(
+        'Record with $label explains it and nothing is recorded',
+        _voice((tester) async {
           setUpDevice(_device);
           await _open(tester, _api());
           await _tap(tester, _record);
@@ -334,13 +381,13 @@ void main() {
           expect(find.byKey(_discard), findsNothing);
           expect(qaEnabled(tester, find.byKey(_share)), isFalse);
           expect(_device.recorder, isNot(contains('stop')));
-        },
+        }),
       );
     }
 
-    _voiceTest(
-      'a recorder that loses the clip on Stop says so and leaves nothing to share [case:engagement.voice_icebreakers.voice_recording_button.permission_denied]',
-      (tester) async {
+    testWidgets(
+      'a recorder that loses the clip on Stop says so and leaves nothing to share',
+      _voice((tester) async {
         _device.stopLosesClip = true;
         await _open(tester, _api());
         await _type(tester, 'Hello there');
@@ -348,12 +395,12 @@ void main() {
         expect(find.text(en.engagementVoiceSaveFailed), findsOneWidget);
         expect(_recordLabel(tester), en.engagementVoiceRecord);
         expect(qaEnabled(tester, find.byKey(_share)), isFalse);
-      },
+      }),
     );
 
-    _voiceTest(
-      'Discard recording drops the clip so a new one can be recorded [case:engagement.voice_icebreakers.discard_recording.action]',
-      (tester) async {
+    testWidgets(
+      'Discard recording drops the clip so a new one can be recorded [case:engagement.voice_icebreakers.voice_discard.action]',
+      _voice((tester) async {
         final api = _api();
         await _open(tester, api);
         await _type(tester, 'Hello there');
@@ -368,14 +415,14 @@ void main() {
         expect(qaEnabled(tester, find.byKey(_share)), isFalse);
         expect(qaFieldText(tester, find.byKey(_transcript)), 'Hello there');
         expect(api.writes, isEmpty);
-      },
+      }),
     );
   });
 
   group('Share your hello', () {
-    _voiceTest(
-      'Share your hello starts a session, uploads the clip with the transcript, confirms and resets [case:engagement.voice_icebreakers.share_your_hello.action]',
-      (tester) async {
+    testWidgets(
+      'Share your hello starts a session, uploads the clip with the transcript, confirms and resets [case:engagement.voice_icebreakers.voice_share.action]',
+      _voice((tester) async {
         final api = _api()
           ..json('POST /engagement/voice-icebreakers/start', {
             'voice_icebreaker': {'id': 'vi-9', 'status': 'started'},
@@ -425,7 +472,7 @@ void main() {
           api.sent('GET', '/matches/match-1/voice-introductions'),
           hasLength(intros0.length + 1),
         );
-      },
+      }),
     );
 
     for (final (label, route, failure, message) in [
@@ -454,9 +501,9 @@ void main() {
         'Unable to create voice icebreaker session.',
       ),
     ]) {
-      _voiceTest(
-        'when $label the hello is kept (clip and transcript), the reason shows and Share works again [case:engagement.voice_icebreakers.share_your_hello.api_failure]',
-        (tester) async {
+      testWidgets(
+        'when $label the hello is kept (clip and transcript), the reason shows and Share works again [case:engagement.voice_icebreakers.voice_share.api_failure]',
+        _voice((tester) async {
           final api = _api()
             ..json('POST /engagement/voice-icebreakers/start', {
               'voice_icebreaker': {'id': 'vi-9'},
@@ -499,15 +546,15 @@ void main() {
                 .data,
             isA<FormData>(),
           );
-        },
+        }),
       );
     }
   });
 
   group('transcript', () {
-    _voiceTest(
+    testWidgets(
       'typing the transcript is what enables Share once a clip is ready [case:engagement.voice_icebreakers.voice_transcript.action]',
-      (tester) async {
+      _voice((tester) async {
         final api = _api();
         await _open(tester, api);
         expect(find.text(en.engagementVoiceTranscriptLabel), findsOneWidget);
@@ -522,12 +569,12 @@ void main() {
         expect(find.text('19/2000'), findsOneWidget);
         expect(qaEnabled(tester, find.byKey(_share)), isTrue);
         expect(api.writes, isEmpty);
-      },
+      }),
     );
 
-    _voiceTest(
+    testWidgets(
       'whitespace-only keeps Share off, 2001 characters are capped at 2000, emoji/RTL is uploaded byte-for-byte [case:engagement.voice_icebreakers.voice_transcript.validation]',
-      (tester) async {
+      _voice((tester) async {
         const unicode = 'مرحبا مايا 👋🏾 שלום';
         final api = _api()
           ..json('POST /engagement/voice-icebreakers/start', {
@@ -559,14 +606,14 @@ void main() {
                 as FormData;
         final sent = Map.fromEntries(form.fields)['transcript']!;
         expect(sent.codeUnits, unicode.codeUnits);
-      },
+      }),
     );
   });
 
   group('choosing who and what', () {
-    _voiceTest(
+    testWidgets(
       'picking a conversation opens its card, loads its introductions and sends to that match [case:engagement.voice_icebreakers.voice_conversation.action]',
-      (tester) async {
+      _voice((tester) async {
         final api = _api()
           ..json('POST /engagement/voice-icebreakers/start', {
             'voice_icebreaker': {'id': 'vi-9'},
@@ -601,12 +648,12 @@ void main() {
             'prompt_id': 'p-1',
           },
         );
-      },
+      }),
     );
 
-    _voiceTest(
-      'Choose a prompt changes the prompt the hello is sent with [case:engagement.voice_icebreakers.choose_a_prompt.action]',
-      (tester) async {
+    testWidgets(
+      'Choose a prompt changes the prompt the hello is sent with [case:engagement.voice_icebreakers.voice_prompt.action]',
+      _voice((tester) async {
         final api = _api()
           ..json('POST /engagement/voice-icebreakers/start', {
             'voice_icebreaker': {'id': 'vi-9'},
@@ -639,12 +686,12 @@ void main() {
               .body['prompt_id'],
           'p-2',
         );
-      },
+      }),
     );
 
-    _voiceTest(
-      'Try again after the conversations failed to load reloads them and shows the picker [case:engagement.voice_icebreakers.try_again.action]',
-      (tester) async {
+    testWidgets(
+      'Try again after the conversations failed to load reloads them and shows the picker [case:engagement.voice_icebreakers.voice_retry_conversations.action]',
+      _voice((tester) async {
         final api = _api()
           ..fail('GET /matches/me', message: 'Matches are down.');
         await _open(tester, api, screen: const VoiceIcebreakersScreen());
@@ -674,14 +721,14 @@ void main() {
           find.byKey(const ValueKey('qa.voice.conversation')),
           findsOneWidget,
         );
-      },
+      }),
     );
   });
 
   group('introductions', () {
-    _voiceTest(
-      'Try again after the introductions failed to load fetches them again and shows them [case:engagement.voice_icebreakers.try_again_2.action]',
-      (tester) async {
+    testWidgets(
+      'Try again after the introductions failed to load fetches them again and shows them [case:engagement.voice_icebreakers.voice_retry_intros.action]',
+      _voice((tester) async {
         final api = _api()
           ..fail('GET /matches/*/voice-introductions', status: 403);
         await _open(tester, api);
@@ -707,12 +754,12 @@ void main() {
           find.text(en.engagementVoiceHelloFromName('Maya')),
           findsOneWidget,
         );
-      },
+      }),
     );
 
-    _voiceTest(
+    testWidgets(
       'a received transcript is shown as selectable text that can be copied, never edited [case:engagement.voice_icebreakers.selectabletext_input_input.action]',
-      (tester) async {
+      _voice((tester) async {
         final api = _api();
         await _open(tester, api);
         final transcript = find.widgetWithText(
@@ -730,12 +777,12 @@ void main() {
         await qaSettle(tester);
         expect(find.text('Copy'), findsOneWidget);
         expect(api.writes, isEmpty);
-      },
+      }),
     );
 
-    _voiceTest(
+    testWidgets(
       'emoji and right-to-left transcripts are shown exactly as sent [case:engagement.voice_icebreakers.selectabletext_input_input.validation]',
-      (tester) async {
+      _voice((tester) async {
         const unicode = 'שלום! 🌻 أحب القهوة\nsecond line';
         await _open(tester, _api(intros: [_intro(transcript: unicode)]));
         final transcript = find.byType(SelectableText);
@@ -745,12 +792,12 @@ void main() {
           unicode.codeUnits,
         );
         expect(tester.takeException(), isNull);
-      },
+      }),
     );
 
-    _voiceTest(
-      'Listen marks the play, loads the signed URL into the player and offers Stop playback until it ends [case:engagement.voice_icebreakers.listen_seconds_s.action]',
-      (tester) async {
+    testWidgets(
+      'Listen marks the play, loads the signed URL into the player and offers Stop playback until it ends [case:engagement.voice_icebreakers.voice_listen_x.action]',
+      _voice((tester) async {
         final api = _api()
           ..json('POST /engagement/voice-icebreakers/v-1/play', {
             'voice_icebreaker': {
@@ -788,7 +835,7 @@ void main() {
         expect(find.text(en.engagementVoiceListen(24)), findsOneWidget);
         expect(qaEnabled(tester, find.byKey(_listen)), isTrue);
         await qaUnmount(tester);
-      },
+      }),
     );
 
     for (final (label, failure, message) in [
@@ -804,9 +851,9 @@ void main() {
       ),
       ('offline', qaOffline, en.networkOfflineTryAgain),
     ]) {
-      _voiceTest(
-        'Listen when $label explains it, plays nothing and can be tried again [case:engagement.voice_icebreakers.listen_seconds_s.api_failure]',
-        (tester) async {
+      testWidgets(
+        'Listen when $label explains it, plays nothing and can be tried again [case:engagement.voice_icebreakers.voice_listen_x.api_failure]',
+        _voice((tester) async {
           final api = _api()
             ..on('POST /engagement/voice-icebreakers/v-1/play', (_) => failure);
           await _open(tester, api);
@@ -828,15 +875,15 @@ void main() {
             hasLength(2),
           );
           await qaUnmount(tester);
-        },
+        }),
       );
     }
   });
 
   group('prompts', () {
-    _voiceTest(
-      'Reload prompts after a failed load fetches them and fills the prompt picker [case:engagement.voice_icebreakers.reload_prompts.action]',
-      (tester) async {
+    testWidgets(
+      'Reload prompts after a failed load fetches them and fills the prompt picker [case:engagement.voice_icebreakers.voice_reload_prompts.action]',
+      _voice((tester) async {
         final api = _api()
           ..offline('GET /engagement/voice-icebreakers/prompts');
         await _open(tester, api);
@@ -872,12 +919,12 @@ void main() {
           ),
           findsOneWidget,
         );
-      },
+      }),
     );
 
-    _voiceTest(
-      'a Reload that fails again keeps the reason and the button [case:engagement.voice_icebreakers.reload_prompts.api_failure]',
-      (tester) async {
+    testWidgets(
+      'a Reload that fails again keeps the reason and the button [case:engagement.voice_icebreakers.voice_reload_prompts.api_failure]',
+      _voice((tester) async {
         final api = _api()
           ..offline('GET /engagement/voice-icebreakers/prompts');
         await _open(tester, api);
@@ -902,25 +949,187 @@ void main() {
         );
         expect(qaEnabled(tester, find.byKey(_share)), isFalse);
         expect(tester.takeException(), isNull);
-      },
+      }),
     );
   });
 
-  _voiceTest(
-    'Voice icebreakers render translated in every locale without overflow [case:engagement.voice_icebreakers.l10n]',
-    (tester) async {
-      for (final locale in qaLocales) {
-        await _open(tester, _api(), locale: locale);
-        final l = qaL10n(locale);
-        expect(tester.takeException(), isNull, reason: '$locale');
-        expect(find.text(l.engagementVoiceAppBarTitle), findsOneWidget);
-        expect(find.text(l.engagementVoiceRecord), findsOneWidget);
-        await qaScrollTo(tester, find.byKey(_listen));
-        expect(tester.takeException(), isNull, reason: '$locale');
-        expect(find.text(l.engagementVoiceShare), findsOneWidget);
-        expect(find.text(l.engagementVoiceListen(24)), findsOneWidget);
-        await qaUnmount(tester);
-      }
-    },
-  );
+  group('screen checks', () {
+    final prompt = find.descendant(
+      of: find.byKey(_prompt),
+      matching: find.text('A Sunday you love'),
+    );
+    final intro = find.text('I like a book and a quiet coffee.');
+    final picker = find.byKey(const ValueKey('qa.voice.conversation'));
+    VoiceIcebreakersScreen pickerScreen() => const VoiceIcebreakersScreen();
+    VoiceIcebreakersScreen directScreen() => _direct;
+
+    testWidgets(
+      'VoiceIcebreakersScreen lays out on every device size in both themes, '
+      'opened on a match and with the conversation picker '
+      '[case:engagement.voice_icebreakers.layout_matrix]',
+      _voice((tester) async {
+        await qaExpectLaysOutEverywhere(
+          tester,
+          _api(),
+          directScreen,
+          loaded: intro,
+          extra: _device.overrides,
+        );
+        await qaExpectLaysOutEverywhere(
+          tester,
+          _api(),
+          pickerScreen,
+          loaded: picker,
+          extra: _device.overrides,
+        );
+      }),
+    );
+
+    testWidgets(
+      'VoiceIcebreakersScreen meets the tap-target, label and contrast '
+      'guidelines, including the introduction card and the picker '
+      '[case:engagement.voice_icebreakers.a11y_guidelines]',
+      _voice((tester) async {
+        await qaExpectMeetsA11yGuidelines(
+          tester,
+          _api(),
+          directScreen,
+          loaded: prompt,
+          extra: _device.overrides,
+        );
+        // A tall phone so the introduction card (transcript, Listen) is on
+        // screen and judged too.
+        await qaExpectMeetsA11yGuidelines(
+          tester,
+          _api(),
+          directScreen,
+          loaded: find.byKey(_listen),
+          extra: _device.overrides,
+          size: const Size(360, 1800),
+        );
+        await qaExpectMeetsA11yGuidelines(
+          tester,
+          _api(),
+          pickerScreen,
+          loaded: picker,
+          extra: _device.overrides,
+        );
+      }),
+    );
+
+    testWidgets(
+      'VoiceIcebreakersScreen pushed from another screen shows Back, which '
+      'closes it [case:engagement.voice_icebreakers.back_affordance]',
+      _voice((tester) async {
+        await qaExpectBackReturns(
+          tester,
+          _api(),
+          directScreen,
+          screen: VoiceIcebreakersScreen,
+          extra: _device.overrides,
+        );
+      }),
+    );
+
+    // Fixture data from the fake server (member names, prompt and transcript
+    // text, the server's own error message) is the same in every locale.
+    const fixture = {
+      'Maya',
+      'Theo',
+      'A Sunday you love',
+      'A small ritual you never skip',
+      'I like a book and a quiet coffee.',
+      'Prompts are down.',
+    };
+
+    testWidgets(
+      'VoiceIcebreakersScreen renders translated in all 10 locales with no '
+      'English left: a kept clip, the picker and the load failures '
+      '[case:engagement.voice_icebreakers.l10n]',
+      _voice((tester) async {
+        // Opened on a match, with a 25 s clip recorded and kept.
+        await qaExpectRendersInAllLocales(
+          tester,
+          _api(),
+          directScreen,
+          extra: _device.overrides,
+          size: const Size(430, 2200),
+          prepare: (tester, l) async {
+            await _tap(tester, _record);
+            expect(_recordLabel(tester), l.engagementVoiceStop(0));
+            for (var i = 0; i < 25; i++) {
+              await tester.pump(const Duration(seconds: 1));
+            }
+            await _tap(tester, _record);
+          },
+          allow: fixture,
+          expected: [
+            (l) => l.engagementVoiceAppBarTitle,
+            (l) => l.engagementVoiceHeadline,
+            (l) => l.engagementVoiceIntro,
+            (l) => l.engagementVoiceYouAndName('Maya'),
+            (l) => l.engagementVoicePrivate,
+            (l) => l.engagementVoiceStartingPoint,
+            (l) => l.engagementVoiceChoosePrompt,
+            (l) => l.engagementVoiceTranscriptLabel,
+            (l) => l.engagementVoiceTranscriptHelper,
+            (l) => l.engagementVoiceRecordAgain(25),
+            (l) => l.engagementVoiceRecordingReady,
+            (l) => l.engagementVoiceDiscard,
+            (l) => l.engagementVoiceShare,
+            (l) => l.engagementVoiceCheckedNote,
+            (l) => l.engagementVoiceYourIntros,
+            (l) => l.engagementVoiceLatestNote,
+            (l) => l.engagementVoiceTranscriptHeading,
+            (l) => l.engagementVoiceHelloFromName('Maya'),
+            (l) => l.engagementVoiceListen(24),
+          ],
+        );
+        // No match yet: the conversation picker.
+        await qaExpectRendersInAllLocales(
+          tester,
+          _api(),
+          pickerScreen,
+          extra: _device.overrides,
+          allow: fixture,
+          expected: [
+            (l) => l.engagementVoiceHeadline,
+            (l) => l.engagementVoicePickConversation,
+          ],
+        );
+        // The conversations failed to load.
+        await qaExpectRendersInAllLocales(
+          tester,
+          _api()..fail('GET /matches/me', message: 'Matches are down.'),
+          pickerScreen,
+          extra: _device.overrides,
+          allow: fixture,
+          expected: [
+            (l) => l.engagementVoiceConversationsLoadFailed,
+            (l) => l.chatTryAgain,
+          ],
+        );
+        // The prompts and the introductions failed to load.
+        await qaExpectRendersInAllLocales(
+          tester,
+          _api()
+            ..fail(
+              'GET /engagement/voice-icebreakers/prompts',
+              message: 'Prompts are down.',
+            )
+            ..fail('GET /matches/*/voice-introductions', status: 403),
+          directScreen,
+          extra: _device.overrides,
+          size: const Size(430, 2200),
+          allow: fixture,
+          expected: [
+            (l) => l.engagementVoiceIntrosLoadFailed,
+            (l) => l.chatTryAgain,
+            (l) => l.engagementVoiceReloadPrompts,
+            (l) => l.engagementVoiceRecord,
+          ],
+        );
+      }),
+    );
+  });
 }

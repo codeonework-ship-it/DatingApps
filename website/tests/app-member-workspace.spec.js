@@ -1,5 +1,6 @@
 import {test, expect} from '@playwright/test';
 import {createMember, signIn} from './support/member.js';
+import {qaField, qaId, qaIdPrefix} from './support/qa.js';
 import {artifactsDir} from './support/site.js';
 
 // The signed-in Flutter web workspace with fresh members (never the shared QA
@@ -130,15 +131,18 @@ test.describe('web member workspace', () => {
     await expect(page.getByRole('group', {name: /Read chapter/}).first()
       .or(page.getByText(/No chapters|Nothing here yet|Be the first/i)).first()).toBeVisible({timeout: 20000});
     // Settings: the web app stays on Daylight (no theme strip), core entries exist.
+    // Account comes first and the (mobile-only) theme section would follow it,
+    // so check for it before scrolling down to Language and Privacy.
     await page.goto('/app/#/settings');
-    await expect(page.getByRole('button', {name: /^Language/}).first()).toBeVisible({timeout: 15000});
-    await expect(await scrollTo(page, page.getByRole('button', {name: /^Privacy & Safety/}))).toBeVisible();
-    await expect(page.getByRole('button', {name: /qa\.settings\.theme_preset\./})).toHaveCount(0);
+    await expect(page.getByRole('button', {name: /^Sign out of all devices/})).toBeVisible({timeout: 15000});
+    await expect(qaIdPrefix(page, 'qa.settings.theme_preset')).toHaveCount(0);
     await expect(page.getByText('Appearance', {exact: true})).toHaveCount(0);
+    await expect((await scrollTo(page, page.getByRole('button', {name: /^Language/}))).first()).toBeVisible();
+    await expect(await scrollTo(page, page.getByRole('button', {name: /^Privacy & Safety/}))).toBeVisible();
     expect(problems).toEqual([]);
   });
 
-  test('unknown routes show a recoverable not-found page', async ({page}) => {
+  test('unknown routes show a recoverable not-found page [case:web.web_member_workspace.back_to_discover.action]', async ({page}) => {
     const problems = watchApp(page);
     await page.setViewportSize({width: 1440, height: 900});
     await signIn(page, createMember('qaweb'));
@@ -147,6 +151,19 @@ test.describe('web member workspace', () => {
     await page.getByRole('button', {name: 'Back to Discover', exact: true}).click();
     await expect(page).toHaveURL(/#\/discover$/);
     await expect(page.getByRole('button', {name: 'Refresh Today', exact: true})).toBeVisible({timeout: 15000});
+    expect(problems).toEqual([]);
+  });
+
+  test('Connect website in the sidebar leaves the app for the website home [case:web.web_member_workspace.connect_website.action]', async ({page}) => {
+    const problems = watchApp(page);
+    await page.setViewportSize({width: 1440, height: 900});
+    await signIn(page, createMember('qaweb'));
+    await dismissRewards(page);
+    await expect(page).toHaveURL(/\/app\//);
+    await page.getByRole('button', {name: 'Connect website', exact: true}).click();
+    await expect(page).toHaveURL(url => new URL(url).pathname === '/', {timeout: 15000});
+    await expect(page.locator('h1')).toHaveCount(1);
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en');
     expect(problems).toEqual([]);
   });
 
@@ -201,6 +218,7 @@ test.describe('web member workspace', () => {
     const before = await distance.isChecked();
     const patch = page.waitForRequest(r => r.url().includes(`/v1/settings/${member.userId}`) && r.method() === 'PATCH');
     const saved = page.waitForResponse(r => r.url().includes(`/v1/settings/${member.userId}`) && r.request().method() === 'PATCH');
+    const storedBefore = stored;
     await distance.click();
     const body = (await patch).postDataJSON();
     expect((await saved).status()).toBe(200);
@@ -209,10 +227,12 @@ test.describe('web member workspace', () => {
 
     await page.reload();
     await expect(page.getByRole('switch', {name: /^Show exact distance/})).toBeChecked({checked: !before, timeout: 30000});
-    // The PATCH echoes the member's stored theme/locale rather than resetting them.
-    expect(stored, 'app loaded the stored settings').not.toBeNull();
-    expect(body.theme).toBe(stored.theme ?? 'auto');
-    expect(body.locale).toBe((stored.locale ?? '').trim());
+    // The PATCH carries only the changed switch, so it cannot reset the stored
+    // theme/locale (user_settings_provider.dart); they survive the round trip.
+    expect(storedBefore, 'app loaded the stored settings').not.toBeNull();
+    expect(Object.keys(body)).toEqual(['show_exact_distance']);
+    expect(stored.theme).toBe(storedBefore.theme);
+    expect(stored.locale).toBe(storedBefore.locale);
     await page.getByRole('switch', {name: /^Show exact distance/}).click();
     await expect(page.getByRole('switch', {name: /^Show exact distance/})).toBeChecked({checked: before});
     expect(problems).toEqual([]);
@@ -232,12 +252,12 @@ test.describe('web member workspace', () => {
     await expect(page.getByText('1 match', {exact: true})).toBeVisible({timeout: 15000});
     await expect(page.getByRole('button', {name: 'Open chat', exact: true})).toBeVisible();
     await page.getByRole('checkbox', {name: 'Conversations', exact: true}).click();
-    const row = page.getByRole('button', {name: new RegExp(`^qa.matches.match_row.${matchId}`)});
+    const row = qaId(page, `qa.matches.match_row.${matchId}`);
     await expect(row).toBeVisible({timeout: 15000});
     await page.screenshot({path: `${shots}/conversations-1440.png`});
     await row.click();
     await expect(page.getByText('Every good story starts with a hello.', {exact: false}).first()).toBeVisible({timeout: 15000});
-    await expect(page.getByRole('textbox', {name: /qa.chat.composer/})).toBeVisible();
+    await expect(qaField(page, 'qa.chat.composer')).toBeVisible();
     await page.screenshot({path: `${shots}/chat-1440.png`});
     // Browser back closes the conversation and keeps the Conversations view.
     await page.goBack();
@@ -264,10 +284,10 @@ test.describe('web member workspace', () => {
     // The composer starts enabled and locks once /unlock-state answers, so
     // wait for that answer before judging it.
     const unlock = page.waitForResponse(r => r.url().endsWith(`/v1/matches/${matchId}/unlock-state`));
-    await page.getByRole('button', {name: new RegExp(`^qa.matches.match_row.${matchId}`)}).click();
+    await qaId(page, `qa.matches.match_row.${matchId}`).click();
     expect((await (await unlock).json()).chat_unlocked).toBe(true);
     await page.waitForTimeout(500);
-    const composer = page.getByRole('textbox', {name: /qa.chat.composer/});
+    const composer = qaField(page, 'qa.chat.composer');
     await expect(composer).toBeEnabled();
     await expect(page.getByText('Complete the current unlock step to continue this conversation.')).toHaveCount(0);
   });
@@ -279,18 +299,18 @@ test.describe('web member workspace', () => {
     await signIn(page, createMember('qaweb'));
     await dismissRewards(page);
     const tabs = [
-      ['Tab 1 of 5', /#\/discover$/, page.getByRole('button', {name: 'Refresh Today', exact: true})],
-      ['Tab 2 of 5', /#\/matches$/, page.getByRole('checkbox', {name: 'Your matches'})],
-      ['Tab 3 of 5', /#\/engagement$/, page.getByRole('heading', {name: /^ENGAGE /})],
-      ['Tab 4 of 5', /#\/profile$/, page.getByText('STARRING', {exact: true})],
-      ['Tab 5 of 5', /#\/settings$/, page.getByRole('heading', {name: 'Settings', exact: true})],
+      ['Today Tab 1 of 5', /#\/discover$/, page.getByRole('button', {name: 'Refresh Today', exact: true})],
+      ['Matches Tab 2 of 5', /#\/matches$/, page.getByRole('checkbox', {name: 'Your matches'})],
+      ['Engage Tab 3 of 5', /#\/engagement$/, page.getByRole('heading', {name: /^ENGAGE /})],
+      ['Profile Tab 4 of 5', /#\/profile$/, page.getByText('STARRING', {exact: true})],
+      ['Settings Tab 5 of 5', /#\/settings$/, page.getByRole('heading', {name: 'Settings', exact: true})],
     ];
     for (const [tab, url, ready] of tabs) {
       await page.getByRole('button', {name: tab, exact: true}).click();
       await expect(page).toHaveURL(url);
       await expect(ready).toBeVisible({timeout: 20000});
       expect(await noOverflow(page), `${tab} overflows`).toBe(true);
-      await page.screenshot({path: `${shots}/${tab.replace(/\s/g, '-')}-390.png`});
+      await page.screenshot({path: `${shots}/${tab.replace(/^\S+ /, '').replace(/\s/g, '-')}-390.png`});
     }
     for (const route of ['groups', 'rooms', 'friends', 'safety', 'blog']) {
       await page.goto(`/app/#/${route}`);
@@ -325,7 +345,7 @@ test.describe('web member workspace', () => {
     await page.setViewportSize({width: 390, height: 844});
     await signIn(page, createMember('qaweb'));
     await dismissRewards(page);
-    await page.getByRole('button', {name: 'Tab 5 of 5', exact: true}).click();
+    await page.getByRole('button', {name: 'Settings Tab 5 of 5', exact: true}).click();
     await expect(page.getByRole('heading', {name: 'Settings', exact: true})).toBeVisible({timeout: 20000});
     await (await scrollTo(page, page.getByRole('button', {name: /^Privacy & Safety/}), 195)).click();
     await expect(page.getByRole('switch', {name: /^Show age/})).toBeVisible({timeout: 20000});

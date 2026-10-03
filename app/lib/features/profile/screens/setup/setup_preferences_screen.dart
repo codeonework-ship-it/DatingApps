@@ -272,6 +272,10 @@ class _SetupPreferencesScreenState extends ConsumerState<SetupPreferencesScreen>
                 children: [
                   IconButton(
                     key: const ValueKey('qa.setup.preferences.back_button'),
+                    // Screen readers announce it like the other setup steps.
+                    tooltip: AppLocalizations.of(
+                      context,
+                    ).profileSetupBackTooltip,
                     icon: Icon(
                       Icons.arrow_back_ios_new,
                       color: Theme.of(context).colorScheme.onSurface,
@@ -528,7 +532,10 @@ class _SetupPreferencesScreenState extends ConsumerState<SetupPreferencesScreen>
           country: _selectedCountry,
           regionState: _selectedState,
           city: _selectedCity,
-          instagramHandle: _nullableTrim(_instagramController.text),
+          // The field asks for the handle without @; drop one typed anyway.
+          instagramHandle: _nullableTrim(
+            _instagramController.text.trim().replaceFirst(RegExp('^@+'), ''),
+          ),
           hobbies: _parseTags(_hobbiesController.text),
           favoriteBooks: _parseTags(_booksController.text),
           favoriteNovels: _parseTags(_novelsController.text),
@@ -1363,6 +1370,10 @@ class _GenderChip extends StatelessWidget {
       onTap: () => onToggled(code, selected: !selected),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
+        // At least the 48dp tap target (the padded label came to 47).
+        // (no alignment: the chip keeps its own width inside the Wrap; the
+        // Row centres its label in the extra height).
+        constraints: const BoxConstraints(minHeight: 48),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
           color: selected ? scheme.primaryContainer : scheme.surface,

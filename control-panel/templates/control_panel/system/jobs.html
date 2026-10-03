@@ -45,7 +45,7 @@
           <td class="num">{{ r.items_processed|default:0|thousands }}</td>
           <td class="num">{{ r.items_failed|default:0|thousands }}</td>
           <td class="num">{% if r.backlog_after is not None %}{{ r.backlog_after|thousands }}{% else %}—{% endif %}</td>
-          <td class="small">{% if r.error %}<span class="text-danger-light">{{ r.error|truncatechars:120 }}</span>{% elif r.details %}{% for k, v in r.details.items %}{{ k }}: {{ v }}{% if not forloop.last %} · {% endif %}{% endfor %}{% endif %}</td>
+          <td class="small">{% if r.error %}<span class="text-danger-light">{{ r.error|truncatechars:120 }}</span>{% elif r.details %}{% for k, v in r.details|pairs %}{{ k }}: {{ v }}{% if not forloop.last %} · {% endif %}{% endfor %}{% endif %}</td>
         </tr>{% endfor %}
       </tbody>
     </table>

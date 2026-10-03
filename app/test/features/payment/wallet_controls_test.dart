@@ -12,6 +12,7 @@ import 'package:webview_flutter_platform_interface/webview_flutter_platform_inte
 
 import '../../support/checkout_webview_fake.dart';
 import '../../support/qa_api.dart';
+import '../../support/qa_screen_quality.dart';
 import 'billing_fake.dart';
 
 final AppLocalizations en = qaL10n(const Locale('en'));
@@ -231,5 +232,65 @@ void main() {
       expect(find.text(l10n.paymentWalletActivity), findsOneWidget);
       expect(tester.takeException(), isNull, reason: '$locale');
     }
+  });
+
+  group('screen quality', () {
+    // The screen opens with a stale 42; the server's 112 only shows once the
+    // wallet arrived. Coin packs and a credit history are on screen too.
+    BillingServer server() => BillingServer()
+      ..walletAudit = [
+        {
+          'id': 'a1',
+          'action': 'wallet.coins.purchase',
+          'status': 'success',
+          'details': {'coins': 550, 'amount_minor': 399, 'currency': 'USD'},
+          'created_at': '2026-10-01T09:00:00Z',
+        },
+      ];
+    Finder loaded() =>
+        find.text(en.paymentCoinCount(112), skipOffstage: false);
+    Widget build() => const WalletPaymentScreen(walletCoins: 42);
+
+    testWidgets('Wallet with packs and history lays out on phone and tablet '
+        'in both themes [case:payment.wallet_payment.layout_matrix]', (
+      tester,
+    ) async {
+      await qaExpectLaysOutOnPhoneAndTablet(
+        tester,
+        api: () => server().api,
+        build: build,
+        loaded: loaded,
+      );
+    });
+
+    testWidgets('Wallet meets tap-target, label and contrast guidelines, '
+        'also with its error note showing '
+        '[case:payment.wallet_payment.a11y_guidelines]', (tester) async {
+      await qaExpectMeetsA11yGuidelines(
+        tester,
+        api: () => server().api,
+        build: build,
+        loaded: loaded,
+      );
+      // REGRESSION: the error note was error-red text on its own 12% red
+      // tint, 3.8:1 in the light theme (under WCAG AA 4.5:1).
+      await qaExpectMeetsA11yGuidelines(
+        tester,
+        api: () => (server()..api.offline('GET /wallet/me/coins')).api,
+        build: build,
+        loaded: () => find.byKey(const Key('wallet_contact_support')),
+      );
+    });
+
+    testWidgets('Back on the wallet returns to the screen that opened it '
+        '[case:payment.wallet_payment.back_affordance]', (tester) async {
+      await qaExpectBackReturnsToOpener(
+        tester,
+        api: server().api,
+        build: build,
+        screen: find.byType(WalletPaymentScreen),
+        loaded: loaded(),
+      );
+    });
   });
 }

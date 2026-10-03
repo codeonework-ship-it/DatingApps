@@ -1,5 +1,6 @@
 import {test, expect} from '@playwright/test';
 import {qaMember} from './support/member.js';
+import {qaField, qaId} from './support/qa.js';
 
 // Never the shared QA account: signing in invalidates its other sessions.
 const member = qaMember();
@@ -38,7 +39,7 @@ for (const width of [390, 1440]) for (const part of ['rhythm', 'chemistry']) {
   const user=page.getByRole('textbox',{name:'username',exact:true});await expect(user).toBeVisible({timeout:30000});
   await user.click();await page.waitForTimeout(200);await user.pressSequentially(member.username,{delay:10});await user.press('Tab');
   const pass=page.getByRole('textbox',{name:'Password',exact:true});await pass.click();await page.waitForTimeout(200);await pass.pressSequentially(member.password,{delay:10});await pass.press('Tab');
-  await page.getByRole('button',{name:'qa.signin.login_button',exact:true}).click();await expect(page).toHaveURL(/#\/discover$/,{timeout:30000});
+  await qaId(page,'qa.signin.login_button').click();await expect(page).toHaveURL(/#\/discover$/,{timeout:30000});
   if (part === 'rhythm') {
   await page.goto('/app/#/settings');
   await page.getByRole('button',{name:/^Your dating rhythm /}).click();
@@ -56,8 +57,8 @@ for (const width of [390, 1440]) for (const part of ['rhythm', 'chemistry']) {
   await page.goto('/app/#/matches');
   // The Matches tab opens on its Discover sub-view; conversations are one chip away.
   await page.getByRole('checkbox',{name:'Conversations',exact:true}).click({timeout:30000});
-  await page.getByRole('button',{name:new RegExp(`^qa.matches.match_row.${match}`)}).click();
-  await expect(page.getByRole('textbox',{name:/Write a message|qa.chat.composer/})).toBeVisible();
+  await qaId(page,`qa.matches.match_row.${match}`).click();
+  await expect(qaField(page,'qa.chat.composer')).toBeVisible();
   await page.getByRole('button',{name:/^A little chemistry\?/}).click();
   await expect(page.getByRole('checkbox',{name:'You both enjoy coffee',exact:true})).toBeVisible();
   await page.getByRole('button',{name:'Build a Sunday',exact:true}).click();

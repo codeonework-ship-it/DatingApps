@@ -122,8 +122,12 @@ def test_member_cannot_post_as_someone_else(pair, state):
     assert spoof.status == 403, spoof.text
 
 
-def test_like_match_and_message_notifications(pair, state):
-    woman, man = pair
+def test_like_match_and_message_notifications(make_member):
+    # Its own pair, so the test also runs alone (QA Lab re-runs single cases).
+    woman, man = make_member("dn_w", "F", "M"), make_member("dn_m", "M", "F")
+    woman.post("/swipe", {"user_id": woman.user_id, "target_user_id": man.user_id, "is_like": True}).ok()
+    assert man.post("/swipe", {"user_id": man.user_id, "target_user_id": woman.user_id,
+                               "is_like": True}).ok()["mutual_match"] is True
 
     def events():
         body = man.get(f"/notifications/{man.user_id}", params={"limit": 50}).ok().body
@@ -141,8 +145,16 @@ def test_like_match_and_message_notifications(pair, state):
     after = man.get(f"/notifications/{man.user_id}", params={"limit": 50}).ok()["notifications"]
     still_unread = [n for n in after if n["id"] in before and not n["is_read"]]
     assert still_unread == [], still_unread
-    late = [n for n in after if n["id"] not in before and not n["is_read"]]
-    assert man.get(f"/notifications/{man.user_id}/unread-count").ok()["unread_count"] == len(late)
+    # The count is exactly the late arrivals. A late one can land between the
+    # list and the count, so compare a fresh list with the count until stable.
+
+    def count_matches_late():
+        listed = man.get(f"/notifications/{man.user_id}", params={"limit": 50}).ok()["notifications"]
+        late = [n for n in listed if n["id"] not in before and not n["is_read"]]
+        count = man.get(f"/notifications/{man.user_id}/unread-count").ok()["unread_count"]
+        return (count, len(late)) if count == len(late) else None
+
+    assert wait_for(count_matches_late), "unread count never matched the late notifications"
 
 
 def test_mark_match_read_clears_unread(pair, state):

@@ -454,7 +454,8 @@ class _PhotoListBody extends StatelessWidget {
                   : l10n.profileSetupSavePhotos,
               icon: Icons.arrow_forward_rounded,
               shinyEffect: true,
-              textColor: Theme.of(context).colorScheme.onSurface,
+              // GlassButton fills with primary, so its label keeps the
+              // default onPrimary (onSurface on primary failed contrast).
               fontWeight: FontWeight.w800,
               onPressed: onNext,
             ),
@@ -494,7 +495,7 @@ class _PickerButton extends StatelessWidget {
         label: label,
         icon: icon,
         isLoading: isLoading,
-        textColor: Theme.of(context).colorScheme.onSurface,
+        // Default onPrimary label, readable on GlassButton's primary fill.
         fontWeight: FontWeight.w800,
         onPressed: isLoading ? null : onTap,
       ),
