@@ -29,7 +29,7 @@ class MemberActivityPageTest(ConsoleCaseTest):
     module = "control_panel.views_activity"
 
     def test_lists_actions_with_detail_and_escapes_text(self):
-        """Each action shows who, what, outcome, device and IP, with a detail row. [case:console.activity.explorer.renders]"""
+        """Each action shows who, what, outcome, device and IP, with a detail row. [case:console.activity.member_activity.renders]"""
         api = self.bff()
         api.list_member_actions.return_value = APIResult(True, {"actions": [ACTION], "total": 1})
         response = self.client.get(reverse("member_activity"))
@@ -44,7 +44,7 @@ class MemberActivityPageTest(ConsoleCaseTest):
         self.assertEqual(api.list_member_actions.call_args.kwargs["source"], "request,event,security")
 
     def test_filters_reach_go(self):
-        """Member, area, outcome, source, reads and dates are server-side filters. [case:console.activity.explorer.filters]"""
+        """Member, area, outcome, source, reads and dates are server-side filters. [case:console.activity.member_activity.filters]"""
         api = self.bff()
         api.list_member_actions.return_value = APIResult(True, {"actions": [], "total": 0})
         self.client.get(reverse("member_activity"), {"member": MEMBER, "category": "Safety", "outcome": "client_error",
@@ -55,7 +55,7 @@ class MemberActivityPageTest(ConsoleCaseTest):
             include_reads="true", **{"from": "2026-10-01"}, q="report")
 
     def test_export_has_every_detail_column(self):
-        """Excel carries IP, device, session, request and correlation ids. [case:console.activity.explorer.export]"""
+        """Excel carries IP, device, session, request and correlation ids. [case:console.activity.member_activity.export]"""
         api = self.bff()
         api.list_member_actions.return_value = APIResult(True, {"actions": [ACTION], "total": 1})
         response = self.client.get(reverse("member_activity"), {"export": "xlsx"})
@@ -67,7 +67,7 @@ class MemberActivityPageTest(ConsoleCaseTest):
         self.assertEqual(rows[1][header.index("Details")], "reason: spam")
 
     def test_failure_shows_banner(self):
-        """[case:console.activity.explorer.failure]"""
+        """[case:console.activity.member_activity.renders]"""
         self.bff().list_member_actions.return_value = bff_error()
         self.assertContains(self.client.get(reverse("member_activity")), "alert-glass warning")
 
@@ -100,7 +100,7 @@ class MemberPageActivityTest(ConsoleCaseTest):
 
 class ActivityLiveTailTest(LiveSocketBase):
     async def test_tail_primes_then_pushes_new_rows_for_the_page_filters(self):
-        """The live tail sends only actions newer than the page, with its filters. [case:console.activity.live_tail]"""
+        """The live tail sends only actions newer than the page, with its filters. [case:console.live.activity.tail]"""
         self.api.activity_stream.side_effect = [
             APIResult(True, {"actions": [ACTION], "cursor": "c1"}),
             APIResult(True, {"actions": [dict(ACTION, id="req:43", action_label="Sent a message")], "cursor": "c2"}),

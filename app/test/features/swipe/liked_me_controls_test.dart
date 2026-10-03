@@ -38,7 +38,7 @@ void main() {
   qaSilenceNetworkImages();
 
   testWidgets('lists who liked the member with the count '
-      '[case:swipe.liked_me.retry.api_contract]', (tester) async {
+      '', (tester) async {
     final api = qaDiscoverApi(likedMe: [_cara, _devi]);
     await _open(tester, api);
 
@@ -126,8 +126,8 @@ void main() {
   });
 
   testWidgets('a failed load offers Retry, which loads the list '
-      '[case:swipe.liked_me.retry.action] '
-      '[case:swipe.liked_me.retry.api_contract]', (tester) async {
+      '[case:swipe.liked_me.liked_me_retry.action] '
+      '', (tester) async {
     final api = qaDiscoverApi(likedMe: [_cara])
       ..fail('GET /discovery/me/liked-me', message: 'Likes are resting.');
     await _open(tester, api);
@@ -145,7 +145,7 @@ void main() {
   });
 
   testWidgets('a Retry that fails again keeps the explanation '
-      '[case:swipe.liked_me.retry.api_failure]', (tester) async {
+      '[case:swipe.liked_me.liked_me_retry.api_failure]', (tester) async {
     final api = qaDiscoverApi()..offline('GET /discovery/me/liked-me');
     await _open(tester, api);
     final before = api.sent('GET', '/discovery/me/liked-me').length;
@@ -163,8 +163,8 @@ void main() {
 
   testWidgets(
     'pull to refresh reloads the list '
-    '[case:swipe.liked_me.refreshindicator_onrefresh_onrefresh.action] '
-    '[case:swipe.liked_me.refreshindicator_onrefresh_onrefresh.api_contract]',
+    '[case:swipe.liked_me.liked_me_refresh_refresh.action] '
+    '',
     (tester) async {
       final api = qaDiscoverApi(likedMe: [_cara]);
       await _open(tester, api);
@@ -187,7 +187,7 @@ void main() {
   // with no word, leaving a possibly stale list.
   testWidgets(
     'a failed pull to refresh keeps the list and says so '
-    '[case:swipe.liked_me.refreshindicator_onrefresh_onrefresh.api_failure]',
+    '[case:swipe.liked_me.liked_me_refresh_refresh.api_failure]',
     (tester) async {
       final api = qaDiscoverApi(likedMe: [_cara]);
       await _open(tester, api);

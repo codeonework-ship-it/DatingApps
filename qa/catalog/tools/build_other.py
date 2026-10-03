@@ -92,6 +92,8 @@ contact["cases"] += [
     case("site.contact.honeypot", "Honeypot hidden from people and skipped by keyboard", "a11y", ["Tab through form"], "Honeypot unreachable and invisible", pw("contact.spec.js", "honeypot"), covers=['site.contact.honeypot']),
     case("site.contact.locale", "Localized contact page sends its locale and shows translated copy", "l10n", ["Open /de/contact", "Submit"], "Payload carries locale=de; German copy", pw("contact.spec.js", "localised contact")),
     case("site.contact.again.resets", "Send another message resets the form", "happy", ["Submit successfully", "Click Send another message"], "Empty form, focus on first field", [], notes="clicked inside 'valid submission' flow? not asserted separately", covers=['site.contact.again']),
+    case("site.contact.flag_off.live", "With support switched off (live stack) the form explains it and keeps the message", "negative", ["Turn support_ticketing off", "Submit"], "Readable 'not available' message; text kept", []),
+    case("site.contact.renders_csp", "Contact page renders the form without CSP violations at phone and desktop widths", "layout", ["Open /contact at 360/1440px"], "No CSP console errors; form visible", []),
     case("site.contact.api_contract", "POST /v1/support/contact validates and stores the message", "happy", ["POST valid and invalid bodies"], "201 with reference; 400 for invalid", [{"suite": "api_e2e", "file": t["file"], "test": t["test"]} for t in TESTS["api_e2e"] if any("support/contact" in r for r in t.get("routes", []))]
          + [{"suite": "go", "file": t["file"], "test": t["test"]} for t in TESTS["go"] if any("support/contact" in r for r in t.get("routes", []))][:6]),
 ]
@@ -111,6 +113,9 @@ story = {"id": "site.story", "area": "Website (public)", "screen": "Shared story
              case("site.story.withdrawn", "Withdrawn/invalid links clear content and never fetch a bad source", "negative", ["Open withdrawn id / malformed id"], "Calm unavailable state", pw("blog-public.spec.js", "withdrawn") + pw("blog-public.spec.js", "incomplete links")),
              case("site.story.report_submit.retry", "Report retry preserves text and sends no member credentials", "negative", ["Fill report", "Server fails", "Retry"], "Text kept; request has credentials:'omit'", pw("blog-public.spec.js", "report retry"), covers=['site.story.report_reason', 'site.story.report_description', 'site.story.report_submit', 'site.story.retry']),
              case("site.story.copy_share", "Copy and Share produce the canonical share URL", "happy", ["Click Copy", "Click Share"], "Clipboard has /story.html?id=...; share sheet or copy fallback", [], covers=['site.story.copy', 'site.story.share']),
+             case("site.story.share_fallback", "Without a share sheet, Share copies the link; a withdrawn story hands out nothing", "edge", ["Open a story without navigator.share", "Click Share"], "Link copied; nothing shared for a withdrawn story", [], covers=['site.story.share']),
+             case("site.story.idle_state", "The story page loads with a language and one h1 before any id is resolved", "l10n", ["Open /story.html"], "html[lang] set; exactly one h1", []),
+             case("site.story.layout", "The story page fits every viewport", "layout", ["Open /story.html at phone/tablet/desktop"], "No horizontal overflow", []),
          ]}
 W.append(story)
 chapter = {"id": "site.chapter", "area": "Website (public)", "screen": "Pass the Chapter (public studio)", "route": "/chapter.html[?scene=&beginning=&surprise=|?share=]", "source_files": ["website/public/chapter.html", "website/public/chapter.js"],
@@ -124,62 +129,20 @@ chapter = {"id": "site.chapter", "area": "Website (public)", "screen": "Pass the
                case("site.chapter.flow", "Choose, copy a remix link, reopen it and reset", "happy", ["Open /chapter.html", "Choose options", "Copy", "Open copied URL", "Reset"], "Choices restored from URL; reset clears", pw("public-forms.spec.js", "Pass the Chapter: choose"), covers=['site.chapter.choice_buttons', 'site.chapter.copy', 'site.chapter.reset']),
                case("site.chapter.tampered", "Tampered remix links degrade safely (no XSS)", "negative", ["Open URL with <img onerror> scene"], "No script runs; defaults shown", pw("public-forms.spec.js", "Pass the Chapter: tampered")),
                case("site.chapter.missing_share", "Missing shared card shows a calm error", "negative", ["Open ?share=<unknown uuid>"], "Error, no studio", pw("public-forms.spec.js", "Pass the Chapter: a missing")),
+               case("site.chapter.share", "Share passes the remix link, with a copy fallback", "happy", ["Choose options", "Click Share"], "navigator.share gets the remix URL; copy fallback otherwise", [], covers=['site.chapter.share']),
+               case("site.chapter.idle_state", "The chapter studio loads with a language and one h1", "l10n", ["Open /chapter.html"], "html[lang] set; exactly one h1", []),
+               case("site.chapter.layout", "The chapter studio fits every viewport", "layout", ["Open /chapter.html at phone/tablet/desktop"], "No horizontal overflow", []),
            ]}
 W.append(chapter)
+W.append({"id": "site.generator", "area": "Website (public)", "screen": "Generated public pages", "route": "website/public/*.html (+ locales)",
+          "source_files": ["website/generate_pages.py", "website/locales/"], "controls": [], "cases": [
+              case("site.generator.output_current", "Committed public/ pages match the generator output", "edge", ["Run generate_pages.py", "Diff against website/public"], "No differences", [])]})
 
-# ---------------------------------------------------------------- control panel
-cp = open(os.path.join(ROOT, "control-panel/control_panel/urls.py")).read()
-routes = re.findall(r'path\(\s*"([^"]*)",\s*([\w.]+),\s*name="([^"]+)"', cp)
-DJ = TESTS["django"]
-by_name = collections.defaultdict(list)
-for t in DJ:
-    for n in t["url_names"]:
-        by_name[n].append({"suite": "django", "file": t["file"], "test": t["test"]})
-SIDEBAR = set(re.findall(r'href="(/[^"]*)"', open(os.path.join(ROOT, "control-panel/templates/control_panel/base.html")).read()))
-SIDEBAR |= {"/" + p for p, v, n in routes if n in set(re.findall(r"\{% url '([a-z_]+)'", open(os.path.join(ROOT, "control-panel/templates/control_panel/base.html")).read()))}
-ACTION_RE = re.compile(r"(approve|reject|action|save|delete|toggle|suspend|unsuspend|ban|unban|verify|grant|adjust|control|update|claim|merge|reply|bulk|resolve|decision|cancel|stage|create|new|edit|activate|deactivate|rebuild|exclude|include|reverse|status|role|logout|login|review|preview)$")
-DL_RE = re.compile(r"(export|csv|content|attachment|evidence|investor_pack)$")
-AREAS = {"analytics": "Analytics", "business": "Business reports", "engagement": "Engagement admin", "moderation": "Moderation", "city-pilot": "City pilot",
-         "support": "Support desk", "users": "Members", "billing": "Billing", "verifications": "Verification queue", "appeals": "Appeals",
-         "safety": "Safety (SOS)", "account-recovery": "Account recovery", "catalog": "Gift catalog", "config": "Feature flags", "progression": "Progression",
-         "client-errors": "Client errors", "growth": "Growth governance", "": "Dashboard", "login": "Auth", "logout": "Auth", "activities": "Activity feed",
-         "audit": "Audit log", "events": "Domain events"}
-groups = collections.OrderedDict()
-for p, view, name in routes:
-    seg = p.split("/")[0]
-    if seg == "moderation" and len(p.split("/")) > 1:
-        seg2 = p.split("/")[1]
-        key = f"moderation/{seg2}"
-        area_title = "Moderation: " + seg2.replace("-", " ")
-    else:
-        key = seg
-        area_title = AREAS.get(seg, seg)
-    groups.setdefault(key, {"title": area_title, "routes": []})["routes"].append((p, view, name))
-smoke = {"suite": "django", "runner": "pytest qa/console_smoke (live console)", "file": "qa/console_smoke/test_console_smoke.py", "test": "test_nav_page_loads_cleanly"}
-for key, g in groups.items():
-    fid = "console." + re.sub(r"[^a-z0-9]+", "_", key.lower()).strip("_") if key else "console.dashboard"
-    feat = {"id": fid, "area": "Operator console", "screen": g["title"], "route": "control-panel /" + key + "/", "source_files": sorted({"control-panel/control_panel/" + v.split(".")[0].replace("views", "views") + ".py" if "." in v else "control-panel/control_panel/views.py" for _, v, _ in g["routes"]}),
-            "controls": [], "cases": []}
-    for p, view, name in g["routes"]:
-        kind = "button" if ACTION_RE.search(name) else ("link" if DL_RE.search(name) else "link")
-        is_page = kind == "link" and not DL_RE.search(name)
-        cid = f"{fid}.{name}"
-        feat["controls"].append({"id": cid, "type": kind, "label": name.replace("_", " "), "qa_key": None,
-                                 "action": ("POST form → " if kind == "button" else ("download/stream → " if DL_RE.search(name) else "page → ")) + "/" + p + f" ({view})", "api": None})
-        tests = by_name.get(name, [])
-        if is_page and ("/" + p) in SIDEBAR:
-            tests = tests + [smoke]
-        if kind == "button":
-            feat["cases"].append(case(f"{cid}.performs", f"Operator '{name.replace('_', ' ')}' performs its change and writes an audit entry", "happy",
-                                      ["Log in as operator", f"Submit the {name} form (POST /{p})"], "Change persisted via BFF admin API; success message; audit log row; CSRF required",
-                                      tests, seed=["operator account", "records for the target (user/ticket/report)"]))
-            feat["cases"].append(case(f"{cid}.authz", f"'{name.replace('_', ' ')}' refuses anonymous / non-operator / GET", "negative",
-                                      [f"POST /{p} without session", "GET the action URL"], "Redirect to login / 405; nothing changes",
-                                      [t for t in tests if re.search(r"anon|login|permission|forbid|csrf|get_|method|refus|denied|requires", t["test"], re.I)], seed=["operator account"]))
-        else:
-            feat["cases"].append(case(f"{cid}.renders", f"'{name.replace('_', ' ')}' renders with data and handles missing records (404 not 500)", "happy",
-                                      ["Log in as operator", f"GET /{p}"], "200 with expected sections; 404 for unknown ids", tests, seed=["operator account", "seeded BFF data"]))
-    W.append(feat)
+# ---------------------------------------------------------------- operator console
+# Pages, list controls, form fields, reports and live topics are derived from the
+# console source (see console_catalog.py).
+import console_catalog
+W += console_catalog.build(ROOT, TESTS)
 
 json.dump(W, open(build_path("other_features.json"), "w"), indent=1)
 print(len(W), "features", sum(len(f["controls"]) for f in W), "controls", sum(len(f["cases"]) for f in W), "cases")

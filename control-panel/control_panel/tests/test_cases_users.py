@@ -235,7 +235,7 @@ class UserGrantCoinsTest(ConsoleCaseTest):
     def test_grant_uses_the_audited_admin_route(self):
         """Regression: the member page's grant posted {"coins"} to the member-owned /wallet/{id}/coins/top-up
         (403 for any operator, and outside the operator audit); it now uses POST /admin/billing/grant-coins.
-        [case:console.users.user_grant_coins.renders]"""
+        [case:console.users.user_grant_coins.performs]"""
         api = self.bff()
         api.admin_grant_coins.return_value = APIResult(True, {"user_id": MEMBER, "coins": 50, "new_balance": 75, "granted": True})
         response = self.client.post(reverse("user_grant_coins", args=[MEMBER]), {"coins": "50", "reason": " goodwill "})
@@ -244,7 +244,7 @@ class UserGrantCoinsTest(ConsoleCaseTest):
         self.assertIn(f"Granted 50 coins to {MEMBER}. New balance: 75.", flash(response))
 
     def test_grant_validates_amount_and_reports_failures(self):
-        """[case:console.users.user_grant_coins.renders]"""
+        """[case:console.users.user_grant_coins.performs]"""
         api = self.bff()
         url = reverse("user_grant_coins", args=[MEMBER])
         self.assertIn("Coins must be at least 1.", flash(self.client.post(url, {"coins": "0"})))
@@ -260,7 +260,7 @@ class UserGrantCoinsTest(ConsoleCaseTest):
                                  refused_roles=("trust_safety", "finance", "support"), allowed_roles=("ops_admin", "admin"))
 
     def test_go_client_has_no_member_wallet_mint_call(self):
-        """The console client must not call the member-owned top-up route at all. [case:console.users.user_grant_coins.renders]"""
+        """The console client must not call the member-owned top-up route at all."""
         from control_panel.services.go_client import GoBFFClient
         import inspect
 

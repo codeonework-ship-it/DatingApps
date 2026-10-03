@@ -31,7 +31,7 @@ class CatalogListTest(ConsoleCaseTest):
                                                        sort="sort_order", order="asc", limit=25, offset=0)
 
     def test_catalog_pages_past_the_first_fifty(self):
-        """Go's total (not the page count) drives paging. Regression: Next never showed. [case:console.catalog.catalog_list.paging]"""
+        """Go's total (not the page count) drives paging. Regression: Next never showed. [case:console.catalog.catalog_list.filters]"""
         api = self.bff()
         api.list_catalog_gifts.return_value = APIResult(True, {"gifts": [GIFT] * 25, "count": 25, "total": 120, "limit": 25, "offset": 0})
         response = self.client.get(reverse("catalog_list"))

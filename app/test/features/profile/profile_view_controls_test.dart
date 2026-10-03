@@ -147,7 +147,7 @@ void main() {
 
   group('load, retry and refresh', () {
     testWidgets('a failed load shows the server reason; Retry loads it '
-        '[case:profile.profile_view.retry.action]', (tester) async {
+        '[case:profile.profile_view.profile_retry.action]', (tester) async {
       final api = _api()
         ..fail('GET /profile/me/summary', message: 'Profile service is down');
       await _open(tester, api);
@@ -163,7 +163,7 @@ void main() {
     });
 
     testWidgets('Retry while still offline explains again and stays usable '
-        '[case:profile.profile_view.retry.api_failure]', (tester) async {
+        '[case:profile.profile_view.profile_retry.api_failure]', (tester) async {
       final api = _api()..offline('GET /profile/me/summary');
       await _open(tester, api);
       await _reveal(tester, find.byKey(_retry));
@@ -220,7 +220,7 @@ void main() {
 
   group('who viewed my profile', () {
     testWidgets('the tile opens the viewers list; coming back refreshes '
-        '[case:profile.profile_view.who_viewed_my_profile.action]', (
+        '[case:profile.profile_view.profile_who_viewed.action]', (
       tester,
     ) async {
       final api = _api();
@@ -238,7 +238,7 @@ void main() {
     });
 
     testWidgets('a viewers list that fails explains; Retry loads it '
-        '[case:profile.profile_view.who_viewed_my_profile.api_failure] '
+        '[case:profile.profile_view.profile_who_viewed.api_failure] '
         '[case:profile.profile_viewers.retry.action]', (tester) async {
       final api = _api();
       final ok = {
@@ -267,7 +267,7 @@ void main() {
     });
 
     testWidgets('the eye button in the top bar opens the viewers list '
-        '[case:profile.profile_view.who_viewed_my_profile_2.action]', (
+        '[case:profile.profile_view.who_viewed_my_profile.action]', (
       tester,
     ) async {
       final api = _api();
@@ -282,7 +282,7 @@ void main() {
     });
 
     testWidgets('the top-bar viewers list explains a failure '
-        '[case:profile.profile_view.who_viewed_my_profile_2.api_failure]', (
+        '[case:profile.profile_view.who_viewed_my_profile.api_failure]', (
       tester,
     ) async {
       final api = _api()..offline('GET /profile/me/viewers');
@@ -305,7 +305,7 @@ void main() {
 
   group('behind the scenes', () {
     testWidgets('counts and the completeness percent use German separators '
-        '[case:l10n-profile-stats-german-number-format]', (tester) async {
+        '[case:l10n.formats.profile_stats_numbers]', (tester) async {
       final summary = _summary();
       (summary['user'] as Map<String, dynamic>)['profile_completion'] = 45;
       summary['stats'] = {
@@ -343,7 +343,7 @@ void main() {
     });
 
     testWidgets('You liked opens the profiles I liked '
-        '[case:profile.profile_view.you_liked.action]', (tester) async {
+        '[case:profile.profile_view.profile_stat_liked.action]', (tester) async {
       final api = _api();
       await _open(tester, api);
       await _reveal(

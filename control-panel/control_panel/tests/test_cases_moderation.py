@@ -15,7 +15,7 @@ REPORT = {"id": "rep-1", "reporter_user_id": "u-reporter", "reported_user_id": "
 
 class VerifiedStatusTest(ConsoleCaseTest):
     def test_verified_rows_show_as_verified_and_the_filter_uses_gos_value(self):
-        """Go stores approvals as "verified". Regression: red badge, empty "Approved" filter. [case:console.verifications.status_value]"""
+        """Go stores approvals as "verified". Regression: red badge, empty "Approved" filter. [case:console.verifications.verification_queue.renders] [case:console.verifications.verification_queue.filters]"""
         api = self.bff()
         api.list_verifications.return_value = APIResult(True, {"verifications": [
             {"user_id": "u-1", "status": "verified", "submitted_at": "2026-09-30T08:00:00Z"}], "total": 1})
@@ -49,7 +49,7 @@ class ModerationReportsTest(ConsoleCaseTest):
 
     def test_action_report_sends_the_status_go_requires(self):
         """Regression: the action form sent no status and Go answered "status is required" for every report action.
-        Now each action maps to a status and the operator is named as reviewer. [case:console.moderation_reports.action_report.renders]"""
+        Now each action maps to a status and the operator is named as reviewer. [case:console.moderation_reports.action_report.performs]"""
         api = self.bff()
         url = reverse("action_report", args=["rep-1"])
         expected = {"dismiss": "rejected", "warn": "resolved", "ban_reported": "resolved", "under_review": "under_review"}
@@ -63,7 +63,7 @@ class ModerationReportsTest(ConsoleCaseTest):
         self.assertTrue(any("suspend or ban the member from their user page" in m for m in ban), ban)
 
     def test_action_report_validation_and_failure(self):
-        """[case:console.moderation_reports.action_report.renders]"""
+        """[case:console.moderation_reports.action_report.performs]"""
         api = self.bff()
         url = reverse("action_report", args=["rep-1"])
         self.assertIn("Choose a report action.", flash(self.client.post(url, {"action": ""})))
@@ -140,7 +140,7 @@ class VerificationsTest(ConsoleCaseTest):
         self.assertContains(self.client.get(reverse("verification_queue")), "alert-glass warning")
 
     def test_approve(self):
-        """[case:console.verifications.approve_verification.renders]"""
+        """[case:console.verifications.approve_verification.performs]"""
         api = self.bff()
         response = self.client.post(reverse("approve_verification", args=["u-1"]))
         api.approve_verification.assert_called_once_with("u-1")
@@ -156,7 +156,7 @@ class VerificationsTest(ConsoleCaseTest):
                                  refused_roles=("ops_admin", "support"), allowed_roles=("moderator",))
 
     def test_reject(self):
-        """[case:console.verifications.reject_verification.renders]"""
+        """[case:console.verifications.reject_verification.performs]"""
         api = self.bff()
         response = self.client.post(reverse("reject_verification", args=["u-1"]), {"rejection_reason": " Blurry selfie "})
         api.reject_verification.assert_called_once_with("u-1", "Blurry selfie")
@@ -186,7 +186,7 @@ class AppealsTest(ConsoleCaseTest):
         self.assertContains(self.client.get(reverse("appeal_queue")), "alert-glass warning")
 
     def test_action_appeal(self):
-        """The decision is forwarded with the signed-in operator as reviewer. [case:console.appeals.action_appeal.renders]"""
+        """The decision is forwarded with the signed-in operator as reviewer. [case:console.appeals.action_appeal.performs]"""
         api = self.bff()
         url = reverse("action_appeal", args=["apl-1"])
         self.assertIn("Appeal status is required.", flash(self.client.post(url, {"status": ""})))

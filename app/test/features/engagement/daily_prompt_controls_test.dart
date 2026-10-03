@@ -82,7 +82,7 @@ Future<void> _tapSubmit(WidgetTester tester) async {
 void main() {
   group('Update Answer', () {
     testWidgets(
-      'Update Answer saves the edited answer, reloads responders and shows the new state [case:engagement.daily_prompt.update_answer.action]',
+      'Update Answer saves the edited answer, reloads responders and shows the new state [case:engagement.daily_prompt.daily_prompt_submit.action]',
       (tester) async {
         final api = _api(view: _view(answer: _answer('Being listened to.')));
         api.json(
@@ -134,7 +134,7 @@ void main() {
     );
 
     testWidgets(
-      'first answer of the day uses Submit Daily Answer and then offers Update Answer [case:engagement.daily_prompt.update_answer.action]',
+      'first answer of the day uses Submit Daily Answer and then offers Update Answer [case:engagement.daily_prompt.daily_prompt_submit.action]',
       (tester) async {
         final api = _api();
         api.json(
@@ -169,7 +169,7 @@ void main() {
     );
 
     testWidgets(
-      'when the edit window has closed the answer and button are locked and nothing is sent [case:engagement.daily_prompt.update_answer.edit_window_closed]',
+      'when the edit window has closed the answer and button are locked and nothing is sent [case:engagement.daily_prompt.daily_prompt_submit.edit_window_closed]',
       (tester) async {
         final api = _api(
           view: _view(
@@ -199,7 +199,7 @@ void main() {
       ),
     ]) {
       testWidgets(
-        'Update Answer failure ($label), keeps the typed text and retries cleanly [case:engagement.daily_prompt.update_answer.api_failure]',
+        'Update Answer failure ($label), keeps the typed text and retries cleanly [case:engagement.daily_prompt.daily_prompt_submit.api_failure]',
         (tester) async {
           final api = _api(view: _view(answer: _answer('Being listened to.')));
           api.on('POST /engagement/daily-prompt/me/answer', (_) => failure);
@@ -234,7 +234,7 @@ void main() {
 
   group('answer field', () {
     testWidgets(
-      'typing fills the answer field and counts characters against the prompt limit [case:engagement.daily_prompt.type_your_response_in_under_60_s_input.action]',
+      'typing fills the answer field and counts characters against the prompt limit [case:engagement.daily_prompt.daily_prompt_answer_input.action]',
       (tester) async {
         final api = _api();
         await _open(tester, api);
@@ -251,7 +251,7 @@ void main() {
     );
 
     testWidgets(
-      'empty and whitespace-only answers are blocked with a localized message [case:engagement.daily_prompt.type_your_response_in_under_60_s_input.validation]',
+      'empty and whitespace-only answers are blocked with a localized message [case:engagement.daily_prompt.daily_prompt_answer_input.validation]',
       (tester) async {
         final api = _api();
         await _open(tester, api);
@@ -268,7 +268,7 @@ void main() {
     );
 
     testWidgets(
-      'max+1 characters are capped at the prompt limit before sending [case:engagement.daily_prompt.type_your_response_in_under_60_s_input.validation]',
+      'max+1 characters are capped at the prompt limit before sending [case:engagement.daily_prompt.daily_prompt_answer_input.validation]',
       (tester) async {
         final api = _api(view: _view(maxChars: 20));
         api.json(
@@ -292,7 +292,7 @@ void main() {
     );
 
     testWidgets(
-      'emoji and right-to-left text reach the server byte-for-byte (trimmed) [case:engagement.daily_prompt.type_your_response_in_under_60_s_input.validation]',
+      'emoji and right-to-left text reach the server byte-for-byte (trimmed) [case:engagement.daily_prompt.daily_prompt_answer_input.validation]',
       (tester) async {
         const unicode = 'שלום 👋🏽 مرحبا — café';
         final api = _api();

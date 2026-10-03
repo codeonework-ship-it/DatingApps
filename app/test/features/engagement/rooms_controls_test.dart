@@ -233,8 +233,8 @@ void main() {
       '[case:engagement.conversation_rooms.rooms_start_submit.action] '
       '[case:engagement.conversation_rooms.rooms_start_title_input.action] '
       '[case:engagement.conversation_rooms.rooms_start_about_input.action] '
-      '[case:engagement.conversation_rooms.choicechip_onselected.action] '
-      '[case:engagement.conversation_rooms.30_min_onselectionchanged.action]',
+      '[case:engagement.conversation_rooms.rooms_start_category_x.action] '
+      '[case:engagement.conversation_rooms.rooms_start_length_selectionchanged.action]',
       (tester) async {
         final s = RoomsServer();
         s.api.on('POST /rooms', slow(s.create));
@@ -315,8 +315,8 @@ void main() {
     testWidgets(
       'Topic chips and lengths switch the pick: City and 2 hours '
       'are what the server gets '
-      '[case:engagement.conversation_rooms.choicechip_onselected.action] '
-      '[case:engagement.conversation_rooms.30_min_onselectionchanged.action]',
+      '[case:engagement.conversation_rooms.rooms_start_category_x.action] '
+      '[case:engagement.conversation_rooms.rooms_start_length_selectionchanged.action]',
       (tester) async {
         final s = RoomsServer();
         await openRooms(tester, s);
@@ -579,7 +579,7 @@ void main() {
     );
 
     testWidgets('Try again after a failed first load fetches the rooms and '
-        'shows them [case:engagement.conversation_rooms.try_again.action]', (
+        'shows them [case:engagement.conversation_rooms.rooms_retry.action]', (
       tester,
     ) async {
       final s = RoomsServer();
@@ -602,7 +602,7 @@ void main() {
 
     testWidgets(
       'Try again that fails again says why, stays available, '
-      'sends once per tap [case:engagement.conversation_rooms.try_again.api_failure]',
+      'sends once per tap [case:engagement.conversation_rooms.rooms_retry.api_failure]',
       (tester) async {
         final s = RoomsServer();
         s.api.fail('GET /rooms', message: 'Rooms are napping.');
@@ -689,7 +689,7 @@ void main() {
 
     testWidgets(
       'Back closes Rooms and returns to where it was opened '
-      '[case:engagement.conversation_rooms.back_icon_arrow_back_rounded.action]',
+      '[case:engagement.conversation_rooms.rooms_back.action]',
       (tester) async {
         final s = RoomsServer();
         final results = await openRooms(tester, s, launcher: true);

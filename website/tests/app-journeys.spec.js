@@ -125,7 +125,7 @@ test.describe('profile Love and Message from every entry point', () => {
     }
   });
 
-  test('Discover deck: View more → Love, then the next card → Message without a match [case:discover.profile_entry_points.discover_view_more.love] [case:discover.profile_entry_points.discover_view_more.message] [case:common.main_navigation.explore_more_profiles_onbrowse.action] [case:swipe.home_discovery.discovery_view_more_button_openprofile.action]', async ({page}, testInfo) => {
+  test('Discover deck: View more → Love, then the next card → Message without a match [case:discover.profile_entry_points.discover_view_more.love] [case:discover.profile_entry_points.discover_view_more.message] [case:common.main_navigation.explore_more_profiles_onbrowse.action] [case:swipe.home_discovery.x_view_more_button_openprofile.action]', async ({page}, testInfo) => {
     test.setTimeout(180000);
     const problems = watchApp(page, testInfo);
     const {viewer, candidates} = await isolatedCast(2);
@@ -180,7 +180,7 @@ test.describe('profile Love and Message from every entry point', () => {
     }
   });
 
-  test('Spotlight screen: View more → Love, card Message without a match, View more → Message opens chat [case:discover.profile_entry_points.spotlight_screen.love] [case:discover.profile_entry_points.spotlight_screen.message] [case:discover.profile_entry_points.spotlight_screen.message_2] [case:swipe.spotlight_profiles.discovery_view_more_button_openprofile.action] [case:swipe.spotlight_profiles.discovery_card_message_button_message.action]', async ({page}, testInfo) => {
+  test('Spotlight screen: View more → Love, card Message without a match, View more → Message opens chat [case:discover.profile_entry_points.spotlight_screen.love] [case:discover.profile_entry_points.spotlight_screen.message] [case:discover.profile_entry_points.spotlight_screen.message_2] [case:swipe.spotlight_profiles.x_view_more_button_openprofile.action] [case:swipe.spotlight_profiles.x_card_message_button_message.action]', async ({page}, testInfo) => {
     test.setTimeout(240000);
     const problems = watchApp(page, testInfo);
     // The full Spotlight screen keeps its own 20–50 age window (see the
@@ -234,7 +234,7 @@ test.describe('profile Love and Message from every entry point', () => {
     }
   });
 
-  test('Spotlight screen: Like, Pass and Super like reach the server and move on; Undo steps back [case:discover.profile_entry_points.spotlight_screen.buttons_reach_server] [case:swipe.spotlight_profiles.discovery_like_button_like.action] [case:swipe.spotlight_profiles.discovery_pass_button_pass.action] [case:swipe.spotlight_profiles.discovery_superlike_button_superlike.action] [case:swipe.spotlight_profiles.discovery_undo_button_undo.action]', async ({page}, testInfo) => {
+  test('Spotlight screen: Like, Pass and Super like reach the server and move on; Undo steps back [case:discover.profile_entry_points.spotlight_screen.buttons_reach_server] [case:swipe.spotlight_profiles.like_icon_favorite_onlike.action] [case:swipe.spotlight_profiles.pass_icon_close_onpass.action] [case:swipe.spotlight_profiles.super_like_icon_star_onsuperlike.action] [case:swipe.spotlight_profiles.undo_icon_undo_onundo.action]', async ({page}, testInfo) => {
     test.setTimeout(240000);
     const problems = watchApp(page, testInfo);
     const {viewer, candidates} = await isolatedCast(3, 'qaj', spotlightAge());
@@ -281,7 +281,7 @@ test.describe('profile Love and Message from every entry point', () => {
     }
   });
 
-  test('Liked you (from My profile): Love likes back and makes the match; Message opens chat [case:discover.profile_entry_points.liked_you.love] [case:discover.profile_entry_points.liked_you.message] [case:discover.profile_entry_points.liked_you.own_rule] [case:swipe.liked_me.liked_me_card_x_open.action]', async ({page}, testInfo) => {
+  test('Liked you (from My profile): Love likes back and makes the match; Message opens chat [case:discover.profile_entry_points.liked_you.love] [case:discover.profile_entry_points.liked_you.message] [case:discover.profile_entry_points.liked_you.own_rule] [case:swipe.liked_me.liked_me_open_x_open.action]', async ({page}, testInfo) => {
     test.setTimeout(240000);
     const problems = watchApp(page, testInfo);
     const {viewer, candidates: [c0, c1]} = await isolatedCast(2);

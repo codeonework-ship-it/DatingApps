@@ -74,8 +74,8 @@ void main() {
   group('deck buttons', () {
     testWidgets(
       'Like saves a like for the member on the card and moves on '
-      '[case:swipe.spotlight_profiles.discovery_like_button_like.action] '
-      '[case:swipe.spotlight_profiles.discovery_like_button_like.api_contract]',
+      '[case:swipe.spotlight_profiles.like_icon_favorite_onlike.action] '
+      '',
       (tester) async {
         final api = qaDiscoverApi();
         await _openSpotlight(tester, api);
@@ -91,7 +91,7 @@ void main() {
 
     testWidgets(
       'a refused Like keeps the card and explains '
-      '[case:swipe.spotlight_profiles.discovery_like_button_like.api_failure]',
+      '[case:swipe.spotlight_profiles.like_icon_favorite_onlike.api_failure]',
       (tester) async {
         final api = qaDiscoverApi()..fail('POST /swipe');
         await _openSpotlight(tester, api);
@@ -107,8 +107,8 @@ void main() {
 
     testWidgets(
       'Super like saves a like and moves on '
-      '[case:swipe.spotlight_profiles.discovery_superlike_button_superlike.action] '
-      '[case:swipe.spotlight_profiles.discovery_superlike_button_superlike.api_contract]',
+      '[case:swipe.spotlight_profiles.super_like_icon_star_onsuperlike.action] '
+      '',
       (tester) async {
         final api = qaDiscoverApi();
         await _openSpotlight(tester, api);
@@ -121,7 +121,7 @@ void main() {
 
     testWidgets(
       'a Super like over the daily limit is explained '
-      '[case:swipe.spotlight_profiles.discovery_superlike_button_superlike.api_failure]',
+      '[case:swipe.spotlight_profiles.super_like_icon_star_onsuperlike.api_failure]',
       (tester) async {
         final api = qaDiscoverApi()
           ..on('POST /swipe', (_) => qaDailyLikeLimit());
@@ -135,8 +135,8 @@ void main() {
     );
 
     testWidgets('Pass saves a pass, moves on and counts it '
-        '[case:swipe.spotlight_profiles.discovery_pass_button_pass.action] '
-        '[case:swipe.spotlight_profiles.discovery_pass_button_pass.api_contract] '
+        '[case:swipe.spotlight_profiles.pass_icon_close_onpass.action] '
+        ''
         '[case:swipe.spotlight_profiles.passed_count.label]', (tester) async {
       final api = qaDiscoverApi();
       await _openSpotlight(tester, api);
@@ -185,7 +185,7 @@ void main() {
 
     testWidgets(
       'an offline Pass keeps the card and says so '
-      '[case:swipe.spotlight_profiles.discovery_pass_button_pass.api_failure]',
+      '[case:swipe.spotlight_profiles.pass_icon_close_onpass.api_failure]',
       (tester) async {
         final api = qaDiscoverApi()..offline('POST /swipe');
         await _openSpotlight(tester, api);
@@ -202,7 +202,7 @@ void main() {
     );
 
     testWidgets('Undo shows the last card again (local only, no request) '
-        '[case:swipe.spotlight_profiles.discovery_undo_button_undo.action]', (
+        '[case:swipe.spotlight_profiles.undo_icon_undo_onundo.action]', (
       tester,
     ) async {
       final api = qaDiscoverApi();
@@ -218,7 +218,7 @@ void main() {
     });
 
     testWidgets('after the last card the screen says everyone was reviewed '
-        '[case:swipe.spotlight_profiles.discovery_like_button_like.action]', (
+        '[case:swipe.spotlight_profiles.like_icon_favorite_onlike.action]', (
       tester,
     ) async {
       final api = qaDiscoverApi();
@@ -233,8 +233,8 @@ void main() {
     for (final (key, label) in [(_message, 'bar'), (_cardMessage, 'card')]) {
       testWidgets(
         '$label Message without a match likes, explains and stays '
-        '[case:swipe.spotlight_profiles.discovery_card_message_button_message.action] '
-        '[case:swipe.spotlight_profiles.discovery_card_message_button_message.api_contract] '
+        '[case:swipe.spotlight_profiles.x_card_message_button_message.action] '
+        ''
         '[case:discover.profile_entry_points.spotlight_screen.message_2]',
         (tester) async {
           final api = qaDiscoverApi();
@@ -254,7 +254,7 @@ void main() {
 
     testWidgets(
       'Message with a match opens that chat, no like '
-      '[case:swipe.spotlight_profiles.discovery_card_message_button_message.action] '
+      '[case:swipe.spotlight_profiles.x_card_message_button_message.action] '
       '[case:discover.profile_entry_points.spotlight_screen.message_2]',
       (tester) async {
         final api = qaDiscoverApi(
@@ -273,7 +273,7 @@ void main() {
 
     testWidgets(
       'Message over the daily limit is explained, no chat '
-      '[case:swipe.spotlight_profiles.discovery_card_message_button_message.api_failure]',
+      '[case:swipe.spotlight_profiles.x_card_message_button_message.api_failure]',
       (tester) async {
         final api = qaDiscoverApi()
           ..on('POST /swipe', (_) => qaDailyLikeLimit());
@@ -291,8 +291,8 @@ void main() {
     // recording the view, unlike every other way into a profile.
     testWidgets(
       'opens the member on the card and records the view '
-      '[case:swipe.spotlight_profiles.discovery_view_more_button_openprofile.action] '
-      '[case:swipe.spotlight_profiles.discovery_view_more_button_openprofile.api_contract]',
+      '[case:swipe.spotlight_profiles.x_view_more_button_openprofile.action] '
+      '',
       (tester) async {
         final api = qaDiscoverApi();
         await _openSpotlight(tester, api);
@@ -355,7 +355,7 @@ void main() {
 
     testWidgets(
       'a failed Love keeps the profile and the card '
-      '[case:swipe.spotlight_profiles.discovery_view_more_button_openprofile.api_failure]',
+      '[case:swipe.spotlight_profiles.x_view_more_button_openprofile.api_failure]',
       (tester) async {
         final api = qaDiscoverApi()..fail('POST /swipe', status: 502);
         await _openSpotlight(tester, api);
@@ -374,7 +374,7 @@ void main() {
   group('header and filters', () {
     testWidgets(
       'Back closes Spotlight '
-      '[case:swipe.spotlight_profiles.back_icon_arrow_back_ios_new_rou_onback.action]',
+      '[case:swipe.spotlight_profiles.spotlight_back_button_back.action]',
       (tester) async {
         final api = qaDiscoverApi();
         await _openSpotlight(tester, api);
@@ -395,7 +395,7 @@ void main() {
     });
 
     testWidgets('the bell says there is nothing new '
-        '[case:swipe.spotlight_profiles.gesturedetector_ontap.action]', (
+        '[case:swipe.spotlight_profiles.spotlight_notifications_button.action]', (
       tester,
     ) async {
       final api = qaDiscoverApi();
@@ -408,8 +408,8 @@ void main() {
     testWidgets('Filters → Verified only → Apply hides unverified members '
         '[case:swipe.spotlight_profiles.filters_onfilters.action] '
         '[case:swipe.spotlight_profiles.apply.action] '
-        '[case:swipe.spotlight_profiles.verified_only.action] '
-        '[case:swipe.spotlight_profiles.apply_2.action]', (tester) async {
+        '[case:swipe.spotlight_profiles.spotlight_filters_verified_only.action] '
+        '[case:swipe.spotlight_profiles.spotlight_filters_apply.action]', (tester) async {
       final api = qaDiscoverApi();
       await _openSpotlight(tester, api, profiles: [_tara, _uma]);
       expect(_card('Tara, 35'), findsOneWidget);
@@ -431,8 +431,8 @@ void main() {
     });
 
     testWidgets('the age range slider narrows the members shown '
-        '[case:swipe.spotlight_profiles.rangeslider_onchanged.action] '
-        '[case:swipe.spotlight_profiles.apply_2.action]', (tester) async {
+        '[case:swipe.spotlight_profiles.spotlight_filters_age_range.action] '
+        '[case:swipe.spotlight_profiles.spotlight_filters_apply.action]', (tester) async {
       final api = qaDiscoverApi();
       await _openSpotlight(tester, api, profiles: [_sami, _uma]);
       await _tap(tester, const ValueKey('qa.spotlight.filters_button'));
@@ -461,7 +461,7 @@ void main() {
     });
 
     testWidgets('Reset puts the filters back before applying '
-        '[case:swipe.spotlight_profiles.reset.action]', (tester) async {
+        '[case:swipe.spotlight_profiles.spotlight_filters_reset.action]', (tester) async {
       final api = qaDiscoverApi();
       await _openSpotlight(tester, api, profiles: [_tara, _uma]);
       await _tap(tester, const ValueKey('qa.spotlight.filters_button'));
@@ -505,7 +505,7 @@ void main() {
     });
 
     testWidgets('filters that match nobody say so '
-        '[case:swipe.spotlight_profiles.apply_2.action]', (tester) async {
+        '[case:swipe.spotlight_profiles.spotlight_filters_apply.action]', (tester) async {
       final api = qaDiscoverApi();
       await _openSpotlight(tester, api, profiles: [_tara]);
       await _tap(tester, const ValueKey('qa.spotlight.filters_button'));

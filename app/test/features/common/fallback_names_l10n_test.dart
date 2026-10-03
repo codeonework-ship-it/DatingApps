@@ -11,7 +11,7 @@ void main() {
   tearDown(() => setCurrentAppLocale(null));
 
   test('a photo byline without a name reads "Ein Mitglied" in German '
-      '[case:l10n-photo-theme-byline-fallback]', () {
+      '[case:l10n.fallback_names.photo_theme_byline]', () {
     final entry = ThemeEntry.fromJson({'id': 'e1', 'author_name': '  '});
     expect(entry.firstName, 'Ein Mitglied');
     expect(
@@ -21,13 +21,13 @@ void main() {
   });
 
   test('a discovery profile without a name gets the German placeholder, '
-      'never "Unknown" [case:l10n-discovery-name-fallback]', () {
+      'never "Unknown" [case:l10n.fallback_names.discovery_name]', () {
     final profile = SwipeNotifier.discoveryProfileFromApi({'id': 'u1'});
     expect(profile.name, 'Ein Mitglied');
     expect(profile.name, isNot('Unknown'));
   });
 
-  test('the brand name is one constant [case:l10n-brand-name-constant]', () {
+  test('the brand name is one constant [case:l10n.fallback_names.brand_name_constant]', () {
     expect(AppBrand.name, 'Connect');
   });
 }

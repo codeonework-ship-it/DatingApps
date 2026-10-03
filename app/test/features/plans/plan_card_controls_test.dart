@@ -160,7 +160,7 @@ void main() {
     );
 
     testWidgets('a plan whose partner has no name names "Dein Match" in German '
-        '[case:l10n-plan-partner-fallback-name-german]', (tester) async {
+        '[case:l10n.fallback_names.plan_partner_name_german]', (tester) async {
       final de = qaL10n(const Locale('de'));
       final world = upcoming();
       world.plan!.remove('partner_name');
@@ -209,7 +209,7 @@ void main() {
     );
 
     testWidgets('Keep it closes the question and keeps the plan, nothing sent '
-        '[case:plans.date_plan_card.keep_it.action]', (tester) async {
+        '[case:plans.date_plan_card.plan_keep_it.action]', (tester) async {
       final world = upcoming();
       await _open(tester, world);
       await tapKey(tester, 'qa.plan.cancel');
@@ -414,7 +414,7 @@ void main() {
     testWidgets(
       'after a mutual second yes, Plan another hello opens a fresh plan '
       'sheet and sends a new plan '
-      '[case:plans.date_plan_card.plan_second_yes.action]',
+      '[case:plans.date_plan_card.plan_another_hello.action]',
       (tester) async {
         final world = PlansWorld(
           canPropose: true,

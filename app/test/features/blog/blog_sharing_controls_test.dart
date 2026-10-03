@@ -133,7 +133,7 @@ Future<String> create(WidgetTester t, QaApi api) async {
 void main() {
   testWidgets(
     'Consent starts unchecked; ticking it enables Create, unticking disables '
-    'it again, and nothing is sent [case:blog.blog_sharing.i_approve_this_exact_public_copy.action]',
+    'it again, and nothing is sent [case:blog.blog_sharing.blog_share_approve.action]',
     (t) async {
       final api = shareApi();
       await pumpQa(t, api, BlogShareScreen(post: post()));
@@ -152,7 +152,7 @@ void main() {
 
   testWidgets(
     'Create public link sends exactly the approved copy once, then shows it '
-    'read-only with Copy and Manage [case:blog.blog_sharing.create_public_link.action]',
+    'read-only with Copy and Manage [case:blog.blog_sharing.blog_share_create.action]',
     (t) async {
       final api = shareApi()
         ..on(
@@ -196,7 +196,7 @@ void main() {
   testWidgets(
     'A failed create keeps the exact preview and consent, says what happened, '
     're-enables Create, and the retry reuses the same id '
-    '[case:blog.blog_sharing.create_public_link.api_failure]',
+    '[case:blog.blog_sharing.blog_share_create.api_failure]',
     (t) async {
       final api = shareApi()
         ..fail(
@@ -239,7 +239,7 @@ void main() {
 
   testWidgets(
     'Editing the excerpt withdraws consent; the edited words are what goes '
-    'public [case:blog.blog_sharing.exact_excerpt_from_your_chapter.action]',
+    'public [case:blog.blog_sharing.blog_share_excerpt.action]',
     (t) async {
       final api = shareApi();
       await pumpQa(t, api, BlogShareScreen(post: post()));
@@ -258,7 +258,7 @@ void main() {
   testWidgets(
     'regression: an empty or blank excerpt cannot be published even with '
     'consent; the 1,500 limit holds and unicode is sent byte-for-byte '
-    '[case:blog.blog_sharing.exact_excerpt_from_your_chapter.validation]',
+    '[case:blog.blog_sharing.blog_share_excerpt.validation]',
     (t) async {
       final api = shareApi();
       await pumpQa(t, api, BlogShareScreen(post: post()));
@@ -290,7 +290,7 @@ void main() {
 
   testWidgets(
     'Ticking a photo withdraws consent and adds exactly that photo; '
-    'unticking removes it [case:blog.blog_sharing.include_description.action]',
+    'unticking removes it [case:blog.blog_sharing.blog_share_photo_x.action]',
     (t) async {
       final api = shareApi();
       await pumpQa(
@@ -322,7 +322,7 @@ void main() {
 
   testWidgets(
     'Copy public link copies the link of exactly the publication just created '
-    '[case:blog.blog_sharing.copy_public_link.action]',
+    '[case:blog.blog_sharing.blog_share_copy_link.action]',
     (t) async {
       final clipboard = FakeClipboard()..install(t);
       final api = shareApi();
@@ -360,7 +360,7 @@ void main() {
   );
 
   testWidgets('The link in the dialog can be selected and copied by hand '
-      '[case:blog.blog_sharing.selectabletext_input_input.action]', (t) async {
+      '[case:blog.blog_sharing.blog_public_link_text_input.action]', (t) async {
     final clipboard = FakeClipboard()..install(t);
     final api = shareApi();
     await pumpQa(t, api, BlogShareScreen(post: post()));
@@ -373,7 +373,7 @@ void main() {
 
   testWidgets('The dialog link is byte-for-byte the public page contract: '
       '/story.html?id=<the new publication id> '
-      '[case:blog.blog_sharing.selectabletext_input_input.validation]', (
+      '[case:blog.blog_sharing.blog_public_link_text_input.validation]', (
     t,
   ) async {
     final clipboard = FakeClipboard()..install(t);
@@ -403,7 +403,7 @@ void main() {
 
     testWidgets(
       'Both contributions show read-only, author first, and can be copied '
-      '[case:blog.blog_sharing.selectabletext_input_input_2.action]',
+      '[case:blog.blog_sharing.blog_share_preview_input.action]',
       (t) async {
         final clipboard = FakeClipboard()..install(t);
         final api = shareApi();
@@ -427,7 +427,7 @@ void main() {
 
     testWidgets(
       'Emoji and RTL contributions are shown and sent byte-for-byte with the '
-      'exchange id [case:blog.blog_sharing.selectabletext_input_input_2.validation]',
+      'exchange id [case:blog.blog_sharing.blog_share_preview_input.validation]',
       (t) async {
         const mine = 'שלום 🌿 first light';
         const theirs = 'مرحبا — café 👩🏽‍🍳';
@@ -457,7 +457,7 @@ void main() {
   });
 
   testWidgets('Manage shared links opens Shared links with the new copy listed '
-      '[case:blog.blog_sharing.manage_shared_links.action]', (t) async {
+      '[case:blog.blog_sharing.blog_share_manage_links.action]', (t) async {
     final api = shareApi();
     await pumpQa(t, api, BlogShareScreen(post: post()));
     await create(t, api);

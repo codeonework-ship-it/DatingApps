@@ -11,7 +11,9 @@
 //   Flutter / Playwright  "[case:<id>]" in the test or group name ("[case:a, b]" ok)
 //   pytest                @pytest.mark.case("<id>", ...)  (recorded by qa/lab/qalab_pytest.py)
 //   Go                    "// case: <id>" lines directly above func TestX(t *testing.T)
-//   Django                "# case: <id>" lines directly above def test_x (or its decorators)
+//                         ("// cases:", several ids per line, "// [case:<id>]" also accepted)
+//   Django                "[case:<id>]" in the test method docstring, or
+//                         "# case: <id>" lines directly above def test_x (or its decorators)
 
 import {readdirSync, readFileSync, statSync} from 'node:fs';
 import {join, relative, dirname, sep} from 'node:path';
@@ -19,7 +21,7 @@ import {join, relative, dirname, sep} from 'node:path';
 export const SUITES = ['flutter', 'playwright', 'api_e2e', 'appium', 'go', 'django', 'console_smoke'];
 const ID_RE = /^[A-Za-z0-9_][A-Za-z0-9_.\-]*$/;
 const TAG_RE = /\[case:\s*([^\]]+?)\s*\]/g;
-const COMMENT_CASE_RE = /^\s*(?:\/\/|#)\s*case:\s*(.+?)\s*$/;
+const COMMENT_CASE_RE = /^\s*(?:\/\/|#)\s*cases?:\s*(.+?)\s*$/;
 
 export function splitIds(text) {
   const out = [];
@@ -267,12 +269,12 @@ export function goCaseComments(src) {
   const lines = String(src).split('\n');
   const out = [];
   lines.forEach((line, i) => {
-    const m = line.match(/^func (Test\w+)\(\s*\w+\s+\*testing\.T\s*\)/);
+    const m = line.match(/^func\s+(Test\w*)\s*\(\s*\w+\s+\*testing\.T\s*\)/);
     if (!m) return;
     let ids = [];
     for (let j = i - 1; j >= 0 && lines[j].trimStart().startsWith('//'); j -= 1) {
       const c = lines[j].match(COMMENT_CASE_RE);
-      if (c) ids = [...splitIds(c[1]), ...ids];
+      ids = [...(c ? splitIds(c[1]) : tagsInName(lines[j])), ...ids];
     }
     out.push({test: m[1], cases: [...new Set(ids)], line: i + 1});
   });
@@ -294,9 +296,35 @@ export function djangoCaseComments(src) {
       const m = lines[j].match(COMMENT_CASE_RE);
       if (m) ids = [...splitIds(m[1]), ...ids];
     }
+    ids = [...ids, ...tagsInName(docstringAfter(lines, i))];
     out.push({test: (owner.length ? `${owner[owner.length - 1].name}.` : '') + d[2], cases: [...new Set(ids)], line: i + 1});
   });
   return out;
+}
+
+/** The docstring of the def starting at line i ('' when there is none), whitespace-collapsed. */
+function docstringAfter(lines, i) {
+  let j = i;
+  // signature may span lines: skip to the line that ends with ':' (outside the parens)
+  let depth = 0;
+  for (; j < lines.length; j += 1) {
+    for (const ch of lines[j].replace(/#.*$/, '')) { if (ch === '(') depth += 1; else if (ch === ')') depth -= 1; }
+    if (depth <= 0 && /:\s*(#.*)?$/.test(lines[j])) break;
+  }
+  for (j += 1; j < lines.length && !lines[j].trim(); j += 1);
+  if (j >= lines.length) return '';
+  const first = lines[j].trim().match(/^[rRuU]?("""|'''|"|')/);
+  if (!first) return '';
+  const q = first[1];
+  let text = lines[j].trim().slice(first[0].length);
+  if (text.includes(q)) return text.slice(0, text.indexOf(q)).replace(/\s+/g, ' ');
+  if (q.length === 1) return '';
+  for (j += 1; j < lines.length; j += 1) {
+    const k = lines[j].indexOf(q);
+    if (k >= 0) { text += ' ' + lines[j].slice(0, k); break; }
+    text += ' ' + lines[j];
+  }
+  return text.replace(/\s+/g, ' ');
 }
 
 function walkFiles(dir, pred, out = [], skip = /(^|\/)(node_modules|\.venv|venv|vendor|\.git|\.dart_tool|build|site-packages|__pycache__)$/) {

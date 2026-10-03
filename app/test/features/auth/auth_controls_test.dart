@@ -97,7 +97,7 @@ void main() {
     });
 
     testWidgets('Just here to introduce friends opens the friend-only sign-up '
-        '[case:auth.welcome.just_here_to_introduce_friends.action]', (
+        '[case:auth.welcome.welcome_introducer_button.action]', (
       tester,
     ) async {
       await pumpQa(tester, QaApi(), const WelcomeScreen(), extra: [_signedOut]);
@@ -185,7 +185,7 @@ void main() {
     );
 
     testWidgets('Done on the password keyboard signs in '
-        '[case:auth.auth.signin_password_field_submit.action]', (tester) async {
+        '[case:auth.auth.password_onsubmit.action]', (tester) async {
       final api = QaApi()
         ..on('POST /auth/login', (_) => qaOk(_session('asha-1')));
       await pumpQa(
@@ -210,7 +210,7 @@ void main() {
     });
 
     testWidgets('Next on the username keyboard moves to the password '
-        '[case:auth.auth.signin_username_field_submitted.action]', (
+        '[case:auth.auth.username_onsubmitted.action]', (
       tester,
     ) async {
       final api = QaApi();
@@ -227,7 +227,7 @@ void main() {
     });
 
     testWidgets('Sign-in username is checked before anything is sent '
-        '[case:auth.auth.signin_username_field_submitted.validation]', (
+        '[case:auth.auth.username_onsubmitted.validation]', (
       tester,
     ) async {
       final api = QaApi()
@@ -263,7 +263,7 @@ void main() {
     });
 
     testWidgets('Sign-in password is required and sent byte-for-byte '
-        '[case:auth.auth.signin_password_field_submit.validation]', (
+        '[case:auth.auth.password_onsubmit.validation]', (
       tester,
     ) async {
       final api = QaApi()
@@ -292,7 +292,7 @@ void main() {
     });
 
     testWidgets('Show password reveals and hides the password '
-        '[case:auth.auth.hide_password_ontogglepassword.action]', (
+        '[case:auth.auth.signin_password_visibility_togglepassword.action]', (
       tester,
     ) async {
       await pumpQa(tester, QaApi(), const AuthScreen(), extra: [_signedOut]);
@@ -334,7 +334,7 @@ void main() {
     });
 
     testWidgets('Back returns to the welcome screen '
-        '[case:auth.auth.back_to_welcome.action]', (tester) async {
+        '[case:auth.auth.signin_back.action]', (tester) async {
       // Pushed from Welcome: back closes sign-in.
       final results = await pumpQa(
         tester,
@@ -520,7 +520,7 @@ void main() {
     });
 
     testWidgets('Back to sign in closes recovery '
-        '[case:auth.account_recovery.back_to_sign_in.action]', (tester) async {
+        '[case:auth.account_recovery.recovery_back_to_sign_in.action]', (tester) async {
       final api = recoveryApi();
       final results = await open(tester, api);
       await _type(tester, 'qa.recovery.code', 'code-123');
@@ -685,7 +685,7 @@ void main() {
     );
 
     testWidgets('Show password toggles the new password '
-        '[case:auth.account_recovery.recovery_new_password.action]', (
+        '[case:auth.account_recovery.recovery_new_password_input.action]', (
       tester,
     ) async {
       await open(tester, recoveryApi());

@@ -1,0 +1,1870 @@
+{
+ "_doc": "Controls, cases and features the static extraction (qa/catalog/tools) cannot see, each with the reason. final_catalog.py merges this file before applying [case:...] tags; an entry the generator starts producing itself is reported under stats.tag_issues.extra_cases_issues so it can be removed here. Cases start not_automated; only a tagged test that acts and asserts makes them automated.",
+ "controls": [
+  {
+   "feature": "engagement.room_chat",
+   "id": "engagement.room_chat.send",
+   "type": "button",
+   "label": "Send (room chat composer)",
+   "qa_key": null,
+   "source": "app/lib/features/social_chat/social_chat_screen.dart:732",
+   "why": "the composer is the shared social chat engine (ValueKey social.chat.send); static extraction attributes it to SocialChatScreen only"
+  },
+  {
+   "feature": "engagement.room_chat",
+   "id": "engagement.room_chat.add_friend",
+   "type": "button",
+   "label": "Add friend (room people sheet)",
+   "qa_key": "qa.add_friend.*",
+   "source": "app/lib/features/engagement/screens/room_chat_screen.dart",
+   "why": "AddFriendButton embedded in the people sheet; extracted under friends.friend_actions only"
+  },
+  {
+   "feature": "swipe.profile_details",
+   "id": "swipe.profile_details.add_friend",
+   "type": "button",
+   "label": "Add friend (profile page)",
+   "qa_key": "qa.add_friend.*",
+   "source": "app/lib/features/friends/widgets/friend_actions.dart",
+   "why": "AddFriendButton embedded in the profile page; extracted under friends.friend_actions only"
+  },
+  {
+   "feature": "matching.matches_list",
+   "id": "matching.matches_list.add_friend",
+   "type": "menu",
+   "label": "Add friend (match options)",
+   "qa_key": null,
+   "source": "app/lib/features/matching/screens/matches_list_screen.dart",
+   "why": "an option inside the match options sheet; the sheet's items are not extracted"
+  },
+  {
+   "feature": "friends.friends",
+   "id": "friends.friends.friends_intro_accept_x_decide",
+   "type": "button",
+   "label": "Accept intro",
+   "qa_key": "qa.friends.intro_accept.*",
+   "source": "app/lib/features/friends/screens/friends_screen.dart:1269",
+   "why": "keyed control inside a list builder the extractor does not reach"
+  },
+  {
+   "feature": "friends.friends",
+   "id": "friends.friends.friends_vouch_approve_x_decide",
+   "type": "button",
+   "label": "Approve vouch",
+   "qa_key": "qa.friends.vouch_approve.*",
+   "source": "app/lib/features/friends/screens/friends_screen.dart:1333",
+   "why": "keyed control inside a list builder the extractor does not reach"
+  },
+  {
+   "feature": "groups.groups",
+   "id": "groups.groups.invite_join_onrespond",
+   "type": "button",
+   "label": "Join (group invitation)",
+   "qa_key": null,
+   "source": "app/lib/features/groups/screens/groups_screen.dart:173",
+   "why": "the invitation card's Join callback (onRespond) is extracted only for Decline"
+  },
+  {
+   "feature": "groups.groups",
+   "id": "groups.groups.load_failed_retry",
+   "type": "button",
+   "label": "Try again (groups failed to load)",
+   "qa_key": null,
+   "source": "app/lib/features/groups/screens/groups_screen.dart",
+   "why": "retry notice rendered by a shared error widget"
+  },
+  {
+   "feature": "profile.profile_view",
+   "id": "profile.profile_view.tool_edit",
+   "type": "button",
+   "label": "Edit profile (profile tools)",
+   "qa_key": "qa.profile.tool.edit",
+   "source": "app/lib/features/profile/screens/profile_view_screen.dart:674",
+   "why": "tool row items are built from a list the extractor does not expand"
+  },
+  {
+   "feature": "profile.profile_view",
+   "id": "profile.profile_view.tool_photos",
+   "type": "button",
+   "label": "Photos (profile tools)",
+   "qa_key": "qa.profile.tool.photos",
+   "source": "app/lib/features/profile/screens/profile_view_screen.dart:680",
+   "why": "tool row items are built from a list the extractor does not expand"
+  },
+  {
+   "feature": "profile.profile_view",
+   "id": "profile.profile_view.tool_stories",
+   "type": "button",
+   "label": "Stories (profile tools)",
+   "qa_key": "qa.profile.tool.stories",
+   "source": "app/lib/features/profile/screens/profile_view_screen.dart:687",
+   "why": "tool row items are built from a list the extractor does not expand"
+  },
+  {
+   "feature": "profile.profile_view",
+   "id": "profile.profile_view.tool_viewers",
+   "type": "button",
+   "label": "Viewers (profile tools)",
+   "qa_key": "qa.profile.tool.viewers",
+   "source": "app/lib/features/profile/screens/profile_view_screen.dart:693",
+   "why": "tool row items are built from a list the extractor does not expand"
+  },
+  {
+   "feature": "blog.blog_editor",
+   "id": "blog.blog_editor.leave_editor",
+   "type": "button",
+   "label": "Leave editor (back with unsaved words)",
+   "qa_key": null,
+   "source": "app/lib/features/blog/blog_editor.dart",
+   "why": "the leave confirmation is shown from a PopScope handler, not a control callback"
+  },
+  {
+   "feature": "blog.blog_editor",
+   "id": "blog.blog_editor.rich_toolbar",
+   "type": "button",
+   "label": "Formatting toolbar (block menu, italic, underline)",
+   "qa_key": null,
+   "source": "app/lib/features/blog/blog_editor.dart",
+   "why": "toolbar buttons are keyed blog.editor.* (not qa.*) inside a toolbar widget"
+  },
+  {
+   "feature": "blog.blog_social",
+   "id": "blog.blog_social.comment_options_ondelete",
+   "type": "menu",
+   "label": "Delete comment (comment options)",
+   "qa_key": "qa.*.comment.options.*",
+   "source": "app/lib/features/blog/blog_social.dart:927",
+   "why": "the comment options menu's onDelete branch; only onReport is extracted"
+  },
+  {
+   "feature": "intentional_dating.today_introductions",
+   "id": "intentional_dating.today_introductions.today_explore_profiles",
+   "type": "button",
+   "label": "Explore profiles (Today breathing room)",
+   "qa_key": null,
+   "source": "app/lib/features/intentional_dating/today_introductions.dart:206",
+   "why": "passed as an action: parameter to an empty-state widget"
+  },
+  {
+   "feature": "verification.verification_status",
+   "id": "verification.verification_status.rejection_reason",
+   "type": "link",
+   "label": "Rejection reason (status card)",
+   "qa_key": null,
+   "source": "app/lib/features/verification/screens/verification_status_screen.dart",
+   "why": "status card content, shown for a rejected check"
+  }
+ ],
+ "cases": [
+  {
+   "id": "auth.signup.signup_create_account_button.validation",
+   "on": "auth.signup.signup_create_account_button",
+   "type": "edge",
+   "title": "Create account requires name, date of birth and gender",
+   "why": "required fields are checked on submit by the button"
+  },
+  {
+   "id": "blog.blog_connections.blog_connections_approve_copy_item.api_failure",
+   "on": "blog.blog_connections.blog_connections_approve_copy_item",
+   "type": "negative",
+   "title": "A failed approval shows the server reason, keeps the button and the retry succeeds",
+   "why": "the API call runs inside a callback/notifier the static extractor does not resolve; the test stubs the API to fail and asserts the UI"
+  },
+  {
+   "id": "blog.blog_connections.blog_exchange_journal_page.api_failure",
+   "on": "blog.blog_connections.blog_exchange_journal_page",
+   "type": "negative",
+   "title": "A failed shared journal page explains and stays on the exchange",
+   "why": "the API call runs inside a callback/notifier the static extractor does not resolve; the test stubs the API to fail and asserts the UI"
+  },
+  {
+   "id": "blog.blog_connections.blog_text_command_submit.api_failure",
+   "on": "blog.blog_connections.blog_text_command_submit",
+   "type": "negative",
+   "title": "A failed send keeps the words and retries with the same command id",
+   "why": "the API call runs inside a callback/notifier the static extractor does not resolve; the test stubs the API to fail and asserts the UI"
+  },
+  {
+   "id": "blog.blog_connections.blog_connections_withdraw_link_item.api_failure",
+   "on": "blog.blog_connections.blog_connections_withdraw_link_item",
+   "type": "negative",
+   "title": "A failed withdraw says it could not be confirmed and keeps the link",
+   "why": "the API call runs inside a callback/notifier the static extractor does not resolve; the test stubs the API to fail and asserts the UI"
+  },
+  {
+   "id": "blog.blog_editor.leave_editor.action",
+   "on": "blog.blog_editor.leave_editor",
+   "type": "happy",
+   "title": "Leaving with unsaved words asks first; Leave discards, Cancel stays",
+   "why": "flow control added above"
+  },
+  {
+   "id": "blog.blog_editor.rich_toolbar.action",
+   "on": "blog.blog_editor.rich_toolbar",
+   "type": "happy",
+   "title": "The formatting toolbar shapes what the chapter saves",
+   "why": "flow control added above"
+  },
+  {
+   "id": "blog.blog_social.comment_options_ondelete.action",
+   "on": "blog.blog_social.comment_options_ondelete",
+   "type": "happy",
+   "title": "Deleting a comment asks first; Cancel keeps it, Delete removes it",
+   "why": "control added above"
+  },
+  {
+   "id": "blog.blog_social.comment_options_ondelete.api_failure",
+   "on": "blog.blog_social.comment_options_ondelete",
+   "type": "negative",
+   "title": "A failed comment delete explains and keeps the comment",
+   "why": "the API call runs inside a callback/notifier the static extractor does not resolve; the test stubs the API to fail and asserts the UI"
+  },
+  {
+   "id": "blog.blog_social.x_comment_send.api_failure",
+   "on": "blog.blog_social.x_comment_send",
+   "type": "negative",
+   "title": "A failed comment keeps the words, re-enables Send and retries under the same id",
+   "why": "the API call runs inside a callback/notifier the static extractor does not resolve; the test stubs the API to fail and asserts the UI"
+  },
+  {
+   "id": "calls.call_session.back_ends_call",
+   "on": "calls.call_session",
+   "type": "edge",
+   "title": "Back during a call ends the call before leaving",
+   "why": "screen-level flow"
+  },
+  {
+   "id": "calls.call_session.permissions_denied",
+   "on": "calls.call_session",
+   "type": "negative",
+   "title": "Without camera and microphone permission nothing is started",
+   "why": "screen-level flow"
+  },
+  {
+   "id": "calls.call_session.calls_join_live_room.not_configured",
+   "on": "calls.call_session.calls_join_live_room",
+   "type": "negative",
+   "title": "A room link that is not https is refused with a reason",
+   "why": "edge state of the control"
+  },
+  {
+   "id": "calls.call_session.calls_join_live_room.open_failed",
+   "on": "calls.call_session.calls_join_live_room",
+   "type": "negative",
+   "title": "A room the device cannot open is explained",
+   "why": "edge state of the control"
+  },
+  {
+   "id": "city_pilot.city_pilot.flag_off.gated",
+   "on": "city_pilot.city_pilot",
+   "type": "edge",
+   "title": "With the pilot flag off the member sees it paused, cannot join or book, and can still leave or cancel",
+   "why": "feature-flag state"
+  },
+  {
+   "id": "clubs.club_detail.join_club.api_failure",
+   "on": "clubs.club_detail.join_club",
+   "type": "negative",
+   "title": "A failed Join club says why and lets the member retry",
+   "why": "the API call runs inside a callback/notifier the static extractor does not resolve; the test stubs the API to fail and asserts the UI"
+  },
+  {
+   "id": "clubs.club_detail.leave_club.api_failure",
+   "on": "clubs.club_detail.leave_club",
+   "type": "negative",
+   "title": "A failed Leave club keeps the member in with a message",
+   "why": "the API call runs inside a callback/notifier the static extractor does not resolve; the test stubs the API to fail and asserts the UI"
+  },
+  {
+   "id": "clubs.review_sheets.count_plural_1_1_title_other_cou.api_failure",
+   "on": "clubs.review_sheets.count_plural_1_1_title_other_cou",
+   "type": "negative",
+   "title": "A failed add-to-list says why and keeps the sheet",
+   "why": "the API call runs inside a callback/notifier the static extractor does not resolve; the test stubs the API to fail and asserts the UI"
+  },
+  {
+   "id": "clubs.title_picker.add_and_choose.api_failure",
+   "on": "clubs.title_picker.add_and_choose",
+   "type": "negative",
+   "title": "A failed Add and choose keeps the form; retry reuses the id",
+   "why": "the API call runs inside a callback/notifier the static extractor does not resolve; the test stubs the API to fail and asserts the UI"
+  },
+  {
+   "id": "clubs.title_picker.type_at_least_2_letters.api_failure",
+   "on": "clubs.title_picker.type_at_least_2_letters",
+   "type": "negative",
+   "title": "A failed title search says why and still offers to add the title",
+   "why": "the API call runs inside a callback/notifier the static extractor does not resolve; the test stubs the API to fail and asserts the UI"
+  },
+  {
+   "id": "common.about_app.l10n",
+   "on": "common.about_app",
+   "type": "l10n",
+   "title": "About renders in every shipped language",
+   "why": "screen-level l10n case (the screen has no extracted control)"
+  },
+  {
+   "id": "common.about_app.version",
+   "on": "common.about_app",
+   "type": "happy",
+   "title": "About shows the build's own version",
+   "why": "screen content"
+  },
+  {
+   "id": "common.account_data.account_delete_hide_instead.api_failure",
+   "on": "common.account_data.account_delete_hide_instead",
+   "type": "negative",
+   "title": "A refused Hide instead explains and leaves the account as it was",
+   "why": "the API call runs inside a callback/notifier the static extractor does not resolve; the test stubs the API to fail and asserts the UI"
+  },
+  {
+   "id": "common.blocked_users.empty_state",
+   "on": "common.blocked_users",
+   "type": "edge",
+   "title": "An empty blocked list says so",
+   "why": "screen state"
+  },
+  {
+   "id": "common.blocked_users.blocked_unblock_confirm.reload_failure",
+   "on": "common.blocked_users.blocked_unblock_confirm",
+   "type": "negative",
+   "title": "If the reload after an unblock fails, the unblocked member still leaves the list",
+   "why": "regression flow"
+  },
+  {
+   "id": "common.emergency_contacts.emergency_add.limit",
+   "on": "common.emergency_contacts.emergency_add",
+   "type": "edge",
+   "title": "With three contacts Add is disabled and says why",
+   "why": "limit state of the control"
+  },
+  {
+   "id": "common.language_picker.use_device_language.api_contract",
+   "on": "common.language_picker.use_device_language",
+   "type": "happy",
+   "title": "API behind Use device language (PATCH /v1/settings/{userID}) accepts a valid request and rejects bad input/authz",
+   "why": "the PATCH runs in LanguageSettingsScreen's callback, not statically resolved; probed by qa/api_e2e test_19"
+  },
+  {
+   "id": "common.language_picker.use_device_language.api_failure",
+   "on": "common.language_picker.use_device_language",
+   "type": "negative",
+   "title": "Use device language refused: the chosen language stays and the reason is shown",
+   "why": "the API call runs inside a callback/notifier the static extractor does not resolve; the test stubs the API to fail and asserts the UI"
+  },
+  {
+   "id": "common.language_picker.check_circle_rounded_icon_check.api_contract",
+   "on": "common.language_picker.check_circle_rounded_icon_check",
+   "type": "happy",
+   "title": "API behind picking a language (PATCH /v1/settings/{userID}) accepts a valid request and rejects bad input/authz",
+   "why": "the PATCH runs in LanguageSettingsScreen's callback, not statically resolved; probed by qa/api_e2e test_19"
+  },
+  {
+   "id": "common.language_picker.check_circle_rounded_icon_check.api_failure",
+   "on": "common.language_picker.check_circle_rounded_icon_check",
+   "type": "negative",
+   "title": "A refused language pick keeps the previous one and explains",
+   "why": "the API call runs inside a callback/notifier the static extractor does not resolve; the test stubs the API to fail and asserts the UI"
+  },
+  {
+   "id": "common.language_settings.l10n",
+   "on": "common.language_settings",
+   "type": "l10n",
+   "title": "Language settings renders in every shipped language",
+   "why": "screen-level l10n case missing because the controls live in the language picker widget"
+  },
+  {
+   "id": "common.language_settings.account_switch_reload",
+   "on": "common.language_settings",
+   "type": "edge",
+   "title": "After an account switch the next member gets their own stored language",
+   "why": "session flow"
+  },
+  {
+   "id": "common.main_navigation.settings_badge.contained",
+   "on": "common.main_navigation",
+   "type": "layout",
+   "title": "The Settings tab unread badge stays inside the tab at the screen edge",
+   "why": "badge is display-only (no control)"
+  },
+  {
+   "id": "common.main_navigation.settings_badge.semantics",
+   "on": "common.main_navigation",
+   "type": "a11y",
+   "title": "The Settings tab badge is silent with nothing unread and announced when there is",
+   "why": "badge is display-only (no control)"
+  },
+  {
+   "id": "common.moderation_appeals.account_switch_isolation",
+   "on": "common.moderation_appeals",
+   "type": "edge",
+   "title": "Moderation appeals never carry over to the next member",
+   "why": "session flow"
+  },
+  {
+   "id": "common.moderation_appeals.appeals_submit.reload_failure",
+   "on": "common.moderation_appeals.appeals_submit",
+   "type": "negative",
+   "title": "A submitted appeal stays submitted when the re-read fails (no duplicate appeal invited)",
+   "why": "regression flow"
+  },
+  {
+   "id": "engagement.daily_prompt.daily_prompt_submit.edit_window_closed",
+   "on": "engagement.daily_prompt.daily_prompt_submit",
+   "type": "edge",
+   "title": "After the edit window closes the answer and button are locked and nothing is sent",
+   "why": "edge state of the control"
+  },
+  {
+   "id": "engagement.daily_prompt.update_answer_onrefresh.no_prompt_today",
+   "on": "engagement.daily_prompt.update_answer_onrefresh",
+   "type": "edge",
+   "title": "Refreshing on a day without a prompt drops the stale prompt",
+   "why": "edge state of the control"
+  },
+  {
+   "id": "engagement.engagement_hub.release_gates",
+   "on": "engagement.engagement_hub",
+   "type": "edge",
+   "title": "Release flags hide gated tiles (Level & XP, Voice Icebreakers, Create) and keep the core tiles",
+   "why": "feature-flag state"
+  },
+  {
+   "id": "engagement.group_coffee_polls.coffee_vote.api_contract_route",
+   "on": "engagement.group_coffee_polls.coffee_vote",
+   "type": "negative",
+   "title": "GET /v1/engagement/group-coffee-polls/{poll} refuses a member who is not in the poll",
+   "why": "route read by the poll screen; known defect API-C05 tracked as strict xfail in qa/api_e2e test_19"
+  },
+  {
+   "id": "engagement.level_progression.level_claim_x_claim.gated",
+   "on": "engagement.level_progression.level_claim_x_claim",
+   "type": "edge",
+   "title": "Trust-gated and paused rewards cannot be claimed and send nothing",
+   "why": "edge state of the control"
+  },
+  {
+   "id": "engagement.match_nudges.nudges_send_x.empty",
+   "on": "engagement.match_nudges.nudges_send_x",
+   "type": "edge",
+   "title": "With no matches there is nothing to nudge and nothing is sent",
+   "why": "empty state"
+  },
+  {
+   "id": "engagement.room_chat.send.action",
+   "on": "engagement.room_chat.send",
+   "type": "happy",
+   "title": "Send posts the message to the room channel and shows it",
+   "why": "control added above"
+  },
+  {
+   "id": "engagement.room_chat.send.api_failure",
+   "on": "engagement.room_chat.send",
+   "type": "negative",
+   "title": "A send that fails says why and marks the message not sent",
+   "why": "the API call runs inside a callback/notifier the static extractor does not resolve; the test stubs the API to fail and asserts the UI"
+  },
+  {
+   "id": "engagement.room_chat.add_friend.action",
+   "on": "engagement.room_chat.add_friend",
+   "type": "happy",
+   "title": "Add friend in the people sheet sends a request that started in a room",
+   "why": "control added above"
+  },
+  {
+   "id": "engagement.room_chat.add_friend.api_failure",
+   "on": "engagement.room_chat.add_friend",
+   "type": "negative",
+   "title": "An Add friend that fails says why and stays available",
+   "why": "the API call runs inside a callback/notifier the static extractor does not resolve; the test stubs the API to fail and asserts the UI"
+  },
+  {
+   "id": "engagement.room_chat.muted_composer.action",
+   "on": "engagement.room_chat",
+   "type": "edge",
+   "title": "A member muted in the room reads along: the composer is closed and says until when",
+   "why": "screen state"
+  },
+  {
+   "id": "engagement.room_chat.presence_heartbeat.action",
+   "on": "engagement.room_chat",
+   "type": "happy",
+   "title": "Presence heartbeat updates every 45 s and says away on leaving the chat",
+   "why": "background flow (no control)"
+  },
+  {
+   "id": "engagement.room_chat.presence_heartbeat.api_failure",
+   "on": "engagement.room_chat",
+   "type": "negative",
+   "title": "A failed heartbeat keeps the chat; a lost room closes it with the reason",
+   "why": "background flow (no control)"
+  },
+  {
+   "id": "friends.friend_actions.cancel_request.unnamed",
+   "on": "friends.friend_actions.cancel_request",
+   "type": "l10n",
+   "title": "Cancelling a request to a member without a name says 'this member'",
+   "why": "fallback naming"
+  },
+  {
+   "id": "friends.friend_actions.cancel_request_2.api_failure",
+   "on": "friends.friend_actions.cancel_request_2",
+   "type": "negative",
+   "title": "A failed cancel says why and stays Requested",
+   "why": "the API call runs inside a callback/notifier the static extractor does not resolve; the test stubs the API to fail and asserts the UI"
+  },
+  {
+   "id": "friends.friend_actions.filledbutton_tonalicon_onpressed.api_failure",
+   "on": "friends.friend_actions.filledbutton_tonalicon_onpressed",
+   "type": "negative",
+   "title": "A failed friend request explains; a second tap while sending sends nothing",
+   "why": "the API call runs inside a callback/notifier the static extractor does not resolve; the test stubs the API to fail and asserts the UI"
+  },
+  {
+   "id": "friends.friend_actions.filledbutton_tonalicon_onpressed.incoming_and_friends",
+   "on": "friends.friend_actions.filledbutton_tonalicon_onpressed",
+   "type": "happy",
+   "title": "An incoming request can be accepted; for friends Message opens the chat",
+   "why": "state variants of the control"
+  },
+  {
+   "id": "friends.friend_actions.self_hidden",
+   "on": "friends.friend_actions",
+   "type": "edge",
+   "title": "The friend button is hidden on my own profile",
+   "why": "visibility rule"
+  },
+  {
+   "id": "friends.friends.friends_intro_accept_x_decide.action",
+   "on": "friends.friends.friends_intro_accept_x_decide",
+   "type": "happy",
+   "title": "An incoming intro shows the other person and can be accepted",
+   "why": "control added above"
+  },
+  {
+   "id": "friends.friends.friends_vouch_approve_x_decide.action",
+   "on": "friends.friends.friends_vouch_approve_x_decide",
+   "type": "happy",
+   "title": "A pending vouch can be approved for the profile",
+   "why": "control added above"
+  },
+  {
+   "id": "friends.friends.friends_intro_decline_x_decide.api_contract_route",
+   "on": "friends.friends.friends_intro_decline_x_decide",
+   "type": "negative",
+   "title": "POST /v1/friends/{userID}/intros/{introID}/decision validates the intro id (no 5xx)",
+   "why": "known defect API-C01 tracked as strict xfail in qa/api_e2e test_19"
+  },
+  {
+   "id": "friends.friends.friends_vouch_hide_x_decide.api_contract_route",
+   "on": "friends.friends.friends_vouch_hide_x_decide",
+   "type": "negative",
+   "title": "POST /v1/friends/{userID}/vouches/{vouchID}/decision validates the vouch id (no 5xx)",
+   "why": "known defect API-C01 tracked as strict xfail in qa/api_e2e test_19"
+  },
+  {
+   "id": "friends.friends.friends_menu_x_action.block",
+   "on": "friends.friends.friends_menu_x_action",
+   "type": "happy",
+   "title": "Block in the friend menu asks first, blocks on the server and drops the friend",
+   "why": "menu option"
+  },
+  {
+   "id": "friends.friends.friends_menu_x_action.sheets",
+   "on": "friends.friends.friends_menu_x_action",
+   "type": "happy",
+   "title": "Vouch and Introduce in the friend menu open their sheets for that friend",
+   "why": "menu options"
+  },
+  {
+   "id": "friends.friends.friends_search_field_submitted.api_failure",
+   "on": "friends.friends.friends_search_field_submitted",
+   "type": "negative",
+   "title": "A failed friend search says so in the sheet",
+   "why": "the API call runs inside a callback/notifier the static extractor does not resolve; the test stubs the API to fail and asserts the UI"
+  },
+  {
+   "id": "friends.friends.intros_flag_off.gated",
+   "on": "friends.friends",
+   "type": "edge",
+   "title": "With intros switched off the intro surfaces are hidden",
+   "why": "feature-flag state"
+  },
+  {
+   "id": "friends.friends.activity_onrefresh.api_failure",
+   "on": "friends.friends.activity_onrefresh",
+   "type": "negative",
+   "title": "A failed refresh keeps the list and shows the server message",
+   "why": "the API call runs inside a callback/notifier the static extractor does not resolve; the test stubs the API to fail and asserts the UI"
+  },
+  {
+   "id": "graduation.graduation_banner.graduation_decline.api_contract_route",
+   "on": "graduation.graduation_banner.graduation_decline",
+   "type": "negative",
+   "title": "POST /v1/matches/{matchID}/graduation/{id}/decision validates the id (no 5xx)",
+   "why": "known defect API-C01 tracked as strict xfail in qa/api_e2e test_19"
+  },
+  {
+   "id": "graduation.graduation_banner.graduation_withdraw.api_contract_route",
+   "on": "graduation.graduation_banner.graduation_withdraw",
+   "type": "negative",
+   "title": "POST /v1/matches/{matchID}/graduation/{id}/withdraw validates the id (no 5xx)",
+   "why": "known defect API-C01 tracked as strict xfail in qa/api_e2e test_19"
+  },
+  {
+   "id": "groups.groups.groups_join_x.api_failure",
+   "on": "groups.groups.groups_join_x",
+   "type": "negative",
+   "title": "A refused Join explains, keeps the card offered and a retry joins once",
+   "why": "the API call runs inside a callback/notifier the static extractor does not resolve; the test stubs the API to fail and asserts the UI"
+  },
+  {
+   "id": "groups.groups.invite_join_onrespond.action",
+   "on": "groups.groups.invite_join_onrespond",
+   "type": "happy",
+   "title": "Joining from an invitation accepts it, welcomes me and lists the group",
+   "why": "control added above"
+  },
+  {
+   "id": "groups.groups.load_failed_retry.action",
+   "on": "groups.groups.load_failed_retry",
+   "type": "happy",
+   "title": "Groups that fail to load offer Try again, which loads them",
+   "why": "control added above"
+  },
+  {
+   "id": "intentional_dating.today_introductions.today_explore_profiles.action",
+   "on": "intentional_dating.today_introductions.today_explore_profiles",
+   "type": "happy",
+   "title": "Explore profiles on the Today breathing-room card opens the deck; Back to Today returns",
+   "why": "control added above"
+  },
+  {
+   "id": "matching.activity_session.activity_submit.validation",
+   "on": "matching.activity_session.activity_submit",
+   "type": "edge",
+   "title": "Submit with a round unanswered asks for all answers",
+   "why": "validation on submit"
+  },
+  {
+   "id": "matching.matches_list.add_friend.action",
+   "on": "matching.matches_list.add_friend",
+   "type": "happy",
+   "title": "Add friend in the match options sends a friend request",
+   "why": "control added above"
+  },
+  {
+   "id": "matching.matches_list.matches_retry.clears_error",
+   "on": "matching.matches_list.matches_retry",
+   "type": "edge",
+   "title": "A successful retry clears the error and shows the empty state",
+   "why": "state of the control"
+  },
+  {
+   "id": "messaging.chat.chat_composer.locked",
+   "on": "messaging.chat.chat_composer",
+   "type": "edge",
+   "title": "A locked conversation pauses the composer",
+   "why": "state of the control"
+  },
+  {
+   "id": "messaging.chat.chat_gift_item_x.locked",
+   "on": "messaging.chat.chat_gift_item_x",
+   "type": "edge",
+   "title": "A gift the wallet cannot cover opens the wallet instead of sending",
+   "why": "state of the control"
+  },
+  {
+   "id": "messaging.chat.daily_limit_banner",
+   "on": "messaging.chat",
+   "type": "edge",
+   "title": "Over the daily message limit the chat shows the limit banner",
+   "why": "screen state"
+  },
+  {
+   "id": "messaging.chat.history.action",
+   "on": "messaging.chat",
+   "type": "happy",
+   "title": "Opening a chat loads the history",
+   "why": "screen flow (no control)"
+  },
+  {
+   "id": "messaging.chat.read_receipt.action",
+   "on": "messaging.chat",
+   "type": "happy",
+   "title": "Opening a chat marks incoming messages as read",
+   "why": "screen flow (no control)"
+  },
+  {
+   "id": "notifications.notification_inbox.inkwell_ontap.friend_route",
+   "on": "notifications.notification_inbox.inkwell_ontap",
+   "type": "happy",
+   "title": "A read friend-request notification opens Friends without re-marking it",
+   "why": "route variant of the control"
+  },
+  {
+   "id": "notifications.notification_inbox.inkwell_ontap.support_route",
+   "on": "notifications.notification_inbox.inkwell_ontap",
+   "type": "happy",
+   "title": "A support-reply notification opens that ticket thread",
+   "why": "route variant of the control"
+  },
+  {
+   "id": "payment.checkout_webview.foreign_redirect",
+   "on": "payment.checkout_webview",
+   "type": "edge",
+   "title": "Redirects of other checkouts are not treated as the end of this one",
+   "why": "web view navigation rule"
+  },
+  {
+   "id": "payment.checkout_webview.return_cancel",
+   "on": "payment.checkout_webview",
+   "type": "negative",
+   "title": "The cancelled redirect is intercepted and reported as not paid",
+   "why": "web view navigation rule"
+  },
+  {
+   "id": "payment.checkout_webview.return_success",
+   "on": "payment.checkout_webview",
+   "type": "happy",
+   "title": "The success redirect is intercepted and reported as paid",
+   "why": "web view navigation rule"
+  },
+  {
+   "id": "payment.subscription.membership_auto_renew_autorenewchanged.resume",
+   "on": "payment.subscription.membership_auto_renew_autorenewchanged",
+   "type": "happy",
+   "title": "Turning auto-renew back on resumes without a confirmation",
+   "why": "state variant of the toggle"
+  },
+  {
+   "id": "payment.subscription.membership_plan_x_subscribe.cancelled",
+   "on": "payment.subscription.membership_plan_x_subscribe",
+   "type": "negative",
+   "title": "A checkout cancelled before paying changes nothing and says so",
+   "why": "checkout outcome"
+  },
+  {
+   "id": "payment.subscription.membership_sandbox_x_event.hidden_live",
+   "on": "payment.subscription.membership_sandbox_x_event",
+   "type": "negative",
+   "title": "A live (non-sandbox) membership never shows the sandbox controls",
+   "why": "visibility rule"
+  },
+  {
+   "id": "payment.subscription.l10n_dialogs",
+   "on": "payment.subscription",
+   "type": "l10n",
+   "title": "Membership dialogs fit a phone in all 10 languages",
+   "why": "screen l10n regression"
+  },
+  {
+   "id": "payment.subscription.payment_history.render",
+   "on": "payment.subscription",
+   "type": "happy",
+   "title": "Payment history lists the member's payments",
+   "why": "screen section"
+  },
+  {
+   "id": "payment.wallet_payment.cards_disabled",
+   "on": "payment.wallet_payment",
+   "type": "edge",
+   "title": "With card payments off the packs are replaced by a note",
+   "why": "feature-flag state"
+  },
+  {
+   "id": "payment.wallet_payment.history.render",
+   "on": "payment.wallet_payment",
+   "type": "happy",
+   "title": "Wallet history lists coin movements",
+   "why": "screen section"
+  },
+  {
+   "id": "payment.wallet_payment.coins_are_used_for_gifts_and_boo_onrefresh.api_failure",
+   "on": "payment.wallet_payment.coins_are_used_for_gifts_and_boo_onrefresh",
+   "type": "negative",
+   "title": "A failed wallet refresh keeps the last balance and explains",
+   "why": "the API call runs inside a callback/notifier the static extractor does not resolve; the test stubs the API to fail and asserts the UI"
+  },
+  {
+   "id": "payment.wallet_payment.wallet_buy_x_buy.cancelled",
+   "on": "payment.wallet_payment.wallet_buy_x_buy",
+   "type": "negative",
+   "title": "A checkout that ends without paying adds nothing and says so",
+   "why": "checkout outcome"
+  },
+  {
+   "id": "profile.profile_view.tool_edit.action",
+   "on": "profile.profile_view.tool_edit",
+   "type": "happy",
+   "title": "Edit in profile tools opens the editor and refreshes on return",
+   "why": "control added above"
+  },
+  {
+   "id": "profile.profile_view.tool_photos.action",
+   "on": "profile.profile_view.tool_photos",
+   "type": "happy",
+   "title": "Photos in profile tools opens the photo editor",
+   "why": "control added above"
+  },
+  {
+   "id": "profile.profile_view.tool_stories.action",
+   "on": "profile.profile_view.tool_stories",
+   "type": "happy",
+   "title": "Stories in profile tools opens the member's stories",
+   "why": "control added above"
+  },
+  {
+   "id": "profile.profile_view.tool_viewers.action",
+   "on": "profile.profile_view.tool_viewers",
+   "type": "happy",
+   "title": "Viewers in profile tools opens who viewed the profile",
+   "why": "control added above"
+  },
+  {
+   "id": "profile.setup_photos.photo_list_rows.action",
+   "on": "profile.setup_photos",
+   "type": "layout",
+   "title": "With five photos under review every row stays reachable",
+   "why": "list layout"
+  },
+  {
+   "id": "profile.setup_photos.setup_photos_x_button_pickgallery.validation",
+   "on": "profile.setup_photos.setup_photos_x_button_pickgallery",
+   "type": "edge",
+   "title": "A photo over 10 MB is refused before upload; at the 5-photo limit the picker is not opened",
+   "why": "validation on pick"
+  },
+  {
+   "id": "profile.setup_preferences.setup_preferences_seeking_x_seekingtoggled.validation",
+   "on": "profile.setup_preferences.setup_preferences_seeking_x_seekingtoggled",
+   "type": "edge",
+   "title": "Saving with no gender selected is blocked with the localized message",
+   "why": "validation"
+  },
+  {
+   "id": "profile.setup_preview.setup_preview_complete_button_complete.validation",
+   "on": "profile.setup_preview.setup_preview_complete_button_complete",
+   "type": "edge",
+   "title": "An incomplete profile is explained before anything is sent",
+   "why": "validation on submit"
+  },
+  {
+   "id": "safety.sos.safety_activate_sos.no_location",
+   "on": "safety.sos.safety_activate_sos",
+   "type": "edge",
+   "title": "With location unavailable the alert is still sent and says it went without location",
+   "why": "degraded state"
+  },
+  {
+   "id": "support.support_tickets.account_switch_isolation",
+   "on": "support.support_tickets",
+   "type": "edge",
+   "title": "Support tickets never carry over to the next member",
+   "why": "session flow"
+  },
+  {
+   "id": "swipe.profile_details.add_friend.action",
+   "on": "swipe.profile_details.add_friend",
+   "type": "happy",
+   "title": "Add friend on the profile page sends a friend request for this member",
+   "why": "control added above"
+  },
+  {
+   "id": "swipe.profile_details.add_friend.api_failure",
+   "on": "swipe.profile_details.add_friend",
+   "type": "negative",
+   "title": "A failed friend request on the profile page is explained",
+   "why": "the API call runs inside a callback/notifier the static extractor does not resolve; the test stubs the API to fail and asserts the UI"
+  },
+  {
+   "id": "swipe.spotlight_profiles.passed_count.label",
+   "on": "swipe.spotlight_profiles.passed_count",
+   "type": "a11y",
+   "title": "The passed count is labelled with its number",
+   "why": "label of the control"
+  },
+  {
+   "id": "swipe.spotlight_profiles.passed_count.not_noop",
+   "on": "swipe.spotlight_profiles.passed_count",
+   "type": "negative",
+   "title": "The passed count opens the passed list (not a no-op)",
+   "why": "the generator emits not_noop only for empty callbacks"
+  },
+  {
+   "id": "verification.verification_status.rejection_reason.action",
+   "on": "verification.verification_status.rejection_reason",
+   "type": "happy",
+   "title": "A rejected status shows the reviewer's reason",
+   "why": "control added above"
+  },
+  {
+   "id": "walls.reaction_widgets.reaction_option_x.api_failure",
+   "on": "walls.reaction_widgets.reaction_option_x",
+   "type": "negative",
+   "title": "A failed reaction rolls the heart back and explains; retry sends it once more",
+   "why": "the API call runs inside a callback/notifier the static extractor does not resolve; the test stubs the API to fail and asserts the UI"
+  },
+  {
+   "id": "walls.reaction_widgets.reaction_summary.action",
+   "on": "walls.reaction_widgets",
+   "type": "happy",
+   "title": "The reaction summary shows my reaction at once",
+   "why": "display flow (regression: it went stale)"
+  },
+  {
+   "id": "walls.reaction_widgets.showmodalbottomsheet_open.dismiss",
+   "on": "walls.reaction_widgets.showmodalbottomsheet_open",
+   "type": "edge",
+   "title": "Dismissing the picker hands back nothing; with no reaction there is nothing to take back",
+   "why": "sheet dismissal"
+  },
+  {
+   "id": "walls.reaction_widgets.small_screen.layout",
+   "on": "walls.reaction_widgets",
+   "type": "layout",
+   "title": "On a small screen an option below the fold can be reached and picked",
+   "why": "layout"
+  },
+  {
+   "id": "common.privacy_safety.privacy_retry.api_failure",
+   "on": "common.privacy_safety.privacy_retry",
+   "type": "negative",
+   "title": "A Retry while the server is still down keeps Retry available and explains",
+   "why": "the API call runs inside a callback/notifier the static extractor does not resolve; the test stubs the API to fail and asserts the UI"
+  },
+  {
+   "id": "common.settings.settings_logout.app_gate",
+   "on": "common.settings.settings_logout",
+   "type": "happy",
+   "title": "Sign out from the Settings tab inside the real app gate shows Welcome without errors",
+   "why": "flow variant of the control"
+  },
+  {
+   "id": "common.settings.settings_logout.confirm_cancel",
+   "on": "common.settings.settings_logout",
+   "type": "edge",
+   "title": "Sign out asks first; Cancel keeps the member signed in",
+   "why": "confirmation step"
+  },
+  {
+   "id": "common.settings.settings_logout.no_push_device",
+   "on": "common.settings.settings_logout",
+   "type": "edge",
+   "title": "A device never registered for push only revokes the session",
+   "why": "state variant"
+  },
+  {
+   "id": "common.settings.settings_logout.push_token_deleted",
+   "on": "common.settings.settings_logout",
+   "type": "happy",
+   "title": "Sign out deletes this device's push token so it cannot deliver the member's pushes",
+   "why": "side effect of the control"
+  },
+  {
+   "id": "common.settings.settings_notification_inbox.caught_up",
+   "on": "common.settings.settings_notification_inbox",
+   "type": "edge",
+   "title": "The inbox row is first and says when nothing is unread",
+   "why": "state of the control"
+  },
+  {
+   "id": "common.settings.runtime_flag_rows",
+   "on": "common.settings",
+   "type": "edge",
+   "title": "Settings hides the Today row while intentional dating is off and the rooms row while rooms are off",
+   "why": "feature-flag state"
+  }
+ ],
+ "features": [
+  {
+   "id": "auth.l10n",
+   "area": "Auth & Onboarding",
+   "screen": "Auth server errors in every language",
+   "route": "cross-cutting",
+   "source_files": [
+    "app/lib/features/auth/auth_error_messages.dart"
+   ],
+   "controls": [],
+   "cases": [
+    {
+     "id": "auth.l10n.server_error_mapping",
+     "title": "Server replies map to message codes",
+     "type": "l10n",
+     "steps": [
+      "Server replies map to message codes"
+     ],
+     "expected": "Server replies map to message codes",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    },
+    {
+     "id": "auth.l10n.signin_server_error",
+     "title": "Sign-in errors read in the member's language",
+     "type": "l10n",
+     "steps": [
+      "Sign-in errors read in the member's language"
+     ],
+     "expected": "Sign-in errors read in the member's language",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    },
+    {
+     "id": "auth.l10n.signup_server_error",
+     "title": "Sign-up errors read in the member's language",
+     "type": "l10n",
+     "steps": [
+      "Sign-up errors read in the member's language"
+     ],
+     "expected": "Sign-up errors read in the member's language",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    }
+   ]
+  },
+  {
+   "id": "auth.session",
+   "area": "Auth & Onboarding",
+   "screen": "Session and account switch",
+   "route": "cross-cutting",
+   "source_files": [
+    "app/lib/core/session"
+   ],
+   "controls": [],
+   "cases": [
+    {
+     "id": "auth.session.account_switch_isolation",
+     "title": "Every member-scoped provider starts afresh for the next member",
+     "type": "edge",
+     "steps": [
+      "Every member-scoped provider starts afresh for the next member"
+     ],
+     "expected": "Every member-scoped provider starts afresh for the next member",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    }
+   ]
+  },
+  {
+   "id": "core.push",
+   "area": "Navigation & Settings",
+   "screen": "Push token lifecycle",
+   "route": "cross-cutting",
+   "source_files": [
+    "app/lib/core/push/push_notification_service.dart"
+   ],
+   "controls": [],
+   "cases": [
+    {
+     "id": "core.push.forget_device_after_revoke",
+     "title": "Signing out after every session was revoked deletes only the device token",
+     "type": "edge",
+     "steps": [
+      "Signing out after every session was revoked deletes only the device token"
+     ],
+     "expected": "Signing out after every session was revoked deletes only the device token",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    },
+    {
+     "id": "core.push.unregister_offline_deletes_token",
+     "title": "An offline sign-out still deletes the device push token",
+     "type": "edge",
+     "steps": [
+      "An offline sign-out still deletes the device push token"
+     ],
+     "expected": "An offline sign-out still deletes the device push token",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    },
+    {
+     "id": "core.push.unregister_token_delete_failure",
+     "title": "A failing token deletion never fails sign-out",
+     "type": "negative",
+     "steps": [
+      "A failing token deletion never fails sign-out"
+     ],
+     "expected": "A failing token deletion never fails sign-out",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    },
+    {
+     "id": "core.push.unregister_without_firebase",
+     "title": "Sign-out without a Firebase plugin (tests, web, desktop) completes",
+     "type": "edge",
+     "steps": [
+      "Sign-out without a Firebase plugin (tests, web, desktop) completes"
+     ],
+     "expected": "Sign-out without a Firebase plugin (tests, web, desktop) completes",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    }
+   ]
+  },
+  {
+   "id": "l10n.a11y",
+   "area": "Localization",
+   "screen": "Spoken labels and qa ids in every language",
+   "route": "cross-cutting",
+   "source_files": [
+    "app/lib/core/qa_ids.dart"
+   ],
+   "controls": [],
+   "cases": [
+    {
+     "id": "l10n.a11y.qa_ids_nav_and_filters",
+     "title": "Bottom nav and filter sheet keep qa ids as identifiers and speak the member's language",
+     "type": "a11y",
+     "steps": [
+      "Bottom nav and filter sheet keep qa ids as identifiers and speak the member's language"
+     ],
+     "expected": "Bottom nav and filter sheet keep qa ids as identifiers and speak the member's language",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    },
+    {
+     "id": "l10n.a11y.qa_ids_swipe_buttons",
+     "title": "Deck action buttons are named in the member's language and keep their ids",
+     "type": "a11y",
+     "steps": [
+      "Deck action buttons are named in the member's language and keep their ids"
+     ],
+     "expected": "Deck action buttons are named in the member's language and keep their ids",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    },
+    {
+     "id": "l10n.a11y.auth_qa_ids_not_spoken",
+     "title": "Welcome, sign-in and sign-up speak the language; ids stay ids",
+     "type": "a11y",
+     "steps": [
+      "Welcome, sign-in and sign-up speak the language; ids stay ids"
+     ],
+     "expected": "Welcome, sign-in and sign-up speak the language; ids stay ids",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    },
+    {
+     "id": "l10n.a11y.setup_qa_ids_not_spoken",
+     "title": "Terms, recovery and setup speak the language; ids stay ids",
+     "type": "a11y",
+     "steps": [
+      "Terms, recovery and setup speak the language; ids stay ids"
+     ],
+     "expected": "Terms, recovery and setup speak the language; ids stay ids",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    }
+   ]
+  },
+  {
+   "id": "l10n.language",
+   "area": "Localization",
+   "screen": "App language before and after sign-in",
+   "route": "cross-cutting",
+   "source_files": [
+    "app/lib/core/l10n"
+   ],
+   "controls": [],
+   "cases": [
+    {
+     "id": "l10n.language.device_fallback_english",
+     "title": "An unsupported device language opens in English",
+     "type": "l10n",
+     "steps": [
+      "An unsupported device language opens in English"
+     ],
+     "expected": "An unsupported device language opens in English",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    },
+    {
+     "id": "l10n.language.pre_sign_in.empty_server_takes_local",
+     "title": "A cached language is saved to an account that has none",
+     "type": "l10n",
+     "steps": [
+      "A cached language is saved to an account that has none"
+     ],
+     "expected": "A cached language is saved to an account that has none",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    },
+    {
+     "id": "l10n.language.pre_sign_in.new_account_saved",
+     "title": "A new account gets the language picked before sign-in",
+     "type": "l10n",
+     "steps": [
+      "A new account gets the language picked before sign-in"
+     ],
+     "expected": "A new account gets the language picked before sign-in",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    },
+    {
+     "id": "l10n.language.pre_sign_in.pick_wins",
+     "title": "An explicit pick before sign-in wins over an older stored language",
+     "type": "l10n",
+     "steps": [
+      "An explicit pick before sign-in wins over an older stored language"
+     ],
+     "expected": "An explicit pick before sign-in wins over an older stored language",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    },
+    {
+     "id": "l10n.language.pre_sign_in.save_failure_retries",
+     "title": "A failed save keeps the pick and retries at the next sign-in",
+     "type": "l10n",
+     "steps": [
+      "A failed save keeps the pick and retries at the next sign-in"
+     ],
+     "expected": "A failed save keeps the pick and retries at the next sign-in",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    },
+    {
+     "id": "l10n.language.pre_sign_in.server_wins",
+     "title": "Without a pick the stored language wins over the device cache",
+     "type": "l10n",
+     "steps": [
+      "Without a pick the stored language wins over the device cache"
+     ],
+     "expected": "Without a pick the stored language wins over the device cache",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    },
+    {
+     "id": "l10n.language.web_lang_param",
+     "title": "The website lang parameter is read from the query or hash and seeds the cache only when empty",
+     "type": "l10n",
+     "steps": [
+      "The website lang parameter is read from the query or hash and seeds the cache only when empty"
+     ],
+     "expected": "The website lang parameter is read from the query or hash and seeds the cache only when empty",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    },
+    {
+     "id": "l10n.language.welcome_picker",
+     "title": "The welcome screen changes language before sign-in",
+     "type": "l10n",
+     "steps": [
+      "The welcome screen changes language before sign-in"
+     ],
+     "expected": "The welcome screen changes language before sign-in",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    }
+   ]
+  },
+  {
+   "id": "l10n.setup",
+   "area": "Localization",
+   "screen": "Onboarding in every language",
+   "route": "cross-cutting",
+   "source_files": [
+    "app/lib/features/profile/screens/setup"
+   ],
+   "controls": [],
+   "cases": [
+    {
+     "id": "l10n.setup.preferences_dropdown_labels",
+     "title": "Onboarding dropdowns read in the language; stored values stay master-data words",
+     "type": "l10n",
+     "steps": [
+      "Onboarding dropdowns read in the language; stored values stay master-data words"
+     ],
+     "expected": "Onboarding dropdowns read in the language; stored values stay master-data words",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    },
+    {
+     "id": "l10n.setup.raw_errors",
+     "title": "Onboarding errors never show raw server or exception text",
+     "type": "l10n",
+     "steps": [
+      "Onboarding errors never show raw server or exception text"
+     ],
+     "expected": "Onboarding errors never show raw server or exception text",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    }
+   ]
+  },
+  {
+   "id": "l10n.api_errors",
+   "area": "Localization",
+   "screen": "API error messages (ApiErrorMessage)",
+   "route": "cross-cutting",
+   "source_files": [
+    "app/lib/core/network/api_error_message.dart"
+   ],
+   "controls": [],
+   "cases": [
+    {
+     "id": "l10n.api_errors.5xx_english",
+     "title": "A 5xx with technical text uses the fallback in English",
+     "type": "l10n",
+     "steps": [
+      "A 5xx with technical text uses the fallback in English"
+     ],
+     "expected": "A 5xx with technical text uses the fallback in English",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    },
+    {
+     "id": "l10n.api_errors.empty_fallback_german",
+     "title": "An empty fallback stays empty for unknown server text (callers pick their own message)",
+     "type": "l10n",
+     "steps": [
+      "An empty fallback stays empty for unknown server text (callers pick their own message)"
+     ],
+     "expected": "An empty fallback stays empty for unknown server text (callers pick their own message)",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    },
+    {
+     "id": "l10n.api_errors.english_server_text",
+     "title": "English shows the server message, trimmed",
+     "type": "l10n",
+     "steps": [
+      "English shows the server message, trimmed"
+     ],
+     "expected": "English shows the server message, trimmed",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    },
+    {
+     "id": "l10n.api_errors.friendly_not_technical",
+     "title": "Friendly English sentences are not flagged as technical",
+     "type": "l10n",
+     "steps": [
+      "Friendly English sentences are not flagged as technical"
+     ],
+     "expected": "Friendly English sentences are not flagged as technical",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    },
+    {
+     "id": "l10n.api_errors.generic_code_keeps_fallback",
+     "title": "A status-derived BAD_REQUEST keeps the caller fallback",
+     "type": "l10n",
+     "steps": [
+      "A status-derived BAD_REQUEST keeps the caller fallback"
+     ],
+     "expected": "A status-derived BAD_REQUEST keeps the caller fallback",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    },
+    {
+     "id": "l10n.api_errors.known_code_english",
+     "title": "A known error_code is translated in English too",
+     "type": "l10n",
+     "steps": [
+      "A known error_code is translated in English too"
+     ],
+     "expected": "A known error_code is translated in English too",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    },
+    {
+     "id": "l10n.api_errors.known_code_german",
+     "title": "A known error_code maps to the German message",
+     "type": "l10n",
+     "steps": [
+      "A known error_code maps to the German message"
+     ],
+     "expected": "A known error_code maps to the German message",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    },
+    {
+     "id": "l10n.api_errors.locale_accessor",
+     "title": "currentAppLocaleIsEnglish follows the app locale",
+     "type": "l10n",
+     "steps": [
+      "currentAppLocaleIsEnglish follows the app locale"
+     ],
+     "expected": "currentAppLocaleIsEnglish follows the app locale",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    },
+    {
+     "id": "l10n.api_errors.non_network_error",
+     "title": "A non-network error returns the fallback",
+     "type": "l10n",
+     "steps": [
+      "A non-network error returns the fallback"
+     ],
+     "expected": "A non-network error returns the fallback",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    },
+    {
+     "id": "l10n.api_errors.offline_german",
+     "title": "A connection failure maps to the translated offline message",
+     "type": "l10n",
+     "steps": [
+      "A connection failure maps to the translated offline message"
+     ],
+     "expected": "A connection failure maps to the translated offline message",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    },
+    {
+     "id": "l10n.api_errors.technical_english",
+     "title": "Technical server text in English uses the fallback",
+     "type": "l10n",
+     "steps": [
+      "Technical server text in English uses the fallback"
+     ],
+     "expected": "Technical server text in English uses the fallback",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    },
+    {
+     "id": "l10n.api_errors.too_many_requests_german",
+     "title": "TOO_MANY_REQUESTS without usable text maps to the generic wait message",
+     "type": "l10n",
+     "steps": [
+      "TOO_MANY_REQUESTS without usable text maps to the generic wait message"
+     ],
+     "expected": "TOO_MANY_REQUESTS without usable text maps to the generic wait message",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    },
+    {
+     "id": "l10n.api_errors.unknown_text_german",
+     "title": "Unknown server text in German falls back to the caller fallback",
+     "type": "l10n",
+     "steps": [
+      "Unknown server text in German falls back to the caller fallback"
+     ],
+     "expected": "Unknown server text in German falls back to the caller fallback",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    }
+   ]
+  },
+  {
+   "id": "l10n.chat_bubbles",
+   "area": "Localization",
+   "screen": "Chat bubbles and gift captions in every language",
+   "route": "cross-cutting",
+   "source_files": [
+    "app/lib/features/messaging/widgets"
+   ],
+   "controls": [],
+   "cases": [
+    {
+     "id": "l10n.chat_bubbles.deleted_ignores_stored_text",
+     "title": "A deleted message never shows its stored text",
+     "type": "l10n",
+     "steps": [
+      "A deleted message never shows its stored text"
+     ],
+     "expected": "A deleted message never shows its stored text",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    },
+    {
+     "id": "l10n.chat_bubbles.deleted_placeholder",
+     "title": "A deleted message shows the placeholder in the reader's language",
+     "type": "l10n",
+     "steps": [
+      "A deleted message shows the placeholder in the reader's language"
+     ],
+     "expected": "A deleted message shows the placeholder in the reader's language",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    },
+    {
+     "id": "l10n.chat_bubbles.unknown_server_error",
+     "title": "Unknown chat errors get a translated generic message (English keeps readable server text)",
+     "type": "l10n",
+     "steps": [
+      "Unknown chat errors get a translated generic message (English keeps readable server text)"
+     ],
+     "expected": "Unknown chat errors get a translated generic message (English keeps readable server text)",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    },
+    {
+     "id": "l10n.chat_bubbles.gift_error_name",
+     "title": "Gift errors name the gift in the reader's language",
+     "type": "l10n",
+     "steps": [
+      "Gift errors name the gift in the reader's language"
+     ],
+     "expected": "Gift errors name the gift in the reader's language",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    },
+    {
+     "id": "l10n.chat_bubbles.gift_legacy_caption",
+     "title": "An English caption stored by older builds is not shown",
+     "type": "l10n",
+     "steps": [
+      "An English caption stored by older builds is not shown"
+     ],
+     "expected": "An English caption stored by older builds is not shown",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    },
+    {
+     "id": "l10n.chat_bubbles.gift_note_kept",
+     "title": "A note written with the gift is kept as written",
+     "type": "l10n",
+     "steps": [
+      "A note written with the gift is kept as written"
+     ],
+     "expected": "A note written with the gift is kept as written",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    },
+    {
+     "id": "l10n.chat_bubbles.gift_recipient_view",
+     "title": "The recipient sees who sent the gift, in their language",
+     "type": "l10n",
+     "steps": [
+      "The recipient sees who sent the gift, in their language"
+     ],
+     "expected": "The recipient sees who sent the gift, in their language",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    },
+    {
+     "id": "l10n.chat_bubbles.gift_sender_view",
+     "title": "The sender sees their gift titled for them",
+     "type": "l10n",
+     "steps": [
+      "The sender sees their gift titled for them"
+     ],
+     "expected": "The sender sees their gift titled for them",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    },
+    {
+     "id": "l10n.chat_bubbles.gift_name_helper",
+     "title": "Gift names resolve by id, by English name, or keep the server name",
+     "type": "l10n",
+     "steps": [
+      "Gift names resolve by id, by English name, or keep the server name"
+     ],
+     "expected": "Gift names resolve by id, by English name, or keep the server name",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    }
+   ]
+  },
+  {
+   "id": "l10n.fallback_names",
+   "area": "Localization",
+   "screen": "Fallback names and brand constant",
+   "route": "cross-cutting",
+   "source_files": [
+    "app/lib/core/l10n"
+   ],
+   "controls": [],
+   "cases": [
+    {
+     "id": "l10n.fallback_names.brand_name_constant",
+     "title": "The brand name is one constant",
+     "type": "l10n",
+     "steps": [
+      "The brand name is one constant"
+     ],
+     "expected": "The brand name is one constant",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    },
+    {
+     "id": "l10n.fallback_names.discovery_name",
+     "title": "A discovery profile without a name gets the translated placeholder",
+     "type": "l10n",
+     "steps": [
+      "A discovery profile without a name gets the translated placeholder"
+     ],
+     "expected": "A discovery profile without a name gets the translated placeholder",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    },
+    {
+     "id": "l10n.fallback_names.photo_theme_byline",
+     "title": "A photo byline without a name reads the translated 'a member'",
+     "type": "l10n",
+     "steps": [
+      "A photo byline without a name reads the translated 'a member'"
+     ],
+     "expected": "A photo byline without a name reads the translated 'a member'",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    },
+    {
+     "id": "l10n.fallback_names.plan_names_german",
+     "title": "A date plan without names reads in the member's language",
+     "type": "l10n",
+     "steps": [
+      "A date plan without names reads in the member's language"
+     ],
+     "expected": "A date plan without names reads in the member's language",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    },
+    {
+     "id": "l10n.fallback_names.plan_partner_name_german",
+     "title": "Cancelling a plan whose partner has no name names 'your match' in the language",
+     "type": "l10n",
+     "steps": [
+      "Cancelling a plan whose partner has no name names 'your match' in the language"
+     ],
+     "expected": "Cancelling a plan whose partner has no name names 'your match' in the language",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    }
+   ]
+  },
+  {
+   "id": "l10n.formats",
+   "area": "Localization",
+   "screen": "Dates, numbers and defaults per locale",
+   "route": "cross-cutting",
+   "source_files": [
+    "app/lib/core/l10n"
+   ],
+   "controls": [],
+   "cases": [
+    {
+     "id": "l10n.formats.coffee_poll_default_days",
+     "title": "Prefilled coffee-poll weekend days are in the member's language and sent as shown",
+     "type": "l10n",
+     "steps": [
+      "Prefilled coffee-poll weekend days are in the member's language and sent as shown"
+     ],
+     "expected": "Prefilled coffee-poll weekend days are in the member's language and sent as shown",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    },
+    {
+     "id": "l10n.formats.comfort_default_language",
+     "title": "The chapter comfort card language starts as the app language and is saved as shown",
+     "type": "l10n",
+     "steps": [
+      "The chapter comfort card language starts as the app language and is saved as shown"
+     ],
+     "expected": "The chapter comfort card language starts as the app language and is saved as shown",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    },
+    {
+     "id": "l10n.formats.dob_locale_order",
+     "title": "Date of birth reads in the member's own date order",
+     "type": "l10n",
+     "steps": [
+      "Date of birth reads in the member's own date order"
+     ],
+     "expected": "Date of birth reads in the member's own date order",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    },
+    {
+     "id": "l10n.formats.profile_stats_numbers",
+     "title": "Profile counts and completeness use the locale's separators",
+     "type": "l10n",
+     "steps": [
+      "Profile counts and completeness use the locale's separators"
+     ],
+     "expected": "Profile counts and completeness use the locale's separators",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    }
+   ]
+  },
+  {
+   "id": "l10n.payment_errors",
+   "area": "Localization",
+   "screen": "Payment error text",
+   "route": "cross-cutting",
+   "source_files": [
+    "app/lib/features/payment"
+   ],
+   "controls": [],
+   "cases": [
+    {
+     "id": "l10n.payment_errors.server_text_english",
+     "title": "In English a server message is shown as sent, without a code",
+     "type": "l10n",
+     "steps": [
+      "In English a server message is shown as sent, without a code"
+     ],
+     "expected": "In English a server message is shown as sent, without a code",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    },
+    {
+     "id": "l10n.payment_errors.server_text_german",
+     "title": "In German unknown server text falls back to the translated fallback",
+     "type": "l10n",
+     "steps": [
+      "In German unknown server text falls back to the translated fallback"
+     ],
+     "expected": "In German unknown server text falls back to the translated fallback",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    }
+   ]
+  },
+  {
+   "id": "l10n.blog_connections",
+   "area": "Localization",
+   "screen": "Chapter connections in every language",
+   "route": "cross-cutting",
+   "source_files": [
+    "app/lib/features/blog/blog_connections.dart"
+   ],
+   "controls": [],
+   "cases": [
+    {
+     "id": "l10n.blog_connections.notice_labels",
+     "title": "A review notice names its kind and outcome in the member's language",
+     "type": "l10n",
+     "steps": [
+      "A review notice names its kind and outcome in the member's language"
+     ],
+     "expected": "A review notice names its kind and outcome in the member's language",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    },
+    {
+     "id": "l10n.blog_connections.publication_unavailable",
+     "title": "A shared link whose source changed reads in the language and offers no approval",
+     "type": "l10n",
+     "steps": [
+      "A shared link whose source changed reads in the language and offers no approval"
+     ],
+     "expected": "A shared link whose source changed reads in the language and offers no approval",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    }
+   ]
+  },
+  {
+   "id": "l10n.trust_milestones",
+   "area": "Localization",
+   "screen": "Trust milestones",
+   "route": "cross-cutting",
+   "source_files": [
+    "app/lib/features/engagement"
+   ],
+   "controls": [],
+   "cases": [
+    {
+     "id": "l10n.trust_milestones.labels",
+     "title": "Trust milestones read as translated labels; bookkeeping fields are hidden; unknown keys are humanized",
+     "type": "l10n",
+     "steps": [
+      "Trust milestones read as translated labels; bookkeeping fields are hidden; unknown keys are humanized"
+     ],
+     "expected": "Trust milestones read as translated labels; bookkeeping fields are hidden; unknown keys are humanized",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    }
+   ]
+  },
+  {
+   "id": "platform.domain_events",
+   "area": "Backend platform",
+   "screen": "Domain events and outbox retention (migration 134)",
+   "route": "backend (Postgres)",
+   "source_files": [
+    "backend/internal/bff/mobile/domain_event_retention_postgres_test.go",
+    "backend/migrations"
+   ],
+   "controls": [],
+   "cases": [
+    {
+     "id": "platform.domain_events.amplification.excluded_sources_stay_excluded",
+     "title": "Excluded event sources stay excluded across migration reruns",
+     "type": "edge",
+     "steps": [
+      "Excluded event sources stay excluded across migration reruns"
+     ],
+     "expected": "Excluded event sources stay excluded across migration reruns",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    },
+    {
+     "id": "platform.domain_events.outbox.append_only_and_retention",
+     "title": "The outbox is append-only and retention removes only expired, unneeded events",
+     "type": "edge",
+     "steps": [
+      "The outbox is append-only and retention removes only expired, unneeded events"
+     ],
+     "expected": "The outbox is append-only and retention removes only expired, unneeded events",
+     "automated_by": [],
+     "status": "not_automated",
+     "why": "cross-cutting behaviour with no single control; declared in qa/catalog/extra_cases.json"
+    }
+   ]
+  }
+ ]
+}

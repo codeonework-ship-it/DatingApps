@@ -296,7 +296,7 @@ void main() {
     expect(datePlanVenueLabel(en, friend.venueCategory), 'A meal');
   });
 
-  test('[case:l10n-plan-fallback-names-german] a plan without names reads '
+  test('[case:l10n.fallback_names.plan_names_german] a plan without names reads '
       'in German', () {
     final de = lookupAppLocalizations(const Locale('de'));
     final plan = DatePlan.fromJson(_proposedPlan()..remove('partner_name'));

@@ -33,7 +33,7 @@ void main() {
   );
 
   test('in English a server message is shown as sent, without a code '
-      '[case:l10n-payment-server-text-english]', () {
+      '[case:l10n.payment_errors.server_text_english]', () {
     setCurrentAppLocale(const Locale('en'));
     addTearDown(() => setCurrentAppLocale(null));
     final failure = paymentFailure(
@@ -45,7 +45,7 @@ void main() {
   });
 
   test('in German unknown server text falls back to the translated fallback '
-      '[case:l10n-payment-server-text-german]', () {
+      '[case:l10n.payment_errors.server_text_german]', () {
     setCurrentAppLocale(const Locale('de'));
     addTearDown(() => setCurrentAppLocale(null));
     final failure = paymentFailure(

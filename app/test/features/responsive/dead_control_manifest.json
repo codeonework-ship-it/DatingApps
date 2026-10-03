@@ -45,7 +45,7 @@
     "kind": "TextButton",
     "key": "qa.account.export_copy",
     "source": "lib/features/common/screens/account_data_screen.dart:316",
-    "case": "common.account_data.copy.action",
+    "case": "common.account_data.account_export_copy.action",
     "opener": "Prepare my data",
     "effects": [
      "channel: flutter/platform Clipboard.setData"
@@ -60,7 +60,7 @@
     "kind": "TextButton",
     "key": "qa.account.export_close",
     "source": "lib/features/common/screens/account_data_screen.dart:326",
-    "case": "common.account_data.close.action",
+    "case": "common.account_data.account_export_close.action",
     "opener": "Prepare my data",
     "effects": [
      "pop: DialogRoute<void> (_ExportDialog)",
@@ -90,7 +90,7 @@
     "kind": "TextButton",
     "key": "qa.account.delete_keep",
     "source": "lib/features/common/screens/account_data_screen.dart:381",
-    "case": "common.account_data.keep_my_account.action",
+    "case": "common.account_data.account_delete_keep.action",
     "opener": "Delete my account",
     "effects": [
      "pop: DialogRoute<String> (AlertDialog)",
@@ -106,7 +106,7 @@
     "kind": "TextButton",
     "key": "qa.account.delete_hide_instead",
     "source": "lib/features/common/screens/account_data_screen.dart:386",
-    "case": "common.account_data.hide_instead.action",
+    "case": "common.account_data.account_delete_hide_instead.action",
     "opener": "Delete my account",
     "effects": [
      "pop: DialogRoute<String> (AlertDialog)",
@@ -166,7 +166,7 @@
     "kind": "IconButton",
     "key": "qa.recovery.password_visibility",
     "source": "lib/features/auth/screens/account_recovery_screen.dart:206",
-    "case": "auth.account_recovery.recovery_new_password.action",
+    "case": "auth.account_recovery.recovery_password_visibility.action",
     "effects": [
      "ui: edit \"\" false obscured:true → edit \"\" false obscured:false"
     ]
@@ -194,7 +194,7 @@
     "kind": "IconButton",
     "key": "qa.activity.restart",
     "source": "lib/features/matching/screens/activity_session_screen.dart:114",
-    "case": "matching.activity_session.start_a_new_session.action",
+    "case": "matching.activity_session.activity_restart.action",
     "effects": [
      "api: POST /activities/sessions/start {\"match_id\":\"m-1\",\"initiator_user_id\":\"layout-member\",\"participant_user_id\":\"u-2\",\"activity_type\":\"this_or_that\",\"metada…"
     ]
@@ -209,7 +209,7 @@
     "kind": "GestureDetector",
     "key": "qa.signin.back",
     "source": "lib/features/auth/screens/auth_screen.dart:201",
-    "case": "auth.auth.back_to_welcome.action",
+    "case": "auth.auth.signin_back.action",
     "effects": [
      "pop: MaterialPageRoute<Object?> (AnnotatedRegion)",
      "result: null",
@@ -288,7 +288,7 @@
     "kind": "TextButton",
     "key": "qa.blog.private_responses",
     "source": "lib/features/blog/blog_screen.dart:159",
-    "case": "blog.blog.private_responses.action",
+    "case": "blog.blog.blog_private_responses.action",
     "effects": [
      "push: MaterialPageRoute<void>",
      "api: GET /blog/responses",
@@ -303,7 +303,7 @@
     "kind": "TextButton",
     "key": "qa.blog.shared_links",
     "source": "lib/features/blog/blog_screen.dart:165",
-    "case": "blog.blog.shared_links.action",
+    "case": "blog.blog.blog_shared_links.action",
     "effects": [
      "push: MaterialPageRoute<void>",
      "api: GET /blog/publications",
@@ -318,7 +318,7 @@
     "kind": "TextButton",
     "key": "qa.blog.review_notices",
     "source": "lib/features/blog/blog_screen.dart:174",
-    "case": "blog.blog.review_notices.action",
+    "case": "blog.blog.blog_review_notices.action",
     "effects": [
      "push: MaterialPageRoute<void>",
      "api: GET /blog/notices",
@@ -442,7 +442,7 @@
     "kind": "IconButton",
     "key": "qa.blog.connections",
     "source": "lib/features/blog/blog_screen.dart:111",
-    "case": "blog.blog.private_responses_sharing_and_no.action",
+    "case": "blog.blog.blog_connections.action",
     "effects": [
      "push: MaterialPageRoute<void>",
      "api: GET /blog/responses",
@@ -501,7 +501,7 @@
     "kind": "FilledButton",
     "key": "qa.chapter.save_green",
     "source": "lib/features/first_chapter/chapter_studio_screen.dart:629",
-    "case": "first_chapter.chapter_studio.save_privately.action",
+    "case": "first_chapter.chapter_studio.chapter_save_green.action",
     "effects": [
      "api: PUT /matches/m-1/chapter/green-light {\"choices\":[],\"version\":0}",
      "api: GET /matches/m-1/chapter",
@@ -516,7 +516,7 @@
     "kind": "IconButton",
     "key": "qa.chapter.refresh",
     "source": "lib/features/first_chapter/chapter_studio_screen.dart:206",
-    "case": "first_chapter.chapter_studio.refresh_chapter.action",
+    "case": "first_chapter.chapter_studio.chapter_refresh.action",
     "effects": [
      "api: GET /matches/m-1/chapter",
      "api: GET /chapters/publications"
@@ -532,7 +532,7 @@
     "kind": "IconButton",
     "key": "qa.chat.back_button",
     "source": "lib/features/messaging/screens/chat_screen.dart:282",
-    "case": "messaging.chat.back_to_conversations.action",
+    "case": "messaging.chat.chat_back_button.action",
     "effects": [
      "pop: MaterialPageRoute<Object?> (Scaffold)",
      "result: null",
@@ -663,7 +663,7 @@
     "kind": "OutlinedButton",
     "key": "qa.circles.join.circle-blr-books",
     "source": "lib/features/engagement/screens/circle_challenges_screen.dart:152",
-    "case": "engagement.circle_challenges.join_circle.action",
+    "case": "engagement.circle_challenges.circles_join_x.action",
     "effects": [
      "api: POST /engagement/circles/circle-blr-books/join {\"user_id\":\"layout-member\"}",
      "ui: deco box Color(alpha: 0.1400, red: 0.9412, green: 0.5412, blue: 0.1412, colorSpace: ColorS… | text \"Not joined\" Color(alpha: 1.0000, red: 0.9412, green: 0.5412, blue: 0.1412, colorSpac… | -fill Color(alpha: 0.0000, red: 0.0000, green: 0.0000, blue: 0.0000, colorSpace: ColorSpac… (+2 more)"
@@ -677,7 +677,7 @@
     "kind": "ElevatedButton",
     "key": "qa.circles.submit.circle-blr-books",
     "source": "lib/features/engagement/screens/circle_challenges_screen.dart:181",
-    "case": "engagement.circle_challenges.submit_entry.action",
+    "case": "engagement.circle_challenges.circles_submit_x.action",
     "effects": [
      "ui: +text \"Please enter your challenge response.\" Color(alpha: 1.0000, red: 0.8314, green: 0.2…"
     ]
@@ -690,7 +690,7 @@
     "kind": "OutlinedButton",
     "key": "qa.circles.join.circle-blr-fitness",
     "source": "lib/features/engagement/screens/circle_challenges_screen.dart:152",
-    "case": "engagement.circle_challenges.join_circle.action",
+    "case": "engagement.circle_challenges.circles_join_x.action",
     "effects": [
      "api: POST /engagement/circles/circle-blr-fitness/join {\"user_id\":\"layout-member\"}",
      "ui: deco box Color(alpha: 0.1400, red: 0.9412, green: 0.5412, blue: 0.1412, colorSpace: ColorS… | text \"Not joined\" Color(alpha: 1.0000, red: 0.9412, green: 0.5412, blue: 0.1412, colorSpac… | -fill Color(alpha: 0.0000, red: 0.0000, green: 0.0000, blue: 0.0000, colorSpace: ColorSpac… (+2 more)"
@@ -704,7 +704,7 @@
     "kind": "ElevatedButton",
     "key": "qa.circles.submit.circle-blr-fitness",
     "source": "lib/features/engagement/screens/circle_challenges_screen.dart:181",
-    "case": "engagement.circle_challenges.submit_entry.action",
+    "case": "engagement.circle_challenges.circles_submit_x.action",
     "effects": [
      "ui: +text \"Please enter your challenge response.\" Color(alpha: 1.0000, red: 0.8314, green: 0.2…"
     ]
@@ -717,7 +717,7 @@
     "kind": "OutlinedButton",
     "key": "qa.circles.join.circle-blr-music",
     "source": "lib/features/engagement/screens/circle_challenges_screen.dart:152",
-    "case": "engagement.circle_challenges.join_circle.action",
+    "case": "engagement.circle_challenges.circles_join_x.action",
     "effects": [
      "api: POST /engagement/circles/circle-blr-music/join {\"user_id\":\"layout-member\"}",
      "ui: scroll 305 → scroll 251 | deco box Color(alpha: 0.1400, red: 0.9412, green: 0.5412, blue: 0.1412, colorSpace: ColorS… | text \"Not joined\" Color(alpha: 1.0000, red: 0.9412, green: 0.5412, blue: 0.1412, colorSpac… (+3 more)"
@@ -731,7 +731,7 @@
     "kind": "ElevatedButton",
     "key": "qa.circles.submit.circle-blr-music",
     "source": "lib/features/engagement/screens/circle_challenges_screen.dart:181",
-    "case": "engagement.circle_challenges.submit_entry.action",
+    "case": "engagement.circle_challenges.circles_submit_x.action",
     "effects": [
      "ui: +text \"Please enter your challenge response.\" Color(alpha: 1.0000, red: 0.8314, green: 0.2…"
     ]
@@ -746,7 +746,7 @@
     "kind": "IconButton",
     "key": "qa.city_pilot.refresh",
     "source": "lib/features/city_pilot/city_pilot_screen.dart:242",
-    "case": "city_pilot.city_pilot.refresh_pilot.action",
+    "case": "city_pilot.city_pilot.city_pilot_refresh.action",
     "effects": [
      "api: GET /city-pilot"
     ]
@@ -871,7 +871,7 @@
     "kind": "SwitchListTile",
     "key": "qa.comfort.shared",
     "source": "lib/features/first_chapter/comfort_cards_screen.dart:146",
-    "case": "first_chapter.comfort_cards.share_these_cards_with_my_matche.action",
+    "case": "first_chapter.comfort_cards.comfort_shared.action",
     "effects": [
      "ui: state \"Share these cards with my matches\nOff keeps every card private.\" = \"\" CheckedState.… | state \"\" = \"\" CheckedState.none selected:Tristate.none toggled:Tristate.isFalse expanded:T…"
     ]
@@ -962,7 +962,7 @@
     "kind": "OutlinedButton",
     "key": "qa.comfort.add",
     "source": "lib/features/first_chapter/comfort_cards_screen.dart:245",
-    "case": "first_chapter.comfort_cards.add_replace_this_card_in_draft.action",
+    "case": "first_chapter.comfort_cards.comfort_add.action",
     "effects": [
      "ui: +text \"Add your words and language. A translation also needs its language.\" Color(alpha: 1…"
     ]
@@ -975,7 +975,7 @@
     "kind": "FilledButton",
     "key": "qa.comfort.save",
     "source": "lib/features/first_chapter/comfort_cards_screen.dart:296",
-    "case": "first_chapter.comfort_cards.save_my_choices.action",
+    "case": "first_chapter.comfort_cards.comfort_save.action",
     "effects": [
      "api: PUT /chapters/comfort {\"cards\":[],\"shared\":false,\"version\":null}",
      "pop: MaterialPageRoute<Object?> (Scaffold)",
@@ -992,7 +992,7 @@
     "kind": "IconButton",
     "key": "qa.comfort.reload",
     "source": "lib/features/first_chapter/comfort_cards_screen.dart:108",
-    "case": "first_chapter.comfort_cards.reload_saved_version.action",
+    "case": "first_chapter.comfort_cards.comfort_reload.action",
     "effects": [
      "api: GET /chapters/comfort"
     ]
@@ -1007,7 +1007,7 @@
     "kind": "IconButton",
     "key": "qa.rooms.back",
     "source": "lib/features/engagement/screens/conversation_rooms_screen.dart:151",
-    "case": "engagement.conversation_rooms.back_icon_arrow_back_rounded.action",
+    "case": "engagement.conversation_rooms.rooms_back.action",
     "effects": [
      "pop: MaterialPageRoute<Object?> (Scaffold)",
      "result: null",
@@ -1097,7 +1097,7 @@
     "kind": "ButtonSegment",
     "key": "qa.rooms.start.length",
     "source": "lib/features/engagement/screens/conversation_rooms_screen.dart:587",
-    "case": "engagement.conversation_rooms.30_min_onselectionchanged.action",
+    "case": "engagement.conversation_rooms.rooms_start_length_selectionchanged.action",
     "opener": "Start a room",
     "effects": [
      "ui: fill Color(alpha: 0.0000, red: 0.0000, green: 0.0000, blue: 0.0000, colorSpace: ColorSpace… | fill Color(alpha: 1.0000, red: 0.9373, green: 0.9098, blue: 1.0000, colorSpace: ColorSpace… | state \"30 min\" = \"\" CheckedState.none selected:Tristate.isFalse toggled:Tristate.none expa… (+5 more)"
@@ -1112,7 +1112,7 @@
     "kind": "ButtonSegment",
     "key": "qa.rooms.start.length",
     "source": "lib/features/engagement/screens/conversation_rooms_screen.dart:587",
-    "case": "engagement.conversation_rooms.30_min_onselectionchanged.action",
+    "case": "engagement.conversation_rooms.rooms_start_length_selectionchanged.action",
     "opener": "Start a room",
     "effects": []
    },
@@ -1125,7 +1125,7 @@
     "kind": "ButtonSegment",
     "key": "qa.rooms.start.length",
     "source": "lib/features/engagement/screens/conversation_rooms_screen.dart:587",
-    "case": "engagement.conversation_rooms.30_min_onselectionchanged.action",
+    "case": "engagement.conversation_rooms.rooms_start_length_selectionchanged.action",
     "opener": "Start a room",
     "effects": [
      "ui: fill Color(alpha: 1.0000, red: 0.9373, green: 0.9098, blue: 1.0000, colorSpace: ColorSpace… | fill Color(alpha: 0.0000, red: 0.0000, green: 0.0000, blue: 0.0000, colorSpace: ColorSpace… | state \"1 hour\" = \"\" CheckedState.none selected:Tristate.isTrue toggled:Tristate.none expan… (+5 more)"
@@ -1363,7 +1363,7 @@
     "kind": "ElevatedButton",
     "key": "qa.daily_prompt.submit",
     "source": "lib/features/engagement/screens/daily_prompt_screen.dart:149",
-    "case": "engagement.daily_prompt.update_answer.action",
+    "case": "engagement.daily_prompt.daily_prompt_submit.action",
     "effects": [
      "ui: +text \"Please enter an answer first.\" Color(alpha: 1.0000, red: 0.8314, green: 0.2196, blu…"
     ]
@@ -1378,7 +1378,7 @@
     "kind": "IconButton",
     "key": "qa.edit_profile.refresh",
     "source": "lib/features/profile/screens/edit_profile_screen.dart:66",
-    "case": "profile.edit_profile.refresh_profile.action",
+    "case": "profile.edit_profile.edit_profile_refresh.action",
     "effects": [
      "api: GET /profile/layout-member/draft"
     ]
@@ -1479,7 +1479,7 @@
     "kind": "GestureDetector",
     "key": "qa.emergency.add",
     "source": "lib/features/common/screens/emergency_contacts_screen.dart:78",
-    "case": "common.emergency_contacts.add_contact.action",
+    "case": "common.emergency_contacts.emergency_add.action",
     "effects": [
      "push: DialogRoute<_ContactDraft>",
      "channel: flutter/platform LiveText.isLiveTextInputAvailable",
@@ -1496,7 +1496,7 @@
     "kind": "TextButton",
     "key": "qa.emergency.editor_cancel",
     "source": "lib/features/common/screens/emergency_contacts_screen.dart:273",
-    "case": "common.emergency_contacts.cancel.action",
+    "case": "common.emergency_contacts.emergency_editor_cancel.action",
     "opener": "Add Contact",
     "effects": [
      "pop: DialogRoute<_ContactDraft> (AlertDialog)",
@@ -1512,7 +1512,7 @@
     "kind": "TextButton",
     "key": "qa.emergency.editor_save",
     "source": "lib/features/common/screens/emergency_contacts_screen.dart:278",
-    "case": "common.emergency_contacts.save_2.action",
+    "case": "common.emergency_contacts.emergency_editor_save.action",
     "opener": "Add Contact",
     "effects": [
      "pop: DialogRoute<_ContactDraft> (AlertDialog)",
@@ -1746,7 +1746,7 @@
     "kind": "ElevatedButton",
     "key": "qa.coffee.create",
     "source": "lib/features/engagement/screens/group_coffee_polls_screen.dart:155",
-    "case": "engagement.group_coffee_polls.create_poll.action",
+    "case": "engagement.group_coffee_polls.coffee_create.action",
     "effects": [
      "api: POST /engagement/group-coffee-polls {\"creator_user_id\":\"layout-member\",\"participant_user_ids\":[],\"options\":[{\"day\":\"Saturday\",\"time_window\":\"10:00-12:00\",\"n…",
      "api: GET /engagement/group-coffee-polls"
@@ -2156,7 +2156,7 @@
     "kind": "ListTile",
     "key": "qa.settings.language.device",
     "source": "lib/features/common/widgets/language_picker.dart:135",
-    "case": "common.language_settings.use_device_language.action",
+    "case": "common.language_picker.use_device_language.action",
     "effects": [
      "api: GET /settings/layout-member",
      "api: PATCH /settings/layout-member {\"locale\":\"\"}"
@@ -2828,7 +2828,7 @@
     "kind": "GestureDetector",
     "key": "qa.match_notification.send_message",
     "source": "lib/features/matching/screens/match_notification_screen.dart:64",
-    "case": "matching.match_notification.send_message.action",
+    "case": "matching.match_notification.match_notification_send_message.action",
     "effects": [
      "replace: MaterialPageRoute<Object?> (Scaffold) -> MaterialPageRoute<void>",
      "result: null",
@@ -2855,7 +2855,7 @@
     "kind": "TextButton",
     "key": "qa.match_notification.keep_swiping",
     "source": "lib/features/matching/screens/match_notification_screen.dart:84",
-    "case": "matching.match_notification.keep_swiping.action",
+    "case": "matching.match_notification.match_notification_keep_swiping.action",
     "effects": [
      "pop: MaterialPageRoute<Object?> (Scaffold)",
      "result: null",
@@ -2914,7 +2914,7 @@
     "kind": "GestureDetector",
     "key": "qa.discovery.notifications_button",
     "source": "lib/features/swipe/screens/home_discovery_screen.dart:1774",
-    "case": "swipe.home_discovery.notifications_icon_notifications.action",
+    "case": "swipe.home_discovery.discovery_notifications_button_3.action",
     "effects": [
      "push: ModalBottomSheetRoute<void>",
      "ui: +fill Color(alpha: 0.0000, red: 0.0000, green: 0.0000, blue: 0.0000, colorSpace: ColorSpac… | +paint Null _ShapeBorderPainter | +deco box Color(alpha: 1.0000, red: 0.8667, green: 0.7686, blue: 0.7922, colorSpace: Color… (+6 more)"
@@ -2928,7 +2928,7 @@
     "kind": "InkWell",
     "key": "qa.discovery.passed_button",
     "source": "lib/features/swipe/screens/home_discovery_screen.dart:1720",
-    "case": "swipe.home_discovery.discovery_passed_button.action",
+    "case": "swipe.home_discovery.passed_2.action",
     "effects": [
      "push: MaterialPageRoute<void>",
      "ui: +text \"No passed profiles yet\" Color(alpha: 1.0000, red: 0.4157, green: 0.3333, blue: 0.43… | +fill Color(alpha: 0.0000, red: 0.0000, green: 0.0000, blue: 0.0000, colorSpace: ColorSpac… | +text \"Passed Profiles\" Color(alpha: 1.0000, red: 0.1216, green: 0.0627, blue: 0.1412, col… (+32 more)"
@@ -2972,7 +2972,7 @@
     "kind": "FilledButton",
     "key": "qa.appeals.submit",
     "source": "lib/features/common/screens/moderation_appeals_screen.dart:104",
-    "case": "common.moderation_appeals.submit_appeal.action",
+    "case": "common.moderation_appeals.appeals_submit.action",
     "effects": [
      "ui: +opacity 1.00 | +fill Color(alpha: 1.0000, red: 0.1216, green: 0.0627, blue: 0.1412, colorSpace: ColorSpac… | +paint Null _ShapeBorderPainter (+1 more)"
     ]
@@ -3224,7 +3224,7 @@
     "kind": "ListTile",
     "key": "qa.notifications.inbox",
     "source": "lib/features/common/screens/notification_settings_screen.dart:36",
-    "case": "common.notification_settings.notification_inbox.action",
+    "case": "common.notification_settings.notifications_inbox.action",
     "effects": [
      "push: MaterialPageRoute<void>",
      "ui: +scroll 0 | +text \"You are all caught up\" Color(alpha: 1.0000, red: 0.4157, green: 0.3333, blue: 0.439… | -opacity 1.00 (+34 more)"
@@ -3238,7 +3238,7 @@
     "kind": "SwitchListTile",
     "key": "qa.notifications.in_app",
     "source": "lib/features/common/screens/notification_settings_screen.dart:57",
-    "case": "common.notification_settings.in_app_notifications.action",
+    "case": "common.notification_settings.notifications_in_app.action",
     "effects": [
      "api: PATCH /notifications/layout-member/preferences {\"notify_new_match\":true,\"notify_new_message\":true,\"notify_likes\":true,\"notify_match_nudges\":true,\"notify_incoming_calls…"
     ]
@@ -3251,7 +3251,7 @@
     "kind": "SwitchListTile",
     "key": "qa.notifications.push",
     "source": "lib/features/common/screens/notification_settings_screen.dart:68",
-    "case": "common.notification_settings.push_notifications.action",
+    "case": "common.notification_settings.notifications_push.action",
     "effects": [
      "api: PATCH /notifications/layout-member/preferences {\"notify_new_match\":true,\"notify_new_message\":true,\"notify_likes\":true,\"notify_match_nudges\":true,\"notify_incoming_calls…"
     ]
@@ -3264,7 +3264,7 @@
     "kind": "SwitchListTile",
     "key": "qa.notifications.new_matches",
     "source": "lib/features/common/screens/notification_settings_screen.dart:79",
-    "case": "common.notification_settings.new_matches.action",
+    "case": "common.notification_settings.notifications_new_matches.action",
     "effects": [
      "api: PATCH /notifications/layout-member/preferences {\"notify_new_match\":false,\"notify_new_message\":true,\"notify_likes\":true,\"notify_match_nudges\":true,\"notify_incoming_call…"
     ]
@@ -3277,7 +3277,7 @@
     "kind": "SwitchListTile",
     "key": "qa.notifications.new_messages",
     "source": "lib/features/common/screens/notification_settings_screen.dart:92",
-    "case": "common.notification_settings.new_messages.action",
+    "case": "common.notification_settings.notifications_new_messages.action",
     "effects": [
      "api: PATCH /notifications/layout-member/preferences {\"notify_new_match\":true,\"notify_new_message\":false,\"notify_likes\":true,\"notify_match_nudges\":true,\"notify_incoming_call…"
     ]
@@ -3290,7 +3290,7 @@
     "kind": "SwitchListTile",
     "key": "qa.notifications.likes",
     "source": "lib/features/common/screens/notification_settings_screen.dart:107",
-    "case": "common.notification_settings.likes.action",
+    "case": "common.notification_settings.notifications_likes.action",
     "effects": [
      "api: PATCH /notifications/layout-member/preferences {\"notify_new_match\":true,\"notify_new_message\":true,\"notify_likes\":false,\"notify_match_nudges\":true,\"notify_incoming_call…"
     ]
@@ -3303,7 +3303,7 @@
     "kind": "SwitchListTile",
     "key": "qa.notifications.match_nudges",
     "source": "lib/features/common/screens/notification_settings_screen.dart:118",
-    "case": "common.notification_settings.match_nudges.action",
+    "case": "common.notification_settings.notifications_match_nudges.action",
     "effects": [
      "api: PATCH /notifications/layout-member/preferences {\"notify_new_match\":true,\"notify_new_message\":true,\"notify_likes\":true,\"notify_match_nudges\":false,\"notify_incoming_call…"
     ]
@@ -3316,7 +3316,7 @@
     "kind": "SwitchListTile",
     "key": "qa.notifications.incoming_calls",
     "source": "lib/features/common/screens/notification_settings_screen.dart:133",
-    "case": "common.notification_settings.incoming_calls.action",
+    "case": "common.notification_settings.notifications_incoming_calls.action",
     "effects": [
      "api: PATCH /notifications/layout-member/preferences {\"notify_new_match\":true,\"notify_new_message\":true,\"notify_likes\":true,\"notify_match_nudges\":true,\"notify_incoming_calls…"
     ]
@@ -3329,7 +3329,7 @@
     "kind": "SwitchListTile",
     "key": "qa.notifications.safety",
     "source": "lib/features/common/screens/notification_settings_screen.dart:148",
-    "case": "common.notification_settings.safety_updates.action",
+    "case": "common.notification_settings.notifications_safety.action",
     "effects": [
      "api: PATCH /notifications/layout-member/preferences {\"notify_new_match\":true,\"notify_new_message\":true,\"notify_likes\":true,\"notify_match_nudges\":true,\"notify_incoming_calls…"
     ]
@@ -3386,7 +3386,7 @@
     "kind": "SwitchListTile",
     "key": "qa.privacy.show_age",
     "source": "lib/features/common/screens/privacy_safety_screen.dart:70",
-    "case": "common.privacy_safety.show_age.action",
+    "case": "common.privacy_safety.privacy_show_age.action",
     "effects": [
      "api: PATCH /settings/layout-member {\"show_age\":false}"
     ]
@@ -3399,7 +3399,7 @@
     "kind": "SwitchListTile",
     "key": "qa.privacy.show_exact_distance",
     "source": "lib/features/common/screens/privacy_safety_screen.dart:81",
-    "case": "common.privacy_safety.show_exact_distance.action",
+    "case": "common.privacy_safety.privacy_show_exact_distance.action",
     "effects": [
      "api: PATCH /settings/layout-member {\"show_exact_distance\":true}"
     ]
@@ -3412,7 +3412,7 @@
     "kind": "SwitchListTile",
     "key": "qa.privacy.show_online_status",
     "source": "lib/features/common/screens/privacy_safety_screen.dart:94",
-    "case": "common.privacy_safety.show_online_status.action",
+    "case": "common.privacy_safety.privacy_show_online_status.action",
     "effects": [
      "api: PATCH /settings/layout-member {\"show_online_status\":false}"
     ]
@@ -3494,7 +3494,7 @@
     "kind": "ListTile",
     "key": "qa.privacy.emergency_contacts",
     "source": "lib/features/common/screens/privacy_safety_screen.dart:131",
-    "case": "common.privacy_safety.emergency_contacts.action",
+    "case": "common.privacy_safety.privacy_emergency_contacts.action",
     "effects": [
      "push: MaterialPageRoute<void>",
      "api: GET /emergency-contacts/layout-member",
@@ -3509,7 +3509,7 @@
     "kind": "ListTile",
     "key": "qa.privacy.blocked_users",
     "source": "lib/features/common/screens/privacy_safety_screen.dart:151",
-    "case": "common.privacy_safety.blocked_users.action",
+    "case": "common.privacy_safety.privacy_blocked_users.action",
     "effects": [
      "push: MaterialPageRoute<void>",
      "api: GET /blocked-users/layout-member",
@@ -3524,7 +3524,7 @@
     "kind": "ListTile",
     "key": "qa.privacy.moderation_appeals",
     "source": "lib/features/common/screens/privacy_safety_screen.dart:166",
-    "case": "common.privacy_safety.moderation_appeals.action",
+    "case": "common.privacy_safety.privacy_moderation_appeals.action",
     "effects": [
      "push: MaterialPageRoute<void>",
      "channel: flutter/platform LiveText.isLiveTextInputAvailable",
@@ -3558,7 +3558,7 @@
     "kind": "TextButton",
     "key": "qa.profile_detail.retry",
     "source": "lib/features/swipe/screens/profile_details_screen.dart:459",
-    "case": "swipe.profile_details.retry_onretry.action",
+    "case": "swipe.profile_details.profile_detail_retry_retry.action",
     "effects": [
      "api: GET /profile/p-1"
     ]
@@ -3571,7 +3571,7 @@
     "kind": "TextButton",
     "key": "qa.profile_detail.go_back",
     "source": "lib/features/swipe/screens/profile_details_screen.dart:464",
-    "case": "swipe.profile_details.go_back_onback.action",
+    "case": "swipe.profile_details.profile_detail_go_back_back.action",
     "effects": [
      "pop: MaterialPageRoute<Object?> (Scaffold)",
      "result: null",
@@ -3586,7 +3586,7 @@
     "kind": "IconButton",
     "key": "qa.profile_detail.back_button",
     "source": "lib/features/profile/widgets/cinematic_profile.dart:786",
-    "case": "swipe.profile_details.profile_detail_back_button.action",
+    "case": "swipe.profile_details.back_icon_arrow_back_rounded.action",
     "effects": [
      "pop: MaterialPageRoute<Object?> (Scaffold)",
      "result: ProfileDetailsAction.none",
@@ -3617,7 +3617,7 @@
     "kind": "IconButton",
     "key": "qa.profile_detail.report_button",
     "source": "lib/features/profile/widgets/cinematic_profile.dart:786",
-    "case": "swipe.profile_details.profile_detail_report_button.action",
+    "case": "swipe.profile_details.report.action",
     "effects": [
      "push: ModalBottomSheetRoute<String?>",
      "channel: flutter/platform LiveText.isLiveTextInputAvailable",
@@ -3784,7 +3784,7 @@
     "kind": "GestureDetector",
     "key": "qa.profile.retry",
     "source": "lib/features/profile/screens/profile_view_screen.dart:324",
-    "case": "profile.profile_view.retry.action",
+    "case": "profile.profile_view.profile_retry.action",
     "effects": [
      "api: GET /profile/layout-member/summary",
      "api: GET /profile/layout-member",
@@ -3917,7 +3917,7 @@
     "kind": "InkWell",
     "key": null,
     "source": "lib/features/support/widgets/support_entry_points.dart:40",
-    "case": "common.settings.help_support.action",
+    "case": "support.support_entry_points.help_support.action",
     "effects": [
      "push: MaterialPageRoute<void>",
      "api: GET /support/tickets",
@@ -5438,7 +5438,7 @@
     "kind": "TextButton",
     "key": "qa.setup.photos.cancel_delete",
     "source": "lib/features/profile/screens/setup/setup_photos_screen.dart:153",
-    "case": "profile.setup_photos.cancel.action",
+    "case": "profile.setup_photos.setup_photos_cancel_delete.action",
     "opener": "Remove photo",
     "effects": [
      "pop: DialogRoute<bool> (AlertDialog)",
@@ -5470,7 +5470,7 @@
     "kind": "GestureDetector",
     "key": "qa.setup.photos.set_primary_p2",
     "source": "lib/features/profile/screens/setup/setup_photos_screen.dart:625",
-    "case": "profile.setup_photos.set_as_profile_picture_onsetprimary.action",
+    "case": "profile.setup_photos.setup_photos_set_primary_x_setprimary.action",
     "effects": [
      "api: POST /profile/user-1/photos/reorder {\"photo_ids\":[\"p2\",\"p1\"]}",
      "ui: text \"2 / 5\" Color(alpha: 1.0000, red: 0.5608, green: 0.0588, blue: 0.1961, colorSpace: Co… | text \"Great! You can reorder photos by dragging.\" Color(alpha: 1.0000, red: 0.5608, green:… | -deco box Color(alpha: 1.0000, red: 1.0000, green: 1.0000, blue: 1.0000, colorSpace: Color… (+12 more)"
@@ -5499,7 +5499,7 @@
     "kind": "TextButton",
     "key": "qa.setup.photos.cancel_delete",
     "source": "lib/features/profile/screens/setup/setup_photos_screen.dart:153",
-    "case": "profile.setup_photos.cancel.action",
+    "case": "profile.setup_photos.setup_photos_cancel_delete.action",
     "opener": "Remove photo",
     "effects": [
      "pop: DialogRoute<bool> (AlertDialog)",
@@ -5548,7 +5548,7 @@
     "kind": "IconButton",
     "key": "qa.setup.preferences.back_button",
     "source": "lib/features/profile/screens/setup/setup_preferences_screen.dart:271",
-    "case": "profile.setup_preferences.arrow_back_ios_new_icon_arrow_ba.action",
+    "case": "profile.setup_preferences.setup_preferences_back_button.action",
     "effects": [
      "pop: MaterialPageRoute<Object?> (Scaffold)",
      "result: null",
@@ -5597,7 +5597,7 @@
     "kind": "GestureDetector",
     "key": "qa.setup.preferences.seeking_M",
     "source": "lib/features/profile/screens/setup/setup_preferences_screen.dart:1331",
-    "case": "profile.setup_preferences.men_onseekingtoggled.action",
+    "case": "profile.setup_preferences.setup_preferences_seeking_x_seekingtoggled.action",
     "effects": [
      "ui: deco box Color(alpha: 1.0000, red: 1.0000, green: 0.9333, blue: 0.9451, colorSpace: ColorS… | text \"Men\" Color(alpha: 1.0000, red: 0.5608, green: 0.0588, blue: 0.1961, colorSpace: Colo…"
     ]
@@ -5649,7 +5649,7 @@
     "kind": "Slider",
     "key": "qa.setup.preferences.distance",
     "source": "lib/features/profile/screens/setup/setup_preferences_screen.dart:780",
-    "case": "profile.setup_preferences.km_km_ondistancechanged.action",
+    "case": "profile.setup_preferences.setup_preferences_distance_distancechanged.action",
     "effects": [
      "ui: text \"Max distance: 50 km\" Color(alpha: 1.0000, red: 0.1216, green: 0.0627, blue: 0.1412, … | state \"50 km\" = \"10%\" CheckedState.none selected:Tristate.none toggled:Tristate.none expan…"
     ]
@@ -5662,7 +5662,7 @@
     "kind": "Switch",
     "key": "qa.setup.preferences.serious_only_toggle",
     "source": "lib/features/profile/screens/setup/setup_preferences_screen.dart:1420",
-    "case": "profile.setup_preferences.setup_preferences_serious_only_toggle_seriouschanged.action",
+    "case": "profile.setup_preferences.serious_relationship_only_onseriouschanged.action",
     "effects": [
      "ui: state \"qa.setup.preferences.serious_only_toggle\" = \"\" CheckedState.none selected:Tristate.… | state \"\" = \"\" CheckedState.none selected:Tristate.none toggled:Tristate.isTrue expanded:Tr…"
     ]
@@ -5675,7 +5675,7 @@
     "kind": "Switch",
     "key": "qa.setup.preferences.verified_only_toggle",
     "source": "lib/features/profile/screens/setup/setup_preferences_screen.dart:1420",
-    "case": "profile.setup_preferences.setup_preferences_verified_only_toggle_verifiedchanged.action",
+    "case": "profile.setup_preferences.verified_profiles_only_onverifiedchanged.action",
     "effects": [
      "ui: state \"qa.setup.preferences.verified_only_toggle\" = \"\" CheckedState.none selected:Tristate… | state \"\" = \"\" CheckedState.none selected:Tristate.none toggled:Tristate.isFalse expanded:T…"
     ]
@@ -5688,7 +5688,7 @@
     "kind": "Switch",
     "key": "qa.setup.preferences.hookup_only_toggle",
     "source": "lib/features/profile/screens/setup/setup_preferences_screen.dart:1420",
-    "case": "profile.setup_preferences.setup_preferences_hookup_only_toggle_hookupchanged.action",
+    "case": "profile.setup_preferences.hookups_only_onhookupchanged.action",
     "effects": [
      "ui: state \"qa.setup.preferences.hookup_only_toggle\" = \"\" CheckedState.none selected:Tristate.n… | state \"\" = \"\" CheckedState.none selected:Tristate.none toggled:Tristate.isFalse expanded:T…"
     ]
@@ -5775,7 +5775,7 @@
     "kind": "GestureDetector",
     "key": "qa.signup.back",
     "source": "lib/features/auth/screens/signup_screen.dart:180",
-    "case": "auth.signup.back.action",
+    "case": "auth.signup.signup_back.action",
     "effects": [
      "channel: flutter/textinput TextInput.clearClient",
      "channel: flutter/textinput TextInput.hide",
@@ -5900,7 +5900,7 @@
     "kind": "TextButton",
     "key": "qa.signup.sign_in_link",
     "source": "lib/features/auth/screens/signup_screen.dart:719",
-    "case": "auth.signup.sign_in.action",
+    "case": "auth.signup.signup_sign_in_link.action",
     "effects": [
      "channel: flutter/textinput TextInput.clearClient",
      "channel: flutter/textinput TextInput.hide",
@@ -5937,7 +5937,7 @@
     "kind": "ButtonSegment",
     "key": "qa.safety.sos_level",
     "source": "lib/features/safety/screens/sos_screen.dart:85",
-    "case": "safety.sos.urgent_onselectionchanged.action",
+    "case": "safety.sos.safety_sos_level_selectionchanged.action",
     "effects": []
    },
    {
@@ -5948,7 +5948,7 @@
     "kind": "ButtonSegment",
     "key": "qa.safety.sos_level",
     "source": "lib/features/safety/screens/sos_screen.dart:85",
-    "case": "safety.sos.urgent_onselectionchanged.action",
+    "case": "safety.sos.safety_sos_level_selectionchanged.action",
     "effects": [
      "ui: fill Color(alpha: 1.0000, red: 0.9373, green: 0.9098, blue: 1.0000, colorSpace: ColorSpace… | fill Color(alpha: 0.0000, red: 0.0000, green: 0.0000, blue: 0.0000, colorSpace: ColorSpace… | state \"Urgent\" = \"\" CheckedState.none selected:Tristate.isTrue toggled:Tristate.none expan… (+5 more)"
     ]
@@ -5976,7 +5976,7 @@
     "kind": "TextButton",
     "key": "qa.safety.sos_confirm.cancel",
     "source": "lib/features/safety/screens/sos_screen.dart:254",
-    "case": "safety.sos.cancel.action",
+    "case": "safety.sos.safety_sos_confirm_cancel.action",
     "opener": "Activate SOS",
     "effects": [
      "pop: DialogRoute<bool> (AlertDialog)",
@@ -5992,7 +5992,7 @@
     "kind": "FilledButton",
     "key": "qa.safety.sos_confirm.activate",
     "source": "lib/features/safety/screens/sos_screen.dart:259",
-    "case": "safety.sos.activate.action",
+    "case": "safety.sos.safety_sos_confirm_activate.action",
     "opener": "Activate SOS",
     "effects": [
      "pop: DialogRoute<bool> (AlertDialog)",
@@ -6009,7 +6009,7 @@
     "kind": "GestureDetector",
     "key": "qa.spotlight.back_button",
     "source": "lib/features/swipe/screens/spotlight_profiles_screen.dart:431",
-    "case": "swipe.spotlight_profiles.back_icon_arrow_back_ios_new_rou_onback.action",
+    "case": "swipe.spotlight_profiles.spotlight_back_button_back.action",
     "effects": [
      "pop: MaterialPageRoute<Object?> (Scaffold)",
      "result: null",
@@ -6079,7 +6079,7 @@
     "kind": "SwitchListTile",
     "key": "qa.spotlight.filters.verified_only",
     "source": "lib/features/swipe/screens/spotlight_profiles_screen.dart:137",
-    "case": "swipe.spotlight_profiles.verified_only.action",
+    "case": "swipe.spotlight_profiles.spotlight_filters_verified_only.action",
     "opener": "Filters",
     "effects": [
      "ui: text \"Reset\" Color(alpha: 0.4000, red: 0.1216, green: 0.0627, blue: 0.1412, colorSpace: Co… | state \"Verified only\" = \"\" CheckedState.none selected:Tristate.isFalse toggled:Tristate.is… | state \"\" = \"\" CheckedState.none selected:Tristate.none toggled:Tristate.isFalse expanded:T…"
@@ -6109,7 +6109,7 @@
     "kind": "ElevatedButton",
     "key": "qa.spotlight.filters.apply",
     "source": "lib/features/swipe/screens/spotlight_profiles_screen.dart:186",
-    "case": "swipe.spotlight_profiles.apply_2.action",
+    "case": "swipe.spotlight_profiles.spotlight_filters_apply.action",
     "opener": "Filters",
     "effects": [
      "pop: ModalBottomSheetRoute<void> (StatefulBuilder)",
@@ -6124,7 +6124,7 @@
     "kind": "GestureDetector",
     "key": "qa.spotlight.view_more_button",
     "source": "lib/features/swipe/widgets/swipe_card.dart:372",
-    "case": "swipe.spotlight_profiles.discovery_view_more_button_openprofile.action",
+    "case": "swipe.spotlight_profiles.x_view_more_button_openprofile.action",
     "effects": [
      "push: MaterialPageRoute<ProfileDetailsAction>",
      "api: POST /profile/views {\"viewer_user_id\":\"layout-member\",\"viewed_user_id\":\"p-1\"}",
@@ -6142,7 +6142,7 @@
     "kind": "GestureDetector",
     "key": "qa.spotlight.card_message_button",
     "source": "lib/features/swipe/widgets/swipe_card.dart:414",
-    "case": "swipe.spotlight_profiles.discovery_card_message_button_message.action",
+    "case": "swipe.spotlight_profiles.x_card_message_button_message.action",
     "effects": [
      "api: GET /matches/layout-member",
      "api: GET /matches/layout-member",
@@ -6159,7 +6159,7 @@
     "kind": "GestureDetector",
     "key": "qa.spotlight.pass_button",
     "source": "lib/features/swipe/widgets/swipe_buttons.dart:199",
-    "case": "swipe.spotlight_profiles.discovery_pass_button_pass.action",
+    "case": "swipe.spotlight_profiles.pass_icon_close_onpass.action",
     "effects": [
      "api: POST /swipe {\"user_id\":\"layout-member\",\"target_user_id\":\"p-1\",\"is_like\":false}",
      "ui: text \"Passed (0)\" Color(alpha: 1.0000, red: 0.1216, green: 0.0627, blue: 0.1412, colorSpac… | +text \"All spotlight profiles reviewed!\" Color(alpha: 1.0000, red: 0.1216, green: 0.0627, … | +text \"Check back later for new spotlight profiles\" Color(alpha: 1.0000, red: 0.4157, gree… (+21 more)"
@@ -6173,7 +6173,7 @@
     "kind": "GestureDetector",
     "key": "qa.spotlight.like_button",
     "source": "lib/features/swipe/widgets/swipe_buttons.dart:240",
-    "case": "swipe.spotlight_profiles.discovery_like_button_like.action",
+    "case": "swipe.spotlight_profiles.like_icon_favorite_onlike.action",
     "effects": [
      "api: POST /swipe {\"user_id\":\"layout-member\",\"target_user_id\":\"p-1\",\"is_like\":true}",
      "ui: +text \"All spotlight profiles reviewed!\" Color(alpha: 1.0000, red: 0.1216, green: 0.0627, … | +text \"Check back later for new spotlight profiles\" Color(alpha: 1.0000, red: 0.4157, gree… | +opacity 0.20 (+27 more)"
@@ -6187,7 +6187,7 @@
     "kind": "GestureDetector",
     "key": "qa.spotlight.superlike_button",
     "source": "lib/features/swipe/widgets/swipe_buttons.dart:343",
-    "case": "swipe.spotlight_profiles.discovery_superlike_button_superlike.action",
+    "case": "swipe.spotlight_profiles.super_like_icon_star_onsuperlike.action",
     "effects": [
      "api: POST /swipe {\"user_id\":\"layout-member\",\"target_user_id\":\"p-1\",\"is_like\":true}",
      "ui: +text \"All spotlight profiles reviewed!\" Color(alpha: 1.0000, red: 0.1216, green: 0.0627, … | +text \"Check back later for new spotlight profiles\" Color(alpha: 1.0000, red: 0.4157, gree… | +opacity 0.20 (+27 more)"
@@ -6220,7 +6220,7 @@
     "kind": "GestureDetector",
     "key": "qa.membership.cycle.monthly",
     "source": "lib/features/payment/screens/subscription_screen.dart:862",
-    "case": "payment.subscription.monthly.action",
+    "case": "payment.subscription.membership_cycle_x.action",
     "effects": []
    },
    {
@@ -6553,7 +6553,7 @@
     "kind": "SwitchListTile",
     "key": "qa.trust_filter.enabled",
     "source": "lib/features/engagement/screens/trust_filter_screen.dart:45",
-    "case": "engagement.trust_filter.enable_trust_filters.action",
+    "case": "engagement.trust_filter.trust_filter_enabled.action",
     "effects": [
      "ui: state \"Enable trust filters\nHide profiles that do not meet your trust requirements\" = \"\" C… | state \"\" = \"\" CheckedState.none selected:Tristate.none toggled:Tristate.isFalse expanded:T…"
     ]
@@ -6579,7 +6579,7 @@
     "kind": "ElevatedButton",
     "key": "qa.trust_filter.save",
     "source": "lib/features/engagement/screens/trust_filter_screen.dart:96",
-    "case": "engagement.trust_filter.save_trust_filters.action",
+    "case": "engagement.trust_filter.trust_filter_save.action",
     "effects": [
      "api: PATCH /discovery/layout-member/filters/trust {\"enabled\":false,\"minimum_active_badges\":0,\"required_badge_codes\":[]}",
      "ui: +opacity 1.00 | +fill Color(alpha: 1.0000, red: 0.1216, green: 0.0627, blue: 0.1412, colorSpace: ColorSpac… | +paint Null _ShapeBorderPainter (+1 more)"
@@ -6665,7 +6665,7 @@
     "kind": "OutlinedButton",
     "key": "qa.verification.selfie.camera_button",
     "source": "lib/features/verification/screens/verification_selfie_screen.dart:91",
-    "case": "verification.verification_selfie.camera.action",
+    "case": "verification.verification_selfie.verification_selfie_camera_button.action",
     "effects": [
      "channel: plugins.flutter.io/image_picker pickImage"
     ]
@@ -6694,7 +6694,7 @@
     "kind": "OutlinedButton",
     "key": "qa.verification.id.camera_button",
     "source": "lib/features/verification/screens/verification_upload_id_screen.dart:85",
-    "case": "verification.verification_upload_id.camera.action",
+    "case": "verification.verification_upload_id.verification_id_camera_button.action",
     "effects": [
      "channel: plugins.flutter.io/image_picker pickImage"
     ]
@@ -6711,7 +6711,7 @@
     "kind": "GestureDetector",
     "key": "qa.signin.back",
     "source": "lib/features/auth/screens/auth_screen.dart:201",
-    "case": "auth.auth.back_to_welcome.action",
+    "case": "auth.auth.signin_back.action",
     "effects": [
      "pop: MaterialPageRoute<Object?> (AuthScreen)",
      "result: null",
@@ -6780,7 +6780,7 @@
     "kind": "TextButton",
     "key": "qa.welcome.introducer_button",
     "source": "lib/features/auth/screens/welcome_screen.dart:256",
-    "case": "auth.welcome.just_here_to_introduce_friends.action",
+    "case": "auth.welcome.welcome_introducer_button.action",
     "effects": [
      "push: MaterialPageRoute<void>",
      "channel: flutter/platform LiveText.isLiveTextInputAvailable",

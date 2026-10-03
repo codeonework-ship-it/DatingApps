@@ -208,7 +208,7 @@ void _expectSameRect(WidgetTester tester, String id) {
 
 void main() {
   testWidgets(
-    '[case:a11y-qa-id-nav-and-filters-de] bottom nav and filter sheet keep '
+    '[case:l10n.a11y.qa_ids_nav_and_filters] bottom nav and filter sheet keep '
     'their ids as identifiers and speak German',
     (tester) async {
       final semantics = tester.ensureSemantics();
@@ -332,7 +332,7 @@ void main() {
   );
 
   testWidgets(
-    '[case:a11y-qa-id-swipe-buttons-de] deck action buttons are named in '
+    '[case:l10n.a11y.qa_ids_swipe_buttons] deck action buttons are named in '
     'German and keep their ids',
     (tester) async {
       final semantics = tester.ensureSemantics();

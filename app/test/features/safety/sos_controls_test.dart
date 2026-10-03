@@ -87,8 +87,8 @@ void main() {
     'Done; the alert tops the history '
     '[case:safety.sos.safety_activate_sos.action] '
     '[case:safety.sos.activate_sos_now.action] '
-    '[case:safety.sos.activate.action] [case:safety.sos.done.action] '
-    '[case:safety.sos.done_2.action]',
+    '[case:safety.sos.safety_sos_confirm_activate.action] [case:safety.sos.done.action] '
+    '[case:safety.sos.safety_sos_done.action]',
     (tester) async {
       final server = _SosServer();
       final location = await _open(tester, server);
@@ -157,7 +157,7 @@ void main() {
   );
 
   testWidgets(
-    'Cancel in the confirmation sends nothing [case:safety.sos.cancel.action]',
+    'Cancel in the confirmation sends nothing [case:safety.sos.safety_sos_confirm_cancel.action]',
     (tester) async {
       final server = _SosServer();
       final location = await _open(tester, server);
@@ -173,7 +173,7 @@ void main() {
   );
 
   testWidgets('Critical level is what the alert is sent with '
-      '[case:safety.sos.urgent_onselectionchanged.action]', (tester) async {
+      '[case:safety.sos.safety_sos_level_selectionchanged.action]', (tester) async {
     final server = _SosServer();
     await _open(tester, server);
     expect(
@@ -217,7 +217,7 @@ void main() {
   });
 
   testWidgets('the message is prefilled, editable and sent as typed (trimmed) '
-      '[case:safety.sos.message_for_the_safety_team_input.action]', (
+      '[case:safety.sos.safety_sos_message_input.action]', (
     tester,
   ) async {
     final server = _SosServer();
@@ -248,7 +248,7 @@ void main() {
   testWidgets(
     'the message is capped at 500 characters, keeps emoji and RTL text, and '
     'an empty message never blocks an emergency '
-    '[case:safety.sos.message_for_the_safety_team_input.validation]',
+    '[case:safety.sos.safety_sos_message_input.validation]',
     (tester) async {
       final server = _SosServer();
       await _open(tester, server);

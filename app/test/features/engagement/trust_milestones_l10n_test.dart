@@ -6,7 +6,7 @@ import '../../support/qa_api.dart';
 
 void main() {
   testWidgets('trust milestones read as German labels, bookkeeping fields are '
-      'hidden and unknown keys are humanized [case:l10n-trust-milestones]', (
+      'hidden and unknown keys are humanized [case:l10n.trust_milestones.labels]', (
     tester,
   ) async {
     final de = qaL10n(const Locale('de'));

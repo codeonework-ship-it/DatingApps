@@ -96,7 +96,7 @@ const _bare500 = QaReply(500, <String, dynamic>{});
 void main() {
   group('call screen', () {
     testWidgets('opening starts a session with this match '
-        '[case:calls.call_session.try_again.api_contract]', (tester) async {
+        '', (tester) async {
       final api = _api();
       await _openCall(tester, api);
 
@@ -123,8 +123,8 @@ void main() {
     });
 
     testWidgets('End ends the session and closes the screen '
-        '[case:calls.call_session.end.action] '
-        '[case:calls.call_session.end.api_contract]', (tester) async {
+        '[case:calls.call_session.calls_end.action] '
+        '', (tester) async {
       final api = _api();
       await _openCall(tester, api);
       await _tap(tester, const ValueKey('qa.calls.end'));
@@ -148,7 +148,7 @@ void main() {
     });
 
     testWidgets('a failed End keeps the call open and says so '
-        '[case:calls.call_session.end.api_failure]', (tester) async {
+        '[case:calls.call_session.calls_end.api_failure]', (tester) async {
       final api = _api()..on('POST /calls/call-1/end', (_) => _bare500);
       await _openCall(tester, api);
       await _tap(tester, const ValueKey('qa.calls.end'));
@@ -159,8 +159,8 @@ void main() {
     });
 
     testWidgets('a session that failed to start can be tried again '
-        '[case:calls.call_session.try_again.action] '
-        '[case:calls.call_session.try_again.api_contract]', (tester) async {
+        '[case:calls.call_session.calls_try_again.action] '
+        '', (tester) async {
       final api = _api()..on('POST /calls/start', (_) => _bare500);
       await _openCall(tester, api);
       expect(find.text('Unable to start the call session.'), findsOneWidget);
@@ -175,7 +175,7 @@ void main() {
     });
 
     testWidgets('a Try again that fails keeps the explanation '
-        '[case:calls.call_session.try_again.api_failure]', (tester) async {
+        '[case:calls.call_session.calls_try_again.api_failure]', (tester) async {
       final api = _api()
         ..fail('POST /calls/start', status: 409, message: 'Maya is busy.');
       await _openCall(tester, api);
@@ -186,7 +186,7 @@ void main() {
     });
 
     testWidgets('Join live room opens the room link outside the app '
-        '[case:calls.call_session.join_live_room.action]', (tester) async {
+        '[case:calls.call_session.calls_join_live_room.action]', (tester) async {
       final launched = _fakeLauncher();
       final api = _api();
       await _openCall(tester, api);
@@ -196,7 +196,7 @@ void main() {
     });
 
     testWidgets('a room link that is not https is refused with a reason '
-        '[case:calls.call_session.join_live_room.not_configured]', (
+        '[case:calls.call_session.calls_join_live_room.not_configured]', (
       tester,
     ) async {
       final launched = _fakeLauncher();
@@ -212,7 +212,7 @@ void main() {
     });
 
     testWidgets('a room the device cannot open is explained '
-        '[case:calls.call_session.join_live_room.open_failed]', (tester) async {
+        '[case:calls.call_session.calls_join_live_room.open_failed]', (tester) async {
       final launched = _fakeLauncher(opens: false);
       final api = _api();
       await _openCall(tester, api);
@@ -281,7 +281,7 @@ void main() {
     });
 
     testWidgets('Join live room on an active call opens its room '
-        '[case:calls.call_history.join_live_room.action]', (tester) async {
+        '[case:calls.call_history.calls_history_join_x.action]', (tester) async {
       final launched = _fakeLauncher();
       final api = _api();
       await openHistory(tester, api);

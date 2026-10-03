@@ -143,7 +143,7 @@ void main() {
   testWidgets(
     'Create account signs up, saves the profile basics and closes sign-up '
     '[case:auth.signup.signup_create_account_button.action] '
-    '[case:auth.signup.genderselector_onchanged.action] '
+    '[case:auth.signup.signup_gender_x.action] '
     '[case:auth.signup.signup_dob_field.action] '
     '[case:auth.signup.select_date_of_birth.action]',
     (tester) async {
@@ -248,7 +248,7 @@ void main() {
     expect(find.byType(SignupScreen), findsNothing);
   });
 
-  testWidgets('Back leaves sign-up [case:auth.signup.back.action]', (
+  testWidgets('Back leaves sign-up [case:auth.signup.signup_back.action]', (
     tester,
   ) async {
     final api = _signupApi();
@@ -262,7 +262,7 @@ void main() {
   });
 
   testWidgets(
-    'Sign in swaps sign-up for sign-in [case:auth.signup.sign_in.action]',
+    'Sign in swaps sign-up for sign-in [case:auth.signup.signup_sign_in_link.action]',
     (tester) async {
       final api = _signupApi();
       await _open(tester, api);
@@ -279,9 +279,9 @@ void main() {
   );
 
   testWidgets('Next walks through username, password, confirmation and name '
-      '[case:auth.signup.signup_username_field_submitted.action] '
-      '[case:auth.signup.signup_password_field_submitted.action] '
-      '[case:auth.signup.signup_confirm_password_field_submitted.action]', (
+      '[case:auth.signup.your_username_onsubmitted.action] '
+      '[case:auth.signup.at_least_8_characters_onsubmitted.action] '
+      '[case:auth.signup.confirm_password_onsubmitted.action]', (
     tester,
   ) async {
     final api = _signupApi();
@@ -306,7 +306,7 @@ void main() {
   });
 
   testWidgets('Sign-up username must be 3–30 letters, numbers, _ or . '
-      '[case:auth.signup.signup_username_field_submitted.validation]', (
+      '[case:auth.signup.your_username_onsubmitted.validation]', (
     tester,
   ) async {
     final api = _signupApi();
@@ -328,7 +328,7 @@ void main() {
   testWidgets(
     'Sign-up password must be 8–72 bytes with a letter and a number; any '
     'script is kept '
-    '[case:auth.signup.signup_password_field_submitted.validation]',
+    '[case:auth.signup.at_least_8_characters_onsubmitted.validation]',
     (tester) async {
       final api = _signupApi();
       await _open(tester, api);
@@ -357,7 +357,7 @@ void main() {
   );
 
   testWidgets('The confirmation must match the password '
-      '[case:auth.signup.signup_confirm_password_field_submitted.validation]', (
+      '[case:auth.signup.confirm_password_onsubmitted.validation]', (
     tester,
   ) async {
     final api = _signupApi();
@@ -375,8 +375,8 @@ void main() {
   });
 
   testWidgets('Password and confirmation each have their own show/hide '
-      '[case:auth.signup.signup_password_field.action] '
-      '[case:auth.signup.signup_confirm_password_field.action]', (
+      '[case:auth.signup.signup_password_visibility.action] '
+      '[case:auth.signup.signup_confirm_password_visibility.action]', (
     tester,
   ) async {
     await _open(tester, _signupApi());

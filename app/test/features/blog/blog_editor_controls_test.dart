@@ -230,7 +230,7 @@ void main() {
     testWidgets(
       'Save only for me saves the trimmed title and story as a private draft '
       '[case:blog.blog_editor.blog_save.action] '
-      '[case:blog.blog_editor.chapter_title_input.action]',
+      '[case:blog.blog_editor.blog_editor_title_input.action]',
       (tester) async {
         final api = _api();
         await pumpQa(tester, api, const BlogEditor());
@@ -410,7 +410,7 @@ void main() {
 
     testWidgets(
       'Save as Only me keeps a chosen audience private without asking '
-      '[case:blog.blog_editor.save_as_only_me.action]',
+      '[case:blog.blog_editor.blog_editor_save_private.action]',
       (tester) async {
         final api = _api();
         await pumpQa(tester, api, const BlogEditor());
@@ -434,7 +434,7 @@ void main() {
 
     testWidgets(
       'a failed Save as Only me keeps the words and the chosen audience '
-      '[case:blog.blog_editor.save_as_only_me.api_failure]',
+      '[case:blog.blog_editor.blog_editor_save_private.api_failure]',
       (tester) async {
         var attempts = 0;
         final api = _api()
@@ -482,7 +482,7 @@ void main() {
 
     testWidgets(
       'audience chips change the help, the button and what is published '
-      '[case:blog.blog_editor.choicechip_onselected.action]',
+      '[case:blog.blog_editor.blog_editor_audience_x.action]',
       (tester) async {
         final api = _api();
         await pumpQa(tester, api, const BlogEditor());
@@ -570,7 +570,7 @@ void main() {
     testWidgets(
       'title validation: blank titles cannot be published, 100 characters max, '
       'unicode kept exactly '
-      '[case:blog.blog_editor.chapter_title_input.validation]',
+      '[case:blog.blog_editor.blog_editor_title_input.validation]',
       (tester) async {
         final api = _api();
         await pumpQa(tester, api, const BlogEditor());
@@ -651,7 +651,7 @@ void main() {
 
     testWidgets(
       'Preview shows the chapter as readers will, writes nothing, Keep writing '
-      'returns [case:blog.blog_editor.preview.action]',
+      'returns [case:blog.blog_editor.blog_editor_preview.action]',
       (tester) async {
         final api = _api();
         await pumpQa(tester, api, const BlogEditor());
@@ -767,7 +767,7 @@ void main() {
     }
 
     testWidgets('Check saved version shows the server copy next to my edits '
-        '[case:blog.blog_editor.check_saved_version.action] '
+        '[case:blog.blog_editor.blog_editor_check_saved.action] '
         '[case:blog.blog_editor.saved_version_audience.action] '
         '[case:blog.blog_editor.selectabletext_input_input.action]', (
       tester,
@@ -804,7 +804,7 @@ void main() {
 
     testWidgets(
       'Keep my edits closes the sheet and saves my words over the newer '
-      'version [case:blog.blog_editor.keep_my_edits_for_the_next_save.action]',
+      'version [case:blog.blog_editor.blog_editor_keep_edits.action]',
       (tester) async {
         final api = await conflicted(tester);
         await tester.tap(find.byKey(_checkSaved));
@@ -844,7 +844,7 @@ void main() {
     );
 
     testWidgets('Use saved version replaces my edits with the server copy '
-        '[case:blog.blog_editor.use_saved_version.action]', (tester) async {
+        '[case:blog.blog_editor.blog_editor_use_saved.action]', (tester) async {
       final api = await conflicted(tester);
       await tester.tap(find.byKey(_checkSaved));
       await qaSettle(tester);
@@ -945,7 +945,7 @@ void main() {
     );
 
     testWidgets('a failed check explains, keeps my words and can be retried '
-        '[case:blog.blog_editor.check_saved_version.api_failure]', (
+        '[case:blog.blog_editor.blog_editor_check_saved.api_failure]', (
       tester,
     ) async {
       final api = await conflicted(tester);
@@ -1009,9 +1009,9 @@ void main() {
 
     testWidgets(
       'Add a photo: describe it, then it is saved with the private draft '
-      '[case:blog.blog_editor.add_a_photo.action] '
-      '[case:blog.blog_editor.describe_your_photo.action] '
-      '[case:blog.blog_editor.what_is_in_this_photo.action] '
+      '[case:blog.blog_editor.blog_editor_add_photo.action] '
+      '[case:blog.blog_editor.add_to_private_draft.action] '
+      '[case:blog.blog_editor.blog_editor_photo_alt.action] '
       '[case:blog.blog_editor.add_to_private_draft.action]',
       (tester) async {
         final picker = _mockPicker(tester, _photoPath);
@@ -1076,7 +1076,7 @@ void main() {
     );
 
     testWidgets('Cancel closes the photo description and sends nothing '
-        '[case:blog.blog_editor.cancel.action]', (tester) async {
+        '[case:blog.blog_editor.blog_editor_photo_cancel.action]', (tester) async {
       _mockPicker(tester, _photoPath);
       final api = _api();
       serveUpload(api);
@@ -1101,7 +1101,7 @@ void main() {
     testWidgets(
       'photo description regression: Add stays disabled until described; 160 '
       'max; unicode kept '
-      '[case:blog.blog_editor.what_is_in_this_photo.validation]',
+      '[case:blog.blog_editor.blog_editor_photo_alt.validation]',
       (tester) async {
         _mockPicker(tester, _photoPath);
         final api = _api();
@@ -1139,7 +1139,7 @@ void main() {
 
     testWidgets(
       'a failed upload explains, blocks blind retries until the saved version '
-      'is checked [case:blog.blog_editor.add_a_photo.api_failure]',
+      'is checked [case:blog.blog_editor.blog_editor_add_photo.api_failure]',
       (tester) async {
         _mockPicker(tester, _photoPath);
         var uploads = 0;
@@ -1203,7 +1203,7 @@ void main() {
     );
 
     testWidgets('Add a photo is not offered for a published chapter '
-        '[case:blog.blog_editor.add_a_photo.action]', (tester) async {
+        '[case:blog.blog_editor.blog_editor_add_photo.action]', (tester) async {
       final picker = _mockPicker(tester, _photoPath);
       final api = _api();
       await pumpQa(
@@ -1222,7 +1222,7 @@ void main() {
     });
 
     testWidgets('Remove photo deletes it from this version of the draft '
-        '[case:blog.blog_editor.remove_photo.action]', (tester) async {
+        '[case:blog.blog_editor.blog_editor_remove_photo_x.action]', (tester) async {
       final api = _api();
       final withPhoto = _chapter(
         version: 2,
@@ -1252,7 +1252,7 @@ void main() {
 
     testWidgets(
       'a failed removal keeps the photo and explains; it can be retried after '
-      'checking [case:blog.blog_editor.remove_photo.api_failure]',
+      'checking [case:blog.blog_editor.blog_editor_remove_photo_x.api_failure]',
       (tester) async {
         var attempts = 0;
         final withPhoto = _chapter(

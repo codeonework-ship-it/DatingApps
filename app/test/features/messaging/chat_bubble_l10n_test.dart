@@ -44,14 +44,14 @@ void main() {
   final en = lookupAppLocalizations(const Locale('en'));
 
   testWidgets('a deleted message shows the placeholder in the reader language '
-      '[case:l10n-chat-deleted-placeholder]', (tester) async {
+      '[case:l10n.chat_bubbles.deleted_placeholder]', (tester) async {
     await _pumpBubble(tester, message: '', mine: true, isDeleted: true);
     expect(find.text('Nachricht gelöscht'), findsOneWidget);
     expect(find.text('Message deleted'), findsNothing);
   });
 
   testWidgets('a deleted message never shows its stored text '
-      '[case:l10n-chat-deleted-ignores-stored-text]', (tester) async {
+      '[case:l10n.chat_bubbles.deleted_ignores_stored_text]', (tester) async {
     await _pumpBubble(
       tester,
       message: 'Message deleted',
@@ -64,7 +64,7 @@ void main() {
   });
 
   testWidgets('the sender sees their gift titled for them, named in German '
-      '[case:l10n-chat-gift-sender-view]', (tester) async {
+      '[case:l10n.chat_bubbles.gift_sender_view]', (tester) async {
     await _pumpBubble(tester, message: _goldenRoseToken, mine: true);
     expect(find.text(de.chatGiftYouSentHeading), findsOneWidget);
     expect(find.text('Du hast ein Geschenk gesendet'), findsOneWidget);
@@ -74,7 +74,7 @@ void main() {
   });
 
   testWidgets('the recipient sees who sent the gift, named in German '
-      '[case:l10n-chat-gift-recipient-view]', (tester) async {
+      '[case:l10n.chat_bubbles.gift_recipient_view]', (tester) async {
     await _pumpBubble(
       tester,
       message: _goldenRoseToken,
@@ -86,7 +86,7 @@ void main() {
   });
 
   testWidgets('an English caption stored by older builds is not shown '
-      '[case:l10n-chat-gift-legacy-caption]', (tester) async {
+      '[case:l10n.chat_bubbles.gift_legacy_caption]', (tester) async {
     await _pumpBubble(
       tester,
       message: 'Sent Golden Rose 🌹\n$_goldenRoseToken',
@@ -107,7 +107,7 @@ void main() {
   });
 
   testWidgets('a note the member wrote with the gift is kept as written '
-      '[case:l10n-chat-gift-note-kept]', (tester) async {
+      '[case:l10n.chat_bubbles.gift_note_kept]', (tester) async {
     await _pumpBubble(
       tester,
       message: 'For our first coffee ☕\n$_goldenRoseToken',
@@ -118,7 +118,7 @@ void main() {
   });
 
   test('gift names resolve by id, by English name, or keep the server name '
-      '[case:l10n-gift-name-helper]', () {
+      '[case:l10n.chat_bubbles.gift_name_helper]', () {
     expect(
       localizedGiftName(de, id: 'teddy_bear', serverName: 'Teddy Bear'),
       'Teddybär',
@@ -138,7 +138,7 @@ void main() {
   });
 
   test('gift errors name the gift in the reader language '
-      '[case:l10n-chat-gift-error-name]', () {
+      '[case:l10n.chat_bubbles.gift_error_name]', () {
     expect(
       localizeChatError(de, 'Not enough coins to send Golden Rose.'),
       de.chatErrorNotEnoughCoins('Goldene Rose'),
@@ -151,7 +151,7 @@ void main() {
 
   test('unknown chat errors: English shows readable server text, technical '
       'text and other languages get a translated generic message '
-      '[case:l10n-chat-error-unknown-server-text]', () {
+      '[case:l10n.chat_bubbles.unknown_server_error]', () {
     expect(localizeChatError(en, 'Server said no'), 'Server said no');
     expect(
       localizeChatError(en, 'pq: duplicate key value violates constraint'),

@@ -222,7 +222,7 @@ void main() {
 
     testWidgets('the daily message limit shows a banner; See plans opens the '
         'plans '
-        '[case:messaging.chat.see_plans_onseeplans.action] '
+        '[case:messaging.chat.chat_daily_limit_see_plans_seeplans.action] '
         '[case:messaging.chat.daily_limit_banner]', (tester) async {
       final api = _api()
         ..on(
@@ -268,7 +268,7 @@ void main() {
     });
 
     testWidgets('a failed load offers Retry, which loads the history '
-        '[case:messaging.chat.retry.action]', (tester) async {
+        '[case:messaging.chat.chat_retry.action]', (tester) async {
       final api = _api()..fail('GET /chat/m1/messages');
       await _open(tester, api);
       expect(find.text('Let’s reconnect.'), findsOneWidget);
@@ -282,7 +282,7 @@ void main() {
     });
 
     testWidgets('a starter fills the composer in an empty chat '
-        '[case:messaging.chat.chatwelcome_onstarter_onstarter.action]', (
+        '[case:messaging.chat.chat_starter_x_starter.action]', (
       tester,
     ) async {
       final api = _api(messages: []);
@@ -295,9 +295,9 @@ void main() {
     });
 
     testWidgets('the emoji sheet adds the chosen emoji and closes '
-        '[case:messaging.chat.add_an_emoji_onemoji.action] '
+        '[case:messaging.chat.chat_emoji_button_emoji.action] '
         '[case:messaging.chat.showmodalbottomsheet_open.action] '
-        '[case:messaging.chat.gesturedetector_ontap.action]', (tester) async {
+        '[case:messaging.chat.chat_emoji_x.action]', (tester) async {
       final api = _api();
       await _open(tester, api);
       await _type(tester, 'Sounds good');
@@ -312,7 +312,7 @@ void main() {
     });
 
     testWidgets('back returns to the conversations '
-        '[case:messaging.chat.back_to_conversations.action] '
+        '[case:messaging.chat.chat_back_button.action] '
         '[case:messaging.chat.back_affordance]', (tester) async {
       final api = _api();
       await _open(tester, api);
@@ -323,7 +323,7 @@ void main() {
     });
 
     testWidgets('Share a voice hello opens voice hellos for this match '
-        '[case:messaging.chat.share_a_voice_hello_read_listen.action]', (
+        '[case:messaging.chat.chat_voice_hello.action]', (
       tester,
     ) async {
       final api = _api();
@@ -339,8 +339,8 @@ void main() {
     });
 
     testWidgets('the wallet chip opens the wallet and re-reads the balance '
-        '[case:messaging.chat.walletcoins.action] '
-        '[case:messaging.chat.walletcoins.api_contract]', (tester) async {
+        '[case:messaging.chat.chat_wallet_button.action] '
+        '', (tester) async {
       final api = _api();
       await _open(tester, api);
       expect(find.text('20'), findsOneWidget);
@@ -364,7 +364,7 @@ void main() {
     });
 
     testWidgets('a failed wallet read keeps the last balance '
-        '[case:messaging.chat.walletcoins.api_failure]', (tester) async {
+        '[case:messaging.chat.chat_wallet_button.api_failure]', (tester) async {
       final api = _api();
       await _open(tester, api);
       await _tap(tester, const ValueKey('qa.chat.wallet_button'));
@@ -427,7 +427,7 @@ void main() {
     });
 
     testWidgets('Cancel keeps the message '
-        '[case:messaging.chat.textbutton_onpressed.action]', (tester) async {
+        '[case:messaging.chat.chat_delete_message_cancel.action]', (tester) async {
       final api = _api();
       await _open(tester, api);
       await tester.longPress(
@@ -484,7 +484,7 @@ void main() {
 
     testWidgets('the tray still opens when the open cannot be recorded '
         '[case:messaging.chat.chat_gift_tray_button_gift.api_failure] '
-        '[case:messaging.chat.close_gifts.api_failure]', (tester) async {
+        '[case:messaging.chat.chat_gift_tray_close.api_failure]', (tester) async {
       final api = _api()..offline('POST /chat/m1/gifts/events');
       await _open(tester, api);
       await _tap(tester, const ValueKey('qa.chat.gift_tray_button'));
@@ -495,8 +495,8 @@ void main() {
     });
 
     testWidgets('Close gifts closes the tray '
-        '[case:messaging.chat.close_gifts.action] '
-        '[case:messaging.chat.close_gifts.api_contract]', (tester) async {
+        '[case:messaging.chat.chat_gift_tray_close.action] '
+        '', (tester) async {
       final api = _api();
       await _open(tester, api);
       await _tap(tester, const ValueKey('qa.chat.gift_tray_button'));
@@ -508,7 +508,7 @@ void main() {
     });
 
     testWidgets('a collection chip filters the gifts; All gifts shows all '
-        '[case:messaging.chat.all_gifts.action]', (tester) async {
+        '[case:messaging.chat.chat_gift_category_category.action]', (tester) async {
       final api = _api();
       await _open(tester, api);
       await _tap(tester, const ValueKey('qa.chat.gift_tray_button'));
@@ -585,7 +585,7 @@ void main() {
     });
 
     testWidgets('Not now sends nothing and keeps the note '
-        '[case:messaging.chat.not_now_2.action]', (tester) async {
+        '[case:messaging.chat.chat_gift_confirm_not_now.action]', (tester) async {
       final api = _api();
       await _open(tester, api);
       await _type(tester, 'Just because');
@@ -639,11 +639,11 @@ void main() {
 
     testWidgets('the wide layout: Send a little joy opens the tray, Find the '
         'words opens the copilot, All conversations goes back '
-        '[case:messaging.chat.send_a_little_joy_ongift.action] '
-        '[case:messaging.chat.send_a_little_joy_ongift.api_contract] '
-        '[case:messaging.chat.send_a_little_joy_ongift.api_failure] '
-        '[case:messaging.chat.find_the_words_oncopilot.action] '
-        '[case:messaging.chat.all_conversations_onback.action]', (
+        '[case:messaging.chat.chat_sidebar_gift_gift.action] '
+        ''
+        '[case:messaging.chat.chat_sidebar_gift_gift.api_failure] '
+        '[case:messaging.chat.chat_sidebar_copilot_copilot.action] '
+        '[case:messaging.chat.chat_sidebar_back_back.action]', (
       tester,
     ) async {
       final api = _api()..offline('POST /chat/m1/gifts/events');
@@ -701,7 +701,7 @@ void main() {
 
     testWidgets('long-pressing a received gift opens the same choices; '
         'Cancel keeps it '
-        '[case:messaging.chat.textbutton_onpressed_2.action]', (tester) async {
+        '[case:messaging.chat.chat_gift_receiver_cancel.action]', (tester) async {
       final api = _api(messages: received);
       await _open(tester, api);
       await tester.longPress(find.byKey(const ValueKey('qa.chat.message.g1')));
@@ -771,7 +771,7 @@ void main() {
     });
 
     testWidgets('Cancel on the report sheet sends nothing '
-        '[case:messaging.chat.textbutton_onpressed_3.action]', (tester) async {
+        '[case:messaging.chat.chat_gift_report_cancel.action]', (tester) async {
       final api = _api(messages: received);
       await _open(tester, api);
       await _tap(tester, const ValueKey('qa.chat.gift_receiver_actions'));
@@ -877,7 +877,7 @@ void main() {
 
     testWidgets('an unavailable copilot is explained in the sheet '
         '[case:messaging.chat.chat_copilot_button_copilot.api_failure] '
-        '[case:messaging.chat.find_the_words_oncopilot.api_failure] '
+        '[case:messaging.chat.chat_sidebar_copilot_copilot.api_failure] '
         '[case:messaging.copilot_sheet.copilot_generate.api_failure]', (
       tester,
     ) async {

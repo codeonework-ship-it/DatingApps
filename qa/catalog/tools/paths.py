@@ -11,6 +11,8 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), 
 BUILD = os.environ.get("QA_CATALOG_BUILD_DIR") or os.path.join(ROOT, "qa", "results", "catalog_build")
 CATALOG = os.environ.get("QA_CATALOG_OUT") or os.path.join(ROOT, "qa", "catalog", "feature_catalog.json")
 MANUAL = os.environ.get("QA_MANUAL_CASES") or os.path.join(ROOT, "qa", "catalog", "manual_cases.json")
+# Cases/controls/features the static extraction cannot see (with a reason each); merged by final_catalog.py.
+EXTRA = os.environ.get("QA_EXTRA_CASES") or os.path.join(ROOT, "qa", "catalog", "extra_cases.json")
 INVENTORY_MD = os.environ.get("QA_INVENTORY_OUT") or os.path.join(ROOT, "documents", "qa", "FEATURE_AND_TEST_INVENTORY_2026-10-02.md")
 
 

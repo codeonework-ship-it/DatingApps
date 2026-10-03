@@ -62,7 +62,7 @@ Future<void> _save(WidgetTester tester, Key key) async {
 
 void main() {
   testWidgets('Refresh reloads the draft and shows what changed elsewhere '
-      '[case:profile.edit_profile.refresh_profile.action]', (tester) async {
+      '[case:profile.edit_profile.edit_profile_refresh.action]', (tester) async {
     final api = QaApi();
     final bff = ProfileBff(api);
     await _open(tester, api);
@@ -77,7 +77,7 @@ void main() {
   });
 
   testWidgets('a failed refresh shows the error with Retry '
-      '[case:profile.edit_profile.refresh_profile.action]', (tester) async {
+      '[case:profile.edit_profile.edit_profile_refresh.action]', (tester) async {
     final api = QaApi();
     ProfileBff(api);
     await _open(tester, api);
@@ -88,7 +88,7 @@ void main() {
   });
 
   testWidgets('Retry reloads a profile that failed to load '
-      '[case:profile.edit_profile.retry_onretry.action]', (tester) async {
+      '[case:profile.edit_profile.something_went_wrong_please_try_onretry.action]', (tester) async {
     final api = QaApi();
     final bff = ProfileBff(api);
     api.fail('GET /profile/*/draft');
@@ -256,7 +256,7 @@ void main() {
   });
 
   testWidgets('the date of birth (1998-06-20 on the server) reads in the '
-      "member's own date order [case:l10n-edit-profile-dob-locale-format]", (
+      "member's own date order [case:l10n.formats.dob_locale_order]", (
     tester,
   ) async {
     for (final (locale, shown) in const [

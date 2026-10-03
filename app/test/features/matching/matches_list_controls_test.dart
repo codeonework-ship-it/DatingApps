@@ -216,8 +216,8 @@ void main() {
     });
 
     testWidgets('Unread shows only unread conversations; All shows all '
-        '[case:matching.matches_list.unread_count.action] '
-        '[case:matching.matches_list.all_conversations.action]', (
+        '[case:matching.matches_list.matches_filter_unread.action] '
+        '[case:matching.matches_list.matches_filter_all.action]', (
       tester,
     ) async {
       final api = _api();
@@ -245,8 +245,8 @@ void main() {
 
   group('load and retry', () {
     testWidgets('a failed load offers Retry, which shows the matches '
-        '[case:matching.matches_list.retry.action] '
-        '[case:matching.matches_list.retry.api_contract]', (tester) async {
+        '[case:matching.matches_list.matches_retry.action] '
+        '', (tester) async {
       final api = _api()..fail('GET /matches/me', message: 'Matches resting');
       await _open(tester, api, view: MatchesView.people);
       expect(find.text('Unable to load matches'), findsOneWidget);
@@ -264,8 +264,8 @@ void main() {
     // Regression (2026-10-02): the load error stuck after a successful
     // retry, so a member with no matches yet stayed on "Unable to load".
     testWidgets('Retry that succeeds with no matches shows the empty state '
-        '[case:matching.matches_list.retry.api_failure] '
-        '[case:matching.matches_list.retry.clears_error]', (tester) async {
+        '[case:matching.matches_list.matches_retry.api_failure] '
+        '[case:matching.matches_list.matches_retry.clears_error]', (tester) async {
       final api = _api()..offline('GET /matches/me');
       await _open(tester, api, view: MatchesView.people);
       expect(
@@ -312,7 +312,7 @@ void main() {
     });
 
     testWidgets('Open chat on a match card opens the chat '
-        '[case:matching.match_overview_card.open_chat.action]', (tester) async {
+        '[case:matching.match_overview_card.matches_person_x_chat.action]', (tester) async {
       final api = _api();
       await _open(tester, api, view: MatchesView.people);
       await _tap(tester, const ValueKey('qa.matches.person.m2.chat'));
@@ -322,7 +322,7 @@ void main() {
     });
 
     testWidgets("a match card's options open the match options "
-        '[case:matching.matches_list.matches_person_x_options.action] '
+        '[case:matching.matches_list.matches_person_x_options_options.action] '
         '[case:matching.matches_list.showmodalbottomsheet_open.action]', (
       tester,
     ) async {
@@ -356,7 +356,7 @@ void main() {
     });
 
     testWidgets('First Chapter on a match card opens the chapter studio '
-        '[case:matching.matches_list.matches_person_x_chapter.action]', (
+        '[case:matching.matches_list.matches_person_x_chapter_chapter.action]', (
       tester,
     ) async {
       final api = _api();
@@ -371,7 +371,7 @@ void main() {
     });
 
     testWidgets('Plan a date on a match card proposes a plan '
-        '[case:matching.matches_list.matches_person_x_plan.action]', (
+        '[case:matching.matches_list.matches_person_x_plan_plan.action]', (
       tester,
     ) async {
       final api = _api();
@@ -476,7 +476,7 @@ void main() {
       'Send a nudge sends it and confirms '
       '[case:matching.matches_list.matches_nudge_action.action] '
       '[case:matching.matches_list.matches_nudge_action.api_contract] '
-      '[case:matching.matches_list.matches_person_x_options.api_contract] '
+      ''
       '[case:matching.matches_list.matches_match_row_x_options.api_contract]',
       (tester) async {
         final api = _api();
@@ -498,7 +498,7 @@ void main() {
     testWidgets('a refused nudge shows the reason '
         '[case:matching.matches_list.matches_nudge_action.api_failure] '
         '[case:matching.matches_list.matches_match_row_x_options.api_failure] '
-        '[case:matching.matches_list.matches_person_x_options.api_failure]', (
+        '[case:matching.matches_list.matches_person_x_options_options.api_failure]', (
       tester,
     ) async {
       final api = _api()
@@ -515,7 +515,7 @@ void main() {
 
     testWidgets('Close conversation asks first; Keep talking keeps it '
         '[case:matching.matches_list.matches_unmatch_action_2.action] '
-        '[case:matching.matches_list.keep_talking.action]', (tester) async {
+        '[case:matching.matches_list.matches_close_dialog_keep.action]', (tester) async {
       final api = _api();
       await _openOptions(tester, api);
       await _tap(tester, const ValueKey('qa.matches.unmatch_action'));
@@ -531,7 +531,7 @@ void main() {
     testWidgets('Close conversation ends the match and removes the row '
         '[case:matching.matches_list.matches_unmatch_action.action] '
         '[case:matching.matches_list.matches_unmatch_action.api_contract] '
-        '[case:matching.matches_list.close_conversation.action]', (
+        '[case:matching.matches_list.matches_close_dialog_confirm.action]', (
       tester,
     ) async {
       final api = _api();

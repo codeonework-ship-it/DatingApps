@@ -135,7 +135,7 @@ void main() {
     );
 
     testWidgets('View review status opens the status of a submitted check '
-        '[case:verification.verification_landing.view_review_status.action]', (
+        '[case:verification.verification_landing.verification_landing_status_button.action]', (
       tester,
     ) async {
       await pumpQa(
@@ -236,7 +236,7 @@ void main() {
     );
 
     testWidgets('Camera takes the ID photo and shows it '
-        '[case:verification.verification_upload_id.camera.action]', (
+        '[case:verification.verification_upload_id.verification_id_camera_button.action]', (
       tester,
     ) async {
       final picker = _Picker(_idPath)..install();
@@ -318,7 +318,7 @@ void main() {
     );
 
     testWidgets('Camera takes the selfie and enables Submit '
-        '[case:verification.verification_selfie.camera.action]', (
+        '[case:verification.verification_selfie.verification_selfie_camera_button.action]', (
       tester,
     ) async {
       final picker = _Picker(_selfiePath)..install();
@@ -453,7 +453,7 @@ void main() {
   group('Status', () {
     testWidgets(
       'REGRESSION: an unreachable status offers Retry, which reloads it '
-      '[case:verification.verification_status.retry.action]',
+      '[case:verification.verification_status.verification_status_retry.action]',
       (tester) async {
         // A failed status fetch used to read as "Not Started", telling a
         // member under review to start again; Retry could never appear.

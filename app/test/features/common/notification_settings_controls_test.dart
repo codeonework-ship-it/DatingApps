@@ -80,25 +80,37 @@ void main() {
 
   const toggles = [
     (
-      'in_app_notifications',
+      'notifications_in_app',
       'qa.notifications.in_app',
       'in_app_notifications_enabled',
     ),
     (
-      'push_notifications',
+      'notifications_push',
       'qa.notifications.push',
       'push_notifications_enabled',
     ),
-    ('new_matches', 'qa.notifications.new_matches', 'notify_new_match'),
-    ('new_messages', 'qa.notifications.new_messages', 'notify_new_message'),
-    ('likes', 'qa.notifications.likes', 'notify_likes'),
-    ('match_nudges', 'qa.notifications.match_nudges', 'notify_match_nudges'),
     (
-      'incoming_calls',
+      'notifications_new_matches',
+      'qa.notifications.new_matches',
+      'notify_new_match',
+    ),
+    (
+      'notifications_new_messages',
+      'qa.notifications.new_messages',
+      'notify_new_message',
+    ),
+    ('notifications_likes', 'qa.notifications.likes', 'notify_likes'),
+    (
+      'notifications_match_nudges',
+      'qa.notifications.match_nudges',
+      'notify_match_nudges',
+    ),
+    (
+      'notifications_incoming_calls',
       'qa.notifications.incoming_calls',
       'notify_incoming_calls',
     ),
-    ('safety_updates', 'qa.notifications.safety', 'notify_safety'),
+    ('notifications_safety', 'qa.notifications.safety', 'notify_safety'),
     (
       'notifications_friend_plans',
       'qa.notifications.friend_plans',
@@ -164,7 +176,7 @@ void main() {
   }
 
   testWidgets('offline: the switch goes back with a translated reason '
-      '[case:common.notification_settings.push_notifications.api_failure]', (
+      '[case:common.notification_settings.notifications_push.api_failure]', (
     tester,
   ) async {
     final account = _Account();
@@ -179,7 +191,7 @@ void main() {
 
   testWidgets(
     'a failure with no server message shows the app\'s own translated text '
-    '[case:common.notification_settings.new_matches.api_failure]',
+    '[case:common.notification_settings.notifications_new_matches.api_failure]',
     (tester) async {
       final account = _Account();
       account.api.on(
@@ -196,7 +208,7 @@ void main() {
   );
 
   testWidgets('the inbox row shows the unread count and opens the inbox '
-      '[case:common.notification_settings.notification_inbox.action]', (
+      '[case:common.notification_settings.notifications_inbox.action]', (
     tester,
   ) async {
     final account = _Account();

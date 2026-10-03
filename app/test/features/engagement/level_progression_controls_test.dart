@@ -104,7 +104,7 @@ String _label(WidgetTester tester, Key key) {
 void main() {
   group('Claim', () {
     testWidgets(
-      'Claim redeems an unlocked reward, reloads my progress and celebrates it [case:engagement.level_progression.locked_onclaim.action]',
+      'Claim redeems an unlocked reward, reloads my progress and celebrates it [case:engagement.level_progression.level_claim_x_claim.action]',
       (tester) async {
         final api = _api()
           ..json('POST /progression/me/rewards/claim', {
@@ -136,7 +136,7 @@ void main() {
     );
 
     testWidgets(
-      'locked, trust-gated and paused rewards cannot be claimed and send nothing [case:engagement.level_progression.locked_onclaim.gated]',
+      'locked, trust-gated and paused rewards cannot be claimed and send nothing [case:engagement.level_progression.level_claim_x_claim.gated]',
       (tester) async {
         final api = _api()
           ..json(
@@ -170,7 +170,7 @@ void main() {
       ('offline', qaOffline, 'Unable to claim this reward right now.'),
     ]) {
       testWidgets(
-        'a failed claim ($label) explains it, keeps Claim available, does not celebrate and retries [case:engagement.level_progression.locked_onclaim.api_failure]',
+        'a failed claim ($label) explains it, keeps Claim available, does not celebrate and retries [case:engagement.level_progression.level_claim_x_claim.api_failure]',
         (tester) async {
           final api = _api()
             ..on('POST /progression/me/rewards/claim', (_) => failure);
@@ -205,7 +205,7 @@ void main() {
   });
 
   testWidgets(
-    'regression: with a full ledger a failed claim is reported in view, not after the last ledger row [case:engagement.level_progression.locked_onclaim.api_failure]',
+    'regression: with a full ledger a failed claim is reported in view, not after the last ledger row [case:engagement.level_progression.level_claim_x_claim.api_failure]',
     (tester) async {
       final api = _api()
         ..json('GET /progression/me/ledger', {
@@ -294,7 +294,7 @@ void main() {
 
   group('error card Retry', () {
     testWidgets(
-      'Retry after a failed first load fetches progress and ledger and shows my level [case:engagement.level_progression.errorcard_onretry_onretry.action]',
+      'Retry after a failed first load fetches progress and ledger and shows my level [case:engagement.level_progression.level_retry_retry_2.action]',
       (tester) async {
         final api = _api()..offline('GET /progression/me');
         await _open(tester, api);
@@ -319,7 +319,7 @@ void main() {
     );
 
     testWidgets(
-      'a Retry that fails again keeps the card with the new reason; the next Retry succeeds [case:engagement.level_progression.errorcard_onretry_onretry.api_failure]',
+      'a Retry that fails again keeps the card with the new reason; the next Retry succeeds [case:engagement.level_progression.level_retry_retry_2.api_failure]',
       (tester) async {
         final api = _api()..fail('GET /progression/me', message: 'Try later.');
         await _open(tester, api);

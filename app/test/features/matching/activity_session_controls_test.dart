@@ -81,7 +81,7 @@ Future<void> _answerAll(WidgetTester tester, {int except = -1}) async {
 
 void main() {
   testWidgets('opening starts a session for this match '
-      '[case:matching.activity_session.start_a_new_session.api_contract]', (
+      '', (
     tester,
   ) async {
     final api = _api();
@@ -104,7 +104,7 @@ void main() {
   });
 
   testWidgets('Start a new session starts again and clears the answers '
-      '[case:matching.activity_session.start_a_new_session.action]', (
+      '[case:matching.activity_session.activity_restart.action]', (
     tester,
   ) async {
     final api = _api();
@@ -134,7 +134,7 @@ void main() {
   });
 
   testWidgets('a session that cannot start says so '
-      '[case:matching.activity_session.start_a_new_session.api_failure]', (
+      '[case:matching.activity_session.activity_restart.api_failure]', (
     tester,
   ) async {
     final api = _api()..offline('POST /activities/sessions/start');
@@ -181,7 +181,7 @@ void main() {
   });
 
   testWidgets('choosing an answer selects it '
-      '[case:matching.activity_session.questioncard_onselected.action]', (
+      '[case:matching.activity_session.activity_answer_x_x.action]', (
     tester,
   ) async {
     final api = _api();
@@ -199,7 +199,7 @@ void main() {
   });
 
   testWidgets('Submit with a round unanswered asks for all answers '
-      '[case:matching.activity_session.submit_responses.validation]', (
+      '[case:matching.activity_session.activity_submit.validation]', (
     tester,
   ) async {
     final api = _api();
@@ -216,8 +216,8 @@ void main() {
   });
 
   testWidgets('Submit sends every answer, then shows the summary '
-      '[case:matching.activity_session.submit_responses.action] '
-      '[case:matching.activity_session.submit_responses.api_contract]', (
+      '[case:matching.activity_session.activity_submit.action] '
+      '', (
     tester,
   ) async {
     final api = _api();
@@ -237,7 +237,7 @@ void main() {
   });
 
   testWidgets('a failed submit says so and keeps the answers '
-      '[case:matching.activity_session.submit_responses.api_failure]', (
+      '[case:matching.activity_session.activity_submit.api_failure]', (
     tester,
   ) async {
     final api = _api()..fail('POST /activities/sessions/act-1/submit');
@@ -259,8 +259,8 @@ void main() {
   });
 
   testWidgets('waiting on the other person: Refresh Summary fetches it '
-      '[case:matching.activity_session.refresh_summary.action] '
-      '[case:matching.activity_session.refresh_summary.api_contract]', (
+      '[case:matching.activity_session.activity_refresh_summary.action] '
+      '', (
     tester,
   ) async {
     final api = _api()
@@ -286,7 +286,7 @@ void main() {
   });
 
   testWidgets('a failed Refresh Summary says to try again '
-      '[case:matching.activity_session.refresh_summary.api_failure]', (
+      '[case:matching.activity_session.activity_refresh_summary.api_failure]', (
     tester,
   ) async {
     final api = _api()
@@ -306,8 +306,8 @@ void main() {
 
   testWidgets('when time is up the summary loads once, and Load Summary '
       'fetches it again '
-      '[case:matching.activity_session.time_is_up_load_summary.action] '
-      '[case:matching.activity_session.time_is_up_load_summary.api_contract]', (
+      '[case:matching.activity_session.activity_time_up_load.action] '
+      '', (
     tester,
   ) async {
     final api = _api(left: Duration.zero)
@@ -331,7 +331,7 @@ void main() {
   // out (or the summary failing) the screen re-requested the summary every
   // second for as long as it stayed open.
   testWidgets('a failing summary after time is up is not polled every second '
-      '[case:matching.activity_session.time_is_up_load_summary.api_failure]', (
+      '[case:matching.activity_session.activity_time_up_load.api_failure]', (
     tester,
   ) async {
     final api = _api(left: Duration.zero)
@@ -346,7 +346,7 @@ void main() {
   });
 
   testWidgets('Share Result to Chat hands the result back to the opener '
-      '[case:matching.activity_session.share_result_to_chat_onshare.action]', (
+      '[case:matching.activity_session.activity_share_result_share.action]', (
     tester,
   ) async {
     final api = _api();

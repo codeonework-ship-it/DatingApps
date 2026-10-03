@@ -47,9 +47,9 @@ Future<void> _open(
 void main() {
   testWidgets(
     'Unblock → confirm unblocks on the server, re-reads the list and confirms '
-    '[case:common.blocked_users.unblock.action] '
+    '[case:common.blocked_users.blocked_unblock_x.action] '
     '[case:common.blocked_users.unblock_user.action] '
-    '[case:common.blocked_users.unblock_2.action]',
+    '[case:common.blocked_users.blocked_unblock_confirm.action]',
     (tester) async {
       final server = _BlockServer();
       await _open(tester, server);
@@ -82,7 +82,7 @@ void main() {
   );
 
   testWidgets('Cancel keeps the member blocked and sends nothing '
-      '[case:common.blocked_users.cancel.action]', (tester) async {
+      '[case:common.blocked_users.blocked_unblock_cancel.action]', (tester) async {
     final server = _BlockServer();
     await _open(tester, server);
     await tester.tap(_key('qa.blocked.unblock.u-ravi'));
@@ -99,7 +99,7 @@ void main() {
 
   testWidgets(
     'a failed unblock explains and leaves the member blocked; the button '
-    'still works [case:common.blocked_users.unblock.api_failure]',
+    'still works [case:common.blocked_users.blocked_unblock_x.api_failure]',
     (tester) async {
       final server = _BlockServer();
       server.api.fail('POST /safety/unblock', status: 503);
@@ -132,7 +132,7 @@ void main() {
   testWidgets(
     'if the list cannot be re-read after an unblock, the unblocked member '
     'still leaves the list (regression) '
-    '[case:common.blocked_users.unblock.reload_failure]',
+    '[case:common.blocked_users.blocked_unblock_confirm.reload_failure]',
     (tester) async {
       final server = _BlockServer();
       await _open(tester, server);
@@ -150,7 +150,7 @@ void main() {
   );
 
   testWidgets('a failed load is not shown as "no blocked users"; Retry reloads '
-      '(regression) [case:common.blocked_users.retry.action]', (tester) async {
+      '(regression) [case:common.blocked_users.blocked_retry.action]', (tester) async {
     final server = _BlockServer();
     server.api.offline('GET /blocked-users/me');
     await _open(tester, server);

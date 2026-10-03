@@ -68,7 +68,7 @@ const _entriesPath = '/engagement/circles/circle-blr-books/challenge/entries';
 void main() {
   group('Join Circle', () {
     testWidgets(
-      'Join Circle joins this member and flips the card to Joined [case:engagement.circle_challenges.join_circle.action]',
+      'Join Circle joins this member and flips the card to Joined [case:engagement.circle_challenges.circles_join_x.action]',
       (tester) async {
         final api = _api()
           ..json('POST /engagement/circles/circle-blr-books/join', {
@@ -96,7 +96,7 @@ void main() {
     );
 
     testWidgets(
-      'a failed join shows the server message, stays Not joined and can be retried [case:engagement.circle_challenges.join_circle.api_failure]',
+      'a failed join shows the server message, stays Not joined and can be retried [case:engagement.circle_challenges.circles_join_x.api_failure]',
       (tester) async {
         final api = _api()
           ..fail(
@@ -132,7 +132,7 @@ void main() {
     );
 
     testWidgets(
-      'offline join falls back to the localized message [case:engagement.circle_challenges.join_circle.api_failure]',
+      'offline join falls back to the localized message [case:engagement.circle_challenges.circles_join_x.api_failure]',
       (tester) async {
         final api = _api()
           ..offline('POST /engagement/circles/circle-blr-books/join');
@@ -147,7 +147,7 @@ void main() {
 
   group('weekly challenge response', () {
     testWidgets(
-      'the response field takes typed text and shows the saved entry of a joined circle [case:engagement.circle_challenges.weekly_challenge_response_input.action]',
+      'the response field takes typed text and shows the saved entry of a joined circle [case:engagement.circle_challenges.circles_response_x_input.action]',
       (tester) async {
         final api = _api();
         await _open(tester, api);
@@ -167,7 +167,7 @@ void main() {
     );
 
     testWidgets(
-      'empty and whitespace-only entries are blocked with a localized message [case:engagement.circle_challenges.weekly_challenge_response_input.validation]',
+      'empty and whitespace-only entries are blocked with a localized message [case:engagement.circle_challenges.circles_response_x_input.validation]',
       (tester) async {
         final api = _api();
         await _open(tester, api);
@@ -181,7 +181,7 @@ void main() {
     );
 
     testWidgets(
-      'regression: an entry longer than the server limit is capped at 280 characters before it is sent [case:engagement.circle_challenges.weekly_challenge_response_input.validation]',
+      'regression: an entry longer than the server limit is capped at 280 characters before it is sent [case:engagement.circle_challenges.circles_response_x_input.validation]',
       (tester) async {
         final api = _api()..json('POST $_entriesPath', <String, dynamic>{});
         await _open(tester, api);
@@ -203,7 +203,7 @@ void main() {
     );
 
     testWidgets(
-      'emoji and right-to-left entries reach the server byte-for-byte (trimmed) [case:engagement.circle_challenges.weekly_challenge_response_input.validation]',
+      'emoji and right-to-left entries reach the server byte-for-byte (trimmed) [case:engagement.circle_challenges.circles_response_x_input.validation]',
       (tester) async {
         const unicode = 'كتاب جميل 📚🇮🇳 — שבוע טוב';
         final api = _api()
@@ -223,7 +223,7 @@ void main() {
 
   group('Submit Entry', () {
     testWidgets(
-      "Submit Entry posts this week's entry and the card shows Joined and the new count [case:engagement.circle_challenges.submit_entry.action]",
+      "Submit Entry posts this week's entry and the card shows Joined and the new count [case:engagement.circle_challenges.circles_submit_x.action]",
       (tester) async {
         final api = _api()
           ..json('POST $_entriesPath', {
@@ -264,7 +264,7 @@ void main() {
       ('offline', qaOffline, 'Unable to submit challenge entry right now.'),
     ]) {
       testWidgets(
-        'a failed submit ($label) keeps the entry text, re-enables Submit and retries [case:engagement.circle_challenges.submit_entry.api_failure]',
+        'a failed submit ($label) keeps the entry text, re-enables Submit and retries [case:engagement.circle_challenges.circles_submit_x.api_failure]',
         (tester) async {
           final api = _api()..on('POST $_entriesPath', (_) => failure);
           await _open(tester, api);

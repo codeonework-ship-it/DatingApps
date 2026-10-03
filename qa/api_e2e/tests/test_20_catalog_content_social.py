@@ -38,8 +38,8 @@ def writers(make_member):
     return make_member("ex_auth", "F", "M"), make_member("ex_r1", "M", "F"), make_member("ex_r2", "M", "F")
 
 
-@pytest.mark.case("blog.blog_connections.accept_an_exchange.api_contract",
-                  "blog.blog_connections.withdraw_exchange.api_contract")
+@pytest.mark.case("blog.blog_connections.blog_exchange_accept.api_contract",
+                  "blog.blog_connections.blog_exchange_withdraw.api_contract")
 def test_exchange_accept_contribute_reveal_and_withdraw(writers):
     author, reader, _ = writers
     post = _chapter(author)
@@ -73,8 +73,8 @@ def test_exchange_accept_contribute_reveal_and_withdraw(writers):
     assert response_id not in [r["id"] for r in author.get("/blog/responses").ok()["responses"]]
 
 
-@pytest.mark.case("blog.blog_connections.decline_kindly.api_contract",
-                  "blog.blog_connections.report_exchange.api_contract",
+@pytest.mark.case("blog.blog_connections.blog_exchange_decline.api_contract",
+                  "blog.blog_connections.blog_exchange_report.api_contract",
                   "blog.blog_connections.submit_report_onsubmit.api_contract")
 def test_exchange_decline_and_report(writers):
     author, _, reader = writers
@@ -98,7 +98,7 @@ def test_exchange_decline_and_report(writers):
 
 # --- Open Chapters: public links, photos, delete, the post report route -------------------
 
-@pytest.mark.case("blog.blog_sharing.create_public_link.api_contract")
+@pytest.mark.case("blog.blog_sharing.blog_share_create.api_contract")
 def test_public_link_create_read_and_revoke(writers):
     author, _, _ = writers
     post = _chapter(author, invitation="", title="E2E: shared trails")
@@ -117,7 +117,7 @@ def test_public_link_create_read_and_revoke(writers):
     assert Api().get(f"/blog/public/{share_id}").status == 404
 
 
-@pytest.mark.case("blog.blog_editor.add_a_photo.api_contract", "blog.blog_editor.remove_photo.api_contract")
+@pytest.mark.case("blog.blog_editor.blog_editor_add_photo.api_contract", "blog.blog_editor.blog_editor_remove_photo_x.api_contract")
 def test_chapter_photo_add_serve_and_remove(writers):
     author, reader, _ = writers
     post = _chapter(author, audience="private", title="E2E photo diary")
@@ -138,7 +138,7 @@ def test_chapter_photo_add_serve_and_remove(writers):
     author.delete(f"/blog/posts/{post['id']}", {"expected_version": removed["version"]})
 
 
-@pytest.mark.case("blog.blog.delete_chapter.api_contract")
+@pytest.mark.case("blog.blog.blog_detail_delete.api_contract")
 def test_author_deletes_a_chapter(writers):
     author, reader, _ = writers
     post = _chapter(author, invitation="", title="E2E: to be deleted")
@@ -150,7 +150,7 @@ def test_author_deletes_a_chapter(writers):
     assert author.delete(f"/blog/posts/{post['id']}", {"expected_version": post["version"]}).status == 409
 
 
-@pytest.mark.case("blog.blog.report_chapter.api_contract", "blog.blog.report_could_not_be_submitted_onsubmit.api_contract")
+@pytest.mark.case("blog.blog.blog_detail_report.api_contract", "blog.blog.blog_detail_report_submit.api_contract")
 def test_report_chapter_from_the_reader_menu(writers):
     author, reader, _ = writers
     post = _chapter(author, invitation="", title="E2E: reported from the menu")
@@ -212,7 +212,7 @@ REPORT_KINDS = [
     pytest.param("post", marks=pytest.mark.case("common.community_actions.report_could_not_be_submitted_onsubmit.api_contract"),
                  id="post"),
     pytest.param("comment", marks=pytest.mark.case("blog.blog_social.report_could_not_be_submitted_onsubmit.api_contract",
-                                                   "blog.blog_social.comment_options_onreport.api_contract"), id="comment"),
+                                                   "blog.blog_social.x_comment_options_x_report.api_contract"), id="comment"),
     pytest.param("club", marks=pytest.mark.case("clubs.club_detail.club_options.api_contract"), id="club"),
     pytest.param("review", marks=pytest.mark.case("clubs.title_detail.report_this_review.api_contract"), id="review"),
     pytest.param("theme_entry", marks=pytest.mark.case("photo_themes.photo_theme_widgets.report.api_contract"),
@@ -324,8 +324,8 @@ def test_reading_list_create_add_remove_and_delete(club_cast):
                   "photo_themes.photo_wall.inkwell_ontap.api_contract",
                   "profile.profile_showcase.themeentrytile_ontap.api_contract",
                   "profile.profile_showcase.favorite_border_rounded_icon_fav.api_contract",
-                  "blog.blog.read_chapter.api_contract", "blog.blog_social.comments.api_contract",
-                  "blog.blog_writers.an_untitled_chapter.api_contract",
+                  "blog.blog.blog_post_x.api_contract", "blog.blog_social.comments.api_contract",
+                  "blog.blog_writers.blog_writer_latest.api_contract",
                   "intentional_dating.today_wall.inkwell_ontap.api_contract",
                   "intentional_dating.today_wall.today_wall_chapter_x.api_contract")
 def test_views_are_counted_once_per_member_and_never_for_the_author(reportables, make_member):

@@ -28,7 +28,7 @@ void main() {
   final en = lookupAppLocalizations(const Locale('en'));
 
   test('a known error_code maps to the German message '
-      '[case:l10n-api-error-known-code-german]', () {
+      '[case:l10n.api_errors.known_code_german]', () {
     _useLocale(const Locale('de'));
     final message = apiErrorMessage(
       _server(429, {
@@ -42,7 +42,7 @@ void main() {
   });
 
   test('a known error_code is translated in English too, not the server text '
-      '[case:l10n-api-error-known-code-english]', () {
+      '[case:l10n.api_errors.known_code_english]', () {
     _useLocale(const Locale('en'));
     expect(
       apiErrorMessage(
@@ -57,7 +57,7 @@ void main() {
   });
 
   test('unknown server text in German falls back to the caller fallback '
-      '[case:l10n-api-error-unknown-text-german]', () {
+      '[case:l10n.api_errors.unknown_text_german]', () {
     _useLocale(const Locale('de'));
     expect(
       apiErrorMessage(
@@ -72,7 +72,7 @@ void main() {
   });
 
   test('English shows the server message, trimmed '
-      '[case:l10n-api-error-english-server-text]', () {
+      '[case:l10n.api_errors.english_server_text]', () {
     _useLocale(const Locale('en', 'GB'));
     expect(
       apiErrorMessage(
@@ -98,7 +98,7 @@ void main() {
     '{"detail":"boom"}',
   ]) {
     test('technical server text in English uses the fallback: $technical '
-        '[case:l10n-api-error-technical-english]', () {
+        '[case:l10n.api_errors.technical_english]', () {
       _useLocale(const Locale('en'));
       expect(
         apiErrorMessage(
@@ -111,7 +111,7 @@ void main() {
   }
 
   test('a 5xx with technical text uses the fallback in English '
-      '[case:l10n-api-error-5xx-english]', () {
+      '[case:l10n.api_errors.5xx_english]', () {
     _useLocale(const Locale('en'));
     expect(
       apiErrorMessage(
@@ -126,7 +126,7 @@ void main() {
   });
 
   test('TOO_MANY_REQUESTS without usable text maps to the generic wait message '
-      '[case:l10n-api-error-too-many-requests-german]', () {
+      '[case:l10n.api_errors.too_many_requests_german]', () {
     _useLocale(const Locale('de'));
     expect(
       apiErrorMessage(
@@ -141,7 +141,7 @@ void main() {
   });
 
   test('a status-derived BAD_REQUEST keeps the caller fallback in German '
-      '[case:l10n-api-error-generic-code-keeps-fallback]', () {
+      '[case:l10n.api_errors.generic_code_keeps_fallback]', () {
     _useLocale(const Locale('de'));
     expect(
       apiErrorMessage(
@@ -154,7 +154,7 @@ void main() {
 
   test('an empty fallback stays empty for unknown server text in German '
       '(callers use this to pick their own translated message) '
-      '[case:l10n-api-error-empty-fallback-german]', () {
+      '[case:l10n.api_errors.empty_fallback_german]', () {
     _useLocale(const Locale('de'));
     expect(
       apiErrorMessage(
@@ -166,7 +166,7 @@ void main() {
   });
 
   test('a connection failure maps to the translated offline message '
-      '[case:l10n-api-error-offline-german]', () {
+      '[case:l10n.api_errors.offline_german]', () {
     _useLocale(const Locale('de'));
     expect(
       apiErrorMessage(
@@ -181,13 +181,13 @@ void main() {
   });
 
   test('a non-network error returns the fallback '
-      '[case:l10n-api-error-non-dio]', () {
+      '[case:l10n.api_errors.non_network_error]', () {
     _useLocale(const Locale('de'));
     expect(apiErrorMessage(StateError('boom'), fallback: 'Fehler'), 'Fehler');
   });
 
   test('currentAppLocaleIsEnglish follows the app locale '
-      '[case:l10n-api-error-locale-accessor]', () {
+      '[case:l10n.api_errors.locale_accessor]', () {
     _useLocale(const Locale('en', 'GB'));
     expect(currentAppLocaleIsEnglish(), isTrue);
     setCurrentAppLocale(const Locale('pl'));
@@ -195,7 +195,7 @@ void main() {
   });
 
   test('friendly English sentences are not flagged as technical '
-      '[case:l10n-api-error-friendly-not-technical]', () {
+      '[case:l10n.api_errors.friendly_not_technical]', () {
     for (final friendly in [
       'You already reported this photo.',
       'Select a photo from your gallery to set as your cover.',

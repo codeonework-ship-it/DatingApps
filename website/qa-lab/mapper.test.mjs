@@ -139,6 +139,18 @@ test('Go and Django comment tags directly above the test', () => {
     {test: 'LoginTest.test_other', cases: [], line: 7},
     {test: 'Other.test_z', cases: ['console.x.y'], line: 12},
   ]);
+  const doc = [
+    'class Reports(TestCase):', '    def test_one(self):', '        """Renders. [case:console.reports.catalog.renders]"""', '',
+    '    def test_two(', '        self,', '    ):', '        """Exports a file.', '', '        [case:console.reports.view.export_xlsx] [case:a.b]', '        """',
+    '    def test_plain(self):', '        self.assertTrue(True)  # [case:not.a.docstring]',
+  ].join('\n');
+  assert.deepEqual(M.djangoCaseComments(doc), [
+    {test: 'Reports.test_one', cases: ['console.reports.catalog.renders'], line: 2},
+    {test: 'Reports.test_two', cases: ['console.reports.view.export_xlsx', 'a.b'], line: 5},
+    {test: 'Reports.test_plain', cases: [], line: 12},
+  ]);
+  const go2 = ['// TestA proves [case:x.one] too.', '// cases: x.two x.three', 'func TestA(t *testing.T) {}'].join('\n');
+  assert.deepEqual(M.goCaseComments(go2), [{test: 'TestA', cases: ['x.one', 'x.two', 'x.three'], line: 3}]);
 });
 
 test('Django -v 2 output, including docstring lines and failure tracebacks', () => {

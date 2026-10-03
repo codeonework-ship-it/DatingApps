@@ -110,7 +110,7 @@ Future<void> _swipeAway(WidgetTester tester, String title) async {
 void main() {
   group('Read all', () {
     testWidgets('marks every notification read on the server and in the list '
-        '[case:notifications.notification_inbox.read_all.action]', (
+        '[case:notifications.notification_inbox.notifications_read_all.action]', (
       tester,
     ) async {
       final api = _inbox();
@@ -132,7 +132,7 @@ void main() {
     testWidgets(
       'a failure explains, puts the unread state back and retry works '
       '(regression: the error was swallowed) '
-      '[case:notifications.notification_inbox.read_all.api_failure]',
+      '[case:notifications.notification_inbox.notifications_read_all.api_failure]',
       (tester) async {
         final api = _inbox()
           ..on(
@@ -169,7 +169,7 @@ void main() {
   group('Pull to refresh', () {
     testWidgets(
       'reloads the inbox, the unread count and preferences and restarts '
-      'push registration [case:notifications.notification_inbox.you_are_all_caught_up_onrefresh.action]',
+      'push registration [case:notifications.notification_inbox.notifications_refresh_refresh.action]',
       (tester) async {
         final api = _inbox(items: const []);
         final push = await _pump(tester, api);
@@ -199,7 +199,7 @@ void main() {
     testWidgets(
       'a failed refresh keeps the list and says why; a failed first load is '
       'not "all caught up" and Retry recovers (regression) '
-      '[case:notifications.notification_inbox.you_are_all_caught_up_onrefresh.api_failure]',
+      '[case:notifications.notification_inbox.notifications_refresh_refresh.api_failure]',
       (tester) async {
         final api = _inbox();
         await _pump(tester, api);
@@ -233,7 +233,7 @@ void main() {
   group('Swipe to dismiss', () {
     testWidgets(
       'deletes the notification on the server and removes the row '
-      '[case:notifications.notification_inbox.someone_liked_you_ondismissed.action]',
+      '[case:notifications.notification_inbox.notifications_item_x_dismissed.action]',
       (tester) async {
         final api = _inbox();
         await _pump(tester, api);
@@ -249,7 +249,7 @@ void main() {
     testWidgets(
       'a failed delete puts the row back and explains (regression: the row '
       'vanished, stayed on the server and the error was swallowed) '
-      '[case:notifications.notification_inbox.someone_liked_you_ondismissed.api_failure]',
+      '[case:notifications.notification_inbox.notifications_item_x_dismissed.api_failure]',
       (tester) async {
         final api = _inbox()
           ..on('DELETE /notifications/me/*', (_) => const QaReply(500, ''));
@@ -275,7 +275,7 @@ void main() {
 
   testWidgets(
     'regression: a failed delete of the only notification still explains '
-    'and brings it back [case:notifications.notification_inbox.someone_liked_you_ondismissed.api_failure]',
+    'and brings it back [case:notifications.notification_inbox.notifications_item_x_dismissed.api_failure]',
     (tester) async {
       final api =
           _inbox(items: [_note('n-only', 1, 'like.received', 'Only one')])..on(

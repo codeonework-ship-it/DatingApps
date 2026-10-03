@@ -101,7 +101,7 @@ void main() {
     );
 
     testWidgets(
-      '[case:common.settings.help_support.action] sits in the Account '
+      '[case:support.support_entry_points.help_support.action] sits in the Account '
       'section of Settings, above Sign out, with the unread count',
       (tester) async {
         final api = QaApi();

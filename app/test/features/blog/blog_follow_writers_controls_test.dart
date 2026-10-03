@@ -235,7 +235,7 @@ void main() {
   group('Writers you follow', () {
     testWidgets(
       'a list that cannot load explains and Try again reloads '
-      '[case:blog.blog_writers.writers_you_follow_could_not_loa_retry.action]',
+      '[case:blog.blog_writers.blog_retry_retry.action]',
       (tester) async {
         var loads = 0;
         final api = _api()
@@ -309,7 +309,7 @@ void main() {
 
     testWidgets(
       'Latest: An untitled chapter counts a view and opens that chapter '
-      '[case:blog.blog_writers.an_untitled_chapter.action]',
+      '[case:blog.blog_writers.blog_writer_latest.action]',
       (tester) async {
         final api =
             _api(
@@ -348,7 +348,7 @@ void main() {
 
     testWidgets(
       'a failed view count still opens the chapter; a chapter that cannot load '
-      'explains [case:blog.blog_writers.an_untitled_chapter.api_failure]',
+      'explains [case:blog.blog_writers.blog_writer_latest.api_failure]',
       (tester) async {
         var loads = 0;
         final api = _api()

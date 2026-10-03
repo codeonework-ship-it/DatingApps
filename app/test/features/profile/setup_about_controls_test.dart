@@ -397,7 +397,7 @@ void main() {
   });
 
   testWidgets('Retry reloads a draft that failed to load '
-      '[case:profile.setup_about.retry_onretry.action]', (tester) async {
+      '[case:profile.setup_about.something_went_wrong_please_try_onretry.action]', (tester) async {
     final api = QaApi();
     final bff = ProfileBff(api);
     api.fail('GET /profile/*/draft');

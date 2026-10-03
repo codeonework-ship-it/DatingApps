@@ -229,7 +229,7 @@ void main() {
     });
 
     testWidgets('Cancel closes the question and keeps the photo '
-        '[case:profile.setup_photos.cancel.action]', (tester) async {
+        '[case:profile.setup_photos.setup_photos_cancel_delete.action]', (tester) async {
       final api = QaApi();
       final bff = ProfileBff(api);
       await _open(tester, api);
@@ -281,7 +281,7 @@ void main() {
   group('Order', () {
     testWidgets(
       'Set as profile picture moves that photo first '
-      '[case:profile.setup_photos.set_as_profile_picture_onsetprimary.action]',
+      '[case:profile.setup_photos.setup_photos_set_primary_x_setprimary.action]',
       (tester) async {
         final api = QaApi();
         final bff = ProfileBff(api);
@@ -302,7 +302,7 @@ void main() {
     // second reorder that put the old photo back first.
     testWidgets(
       'a double tap on Set as profile picture sends one reorder '
-      '[case:profile.setup_photos.set_as_profile_picture_onsetprimary.action]',
+      '[case:profile.setup_photos.setup_photos_set_primary_x_setprimary.action]',
       (tester) async {
         final api = QaApi();
         final bff = ProfileBff(api);
@@ -321,7 +321,7 @@ void main() {
 
     testWidgets(
       'a failed reorder explains and restores the order '
-      '[case:profile.setup_photos.set_as_profile_picture_onsetprimary.api_failure]',
+      '[case:profile.setup_photos.setup_photos_set_primary_x_setprimary.api_failure]',
       (tester) async {
         final api = QaApi();
         ProfileBff(api);
@@ -463,7 +463,7 @@ void main() {
     });
 
     testWidgets('Retry reloads photos that failed to load '
-        '[case:profile.setup_photos.retry_onretry.action]', (tester) async {
+        '[case:profile.setup_photos.something_went_wrong_please_try_onretry.action]', (tester) async {
       final api = QaApi();
       final bff = ProfileBff(api);
       api.fail('GET /profile/*/draft');

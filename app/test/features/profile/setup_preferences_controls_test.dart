@@ -203,7 +203,7 @@ void main() {
   group('Back', () {
     testWidgets(
       'setup Back saves what was chosen, then goes back '
-      '[case:profile.setup_preferences.arrow_back_ios_new_icon_arrow_ba.action]',
+      '[case:profile.setup_preferences.setup_preferences_back_button.action]',
       (tester) async {
         final api = QaApi();
         final bff = ProfileBff(api);
@@ -219,7 +219,7 @@ void main() {
 
     testWidgets(
       'setup Back that cannot save explains and keeps the screen '
-      '[case:profile.setup_preferences.arrow_back_ios_new_icon_arrow_ba.api_failure]',
+      '[case:profile.setup_preferences.setup_preferences_back_button.api_failure]',
       (tester) async {
         final api = QaApi();
         ProfileBff(api);
@@ -239,7 +239,7 @@ void main() {
 
     testWidgets(
       'Back while editing closes without saving '
-      '[case:profile.setup_preferences.arrow_back_ios_new_icon_arrow_ba.action]',
+      '[case:profile.setup_preferences.setup_preferences_back_button.action]',
       (tester) async {
         final api = QaApi();
         ProfileBff(api);
@@ -254,7 +254,7 @@ void main() {
   group('Basic tab', () {
     testWidgets(
       'dragging the age thumbs saves the new range '
-      '[case:profile.setup_preferences.basictab_onagechanged_onagechanged.action]',
+      '[case:profile.setup_preferences.setup_preferences_age_range_agechanged.action]',
       (tester) async {
         final api = QaApi();
         final bff = ProfileBff(api);
@@ -294,7 +294,7 @@ void main() {
     );
 
     testWidgets('tapping the distance track saves that distance '
-        '[case:profile.setup_preferences.km_km_ondistancechanged.action]', (
+        '[case:profile.setup_preferences.setup_preferences_distance_distancechanged.action]', (
       tester,
     ) async {
       final api = QaApi();
@@ -312,7 +312,7 @@ void main() {
     });
 
     testWidgets('Men toggles off and on, and the choice is saved '
-        '[case:profile.setup_preferences.men_onseekingtoggled.action]', (
+        '[case:profile.setup_preferences.setup_preferences_seeking_x_seekingtoggled.action]', (
       tester,
     ) async {
       final api = QaApi();
@@ -325,7 +325,7 @@ void main() {
     });
 
     testWidgets('no gender selected is blocked with the localized message '
-        '[case:profile.setup_preferences.men_onseekingtoggled.validation]', (
+        '[case:profile.setup_preferences.setup_preferences_seeking_x_seekingtoggled.validation]', (
       tester,
     ) async {
       final api = QaApi();
@@ -394,7 +394,7 @@ void main() {
   group('Advanced tab dropdowns', () {
     for (final (tag, id, field, option, lifestyle) in [
       (
-        '[case:profile.setup_preferences.country_oncountrychanged.action]',
+        '[case:profile.setup_preferences.setup_preferences_x_countrychanged.action]',
         'country',
         'country',
         'Canada',
@@ -497,7 +497,7 @@ void main() {
 
     testWidgets(
       'changing country clears state and city on screen and in the '
-      'draft [case:profile.setup_preferences.country_oncountrychanged.action]',
+      'draft [case:profile.setup_preferences.setup_preferences_x_countrychanged.action]',
       (tester) async {
         final api = QaApi();
         final bff = ProfileBff(
@@ -650,7 +650,7 @@ void main() {
   });
 
   testWidgets('Retry reloads preferences that failed to load '
-      '[case:profile.setup_preferences.retry.action]', (tester) async {
+      '[case:profile.setup_preferences.setup_preferences_retry_button.action]', (tester) async {
     final api = QaApi();
     final bff = ProfileBff(api);
     api.fail('GET /profile/*/draft');

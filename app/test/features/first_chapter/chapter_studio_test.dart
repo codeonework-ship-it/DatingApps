@@ -213,7 +213,7 @@ void main() {
   });
   testWidgets(
     'the comfort card language starts as the app language, in German '
-    '"Deutsch", and is saved as shown [case:l10n-comfort-default-language-german]',
+    '"Deutsch", and is saved as shown [case:l10n.formats.comfort_default_language]',
     (tester) async {
       final h = Harness();
       final de = lookupAppLocalizations(const Locale('de'));

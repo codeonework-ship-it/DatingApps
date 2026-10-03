@@ -159,8 +159,8 @@ void main() {
     testWidgets(
       'the consent box arms Join; Join sends the pilot and consent version '
       'and shows me as part of the pilot '
-      '[case:city_pilot.city_pilot.i_agree_to_take_part_in_this_pil.action] '
-      '[case:city_pilot.city_pilot.join_the_city_pilot.action]',
+      '[case:city_pilot.city_pilot.city_pilot_consent.action] '
+      '[case:city_pilot.city_pilot.city_pilot_join.action]',
       (tester) async {
         final world = _World(membership: 'none', canJoin: true);
         await _open(tester, world);
@@ -201,7 +201,7 @@ void main() {
 
     testWidgets(
       'a refused Join explains, keeps my consent, is disabled while saving '
-      'and retries once [case:city_pilot.city_pilot.join_the_city_pilot.api_failure]',
+      'and retries once [case:city_pilot.city_pilot.city_pilot_join.api_failure]',
       (tester) async {
         final world = _World(membership: 'none', canJoin: true);
         world.api.fail(
@@ -274,7 +274,7 @@ void main() {
     });
 
     testWidgets('Stay in pilot closes the question and keeps me in '
-        '[case:city_pilot.city_pilot.stay_in_pilot.action]', (tester) async {
+        '[case:city_pilot.city_pilot.city_pilot_leave_stay.action]', (tester) async {
       final world = _World();
       await _open(tester, world);
       final loads = world.loads;
@@ -288,8 +288,8 @@ void main() {
     });
 
     testWidgets('confirming Leave pilot withdraws me on the server and says so '
-        '[case:city_pilot.city_pilot.leave_pilot.action] '
-        '[case:city_pilot.city_pilot.leave_pilot_2.action]', (tester) async {
+        '[case:city_pilot.city_pilot.city_pilot_leave_confirm.action] '
+        '[case:city_pilot.city_pilot.city_pilot_leave.action]', (tester) async {
       final world = _World();
       await _open(tester, world);
       final loads = world.loads;
@@ -307,7 +307,7 @@ void main() {
     });
 
     testWidgets('a failed Leave keeps me in, explains, and retry works '
-        '[case:city_pilot.city_pilot.leave_pilot_2.api_failure]', (
+        '[case:city_pilot.city_pilot.city_pilot_leave.api_failure]', (
       tester,
     ) async {
       final world = _World();
@@ -373,7 +373,7 @@ void main() {
     );
 
     testWidgets('Not now closes the terms without booking '
-        '[case:city_pilot.city_pilot.not_now.action]', (tester) async {
+        '[case:city_pilot.city_pilot.city_pilot_booking_not_now.action]', (tester) async {
       final world = _World();
       await _open(tester, world);
       await _tapKey(tester, 'qa.city_pilot.reserve.ev-open');
@@ -385,8 +385,8 @@ void main() {
     });
 
     testWidgets('Accept & reserve books my place and offers Cancel my place '
-        '[case:city_pilot.city_pilot.accept_reserve_a_place.action] '
-        '[case:city_pilot.city_pilot.reserve_a_free_place.action]', (
+        '[case:city_pilot.city_pilot.city_pilot_booking_accept.action] '
+        '[case:city_pilot.city_pilot.city_pilot_reserve_event.action]', (
       tester,
     ) async {
       final world = _World();
@@ -409,7 +409,7 @@ void main() {
     });
 
     testWidgets('a refused booking explains and keeps Reserve available '
-        '[case:city_pilot.city_pilot.reserve_a_free_place.api_failure]', (
+        '[case:city_pilot.city_pilot.city_pilot_reserve_event.api_failure]', (
       tester,
     ) async {
       final world = _World();
@@ -439,7 +439,7 @@ void main() {
     });
 
     testWidgets('Cancel my place cancels the booking and offers Reserve again '
-        '[case:city_pilot.city_pilot.cancel_my_place.action]', (tester) async {
+        '[case:city_pilot.city_pilot.city_pilot_cancel_event.action]', (tester) async {
       final world = _World();
       await _open(tester, world);
       final loads = world.loads;
@@ -457,7 +457,7 @@ void main() {
     });
 
     testWidgets('a failed cancel keeps the booking and explains '
-        '[case:city_pilot.city_pilot.cancel_my_place.api_failure]', (
+        '[case:city_pilot.city_pilot.city_pilot_cancel_event.api_failure]', (
       tester,
     ) async {
       final world = _World();
@@ -484,8 +484,8 @@ void main() {
     testWidgets(
       'Share optional feedback asks whether I went; Share feedback stays off '
       'until I answer, then sends my answers privately '
-      '[case:city_pilot.city_pilot.share_optional_feedback.action] '
-      '[case:city_pilot.city_pilot.share_feedback.action]',
+      '[case:city_pilot.city_pilot.city_pilot_feedback_event.action] '
+      '[case:city_pilot.city_pilot.city_pilot_feedback_share.action]',
       (tester) async {
         final world = _World();
         await _open(tester, world);
@@ -521,7 +521,7 @@ void main() {
 
     testWidgets(
       'Not this time answers no, and tapping it again takes the answer back '
-      '[case:city_pilot.city_pilot.not_this_time.action]',
+      '[case:city_pilot.city_pilot.city_pilot_worthwhile_x.action]',
       (tester) async {
         final world = _World();
         await _open(tester, world);
@@ -564,7 +564,7 @@ void main() {
 
     testWidgets(
       'I couldn’t make it hides the worth-it question and clears its answer '
-      '[case:city_pilot.city_pilot.i_couldn_t_make_it.action]',
+      '[case:city_pilot.city_pilot.city_pilot_attended_x.action]',
       (tester) async {
         final world = _World();
         await _open(tester, world);
@@ -586,7 +586,7 @@ void main() {
     );
 
     testWidgets('Skip closes the questions and sends nothing '
-        '[case:city_pilot.city_pilot.skip.action]', (tester) async {
+        '[case:city_pilot.city_pilot.city_pilot_feedback_skip.action]', (tester) async {
       final world = _World();
       await _open(tester, world);
       final loads = world.loads;
@@ -601,7 +601,7 @@ void main() {
     });
 
     testWidgets('a failed feedback save explains and keeps the feedback button '
-        '[case:city_pilot.city_pilot.share_optional_feedback.api_failure]', (
+        '[case:city_pilot.city_pilot.city_pilot_feedback_event.api_failure]', (
       tester,
     ) async {
       final world = _World();
@@ -630,7 +630,7 @@ void main() {
 
   group('loading', () {
     testWidgets('Refresh pilot reloads and shows what changed '
-        '[case:city_pilot.city_pilot.refresh_pilot.action]', (tester) async {
+        '[case:city_pilot.city_pilot.city_pilot_refresh.action]', (tester) async {
       final world = _World();
       await _open(tester, world);
       final loads = world.loads;
@@ -649,7 +649,7 @@ void main() {
     testWidgets(
       'an unreachable pilot says so; Try again reloads it (and a second '
       'failure keeps the honest message) '
-      '[case:city_pilot.city_pilot.try_again.action]',
+      '[case:city_pilot.city_pilot.city_pilot_retry.action]',
       (tester) async {
         final world = _World()..api.offline('GET /city-pilot');
         await _open(tester, world);

@@ -65,8 +65,8 @@ def test_terms_agreement_round_trip(make_member):
     assert member.get(f"/auth/signup/workflow/{member.user_id}").ok()["state"] == "completed"
 
 
-@pytest.mark.case("common.language_settings.use_device_language.api_contract",
-                  "common.language_settings.check_circle_rounded_icon_check.api_contract")
+@pytest.mark.case("common.language_picker.use_device_language.api_contract",
+                  "common.language_picker.check_circle_rounded_icon_check.api_contract")
 def test_language_choice_and_device_language_round_trip(couple):
     a, _, _ = couple
     path = f"/settings/{a.user_id}"
@@ -78,10 +78,10 @@ def test_language_choice_and_device_language_round_trip(couple):
 
 
 @pytest.mark.parametrize("key", [
-    pytest.param("show_age", marks=pytest.mark.case("common.privacy_safety.show_age.api_contract"), id="show_age"),
-    pytest.param("show_exact_distance", marks=pytest.mark.case("common.privacy_safety.show_exact_distance.api_contract"),
+    pytest.param("show_age", marks=pytest.mark.case("common.privacy_safety.privacy_show_age.api_contract"), id="show_age"),
+    pytest.param("show_exact_distance", marks=pytest.mark.case("common.privacy_safety.privacy_show_exact_distance.api_contract"),
                  id="show_exact_distance"),
-    pytest.param("show_online_status", marks=pytest.mark.case("common.privacy_safety.show_online_status.api_contract"),
+    pytest.param("show_online_status", marks=pytest.mark.case("common.privacy_safety.privacy_show_online_status.api_contract"),
                  id="show_online_status"),
 ])
 def test_privacy_toggle_round_trip(couple, key):
@@ -94,14 +94,14 @@ def test_privacy_toggle_round_trip(couple, key):
 
 
 NOTIFICATION_KEYS = [
-    ("in_app_notifications_enabled", "common.notification_settings.in_app_notifications.api_contract"),
-    ("push_notifications_enabled", "common.notification_settings.push_notifications.api_contract"),
-    ("notify_new_match", "common.notification_settings.new_matches.api_contract"),
-    ("notify_new_message", "common.notification_settings.new_messages.api_contract"),
-    ("notify_likes", "common.notification_settings.likes.api_contract"),
-    ("notify_match_nudges", "common.notification_settings.match_nudges.api_contract"),
-    ("notify_incoming_calls", "common.notification_settings.incoming_calls.api_contract"),
-    ("notify_safety", "common.notification_settings.safety_updates.api_contract"),
+    ("in_app_notifications_enabled", "common.notification_settings.notifications_in_app.api_contract"),
+    ("push_notifications_enabled", "common.notification_settings.notifications_push.api_contract"),
+    ("notify_new_match", "common.notification_settings.notifications_new_matches.api_contract"),
+    ("notify_new_message", "common.notification_settings.notifications_new_messages.api_contract"),
+    ("notify_likes", "common.notification_settings.notifications_likes.api_contract"),
+    ("notify_match_nudges", "common.notification_settings.notifications_match_nudges.api_contract"),
+    ("notify_incoming_calls", "common.notification_settings.notifications_incoming_calls.api_contract"),
+    ("notify_safety", "common.notification_settings.notifications_safety.api_contract"),
     ("notify_friend_plans", "common.notification_settings.notifications_friend_plans.api_contract"),
 ]
 
@@ -193,9 +193,9 @@ def test_graduation_withdraw_then_confirm_pauses_both_members(make_member):
 
 # --- circles, daily prompt, coffee polls, progression ------------------------------------------
 
-@pytest.mark.case("engagement.circle_challenges.join_circle.api_contract",
+@pytest.mark.case("engagement.circle_challenges.circles_join_x.api_contract",
                   "engagement.circle_challenges.submit_entry_onrefresh.api_contract",
-                  "engagement.circle_challenges.submit_entry.api_contract")
+                  "engagement.circle_challenges.circles_submit_x.api_contract")
 def test_circle_join_weekly_challenge_and_one_entry_per_week(make_member):
     member = make_member("cc_a", "F", "M")
     circle = "circle-blr-fitness"
@@ -216,7 +216,7 @@ def test_circle_join_weekly_challenge_and_one_entry_per_week(make_member):
 
 
 @pytest.mark.case("engagement.daily_prompt.update_answer_onrefresh.api_contract",
-                  "engagement.daily_prompt.update_answer.api_contract")
+                  "engagement.daily_prompt.daily_prompt_submit.api_contract")
 def test_daily_prompt_answer_edit_and_responders(couple):
     a, b, _ = couple
     prompt = a.get(f"/engagement/daily-prompt/{a.user_id}").ok()["daily_prompt"]
@@ -236,10 +236,10 @@ def test_daily_prompt_answer_edit_and_responders(couple):
     assert a.get(f"/engagement/daily-prompt/{a.user_id}").ok()["daily_prompt"]["spark"]["participants_today"] >= 2
 
 
-@pytest.mark.case("engagement.group_coffee_polls.create_poll.api_contract", "engagement.group_coffee_polls.vote.api_contract",
-                  "engagement.group_coffee_polls.finalize_poll.api_contract",
+@pytest.mark.case("engagement.group_coffee_polls.coffee_create.api_contract", "engagement.group_coffee_polls.coffee_vote.api_contract",
+                  "engagement.group_coffee_polls.coffee_finalize_x.api_contract",
                   "engagement.group_coffee_polls.finalize_poll_onrefresh.api_contract",
-                  "engagement.group_coffee_polls.vote.api_contract_route")
+                  "engagement.group_coffee_polls.coffee_vote.api_contract_route")
 def test_coffee_poll_create_vote_and_finalize(make_member):
     a, b, c = make_member("cp_a", "F", "M"), make_member("cp_b", "M", "F"), make_member("cp_c", "F", "M")
     befriend(a, b)
@@ -264,8 +264,8 @@ def test_coffee_poll_create_vote_and_finalize(make_member):
 
 
 @pytest.mark.case("engagement.level_progression.progression_is_paused_while_an_a_onrefresh.api_contract",
-                  "engagement.level_progression.errorcard_onretry_onretry.api_contract",
-                  "engagement.level_progression.locked_onclaim.api_contract")
+                  "engagement.level_progression.level_retry_retry_2.api_contract",
+                  "engagement.level_progression.level_claim_x_claim.api_contract")
 def test_progression_state_ledger_and_a_locked_reward(make_member):
     member = make_member("lp_a", "F", "M")
     state = member.get(f"/progression/{member.user_id}").ok()["progression"]
@@ -285,9 +285,9 @@ def test_progression_state_ledger_and_a_locked_reward(make_member):
 
 # --- matches: nudges, voice icebreakers, mini activities, calls, gifts ------------------------------
 
-@pytest.mark.case("engagement.match_nudges.nudge.api_contract", "matching.matches_list.matches_nudge_action.api_contract",
+@pytest.mark.case("engagement.match_nudges.nudges_send_x.api_contract", "matching.matches_list.matches_nudge_action.api_contract",
                   "matching.matches_list.matches_match_row_x_options.api_contract",
-                  "matching.matches_list.matches_person_x_options.api_contract")
+                  "matching.matches_list.matches_person_x_options_options.api_contract")
 def test_match_nudge_send_and_click(make_member):
     a, b = make_member("mn_a", "F", "M"), make_member("mn_b", "M", "F")
     match_id = match(a, b)
@@ -305,9 +305,9 @@ def test_match_nudge_send_and_click(make_member):
     assert third.status == 429, f"at most two nudges per UTC day: {third.status} {third.text[:200]}"
 
 
-@pytest.mark.case("engagement.voice_icebreakers.reload_prompts.api_contract",
-                  "engagement.voice_icebreakers.share_your_hello.api_contract",
-                  "engagement.voice_icebreakers.listen_seconds_s.api_contract")
+@pytest.mark.case("engagement.voice_icebreakers.voice_reload_prompts.api_contract",
+                  "engagement.voice_icebreakers.voice_share.api_contract",
+                  "engagement.voice_icebreakers.voice_listen_x.api_contract")
 def test_voice_icebreaker_start_send_and_play(make_member):
     a, b = make_member("vo_a", "F", "M"), make_member("vo_b", "M", "F")
     match_id = match(a, b)
@@ -331,10 +331,10 @@ def test_voice_icebreaker_start_send_and_play(make_member):
     assert again.status == 409, "one voice icebreaker per match and sender per UTC day"
 
 
-@pytest.mark.case("matching.activity_session.start_a_new_session.api_contract",
-                  "matching.activity_session.submit_responses.api_contract",
-                  "matching.activity_session.time_is_up_load_summary.api_contract",
-                  "matching.activity_session.refresh_summary.api_contract")
+@pytest.mark.case("matching.activity_session.activity_restart.api_contract",
+                  "matching.activity_session.activity_submit.api_contract",
+                  "matching.activity_session.activity_time_up_load.api_contract",
+                  "matching.activity_session.activity_refresh_summary.api_contract")
 def test_mini_activity_start_submit_and_summary(couple):
     a, b, match_id = couple
     session = a.post("/activities/sessions/start", {"match_id": match_id, "initiator_user_id": a.user_id,
@@ -352,8 +352,8 @@ def test_mini_activity_start_submit_and_summary(couple):
                                                                     "responses": ["again"]}).status == 409
 
 
-@pytest.mark.case("calls.call_history.join_live_room_onrefresh.api_contract", "calls.call_session.try_again.api_contract",
-                  "calls.call_session.end.api_contract")
+@pytest.mark.case("calls.call_history.join_live_room_onrefresh.api_contract", "calls.call_session.calls_try_again.api_contract",
+                  "calls.call_session.calls_end.api_contract")
 def test_call_start_end_and_history(couple):
     a, b, match_id = couple
     started = a.post("/calls/start", {"match_id": match_id, "initiator_user_id": a.user_id,
@@ -371,8 +371,8 @@ def test_call_start_end_and_history(couple):
 
 
 @pytest.mark.billing
-@pytest.mark.case("messaging.chat.send_a_little_joy_ongift.api_contract", "messaging.chat.chat_gift_tray_button_gift.api_contract",
-                  "messaging.chat.close_gifts.api_contract")
+@pytest.mark.case("messaging.chat.chat_sidebar_gift_gift.api_contract", "messaging.chat.chat_gift_tray_button_gift.api_contract",
+                  "messaging.chat.chat_gift_tray_close.api_contract")
 def test_gift_tray_telemetry_events_are_accepted(couple):
     a, _, match_id = couple
     for event in ("gift_panel_opened", "gift_preview_opened", "gift_send_attempted", "gift_send_failed"):
@@ -402,8 +402,8 @@ def test_receiver_hides_a_gift_from_their_chat(make_member):
 # --- billing (sandbox provider only; no real money moves) -----------------------------------------
 
 BILLING_READ_CASES = ("payment.subscription.your_plan_renews_automatically_a_onrefresh.api_contract",
-                      "payment.subscription.check_status_oncheck.api_contract",
-                      "payment.subscription.resume_checkout_onresume.api_contract",
+                      "payment.subscription.payment_check_status_x_check.api_contract",
+                      "payment.subscription.payment_resume_checkout_x_resume.api_contract",
                       "web.web_membership_page.retry.api_contract")
 
 
@@ -431,12 +431,12 @@ def _sandbox_pay(checkout_url: str, card: str = "4242424242424242") -> requests.
 
 
 @pytest.mark.billing
-@pytest.mark.case("payment.subscription.subscribe_with_card_onsubscribe.api_contract",
-                  "payment.subscription.update_card_onupdatecard.api_contract",
-                  "payment.wallet_payment.opening_onbuy.api_contract",
-                  "payment.subscription.auto_renew_onautorenewchanged.api_contract",
-                  "payment.subscription.subscribe_with_card_onswitch.api_contract",
-                  "payment.subscription.sandboxcontrols_onevent_onevent.api_contract", *BILLING_READ_CASES)
+@pytest.mark.case("payment.subscription.membership_plan_x_subscribe.api_contract",
+                  "payment.subscription.membership_update_card_updatecard.api_contract",
+                  "payment.wallet_payment.wallet_buy_x_buy.api_contract",
+                  "payment.subscription.membership_auto_renew_autorenewchanged.api_contract",
+                  "payment.subscription.membership_plan_x_switch.api_contract",
+                  "payment.subscription.membership_sandbox_x_event.api_contract", *BILLING_READ_CASES)
 def test_sandbox_subscription_auto_renew_plan_switch_and_renewal(make_member):
     member = make_member("bl_s", "F", "M")
     if member.get("/billing/coin-packages").ok().get("mode") != "sandbox":
@@ -475,7 +475,7 @@ def test_sandbox_subscription_auto_renew_plan_switch_and_renewal(make_member):
 
 # --- date plan sharing ---------------------------------------------------------------------------
 
-@pytest.mark.case("plans.plan_sharing_sheet.reload_sharing_choices.api_contract",
+@pytest.mark.case("plans.plan_sharing_sheet.plan_sharing_reload.api_contract",
                   "plans.plan_sharing_sheet.plan_sharing_save.api_contract",
                   "plans.plans.nothing_shared_yet_onrefresh.api_contract",
                   "plans.plans.no_plans_yet_onrefresh.api_contract")
@@ -525,14 +525,14 @@ def test_sos_alert_is_raised_and_listed_for_its_owner(make_member):
 
 
 @pytest.mark.case("swipe.home_discovery.today_profile_x_openprofile.api_contract",
-                  "swipe.home_discovery.open_profile_icon_person_onopenspotlightprofi.api_contract",
+                  "swipe.home_discovery.spotlight_rail_row_x_openspotlightprofile.api_contract",
                   "swipe.home_discovery.discover_today_card_x_opentodayprofile.api_contract",
                   "swipe.home_discovery.discover_today_card_x_openprofile.api_contract",
-                  "swipe.home_discovery.open_profile_icon_person_onopenprofile.api_contract",
-                  "swipe.home_discovery.discovery_view_more_button_openprofile.api_contract",
-                  "swipe.liked_me.liked_me_card_x_open.api_contract",
-                  "profile.profile_view.who_viewed_my_profile.api_contract",
-                  "profile.profile_view.who_viewed_my_profile_2.api_contract")
+                  "swipe.home_discovery.spotlight_rail_card_x_openprofile.api_contract",
+                  "swipe.home_discovery.x_view_more_button_openprofile.api_contract",
+                  "swipe.liked_me.liked_me_open_x_open.api_contract",
+                  "profile.profile_view.profile_who_viewed.api_contract",
+                  "profile.profile_view.who_viewed_my_profile.api_contract")
 def test_opening_a_profile_records_a_view_the_owner_can_see(make_member):
     viewer, owner = make_member("pv_v", "F", "M"), make_member("pv_o", "M", "F")
     assert viewer.post("/profile/views", {"viewer_user_id": viewer.user_id,
@@ -608,11 +608,11 @@ def test_support_ticket_lifecycle(make_member):
     assert reopened["status"] not in ("closed", "resolved")
 
 
-CITY_PILOT_CASES = ("city_pilot.city_pilot.join_the_city_pilot.api_contract",
-                    "city_pilot.city_pilot.leave_pilot_2.api_contract",
-                    "city_pilot.city_pilot.cancel_my_place.api_contract",
-                    "city_pilot.city_pilot.reserve_a_free_place.api_contract",
-                    "city_pilot.city_pilot.share_optional_feedback.api_contract")
+CITY_PILOT_CASES = ("city_pilot.city_pilot.city_pilot_join.api_contract",
+                    "city_pilot.city_pilot.city_pilot_leave.api_contract",
+                    "city_pilot.city_pilot.city_pilot_cancel_event.api_contract",
+                    "city_pilot.city_pilot.city_pilot_reserve_event.api_contract",
+                    "city_pilot.city_pilot.city_pilot_feedback_event.api_contract")
 
 
 @pytest.mark.flags

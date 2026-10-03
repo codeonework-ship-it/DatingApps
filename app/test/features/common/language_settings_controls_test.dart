@@ -100,7 +100,7 @@ void main() {
     final key = 'qa.settings.language.${language.tag}';
     testWidgets(
       'picking ${language.nativeName} saves "${language.tag}" '
-      '[case:common.language_settings.check_circle_rounded_icon_check.action]',
+      '[case:common.language_picker.check_circle_rounded_icon_check.action]',
       (tester) async {
         final account = _Account();
         final container = await _open(tester, account);
@@ -124,7 +124,7 @@ void main() {
   }
 
   testWidgets('Use device language clears the stored language '
-      '[case:common.language_settings.use_device_language.action]', (
+      '[case:common.language_picker.use_device_language.action]', (
     tester,
   ) async {
     SharedPreferences.setMockInitialValues({_cacheKey: 'fr'});
@@ -148,7 +148,7 @@ void main() {
   // at once without reaching the server, until the app was restarted.
   testWidgets(
     'a refused language keeps the previous one, explains, and the next pick '
-    'saves [case:common.language_settings.check_circle_rounded_icon_check.api_failure]',
+    'saves [case:common.language_picker.check_circle_rounded_icon_check.api_failure]',
     (tester) async {
       final account = _Account();
       account.api.fail(
@@ -183,7 +183,7 @@ void main() {
 
   testWidgets(
     'offline: picking a language keeps the previous one and explains '
-    '[case:common.language_settings.check_circle_rounded_icon_check.api_failure]',
+    '[case:common.language_picker.check_circle_rounded_icon_check.api_failure]',
     (tester) async {
       SharedPreferences.setMockInitialValues({_cacheKey: 'it'});
       final account = _Account(locale: 'it');
@@ -212,7 +212,7 @@ void main() {
   // the member was told it had not been saved.
   testWidgets(
     'fully offline: the language does not change and the member is told '
-    '[case:common.language_settings.check_circle_rounded_icon_check.api_failure]',
+    '[case:common.language_picker.check_circle_rounded_icon_check.api_failure]',
     (tester) async {
       SharedPreferences.setMockInitialValues({_cacheKey: 'it'});
       final account = _Account(locale: 'it');
@@ -252,7 +252,7 @@ void main() {
   );
 
   testWidgets('Use device language refused: the chosen language stays '
-      '[case:common.language_settings.use_device_language.api_failure]', (
+      '[case:common.language_picker.use_device_language.api_failure]', (
     tester,
   ) async {
     SharedPreferences.setMockInitialValues({_cacheKey: 'fr'});

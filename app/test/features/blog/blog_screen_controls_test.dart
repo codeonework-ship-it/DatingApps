@@ -208,8 +208,8 @@ void main() {
     });
 
     testWidgets('More chapters loads the next page and Previous page returns '
-        '[case:blog.blog.more_chapters.action] '
-        '[case:blog.blog.previous_page.action]', (tester) async {
+        '[case:blog.blog.blog_more_chapters.action] '
+        '[case:blog.blog.blog_previous_page.action]', (tester) async {
       final api = _api()
         ..on(
           'GET /blog/posts',
@@ -278,7 +278,7 @@ void main() {
     });
 
     testWidgets('a feed that cannot load explains and Try again reloads '
-        '[case:blog.blog.chapters_could_not_load_retry.action]', (
+        '[case:blog.blog.blog_retry_retry.action]', (
       tester,
     ) async {
       var loads = 0;
@@ -364,7 +364,7 @@ void main() {
       'How rewards work lists rewards and See my level opens the level screen '
       '[case:blog.blog.blog_rewards.action] '
       '[case:blog.blog_follow.see_my_level.action] '
-      '[case:blog.blog_follow.see_my_level_2.action]',
+      '[case:blog.blog_follow.blog_rewards_see_my_level.action]',
       (tester) async {
         final api = _api();
         await pumpQa(tester, api, const BlogScreen());
@@ -473,7 +473,7 @@ void main() {
     }
 
     testWidgets('Photo unavailable · Retry loads the photo again '
-        '[case:blog.blog.photo_unavailable_retry.action]', (tester) async {
+        '[case:blog.blog.blog_photo_retry_x.action]', (tester) async {
       var loads = 0;
       final api =
           _api(
@@ -509,7 +509,7 @@ void main() {
 
   group('reading a chapter', () {
     testWidgets('Read chapter counts one view and opens the chapter '
-        '[case:blog.blog.read_chapter.action]', (tester) async {
+        '[case:blog.blog.blog_post_x.action]', (tester) async {
       final api = _api(
         feed: [
           _post('p1', title: 'Rain on the terrace'),
@@ -533,7 +533,7 @@ void main() {
     });
 
     testWidgets('a failed view count never stops reading and is not retried '
-        '[case:blog.blog.read_chapter.api_failure]', (tester) async {
+        '[case:blog.blog.blog_post_x.api_failure]', (tester) async {
       final api = _api(feed: [_post('p1', title: 'Rain on the terrace')])
         ..fail('POST /walls/views');
       await _openFromFeed(tester, api, 'p1');
@@ -551,7 +551,7 @@ void main() {
     });
 
     testWidgets('an unavailable chapter explains and Try again loads it '
-        '[case:blog.blog.this_chapter_is_unavailable_or_i_retry.action]', (
+        '[case:blog.blog.blog_retry_retry_2.action]', (
       tester,
     ) async {
       var loads = 0;
@@ -580,7 +580,7 @@ void main() {
 
     testWidgets(
       'Respond privately sends a response and opens private responses '
-      '[case:blog.blog.respond_privately.action]',
+      '[case:blog.blog.blog_detail_respond.action]',
       (tester) async {
         final post = _post('p1', invitation: 'teach_me');
         final api = _api(feed: [post])
@@ -618,7 +618,7 @@ void main() {
     );
 
     testWidgets('Create a public preview opens sharing with the chapter text '
-        '[case:blog.blog.create_a_public_preview.action]', (tester) async {
+        '[case:blog.blog.blog_detail_public_preview.action]', (tester) async {
       final mine = _post('p1', author: 'me', name: 'Me', body: 'My words.');
       final api = _api(feed: [mine]);
       await _openFromFeed(tester, api, 'p1');
@@ -640,7 +640,7 @@ void main() {
 
     testWidgets(
       'Edit chapter opens this chapter in the editor and saves this version '
-      '[case:blog.blog.edit_chapter.action]',
+      '[case:blog.blog.blog_detail_edit.action]',
       (tester) async {
         final mine = _post(
           'p1',
@@ -681,7 +681,7 @@ void main() {
 
   group('delete, report and block', () {
     testWidgets('Delete asks first; Cancel keeps the chapter and sends nothing '
-        '[case:blog.blog.cancel.action] [case:blog.blog.cancel_2.action]', (
+        '[case:blog.blog.cancel.action] [case:blog.blog.blog_confirm_cancel.action]', (
       tester,
     ) async {
       final api = _api(
@@ -713,8 +713,8 @@ void main() {
 
     testWidgets(
       'Delete chapter deletes this version and returns to the refreshed feed '
-      '[case:blog.blog.delete_chapter.action] '
-      '[case:blog.blog.filledbutton_onpressed.action]',
+      '[case:blog.blog.blog_detail_delete.action] '
+      '[case:blog.blog.blog_confirm_ok.action]',
       (tester) async {
         var deleted = false;
         final mine = _post('p1', author: 'me', name: 'Me', title: 'Gone soon');
@@ -749,7 +749,7 @@ void main() {
 
     testWidgets(
       'a failed delete explains, keeps the chapter and can be retried '
-      '[case:blog.blog.delete_chapter.api_failure]',
+      '[case:blog.blog.blog_detail_delete.api_failure]',
       (tester) async {
         var attempts = 0;
         final api =
@@ -789,8 +789,8 @@ void main() {
     );
 
     testWidgets('Report chapter sends the reason and details, then confirms '
-        '[case:blog.blog.report_chapter.action] '
-        '[case:blog.blog.report_could_not_be_submitted_onsubmit.action]', (
+        '[case:blog.blog.blog_detail_report.action] '
+        '[case:blog.blog.blog_detail_report_submit.action]', (
       tester,
     ) async {
       final api = _api(feed: [_post('p1')])
@@ -850,8 +850,8 @@ void main() {
 
     testWidgets(
       'a failed report keeps the sheet and the text; retry sends once more '
-      '[case:blog.blog.report_chapter.api_failure] '
-      '[case:blog.blog.report_could_not_be_submitted_onsubmit.api_failure]',
+      '[case:blog.blog.blog_detail_report.api_failure] '
+      '[case:blog.blog.blog_detail_report_submit.api_failure]',
       (tester) async {
         var attempts = 0;
         final api = _api(feed: [_post('p1')])
@@ -900,7 +900,7 @@ void main() {
 
     testWidgets(
       'Block this member asks, blocks the writer and leaves their chapter '
-      '[case:blog.blog.block_this_member.action]',
+      '[case:blog.blog.blog_detail_block.action]',
       (tester) async {
         var blocked = false;
         final theirs = _post('p1', title: 'Their chapter');
@@ -937,7 +937,7 @@ void main() {
     );
 
     testWidgets('a failed block explains and keeps the chapter open '
-        '[case:blog.blog.block_this_member.api_failure]', (tester) async {
+        '[case:blog.blog.blog_detail_block.api_failure]', (tester) async {
       final api = _api(feed: [_post('p1', title: 'Their chapter')])
         ..fail('POST /safety/block');
       await _openFromFeed(tester, api, 'p1');

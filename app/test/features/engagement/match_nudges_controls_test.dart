@@ -40,7 +40,7 @@ Finder _status(String text) => find.descendant(
 
 void main() {
   testWidgets(
-    'Nudge sends a stalled-conversation nudge for that match, confirms it and marks the row sent [case:engagement.match_nudges.nudge.action]',
+    'Nudge sends a stalled-conversation nudge for that match, confirms it and marks the row sent [case:engagement.match_nudges.nudges_send_x.action]',
     (tester) async {
       final api = _api()..json('POST $_send', _nudge());
       await _open(tester, api);
@@ -86,7 +86,7 @@ void main() {
     ),
   ]) {
     testWidgets(
-      'a failed nudge ($label) shows the reason on that row, no confirmation, and retries [case:engagement.match_nudges.nudge.api_failure]',
+      'a failed nudge ($label) shows the reason on that row, no confirmation, and retries [case:engagement.match_nudges.nudges_send_x.api_failure]',
       (tester) async {
         final api = _api()..on('POST $_send', (_) => failure);
         await _open(tester, api);
@@ -109,7 +109,7 @@ void main() {
   }
 
   testWidgets(
-    'with no matches there is nothing to nudge and nothing is sent [case:engagement.match_nudges.nudge.empty]',
+    'with no matches there is nothing to nudge and nothing is sent [case:engagement.match_nudges.nudges_send_x.empty]',
     (tester) async {
       final api = QaApi()..json('GET /matches/me', {'matches': <Object>[]});
       await _open(tester, api);

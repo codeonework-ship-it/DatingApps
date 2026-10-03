@@ -49,7 +49,7 @@ void main() {
   }
 
   testWidgets('Matches tile opens the Matches tab on Your matches '
-      '[case:profile.profile_view.matches.action]', (tester) async {
+      '[case:profile.profile_view.profile_stat_matches.action]', (tester) async {
     final container = await pumpProfile(tester);
     container.read(mainNavigationIndexProvider.notifier).state = 3;
 
@@ -64,7 +64,7 @@ void main() {
   });
 
   testWidgets('Messages tile opens the Matches tab on Conversations '
-      '[case:profile.profile_view.messages.action]', (tester) async {
+      '[case:profile.profile_view.profile_stat_messages.action]', (tester) async {
     final container = await pumpProfile(tester);
     container.read(mainNavigationIndexProvider.notifier).state = 3;
 

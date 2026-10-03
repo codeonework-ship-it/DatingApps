@@ -95,7 +95,7 @@ void main() {
 
   group('profile page controls', () {
     testWidgets('Back returns to the opener with no action '
-        '[case:swipe.profile_details.profile_detail_back_button.action] '
+        '[case:swipe.profile_details.back_icon_arrow_back_rounded.action] '
         '[case:swipe.profile_details.back_affordance]', (tester) async {
       final api = qaDiscoverApi(deck: [_anya]);
       final results = await _openProfile(tester, api, qaMember('anya', 'Anya'));
@@ -112,7 +112,7 @@ void main() {
     testWidgets('Love that makes a match → Send Message stays in the chat; '
         'the profile closes underneath '
         '[case:swipe.profile_details.profile_detail_love_button_love.action] '
-        '[case:matching.match_notification.send_message.action]', (
+        '[case:matching.match_notification.match_notification_send_message.action]', (
       tester,
     ) async {
       final api = qaDiscoverApi(swipe: {'match_id': 'match-anya'});
@@ -164,8 +164,8 @@ void main() {
     );
 
     testWidgets('Report sends the report; the confirmation offers Appeal '
-        '[case:swipe.profile_details.profile_detail_report_button.action] '
-        '[case:swipe.profile_details.profile_detail_report_button.api_contract] '
+        '[case:swipe.profile_details.report.action] '
+        ''
         '[case:swipe.profile_details.submit_report_onsubmit.action] '
         '[case:swipe.profile_details.submit_report_onsubmit.api_contract] '
         '[case:swipe.profile_details.appeal.action]', (tester) async {
@@ -196,7 +196,7 @@ void main() {
     });
 
     testWidgets('a failed report keeps the sheet open and says so '
-        '[case:swipe.profile_details.profile_detail_report_button.api_failure] '
+        '[case:swipe.profile_details.report.api_failure] '
         '[case:swipe.profile_details.submit_report_onsubmit.api_failure]', (
       tester,
     ) async {
@@ -213,7 +213,7 @@ void main() {
 
     testWidgets('Add friend sends a friend request for this member '
         '[case:swipe.profile_details.add_friend.action] '
-        '[case:swipe.profile_details.add_friend.api_contract]', (tester) async {
+        '', (tester) async {
       final api = qaDiscoverApi(deck: [_anya])
         ..json('POST /friends/me', {
           'friend': {'status': 'pending'},
@@ -321,7 +321,7 @@ void main() {
     );
 
     testWidgets('an unavailable profile offers Retry, which reloads it '
-        '[case:swipe.profile_details.retry_onretry.action]', (tester) async {
+        '[case:swipe.profile_details.profile_detail_retry_retry.action]', (tester) async {
       final api = qaDiscoverApi()..fail('GET /profile/anya', status: 404);
       await _openProfile(tester, api, qaMember('anya', 'Anya'));
       expect(
@@ -357,7 +357,7 @@ void main() {
     });
 
     testWidgets('Go back on an unavailable profile closes it '
-        '[case:swipe.profile_details.go_back_onback.action]', (tester) async {
+        '[case:swipe.profile_details.profile_detail_go_back_back.action]', (tester) async {
       final api = qaDiscoverApi()..fail('GET /profile/anya', status: 404);
       final results = await _openProfile(tester, api, qaMember('anya', 'Anya'));
       await _tap(tester, const ValueKey('qa.profile_detail.go_back'));
@@ -369,7 +369,7 @@ void main() {
 
   group('Liked profiles list', () {
     testWidgets('the chevron opens that member '
-        '[case:swipe.liked_profiles.chevron_right_icon_chevron_right.action]', (
+        '[case:swipe.liked_profiles.liked_profiles_open_x.action]', (
       tester,
     ) async {
       final api = qaDiscoverApi(deck: [_anya, _bina]);
@@ -421,7 +421,7 @@ void main() {
   group('Passed profiles list', () {
     testWidgets(
       'the chevron opens that member '
-      '[case:swipe.passed_profiles.chevron_right_icon_chevron_right.action]',
+      '[case:swipe.passed_profiles.passed_profiles_open_x.action]',
       (tester) async {
         final api = qaDiscoverApi(deck: [_anya, _bina]);
         await _openPassedList(tester, api);
@@ -495,8 +495,8 @@ void main() {
         'liker leaves the list '
         '[case:discover.profile_entry_points.liked_you.love] '
         '[case:discover.profile_entry_points.liked_you.own_rule] '
-        '[case:swipe.liked_me.liked_me_card_x_open.action] '
-        '[case:swipe.liked_me.liked_me_card_x_open.api_contract]', (
+        '[case:swipe.liked_me.liked_me_open_x_open.action] '
+        '', (
       tester,
     ) async {
       final api = qaDiscoverApi(likedMe: [cara]);
@@ -535,7 +535,7 @@ void main() {
     });
 
     testWidgets('a liker profile whose like back fails stays open '
-        '[case:swipe.liked_me.liked_me_card_x_open.api_failure]', (
+        '[case:swipe.liked_me.liked_me_open_x_open.api_failure]', (
       tester,
     ) async {
       final api = qaDiscoverApi(likedMe: [cara])..fail('POST /swipe');

@@ -126,7 +126,7 @@ void main() {
 
   group('load', () {
     testWidgets('Retry reloads the account after a failed load '
-        '[case:common.account_data.retry_onretry.action]', (tester) async {
+        '[case:common.account_data.account_retry_retry.action]', (tester) async {
       final account = _Account();
       account.api.fail('GET /account/me/lifecycle', status: 503);
       await _open(tester, account);
@@ -147,7 +147,7 @@ void main() {
 
     testWidgets(
       'Retry while still offline keeps the message and the Retry button '
-      '[case:common.account_data.retry_onretry.api_failure]',
+      '[case:common.account_data.account_retry_retry.api_failure]',
       (tester) async {
         final account = _Account();
         account.api.offline('GET /account/me/lifecycle');
@@ -217,7 +217,7 @@ void main() {
     testWidgets('Prepare my data shows the export in a dialog '
         '[case:common.account_data.account_export_button.action] '
         '[case:common.account_data.showdialog_open.action] '
-        '[case:common.account_data.selectabletext_input_input.action]', (
+        '[case:common.account_data.account_export_text_input.action]', (
       tester,
     ) async {
       final account = _Account();
@@ -238,8 +238,8 @@ void main() {
 
     testWidgets(
       'Copy puts the whole export on the clipboard, unicode intact, and closes '
-      '[case:common.account_data.copy.action] '
-      '[case:common.account_data.selectabletext_input_input.validation]',
+      '[case:common.account_data.account_export_copy.action] '
+      '[case:common.account_data.account_export_text_input.validation]',
       (tester) async {
         final copied = _recordClipboard(tester);
         final account = _Account();
@@ -259,7 +259,7 @@ void main() {
     );
 
     testWidgets('Close dismisses the export without copying '
-        '[case:common.account_data.close.action]', (tester) async {
+        '[case:common.account_data.account_export_close.action]', (tester) async {
       final copied = _recordClipboard(tester);
       final account = _Account();
       await _open(tester, account);
@@ -357,7 +357,7 @@ void main() {
     });
 
     testWidgets('Keep my account closes the question and changes nothing '
-        '[case:common.account_data.keep_my_account.action]', (tester) async {
+        '[case:common.account_data.account_delete_keep.action]', (tester) async {
       final account = _Account();
       await _open(tester, account);
       await _tap(tester, _delete);
@@ -372,7 +372,7 @@ void main() {
     });
 
     testWidgets('Hide instead hides the profile and deletes nothing '
-        '[case:common.account_data.hide_instead.action]', (tester) async {
+        '[case:common.account_data.account_delete_hide_instead.action]', (tester) async {
       final account = _Account();
       await _open(tester, account);
       await _tap(tester, _delete);
@@ -387,7 +387,7 @@ void main() {
 
     testWidgets(
       'Hide instead refused explains and leaves the account as it was '
-      '[case:common.account_data.hide_instead.api_failure]',
+      '[case:common.account_data.account_delete_hide_instead.api_failure]',
       (tester) async {
         final account = _Account();
         account.api.offline('POST /account/me/deactivate');

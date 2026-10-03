@@ -192,7 +192,7 @@ class BillingListsTest(ConsoleCaseTest):
 
 class BillingGrantCoinsTest(ConsoleCaseTest):
     def test_quick_grant(self):
-        """Quick grant forwards to POST /admin/billing/grant-coins and reports the new balance. [case:console.billing.billing_grant_coins.renders]"""
+        """Quick grant forwards to POST /admin/billing/grant-coins and reports the new balance. [case:console.billing.billing_grant_coins.performs]"""
         api = self.bff()
         url = reverse("billing_grant_coins")
         self.assertIn("User ID is required.", flash(self.client.post(url, {"user_id": " ", "amount": "5"})))

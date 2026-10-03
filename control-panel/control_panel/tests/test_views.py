@@ -176,7 +176,7 @@ class DashboardViewsTest(TestCase):
 
     @patch("control_panel.views.GoBFFClient")
     def test_approve_redirects_with_success(self, client_cls):
-        """[case:console.verifications.approve_verification.renders]"""
+        """[case:console.verifications.approve_verification.performs]"""
         client = client_cls.return_value
         client.approve_verification.return_value = APIResult(ok=True, data={"success": True})
 
@@ -187,7 +187,7 @@ class DashboardViewsTest(TestCase):
 
     @patch("control_panel.views.GoBFFClient")
     def test_reject_requires_reason(self, client_cls):
-        """[case:console.verifications.reject_verification.renders]"""
+        """[case:console.verifications.reject_verification.performs]"""
         client = client_cls.return_value
         client.reject_verification.return_value = APIResult(ok=True, data={"success": True})
 
@@ -210,7 +210,7 @@ class DashboardViewsTest(TestCase):
 
     @patch("control_panel.views.GoBFFClient")
     def test_action_appeal_redirects(self, client_cls):
-        """[case:console.appeals.action_appeal.renders]"""
+        """[case:console.appeals.action_appeal.performs]"""
         client = client_cls.return_value
         client.action_appeal.return_value = APIResult(ok=True, data={"success": True})
 

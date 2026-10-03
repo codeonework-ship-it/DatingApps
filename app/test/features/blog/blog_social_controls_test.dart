@@ -128,7 +128,7 @@ void main() {
   group('likes and reactions', () {
     testWidgets(
       'Heart likes then unlikes: PUT then DELETE, the count follows the server '
-      '[case:blog.blog_social.state_count_ontoggle.action]',
+      '[case:blog.blog_social.love_icon_favorite_rounded_ontoggle.action]',
       (t) async {
         final api = commentsApi(() => [])
           ..json('PUT /blog/posts/p1/like', {
@@ -167,7 +167,7 @@ void main() {
 
     testWidgets(
       'A failed like rolls back, explains itself, ignores taps in flight and '
-      'retries cleanly [case:blog.blog_social.state_count_ontoggle.api_failure]',
+      'retries cleanly [case:blog.blog_social.love_icon_favorite_rounded_ontoggle.api_failure]',
       (t) async {
         final api = commentsApi(() => [])
           ..on(
@@ -546,7 +546,7 @@ void main() {
     );
 
     testWidgets('Comments that fail to load offer Try again, which loads them '
-        '[case:blog.blog_social.comments_could_not_load_retry.action]', (
+        '[case:blog.blog_social.blog_retry_retry.action]', (
       t,
     ) async {
       var fail = true;
@@ -707,7 +707,7 @@ void main() {
     testWidgets(
       'regression: Report comment sends the reason and details, closes the '
       'sheet and confirms it was sent '
-      '[case:blog.blog_social.comment_options_onreport.action] '
+      '[case:blog.blog_social.x_comment_options_x_report.action] '
       '[case:blog.blog_social.report_could_not_be_submitted_onsubmit.action]',
       (t) async {
         final api = commentsApi(() => [commentJson('c1', body: 'Ugh.')])
@@ -733,7 +733,7 @@ void main() {
     testWidgets(
       'A failed comment report keeps the sheet and the words, explains, and '
       'the retry is the only other request '
-      '[case:blog.blog_social.comment_options_onreport.api_failure] '
+      '[case:blog.blog_social.x_comment_options_x_report.api_failure] '
       '[case:blog.blog_social.report_could_not_be_submitted_onsubmit.api_failure]',
       (t) async {
         final api = commentsApi(() => [commentJson('c1', body: 'Ugh.')])

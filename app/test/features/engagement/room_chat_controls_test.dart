@@ -353,7 +353,7 @@ void main() {
 
     testWidgets('regression: who is here that fails to load shows the '
         "server's reason; Try again reloads the list "
-        '[case:engagement.room_chat.try_again.action]', (tester) async {
+        '[case:engagement.room_chat.room_members_retry.action]', (tester) async {
       final s = RoomsServer();
       s.api.fail('GET /rooms/*/members', message: 'The list is resting.');
       await _enterChat(tester, s);

@@ -219,7 +219,7 @@ void main() {
   group('pull to refresh', () {
     testWidgets(
       'fetches friends, activity, vouches, intros and chats again and shows '
-      'what changed [case:friends.friends.with_your_friends_onrefresh.action]',
+      'what changed [case:friends.friends.activity_onrefresh.action]',
       (tester) async {
         final world = _World();
         await _open(tester, world);
@@ -257,7 +257,7 @@ void main() {
     );
 
     testWidgets('a failed refresh keeps the list and shows the server message '
-        '[case:friends.friends.with_your_friends_onrefresh.api_failure]', (
+        '[case:friends.friends.activity_onrefresh.api_failure]', (
       tester,
     ) async {
       final world = _World();
@@ -790,7 +790,7 @@ void main() {
     );
 
     testWidgets('a failed search says so in the sheet '
-        '[case:friends.friends.friends_search_field.api_failure]', (
+        '[case:friends.friends.friends_search_field_submitted.api_failure]', (
       tester,
     ) async {
       final world = _World()..api.offline('GET /friends/me/search');

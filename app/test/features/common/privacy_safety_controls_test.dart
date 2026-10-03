@@ -124,14 +124,14 @@ void main() {
 
   // Show age / exact distance / online status: PATCH /settings/{me}.
   for (final (name, key, field) in const [
-    ('show_age', 'qa.privacy.show_age', 'show_age'),
+    ('privacy_show_age', 'qa.privacy.show_age', 'show_age'),
     (
-      'show_exact_distance',
+      'privacy_show_exact_distance',
       'qa.privacy.show_exact_distance',
       'show_exact_distance',
     ),
     (
-      'show_online_status',
+      'privacy_show_online_status',
       'qa.privacy.show_online_status',
       'show_online_status',
     ),
@@ -183,7 +183,7 @@ void main() {
 
   testWidgets(
     'offline: a privacy switch goes back and says the service is unreachable '
-    '[case:common.privacy_safety.show_age.api_failure]',
+    '[case:common.privacy_safety.privacy_show_age.api_failure]',
     (tester) async {
       final account = _Account();
       account.api.offline('PATCH /settings/me');
@@ -214,7 +214,7 @@ void main() {
   // silently put back on the account.
   testWidgets(
     'a privacy switch never overwrites the theme, language or notification '
-    'choices saved elsewhere [case:common.privacy_safety.show_online_status.action]',
+    'choices saved elsewhere [case:common.privacy_safety.privacy_show_online_status.action]',
     (tester) async {
       final account = _Account();
       await _open(tester, account);
@@ -236,7 +236,7 @@ void main() {
   );
 
   testWidgets('Retry reloads the settings after a failed load '
-      '[case:common.privacy_safety.retry.action]', (tester) async {
+      '[case:common.privacy_safety.privacy_retry.action]', (tester) async {
     final account = _Account();
     account.api.fail('GET /settings/me', status: 503);
     await _open(tester, account);
@@ -259,7 +259,7 @@ void main() {
   });
 
   testWidgets('Retry while the server is still down keeps Retry available '
-      '[case:common.privacy_safety.retry.api_failure]', (tester) async {
+      '[case:common.privacy_safety.privacy_retry.api_failure]', (tester) async {
     final account = _Account();
     account.api.offline('GET /settings/me');
     await _open(tester, account);
@@ -274,13 +274,13 @@ void main() {
   for (final (name, key, screen) in const [
     ('safety_sos_journey', 'qa.safety.sos_journey', SosScreen),
     (
-      'emergency_contacts',
+      'privacy_emergency_contacts',
       'qa.privacy.emergency_contacts',
       EmergencyContactsScreen,
     ),
-    ('blocked_users', 'qa.privacy.blocked_users', BlockedUsersScreen),
+    ('privacy_blocked_users', 'qa.privacy.blocked_users', BlockedUsersScreen),
     (
-      'moderation_appeals',
+      'privacy_moderation_appeals',
       'qa.privacy.moderation_appeals',
       ModerationAppealsScreen,
     ),

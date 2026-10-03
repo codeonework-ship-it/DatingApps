@@ -40,7 +40,7 @@ void main() {
 
   testWidgets(
     'buying a pack opens the coin checkout, and the settled credit shows in '
-    'the balance and the history [case:payment.wallet_payment.opening_onbuy.action] '
+    'the balance and the history [case:payment.wallet_payment.wallet_buy_x_buy.action] '
     '[case:payment.checkout_webview.openers_handle_result]',
     (tester) async {
       final server = BillingServer()..creditOnCompletion = 100;
@@ -86,7 +86,7 @@ void main() {
   );
 
   testWidgets('a checkout that ends without paying adds nothing and says so '
-      '[case:payment.wallet_payment.opening_onbuy.cancelled]', (tester) async {
+      '[case:payment.wallet_payment.wallet_buy_x_buy.cancelled]', (tester) async {
     final server = BillingServer()..checkoutStatus = 'abandoned';
     await _open(tester, server);
     await tester.tap(_buy('p2'));
@@ -101,7 +101,7 @@ void main() {
 
   testWidgets(
     'a refused checkout shows the reason and the pack can be bought again '
-    '[case:payment.wallet_payment.opening_onbuy.api_failure]',
+    '[case:payment.wallet_payment.wallet_buy_x_buy.api_failure]',
     (tester) async {
       final server = BillingServer();
       server.api.fail(

@@ -87,7 +87,7 @@ const _defaultOptions = [
 void main() {
   group('Create Poll', () {
     testWidgets(
-      'Create Poll sends the participants, both options and the deadline, then lists the new poll [case:engagement.group_coffee_polls.create_poll.action]',
+      'Create Poll sends the participants, both options and the deadline, then lists the new poll [case:engagement.group_coffee_polls.coffee_create.action]',
       (tester) async {
         final api = _api([])
           ..json('POST $_list', {'poll': _poll(id: 'poll-2')});
@@ -137,7 +137,7 @@ void main() {
       ('offline', qaOffline, 'Unable to create group poll right now.'),
     ]) {
       testWidgets(
-        'a failed create ($label) shows the message in view, keeps the form and retries [case:engagement.group_coffee_polls.create_poll.api_failure]',
+        'a failed create ($label) shows the message in view, keeps the form and retries [case:engagement.group_coffee_polls.coffee_create.api_failure]',
         (tester) async {
           final api = _api()..on('POST $_list', (_) => failure);
           await _open(tester, api);
@@ -164,7 +164,7 @@ void main() {
 
   group('participants field', () {
     testWidgets(
-      'typed participant ids are split on commas into the create request [case:engagement.group_coffee_polls.participant_user_ids_comma_separ_input.action]',
+      'typed participant ids are split on commas into the create request [case:engagement.group_coffee_polls.coffee_participants_input.action]',
       (tester) async {
         final api = _api()..json('POST $_list', {'poll': _poll()});
         await _open(tester, api);
@@ -180,7 +180,7 @@ void main() {
     );
 
     testWidgets(
-      'blank segments are dropped; an empty list is refused by the server with its message and the form is kept [case:engagement.group_coffee_polls.participant_user_ids_comma_separ_input.validation]',
+      'blank segments are dropped; an empty list is refused by the server with its message and the form is kept [case:engagement.group_coffee_polls.coffee_participants_input.validation]',
       (tester) async {
         final api = _api()
           ..on(
@@ -219,7 +219,7 @@ void main() {
     );
 
     testWidgets(
-      'emoji and right-to-left participant ids reach the server byte-for-byte [case:engagement.group_coffee_polls.participant_user_ids_comma_separ_input.validation]',
+      'emoji and right-to-left participant ids reach the server byte-for-byte [case:engagement.group_coffee_polls.coffee_participants_input.validation]',
       (tester) async {
         final api = _api()..json('POST $_list', {'poll': _poll()});
         await _open(tester, api);
@@ -235,7 +235,7 @@ void main() {
 
   group('deadline field', () {
     testWidgets(
-      'a typed deadline is sent as deadline_at [case:engagement.group_coffee_polls.deadline_iso_optional_input.action]',
+      'a typed deadline is sent as deadline_at [case:engagement.group_coffee_polls.coffee_deadline_input.action]',
       (tester) async {
         final api = _api()..json('POST $_list', {'poll': _poll()});
         await _open(tester, api);
@@ -255,7 +255,7 @@ void main() {
     );
 
     testWidgets(
-      'an empty or whitespace-only deadline is left out; a past deadline is refused with the server message [case:engagement.group_coffee_polls.deadline_iso_optional_input.validation]',
+      'an empty or whitespace-only deadline is left out; a past deadline is refused with the server message [case:engagement.group_coffee_polls.coffee_deadline_input.validation]',
       (tester) async {
         final api = _api()
           ..on(
@@ -401,7 +401,7 @@ void main() {
 
   group('Vote', () {
     testWidgets(
-      'Vote records my vote for that option and the list shows the new count [case:engagement.group_coffee_polls.vote.action]',
+      'Vote records my vote for that option and the list shows the new count [case:engagement.group_coffee_polls.coffee_vote.action]',
       (tester) async {
         final api = _api()
           ..json('POST $_list/poll-1/votes', {'poll': _poll(votes2: 1)});
@@ -439,7 +439,7 @@ void main() {
       ('offline', qaOffline, 'Unable to vote right now.'),
     ]) {
       testWidgets(
-        'a failed vote ($label) shows the message, keeps the counts and retries [case:engagement.group_coffee_polls.vote.api_failure]',
+        'a failed vote ($label) shows the message, keeps the counts and retries [case:engagement.group_coffee_polls.coffee_vote.api_failure]',
         (tester) async {
           final api = _api()..on('POST $_list/poll-1/votes', (_) => failure);
           await _open(tester, api);
@@ -466,7 +466,7 @@ void main() {
 
   group('Finalize Poll', () {
     testWidgets(
-      'Finalize Poll closes the poll for everyone and the button goes away [case:engagement.group_coffee_polls.finalize_poll.action]',
+      'Finalize Poll closes the poll for everyone and the button goes away [case:engagement.group_coffee_polls.coffee_finalize_x.action]',
       (tester) async {
         final api = _api()
           ..json('POST $_list/poll-1/finalize', {
@@ -510,7 +510,7 @@ void main() {
       ('offline', qaOffline, 'Unable to finalize poll right now.'),
     ]) {
       testWidgets(
-        'a failed finalize ($label) shows the message, stays open and retries [case:engagement.group_coffee_polls.finalize_poll.api_failure]',
+        'a failed finalize ($label) shows the message, stays open and retries [case:engagement.group_coffee_polls.coffee_finalize_x.api_failure]',
         (tester) async {
           final api = _api()..on('POST $_list/poll-1/finalize', (_) => failure);
           await _open(tester, api);
@@ -540,7 +540,7 @@ void main() {
 
   group('action user override field', () {
     testWidgets(
-      'an override id is sent as the vote and finalize actor; the server refuses a foreign actor and says so [case:engagement.group_coffee_polls.action_user_id_override_optional_input.action]',
+      'an override id is sent as the vote and finalize actor; the server refuses a foreign actor and says so [case:engagement.group_coffee_polls.coffee_actor_input.action]',
       (tester) async {
         const refusal = 'request actor does not match the authenticated user';
         final api = _api()
@@ -568,7 +568,7 @@ void main() {
     );
 
     testWidgets(
-      'a whitespace-only override falls back to me; emoji/RTL ids are sent byte-for-byte (trimmed) [case:engagement.group_coffee_polls.action_user_id_override_optional_input.validation]',
+      'a whitespace-only override falls back to me; emoji/RTL ids are sent byte-for-byte (trimmed) [case:engagement.group_coffee_polls.coffee_actor_input.validation]',
       (tester) async {
         final api = _api()
           ..json('POST $_list/poll-1/votes', {'poll': _poll(votes2: 1)});
@@ -673,7 +673,7 @@ void main() {
 
   testWidgets(
     'the prefilled weekend days are German for a German member and are sent '
-    'as shown [case:l10n-coffee-poll-default-days-german]',
+    'as shown [case:l10n.formats.coffee_poll_default_days]',
     (tester) async {
       final api = _api([])..json('POST $_list', {'poll': _poll()});
       await pumpQa(

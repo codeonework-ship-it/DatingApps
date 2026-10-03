@@ -63,8 +63,8 @@ void main() {
 
   group('Like', () {
     testWidgets('saves one like for the top card and deals the next '
-        '[case:swipe.home_discovery.discovery_like_button_like.action] '
-        '[case:swipe.home_discovery.discovery_like_button_like.api_contract]', (
+        '[case:swipe.home_discovery.like_icon_favorite_onlike.action] '
+        '', (
       tester,
     ) async {
       final api = qaDiscoverApi(deck: [_anya, _bina]);
@@ -80,8 +80,8 @@ void main() {
 
     testWidgets('a mutual like opens the match screen, and Send Message '
         'opens the chat '
-        '[case:swipe.home_discovery.discovery_like_button_like.action] '
-        '[case:matching.match_notification.send_message.action]', (
+        '[case:swipe.home_discovery.like_icon_favorite_onlike.action] '
+        '[case:matching.match_notification.match_notification_send_message.action]', (
       tester,
     ) async {
       final api = qaDiscoverApi(
@@ -105,7 +105,7 @@ void main() {
     });
 
     testWidgets('Keep Swiping closes the match screen back to the deck '
-        '[case:matching.match_notification.keep_swiping.action]', (
+        '[case:matching.match_notification.match_notification_keep_swiping.action]', (
       tester,
     ) async {
       final api = qaDiscoverApi(
@@ -121,7 +121,7 @@ void main() {
     });
 
     testWidgets('a server error keeps the card and says so '
-        '[case:swipe.home_discovery.discovery_like_button_like.api_failure]', (
+        '[case:swipe.home_discovery.like_icon_favorite_onlike.api_failure]', (
       tester,
     ) async {
       final api = qaDiscoverApi(deck: [_anya, _bina])..fail('POST /swipe');
@@ -142,9 +142,9 @@ void main() {
 
     testWidgets('the daily like limit opens the limit sheet; Not now closes '
         'it and keeps the card '
-        '[case:swipe.home_discovery.discovery_like_button_like.api_failure] '
+        '[case:swipe.home_discovery.like_icon_favorite_onlike.api_failure] '
         '[case:swipe.home_discovery.not_now.action] '
-        '[case:swipe.home_discovery.not_now_2.action]', (tester) async {
+        '[case:swipe.home_discovery.discovery_daily_limit_not_now.action]', (tester) async {
       final api = qaDiscoverApi(deck: [_anya, _bina])
         ..on('POST /swipe', (_) => qaDailyLikeLimit());
       await _openDeck(tester, api);
@@ -160,7 +160,7 @@ void main() {
     });
 
     testWidgets('See plans on the limit sheet opens the plans '
-        '[case:swipe.home_discovery.see_plans.action]', (tester) async {
+        '[case:swipe.home_discovery.discovery_daily_limit_see_plans.action]', (tester) async {
       final api = qaDiscoverApi(deck: [_anya])
         ..on('POST /swipe', (_) => qaDailyLikeLimit());
       await _openDeck(tester, api);
@@ -175,8 +175,8 @@ void main() {
     testWidgets(
       'saves a like for the top card, confirms it and deals the '
       'next '
-      '[case:swipe.home_discovery.discovery_superlike_button_superlike.action] '
-      '[case:swipe.home_discovery.discovery_superlike_button_superlike.api_contract]',
+      '[case:swipe.home_discovery.super_like_icon_star_onsuperlike.action] '
+      '',
       (tester) async {
         final api = qaDiscoverApi(deck: [_anya, _bina]);
         await _openDeck(tester, api);
@@ -190,7 +190,7 @@ void main() {
 
     testWidgets(
       'offline: retried once, then explained; the card stays '
-      '[case:swipe.home_discovery.discovery_superlike_button_superlike.api_failure]',
+      '[case:swipe.home_discovery.super_like_icon_star_onsuperlike.api_failure]',
       (tester) async {
         final api = qaDiscoverApi(deck: [_anya, _bina])..offline('POST /swipe');
         await _openDeck(tester, api);
@@ -208,8 +208,8 @@ void main() {
 
   group('Pass and Undo', () {
     testWidgets('Pass saves a pass for the top card and deals the next '
-        '[case:swipe.home_discovery.discovery_pass_button_pass.action] '
-        '[case:swipe.home_discovery.discovery_pass_button_pass.api_contract]', (
+        '[case:swipe.home_discovery.pass_icon_close_onpass.action] '
+        '', (
       tester,
     ) async {
       final api = qaDiscoverApi(deck: [_anya, _bina]);
@@ -224,7 +224,7 @@ void main() {
     // Regression (2026-10-02): a refused pass put the card back with no
     // word to the member.
     testWidgets('a refused pass puts the card back and says why '
-        '[case:swipe.home_discovery.discovery_pass_button_pass.api_failure]', (
+        '[case:swipe.home_discovery.pass_icon_close_onpass.api_failure]', (
       tester,
     ) async {
       final api = qaDiscoverApi(deck: [_anya, _bina])
@@ -241,7 +241,7 @@ void main() {
     });
 
     testWidgets('Undo brings the last card back without another request '
-        '[case:swipe.home_discovery.discovery_undo_button_undo.action]', (
+        '[case:swipe.home_discovery.undo_icon_undo_onundo.action]', (
       tester,
     ) async {
       final api = qaDiscoverApi(deck: [_anya, _bina]);
@@ -260,8 +260,8 @@ void main() {
     testWidgets(
       'without a match: one like for this member, explained, and '
       'the member leaves the deck '
-      '[case:swipe.home_discovery.discovery_card_message_button_message.action] '
-      '[case:swipe.home_discovery.discovery_card_message_button_message.api_contract]',
+      '[case:swipe.home_discovery.x_card_message_button_message.action] '
+      '',
       (tester) async {
         final api = qaDiscoverApi(deck: [_anya, _bina]);
         await _openDeck(tester, api);
@@ -286,7 +286,7 @@ void main() {
 
     testWidgets(
       'with a match: opens that chat and sends no like '
-      '[case:swipe.home_discovery.discovery_card_message_button_message.action]',
+      '[case:swipe.home_discovery.x_card_message_button_message.action]',
       (tester) async {
         final api = qaDiscoverApi(
           deck: [_anya, _bina],
@@ -306,7 +306,7 @@ void main() {
 
     testWidgets(
       'a like that makes the match opens the chat straight away '
-      '[case:swipe.home_discovery.discovery_card_message_button_message.action]',
+      '[case:swipe.home_discovery.x_card_message_button_message.action]',
       (tester) async {
         final api = qaDiscoverApi(
           deck: [_anya, _bina],
@@ -326,7 +326,7 @@ void main() {
 
     testWidgets(
       'the daily like limit is explained with a way to the plans '
-      '[case:swipe.home_discovery.discovery_card_message_button_message.api_failure]',
+      '[case:swipe.home_discovery.x_card_message_button_message.api_failure]',
       (tester) async {
         final api = qaDiscoverApi(deck: [_anya, _bina])
           ..on('POST /swipe', (_) => qaDailyLikeLimit());
@@ -344,8 +344,8 @@ void main() {
   group('View more (profile from the deck)', () {
     testWidgets(
       'opens the profile and records the view '
-      '[case:swipe.home_discovery.discovery_view_more_button_openprofile.action] '
-      '[case:swipe.home_discovery.discovery_view_more_button_openprofile.api_contract]',
+      '[case:swipe.home_discovery.x_view_more_button_openprofile.action] '
+      '',
       (tester) async {
         final api = qaDiscoverApi(deck: [_anya, _bina]);
         await _openDeck(tester, api);
@@ -400,7 +400,7 @@ void main() {
 
     testWidgets(
       'a failed Love keeps the profile open and says so '
-      '[case:swipe.home_discovery.discovery_view_more_button_openprofile.api_failure]',
+      '[case:swipe.home_discovery.x_view_more_button_openprofile.api_failure]',
       (tester) async {
         final api = qaDiscoverApi(deck: [_anya, _bina])..fail('POST /swipe');
         await _openDeck(tester, api);
@@ -419,8 +419,8 @@ void main() {
   group('error and empty states', () {
     testWidgets(
       'a failed load shows the error; Try Again reloads the deck '
-      '[case:swipe.home_discovery.discovery_retry_state_retry.action] '
-      '[case:swipe.home_discovery.discovery_retry_state_retry.api_contract]',
+      '[case:swipe.home_discovery.discovery_state_action_button_retry.action] '
+      '',
       (tester) async {
         final api = qaDiscoverApi(deck: [_anya])..fail('GET /discovery/me');
         await _openDeck(tester, api);
@@ -447,7 +447,7 @@ void main() {
 
     testWidgets('offline retry keeps the error state with the localized '
         'message '
-        '[case:swipe.home_discovery.discovery_retry_state_retry.api_failure]', (
+        '[case:swipe.home_discovery.discovery_state_action_button_retry.api_failure]', (
       tester,
     ) async {
       final api = qaDiscoverApi()..offline('GET /discovery/me');
@@ -463,8 +463,8 @@ void main() {
 
     testWidgets(
       'the empty deck refreshes on Refresh '
-      '[case:swipe.home_discovery.discovery_empty_state_refresh.action] '
-      '[case:swipe.home_discovery.discovery_empty_state_refresh.api_contract]',
+      '[case:swipe.home_discovery.discovery_state_action_button_refresh.action] '
+      '',
       (tester) async {
         final api = qaDiscoverApi();
         await _openDeck(tester, api);
@@ -482,7 +482,7 @@ void main() {
 
     testWidgets(
       'a refresh that fails turns the empty state into the error '
-      '[case:swipe.home_discovery.discovery_empty_state_refresh.api_failure]',
+      '[case:swipe.home_discovery.discovery_state_action_button_refresh.api_failure]',
       (tester) async {
         final api = qaDiscoverApi();
         await _openDeck(tester, api);
@@ -499,7 +499,7 @@ void main() {
     testWidgets(
       'the bell opens the notifications sheet; Who liked me opens '
       'the list and closes the sheet '
-      '[case:swipe.home_discovery.notificationbell_ontap.action] '
+      '[case:swipe.home_discovery.discovery_notifications_button_3.action] '
       '[case:swipe.home_discovery.showmodalbottomsheet_open.action] '
       '[case:swipe.home_discovery.discovery_notification_who_liked_me.action]',
       (tester) async {
@@ -536,7 +536,7 @@ void main() {
     });
 
     testWidgets('Passed opens the passed list with the member just passed '
-        '[case:swipe.home_discovery.discovery_passed_button_2.action]', (
+        '[case:swipe.home_discovery.passed_2.action]', (
       tester,
     ) async {
       final api = qaDiscoverApi(deck: [_anya, _bina]);
@@ -557,8 +557,8 @@ void main() {
 
     testWidgets(
       'a card opens that member and records the view '
-      '[case:swipe.home_discovery.open_profile_icon_person_onopenprofile.action] '
-      '[case:swipe.home_discovery.open_profile_icon_person_onopenprofile.api_contract]',
+      '[case:swipe.home_discovery.spotlight_rail_card_x_openprofile.action] '
+      '',
       (tester) async {
         final api = qaDiscoverApi(deck: [_anya], spotlight: spotlight);
         await _openDeck(tester, api);
@@ -620,7 +620,7 @@ void main() {
 
     testWidgets(
       'a failed Love from the rail is explained, profile stays '
-      '[case:swipe.home_discovery.open_profile_icon_person_onopenprofile.api_failure]',
+      '[case:swipe.home_discovery.spotlight_rail_card_x_openprofile.api_failure]',
       (tester) async {
         final api = qaDiscoverApi(deck: [_anya], spotlight: spotlight)
           ..on('POST /swipe', (_) => qaDailyLikeLimit());
@@ -634,7 +634,7 @@ void main() {
     );
 
     testWidgets('View more opens the full Spotlight screen with the rail '
-        '[case:swipe.home_discovery.view_more_onviewmore.action]', (
+        '[case:swipe.home_discovery.spotlight_rail_view_more_viewmore.action]', (
       tester,
     ) async {
       final api = qaDiscoverApi(deck: [_anya], spotlight: spotlight);
@@ -736,7 +736,7 @@ void main() {
     );
 
     testWidgets('Fits your week opens the dating rhythm settings '
-        '[case:swipe.home_discovery.fits_your_week.action]', (tester) async {
+        '[case:swipe.home_discovery.discover_today_fits_your_week.action]', (tester) async {
       final api = qaDiscoverApi(deck: [_anya], today: today);
       await _openDeck(
         tester,
@@ -811,8 +811,8 @@ void main() {
     });
 
     testWidgets('Explore profiles opens the deck; Back to Today returns '
-        '[case:swipe.home_discovery.explore_profiles.action] '
-        '[case:swipe.home_discovery.back_to_today.action]', (tester) async {
+        '[case:intentional_dating.today_introductions.today_explore_profiles.action] '
+        '[case:swipe.home_discovery.discovery_back_to_today.action]', (tester) async {
       final api = qaDiscoverApi(deck: [_anya]);
       await _openDeck(
         tester,

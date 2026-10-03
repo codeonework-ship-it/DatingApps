@@ -77,10 +77,10 @@ String _text(WidgetTester tester, String key) =>
 void main() {
   testWidgets(
     'Submit sends reason, report id and context, lists the appeal and clears '
-    'the form [case:common.moderation_appeals.submit_appeal.action] '
-    '[case:common.moderation_appeals.reason_input.action] '
-    '[case:common.moderation_appeals.report_id_optional_input.action] '
-    '[case:common.moderation_appeals.additional_context_optional_input.action]',
+    'the form [case:common.moderation_appeals.appeals_submit.action] '
+    '[case:common.moderation_appeals.appeals_reason_input.action] '
+    '[case:common.moderation_appeals.appeals_report_id_input.action] '
+    '[case:common.moderation_appeals.appeals_context_input.action]',
     (tester) async {
       final server = _AppealServer();
       await _open(tester, server);
@@ -125,7 +125,7 @@ void main() {
 
   testWidgets(
     'a missing reason is refused before anything is sent; unicode reasons '
-    'are kept [case:common.moderation_appeals.reason_input.validation]',
+    'are kept [case:common.moderation_appeals.appeals_reason_input.validation]',
     (tester) async {
       final server = _AppealServer();
       await _open(tester, server);
@@ -150,8 +150,8 @@ void main() {
 
   testWidgets(
     'report id and context are optional and trimmed; unicode context is kept '
-    '[case:common.moderation_appeals.report_id_optional_input.validation] '
-    '[case:common.moderation_appeals.additional_context_optional_input.validation]',
+    '[case:common.moderation_appeals.appeals_report_id_input.validation] '
+    '[case:common.moderation_appeals.appeals_context_input.validation]',
     (tester) async {
       final server = _AppealServer();
       await _open(tester, server);
@@ -181,7 +181,7 @@ void main() {
 
   testWidgets(
     'a refused appeal explains, keeps what was typed and re-enables Submit '
-    '[case:common.moderation_appeals.submit_appeal.api_failure]',
+    '[case:common.moderation_appeals.appeals_submit.api_failure]',
     (tester) async {
       final server = _AppealServer();
       server.api.fail(
@@ -209,7 +209,7 @@ void main() {
   testWidgets(
     'a filed appeal is not reported as failed when only the re-read fails '
     '(regression: invited duplicate appeals) '
-    '[case:common.moderation_appeals.submit_appeal.reload_failure]',
+    '[case:common.moderation_appeals.appeals_submit.reload_failure]',
     (tester) async {
       final server = _AppealServer();
       await _open(tester, server);
@@ -277,7 +277,7 @@ void main() {
 
   testWidgets(
     'a failed load is not shown as "no appeals"; Retry reloads (regression) '
-    '[case:common.moderation_appeals.retry.action]',
+    '[case:common.moderation_appeals.appeals_retry.action]',
     (tester) async {
       final server = _AppealServer(appeals: [_appeal('apl-7')]);
       server.api.fail('GET /moderation/appeals', status: 500);

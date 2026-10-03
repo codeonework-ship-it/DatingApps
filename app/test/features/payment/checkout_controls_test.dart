@@ -55,7 +55,7 @@ void main() {
     );
 
     testWidgets('Close checkout pops with no outcome (member left early) '
-        '[case:payment.checkout_webview.close_checkout.action]', (
+        '[case:payment.checkout_webview.checkout_close.action]', (
       tester,
     ) async {
       final results = await _openCheckout(tester);
@@ -191,7 +191,7 @@ void main() {
 
     testWidgets(
       'Check confirmation closes the sheet and asks the app to confirm '
-      '[case:payment.checkout_waiting_sheet.check_confirmation.action]',
+      '[case:payment.checkout_waiting_sheet.checkout_waiting_check_confirmation.action]',
       (tester) async {
         final results = await openSheet(tester);
         await tester.tap(
@@ -207,7 +207,7 @@ void main() {
     );
 
     testWidgets('Back to account closes the sheet as not paid '
-        '[case:payment.checkout_waiting_sheet.back_to_account_2.action]', (
+        '[case:payment.checkout_waiting_sheet.checkout_waiting_back_to_account.action]', (
       tester,
     ) async {
       final results = await openSheet(tester);

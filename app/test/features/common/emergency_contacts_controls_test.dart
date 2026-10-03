@@ -90,11 +90,11 @@ void main() {
   group('add', () {
     testWidgets(
       'Add Contact → name and phone → Save adds it on the server and lists it '
-      '[case:common.emergency_contacts.add_contact.action] '
+      '[case:common.emergency_contacts.emergency_add.action] '
       '[case:common.emergency_contacts.save.action] '
-      '[case:common.emergency_contacts.save_2.action] '
-      '[case:common.emergency_contacts.name_input.action] '
-      '[case:common.emergency_contacts.phone_number_input.action]',
+      '[case:common.emergency_contacts.emergency_editor_save.action] '
+      '[case:common.emergency_contacts.emergency_name_field_input.action] '
+      '[case:common.emergency_contacts.emergency_phone_field_input.action]',
       (tester) async {
         final server = _ContactServer();
         await _open(tester, server);
@@ -118,7 +118,7 @@ void main() {
     );
 
     testWidgets('Cancel in the editor adds nothing '
-        '[case:common.emergency_contacts.cancel_2.action]', (tester) async {
+        '[case:common.emergency_contacts.emergency_editor_cancel.action]', (tester) async {
       final server = _ContactServer();
       await _open(tester, server);
       await _tap(tester, 'qa.emergency.add');
@@ -134,7 +134,7 @@ void main() {
 
     testWidgets(
       'an empty or blank name is refused before anything is sent; unicode '
-      'names are kept [case:common.emergency_contacts.name_input.validation]',
+      'names are kept [case:common.emergency_contacts.emergency_name_field_input.validation]',
       (tester) async {
         final server = _ContactServer();
         await _open(tester, server);
@@ -161,7 +161,7 @@ void main() {
 
     testWidgets(
       'phone numbers must have 8–16 digits (spaces, dashes and + allowed) '
-      '[case:common.emergency_contacts.phone_number_input.validation]',
+      '[case:common.emergency_contacts.emergency_phone_field_input.validation]',
       (tester) async {
         final server = _ContactServer();
         await _open(tester, server);
@@ -195,7 +195,7 @@ void main() {
     );
 
     testWidgets('a refused add explains and keeps the list as it was '
-        '[case:common.emergency_contacts.add_contact.api_failure]', (
+        '[case:common.emergency_contacts.emergency_add.api_failure]', (
       tester,
     ) async {
       final server = _ContactServer();
@@ -216,7 +216,7 @@ void main() {
     });
 
     testWidgets('with three contacts the add button is disabled and says why '
-        '[case:common.emergency_contacts.add_contact.limit]', (tester) async {
+        '[case:common.emergency_contacts.emergency_add.limit]', (tester) async {
       final server = _ContactServer(
         contacts: [
           for (var i = 1; i <= 3; i++)
@@ -242,7 +242,7 @@ void main() {
 
   group('edit', () {
     testWidgets('Edit opens the editor prefilled; Save updates that contact '
-        '[case:common.emergency_contacts.edit_icon_edit_outlined.action]', (
+        '[case:common.emergency_contacts.emergency_edit_x.action]', (
       tester,
     ) async {
       final server = _ContactServer();
@@ -277,7 +277,7 @@ void main() {
 
     testWidgets(
       'an invalid edit is refused locally and a refused save explains '
-      '[case:common.emergency_contacts.edit_icon_edit_outlined.api_failure]',
+      '[case:common.emergency_contacts.emergency_edit_x.api_failure]',
       (tester) async {
         final server = _ContactServer();
         await _open(tester, server);
@@ -303,9 +303,9 @@ void main() {
 
   group('remove', () {
     testWidgets('Delete asks first; Remove deletes it on the server '
-        '[case:common.emergency_contacts.delete_icon_delete_outline.action] '
+        '[case:common.emergency_contacts.emergency_delete_x.action] '
         '[case:common.emergency_contacts.remove_contact.action] '
-        '[case:common.emergency_contacts.remove.action]', (tester) async {
+        '[case:common.emergency_contacts.emergency_remove_confirm.action]', (tester) async {
       final server = _ContactServer();
       await _open(tester, server);
       await _tap(tester, 'qa.emergency.delete.c-mum');
@@ -323,7 +323,7 @@ void main() {
     });
 
     testWidgets(
-      'Cancel keeps the contact [case:common.emergency_contacts.cancel.action]',
+      'Cancel keeps the contact [case:common.emergency_contacts.emergency_remove_cancel.action]',
       (tester) async {
         final server = _ContactServer();
         await _open(tester, server);
@@ -338,7 +338,7 @@ void main() {
 
     testWidgets(
       'a refused delete explains and keeps the contact '
-      '[case:common.emergency_contacts.delete_icon_delete_outline.api_failure]',
+      '[case:common.emergency_contacts.emergency_delete_x.api_failure]',
       (tester) async {
         final server = _ContactServer();
         server.api.fail('DELETE /emergency-contacts/me/*', status: 500);
@@ -354,7 +354,7 @@ void main() {
 
   testWidgets('a failed load is not shown as "no contacts" (which would invite '
       'duplicates past the limit); Retry reloads (regression) '
-      '[case:common.emergency_contacts.retry.action]', (tester) async {
+      '[case:common.emergency_contacts.emergency_retry.action]', (tester) async {
     final server = _ContactServer();
     server.api.fail('GET /emergency-contacts/me', status: 503);
     await _open(tester, server);

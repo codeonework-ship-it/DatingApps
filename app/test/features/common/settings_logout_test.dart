@@ -131,7 +131,7 @@ void main() {
 
   testWidgets(
     'Logout unregisters this device, revokes the session and shows Welcome '
-    '[case:common.settings.logout.action]',
+    '[case:common.settings.settings_logout.action]',
     (tester) async {
       final api = _server();
       final container = await _openSettings(tester, api);
@@ -156,7 +156,7 @@ void main() {
   );
 
   testWidgets('Logout while offline still signs the member out on this device '
-      '[case:common.settings.logout.api_failure]', (tester) async {
+      '[case:common.settings.settings_logout.api_failure]', (tester) async {
     final api = _server()
       ..offline('DELETE /notifications/me/devices/device-42')
       ..offline('POST /auth/logout');
@@ -174,7 +174,7 @@ void main() {
   });
 
   testWidgets('Logout when the server rejects it still signs the member out '
-      '[case:common.settings.logout.api_failure]', (tester) async {
+      '[case:common.settings.settings_logout.api_failure]', (tester) async {
     final api = _server()
       ..fail('DELETE /notifications/me/devices/device-42', status: 503)
       ..fail('POST /auth/logout', message: 'Session store unavailable.');
@@ -191,7 +191,7 @@ void main() {
   });
 
   testWidgets('a double tap on the confirm button sends each request once '
-      '[case:common.settings.logout.action]', (tester) async {
+      '[case:common.settings.settings_logout.action]', (tester) async {
     final api = _server();
     final container = await _openSettings(tester, api);
 
@@ -208,7 +208,7 @@ void main() {
 
   testWidgets(
     'Logout on a device never registered for push only revokes the session '
-    '[case:common.settings.logout.no_push_device]',
+    '[case:common.settings.settings_logout.no_push_device]',
     (tester) async {
       SharedPreferences.setMockInitialValues({});
       final api = _server();
@@ -222,7 +222,7 @@ void main() {
   );
 
   testWidgets('Sign out asks first; Cancel keeps the member signed in '
-      '[case:common.settings.logout.confirm_cancel]', (tester) async {
+      '[case:common.settings.settings_logout.confirm_cancel]', (tester) async {
     final api = _server();
     final container = await _openSettings(tester, api);
 
@@ -244,7 +244,7 @@ void main() {
 
   testWidgets('an offline sign-out deletes the push token so the old device '
       'record cannot deliver this member\'s pushes '
-      '[case:common.settings.logout.push_token_deleted]', (tester) async {
+      '[case:common.settings.settings_logout.push_token_deleted]', (tester) async {
     final api = _server()
       ..offline('DELETE /notifications/me/devices/device-42')
       ..offline('POST /auth/logout');
@@ -261,7 +261,7 @@ void main() {
   });
 
   testWidgets('Sign out of all devices ends every session on the server, '
-      'then signs out here [case:common.settings.logout_all.action]', (
+      'then signs out here [case:common.settings.settings_logout_all.action]', (
     tester,
   ) async {
     final api = _server()
@@ -292,7 +292,7 @@ void main() {
 
   testWidgets(
     'when the server cannot sign out the other devices the member '
-    'stays signed in and is told [case:common.settings.logout_all.api_failure]',
+    'stays signed in and is told [case:common.settings.settings_logout_all.api_failure]',
     (tester) async {
       final api = _server()..offline('POST /auth/sessions/revoke');
       final container = await _openSettings(tester, api);
@@ -315,7 +315,7 @@ void main() {
   );
 
   testWidgets('signing out from the Settings tab inside the real app gate '
-      'shows Welcome without errors [case:common.settings.logout.app_gate]', (
+      'shows Welcome without errors [case:common.settings.settings_logout.app_gate]', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(430, 932);

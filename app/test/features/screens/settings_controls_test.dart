@@ -217,7 +217,7 @@ void main() {
     );
   }
   testWidgets('notification save failure rolls back and shows error '
-      '[case:common.notification_settings.push_notifications.api_failure]', (
+      '[case:common.notification_settings.notifications_push.api_failure]', (
     tester,
   ) async {
     await mount(tester, const NotificationSettingsScreen());
@@ -247,7 +247,7 @@ void main() {
     });
   }
   testWidgets('privacy save failure displays retry and reloads persisted value '
-      '[case:common.privacy_safety.retry.action]', (tester) async {
+      '[case:common.privacy_safety.privacy_retry.action]', (tester) async {
     await mount(tester, const PrivacySafetyScreen());
     api.reject = true;
     await tester.tap(find.widgetWithText(SwitchListTile, 'Show age'));

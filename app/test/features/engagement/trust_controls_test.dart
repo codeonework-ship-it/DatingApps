@@ -245,7 +245,7 @@ void main() {
     }
 
     testWidgets(
-      'Enable trust filters toggles the switch locally; Save sends it [case:engagement.trust_filter.enable_trust_filters.action]',
+      'Enable trust filters toggles the switch locally; Save sends it [case:engagement.trust_filter.trust_filter_enabled.action]',
       (tester) async {
         final api = _filterApi()
           ..json('PATCH $_filterPath', _filter(enabled: true));
@@ -269,7 +269,7 @@ void main() {
     );
 
     testWidgets(
-      'the minimum-badges slider updates the label locally; Save sends the value [case:engagement.trust_filter.slider_onchanged.action]',
+      'the minimum-badges slider updates the label locally; Save sends the value [case:engagement.trust_filter.trust_filter_minimum.action]',
       (tester) async {
         final api = _filterApi()
           ..json('PATCH $_filterPath', _filter(minimum: 3));
@@ -293,7 +293,7 @@ void main() {
     );
 
     testWidgets(
-      'required-badge checkboxes toggle locally; Save sends the checked codes sorted [case:engagement.trust_filter.checkboxlisttile_onchanged.action]',
+      'required-badge checkboxes toggle locally; Save sends the checked codes sorted [case:engagement.trust_filter.trust_filter_badge_x.action]',
       (tester) async {
         final api = _filterApi()
           ..json(
@@ -326,7 +326,7 @@ void main() {
     );
 
     testWidgets(
-      'Save Trust Filters sends the complete filter, confirms and shows what the server saved [case:engagement.trust_filter.save_trust_filters.action]',
+      'Save Trust Filters sends the complete filter, confirms and shows what the server saved [case:engagement.trust_filter.trust_filter_save.action]',
       (tester) async {
         final api = _filterApi()
           ..json(
@@ -365,7 +365,7 @@ void main() {
       ('offline', qaOffline, 'Failed to save trust filters. Please try again.'),
     ]) {
       testWidgets(
-        'a failed save ($label) never claims success, keeps my choices and retries [case:engagement.trust_filter.save_trust_filters.api_failure]',
+        'a failed save ($label) never claims success, keeps my choices and retries [case:engagement.trust_filter.trust_filter_save.api_failure]',
         (tester) async {
           final api = _filterApi()..on('PATCH $_filterPath', (_) => failure);
           await _openFilter(tester, api);

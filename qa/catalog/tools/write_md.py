@@ -263,7 +263,7 @@ w("* Iterate `features[].cases[]`; `steps`/`expected` are written to be executed
 w("* Treat `status: presence_only` as **failing coverage**: the runner must perform the action and assert `expected` (network call + visible result), not just locate the control.")
 w("* `*.api_contract` cases are API-level and already backed by Go/api_e2e tests where listed; `*.api_failure` cases need a fault-injecting proxy or stubbed BFF.")
 w("* Regenerate after UI or test changes: `python3 qa/catalog/tools/regenerate.py` (deterministic; rewrites `feature_catalog.json` and this file). New controls appear with status GAP.")
-w("* Test → case contract (QA Lab): Flutter/Playwright put `[case:<id>]` in the test name; pytest uses `@pytest.mark.case(\"<id>\")`; Go puts `// case: <id>` directly above `func TestX`; Django puts `# case: <id>` directly above `def test_x`. Tagged cases become `automated` (`mapped_by: tag`); cases listed in `qa/catalog/manual_cases.json` become `manual`. Run them from QA Lab (`documents/qa/QA_LAB_2026-10-02.md`).")
+w("* Test → case contract (QA Lab): Flutter/Playwright put `[case:<id>]` in the test name; pytest uses `@pytest.mark.case(\"<id>\")`; Go puts `// case: <id>` directly above `func TestX`; Django puts `[case:<id>]` in the test method docstring (or `# case: <id>` above `def test_x`); interpolated ids (`[case:a.$name.action]`) count only for values that are string literals of the same file; `qa/catalog/extra_cases.json` declares, with a reason, controls/cases the static extraction cannot see. Tagged cases become `automated` (`mapped_by: tag`); cases listed in `qa/catalog/manual_cases.json` become `manual`. Run them from QA Lab (`documents/qa/QA_LAB_2026-10-02.md`).")
 w("")
 w("## 5. Method limits")
 w("")

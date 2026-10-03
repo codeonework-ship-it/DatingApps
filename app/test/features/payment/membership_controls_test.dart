@@ -81,7 +81,7 @@ void main() {
   group('plan catalog', () {
     testWidgets(
       'Monthly/Yearly toggle switches every price and the checkout cycle '
-      '[case:payment.subscription.monthly.action]',
+      '[case:payment.subscription.membership_cycle_x.action]',
       (tester) async {
         final server = BillingServer()..checkoutStatus = 'expired';
         await _open(tester, server);
@@ -163,11 +163,11 @@ void main() {
     testWidgets(
       'Subscribe → Continue to card → provider success → celebration → '
       'Start exploring, and the plan is now current '
-      '[case:payment.subscription.subscribe_with_card_onsubscribe.action] '
+      '[case:payment.subscription.membership_plan_x_subscribe.action] '
       '[case:payment.subscription.subscribe_to_plan.action] '
-      '[case:payment.subscription.continue_to_card.action] '
+      '[case:payment.subscription.membership_subscribe_continue.action] '
       '[case:payment.subscription.start_exploring.action] '
-      '[case:payment.subscription.start_exploring_2.action] '
+      '[case:payment.subscription.membership_start_exploring.action] '
       '[case:payment.checkout_webview.openers_handle_result]',
       (tester) async {
         final server = BillingServer()
@@ -232,7 +232,7 @@ void main() {
 
     testWidgets(
       'Not now closes the subscribe dialog without creating a checkout '
-      '[case:payment.subscription.not_now_2.action]',
+      '[case:payment.subscription.membership_subscribe_not_now.action]',
       (tester) async {
         final server = BillingServer();
         await _open(tester, server);
@@ -247,7 +247,7 @@ void main() {
 
     testWidgets(
       'checkout creation failure shows the reason and re-enables Subscribe '
-      '[case:payment.subscription.subscribe_with_card_onsubscribe.api_failure]',
+      '[case:payment.subscription.membership_plan_x_subscribe.api_failure]',
       (tester) async {
         final server = BillingServer();
         server.api.fail(
@@ -272,7 +272,7 @@ void main() {
 
     testWidgets(
       'cancelling on the provider page ends the session with a clear message '
-      '[case:payment.subscription.subscribe_with_card_onsubscribe.cancelled] '
+      '[case:payment.subscription.membership_plan_x_subscribe.cancelled] '
       '[case:payment.checkout_webview.return_cancel]',
       (tester) async {
         final server = BillingServer()..checkoutStatus = 'abandoned';
@@ -290,7 +290,7 @@ void main() {
 
     testWidgets(
       'closing the checkout early leaves the member on Free and says so '
-      '[case:payment.checkout_webview.close_checkout.action]',
+      '[case:payment.checkout_webview.checkout_close.action]',
       (tester) async {
         final server = BillingServer()..checkoutStatus = 'expired';
         await _open(tester, server);
@@ -316,7 +316,7 @@ void main() {
     testWidgets(
       'turning auto-renew off asks first; Keep renewing changes nothing '
       '[case:payment.subscription.turn_off.action] '
-      '[case:payment.subscription.keep_renewing.action]',
+      '[case:payment.subscription.membership_auto_renew_off_keep.action]',
       (tester) async {
         final server = BillingServer(subscription: paidSubscription());
         await _open(tester, server);
@@ -339,8 +339,8 @@ void main() {
 
     testWidgets(
       'Turn off sends cancel-at-period-end and the switch, chip and line follow '
-      '[case:payment.subscription.auto_renew_onautorenewchanged.action] '
-      '[case:payment.subscription.turn_off_2.action]',
+      '[case:payment.subscription.membership_auto_renew_autorenewchanged.action] '
+      '[case:payment.subscription.membership_auto_renew_off_confirm.action]',
       (tester) async {
         final server = BillingServer(subscription: paidSubscription());
         await _open(tester, server);
@@ -360,7 +360,7 @@ void main() {
     );
 
     testWidgets('turning auto-renew back on resumes without a confirmation '
-        '[case:payment.subscription.auto_renew_onautorenewchanged.resume]', (
+        '[case:payment.subscription.membership_auto_renew_autorenewchanged.resume]', (
       tester,
     ) async {
       final server = BillingServer(
@@ -380,7 +380,7 @@ void main() {
 
     testWidgets(
       'a failed auto-renew change keeps the switch, explains and re-enables it '
-      '[case:payment.subscription.auto_renew_onautorenewchanged.api_failure]',
+      '[case:payment.subscription.membership_auto_renew_autorenewchanged.api_failure]',
       (tester) async {
         final server = BillingServer(subscription: paidSubscription());
         server.api.fail(
@@ -416,7 +416,7 @@ void main() {
   group('switch plan', () {
     testWidgets('switching asks first; Not now sends nothing '
         '[case:payment.subscription.switch_plan.action] '
-        '[case:payment.subscription.not_now.action]', (tester) async {
+        '[case:payment.subscription.membership_switch_not_now.action]', (tester) async {
       final server = BillingServer(subscription: paidSubscription());
       await _open(tester, server);
       expect(find.text(en.membershipSwitchToPlan('Silver')), findsOneWidget);
@@ -434,8 +434,8 @@ void main() {
     });
 
     testWidgets('Switch plan changes the live subscription and confirms '
-        '[case:payment.subscription.subscribe_with_card_onswitch.action] '
-        '[case:payment.subscription.switch_plan_2.action]', (tester) async {
+        '[case:payment.subscription.membership_plan_x_switch.action] '
+        '[case:payment.subscription.membership_switch_confirm.action]', (tester) async {
       final server = BillingServer(subscription: paidSubscription());
       await _open(tester, server);
       await _tap(tester, 'qa.membership.plan.silver');
@@ -462,7 +462,7 @@ void main() {
 
     testWidgets(
       'a refused switch explains why and leaves the member on their plan '
-      '[case:payment.subscription.subscribe_with_card_onswitch.api_failure]',
+      '[case:payment.subscription.membership_plan_x_switch.api_failure]',
       (tester) async {
         final server = BillingServer(subscription: paidSubscription());
         server.api.fail(
@@ -489,7 +489,7 @@ void main() {
   group('update card', () {
     testWidgets(
       'Update card opens a card-update checkout and confirms the new card '
-      '[case:payment.subscription.update_card_onupdatecard.action]',
+      '[case:payment.subscription.membership_update_card_updatecard.action]',
       (tester) async {
         final server = BillingServer(subscription: paidSubscription());
         await _open(tester, server);
@@ -512,7 +512,7 @@ void main() {
     );
 
     testWidgets('a failed card update explains and re-enables the button '
-        '[case:payment.subscription.update_card_onupdatecard.api_failure]', (
+        '[case:payment.subscription.membership_update_card_updatecard.api_failure]', (
       tester,
     ) async {
       final server = BillingServer(subscription: paidSubscription());
@@ -535,7 +535,7 @@ void main() {
 
     testWidgets(
       'Check status re-reads the account and confirms a settled checkout '
-      '[case:payment.subscription.check_status_oncheck.action]',
+      '[case:payment.subscription.payment_check_status_x_check.action]',
       (tester) async {
         final server = pending()
           ..subscriptionAfterCheckout = paidSubscription(
@@ -561,7 +561,7 @@ void main() {
     );
 
     testWidgets('Check status when the account cannot be read says so '
-        '[case:payment.subscription.check_status_oncheck.api_failure]', (
+        '[case:payment.subscription.payment_check_status_x_check.api_failure]', (
       tester,
     ) async {
       final server = pending();
@@ -573,7 +573,7 @@ void main() {
     });
 
     testWidgets('Resume checkout reopens the same hosted page and confirms it '
-        '[case:payment.subscription.resume_checkout_onresume.action]', (
+        '[case:payment.subscription.payment_resume_checkout_x_resume.action]', (
       tester,
     ) async {
       final server = pending();
@@ -594,7 +594,7 @@ void main() {
 
     testWidgets(
       'Resume checkout on a session that closed meanwhile does not reopen it '
-      '[case:payment.subscription.resume_checkout_onresume.api_failure]',
+      '[case:payment.subscription.payment_resume_checkout_x_resume.api_failure]',
       (tester) async {
         final server = pending();
         await _open(tester, server);
@@ -611,7 +611,7 @@ void main() {
   group('sandbox renewal clock (debug builds only)', () {
     testWidgets(
       'Renewal paid advances the sandbox and the payment history shows it '
-      '[case:payment.subscription.sandboxcontrols_onevent_onevent.action] '
+      '[case:payment.subscription.membership_sandbox_x_event.action] '
       '[case:payment.subscription.payment_history.render]',
       (tester) async {
         final server = BillingServer(subscription: paidSubscription());
@@ -635,7 +635,7 @@ void main() {
 
     testWidgets(
       'a failed sandbox event is reported inline '
-      '[case:payment.subscription.sandboxcontrols_onevent_onevent.api_failure]',
+      '[case:payment.subscription.membership_sandbox_x_event.api_failure]',
       (tester) async {
         final server = BillingServer(subscription: paidSubscription());
         server.api.fail(
@@ -651,7 +651,7 @@ void main() {
 
     testWidgets(
       'a Stripe (non-sandbox) membership never shows the sandbox controls '
-      '[case:payment.subscription.sandboxcontrols_onevent_onevent.hidden_live]',
+      '[case:payment.subscription.membership_sandbox_x_event.hidden_live]',
       (tester) async {
         final server = BillingServer(
           subscription: paidSubscription(provider: 'stripe'),

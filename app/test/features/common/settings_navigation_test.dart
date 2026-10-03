@@ -283,7 +283,7 @@ void main() {
 
   testWidgets(
     'the inbox row is first and says when nothing is unread '
-    '[case:common.settings.notification_inbox.caught_up]',
+    '[case:common.settings.settings_notification_inbox.caught_up]',
     (tester) async {
       await pumpQa(tester, _permissive(), const SettingsScreen());
       final row = find.byKey(const ValueKey('qa.settings.notification_inbox'));

@@ -250,7 +250,7 @@ void main() {
     testWidgets(
       'While sending, the button says Sending… and ignores taps; on success '
       'the composer pops the saved response to its opener '
-      '[case:blog.blog_connections.sending.action]',
+      '[case:blog.blog_connections.blog_text_command_submit.action]',
       (t) async {
         final api = QaApi()
           ..on(
@@ -282,7 +282,7 @@ void main() {
     testWidgets(
       'A failed send keeps the words, explains, re-enables the button and '
       'retries with the same command id; leaving with unsent words asks first '
-      '[case:blog.blog_connections.sending.api_failure]',
+      '[case:blog.blog_connections.blog_text_command_submit.api_failure]',
       (t) async {
         final api = QaApi()
           ..fail(
@@ -331,7 +331,7 @@ void main() {
     testWidgets(
       'Typing fills "In your own words", counts characters and enables the '
       'button; clearing disables it again '
-      '[case:blog.blog_connections.in_your_own_words.action]',
+      '[case:blog.blog_connections.blog_text_command_field.action]',
       (t) async {
         final api = QaApi();
         await pumpQa(t, api, composer);
@@ -350,7 +350,7 @@ void main() {
 
     testWidgets(
       'Blank words cannot be sent, the length limit holds, and unicode is sent '
-      'byte-for-byte [case:blog.blog_connections.in_your_own_words.validation]',
+      'byte-for-byte [case:blog.blog_connections.blog_text_command_field.validation]',
       (t) async {
         final api = QaApi()
           ..json('POST /blog/responses', {
@@ -383,7 +383,7 @@ void main() {
 
   group('connections hub', () {
     testWidgets('Refresh reloads the current list from the server '
-        '[case:blog.blog_connections.refresh.action]', (t) async {
+        '[case:blog.blog_connections.blog_connections_refresh.action]', (t) async {
       var round = 0;
       final api = QaApi()
         ..on('GET /blog/responses', (_) {
@@ -406,7 +406,7 @@ void main() {
     testWidgets(
       'Section chips switch between responses, shared links and review '
       'notices, each loaded from its own endpoint '
-      '[case:blog.blog_connections.choicechip_onselected.action]',
+      '[case:blog.blog_connections.blog_connections_section_x.action]',
       (t) async {
         final api = QaApi()
           ..json('GET /blog/responses', {
@@ -446,7 +446,7 @@ void main() {
 
     testWidgets(
       'When connections fail to load, Try again loads them '
-      '[case:blog.blog_connections.could_not_load_your_connections_retry.action]',
+      '[case:blog.blog_connections.blog_retry_retry.action]',
       (t) async {
         var fail = true;
         final api = QaApi()
@@ -471,7 +471,7 @@ void main() {
     );
 
     testWidgets('Open private exchange opens that exchange '
-        '[case:blog.blog_connections.open_private_exchange.action]', (t) async {
+        '[case:blog.blog_connections.blog_connections_open_exchange_item.action]', (t) async {
       final api = QaApi()
         ..json('GET /blog/responses', {
           'responses': [responseRow(), responseRow(id: 'ex2', partner: 'Sam')],
@@ -494,8 +494,8 @@ void main() {
 
     testWidgets(
       'More loads the next page with the server cursor; Previous returns '
-      '[case:blog.blog_connections.more.action] '
-      '[case:blog.blog_connections.previous.action]',
+      '[case:blog.blog_connections.blog_connections_more.action] '
+      '[case:blog.blog_connections.blog_connections_previous.action]',
       (t) async {
         final api = QaApi()
           ..json('GET /blog/responses', {
@@ -532,7 +532,7 @@ void main() {
       );
 
     testWidgets('A shared excerpt can be selected and copied exactly '
-        '[case:blog.blog_connections.selectabletext_input_input.action]', (
+        '[case:blog.blog_connections.blog_connections_excerpt_item_input.action]', (
       t,
     ) async {
       final clipboard = FakeClipboard()..install(t);
@@ -549,7 +549,7 @@ void main() {
 
     testWidgets(
       'Emoji, RTL and line breaks in a shared excerpt show byte-for-byte '
-      '[case:blog.blog_connections.selectabletext_input_input.validation]',
+      '[case:blog.blog_connections.blog_connections_excerpt_item_input.validation]',
       (t) async {
         const excerpt = 'Dawn ☀️ at the shop\nשלום — مرحبا 👩🏽‍🍳';
         final clipboard = FakeClipboard()..install(t);
@@ -573,7 +573,7 @@ void main() {
     testWidgets(
       'Approve exact public copy asks first; Cancel sends nothing, Approve '
       'sends the versioned approval and the link goes live '
-      '[case:blog.blog_connections.approve_exact_public_copy.action]',
+      '[case:blog.blog_connections.blog_connections_approve_copy_item.action]',
       (t) async {
         var approved = false;
         final api =
@@ -620,7 +620,7 @@ void main() {
 
     testWidgets(
       'A failed approval shows the server reason, keeps the button and the '
-      'retry succeeds [case:blog.blog_connections.approve_exact_public_copy.api_failure]',
+      'retry succeeds [case:blog.blog_connections.blog_connections_approve_copy_item.api_failure]',
       (t) async {
         var approved = false;
         final api =
@@ -671,7 +671,7 @@ void main() {
     testWidgets(
       'Copy link copies the public page link and confirms; when the clipboard '
       'refuses, the link is shown in a dialog instead '
-      '[case:blog.blog_connections.copy_link.action]',
+      '[case:blog.blog_connections.blog_connections_copy_link_item.action]',
       (t) async {
         final clipboard = FakeClipboard()..install(t);
         final api = linksApi(() => [publication()]);
@@ -700,7 +700,7 @@ void main() {
 
     testWidgets(
       'Withdraw link asks first; Cancel keeps it, Withdraw deletes it and the '
-      'list refreshes [case:blog.blog_connections.withdraw_link.action]',
+      'list refreshes [case:blog.blog_connections.blog_connections_withdraw_link_item.action]',
       (t) async {
         var withdrawn = false;
         final api = linksApi(() => [if (!withdrawn) publication()])
@@ -730,7 +730,7 @@ void main() {
 
     testWidgets(
       'A failed withdraw says it could not be confirmed and keeps the link '
-      '[case:blog.blog_connections.withdraw_link.api_failure]',
+      '[case:blog.blog_connections.blog_connections_withdraw_link_item.api_failure]',
       (t) async {
         final api = linksApi(() => [publication()])
           ..on(
@@ -760,7 +760,7 @@ void main() {
   testWidgets(
     'Appeal this decision opens the appeal composer; the appeal is sent with '
     'the notice version and shows on return '
-    '[case:blog.blog_connections.appeal_this_decision.action]',
+    '[case:blog.blog_connections.blog_connections_appeal_item.action]',
     (t) async {
       var appealed = '';
       final api = QaApi()
@@ -826,7 +826,7 @@ void main() {
     }
 
     testWidgets('Refresh reloads the exchange and shows the new state '
-        '[case:blog.blog_connections.refresh_2.action]', (t) async {
+        '[case:blog.blog_connections.blog_exchange_refresh.action]', (t) async {
       var status = 'pending';
       final api = QaApi()
         ..on(
@@ -846,7 +846,7 @@ void main() {
 
     testWidgets(
       'An unavailable exchange says so and Try again reloads it '
-      '[case:blog.blog_connections.this_exchange_is_no_longer_avail_retry.action]',
+      '[case:blog.blog_connections.blog_retry_retry_2.action]',
       (t) async {
         var fail = true;
         final api = QaApi()
@@ -992,7 +992,7 @@ void main() {
     testWidgets(
       'Add my contribution opens the contribution composer; the words are '
       'sent as a versioned command and show as saved on return '
-      '[case:blog.blog_connections.add_my_contribution.action]',
+      '[case:blog.blog_connections.blog_exchange_contribute.action]',
       (t) async {
         var mine = '';
         final api = QaApi()
@@ -1101,7 +1101,7 @@ void main() {
     testWidgets(
       'Shape a date together opens the date plan sheet for this match, '
       'prefilled, and the plan is linked to this exchange '
-      '[case:blog.blog_connections.shape_a_date_together.action]',
+      '[case:blog.blog_connections.blog_exchange_shape_date.action]',
       (t) async {
         final start = DateTime.now().toUtc().add(const Duration(days: 2));
         final api = QaApi()
@@ -1176,7 +1176,7 @@ void main() {
     );
 
     testWidgets('Try First Chapter Studio opens the studio for this match '
-        '[case:blog.blog_connections.try_first_chapter_studio.action]', (
+        '[case:blog.blog_connections.blog_exchange_studio.action]', (
       t,
     ) async {
       final api = QaApi()
@@ -1204,7 +1204,7 @@ void main() {
     testWidgets(
       'Propose a shared journal page loads the chapter and opens the joint '
       'preview with both contributions '
-      '[case:blog.blog_connections.propose_a_shared_journal_page.action]',
+      '[case:blog.blog_connections.blog_exchange_journal_page.action]',
       (t) async {
         final api = QaApi()
           ..json('GET /blog/responses/ex1', {
@@ -1248,7 +1248,7 @@ void main() {
 
     testWidgets(
       'When the source chapter is gone, the journal page explains and stays '
-      'on the exchange [case:blog.blog_connections.propose_a_shared_journal_page.api_failure]',
+      'on the exchange [case:blog.blog_connections.blog_exchange_journal_page.api_failure]',
       (t) async {
         final api = QaApi()
           ..json('GET /blog/responses/ex1', {
@@ -1272,7 +1272,7 @@ void main() {
     testWidgets(
       'Withdraw exchange asks first; Cancel keeps it, Withdraw deletes it, '
       'closes the exchange and the hub no longer lists it '
-      '[case:blog.blog_connections.withdraw_exchange.action]',
+      '[case:blog.blog_connections.blog_exchange_withdraw.action]',
       (t) async {
         var withdrawn = false;
         final api = QaApi()
@@ -1308,7 +1308,7 @@ void main() {
 
     testWidgets(
       'A failed withdraw explains, stays on the exchange, and the retry '
-      'closes it [case:blog.blog_connections.withdraw_exchange.api_failure]',
+      'closes it [case:blog.blog_connections.blog_exchange_withdraw.api_failure]',
       (t) async {
         final api = QaApi()
           ..json('GET /blog/responses/ex1', {'response': exchange()})
@@ -1349,7 +1349,7 @@ void main() {
     testWidgets(
       'regression: Report exchange opens the report sheet, sends the reason '
       'and details for this exchange, closes and confirms '
-      '[case:blog.blog_connections.report_exchange.action] '
+      '[case:blog.blog_connections.blog_exchange_report.action] '
       '[case:blog.blog_connections.submit_report_onsubmit.action]',
       (t) async {
         final api = QaApi()
@@ -1379,7 +1379,7 @@ void main() {
     testWidgets(
       'A failed report keeps the sheet and the details, explains, and the '
       'retry is the only other request '
-      '[case:blog.blog_connections.report_exchange.api_failure] '
+      '[case:blog.blog_connections.blog_exchange_report.api_failure] '
       '[case:blog.blog_connections.submit_report_onsubmit.api_failure]',
       (t) async {
         final api = QaApi()
@@ -1411,7 +1411,7 @@ void main() {
     testWidgets(
       'Block member asks first; Cancel sends nothing, Block blocks the partner, '
       'closes the exchange and refreshes the hub '
-      '[case:blog.blog_connections.block_member.action]',
+      '[case:blog.blog_connections.blog_exchange_block.action]',
       (t) async {
         var blocked = false;
         final api = QaApi()
@@ -1449,7 +1449,7 @@ void main() {
 
     testWidgets(
       'A failed block explains, stays on the exchange, and the retry works '
-      '[case:blog.blog_connections.block_member.api_failure]',
+      '[case:blog.blog_connections.blog_exchange_block.api_failure]',
       (t) async {
         final api = QaApi()
           ..json('GET /blog/responses/ex1', {'response': exchange()})

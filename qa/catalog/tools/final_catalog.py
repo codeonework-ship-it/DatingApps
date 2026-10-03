@@ -1,6 +1,6 @@
 import json, os, re, collections, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from paths import build_path, CATALOG, MANUAL
+from paths import build_path, CATALOG, MANUAL, EXTRA
 from dartscan import ROOT, LIB
 import extract_app as EA
 
@@ -136,6 +136,60 @@ for jid, title, rx, seed in J:
 APP.append(journ)
 
 features = APP + OTHER
+
+# ---- qa/catalog/extra_cases.json: what static extraction cannot see, each with a reason
+EXTRA_ISSUES = []
+if os.path.exists(EXTRA):
+    _x = json.load(open(EXTRA))
+    _fby = {f["id"]: f for f in features}
+    for nf in _x.get("features", []):
+        nf = dict(nf)
+        nf.setdefault("controls", [])
+        for c in nf.get("cases", []):
+            c.setdefault("automated_by", [])
+            c.setdefault("status", "not_automated")
+            c["declared_in"] = "qa/catalog/extra_cases.json"
+        if nf["id"] in _fby:
+            _fby[nf["id"]]["cases"] += nf.get("cases", [])
+            _fby[nf["id"]]["controls"] += nf.get("controls", [])
+        else:
+            nf["declared_in"] = "qa/catalog/extra_cases.json"
+            features.append(nf)
+            _fby[nf["id"]] = nf
+    _ctl_owner = {c["id"]: f for f in features for c in f["controls"]}
+    for xc in _x.get("controls", []):
+        f = _fby.get(xc["feature"])
+        if not f:
+            EXTRA_ISSUES.append({"id": xc["id"], "reason": f"feature {xc['feature']} not in the catalog"})
+            continue
+        if xc["id"] in _ctl_owner:
+            EXTRA_ISSUES.append({"id": xc["id"], "reason": "control now extracted; remove it from extra_cases.json"})
+            continue
+        ctl = {k: v for k, v in xc.items() if k != "feature"}
+        ctl.setdefault("qa_key", None)
+        ctl.setdefault("api", None)
+        ctl.setdefault("action", ctl.get("why", ""))
+        ctl["declared_in"] = "qa/catalog/extra_cases.json"
+        f["controls"].append(ctl)
+        _ctl_owner[ctl["id"]] = f
+    _case_ids = {c["id"] for f in features for c in f["cases"]}
+    for xc in _x.get("cases", []):
+        on = xc["on"]
+        f = _ctl_owner.get(on) or _fby.get(on)
+        if not f:
+            EXTRA_ISSUES.append({"id": xc["id"], "reason": f"target {on} not in the catalog"})
+            continue
+        if xc["id"] in _case_ids:
+            EXTRA_ISSUES.append({"id": xc["id"], "reason": "case now generated; remove it from extra_cases.json"})
+            continue
+        case = {"id": xc["id"], "title": xc["title"], "type": xc["type"], "steps": xc.get("steps") or [xc["title"]],
+                "expected": xc.get("expected") or xc["title"], "automated_by": [], "status": "not_automated",
+                "why_declared": xc.get("why", ""), "declared_in": "qa/catalog/extra_cases.json"}
+        if on in _ctl_owner:
+            case["covers_controls"] = [on]
+        f["cases"].append(case)
+        _case_ids.add(xc["id"])
+
 _seen = set()
 for f in features:
     for c in f["cases"]:
@@ -148,7 +202,7 @@ for f in features:
 # ---- QA Lab contract: explicit [case:...] tags win; manual_cases.json next; heuristic last
 import case_tags as CT_
 TAG_SCAN = CT_.scan_all(ROOT)
-TAG_INDEX = CT_.index(TAG_SCAN)
+TAG_INDEX = CT_.index(TAG_SCAN, known_ids=sorted({c["id"] for f in features for c in f["cases"]}))
 MANUAL_CASES = {}
 if os.path.exists(MANUAL):
     _m = json.load(open(MANUAL))
@@ -156,7 +210,11 @@ if os.path.exists(MANUAL):
 _all_ids = {c["id"] for f in features for c in f["cases"]}
 tag_issues = {"unknown_case_ids": sorted({cid for cid in TAG_INDEX if cid not in _all_ids}),
               "manual_unknown_case_ids": sorted(k for k in MANUAL_CASES if k not in _all_ids),
-              "manual_but_tagged": sorted(k for k in MANUAL_CASES if k in TAG_INDEX)}
+              "manual_but_tagged": sorted(k for k in MANUAL_CASES if k in TAG_INDEX),
+              "unmatched_patterns": sorted({f"{t['file']}: {p}" for ts in TAG_SCAN.values() for t in ts
+                                            for p in (t.get("case_patterns") or [])
+                                            if not any(CT_.expand_pattern(p, t.get("pattern_values") or (), _all_ids))}),
+              "extra_cases_issues": EXTRA_ISSUES}
 for f in features:
     for c in f["cases"]:
         tagged = TAG_INDEX.get(c["id"], [])
@@ -212,12 +270,13 @@ stats = {"features": len(features), "screens_in_matrix": len(MATRIX), "controls"
          "control_action_status": dict(ctrl_status), "cases_by_suite": dict(suite_cases),
          "tests_scanned": {k: len(v) for k, v in TESTS.items()},
          "mapped_by": dict(collections.Counter(c.get("mapped_by") or "none" for c in cases)),
-         "tagged_tests": {k: sum(1 for t in v if t.get("cases")) for k, v in TAG_SCAN.items()},
+         "tagged_tests": {k: sum(1 for t in v if t.get("cases") or t.get("expanded_cases")) for k, v in TAG_SCAN.items()},
          "tag_issues": tag_issues}
 out = {"generated": os.environ.get("QA_CATALOG_DATE") or __import__("datetime").date.today().isoformat(),
        "generator": "python3 qa/catalog/tools/regenerate.py (static extraction of app/lib + test suites; [case:...] tags and qa/catalog/manual_cases.json applied)",
        "conventions": {"status": "automated = a test performs the action AND asserts an outcome (mapped_by=tag: the test names the case; mapped_by=heuristic: static key/label match); presence_only = tests find/tap the control without asserting its effect; partial = covered indirectly; manual = cannot be automated locally (manual_reason; checked by a person in QA Lab); not_automated = no test",
-                       "case_tags": "Flutter/Playwright: [case:<id>] in the test name; pytest: @pytest.mark.case(\"<id>\"); Go: // case: <id> above func TestX; Django: # case: <id> above def test_x",
+                       "case_tags": "Flutter/Playwright: [case:<id>] in the test name (interpolated ids are expanded only to string literals of the file); pytest: @pytest.mark.case(\"<id>\") incl. pytest.param marks; Go: // case: <id> above func TestX; Django: [case:<id>] in the test method docstring (or # case: <id> above def test_x)",
+                       "extra_cases": "qa/catalog/extra_cases.json declares controls/cases/features static extraction cannot see; each has a reason (why_declared)",
                        "api": "statically inferred from callback → provider → Dio call; verify where action says 'unclassified'",
                        "qa_key": "ValueKey('qa.*') or Semantics label/identifier 'qa.*' (Appium content-desc); '*' = interpolated id"},
        "stats": stats, "features": features}
