@@ -86,7 +86,7 @@ Transitions:
 Member notifications use category `system` and route `/support/tickets/<id>`, both as push and in the in-app inbox:
 
 - `support.reply` for each public agent reply.
-- `support.status` when an agent resolves or closes a ticket.
+- `support.status` when an agent resolves or closes a ticket, or sets it to `pending_member` without a public reply. A public reply that also resolves or closes sends only the `support.status` notice (one notification per action). The payload carries `ticket_id`, `reference` and `status`.
 
 Internal notes never notify. Website requesters cannot be notified: the console shows their address with "Reply by email — this visitor has no account". The API does not send email.
 

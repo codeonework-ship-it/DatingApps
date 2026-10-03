@@ -55,8 +55,13 @@ for (const {locale, page, url, title, h1} of generatedPages) {
     const current = navLinks.filter(([, , c]) => c === 'page').map(([, href]) => href);
     expect(current).toEqual(['features', 'safety'].includes(page) ? [url] : []);
     await expect(tab.locator('header .brand')).toHaveAttribute('href', locale.pages.index.url);
-    await expect(tab.locator('header a[href="/app/#/signin"]')).toHaveCount(1);
-    await expect(tab.locator('header a[href="/app/#/signup"]')).toHaveCount(1);
+    await expect(tab.locator(`header a[href="/app/?lang=${locale.hreflang}#/signin"]`)).toHaveCount(1);
+    await expect(tab.locator(`header a[href="/app/?lang=${locale.hreflang}#/signup"]`)).toHaveCount(1);
+    // Every link into the app carries this page's language (the app's wire tag),
+    // so the loader and first frame match the page the visitor came from.
+    const appLinks = await tab.locator('a[href^="/app"]').evaluateAll(a => a.map(x => x.getAttribute('href')));
+    expect(appLinks.length).toBeGreaterThan(0);
+    expect(appLinks.filter(href => !href.startsWith(`/app/?lang=${locale.hreflang}#/`))).toEqual([]);
 
     // Footer: same-locale public pages plus the app entry points.
     const footer = await tab.locator('footer.site-footer a').evaluateAll(a => a.map(x => x.getAttribute('href')));

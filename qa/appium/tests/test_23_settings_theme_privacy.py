@@ -53,28 +53,27 @@ def _tap_look(app, preset_id: str) -> None:
     size = app.driver.get_window_size()
     for direction in ("left", "right"):
         for _ in range(8):
-            cards = app.driver.find_elements(*app.ui_desc_contains(label))
+            cards = app.find_qa_containing(label)
             if cards:
                 rect = cards[0].rect
                 # The strip paints with Clip.none, so a card scrolled past the
                 # viewport edge still reports a thin on-screen sliver that does
                 # not take taps. Only a card at full width is really in view.
-                widths = [c.rect["width"] for c in app.driver.find_elements(
-                    *app.ui_desc_contains("qa.settings.theme_preset."))]
+                widths = [c.rect["width"] for c in app.find_qa_containing("qa.settings.theme_preset.")]
                 full = rect["width"] >= 0.95 * max(widths)
                 if full and rect["x"] >= 0 and rect["x"] + rect["width"] <= size["width"]:
                     time.sleep(0.8)  # let the strip/page settle before tapping
-                    cards = app.driver.find_elements(*app.ui_desc_contains(label))
+                    cards = app.find_qa_containing(label)
                     if cards and cards[0].rect == rect:
                         cards[0].click()
                         return
                     continue
             # Swipe along the row of cards (the strip's own semantics node
             # also spans the mode selector above it).
-            row = app.driver.find_elements(*app.ui_desc_contains("qa.settings.theme_preset."))
+            row = app.find_qa_containing("qa.settings.theme_preset.")
             if not row:
                 app.scroll_to_text("qa.settings.theme_preset.", timeout=10)
-                row = app.driver.find_elements(*app.ui_desc_contains("qa.settings.theme_preset."))
+                row = app.find_qa_containing("qa.settings.theme_preset.")
             card = row[0].rect
             y = int(card["y"] + card["height"] / 2)
             start, end = (0.8, 0.25) if direction == "left" else (0.2, 0.75)
@@ -91,7 +90,7 @@ def _wait_title_card_gone(app) -> None:
 
 
 def _card_selected(app, preset_id: str) -> bool:
-    cards = app.driver.find_elements(*app.ui_desc_contains(f"qa.settings.theme_preset.{preset_id}"))
+    cards = app.find_qa_containing(f"qa.settings.theme_preset.{preset_id}")
     return bool(cards) and (cards[0].get_attribute("selected") or "").lower() == "true"
 
 

@@ -6,6 +6,7 @@
 //   - in each form row, controls share one height and their tops line up;
 //   - buttons in a form's action row share one height;
 //   - KPI values fit their tiles and line up across a row;
+//   - every grid is paged (no table shows more than 100 rows at once);
 //   - templates carry no inline style="" attributes (CSS custom
 //     properties for data-driven values, e.g. style="--pct: 40%", are fine).
 // Skips when the console isn't running. Credentials: CONSOLE_USER /
@@ -33,7 +34,8 @@ const pages = [
   'analytics/engagement/', 'analytics/liquidity/', 'analytics/safety/',
   'analytics/data/', 'business/', 'business/subscriptions/', 'business/conversion/',
   'business/coins/', 'business/referrals/', 'business/markets/',
-  'business/investor-pack/', 'business/spend/', 'reports/', 'reports/revenue/?mode=all', 'reports/retention/', 'activity/',
+  'business/investor-pack/', 'business/spend/', 'reports/', 'reports/revenue/?mode=all', 'reports/retention/', 'activity/', 'reports/most-reported-members/',
+  'reports/member-directory/', 'system/', 'system/jobs/', 'system/traffic/', 'system/capacity/', 'system/third-party/',
   'billing/transactions/',
 ];
 
@@ -98,6 +100,12 @@ async function layoutProblems(page) {
     }
     for (const tops of rows.values()) {
       if (Math.max(...tops) - Math.min(...tops) > 2) problems.push('KPI values in one row are not aligned');
+    }
+    // Every grid is paged: no table shows more than 100 rows at once
+    // (server-paged lists cap at 100 per page; console.js pages the rest).
+    for (const table of document.querySelectorAll('table.glass-table')) {
+      const shown = [...table.querySelectorAll('tbody > tr')].filter((r) => !r.hidden && r.offsetParent !== null && !r.classList.contains('collapse')).length;
+      if (shown > 100) problems.push(`a table shows ${shown} rows without pagination`);
     }
     for (const actions of document.querySelectorAll('.form-actions, .filter-actions')) {
       const heights = new Set([...actions.querySelectorAll('.btn')].filter(visible).map((b) => Math.round(b.getBoundingClientRect().height)));

@@ -159,6 +159,23 @@ def contact(loc):
 <div id="contact-success" class="contact-success" tabindex="-1" hidden data-ref-template="{e('c_ok_ref')}"><h3>{e('c_ok_h2')}</h3><p>{e('c_ok_p')}</p><p id="contact-reference" class="contact-reference" hidden></p><button class="button secondary" type="button" id="contact-again">{e('c_ok_again')}</button></div></div></div></section></div>'''
 
 
+APP_LINK = 'href="/app/#'
+
+
+def with_app_language(html, mod):
+    """Point every link into the web app at this page's language.
+
+    `/app/#/signin` becomes `/app/?lang=de#/signin`. The tag is the locale's
+    HREFLANG, which is exactly the app's wire tag (en-US, en-GB, de, fr, ru,
+    es, it, pt, nl, pl). The app's loader (app/web/loading.js) and first frame
+    use it unless the member already picked a language in the app. The query
+    goes before the hash: the app routes on the hash.
+    """
+    html = html.replace(APP_LINK, f'href="/app/?lang={mod.HREFLANG}#')
+    assert APP_LINK not in html and 'href="/app/"' not in html, 'app link without a language'
+    return html
+
+
 def build(loc, all_locales):
     prefix, mod = loc
     t = mod.STRINGS
@@ -175,7 +192,8 @@ def build(loc, all_locales):
     }
     assert set(pages) == set(PAGES)
     for page, (title, description, content, active) in pages.items():
-        (out / f'{page}.html').write_text(layout(loc, all_locales, page, title, description, content, active), encoding='utf-8')
+        html = layout(loc, all_locales, page, title, description, content, active)
+        (out / f'{page}.html').write_text(with_app_language(html, mod), encoding='utf-8')
     return len(mod.FEATURES)
 
 

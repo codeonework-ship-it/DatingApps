@@ -45,6 +45,19 @@ class DatingApp:
             f'new UiSelector().descriptionContains("{self._escape(text)}")',
         )
 
+    def ui_id_contains(self, text: str) -> tuple[str, str]:
+        # qa.* ids are Flutter Semantics identifiers (Android resource-id).
+        pattern = ".*" + re.escape(text).replace("\\", "\\\\") + ".*"
+        return (
+            AppiumBy.ANDROID_UIAUTOMATOR,
+            f'new UiSelector().resourceIdMatches("{self._escape_regex_literal(pattern)}")',
+        )
+
+    def find_qa_containing(self, text: str) -> list[WebElement]:
+        """Elements whose qa id (resource-id, or legacy content-desc) contains [text]."""
+        found = self.driver.find_elements(*self.ui_id_contains(text))
+        return found or self.driver.find_elements(*self.ui_desc_contains(text))
+
     def ui_class(self, class_name: str) -> tuple[str, str]:
         return (AppiumBy.CLASS_NAME, class_name)
 
@@ -55,7 +68,13 @@ class DatingApp:
         return (AppiumBy.ID, value)
 
     def qa_locators(self, value: str) -> list[tuple[str, str]]:
+        # The app exposes qa.* ids through Semantics(identifier: ...), which
+        # Flutter maps to the Android resource-id (iOS accessibilityIdentifier)
+        # without replacing the spoken label. Match the raw resource-id first;
+        # content-desc stays as a fallback for older builds.
         return [
+            (AppiumBy.ANDROID_UIAUTOMATOR, f'new UiSelector().resourceId("{self._escape(value)}")'),
+            (AppiumBy.XPATH, f'//*[@resource-id="{self._escape(value)}"]'),
             self.accessibility_id(value),
             self.ui_desc(value),
             self.ui_desc_contains(value),
@@ -120,8 +139,11 @@ class DatingApp:
         return element
 
     def wait_for_text(self, text: str, timeout: int | None = None) -> WebElement:
+        # A qa.* id is a Semantics identifier (resource-id), not visible text.
+        id_locators = [self.ui_id_contains(text)] if text.startswith("qa.") else []
         return self._wait_for_first_present(
             [
+                *id_locators,
                 self.accessibility_id(text),
                 self.ui_text(text),
                 self.ui_desc(text),
@@ -1109,6 +1131,9 @@ class DatingApp:
             (out / f"{safe}.xml").write_text(self.driver.page_source, encoding="utf-8")
         except Exception:  # noqa: BLE001 - evidence capture is best effort
             pass
+
+    def _escape_regex_literal(self, pattern: str) -> str:
+        return pattern.replace('"', '\\"')
 
     def _escape(self, text: str) -> str:
         return text.replace('\\', '\\\\').replace('"', '\\"')

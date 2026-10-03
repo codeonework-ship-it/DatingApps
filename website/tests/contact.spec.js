@@ -40,7 +40,7 @@ for (const width of [360, 1440]) {
     await expect(page.getByRole('heading', {level: 1})).toHaveText('How can we help?');
     await expect(page.locator('#contact-form')).toBeVisible(); // revealed by contact.js
     await expect(page.locator('[data-contact-emergency]')).toContainText('not an emergency service');
-    await expect(page.getByRole('link', {name: /Open Help & support/})).toHaveAttribute('href', '/app/#/help');
+    await expect(page.getByRole('link', {name: /Open Help & support/})).toHaveAttribute('href', '/app/?lang=en-US#/help');
     await expect(page.getByRole('link', {name: /Visit the safety center/})).toHaveAttribute('href', '/safety');
     const categories = await page.locator('#contact-category option').evaluateAll(o => o.map(x => x.value));
     expect(categories).toEqual(['', 'account_login', 'verification', 'payments_billing', 'safety_harassment',

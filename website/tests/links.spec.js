@@ -109,7 +109,7 @@ test('every feature card opens its own page in the signed-in web app [case:site.
       await page.goto('/features');
       await page.locator('[data-feature] a').nth(index).click();
       const route = card.href.split('#')[1];
-      await expect(page).toHaveURL(new RegExp(`/app/#${route}$`));
+      await expect(page).toHaveURL(new RegExp(`/app/(\\?lang=[A-Za-z-]+)?#${route}$`));
       // Signed in after the reload: the workspace sidebar, not the sign-in form.
       await expect(page.getByRole('button', {name: 'Sign out', exact: true})).toBeVisible({timeout: 30000});
       await expect(page.getByRole('textbox', {name: 'username', exact: true})).toHaveCount(0);
@@ -119,7 +119,7 @@ test('every feature card opens its own page in the signed-in web app [case:site.
         test.info().annotations.push({type: 'feature switched off', description: `${card.name} (${card.href}): ${await unavailable.first().textContent()}`});
         await expect(page.getByRole('button', {name: 'Back to Discover', exact: true})).toBeVisible();
       }
-      await expect(page).toHaveURL(new RegExp(`/app/#${route}$`));
+      await expect(page).toHaveURL(new RegExp(`/app/(\\?lang=[A-Za-z-]+)?#${route}$`));
     });
   }
   expect(problems).toEqual([]);
