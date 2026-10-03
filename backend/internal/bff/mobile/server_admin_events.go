@@ -172,19 +172,22 @@ func (s *Server) adminDomainEventMetrics(w http.ResponseWriter, r *http.Request)
 		writeError(w, http.StatusBadGateway, err)
 		return
 	}
-	var registered, unregistered int64
+	// Sources excluded on purpose (migration 134) count as covered.
+	var registered, excluded, unregistered int64
 	err = s.store.adminRepo.pg.QueryRowContext(ctx, `
 		SELECT
 		  (SELECT COUNT(*) FROM platform.event_source_registry WHERE enabled),
+		  (SELECT COUNT(*) FROM platform.event_source_registry WHERE excluded_reason IS NOT NULL),
 		  COUNT(*)
 		FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
 		WHERE n.nspname IN ('user_management','matching','progression','audit')
 		  AND c.relkind IN ('r','p') AND NOT c.relispartition
 		  AND NOT EXISTS (
 		    SELECT 1 FROM platform.event_source_registry r
-		    WHERE r.source_schema=n.nspname AND r.source_table=c.relname AND r.enabled
+		    WHERE r.source_schema=n.nspname AND r.source_table=c.relname
+		      AND (r.enabled OR r.excluded_reason IS NOT NULL)
 		  )
-	`).Scan(&registered, &unregistered)
+	`).Scan(&registered, &excluded, &unregistered)
 	if err != nil {
 		writeError(w, http.StatusBadGateway, err)
 		return
@@ -193,7 +196,7 @@ func (s *Server) adminDomainEventMetrics(w http.ResponseWriter, r *http.Request)
 		"total_events": total, "events_15m": recent,
 		"pending_deliveries": pending, "processing_deliveries": processing,
 		"dead_letters": deadLetters, "oldest_pending_age_seconds": oldest,
-		"registered_sources": registered, "unregistered_sources": unregistered,
+		"registered_sources": registered, "excluded_sources": excluded, "unregistered_sources": unregistered,
 		"coverage_complete": unregistered == 0, "delivery": "at_least_once",
 		"as_of": time.Now().UTC(),
 	})

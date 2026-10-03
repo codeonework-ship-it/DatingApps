@@ -155,6 +155,14 @@ func (w *trustRetentionWorker) RunOnce(ctx context.Context) (trustRetentionResul
 	serverActivity, err := runServerActivityRetention(ctx, w.db, w.batch)
 	result.ServerActivity = serverActivity
 	keep(err)
+	outboxRemoved, err := runDomainEventRetention(ctx, w.db)
+	if outboxRemoved > 0 {
+		if result.ServerActivity == nil {
+			result.ServerActivity = map[string]int{}
+		}
+		result.ServerActivity["domain_event_outbox"] = outboxRemoved
+	}
+	keep(err)
 	keep(w.refreshSOSGauges(ctx))
 
 	w.record(result)
@@ -207,6 +215,21 @@ func runServerActivityRetention(ctx context.Context, db *sql.DB, batch int) (map
 		"server_job_runs": jobRuns, "server_job_rollups": jobRollups, "server_request_rollups": requestRollups,
 		"server_events": events, "server_capacity_snapshots": snapshots, "server_third_party_usage": usage,
 	}, nil
+}
+
+// runDomainEventRetention deletes one batch of outbox events older than the
+// domain_event_outbox policy that no consumer still needs (migration 134).
+// Before the migration is applied it does nothing.
+func runDomainEventRetention(ctx context.Context, db *sql.DB) (int, error) {
+	var removed int
+	err := db.QueryRowContext(ctx, `SELECT platform.run_domain_event_retention(NULL)`).Scan(&removed)
+	if err != nil {
+		if strings.Contains(err.Error(), "run_domain_event_retention") && strings.Contains(err.Error(), "does not exist") {
+			return 0, nil
+		}
+		return 0, err
+	}
+	return removed, nil
 }
 
 type identityEvidenceRow struct {

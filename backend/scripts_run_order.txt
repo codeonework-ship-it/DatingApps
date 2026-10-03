@@ -231,3 +231,4 @@ scripts/132_member_activity.sql
 
 # Server activity: job runs + hourly rollups, request rollups, server events, capacity snapshots, third-party usage (additive; platform telemetry, no event/audit triggers)
 scripts/133_server_activity.sql
+scripts/134_domain_event_amplification.sql

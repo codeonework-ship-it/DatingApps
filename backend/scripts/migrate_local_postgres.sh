@@ -118,6 +118,7 @@ migrations=(
 	131_admin_list_paging.sql
 	132_member_activity.sql
 	133_server_activity.sql
+	134_domain_event_amplification.sql
 )
 
 for migration in "${migrations[@]}"; do
